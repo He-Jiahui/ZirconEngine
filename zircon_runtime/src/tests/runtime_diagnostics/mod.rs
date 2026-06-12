@@ -212,13 +212,13 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     assert_render_count_series(
         &snapshot.store,
         "render.history.copy.requested_count",
-        4.0,
+        5.0,
         &["history", "copy"],
     );
     assert_render_count_series(
         &snapshot.store,
         "render.history.copy.copied_count",
-        3.0,
+        4.0,
         &["history", "copy"],
     );
     assert_render_count_series(
@@ -257,6 +257,12 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         false,
         &["history", "copy", "screen_space_reflection"],
     );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.hzb_furthest_copied",
+        true,
+        &["history", "copy", "hzb"],
+    );
     assert_render_count_series(
         &snapshot.store,
         "render.camera.scheduled_count",
@@ -268,6 +274,54 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.camera.order_ambiguity_count",
         1.0,
         &["render", "camera", "ordering"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.view_count",
+        2.0,
+        &["render", "visibility"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.input_count",
+        8.0,
+        &["render", "visibility"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.layer_filtered_count",
+        1.0,
+        &["render", "visibility", "layer"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.frustum_culled_count",
+        3.0,
+        &["render", "visibility", "frustum"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.occlusion_culled_count",
+        1.0,
+        &["render", "visibility", "occlusion"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.visible_count",
+        3.0,
+        &["render", "visibility", "visible"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.mip_count",
+        10.0,
+        &["render", "hzb", "mip"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.graph_executed_pass_count",
+        1.0,
+        &["render", "hzb", "graph"],
     );
     assert_render_bool_series(
         &snapshot.store,
@@ -605,6 +659,89 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.graph.execution.bound_resource_count",
         21.0,
         &["graph", "execution", "resource"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.texture_created_count",
+        5.0,
+        &[
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "created",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.texture_reused_count",
+        7.0,
+        &[
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "reused",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.buffer_created_count",
+        2.0,
+        &[
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "buffer",
+            "created",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.buffer_reused_count",
+        3.0,
+        &["graph", "execution", "resource", "pool", "buffer", "reused"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.texture_pool_entry_count",
+        4.0,
+        &["graph", "execution", "resource", "pool", "texture"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.buffer_pool_entry_count",
+        1.0,
+        &["graph", "execution", "resource", "pool", "buffer"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.evicted_texture_count",
+        8.0,
+        &[
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "evicted",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.graph.execution.transient_pool.evicted_buffer_count",
+        9.0,
+        &[
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "buffer",
+            "evicted",
+        ],
     );
     assert_render_count_series(
         &snapshot.store,
@@ -1003,9 +1140,39 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     );
     assert_render_count_series(
         &snapshot.store,
+        "render.mesh.queue.skinned_draw_count",
+        3.0,
+        &["mesh", "queue", "skinned"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.skinned_gpu_source_candidate_count",
+        1.0,
+        &["mesh", "queue", "skinned", "gpu_source"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count",
+        1.0,
+        &["mesh", "queue", "skinned", "gpu_source", "cpu_morphed"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.skinned_gpu_skinning_draw_count",
+        1.0,
+        &["mesh", "queue", "skinned", "gpu_skinning"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
         "render.mesh.queue.indirect_draw_count",
         3.0,
         &["mesh", "queue", "indirect"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.lod_draw_count",
+        2.0,
+        &["mesh", "queue", "lod"],
     );
     assert_render_count_series(
         &snapshot.store,
@@ -1043,6 +1210,78 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         9.0,
         &["mesh", "queue", "instancing"],
     );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.indirect_batch_count",
+        2.0,
+        &["mesh", "queue", "indirect", "batch"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.indirect_batched_draw_count",
+        5.0,
+        &["mesh", "queue", "indirect", "batch"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.indirect_fallback_draw_count",
+        4.0,
+        &["mesh", "queue", "indirect", "fallback"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.indirect_args_count",
+        5.0,
+        &["mesh", "queue", "indirect", "args"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.primitive_count",
+        5.0,
+        &["gpu_scene"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.instance_count",
+        7.0,
+        &["gpu_scene"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.dirty_entry_count",
+        3.0,
+        &["gpu_scene", "upload"],
+    );
+    assert_render_byte_series(
+        &snapshot.store,
+        "render.gpu_scene.uploaded_bytes",
+        128.0,
+        &["gpu_scene", "upload"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.gpu_scene.upload_path.direct_queue_write",
+        true,
+        &["gpu_scene", "upload", "direct_queue_write"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.free_span_count",
+        2.0,
+        &["gpu_scene", "allocator"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.primitive_upload_range_count",
+        1.0,
+        &["gpu_scene", "upload", "primitive"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.gpu_scene.instance_upload_range_count",
+        4.0,
+        &["gpu_scene", "upload", "instance"],
+    );
     assert_render_count_series(&snapshot.store, "render.sprite.count", 11.0, &["sprite"]);
     assert_render_count_series(
         &snapshot.store,
@@ -1073,6 +1312,18 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.sprite.queue.batched_sprite_count",
         10.0,
         &["sprite", "queue", "batch"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.sprite.queue.image_slice_count",
+        14.0,
+        &["sprite", "queue", "image_slice"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.sprite.queue.expanded_image_slice_count",
+        4.0,
+        &["sprite", "queue", "image_slice", "expanded"],
     );
     assert_render_count_series(
         &snapshot.store,

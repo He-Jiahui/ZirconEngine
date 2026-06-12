@@ -4,8 +4,8 @@ use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::core::error::CoreError;
-use crate::core::lifecycle::ServiceKind;
+use crate::core::CoreError;
+use crate::core::ServiceKind;
 
 #[derive(Clone, Debug)]
 pub struct RegistryName {
@@ -125,7 +125,10 @@ impl<'de> Deserialize<'de> for RegistryName {
         D: Deserializer<'de>,
     {
         let value = String::deserialize(deserializer)?;
-        Self::new(value).map_err(serde::de::Error::custom)
+        match Self::new(value) {
+            Ok(name) => Ok(name),
+            Err(error) => Err(serde::de::Error::custom(error)),
+        }
     }
 }
 
@@ -143,7 +146,11 @@ fn is_canonical_segment(value: &str) -> bool {
     if first.is_whitespace() {
         return false;
     }
-    !chars.next_back().unwrap_or(first).is_whitespace()
+    let last = match chars.next_back() {
+        Some(last) => last,
+        None => first,
+    };
+    !last.is_whitespace()
 }
 
 fn is_canonical_dot_free_segment(value: &str) -> bool {
@@ -167,21 +174,29 @@ fn is_canonical_dot_free_segment(value: &str) -> bool {
 }
 
 fn registry_separator_offsets(value: &str) -> Option<(usize, usize)> {
-    let mut first_separator = None;
-    let mut second_separator = None;
-    for (index, byte) in value.bytes().enumerate() {
-        if byte != b'.' {
-            continue;
+    let bytes = value.as_bytes();
+    let mut first_separator = 0;
+    let mut second_separator = 0;
+    let mut separator_count = 0;
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'.' {
+            if separator_count == 0 {
+                first_separator = index;
+            } else if separator_count == 1 {
+                second_separator = index;
+            } else {
+                return None;
+            }
+            separator_count += 1;
         }
-        if first_separator.is_none() {
-            first_separator = Some(index);
-            continue;
-        }
-        if second_separator.is_none() {
-            second_separator = Some(index);
-            continue;
-        }
-        return None;
+        index += 1;
     }
-    Some((first_separator?, second_separator?))
+
+    if separator_count == 2 {
+        Some((first_separator, second_separator))
+    } else {
+        None
+    }
 }

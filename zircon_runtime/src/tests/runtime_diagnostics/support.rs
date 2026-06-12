@@ -5,8 +5,9 @@ use crate::core::framework::render::{
     AdvancedRenderDegradation, AdvancedRenderFeature, AntiAliasFallbackReason,
     AntiAliasFallbackReport, AntiAliasMode, CapturedFrame, FrameHistoryHandle,
     FrameHistoryInvalidationReason, FrameHistoryStatus, MotionVectorCameraStatus,
-    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderGraphExecutionCoverageReport,
-    RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderGpuSceneUploadPath,
+    RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
+    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
     RenderHybridGiPayloadSource, RenderPipelineHandle, RenderPostProcessEffectStackReport,
     RenderQualityProfile, RenderQueueCapability, RenderStats, RenderViewportDescriptor,
     RenderViewportHandle, RenderVirtualGeometryClusterSelectionInputSource,
@@ -15,12 +16,13 @@ use crate::core::framework::render::{
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
 };
-use crate::core::{ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceObject, StartupMode};
+use crate::core::runtime::ServiceObject;
+use crate::core::{ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode};
 use crate::engine_module::factory;
 use crate::graphics::RenderPipelineAsset;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
-pub(super) const DIAGNOSTICS_TEST_MODULE: &str = "DiagnosticsTestModule";
+pub(super) const DIAGNOSTICS_TEST_MODULE: &str = crate::graphics::GRAPHICS_MODULE_NAME;
 
 pub(super) fn fake_render_module() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -109,11 +111,12 @@ impl RenderFramework for FakeRenderFramework {
             last_frame_history_copy_report: RenderHistoryCopyReport::new(
                 true,
                 crate::core::math::UVec2::new(960, 540),
-                4,
+                5,
                 true,
                 true,
                 true,
                 false,
+                true,
             ),
             last_frame_target_size: Some(crate::core::math::UVec2::new(1280, 720)),
             last_frame_render_size: Some(crate::core::math::UVec2::new(960, 540)),
@@ -135,6 +138,14 @@ impl RenderFramework for FakeRenderFramework {
                 ),
             last_scene_camera_scheduled_count: 3,
             last_scene_camera_order_ambiguity_count: 1,
+            last_visibility_view_count: 2,
+            last_visibility_input_count: 8,
+            last_visibility_layer_filtered_count: 1,
+            last_visibility_frustum_culled_count: 3,
+            last_visibility_occlusion_culled_count: 1,
+            last_visibility_visible_count: 3,
+            last_hzb_mip_count: 10,
+            last_hzb_graph_executed_pass_count: 1,
             last_graph_pass_count: 18,
             last_graph_culled_pass_count: 4,
             last_graph_queue_fallback_pass_count: 2,
@@ -165,7 +176,10 @@ impl RenderFramework for FakeRenderFramework {
             last_graph_compute_unexpected_dispatch_count: 0,
             last_graph_execution_resource_report: RenderGraphExecutionResourceReport::new(
                 18, 14, 4, 3,
-            ),
+            )
+            .with_transient_pool_report(RenderGraphTransientPoolReport::new(
+                6, 5, 7, 2, 3, 4, 1, 8, 9,
+            )),
             last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport::new(
                 14, 14, 14, 0, 0, 0,
             ),
@@ -252,7 +266,15 @@ impl RenderFramework for FakeRenderFramework {
             last_mesh_alpha_mask_shadow_caster_draw_count: 2,
             last_mesh_prepared_geometry_draw_count: 5,
             last_mesh_dynamic_geometry_draw_count: 7,
+            last_mesh_skinned_draw_count: 3,
+            last_mesh_skinned_palette_upload_count: 2,
+            last_mesh_skinned_previous_palette_upload_count: 1,
+            last_mesh_skinned_gpu_source_candidate_count: 1,
+            last_mesh_skinned_gpu_cpu_morphed_source_candidate_count: 1,
+            last_mesh_skinned_gpu_skinning_draw_count: 1,
+            last_mesh_skinned_gpu_motion_vector_draw_count: 1,
             last_mesh_indirect_draw_count: 3,
+            last_mesh_lod_draw_count: 2,
             last_mesh_previous_motion_vector_transform_draw_count: 5,
             last_mesh_missing_motion_vector_transform_draw_count: 2,
             last_mesh_static_batch_candidate_group_count: 2,
@@ -261,6 +283,18 @@ impl RenderFramework for FakeRenderFramework {
             last_mesh_dynamic_batch_candidate_draw_count: 6,
             last_mesh_gpu_instancing_candidate_group_count: 4,
             last_mesh_gpu_instancing_candidate_draw_count: 9,
+            last_indirect_batch_count: 2,
+            last_indirect_batched_draw_count: 5,
+            last_indirect_fallback_draw_count: 4,
+            last_indirect_args_count: 5,
+            last_gpu_scene_primitive_count: 5,
+            last_gpu_scene_instance_count: 7,
+            last_gpu_scene_dirty_entry_count: 3,
+            last_gpu_scene_uploaded_bytes: 128,
+            last_gpu_scene_upload_path: RenderGpuSceneUploadPath::DirectQueueWrite,
+            last_gpu_scene_free_span_count: 2,
+            last_gpu_scene_primitive_upload_range_count: 1,
+            last_gpu_scene_instance_upload_range_count: 4,
             last_material_count: 13,
             last_material_ready_count: 10,
             last_material_fallback_count: 2,
@@ -281,8 +315,8 @@ impl RenderFramework for FakeRenderFramework {
             last_directional_light_ready_count: 1,
             last_directional_light_degraded_count: 2,
             last_point_light_count: 4,
-            last_point_light_ready_count: 0,
-            last_point_light_degraded_count: 4,
+            last_point_light_ready_count: 4,
+            last_point_light_degraded_count: 0,
             last_spot_light_count: 5,
             last_spot_light_ready_count: 0,
             last_spot_light_degraded_count: 5,
@@ -298,6 +332,8 @@ impl RenderFramework for FakeRenderFramework {
             last_sprite_graph_executed_pass_count: 3,
             last_sprite_draw_batch_count: 4,
             last_sprite_batched_sprite_count: 10,
+            last_sprite_image_slice_count: 14,
+            last_sprite_expanded_image_slice_count: 4,
             last_sprite_vertex_count: 60,
             last_sprite_opaque_draw_batch_count: 1,
             last_sprite_alpha_mask_draw_batch_count: 1,
@@ -444,8 +480,16 @@ pub(super) fn assert_series_current(
         .iter()
         .find(|series| series.path.as_str() == path)
         .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
-    assert_eq!(series.current, Some(expected));
-    assert_eq!(series.unit.as_deref(), Some(expected_unit));
+    assert_eq!(
+        series.current,
+        Some(expected),
+        "unexpected current value for {path}"
+    );
+    assert_eq!(
+        series.unit.as_deref(),
+        Some(expected_unit),
+        "unexpected unit for {path}"
+    );
     assert!(series.subsystem_tags.contains(&"render".to_string()));
     assert!(series.subsystem_tags.contains(&"effect_stack".to_string()));
 }
@@ -461,8 +505,16 @@ pub(super) fn assert_render_count_series(
         .iter()
         .find(|series| series.path.as_str() == path)
         .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
-    assert_eq!(series.current, Some(expected));
-    assert_eq!(series.unit.as_deref(), Some("count"));
+    assert_eq!(
+        series.current,
+        Some(expected),
+        "unexpected current value for {path}"
+    );
+    assert_eq!(
+        series.unit.as_deref(),
+        Some("count"),
+        "unexpected unit for {path}"
+    );
     assert!(series.subsystem_tags.contains(&"render".to_string()));
     for expected_tag in expected_tags {
         assert!(series.subsystem_tags.contains(&expected_tag.to_string()));
@@ -480,7 +532,11 @@ pub(super) fn assert_render_byte_series(
         .iter()
         .find(|series| series.path.as_str() == path)
         .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
-    assert_eq!(series.current, Some(expected));
+    assert_eq!(
+        series.current,
+        Some(expected),
+        "unexpected current value for {path}"
+    );
     assert_eq!(series.unit.as_deref(), Some("bytes"));
     assert!(series.subsystem_tags.contains(&"render".to_string()));
     for expected_tag in expected_tags {

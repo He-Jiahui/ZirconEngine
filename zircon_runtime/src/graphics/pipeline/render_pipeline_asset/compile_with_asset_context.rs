@@ -78,6 +78,8 @@ fn collect_feature_contract_diagnostics(
         for error in material.validation_errors() {
             diagnostics.push(RendererFeatureContractDiagnostic::MaterialValidation {
                 feature: feature_name.clone(),
+                material: (*material_reference).clone(),
+                shader: None,
                 error,
             });
         }
@@ -138,12 +140,13 @@ fn collect_feature_contract_diagnostics(
         }
     }
 
-    if let (Some((feature_shader, shader)), Some((_material_reference, material))) =
+    if let (Some((feature_shader, shader)), Some((material_reference, material))) =
         (shader.as_ref(), material.as_ref())
     {
         if material.shader != **feature_shader {
             diagnostics.push(RendererFeatureContractDiagnostic::MaterialShaderMismatch {
                 feature: feature_name.clone(),
+                material: (*material_reference).clone(),
                 feature_shader: (*feature_shader).clone(),
                 material_shader: material.shader.clone(),
             });
@@ -151,12 +154,51 @@ fn collect_feature_contract_diagnostics(
         for error in material.shader_contract_diagnostics(shader) {
             diagnostics.push(RendererFeatureContractDiagnostic::MaterialValidation {
                 feature: feature_name.clone(),
+                material: (*material_reference).clone(),
+                shader: Some((*feature_shader).clone()),
                 error,
             });
         }
+    } else if let (None, Some((material_reference, material))) =
+        (references.shader.as_ref(), material.as_ref())
+    {
+        push_material_owned_shader_diagnostics(
+            &mut diagnostics,
+            &feature_name,
+            material_reference,
+            material,
+            context,
+        );
     }
 
     diagnostics
+}
+
+fn push_material_owned_shader_diagnostics(
+    diagnostics: &mut Vec<RendererFeatureContractDiagnostic>,
+    feature_name: &str,
+    material_reference: &AssetReference,
+    material: &MaterialAsset,
+    context: &impl RenderPipelineAssetContext,
+) {
+    let Some(shader) = context.load_shader_asset(&material.shader) else {
+        diagnostics.push(RendererFeatureContractDiagnostic::MaterialShaderMissing {
+            feature: feature_name.to_string(),
+            material: material_reference.clone(),
+            shader: material.shader.clone(),
+        });
+        return;
+    };
+
+    push_shader_readiness_diagnostics(diagnostics, feature_name, &material.shader, &shader);
+    for error in material.shader_contract_diagnostics(&shader) {
+        diagnostics.push(RendererFeatureContractDiagnostic::MaterialValidation {
+            feature: feature_name.to_string(),
+            material: material_reference.clone(),
+            shader: Some(material.shader.clone()),
+            error,
+        });
+    }
 }
 
 fn push_shader_readiness_diagnostics(

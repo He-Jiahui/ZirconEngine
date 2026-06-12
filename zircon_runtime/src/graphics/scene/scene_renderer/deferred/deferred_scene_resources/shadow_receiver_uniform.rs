@@ -74,6 +74,7 @@ mod tests {
                 ambient_color: [0.0, 0.0, 0.0, 1.0],
                 previous_view_proj: light_view_proj,
                 motion_params: [0.0, 0.0, 0.0, 0.0],
+                ..SceneUniform::default()
             }));
 
         assert_eq!(uniform.light_view_proj, light_view_proj);

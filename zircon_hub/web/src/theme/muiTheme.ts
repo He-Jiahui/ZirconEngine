@@ -10,7 +10,7 @@ export const hubTheme = createTheme({
     },
     primary: {
       main: hubTokens.colors.accent,
-      contrastText: "#071515",
+      contrastText: hubTokens.colors.textOnPrimary,
     },
     success: {
       main: hubTokens.colors.success,
@@ -98,7 +98,7 @@ export const hubTheme = createTheme({
       styleOverrides: {
         paper: {
           backgroundImage: "none",
-          backgroundColor: "#202020",
+          backgroundColor: hubTokens.colors.panel,
           border: `1px solid ${hubTokens.colors.lineStrong}`,
         },
       },
@@ -126,7 +126,7 @@ export const hubTheme = createTheme({
       styleOverrides: {
         tooltip: {
           fontSize: 12,
-          backgroundColor: "#242424",
+          backgroundColor: hubTokens.colors.tooltip,
           border: `1px solid ${hubTokens.colors.line}`,
         },
       },

@@ -4,6 +4,11 @@ struct SceneUniform {
     light_dir: vec4<f32>,
     light_color: vec4<f32>,
     ambient_color: vec4<f32>,
+    previous_view_proj: mat4x4<f32>,
+    motion_params: vec4<f32>,
+    point_light_position_range: array<vec4<f32>, 8>,
+    point_light_color_intensity: array<vec4<f32>, 8>,
+    point_light_params: vec4<f32>,
 };
 
 struct ShadowReceiverUniform {
@@ -26,6 +31,7 @@ struct VertexOutput {
 };
 
 const EPSILON: f32 = 0.000001;
+const POINT_LIGHT_UNIFORM_LIMIT: u32 = 8u;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
@@ -105,6 +111,42 @@ fn shadow_visibility(world_position: vec3<f32>) -> f32 {
     return mix(clamp(shadow_receiver.params.z, 0.0, 1.0), 1.0, lit / 9.0);
 }
 
+fn point_light_lighting(world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>) -> vec3<f32> {
+    let light_count = min(u32(max(scene.point_light_params.x, 0.0)), POINT_LIGHT_UNIFORM_LIMIT);
+    var accumulated = vec3<f32>(0.0, 0.0, 0.0);
+
+    for (var i = 0u; i < POINT_LIGHT_UNIFORM_LIMIT; i = i + 1u) {
+        if (i >= light_count) {
+            break;
+        }
+        let position_range = scene.point_light_position_range[i];
+        let color_intensity = scene.point_light_color_intensity[i];
+        let range = max(position_range.w, EPSILON);
+        let intensity = max(color_intensity.w, 0.0);
+        if (intensity <= 0.0) {
+            continue;
+        }
+
+        let to_light = position_range.xyz - world_position;
+        let distance_to_light = length(to_light);
+        if (distance_to_light >= range) {
+            continue;
+        }
+
+        let light_vector = to_light / max(distance_to_light, EPSILON);
+        let attenuation = pow(clamp(1.0 - distance_to_light / range, 0.0, 1.0), 2.0);
+        let lambert = max(dot(normal, light_vector), 0.0);
+        let radiance = color_intensity.rgb * intensity * attenuation * occlusion;
+        let half_dir = normalize(light_vector + vec3<f32>(0.0, 0.0, 1.0));
+        let specular_power = mix(96.0, 8.0, roughness);
+        let specular_strength = (1.0 - roughness) * mix(0.04, 1.0, metallic);
+        let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * specular_strength;
+        accumulated = accumulated + diffuse_color * radiance * lambert + radiance * specular;
+    }
+
+    return accumulated;
+}
+
 @fragment
 fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let coord = vec2<i32>(position.xy);
@@ -125,12 +167,14 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let half_dir = normalize(light_dir + view_dir);
     let lambert = max(dot(light_dir, normal), 0.0);
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
-    let direct_visibility = shadow_visibility(reconstruct_world_position(coord, depth));
+    let world_position = reconstruct_world_position(coord, depth);
+    let direct_visibility = shadow_visibility(world_position);
     let specular_power = mix(96.0, 8.0, roughness);
     let specular_strength = (1.0 - roughness) * mix(0.04, 1.0, metallic);
     let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * specular_strength;
     let lighting = (scene.ambient_color.rgb + scene.light_color.rgb * lambert * direct_visibility) * occlusion;
     let diffuse_color = albedo.rgb * mix(1.0, 0.55, metallic);
-    let color = diffuse_color * lighting + scene.light_color.rgb * specular * direct_visibility * occlusion;
+    let point_lights = point_light_lighting(world_position, normal, roughness, metallic, occlusion, diffuse_color);
+    let color = diffuse_color * lighting + scene.light_color.rgb * specular * direct_visibility * occlusion + point_lights;
     return vec4<f32>(color, albedo.a);
 }

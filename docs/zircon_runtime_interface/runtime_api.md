@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
+  - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/lib.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
@@ -18,6 +19,7 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
+  - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
 plan_sources:
@@ -27,6 +29,8 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
 tests:
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --message-format short
+  - cargo test -p zircon_runtime_interface function_table_structs_are_all_repr_c --locked --jobs 1 --message-format short
+  - cargo test -p zircon_runtime_interface interface_public_signatures_stay_free_of_dynamic_object_exports --locked --jobs 1 --message-format short
   - cargo test -p zircon_runtime_interface runtime_api_surface_stays_folder_backed_by_abi_owner --locked --jobs 1 --message-format short
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
@@ -63,7 +67,7 @@ New ABI additions should land in the narrow owner file:
 - viewport/native surface records in `viewport.rs`;
 - capture/fetch request records in `requests.rs`.
 
-Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. The structural audit mirrors this as `runtime_api_boundary` so the facade and ABI owner shape are visible in architecture review output without first running the Rust test binary.
+Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. `tests/abi_safety_contracts.rs` additionally locks `ZrHostApiV1` and `ZrRuntimeApiV1` as `#[repr(C)]` function-table structs and rejects public signature lines that introduce dynamic object carriers unsuitable for the ABI boundary. The structural audit mirrors the facade shape as `runtime_api_boundary` so the owner layout is visible in architecture review output without first running the Rust test binary.
 
 ## Validation
 

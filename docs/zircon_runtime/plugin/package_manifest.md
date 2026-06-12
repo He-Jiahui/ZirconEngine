@@ -5,15 +5,27 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_module_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
@@ -119,6 +131,9 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row/provider.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_features/row/target_coverage.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces/dependencies.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces/exports.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers/identity/metadata.rs
@@ -233,6 +248,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/crate_name.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/name.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows/state.rs
@@ -260,15 +276,24 @@ implementation_files:
   - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_option_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_module_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/construction.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/fluent.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows.rs
@@ -461,6 +486,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/crate_name.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/identity/name.rs
+  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/target_modes.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/rows/state.rs
@@ -489,7 +515,12 @@ plan_sources:
   - .codex/plans/Sound 插件核心完善计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
+  - docs/plans/zircon_plugins/11-plugin-call-bridge.md
 tests:
+  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_bridge_interfaces
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_declarations
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_accepts_interface_only_dependency_rows
+  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/interfaces.rs
   - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui UI component descriptor suffix validation: planned for milestone testing stage)
   - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui plugin manifest boundary: planned for milestone testing stage)
   - cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1
@@ -705,7 +736,9 @@ These fields are generic because sound is not the only plugin that needs optiona
 
 ## Behavior Model
 
-`PluginDependencyManifest` records another plugin/capability that this package expects. `required = true` means the package cannot fully operate without that dependency. `required = false` means the package exposes a gated advanced path when the capability exists.
+`PluginDependencyManifest` records another plugin, capability, or bridge interface that this package expects. `required = true` means the package cannot fully operate without that dependency. `required = false` means the package exposes a gated advanced path when the capability or interface exists. Capability dependencies keep using the optional `capability` field. Bridge dependencies use the serde-defaulted `interfaces` list, so dependency rows can be capability-only, interface-only, or both.
+
+`PluginInterfaceManifest` records bridge interfaces exported by this package through the top-level `provides_interfaces` TOML array. Each row has a stable dot-namespaced `id`, for example `physics.query.v1`. These manifest rows are declaration metadata; the runtime still requires concrete code to call `RuntimeExtensionRegistry::export_interface::<T>(...)` during registration before a `StrongBridge` or `WeakBridge` can resolve the provider.
 
 `PluginOptionManifest` records editor/project-visible configuration metadata. Values are stored as strings in the manifest so the manifest remains a simple TOML contract and does not depend on a runtime value enum. Consumers should parse values according to `value_type`.
 
@@ -714,6 +747,10 @@ The runtime extension registry validates option rows before installation. Option
 Static manifest option contract tests are folder-backed to keep row traversal, key shape, and enum/default-value rules separate. `static_manifest_contracts/options.rs` is child-module wiring only. `options/rows.rs` owns the full option row contract and global key uniqueness, `options/keys.rs` owns the focused key namespace contract, `options/enums.rs` owns focused enum default/value tests, `options/shape.rs` owns shared trim, key namespace, value type, default parsing, and enum-value helpers, and `options/traversal.rs` owns TOML option array traversal. This mirrors the production validation boundaries without changing test names, diagnostics, or validation order.
 
 Static manifest schema tests are also folder-backed. `static_manifest_contracts/manifest_schema.rs` is child-module wiring only, `manifest_schema/field_sets.rs` owns the top-level and nested `PluginPackageManifest` field allow-lists, `manifest_schema/assertions.rs` owns shared unknown-field assertions plus component and feature-bundle row adapters, `manifest_schema/top_level.rs` owns the top-level unknown-field contract, and `manifest_schema/nested.rs` owns nested row-field coverage for dependencies, modules, options, components, UI components, asset importers, capability statuses, event catalogs, optional features, and feature-extension rows. The split keeps typo rejection visible before plugin-window, catalog projection, export selection, or native package loading consume static plugin TOML.
+
+Bridge interface manifest validation is folder-backed under `package_validation/interfaces.rs`. `interfaces/exports.rs` owns `provides_interfaces` namespace and uniqueness diagnostics. `interfaces/dependencies.rs` owns dependency `interfaces` namespace and per-dependency uniqueness diagnostics. Package dependency capability validation now treats `capability` and `interfaces` as alternative dependency payloads: a row must declare at least one, but an interface-only bridge dependency no longer needs a capability placeholder.
+
+Linked Rust plugin registration also validates that package interface declarations match the runtime registry. `registration_report/validation/interfaces.rs` checks declared-but-unexported ids from `provides_interfaces` and exported-but-undeclared ids from `RuntimeExtensionRegistry::export_interface(...)`. This validation is registration-report scoped; it does not yet resolve graph-wide strong dependency closure or produce cross-plugin dependency chains.
 
 `PluginEventCatalogManifest` records a namespaced event catalog with a positive version and at least one event. Catalog namespaces must use lowercase dot-separated package namespaces. Event ids must stay under the catalog namespace, display names must be non-empty, duplicate ids are rejected, and payload schemas, when present, must stay under the package namespace and end in a positive version segment such as `v1`.
 
@@ -976,6 +1013,22 @@ is enabled, target-compatible, and carries a provider package id that differs fr
 This prevents disabled catalog defaults from leaking extra native or linked feature packages into a
 desktop export plan.
 
+Runtime module manifests now carry scheduler declarations for plugin architecture v2.
+`PluginModuleManifest.system_sets` declares the dot-namespaced `SystemSet` names a module owns, and
+`PluginModuleManifest.system_anchors` declares the stable system ids that other plugins may target
+with before/after constraints. These fields are serde-defaulted for existing manifests and are set by
+`with_system_sets(...)` / `with_system_anchors(...)` on both module builders and
+`RuntimePluginDescriptor`. Descriptor-owned values project into the generated `.runtime` module row
+so linked Rust plugins and static package manifests share the same public scheduler contract.
+
+Package validation treats system sets and system anchors as module-owned namespace declarations.
+Each value must be non-empty, lowercase dot-namespaced, prefixed by the package id, and unique inside
+the declaring module row. Registration reports then check the dynamic side of the contract: every
+declared runtime module `system_anchor` must be registered as a real ECS system by the same interned
+plugin module owner. A system with the same id registered by a different module does not satisfy the
+declaring module's anchor. This keeps catalog/export/editor contracts aligned with unloadable,
+owner-tracked runtime registration and avoids using manifest-only placeholders as scheduling anchors.
+
 ## Constraints
 
 - Option keys must be non-empty and trimmed.
@@ -992,8 +1045,13 @@ desktop export plan.
 - Duplicate importer ids and duplicate importer matchers at the same priority are rejected by the asset importer registry.
 - Asset importer descriptors cannot register `.ui.toml` or `.v2.ui.toml`; UI component importers must target `.zui` on the production path.
 - UI component descriptors must reference `.zui` documents; legacy `.ui.toml` and `.v2.ui.toml` are reserved for migration and fixture tests.
+- Runtime module `system_sets` and `system_anchors` must use the package id as their namespace prefix and must be unique within the module row.
+- Runtime module `system_anchors` are accepted only when the same runtime module owner registers a matching ECS system id during runtime extension registration.
+- `provides_interfaces` rows must declare unique, non-empty, trimmed, lowercase dot-namespaced interface ids.
+- Dependency `interfaces` entries must be unique within that dependency row and use the same lowercase dot-namespace shape.
+- A dependency row must declare a capability, at least one interface, or both.
 - Existing plugin manifests continue to deserialize because the new fields use serde defaults.
-- This layer does not resolve dependency graphs yet; it only records declared dependency metadata for package/catalog consumers.
+- This layer records declared dependency metadata; `RuntimePluginCatalog` resolves required bridge interface dependency closure after registration reports are merged. Required dependency rows with interface ids become blocking `bridge.strong_dependency_missing` diagnostics when the provider package is absent or does not declare the requested interface. Optional interface dependency rows remain non-blocking. The same required rows drive `RuntimePluginCatalog::strong_bridge_dependents(...)` and `strong_bridge_disable_blockers(...)`, which list dependents for future strong-target disable rejection.
 
 ## Test Coverage
 
@@ -1004,6 +1062,56 @@ The independent plugin follow-up adds focused runtime coverage proving `RuntimeP
 The review follow-up adds package-manifest coverage for overriding `default_packaging` through the builder API and validates the plugin workspace with `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1`.
 
 The workspace-shape plugin contract now also checks `RuntimePluginDescriptor::builtin_catalog()` optional-feature rows against each first-party static `plugin.toml` manifest. That guard catches catalog drift for Sound, Net, Particles, Rendering, and future owner-embedded feature bundles before profile, export, or editor status code consumes divergent feature metadata.
+
+The plugin architecture follow-up extends `RuntimePluginDescriptor` projection coverage so descriptor
+`system_sets` and `system_anchors` appear on the generated runtime module row. It also adds
+registration-report coverage for missing anchors, anchors registered by the wrong module owner, and
+anchors registered by the declaring module owner. Native/static package-manifest coverage now rejects
+cross-package system-set prefixes, duplicate system-set declarations, malformed system-anchor names,
+and duplicate system-anchor declarations. `rustfmt --check` and `git diff --check` passed for the
+touched Rust files. The focused runtime command `cargo test -p zircon_runtime --lib
+plugin_extensions::runtime_plugin_descriptor --locked --jobs 1 --target-dir
+D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never --
+--nocapture` was attempted on 2026-06-12 and timed out after 10 minutes under concurrent runtime
+Cargo load; no pass is claimed for that command yet.
+
+The bridge-manifest follow-up adds `PluginInterfaceManifest`, top-level `provides_interfaces`,
+dependency-level `interfaces`, package validation for interface namespace and uniqueness, and static
+plugin schema awareness for the new TOML fields. `package_manifest_declarations.rs` covers
+builder/TOML roundtrip, `runtime_plugin_package_manifest.rs` covers malformed bridge interface rows
+and interface-only dependency rows, and `static_manifest_contracts/interfaces.rs` covers static
+plugin TOML interface namespace shape. `cargo check -p zircon_runtime --lib --locked --jobs 1
+--target-dir D:\cargo-targets\zircon-plugin-architecture-bridge-0612 --message-format short
+--color never` passed with existing warnings after this slice. `cargo test -p zircon_runtime
+--lib runtime_plugin_package_manifest --locked --jobs 1 --target-dir
+D:\cargo-targets\zircon-plugin-architecture-bridge-0612 --message-format short --color never --
+--test-threads=1` passed 32 package-manifest validation tests, including the new bridge interface
+diagnostics and interface-only dependency row. `cargo test -q -p zircon_runtime --lib
+plugin_package_manifest_declares_bridge_interfaces --locked --jobs 1 --target-dir
+D:\cargo-targets\zircon-plugin-architecture-bridge-0612 -- --test-threads=1` passed the focused
+builder/TOML roundtrip test. `cargo test -q -p zircon_runtime --lib
+plugin_tomls_declare_bridge_interface_namespaces --locked --jobs 1 --target-dir
+D:\cargo-targets\zircon-plugin-architecture-bridge-0612 -- --test-threads=1` was attempted but is
+currently blocked before the static contract can run by an unrelated lib-test compile error in
+`zircon_runtime/src/ui/tests/asset_resource_resolver.rs:225` (`&str` passed where `String` is
+required).
+
+The bridge export-consistency follow-up adds linked Rust registration diagnostics for
+declared-but-unexported and exported-but-undeclared interface ids. Focused tests were added to
+`runtime_plugin_package_manifest.rs`, but fresh execution is currently blocked before those tests
+can run by unrelated UI lib-test compile failures: `zircon_runtime/src/ui/tests/component_catalog/component_state.rs:9`
+references a missing `component_state/button.rs`, and the latest library check is blocked by
+`zircon_runtime/src/ui/component/state_reducer/button.rs:8` because `UiComponentEvent` does not
+implement `Eq`.
+
+The bridge dependency-closure follow-up adds catalog-level enforcement for required interface
+dependencies declared in package manifests. `runtime_plugin_bridge_dependencies.rs` covers missing
+providers, present providers, optional missing providers, and transitive dependency-chain
+diagnostics. `rustfmt` passed for the touched catalog/test files. Focused execution of
+`cargo test -p zircon_runtime --lib runtime_plugin_bridge_dependencies --locked --jobs 1 --target-dir
+D:\cargo-targets\zircon-plugin-architecture-bridge-0612 --message-format short --color never --
+--test-threads=1` was attempted twice on 2026-06-12 but timed out during lib-test compilation while
+unrelated UI/render Cargo jobs were active; no pass is claimed for this new slice yet.
 
 `cargo check -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short` and `cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short` now pass from the `zircon_plugins` workspace using `CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout`. The sound test run covered one editor registration test and seven runtime mixer/DSP/manifest tests.
 

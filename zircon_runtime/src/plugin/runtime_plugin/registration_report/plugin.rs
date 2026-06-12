@@ -5,7 +5,11 @@ use crate::plugin::RuntimeExtensionRegistry;
 
 use super::{
     package_contributions::register_package_manifest_contributions,
-    validation::validate_runtime_plugin_package_manifest, RuntimePluginRegistrationReport,
+    validation::{
+        validate_runtime_plugin_package_manifest, validate_runtime_plugin_registration_interfaces,
+        validate_runtime_plugin_registration_system_anchors,
+    },
+    RuntimePluginRegistrationReport,
 };
 
 impl RuntimePluginRegistrationReport {
@@ -25,6 +29,16 @@ impl RuntimePluginRegistrationReport {
         register_package_manifest_contributions(
             &package_manifest,
             &mut extensions,
+            &mut diagnostics,
+        );
+        validate_runtime_plugin_registration_interfaces(
+            &package_manifest,
+            &extensions,
+            &mut diagnostics,
+        );
+        validate_runtime_plugin_registration_system_anchors(
+            &package_manifest,
+            &extensions,
             &mut diagnostics,
         );
         Self {

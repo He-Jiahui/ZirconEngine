@@ -170,7 +170,8 @@ fn material_select_sample_covers_closed_open_selected_multi_and_disabled_states(
 
 #[test]
 fn material_autocomplete_sample_covers_query_popup_selected_multi_and_disabled_states() {
-    let path = editor_asset("assets/ui/editor/material_components/inputs/material_autocomplete.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/inputs/material_autocomplete.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

@@ -11,8 +11,8 @@ use zircon_hub::projects::{
 };
 use zircon_hub::settings::{HubConfig, HubSettings};
 use zircon_hub::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, HubPage, HubSnapshot, ProjectFilterMode,
-    ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
+    HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubPage, HubSnapshot,
+    ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
 };
 use zircon_hub::team::TeamOverview;
 
@@ -91,10 +91,11 @@ fn hub_config_repair_converges_foundation_registries() {
         "HubRuntimeSession::load_from_paths should repair merged editor/Hub config before projecting snapshots and again after Source Engine registration"
     );
     for snippet in [
-        "session.register_source_engine_from_settings();",
+        "if let Err(validation) = session.register_source_engine_from_settings()",
+        "TaskStatus::warning(",
         "session.prune_stale_project_engine_bindings();",
         "session.config.repair_registries();",
-        "session.persist()?;",
+        "session.persist(None)?;",
     ] {
         assert!(
             runtime.contains(snippet),
@@ -117,9 +118,8 @@ fn runtime_persistence_keeps_editor_recent_writes_in_tauri_session_owner() {
     );
 
     for snippet in [
-        "fn persist(&self) -> Result<(), HubError>",
-        "fn persist_hub_config(&self) -> Result<(), HubError>",
-        "fn persist_with_last_project(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+        "fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+        "fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
         "config.runtime = self.runtime_state_for_config();",
         "save_editor_recent_projects_with_last_project(",
         "save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)",
@@ -198,8 +198,8 @@ fn hub_config_repair_normalizes_registries_before_projection() {
             action: HubActionKind::OpenEditor,
             status: HubActionStatus::Success,
             target: format!("target {index}"),
-            detail: "opened".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::legacy("opened"),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: None,
             command_line: Vec::new(),
@@ -386,11 +386,13 @@ fn test_snapshot(recent_projects: Vec<RecentProject>) -> SnapshotBuilder {
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects,
             project_metadata: ProjectMetadataMap::new(),
             assets: Vec::new(),

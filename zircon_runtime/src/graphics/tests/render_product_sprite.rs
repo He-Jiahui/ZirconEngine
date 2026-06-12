@@ -4,8 +4,8 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, ProjectionMode, RenderFrameExtract, RenderFramework,
     RenderMaterialAlphaMode, RenderParticleSpriteSnapshot, RenderPhase, RenderPhaseMeshSource,
-    RenderPipelineHandle, RenderQualityProfile, RenderSpriteAnchor, RenderSpriteSnapshot,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle, SpriteExtract,
+    RenderPipelineHandle, RenderQualityProfile, RenderSpriteAnchor, RenderSpriteImageMode,
+    RenderSpriteSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle, SpriteExtract,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, TextureMarker};
@@ -30,6 +30,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         flip_y: false,
         anchor: RenderSpriteAnchor::TOP_LEFT,
         custom_size: Some(Vec2::new(2.0, 4.0)),
+        image_mode: RenderSpriteImageMode::Stretch,
         color: Vec4::new(0.5, 0.75, 1.0, 0.6),
         z_order: 7,
         render_layer_mask: 0b10,
@@ -39,7 +40,10 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         entity: sprite.entity,
         position: sprite.transform.translation,
         size: 4.0,
+        aspect_ratio: 1.0,
+        billboard_offset: Vec2::ZERO,
         rotation: 0.0,
+        sort_order: 0,
         color: sprite.color,
         intensity: 1.0,
         material: sprite.material,
@@ -207,6 +211,7 @@ fn render_product_sprite_submit_records_sprite_stats_without_particle_feature() 
             flip_y: false,
             anchor: RenderSpriteAnchor::CENTER,
             custom_size: Some(Vec2::new(1.0, 1.0)),
+            image_mode: RenderSpriteImageMode::Stretch,
             color: Vec4::ONE,
             z_order: 0,
             render_layer_mask: u32::MAX,
@@ -230,6 +235,8 @@ fn render_product_sprite_submit_records_sprite_stats_without_particle_feature() 
     assert_eq!(stats.last_sprite_ready_count, 0);
     assert_eq!(stats.last_sprite_texture_fallback_count, 1);
     assert_eq!(stats.last_sprite_graph_executed_pass_count, 3);
+    assert_eq!(stats.last_sprite_image_slice_count, 1);
+    assert_eq!(stats.last_sprite_expanded_image_slice_count, 0);
     assert_eq!(stats.last_particle_graph_executed_pass_count, 0);
 }
 

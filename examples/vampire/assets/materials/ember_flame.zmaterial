@@ -1,0 +1,16 @@
+version = 1
+name = "Blood Ember"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000143"
+url = "res://shaders/vampire_effect"
+
+[overrides]
+base_color = [0.95, 0.18, 0.06, 1.0]
+metallic = 0.0
+roughness = 0.42
+emissive = [0.85, 0.16, 0.04]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

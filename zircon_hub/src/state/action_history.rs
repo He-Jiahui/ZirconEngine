@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use super::HubMessage;
+
 pub const ACTION_HISTORY_LIMIT: usize = 16;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -10,11 +12,11 @@ pub struct HubActionRecord {
     pub action: HubActionKind,
     pub status: HubActionStatus,
     pub target: String,
-    pub detail: String,
+    pub detail: HubMessage,
+    #[serde(default = "HubMessage::empty")]
+    pub log_excerpt: HubMessage,
     #[serde(default)]
-    pub log_excerpt: String,
-    #[serde(default)]
-    pub recovery: Option<String>,
+    pub recovery: Option<HubMessage>,
     #[serde(default)]
     pub process_id: Option<u32>,
     #[serde(default)]
@@ -113,8 +115,8 @@ mod tests {
                     action: HubActionKind::OpenEditor,
                     status: HubActionStatus::Success,
                     target: format!("target {index}"),
-                    detail: "opened".to_string(),
-                    log_excerpt: String::new(),
+                    detail: HubMessage::legacy("opened"),
+                    log_excerpt: HubMessage::empty(),
                     recovery: None,
                     process_id: Some(index as u32),
                     command_line: Vec::new(),

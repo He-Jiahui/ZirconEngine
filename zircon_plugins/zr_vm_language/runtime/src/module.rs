@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::{ModuleDescriptor, ServiceObject, StartupMode};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{ModuleDescriptor, StartupMode};
 use zircon_runtime::engine_module::{dependency_on, plugin_factory, qualified_name};
 use zircon_runtime::script::{SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME};
 

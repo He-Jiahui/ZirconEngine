@@ -1,5 +1,6 @@
 use crate::core::framework::scene::EntityId;
 
+use super::super::view_context::FrameVisibility;
 use super::{
     visibility_batch::VisibilityBatch, visibility_bvh_instance::VisibilityBvhInstance,
     visibility_bvh_update_plan::VisibilityBvhUpdatePlan,
@@ -10,6 +11,7 @@ use super::{
     visibility_hybrid_gi_update_plan::VisibilityHybridGiUpdatePlan,
     visibility_instance_upload_plan::VisibilityInstanceUploadPlan,
     visibility_particle_upload_plan::VisibilityParticleUploadPlan,
+    visibility_relevance_entry::VisibilityRelevanceEntry,
     visibility_virtual_geometry_cluster::VisibilityVirtualGeometryCluster,
     visibility_virtual_geometry_draw_segment::VisibilityVirtualGeometryDrawSegment,
     visibility_virtual_geometry_feedback::VisibilityVirtualGeometryFeedback,
@@ -18,11 +20,13 @@ use super::{
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct VisibilityContext {
+    pub frame_visibility: FrameVisibility,
     pub renderable_entities: Vec<EntityId>,
     pub static_entities: Vec<EntityId>,
     pub dynamic_entities: Vec<EntityId>,
     pub visible_entities: Vec<EntityId>,
     pub culled_entities: Vec<EntityId>,
+    pub primitive_relevance: Vec<VisibilityRelevanceEntry>,
     pub batches: Vec<VisibilityBatch>,
     pub visible_batches: Vec<VisibilityBatch>,
     pub visible_instances: Vec<EntityId>,

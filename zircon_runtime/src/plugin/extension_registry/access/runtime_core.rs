@@ -4,10 +4,10 @@ use super::super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
     pub fn managers(&self) -> &[ManagerDescriptor] {
-        &self.managers
+        self.managers.values()
     }
 
     pub fn modules(&self) -> &[ModuleDescriptor] {
-        &self.modules
+        self.modules.values()
     }
 }

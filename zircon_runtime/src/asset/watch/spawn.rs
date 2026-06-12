@@ -4,19 +4,35 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use super::{
-    asset_change::AssetChange, asset_watcher::AssetWatcher,
-    recommended_watcher::recommended_watcher, watch_io_error::watch_io_error,
-    watch_loop::watch_loop,
+    asset_change::AssetChange, asset_watch_error::AssetWatchError, asset_watcher::AssetWatcher,
+    asset_watcher::AssetWatcherOptions, recommended_watcher::recommended_watcher,
+    watch_io_error::watch_io_error, watch_loop::watch_loop,
 };
 
 impl AssetWatcher {
     pub fn spawn(
         assets_root: PathBuf,
         on_changes: impl Fn(Vec<AssetChange>) + Send + Sync + 'static,
+        on_error: impl Fn(AssetWatchError) + Send + Sync + 'static,
+    ) -> Result<Self, std::io::Error> {
+        Self::spawn_with_options(
+            assets_root,
+            AssetWatcherOptions::default(),
+            on_changes,
+            on_error,
+        )
+    }
+
+    pub fn spawn_with_options(
+        assets_root: PathBuf,
+        options: AssetWatcherOptions,
+        on_changes: impl Fn(Vec<AssetChange>) + Send + Sync + 'static,
+        on_error: impl Fn(AssetWatchError) + Send + Sync + 'static,
     ) -> Result<Self, std::io::Error> {
         let (stop_tx, stop_rx) = unbounded();
         let (ready_tx, ready_rx) = unbounded();
         let callback = Arc::new(on_changes);
+        let error_callback = Arc::new(on_error);
         let join = std::thread::Builder::new()
             .name("zircon-asset-watcher".to_string())
             .spawn(move || {
@@ -36,7 +52,14 @@ impl AssetWatcher {
                     return;
                 }
                 let _ = ready_tx.send(Ok(()));
-                watch_loop(assets_root, stop_rx, event_rx, callback);
+                watch_loop(
+                    assets_root,
+                    options,
+                    stop_rx,
+                    event_rx,
+                    callback,
+                    error_callback,
+                );
                 drop(watcher);
             })
             .map_err(|error| std::io::Error::other(error.to_string()))?;

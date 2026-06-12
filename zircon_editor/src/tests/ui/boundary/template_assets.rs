@@ -765,6 +765,10 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchField",
         ),
         (
+            "assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui",
+            "WorkbenchSearchInput",
+        ),
+        (
             "assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui",
             "WorkbenchInspectorPanel",
         ),

@@ -6,6 +6,11 @@ use winit::window::WindowId;
 use super::super::RuntimeEntryApp;
 
 impl ApplicationHandler for RuntimeEntryApp {
+    fn resumed(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "resumed");
+        self.create_primary_window_surface(event_loop);
+    }
+
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "can_create_surfaces");
         self.create_primary_window_surface(event_loop);

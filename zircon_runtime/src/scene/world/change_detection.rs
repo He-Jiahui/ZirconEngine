@@ -27,8 +27,11 @@ impl World {
     }
 
     pub(crate) fn mutation_change_tick(&mut self) -> ChangeTick {
-        self.active_change_tick
-            .unwrap_or_else(|| self.advance_change_tick())
+        if let Some(tick) = self.active_change_tick {
+            return tick;
+        }
+
+        self.advance_change_tick()
     }
 
     pub fn component_change_ticks<T>(&self, entity: EntityId) -> Option<ComponentTicks>

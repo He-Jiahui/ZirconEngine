@@ -92,8 +92,10 @@ impl ComponentStorage {
                 .or_default()
                 .insert(entity, Box::new(value), tick),
         };
-        old.map(|old| downcast_component(component_id, old))
-            .transpose()
+        let Some(old) = old else {
+            return Ok(None);
+        };
+        Ok(Some(downcast_component(component_id, old)?))
     }
 
     pub fn get<T>(&self, component_id: ComponentId, entity: InternalEntity) -> Option<&T>
@@ -101,14 +103,14 @@ impl ComponentStorage {
         T: 'static + Send + Sync,
     {
         match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => self
-                .table_components
-                .get(&component_id)
-                .and_then(|storage| storage.get(entity)),
-            StorageType::SparseSet => self
-                .sparse_components
-                .get(&component_id)
-                .and_then(|storage| storage.get(entity)),
+            StorageType::Table => {
+                let storage = self.table_components.get(&component_id)?;
+                storage.get(entity)
+            }
+            StorageType::SparseSet => {
+                let storage = self.sparse_components.get(&component_id)?;
+                storage.get(entity)
+            }
         }
     }
 
@@ -121,14 +123,14 @@ impl ComponentStorage {
         T: 'static + Send + Sync,
     {
         match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => self
-                .table_components
-                .get_mut(&component_id)
-                .and_then(|storage| storage.get_mut(entity)),
-            StorageType::SparseSet => self
-                .sparse_components
-                .get_mut(&component_id)
-                .and_then(|storage| storage.get_mut(entity)),
+            StorageType::Table => {
+                let storage = self.table_components.get_mut(&component_id)?;
+                storage.get_mut(entity)
+            }
+            StorageType::SparseSet => {
+                let storage = self.sparse_components.get_mut(&component_id)?;
+                storage.get_mut(entity)
+            }
         }
     }
 
@@ -166,35 +168,42 @@ impl ComponentStorage {
         };
         self.ensure_component_type::<T>(component_id)?;
         let removed = match storage_type {
-            StorageType::Table => self
-                .table_components
-                .get_mut(&component_id)
-                .and_then(|storage| storage.remove(entity)),
-            StorageType::SparseSet => self
-                .sparse_components
-                .get_mut(&component_id)
-                .and_then(|storage| storage.remove(entity)),
+            StorageType::Table => {
+                let Some(storage) = self.table_components.get_mut(&component_id) else {
+                    return Ok(None);
+                };
+                storage.remove(entity)
+            }
+            StorageType::SparseSet => {
+                let Some(storage) = self.sparse_components.get_mut(&component_id) else {
+                    return Ok(None);
+                };
+                storage.remove(entity)
+            }
         };
-        removed
-            .map(|removed| {
-                Ok(ComponentRemoveResult {
-                    value: downcast_component(component_id, removed.value)?,
-                    swapped_entity: removed.swapped_entity,
-                })
-            })
-            .transpose()
+        let Some(removed) = removed else {
+            return Ok(None);
+        };
+        Ok(Some(ComponentRemoveResult {
+            value: downcast_component(component_id, removed.value)?,
+            swapped_entity: removed.swapped_entity,
+        }))
     }
 
     pub fn contains(&self, component_id: ComponentId, entity: InternalEntity) -> bool {
         match self.storage_types.get(&component_id).copied() {
-            Some(StorageType::Table) => self
-                .table_components
-                .get(&component_id)
-                .is_some_and(|storage| storage.contains(entity)),
-            Some(StorageType::SparseSet) => self
-                .sparse_components
-                .get(&component_id)
-                .is_some_and(|storage| storage.contains(entity)),
+            Some(StorageType::Table) => {
+                let Some(storage) = self.table_components.get(&component_id) else {
+                    return false;
+                };
+                storage.contains(entity)
+            }
+            Some(StorageType::SparseSet) => {
+                let Some(storage) = self.sparse_components.get(&component_id) else {
+                    return false;
+                };
+                storage.contains(entity)
+            }
             None => false,
         }
     }
@@ -205,14 +214,14 @@ impl ComponentStorage {
         entity: InternalEntity,
     ) -> Option<ComponentTicks> {
         match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => self
-                .table_components
-                .get(&component_id)
-                .and_then(|storage| storage.ticks(entity)),
-            StorageType::SparseSet => self
-                .sparse_components
-                .get(&component_id)
-                .and_then(|storage| storage.ticks(entity)),
+            StorageType::Table => {
+                let storage = self.table_components.get(&component_id)?;
+                storage.ticks(entity)
+            }
+            StorageType::SparseSet => {
+                let storage = self.sparse_components.get(&component_id)?;
+                storage.ticks(entity)
+            }
         }
     }
 
@@ -231,16 +240,18 @@ impl ComponentStorage {
                     table_row: Some(row),
                 })
             }
-            StorageType::SparseSet => self
-                .sparse_components
-                .get(&component_id)?
-                .contains(entity)
-                .then_some(ComponentStorageLocation {
+            StorageType::SparseSet => {
+                let storage = self.sparse_components.get(&component_id)?;
+                if !storage.contains(entity) {
+                    return None;
+                }
+                Some(ComponentStorageLocation {
                     component_id,
                     storage_type: StorageType::SparseSet,
                     entity,
                     table_row: None,
-                }),
+                })
+            }
         }
     }
 
@@ -255,9 +266,8 @@ impl ComponentStorage {
         if self.storage_types.get(&component_id).copied()? != StorageType::Table {
             return None;
         }
-        self.table_components
-            .get(&component_id)
-            .and_then(|storage| storage.get_row(row))
+        let storage = self.table_components.get(&component_id)?;
+        storage.get_row(row)
     }
 
     pub fn get_with_ticks_at_location<T>(
@@ -271,7 +281,10 @@ impl ComponentStorage {
             StorageType::Table => {
                 let row = location.table_row?;
                 let (entity, value, ticks) = self.get_table_row::<T>(location.component_id, row)?;
-                (entity == location.entity).then_some((value, ticks))
+                if entity != location.entity {
+                    return None;
+                }
+                Some((value, ticks))
             }
             StorageType::SparseSet => {
                 if location.table_row.is_some() {
@@ -317,7 +330,7 @@ impl ComponentStorage {
                 removed.push(*component_id);
             }
         }
-        removed.sort_unstable();
+        sort_component_ids_if_needed(&mut removed);
         removed
     }
 
@@ -333,8 +346,31 @@ impl ComponentStorage {
                 component_ids.push(*component_id);
             }
         }
-        component_ids.sort_unstable();
+        sort_component_ids_if_needed(&mut component_ids);
         component_ids
+    }
+
+    pub(crate) fn component_ids_for_entity_by_storage(
+        &self,
+        entity: InternalEntity,
+        table_components: &mut Vec<ComponentId>,
+        sparse_set_components: &mut Vec<ComponentId>,
+    ) {
+        table_components.clear();
+        table_components.reserve(self.table_components.len());
+        for (component_id, storage) in &self.table_components {
+            if storage.contains(entity) {
+                table_components.push(*component_id);
+            }
+        }
+
+        sparse_set_components.clear();
+        sparse_set_components.reserve(self.sparse_components.len());
+        for (component_id, storage) in &self.sparse_components {
+            if storage.contains(entity) {
+                sparse_set_components.push(*component_id);
+            }
+        }
     }
 
     fn component_storage_count(&self) -> usize {
@@ -403,7 +439,10 @@ impl ComponentStorage {
 
 impl fmt::Debug for ComponentStorage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut storage_types = self.storage_types.iter().collect::<Vec<_>>();
+        let mut storage_types = Vec::with_capacity(self.storage_types.len());
+        for entry in &self.storage_types {
+            storage_types.push(entry);
+        }
         storage_types.sort_by_key(|(component_id, _)| **component_id);
         f.debug_struct("ComponentStorage")
             .field("storage_types", &storage_types)
@@ -553,9 +592,8 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        self.entries
-            .get(&entity)
-            .and_then(|entry| entry.value.downcast_ref::<T>())
+        let entry = self.entries.get(&entity)?;
+        entry.value.downcast_ref::<T>()
     }
 
     fn get_with_ticks<T>(&self, entity: InternalEntity) -> Option<(&T, ComponentTicks)>
@@ -571,9 +609,8 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        self.entries
-            .get_mut(&entity)
-            .and_then(|entry| entry.value.downcast_mut::<T>())
+        let entry = self.entries.get_mut(&entity)?;
+        entry.value.downcast_mut::<T>()
     }
 
     fn get_mut_at_tick<T>(&mut self, entity: InternalEntity, tick: ChangeTick) -> Option<&mut T>
@@ -586,7 +623,10 @@ impl SparseComponentStorage {
     }
 
     fn remove(&mut self, entity: InternalEntity) -> Option<RawRemoveResult> {
-        self.entries.remove(&entity).map(|entry| RawRemoveResult {
+        let Some(entry) = self.entries.remove(&entity) else {
+            return None;
+        };
+        Some(RawRemoveResult {
             value: entry.value,
             swapped_entity: None,
         })
@@ -597,7 +637,8 @@ impl SparseComponentStorage {
     }
 
     fn ticks(&self, entity: InternalEntity) -> Option<ComponentTicks> {
-        self.entries.get(&entity).map(|entry| entry.ticks)
+        let entry = self.entries.get(&entity)?;
+        Some(entry.ticks)
     }
 
     fn mark_changed(&mut self, entity: InternalEntity, tick: ChangeTick) {
@@ -616,6 +657,12 @@ struct RawRemoveResult {
     swapped_entity: Option<InternalEntity>,
 }
 
+fn sort_component_ids_if_needed(component_ids: &mut [ComponentId]) {
+    if component_ids.len() > 1 {
+        component_ids.sort_unstable();
+    }
+}
+
 fn downcast_component<T>(
     component_id: ComponentId,
     value: StoredComponent,
@@ -623,8 +670,8 @@ fn downcast_component<T>(
 where
     T: 'static + Send + Sync,
 {
-    value
-        .downcast::<T>()
-        .map(|value| *value)
-        .map_err(|_| StorageError::ComponentTypeMismatch { component_id })
+    match value.downcast::<T>() {
+        Ok(value) => Ok(*value),
+        Err(_) => Err(StorageError::ComponentTypeMismatch { component_id }),
+    }
 }

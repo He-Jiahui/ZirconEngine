@@ -13,11 +13,13 @@ use zircon_runtime_interface::reflect::{
 pub fn registration_from_component_descriptor(
     descriptor: &ComponentTypeDescriptor,
 ) -> Result<ReflectTypeRegistration, ReflectError> {
-    let fields = descriptor
-        .properties
-        .iter()
-        .map(|property| field_from_property_descriptor(&descriptor.type_id, property))
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut fields = Vec::with_capacity(descriptor.properties.len());
+    for property in &descriptor.properties {
+        fields.push(field_from_property_descriptor(
+            &descriptor.type_id,
+            property,
+        )?);
+    }
 
     Ok(ReflectTypeRegistration::new(
         ReflectTypePath::new(
@@ -74,15 +76,15 @@ fn field_from_property_descriptor(
         descriptor.value_type.clone(),
         ReflectEditorHint::None,
     )
-    .with_display_name(descriptor.name.clone())
     .with_editable(descriptor.editable))
 }
 
 fn short_type_path(type_path: &str) -> &str {
+    if let Some((_, short)) = type_path.rsplit_once('.') {
+        return short;
+    }
+
     type_path
-        .rsplit_once('.')
-        .map(|(_, short)| short)
-        .unwrap_or(type_path)
 }
 
 fn contains(world: &World, entity: EntityId, type_path: &str) -> bool {
@@ -99,12 +101,12 @@ fn read_field(
     ensure_declared_field(registration, field_name)?;
     ensure_json_field_present(world, entity, type_path, field_name)?;
     let property_path = dynamic_property_path(type_path, field_name)?;
-    let value = world
-        .dynamic_component_property(entity, &property_path)
-        .ok_or_else(|| ReflectError::UnsupportedConversion {
+    let Some(value) = world.dynamic_component_property(entity, &property_path) else {
+        return Err(ReflectError::UnsupportedConversion {
             source: format!("dynamic JSON property `{type_path}.{field_name}`"),
             target: "ReflectedValue".to_string(),
-        })?;
+        });
+    };
 
     reflected_from_scene_value(value)
 }
@@ -115,15 +117,13 @@ fn read_fields(
     type_path: &str,
 ) -> Result<Vec<ReflectFieldValue>, ReflectError> {
     let registration = world.type_registry().registration(type_path)?;
-    registration
-        .type_info
-        .fields
-        .iter()
-        .map(|field| {
-            read_field(world, entity, type_path, &field.name)
-                .map(|value| ReflectFieldValue::new(field.name.clone(), value))
-        })
-        .collect()
+    let fields = &registration.type_info.fields;
+    let mut values = Vec::with_capacity(fields.len());
+    for field in fields {
+        let value = read_field(world, entity, type_path, &field.name)?;
+        values.push(ReflectFieldValue::new(field.name.clone(), value));
+    }
+    Ok(values)
 }
 
 fn write_field(
@@ -171,27 +171,31 @@ fn ensure_dynamic_component<'a>(
     if !world.contains_entity(entity) {
         return Err(ReflectError::MissingEntity { entity });
     }
-    world
-        .dynamic_component(entity, type_path)
-        .ok_or_else(|| ReflectError::MissingComponent {
+
+    let Some(component) = world.dynamic_component(entity, type_path) else {
+        return Err(ReflectError::MissingComponent {
             entity,
             type_path: type_path.to_string(),
-        })
+        });
+    };
+
+    Ok(component)
 }
 
 fn ensure_declared_field<'a>(
     registration: &'a ReflectTypeRegistration,
     field_name: &str,
 ) -> Result<&'a ReflectFieldInfo, ReflectError> {
-    registration
-        .type_info
-        .fields
-        .iter()
-        .find(|field| field.name == field_name)
-        .ok_or_else(|| ReflectError::UnknownField {
-            type_path: registration.type_path.type_path.clone(),
-            field_name: field_name.to_string(),
-        })
+    for field in &registration.type_info.fields {
+        if field.name == field_name {
+            return Ok(field);
+        }
+    }
+
+    Err(ReflectError::UnknownField {
+        type_path: registration.type_path.type_path.clone(),
+        field_name: field_name.to_string(),
+    })
 }
 
 fn ensure_json_field_present(
@@ -201,21 +205,31 @@ fn ensure_json_field_present(
     field_name: &str,
 ) -> Result<(), ReflectError> {
     let component = ensure_dynamic_component(world, entity, type_path)?;
-    component
-        .as_object()
-        .and_then(|object| object.get(field_name))
-        .map(|_| ())
-        .ok_or_else(|| ReflectError::UnknownField {
+    let Some(object) = component.as_object() else {
+        return Err(ReflectError::UnknownField {
             type_path: type_path.to_string(),
             field_name: field_name.to_string(),
-        })
+        });
+    };
+
+    if object.contains_key(field_name) {
+        return Ok(());
+    }
+
+    Err(ReflectError::UnknownField {
+        type_path: type_path.to_string(),
+        field_name: field_name.to_string(),
+    })
 }
 
 fn dynamic_property_path(
     type_path: &str,
     field_name: &str,
 ) -> Result<ComponentPropertyPath, ReflectError> {
-    ComponentPropertyPath::parse(&format!("{type_path}.{field_name}")).map_err(|error| {
+    let mut property_segments = Vec::with_capacity(1);
+    property_segments.push(field_name.to_string());
+
+    ComponentPropertyPath::new(type_path.to_string(), property_segments).map_err(|error| {
         ReflectError::InvalidRegistration {
             type_path: type_path.to_string(),
             reason: error.to_string(),

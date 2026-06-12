@@ -7,10 +7,14 @@ use crate::engines::{
 use crate::error::HubError;
 use crate::projects::{metadata_for_path, RecentProject};
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, TaskOperationKind, TaskStatus,
+    EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+    ProjectMessageId, TaskOperationKind, TaskStatus,
 };
 
-use super::{recent_project_display_name, HubRuntimeSession};
+use super::{
+    action_tasks::BackgroundTask, recent_project_display_name, source_engine_validation_detail,
+    source_engine_validation_recovery, HubRuntimeSession,
+};
 
 #[derive(Clone, Debug)]
 pub(in crate::tauri_app) struct PendingEditorRuntimeBuild {
@@ -27,13 +31,21 @@ impl PendingEditorRuntimeBuild {
     }
 }
 
+impl BackgroundTask for PendingEditorRuntimeBuild {
+    type Output = BuildExecutionReport;
+
+    fn run(&self) -> Result<BuildExecutionReport, HubError> {
+        run_build_command(self.command())
+    }
+}
+
 impl HubRuntimeSession {
     pub(super) fn build_selected_project_engine(&mut self) -> Result<(), HubError> {
         let pending_build = match self.prepare_editor_runtime_build() {
             Ok(pending_build) => pending_build,
             Err(_) => return Ok(()),
         };
-        let result = run_build_command(pending_build.command());
+        let result = pending_build.run();
         self.complete_editor_runtime_build(pending_build, result)
     }
 
@@ -57,18 +69,21 @@ impl HubRuntimeSession {
 
     fn prepare_editor_runtime_build(&mut self) -> Result<PendingEditorRuntimeBuild, HubError> {
         if let Err(error) = self.selected_or_latest_recent_project_with_engine_for_action() {
-            let detail = error.to_string();
+            let (detail, _) = error.into_status_messages();
+            let recovery = HubMessage::new(HubMessageId::Engine(
+                EngineMessageId::SelectValidProjectWithEngine,
+            ));
             self.record_build_action_failure(
                 self.action_target_for_project_failure(),
-                detail,
+                detail.clone(),
                 Vec::new(),
                 Some(self.config.settings.default_build_output_dir.clone()),
-                "Select a valid project with a bound Source Engine before building",
+                recovery.clone(),
             )?;
-            return Err(error);
+            return Err(HubError::status(detail, Some(recovery)));
         }
 
-        self.register_source_engine_from_settings();
+        let _ = self.register_source_engine_from_settings();
         self.refresh_source_scoped_views()?;
         let command = BuildCommand::for_editor_runtime(&BuildCommandOptions::new(
             self.config.settings.python_path.clone(),
@@ -80,12 +95,14 @@ impl HubRuntimeSession {
         ));
         let command_line = command.command_line();
         self.validate_active_source_engine_for_build(command_line.clone())?;
+        let task_id = self.task_status.task_id;
         self.task_status = TaskStatus::running_operation(
             "Building",
-            "Running tools/zircon_build.py",
+            HubMessage::new(HubMessageId::Engine(EngineMessageId::RunningBuildScript)),
             TaskOperationKind::Build,
             self.action_engine_target(),
-        );
+        )
+        .with_task_id(task_id);
         self.mark_background_action_prepared();
         let output_dir = self.config.settings.default_build_output_dir.clone();
         Ok(PendingEditorRuntimeBuild {
@@ -113,10 +130,15 @@ impl HubRuntimeSession {
             Ok(report) => report,
             Err(error) => {
                 let detail = error.to_string();
+                let detail_message = HubMessage::legacy(detail.clone());
+                let log_message = HubMessage::legacy(detail);
+                let recovery = HubMessage::new(HubMessageId::Engine(
+                    EngineMessageId::CheckToolchainSettings,
+                ));
                 self.record_active_build(
                     false,
-                    detail.clone(),
-                    detail.clone(),
+                    detail_message.clone(),
+                    log_message.clone(),
                     command_line.clone(),
                 );
                 self.record_action_and_persist(HubActionRecord {
@@ -124,31 +146,29 @@ impl HubRuntimeSession {
                     action: HubActionKind::BuildEditorRuntime,
                     status: HubActionStatus::Failed,
                     target: engine_target.clone(),
-                    detail: detail.clone(),
-                    log_excerpt: detail.clone(),
-                    recovery: Some(
-                        "Check Python, Cargo, and Source Checkout settings before retrying"
-                            .to_string(),
-                    ),
+                    detail: detail_message.clone(),
+                    log_excerpt: log_message,
+                    recovery: Some(recovery.clone()),
                     process_id: None,
                     command_line,
                     output_dir: Some(output_dir),
                 })?;
-                self.task_status = TaskStatus::error(
-                    "Build failed",
-                    detail,
-                    "Check Python, Cargo, and Source Checkout settings before retrying",
-                )
-                .with_operation(TaskOperationKind::Build, engine_target);
+                self.task_status = TaskStatus::error("Build failed", detail_message, recovery)
+                    .with_operation(TaskOperationKind::Build, engine_target);
                 return Ok(());
             }
         };
         if !report.succeeded() {
             let detail = report.summary_line();
+            let detail_message = HubMessage::legacy(detail);
+            let log_message = HubMessage::legacy(report.log_excerpt());
+            let history_recovery = HubMessage::legacy(report.recovery_hint());
+            let status_recovery =
+                HubMessage::new(HubMessageId::Engine(EngineMessageId::FixFirstBuildError));
             self.record_active_build(
                 false,
-                detail.clone(),
-                report.log_excerpt(),
+                detail_message.clone(),
+                log_message.clone(),
                 command_line.clone(),
             );
             self.record_action_and_persist(HubActionRecord {
@@ -156,25 +176,23 @@ impl HubRuntimeSession {
                 action: HubActionKind::BuildEditorRuntime,
                 status: HubActionStatus::Failed,
                 target: engine_target.clone(),
-                detail: detail.clone(),
-                log_excerpt: report.log_excerpt(),
-                recovery: Some(report.recovery_hint()),
+                detail: detail_message.clone(),
+                log_excerpt: log_message,
+                recovery: Some(history_recovery),
                 process_id: None,
                 command_line,
                 output_dir: Some(output_dir),
             })?;
-            self.task_status = TaskStatus::error(
-                "Build failed",
-                detail,
-                "Open Build History and fix the first reported error before retrying",
-            )
-            .with_operation(TaskOperationKind::Build, engine_target);
+            self.task_status = TaskStatus::error("Build failed", detail_message, status_recovery)
+                .with_operation(TaskOperationKind::Build, engine_target);
             return Ok(());
         }
         self.record_active_build(
             true,
-            "Staged editor/runtime payload".to_string(),
-            report.log_excerpt(),
+            HubMessage::new(HubMessageId::Engine(
+                EngineMessageId::StagedEditorRuntimePayload,
+            )),
+            HubMessage::legacy(report.log_excerpt()),
             command_line.clone(),
         );
         self.record_action_and_persist(HubActionRecord {
@@ -182,8 +200,10 @@ impl HubRuntimeSession {
             action: HubActionKind::BuildEditorRuntime,
             status: HubActionStatus::Success,
             target: engine_target.clone(),
-            detail: "Staged editor/runtime payload".to_string(),
-            log_excerpt: report.log_excerpt(),
+            detail: HubMessage::new(HubMessageId::Engine(
+                EngineMessageId::StagedEditorRuntimePayload,
+            )),
+            log_excerpt: HubMessage::legacy(report.log_excerpt()),
             recovery: None,
             process_id: None,
             command_line,
@@ -191,7 +211,7 @@ impl HubRuntimeSession {
         })?;
         self.task_status = TaskStatus::success(
             "Build complete",
-            staged_engine_dir.to_string_lossy().into_owned(),
+            HubMessage::legacy(staged_engine_dir.to_string_lossy().into_owned()),
         )
         .with_operation(TaskOperationKind::Build, engine_target);
         Ok(())
@@ -205,8 +225,8 @@ impl HubRuntimeSession {
         if validation == crate::engines::SourceEngineValidation::Valid {
             return Ok(());
         }
-        let detail = validation.summary().to_string();
-        let recovery = validation.recovery_hint().to_string();
+        let detail = source_engine_validation_detail(validation);
+        let recovery = source_engine_validation_recovery(validation);
         let target = self.action_engine_target();
         self.record_action_and_persist(HubActionRecord {
             finished_unix_ms: crate::projects::now_unix_ms(),
@@ -222,15 +242,22 @@ impl HubRuntimeSession {
         })?;
         self.task_status = TaskStatus::error("Source Engine invalid", detail, recovery)
             .with_operation(TaskOperationKind::SourceEngine, target);
-        Err(HubError::message(self.task_status.detail_with_recovery()))
+        Err(HubError::status(
+            self.task_status.detail.clone(),
+            self.task_status.recovery.clone(),
+        ))
     }
 
     fn selected_or_latest_recent_project_with_engine_for_action(
         &mut self,
     ) -> Result<RecentProject, HubError> {
         let project = self.selected_or_latest_recent_project_for_named_action(
-            "No recent project is available to build",
-            "Selected project is no longer available to build",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoRecentProjectToBuild,
+            )),
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::SelectedProjectStaleForBuild,
+            )),
         )?;
         self.require_project_bound_engine(&project)?;
         Ok(project)
@@ -240,10 +267,13 @@ impl HubRuntimeSession {
         let Some(engine_id) = metadata_for_path(&self.config.project_metadata, &project.path)
             .and_then(|metadata| metadata.engine_id.as_deref())
         else {
-            return Err(HubError::message(format!(
-                "Project has no bound Source Engine: {}",
-                recent_project_display_name(project)
-            )));
+            return Err(HubError::status(
+                HubMessage::with_params(
+                    HubMessageId::Project(ProjectMessageId::NoBoundSourceEngine),
+                    [recent_project_display_name(project)],
+                ),
+                None,
+            ));
         };
         if self
             .config
@@ -253,20 +283,26 @@ impl HubRuntimeSession {
         {
             return Ok(());
         }
-        Err(HubError::message(format!(
-            "Project bound Source Engine is unavailable: {} -> {}",
-            recent_project_display_name(project),
-            engine_id
-        )))
+        Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::BoundSourceEngineUnavailable),
+                [format!(
+                    "{} -> {}",
+                    recent_project_display_name(project),
+                    engine_id
+                )],
+            ),
+            None,
+        ))
     }
 
     fn record_build_action_failure(
         &mut self,
         target: String,
-        detail: String,
+        detail: HubMessage,
         command_line: Vec<String>,
         output_dir: Option<PathBuf>,
-        recovery: &str,
+        recovery: HubMessage,
     ) -> Result<(), HubError> {
         self.record_action_and_persist(HubActionRecord {
             finished_unix_ms: crate::projects::now_unix_ms(),
@@ -275,7 +311,7 @@ impl HubRuntimeSession {
             target: target.clone(),
             detail: detail.clone(),
             log_excerpt: detail.clone(),
-            recovery: Some(recovery.to_string()),
+            recovery: Some(recovery.clone()),
             process_id: None,
             command_line,
             output_dir,
@@ -303,8 +339,8 @@ impl HubRuntimeSession {
     fn record_active_build(
         &mut self,
         success: bool,
-        detail: String,
-        log_excerpt: String,
+        detail: HubMessage,
+        log_excerpt: HubMessage,
         command_line: Vec<String>,
     ) {
         if let Some(engine) = active_source_engine_mut(
@@ -333,7 +369,9 @@ mod tests {
     use crate::engines::source_engine_id;
     use crate::projects::{project_metadata_key, ProjectMetadata, RecentProject};
     use crate::settings::{HubConfig, HubLanguage};
-    use crate::state::{HubActionKind, HubActionStatus};
+    use crate::state::{
+        HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProjectMessageId,
+    };
 
     use super::super::HubRuntimeSession;
 
@@ -444,7 +482,10 @@ mod tests {
         assert!(pending.is_none());
         assert_eq!(
             session.config.action_history[0].detail,
-            "Project has no bound Source Engine: Game"
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::NoBoundSourceEngine),
+                ["Game"]
+            )
         );
         let model = session.view_model();
         assert_eq!(model.task_summary.label, "构建编辑器/运行时失败");
@@ -511,7 +552,12 @@ mod tests {
     fn create_source_engine_root(temp: &std::path::Path) -> PathBuf {
         let source = temp.join("ZirconEngine");
         fs::create_dir_all(source.join("tools")).unwrap();
-        fs::write(source.join("Cargo.toml"), "[workspace]\n").unwrap();
+        fs::create_dir_all(source.join("zircon_runtime")).unwrap();
+        fs::write(
+            source.join("Cargo.toml"),
+            "[workspace]\nmembers = [\"zircon_runtime\"]\n",
+        )
+        .unwrap();
         fs::write(source.join("tools").join("zircon_build.py"), "").unwrap();
         source
     }

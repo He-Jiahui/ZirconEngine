@@ -24,6 +24,7 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_editor/src/lib.rs
   - zircon_runtime/src/script/mod.rs
 implementation_files:
@@ -51,6 +52,7 @@ implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_editor/src/lib.rs
   - zircon_runtime/src/script/mod.rs
 plan_sources:
@@ -66,9 +68,11 @@ tests:
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/large-file-ownership-m1.md
   - docs/engine-architecture/native-plugin-boundary.md
+  - docs/engine-architecture/runtime-tech-stack.md
   - docs/zircon_runtime/builtin/runtime_modules.md
   - docs/zircon_runtime/scene/inspection.md
   - docs/engine-architecture/runtime-foundation-precision-and-scene-authority.md
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - cargo check --workspace
 doc_type: category-index
 ---
@@ -84,6 +88,7 @@ doc_type: category-index
 - [Architecture-First Development](./architecture-first-development.md): `zircon_app -> zircon_runtime::core::{runtime, manager, framework, math, resource} -> zircon_runtime modules -> zircon_editor` 主干、ECS 运行时世界、manager contracts、runtime absorption 模块、`LevelManager -> LevelSystem -> World` 分层、VM 插件边界、架构优先设计流程、主流引擎对齐要求和实现红线。
 - [Core Runtime Service Registry](./core-runtime-service-registry.md): `zircon_runtime::core::runtime` 的目录化边界，公开导出层、descriptor 子树、`CoreHandle` 行为文件、`PluginFactory + PluginContext` 分流，以及后续继续扩展 service registry 时必须遵守的模块纪律。
 - [Runtime Interface Convergence](./runtime-interface-convergence.md): `EngineEntry`、`EngineModule`、`EngineService`、ECS 语义合同、内建 module owner 收敛、`zircon_plugins` 对可选扩展注册面的吸收、结构审计 skill，以及当前 `converged/skeleton/needs-refactor` 诊断基线。
+- [Runtime Tech Stack](./runtime-tech-stack.md): runtime 依赖矩阵、`winit`/`notify` 预发布版本 gate、`../../zr_vm` 外部路径依赖裁决、text/glyphon/cosmic-text 边界，以及明确不属于 runtime 栈的 editor-only 候选库。
 - [Runtime Module Assembly](../zircon_runtime/builtin/runtime_modules.md): `zircon_runtime::builtin::runtime_modules` 的 folder-backed runtime-owned facade，拆分 target/profile identity、manifest baseline、availability diagnostics、extension aggregation、plugin-domain mapping、core module vector construction 和 assembly orchestration。
 - [First-Party Runtime Catalog](../zircon_plugins/first_party_runtime_catalog.md): `zircon_first_party_runtime_catalog` 作为 plugin workspace 的 linked-provider catalog，集中一方 runtime provider 的可选 Rust crate fan-out，让 `zircon_app` 只投影 profile/render config 而不直接依赖每个 `zircon_plugin_*_runtime`。
 - [Runtime Scene World Inspection](../zircon_runtime/scene/inspection.md): `zircon_runtime::scene::inspection` 的中性 `WorldInspection` hierarchy/field snapshot，替代 runtime 里的 editor-named projection，让 `zircon_editor::scene` 自己生成作者态 `SceneEditModeProjection`、selection、overlay、gizmo 和 viewport state。
@@ -109,6 +114,7 @@ doc_type: category-index
 - `EntryRunner`、`CoreRuntime`、模块 descriptor、manager contracts / handles、`zircon_runtime` 吸收的 foundation/input/platform/script 实现目录与 asset/scene/graphics/ui/optional-extensions module-registration surface、`LevelManager -> LevelSystem -> World`、editor host、VM plugin 的职责分层
 - `M2` optional extensions 里的 `net` / `sound` 最小可用闭环，其中 `net` 负责 socket/message-loop MVP，`sound` 负责 `.wav` asset import + clip playback + software mix MVP
 - `EngineEntry`、`EngineModule`、`EngineService` 与 `RuntimeObject/RuntimeSystem/EntityIdentity/ComponentData` 这组接口家族和语义合同
+- runtime 技术栈权威矩阵、预发布依赖升级 gate、仓外 `zr_vm` 路径依赖版本配对，以及 runtime/editor 依赖边界守卫
 - `CoreRuntime` service registry 的文件级边界和 `runtime/mod.rs` 只做导出层的结构纪律
 - runtime module assembly 的 folder-backed owner 拆分，以及 `zircon_app` optional plugin implementation fan-out 已迁到 plugin workspace 的 `zircon_first_party_runtime_catalog`
 - generated code boundary：生成产物只能是 leaf data/table/manifest/schema/adapter，export source-template 中的 runtime bootstrap、plugin registration、native loading 等行为必须迁回手写 owner

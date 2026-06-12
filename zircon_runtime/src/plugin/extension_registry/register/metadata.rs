@@ -15,16 +15,15 @@ impl RuntimeExtensionRegistry {
         descriptor: ComponentTypeDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         validate_component_type_descriptor(&descriptor)?;
-        if self
-            .components
-            .iter()
-            .any(|existing| existing.type_id == descriptor.type_id)
-        {
+        if self.components.contains_key(&descriptor.type_id) {
             return Err(RuntimeExtensionRegistryError::DuplicateComponentType(
                 descriptor.type_id,
             ));
         }
-        self.components.push(descriptor);
+        let owner = self.intern_runtime_owner(&descriptor.plugin_id)?;
+        self.components
+            .register(owner, descriptor.type_id.clone(), descriptor)
+            .expect("component duplicate was prechecked");
         Ok(())
     }
 
@@ -33,16 +32,15 @@ impl RuntimeExtensionRegistry {
         descriptor: UiComponentDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         validate_ui_component_descriptor(&descriptor)?;
-        if self
-            .ui_components
-            .iter()
-            .any(|existing| existing.component_id == descriptor.component_id)
-        {
+        if self.ui_components.contains_key(&descriptor.component_id) {
             return Err(RuntimeExtensionRegistryError::DuplicateUiComponent(
                 descriptor.component_id,
             ));
         }
-        self.ui_components.push(descriptor);
+        let owner = self.intern_runtime_owner(&descriptor.plugin_id)?;
+        self.ui_components
+            .register(owner, descriptor.component_id.clone(), descriptor)
+            .expect("ui component duplicate was prechecked");
         Ok(())
     }
 
@@ -51,16 +49,15 @@ impl RuntimeExtensionRegistry {
         descriptor: PluginOptionManifest,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         validate_plugin_option_manifest(&descriptor)?;
-        if self
-            .plugin_options
-            .iter()
-            .any(|existing| existing.key == descriptor.key)
-        {
+        if self.plugin_options.contains_key(&descriptor.key) {
             return Err(RuntimeExtensionRegistryError::DuplicatePluginOption(
                 descriptor.key,
             ));
         }
-        self.plugin_options.push(descriptor);
+        let owner = self.intern_owner_from_namespaced_key(&descriptor.key)?;
+        self.plugin_options
+            .register(owner, descriptor.key.clone(), descriptor)
+            .expect("plugin option duplicate was prechecked");
         Ok(())
     }
 
@@ -71,14 +68,16 @@ impl RuntimeExtensionRegistry {
         validate_plugin_event_catalog_manifest(&descriptor)?;
         if self
             .plugin_event_catalogs
-            .iter()
-            .any(|existing| existing.namespace == descriptor.namespace)
+            .contains_key(&descriptor.namespace)
         {
             return Err(RuntimeExtensionRegistryError::DuplicatePluginEventCatalog(
                 descriptor.namespace,
             ));
         }
-        self.plugin_event_catalogs.push(descriptor);
+        let owner = self.intern_owner_from_namespaced_key(&descriptor.namespace)?;
+        self.plugin_event_catalogs
+            .register(owner, descriptor.namespace.clone(), descriptor)
+            .expect("plugin event catalog duplicate was prechecked");
         Ok(())
     }
 }

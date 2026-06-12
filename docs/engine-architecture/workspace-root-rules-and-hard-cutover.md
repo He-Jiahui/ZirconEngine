@@ -66,11 +66,11 @@ This document defines the structural rules that stay true after the workspace ha
 
 - `zircon_app`
   - Owns entry profile choice, host bootstrap, and final handoff only.
-  - Must get runtime builtins from `zircon_runtime::builtin_runtime_modules()`.
+  - Must get runtime builtins from `zircon_runtime::builtin::builtin_runtime_modules()`.
 - `zircon_runtime`
   - Owns runtime absorption, runtime-facing contracts, and runtime-private subsystem internals.
   - Must not widen crate root or graphics root just to preserve stale callers.
-  - Builtin runtime ordering remains runtime-owned through `zircon_runtime::builtin_runtime_modules()`, with `src/builtin/mod.rs` kept structural and the module list assembly living under `src/builtin/runtime_modules.rs`.
+  - Builtin runtime ordering remains runtime-owned through `zircon_runtime::builtin::builtin_runtime_modules()`, with `src/builtin/mod.rs` kept structural and the module list assembly living under `src/builtin/runtime_modules.rs`.
   - Subsystem roots such as `platform/` and `extensions/*/` must keep module/config/descriptor ownership below the root entry file.
 - `zircon_editor`
   - Owns authoring state and editor host behavior only.
@@ -105,7 +105,7 @@ This document defines the structural rules that stay true after the workspace ha
 - `EditorState` is not a crate-root entry point; callers use `zircon_editor::ui::workbench::state::EditorState` so the workbench state owner remains visible.
 - `zircon_runtime` crate root and `graphics` root expose only stable runtime-facing contracts. Deep frame assembly, renderer construction helpers, overlay seams, plugin package DTOs, export-plan DTOs, runtime plugin catalogs, and native plugin ABI/load types stay under their owner namespaces.
 - Plugin-facing types are accessed through `zircon_runtime::plugin::{...}`. `zircon_runtime::{PluginPackageManifest, RuntimePluginCatalog, NativePluginLoader, ExportBuildPlan, ...}` is not a compatibility surface after the root export cutover.
-- `zircon_runtime::builtin` keeps `builtin_runtime_modules()` as the public entry, but `src/builtin/mod.rs` must stay structural and delegate the actual module list assembly to a child owner file such as `runtime_modules.rs`.
+- `zircon_runtime::builtin` keeps `builtin_runtime_modules()` as the public entry, but `zircon_runtime` crate root must not re-export module assembly functions. `src/builtin/mod.rs` stays structural and delegates the actual module list assembly to a child owner file such as `runtime_modules.rs`.
 - `zircon_runtime::platform` and `zircon_plugins::{navigation,net,particles,sound,texture}` roots may re-export their public module/config/service types, but the actual `EngineModule` implementation and descriptor wiring must live in child owner files such as `module.rs`, `service_types.rs`, or `registration.rs`.
 - Runtime production `.ui.toml` resources live under crate `assets/`, never under `src/`.
 

@@ -7,22 +7,22 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::core::config_store::ConfigStore;
 use crate::core::diagnostics::{DiagnosticPath, DiagnosticStore, DiagnosticStoreSnapshot};
-use crate::core::error::CoreError;
-use crate::core::event_bus::{EngineEvent, EventBus};
-use crate::core::framework::time::{Fixed, Real, Time, Virtual};
-use crate::core::job_scheduler::JobScheduler;
-use crate::core::state::{
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::framework::events::EngineEvent;
+use crate::core::framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
-use crate::core::tasks::{TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
-use crate::core::time::{RuntimeTimeAdvance, RuntimeTimeClocks};
-use crate::core::types::ChannelReceiver;
+use crate::core::framework::time::{Fixed, Real, Time, Virtual};
+use crate::core::CoreError;
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 
+use super::config_store::ConfigStore;
+use super::events::EventBus;
 use super::handle::CoreHandle;
 use super::state::CoreRuntimeInner;
+use super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
+use super::time::{RuntimeTimeAdvance, RuntimeTimeClocks};
 use super::weak::CoreWeak;
 use super::ModuleDescriptor;
 
@@ -47,6 +47,7 @@ impl CoreRuntime {
                 diagnostics: Default::default(),
                 states: Default::default(),
                 scene_hooks: Default::default(),
+                world_extensions: Default::default(),
             }),
         }
     }
@@ -197,6 +198,13 @@ impl CoreRuntime {
         extensions: &RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         self.handle().install_scene_runtime_hooks(extensions)
+    }
+
+    pub fn install_world_runtime_extensions(
+        &self,
+        extensions: &RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.handle().install_world_runtime_extensions(extensions)
     }
 
     pub fn init_state<T>(&self) -> StateTransitionEvent<T>

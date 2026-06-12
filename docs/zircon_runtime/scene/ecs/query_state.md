@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
   - zircon_runtime/src/scene/ecs/query/query_many_iter.rs
@@ -21,6 +22,8 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/mod.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_query_state_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_query_many.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
 implementation_files:
@@ -30,6 +33,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
   - zircon_runtime/src/scene/ecs/query/query_many_iter.rs
@@ -43,6 +47,8 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/system/query.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_query_state_structure.rs
+  - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
@@ -82,6 +88,8 @@ tests:
   - cargo test -p zircon_runtime --lib scene::tests::ecs_query_many --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ecs-query-flat-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 mutable cached component-location behavior rerun: passed, 9 passed; 0 failed; existing warning noise only)
   - cargo test -p zircon_runtime --lib scene::tests::ecs_scheduled_native_systems --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ecs-query-flat-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 mutable cached component-location behavior rerun: passed, 7 passed; 0 failed; existing warning noise only)
   - cargo test -p zircon_runtime --lib scene::tests::ecs_query --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ecs-query-flat-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 mutable cached component-location behavior rerun: passed, 44 passed; 0 failed; existing warning noise only)
+  - rustfmt --edition 2021 zircon_runtime\src\scene\ecs\query\query_state\mod.rs zircon_runtime\src\scene\ecs\query\query_state\stats.rs zircon_runtime\src\scene\ecs\query\mod.rs zircon_runtime\src\scene\ecs\mod.rs zircon_runtime\src\scene\tests\ecs_query_structure.rs zircon_runtime\src\scene\tests\ecs_performance_acceptance.rs (2026-06-13 Runtime 07 query cache telemetry slice: passed)
+  - query-state non-empty line budget check after telemetry split: `query_state/mod.rs` = 170 non-empty lines, below `QUERY_STATE_ROOT_NON_EMPTY_LINE_BUDGET = 180` (2026-06-13 Runtime 07 query cache telemetry slice: passed)
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/query/query_combinations_iter.rs zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs zircon_runtime/src/scene/ecs/query/query_state/mutable.rs zircon_runtime/src/scene/tests/ecs_query_structure.rs (2026-06-05 cached combination component-location filters: passed)
   - cargo test -p zircon_runtime --lib scene::tests::ecs_query_structure --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ecs-query-flat-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 cached combination component-location filters: passed, 10 passed; 0 failed; existing warning noise only)
   - cargo test -p zircon_runtime --lib scene::tests::ecs_query_combinations --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ecs-query-flat-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 cached combination component-location filters: blocked by unrelated `zircon_runtime/src/ui/tests/runtime_drag_drop_component_state.rs` calls to missing `UiTree::insert_root` and `UiTree::insert_child`)
@@ -97,7 +105,14 @@ tests:
   - git diff --check -- zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs zircon_runtime/src/scene/ecs/query/query_state/mutable.rs zircon_runtime/src/scene/ecs/system/query.rs zircon_runtime/src/scene/tests/ecs_query_structure.rs docs/zircon_runtime/scene/ecs/query_state.md .codex/sessions/20260604-1232-runtime-architecture-review.md (2026-06-05 mutable cached combination cache-slot candidates: passed with expected LF-to-CRLF warnings only)
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/query/query_combinations_mut_iter.rs zircon_runtime/src/scene/tests/ecs_query_structure.rs (2026-06-05 mutable combination owned-branch hard cutover: passed)
   - mutable combination owned-branch source guard for `struct QueryCombinationMutCandidates<'state>`, cache-only `new_from_cached_entities(...)`, no `pub(crate) fn new<EntityList>`, no `QueryCombinationMutCandidates::Owned`, no mutable `D::matches_data(world, *entity)` constructor scan, and structure-test rejection of the removed branch (2026-06-05 mutable combination owned-branch hard cutover: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/query/query_combinations_iter.rs zircon_runtime/src/scene/ecs/query/query_state/read_only.rs zircon_runtime/src/scene/tests/ecs_query_structure.rs (2026-06-08 uncached read-only combination vector sizing: passed)
+  - uncached read-only combination source guard for `read_only_combination_candidate_count(...)`, `Vec::with_capacity(candidate_count)`, direct matched entity pushes, no owned constructor `.collect::<Vec<_>>()`, and slice-backed `QueryCombinationIter::new(...)` input (2026-06-08 uncached read-only combination vector sizing: passed)
+  - cargo test -p zircon_runtime --lib scene::tests::ecs_query_structure::cached_combinations_trust_query_state_data_membership --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-query-combo-read-vector-0608 --message-format short --color never -- --exact --test-threads=1 --nocapture (2026-06-08 uncached read-only combination vector sizing: attempted; failed during unrelated `zircon_runtime` lib-test compilation before reaching the ECS guard because `SceneMeshInstanceAsset` initializers in asset/scene/graphics tests were missing `depth_bias`, `material_queue`, and `render_queue`; no ECS Cargo pass/fail claimed)
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/query/query_access.rs zircon_runtime/src/scene/tests/ecs_query_structure.rs plus query-access sorted-insertion source guard, conflict-marker scan, trailing-whitespace scan, git diff --check, and audit_runtime_structure.py --json (2026-06-05 query-access binary-position insertion: passed; Cargo deferred because active external runtime/workspace compile lanes were present)
+  - query-cache candidate-location visitor source guard in `scene::tests::ecs_query_structure` for `World::matching_query_archetypes(...)`, `matching_query_archetype_entity_count(...)`, `visit_entity_locations_matching_archetypes(...)`, `QueryState::update_cache(...)` direct visitor use, and rejection of the old `entity_locations_matching_query_archetypes(...)` candidate-vector handoff (2026-06-11 query-cache candidate-location visitor: static validation passed; Cargo deferred because unrelated UI interface and render-lane Cargo/rustc work was active during closeout)
+  - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs zircon_runtime/src/scene/ecs/query/query_state/read_only.rs zircon_runtime/src/scene/ecs/query/query_state/mutable.rs zircon_runtime/src/scene/tests/ecs_query_state_structure.rs zircon_runtime/src/scene/tests/mod.rs (2026-06-11 query-state item-fetch direct branches: static validation passed)
+  - query-state item-fetch source guard in `scene::tests::ecs_query_state_structure` for direct `let Some(item) = ... else` fetch branches in cached direct, read-only cached, read-only, and mutable query-state entry points, mutable single-query matched-entity branch, and rejection of `.ok_or(...)` in targeted query-state files (2026-06-11 query-state item-fetch direct branches: static validation passed)
+  - cargo validation for query-state item-fetch direct branches (2026-06-11: deferred to the M5 milestone testing stage after static validation; no Cargo command was started and no Cargo pass/fail is claimed)
   - python -m py_compile .codex\skills\zircon-project-skills\zr-runtime-interface-convergence\scripts\runtime_structure_audits\ecs_query_state_boundary.py (2026-06-05 cached read-only owner split: passed)
   - targeted `ecs_query_state_boundary_audit(...)` over the repository root (2026-06-05 cached read-only owner split: passed)
   - rustfmt --edition 2021 --check zircon_runtime\src\scene\ecs\query\query_iter.rs zircon_runtime\src\scene\tests\ecs_query_structure.rs (2026-06-05 cached full read-only QueryIter membership: passed)
@@ -124,6 +139,7 @@ The split follows the local query directory and Bevy's `bevy_ecs::query` precede
 - `query_state/cached_direct.rs` owns `CachedQueryData` and `CachedQueryFilter` paths that fetch directly from cached component storage locations.
 - `query_state/read_only.rs` owns uncached non-mutating `QueryData` iteration, `get`, `many`, `contains`, and combination APIs.
 - `query_state/read_only_cached.rs` owns cached non-mutating `QueryData` iteration, cached many, cached get/contains, and cached combination APIs.
+- `query_state/stats.rs` owns the Runtime 07 cache telemetry snapshot API.
 - `query_state/mutable.rs` owns `QueryMutData` access, mutable alias validation, mutable many/combination iteration, and the narrow unsafe fetch used after duplicate checks.
 - `cached_query_iter.rs` owns direct cached query iteration over precomputed component-storage locations.
 - `query_many_iter.rs` owns caller-provided entity-list iteration for uncached and read-only cached many-query paths.
@@ -169,9 +185,15 @@ This removes the older `cached_many_entities` helper that allocated a filtered `
 
 Cached component-location paths fail closed when that parallel-vector invariant is broken. Iterators and cache-slot helpers now require `cached_component_location_offsets[index]` and `cached_component_location_offsets[index + 1]` to resolve a valid slice into the flat buffer instead of substituting an empty slice, so zero-component query data such as `EntityId`, `StableEntityLocation`, or `()` cannot accidentally yield from an inconsistent cache snapshot.
 
-The component-location cache is flat by design. Earlier revisions retained one `Vec<ComponentStorageLocation>` per matched entity; the current cache stores all component locations in one buffer and uses per-entity offsets to recover slices. `QueryState::update_cache(...)` also reuses one scratch `Vec<ComponentStorageLocation>` while asking `World` for the current entity's component locations, so cache rebuilds avoid both retained per-entity Vecs and repeated scratch allocation.
+The component-location cache is flat by design. Earlier revisions retained one `Vec<ComponentStorageLocation>` per matched entity; the current cache stores all component locations in one buffer and uses per-entity offsets to recover slices. `QueryState::update_cache(...)` also reuses one scratch `Vec<ComponentStorageLocation>` while asking `World` for the current entity's component locations, so cache rebuilds avoid both retained per-entity Vecs and repeated scratch allocation. The rebuild path now asks `World` for the matched archetype list, derives an exact reserve bound through `matching_query_archetype_entity_count(...)`, and fills `QueryState` directly through `visit_entity_locations_matching_archetypes(...)`; it no longer receives a temporary `Vec<StableEntityLocation>` candidate buffer before building the real cache. The flat component-location reserve remains bounded by candidate count times the access read count.
 
 The ECS query behavior tests now recover per-entity component-location slices through the same offset invariant instead of indexing the old nested Vec shape. That keeps tests aligned with the hot-path representation and prevents a compatibility accessor from reintroducing retained per-entity allocations just to preserve old assertions.
+
+## Direct Item-Fetch Error Projection
+
+Cached direct, read-only cached, read-only, and mutable query-state entry points all validate entity existence and filter membership before fetching `QueryData`. The M5 direct-branch pass keeps that behavior while making the final missing-item projection explicit: each targeted fetch path now uses `let Some(item) = ... else` and returns `QueryDoesNotMatch` or `NoEntities` from the branch that actually observed the missing data.
+
+This is intentionally a control-flow cleanup rather than a semantic change. `QueryState` still treats cache membership as the structural authority for cached paths, `fetch_cached(...)` and `fetch_with_component_locations(...)` remain stale-location guards, and mutable `single_mut` still reports `NoEntities` when the matched entity can no longer produce a mutable item after validation. The source guard lives in `ecs_query_state_structure.rs` so the large legacy `ecs_query_structure.rs` file does not keep absorbing unrelated shape checks.
 
 ## Direct Cached Many Request Streams
 
@@ -193,7 +215,7 @@ Mutable combinations use the same compact cache-slot rule as their only construc
 
 This changes cached combination lifetime semantics to match other cached iterators: `iter_combinations_cached(...)` and `iter_combinations_mut(...)` borrow the refreshed `QueryState` cache for the iterator lifetime. The uncached read-only combination path still owns its filtered entity list through `QueryCombinationCandidates::Owned`, so it remains independent of QueryState cache storage. Mutable combinations no longer keep a separate uncached owned branch, because the public mutable entry points already route through `QueryState` cache refresh and alias validation.
 
-The uncached read-only combination path still uses the original full-world constructor and keeps both `D::matches_data` and `F::matches`, because it is not backed by a refreshed `QueryState.cached_entities` membership list. Mutable combinations intentionally have no uncached owned branch after the cache-authority cutover.
+The uncached read-only combination path still uses the original full-world validation and keeps both `D::matches_data` and `F::matches`, because it is not backed by a refreshed `QueryState.cached_entities` membership list. That owned path now receives the world entity-id slice directly, counts matching entities with the same predicate used for insertion, allocates `QueryCombinationCandidates::Owned` through `Vec::with_capacity(candidate_count)`, and then pushes each matching entity id. The iterator still owns the filtered entity list so callers remain independent of `QueryState` cache storage, but it no longer relies on iterator `collect()` growth behavior. Mutable combinations intentionally have no uncached owned branch after the cache-authority cutover.
 
 ## Cache Component Location Inputs
 
@@ -202,6 +224,12 @@ The uncached read-only combination path still uses the original full-world const
 `QueryAccess::insert_id(...)` keeps component IDs sorted by inserting new IDs at the `binary_search(...)` miss position instead of pushing and re-sorting the whole access list. The cached component-location slices produced from `access.reads()` are sorted by `ComponentId` as well. `query_data.rs`, `query_filter.rs`, and `cached_query_iter.rs` use `binary_search_by_key(...)` for component-location lookup instead of linear `iter().find(...)` scans. This keeps tuple query data and `Added`/`Changed` filters from repeatedly scanning the same per-entity location slice on cached paths.
 
 Future access changes must preserve these invariants or update `QueryState::update_cache` and the structure guard together. A write-only component that appears in `writes` but not `reads` would lose its cached storage location on direct cached fetch paths. A location list that is no longer sorted by `ComponentId` would break binary component-location lookup.
+
+## Runtime 07 Cache Telemetry
+
+`QueryStateCacheStats` exposes the local query-cache counters needed by Runtime 07 before those counters are promoted into frame-level diagnostics. The snapshot includes cache hits, misses, rebuilds, current cached revision, cached archetype/entity counts, and the last rebuild's candidate/matched entity counts.
+
+The counters are updated only inside `QueryState::update_cache(...)`, so they observe the same structural revision boundary as the cache itself. A same-revision refresh increments `cache_hits` without rebuilding; a changed revision increments `cache_misses` and `cache_rebuilds`, then records the candidate entity reserve bound and matched entity count. The behavior test `query_state_cache_stats_record_reuse_and_rebuild_counts` locks that unchanged frames reuse the cache and structural spawn invalidates it exactly once.
 
 ## Query Access Conflict Checks
 
@@ -215,7 +243,8 @@ Do not recreate `query_state.rs`.
 
 New query-state APIs should land by behavior family:
 
-- cache construction and cache metrics in `mod.rs`;
+- cache construction and cache-owned counter storage in `mod.rs`;
+- cache telemetry snapshots in `stats.rs`;
 - direct cached storage access in `cached_direct.rs`;
 - uncached read-only entity access in `read_only.rs`;
 - cached read-only entity access in `read_only_cached.rs`;

@@ -4,7 +4,7 @@ use crate::core::resource::AssetReference;
 
 use super::{
     RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
-    RenderMaterialLightingModel,
+    RenderMaterialLightingModel, RenderMaterialTextureTransform,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -13,13 +13,33 @@ pub struct StandardMaterialDescriptor {
     pub dependencies: RenderMaterialDependencySet,
     pub base_color: [f32; 4],
     pub base_color_texture: Option<AssetReference>,
+    #[serde(default)]
+    pub base_color_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub base_color_texture_uv_channel: u32,
     pub normal_texture: Option<AssetReference>,
+    #[serde(default)]
+    pub normal_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub normal_texture_uv_channel: u32,
     pub metallic: f32,
     pub roughness: f32,
     pub metallic_roughness_texture: Option<AssetReference>,
+    #[serde(default)]
+    pub metallic_roughness_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub metallic_roughness_texture_uv_channel: u32,
     pub occlusion_texture: Option<AssetReference>,
+    #[serde(default)]
+    pub occlusion_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub occlusion_texture_uv_channel: u32,
     pub emissive: [f32; 3],
     pub emissive_texture: Option<AssetReference>,
+    #[serde(default)]
+    pub emissive_texture_transform: RenderMaterialTextureTransform,
+    #[serde(default)]
+    pub emissive_texture_uv_channel: u32,
     pub alpha_mode: RenderMaterialAlphaMode,
     #[serde(default)]
     pub lighting_model: RenderMaterialLightingModel,
@@ -29,6 +49,12 @@ pub struct StandardMaterialDescriptor {
     pub cast_shadows: bool,
     #[serde(default = "default_receive_shadows")]
     pub receive_shadows: bool,
+    #[serde(default)]
+    pub render_queue: i32,
+    #[serde(default)]
+    pub material_queue: i32,
+    #[serde(default)]
+    pub depth_bias: f32,
     pub fallback_policy: RenderMaterialFallbackPolicy,
 }
 

@@ -3,11 +3,16 @@ mod management;
 use crate::asset::{
     AssetReference, AssetUri, AssetUuid, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
-    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
-    SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset,
+    SceneCameraTargetAsset, SceneChromaticAberrationSettingsAsset, SceneColliderAsset,
+    SceneColliderShapeAsset, SceneColorGradingSettingsAsset, SceneDirectionalLightAsset,
+    SceneDitherSettingsAsset, SceneEntityAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
     SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
+    ScenePointLightAsset, ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset,
+    ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset, SceneRectLightAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
+    SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneViewportRectAsset,
+    SceneVignetteSettingsAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
@@ -33,6 +38,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    post_process_settings: None,
                     ..SceneCameraAsset::default()
                 }),
                 mesh: None,
@@ -41,6 +47,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -52,6 +59,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 2,
@@ -76,14 +84,20 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                         AssetUuid::from_stable_label("robot-material"),
                         AssetUri::parse("res://materials/robot.zmaterial").unwrap(),
                     ),
+                    render_queue: 0,
+                    material_queue: 0,
+                    order_in_layer: 0,
+                    depth_bias: 0.0,
                     morph_weights: vec![0.5, 1.0],
                     primitives: Vec::new(),
+                    lods: Vec::new(),
                 }),
                 ambient_light: None,
                 directional_light: None,
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -95,6 +109,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 3,
@@ -119,6 +134,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -130,6 +146,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
         ],
     };
@@ -176,6 +193,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
                 exposure_ev100: 11.0,
                 clear_color: RenderCameraClearColor::None,
                 msaa_samples: 4,
+                post_process_settings: None,
             }),
             mesh: None,
             ambient_light: None,
@@ -183,6 +201,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
             point_light: None,
             rect_light: None,
             spot_light: None,
+            post_process_volume: None,
             rigid_body: None,
             collider: None,
             joint: None,
@@ -194,6 +213,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            script_bindings: Vec::new(),
         }],
     };
 
@@ -233,6 +253,152 @@ camera = { fov_y_radians = 1.0, z_near = 0.25, z_far = 900.0 }
     assert!(!camera.hdr);
     assert_eq!(camera.clear_color, RenderCameraClearColor::Default);
     assert_eq!(camera.msaa_samples, 1);
+    assert_eq!(camera.post_process_settings, None);
+}
+
+#[test]
+fn scene_asset_toml_roundtrip_preserves_post_process_components() {
+    let post_process_settings = ScenePostProcessSettingsAsset {
+        bloom: SceneBloomSettingsAsset {
+            threshold: 0.3,
+            intensity: 0.7,
+            radius: 0.45,
+        },
+        color_grading: SceneColorGradingSettingsAsset {
+            exposure: 0.8,
+            contrast: 1.2,
+            saturation: 0.7,
+            gamma: 1.05,
+            tint: [0.78, 0.86, 1.0],
+        },
+        effect_stack: ScenePostProcessEffectStackAsset {
+            tonemap: SceneTonemapSettingsAsset {
+                operator: SceneTonemapOperatorAsset::Aces,
+                exposure_bias: -0.2,
+                white_point: 1.3,
+            },
+            vignette: SceneVignetteSettingsAsset {
+                intensity: 0.42,
+                smoothness: 0.64,
+                roundness: 0.9,
+            },
+            grain: SceneFilmGrainSettingsAsset {
+                intensity: 0.05,
+                response: 0.8,
+            },
+            dither: SceneDitherSettingsAsset {
+                intensity: 0.02,
+                scale: 1.5,
+            },
+            chromatic_aberration: SceneChromaticAberrationSettingsAsset {
+                intensity: 0.03,
+                sample_spread: 1.2,
+            },
+            fog: SceneFogSettingsAsset {
+                density: 0.08,
+                height_falloff: 0.12,
+                color: [0.2, 0.24, 0.32],
+            },
+        },
+    };
+    let post_process_volume = ScenePostProcessVolumeAsset {
+        active: true,
+        is_global: true,
+        priority: 2.0,
+        weight: 0.75,
+        blend_distance: 0.0,
+        profile: ScenePostProcessVolumeProfileAsset {
+            bloom: Some(SceneBloomSettingsAsset {
+                threshold: 0.2,
+                intensity: 0.9,
+                radius: 0.6,
+            }),
+            color_grading: None,
+            effect_stack: Some(ScenePostProcessEffectStackAsset {
+                tonemap: SceneTonemapSettingsAsset {
+                    operator: SceneTonemapOperatorAsset::Filmic,
+                    exposure_bias: -0.1,
+                    white_point: 1.15,
+                },
+                ..ScenePostProcessEffectStackAsset::default()
+            }),
+        },
+    };
+    let scene = SceneAsset {
+        entities: vec![
+            SceneEntityAsset {
+                entity: 90,
+                name: "MoodCamera".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: Some(SceneCameraAsset {
+                    post_process_settings: Some(post_process_settings),
+                    ..SceneCameraAsset::default()
+                }),
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+            SceneEntityAsset {
+                entity: 91,
+                name: "GlobalMoodVolume".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Static,
+                camera: None,
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: Some(post_process_volume),
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+        ],
+    };
+
+    let document = scene.to_toml_string().unwrap();
+    let loaded = SceneAsset::from_toml_str(&document).unwrap();
+
+    assert_eq!(loaded, scene);
+    assert!(document.contains("post_process_settings"));
+    assert!(document.contains("post_process_volume"));
+    assert!(document.contains("chromatic_aberration"));
+    assert!(loaded.overview().entities[0].has_post_process_settings);
+    assert!(loaded.overview().entities[1].has_post_process_volume);
 }
 
 #[test]
@@ -261,14 +427,20 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
                     AssetUuid::from_stable_label("hero-material"),
                     AssetUri::parse("res://materials/hero.zmaterial").unwrap(),
                 ),
+                render_queue: 0,
+                material_queue: 0,
+                order_in_layer: 0,
+                depth_bias: 0.0,
                 morph_weights: Vec::new(),
                 primitives: Vec::new(),
+                lods: Vec::new(),
             }),
             ambient_light: None,
             directional_light: None,
             point_light: None,
             rect_light: None,
             spot_light: None,
+            post_process_volume: None,
             rigid_body: Some(SceneRigidBodyAsset {
                 body_type: SceneRigidBodyTypeAsset::Dynamic,
                 mass: 2.5,
@@ -369,6 +541,7 @@ fn scene_asset_toml_roundtrip_preserves_physics_and_animation_components() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            script_bindings: Vec::new(),
         }],
     };
 
@@ -467,6 +640,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 }),
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -478,6 +652,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 41,
@@ -505,6 +680,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                     inner_angle_radians: 0.2,
                     outer_angle_radians: 0.45,
                 }),
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -516,6 +692,7 @@ fn scene_asset_toml_roundtrip_preserves_point_and_spot_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
         ],
     };
@@ -551,6 +728,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -562,6 +740,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 51,
@@ -583,6 +762,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                     size: [4.0, 2.0],
                 }),
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -594,6 +774,7 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
         ],
     };
@@ -604,4 +785,57 @@ fn scene_asset_toml_roundtrip_preserves_ambient_and_rect_lights() {
     assert_eq!(loaded, scene);
     assert!(document.contains("ambient_light"));
     assert!(document.contains("rect_light"));
+}
+
+#[test]
+fn scene_asset_toml_roundtrip_preserves_script_bindings() {
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 80,
+            name: "Player".to_string(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 0x0000_0001,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+            script_bindings: vec![SceneScriptBindingAsset {
+                package: "vampire_game".to_string(),
+                module: "player".to_string(),
+                enabled: true,
+                update: true,
+                fixed_update: false,
+                properties: std::collections::BTreeMap::from([(
+                    "move_speed".to_string(),
+                    serde_json::json!(5.5),
+                )]),
+            }],
+        }],
+    };
+
+    let document = scene.to_toml_string().unwrap();
+    let loaded = SceneAsset::from_toml_str(&document).unwrap();
+
+    assert_eq!(loaded, scene);
+    assert!(document.contains("script_bindings"));
+    assert!(document.contains("vampire_game"));
+    assert!(document.contains("fixed_update = false"));
 }

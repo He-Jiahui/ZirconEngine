@@ -10,6 +10,7 @@ mod property_value;
 mod readiness_report;
 mod standard_material;
 mod texture_slot_summary;
+mod texture_transform;
 mod validation_error;
 
 pub use alpha_mode::RenderMaterialAlphaMode;
@@ -55,4 +56,5 @@ pub use texture_slot_summary::{
     RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
 };
+pub use texture_transform::RenderMaterialTextureTransform;
 pub use validation_error::RenderMaterialValidationError;

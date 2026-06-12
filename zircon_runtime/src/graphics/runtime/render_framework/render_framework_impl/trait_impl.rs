@@ -18,7 +18,7 @@ use super::super::register_pipeline_asset::register_pipeline_asset;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
-use super::super::submit_frame_extract::present_frame_extract;
+use super::super::submit_frame_extract::{present_frame_extract, present_frame_extract_with_ui};
 use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
 use super::super::viewport_surface::{bind_viewport_surface, unbind_viewport_surface};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -74,6 +74,15 @@ impl RenderFramework for WgpuRenderFramework {
         extract: RenderFrameExtract,
     ) -> Result<(), RenderFrameworkError> {
         present_frame_extract(self, viewport, extract)
+    }
+
+    fn present_frame_extract_with_ui(
+        &self,
+        viewport: RenderViewportHandle,
+        extract: RenderFrameExtract,
+        ui: Option<UiRenderExtract>,
+    ) -> Result<(), RenderFrameworkError> {
+        present_frame_extract_with_ui(self, viewport, extract, ui)
     }
 
     fn set_pipeline_asset(

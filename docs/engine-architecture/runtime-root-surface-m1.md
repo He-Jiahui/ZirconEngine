@@ -44,9 +44,9 @@ The structural audit now reports a `root_surface_audit.m1_gate_status` value. Cu
 
 Current numeric evidence:
 
-- `public_module_count = 17`
+- `public_module_count = 18`
 - `public_use_location_count = 3`
-- `module_decision_count = 17`
+- `module_decision_count = 18`
 - `public_use_decision_count = 3`
 - `unclassified_public_module_count = 0`
 - `unclassified_public_use_location_count = 0`
@@ -57,6 +57,7 @@ The current public module classification is:
 
 - `stable-facade`: `core`, `dynamic_api`, `engine_module`, `prelude`
 - `namespace-entry`: `plugin`
+- `assembly-facade-review`: `builtin`
 - `runtime-module-entry`: `asset`, `diagnostic_log`, `foundation`, `input`, `platform`, `scene`, `script`, `ui`
 - `graphics-rhi-deferred`: `graphics`, `render_graph`, `rhi`
 - `backend-public-debt`: `rhi_wgpu`

@@ -1,6 +1,10 @@
+use crate::core::framework::render::PostProcessStackDescriptor;
 use crate::render_graph::QueueLane;
 
-use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
+use crate::graphics::feature::{
+    descriptor_only_advanced_slot_requires_capability_opt_in, BuiltinRenderFeature,
+    RenderFeatureCapabilityRequirement,
+};
 use crate::graphics::pipeline::declarations::{RenderPipelineCompileOptions, RendererFeatureAsset};
 
 impl RenderPipelineCompileOptions {
@@ -55,6 +59,16 @@ impl RenderPipelineCompileOptions {
 
     pub fn without_graph_msaa_sample_count(mut self) -> Self {
         self.graph_msaa_sample_count = None;
+        self
+    }
+
+    pub fn with_post_process_stack(mut self, stack: PostProcessStackDescriptor) -> Self {
+        self.post_process_stack = Some(stack);
+        self
+    }
+
+    pub fn without_post_process_stack(mut self) -> Self {
+        self.post_process_stack = None;
         self
     }
 
@@ -139,11 +153,5 @@ fn builtin_descriptor_capability_requires_explicit_opt_in(
     feature: BuiltinRenderFeature,
     requirement: RenderFeatureCapabilityRequirement,
 ) -> bool {
-    matches!(
-        (feature, requirement),
-        (
-            BuiltinRenderFeature::SparseTexture,
-            RenderFeatureCapabilityRequirement::SparseTexture
-        )
-    )
+    descriptor_only_advanced_slot_requires_capability_opt_in(feature, requirement)
 }

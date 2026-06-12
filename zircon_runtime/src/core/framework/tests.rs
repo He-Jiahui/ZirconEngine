@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use crate::core::math::{UVec2, Vec2, Vec3, Vec4};
-use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+use crate::core::resource::{
+    MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+};
 
 use super::{
     animation::{AnimationParameterValue, AnimationPlaybackSettings, AnimationTrackPath},
@@ -19,8 +21,9 @@ use super::{
         RenderDynamicResolutionSettings, RenderFeatureQualitySettings, RenderFrameExtract,
         RenderFrameworkError, RenderHybridGiDebugView, RenderHybridGiExtract,
         RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode,
-        RenderMaterialLightingModel, RenderOverlayExtract, RenderPhase, RenderPhaseMeshSource,
-        RenderPhaseSortComponents, RenderPhaseSortKey, RenderPipelineHandle,
+        RenderMaterialLightingModel, RenderMeshSnapshot, RenderOverlayExtract, RenderPhase,
+        RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortComponents,
+        RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPipelineHandle,
         RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderProductFeature,
         RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
         RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
@@ -35,6 +38,8 @@ use super::{
     },
     time::{Fixed, Real, Time, Virtual},
 };
+
+mod phase_queue_summary;
 
 #[test]
 fn framework_contract_types_are_constructible() {
@@ -146,6 +151,94 @@ fn render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d
 }
 
 #[test]
+fn render_phase_queue_order_exposes_submission_phase_precedence() {
+    assert_eq!(RenderPhase::Prepass.queue_order(), 0);
+    assert_eq!(RenderPhase::Shadow.queue_order(), 1);
+    assert_eq!(RenderPhase::Opaque2d.queue_order(), 2);
+    assert_eq!(RenderPhase::Opaque3d.queue_order(), 2);
+    assert_eq!(RenderPhase::AlphaMask2d.queue_order(), 3);
+    assert_eq!(RenderPhase::AlphaMask3d.queue_order(), 3);
+    assert_eq!(RenderPhase::Deferred.queue_order(), 4);
+    assert_eq!(RenderPhase::Transparent2d.queue_order(), 5);
+    assert_eq!(RenderPhase::Transparent3d.queue_order(), 5);
+    assert_eq!(RenderPhase::PostProcess.queue_order(), 6);
+    assert_eq!(RenderPhase::Ui.queue_order(), 7);
+    assert_eq!(RenderPhase::Overlay.queue_order(), 8);
+    assert_eq!(RenderPhase::Debug.queue_order(), 9);
+
+    let item = |entity, phase| RenderPhaseItem {
+        entity,
+        phase,
+        sort_key: RenderPhaseSortKey::new(0),
+        mesh_source: RenderPhaseMeshSource::MeshIndex(entity as usize),
+    };
+    let queue = RenderPhaseQueue::new(vec![
+        item(40, RenderPhase::Debug),
+        item(20, RenderPhase::Shadow),
+        item(10, RenderPhase::Prepass),
+        item(30, RenderPhase::Ui),
+    ]);
+
+    assert_eq!(
+        queue
+            .items
+            .iter()
+            .map(|item| item.phase)
+            .collect::<Vec<_>>(),
+        vec![
+            RenderPhase::Prepass,
+            RenderPhase::Shadow,
+            RenderPhase::Ui,
+            RenderPhase::Debug,
+        ]
+    );
+
+    let ui_key = queue.items[2].ordering_key();
+    assert_eq!(ui_key.phase_order, RenderPhase::Ui.queue_order());
+    assert_eq!(ui_key.sort_key.raw(), 0);
+    assert_eq!(ui_key.raw_sort_key(), 0);
+    assert_eq!(ui_key.entity, 30);
+}
+
+#[test]
+fn render_phase_item_ordering_key_matches_queue_sort_tuple() {
+    let item = |entity, phase, sort_key| RenderPhaseItem {
+        entity,
+        phase,
+        sort_key: RenderPhaseSortKey::new(sort_key),
+        mesh_source: RenderPhaseMeshSource::MeshIndex(entity as usize),
+    };
+    let opaque_late_entity = item(20, RenderPhase::Opaque3d, 0);
+    let opaque_early_entity = item(10, RenderPhase::Opaque3d, 0);
+    let opaque_late_sort_key = item(5, RenderPhase::Opaque3d, 5);
+    let shadow_late_sort_key = item(99, RenderPhase::Shadow, 5);
+
+    assert!(opaque_early_entity.ordering_key() < opaque_late_entity.ordering_key());
+    assert!(opaque_late_entity.ordering_key() < opaque_late_sort_key.ordering_key());
+    assert!(shadow_late_sort_key.ordering_key() < opaque_early_entity.ordering_key());
+
+    let queue = RenderPhaseQueue::new(vec![
+        opaque_late_sort_key,
+        opaque_late_entity,
+        shadow_late_sort_key,
+        opaque_early_entity,
+    ]);
+    assert_eq!(
+        queue
+            .items
+            .iter()
+            .map(RenderPhaseItem::ordering_key)
+            .collect::<Vec<_>>(),
+        vec![
+            shadow_late_sort_key.ordering_key(),
+            opaque_early_entity.ordering_key(),
+            opaque_late_entity.ordering_key(),
+            opaque_late_sort_key.ordering_key(),
+        ]
+    );
+}
+
+#[test]
 fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
     let base = RenderPhaseSortComponents::new(10.0, 1)
         .with_render_queue(2_000)
@@ -193,8 +286,188 @@ fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
 }
 
 #[test]
+fn render_phase_sort_key_breakdown_explains_depth_and_queue_order() {
+    let components = RenderPhaseSortComponents::new(10.25, 42)
+        .with_render_queue(2_500)
+        .with_material_queue(-25)
+        .with_depth_bias(0.5)
+        .with_order_in_layer(7)
+        .with_ui_z_index(11);
+    let opaque = RenderPhaseSortKey::breakdown(RenderPhase::Opaque3d, components);
+    let transparent = RenderPhaseSortKey::breakdown(RenderPhase::Transparent3d, components);
+    let non_finite = RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(f32::NAN, 77),
+    );
+
+    assert_eq!(opaque.phase, RenderPhase::Opaque3d);
+    assert_eq!(opaque.render_queue, 2_500);
+    assert_eq!(opaque.render_queue_sort_key, 18_884);
+    assert_eq!(opaque.material_queue, -25);
+    assert_eq!(opaque.material_queue_sort_key, 16_359);
+    assert_eq!(opaque.order_in_layer, 7);
+    assert_eq!(opaque.order_in_layer_sort_key, 4_194_311);
+    assert_eq!(opaque.ui_z_index, 11);
+    assert_eq!(opaque.ui_z_index_sort_key, 4_194_315);
+    assert_eq!(opaque.entity_tie_breaker, 42);
+    assert_eq!(opaque.phase_order, 2);
+    assert_eq!(opaque.entity_tie_breaker_key, 42);
+    assert_eq!(opaque.entity_tie_breaker_sort_key, 42);
+    assert_eq!(opaque.effective_depth, 10.75);
+    assert_eq!(opaque.depth_key, 10_750);
+    assert_eq!(opaque.ordered_depth_key, 10_750);
+    assert_eq!(opaque.ordered_depth_sort_key, 17_179_879_934);
+    assert!(!opaque.transparent_back_to_front);
+    assert_eq!(
+        opaque.raw_sort_key,
+        RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, components).raw()
+    );
+
+    assert!(transparent.transparent_back_to_front);
+    assert_eq!(transparent.depth_key, 10_750);
+    assert_eq!(transparent.ordered_depth_key, -10_750);
+    assert_eq!(transparent.ordered_depth_sort_key, 17_179_858_434);
+    assert!(
+        transparent.raw_sort_key
+            < RenderPhaseSortKey::for_components(
+                RenderPhase::Transparent3d,
+                RenderPhaseSortComponents::new(1.0, 99)
+                    .with_render_queue(2_500)
+                    .with_material_queue(-25)
+                    .with_order_in_layer(7)
+                    .with_ui_z_index(11),
+            )
+            .raw()
+    );
+
+    assert!(!non_finite.effective_depth.is_finite());
+    assert_eq!(non_finite.depth_key, 0);
+    assert_eq!(non_finite.ordered_depth_key, 0);
+    assert_eq!(non_finite.ordered_depth_sort_key, 17_179_869_184);
+}
+
+#[test]
+fn render_phase_sort_key_breakdown_reports_first_ordering_difference() {
+    let base_components = RenderPhaseSortComponents::new(5.0, 10)
+        .with_render_queue(2_000)
+        .with_material_queue(0);
+    let phase_decision = RenderPhaseSortKey::breakdown(RenderPhase::Prepass, base_components)
+        .first_difference(RenderPhaseSortKey::breakdown(
+            RenderPhase::Shadow,
+            base_components.with_render_queue(-2_000),
+        ))
+        .unwrap();
+    assert_eq!(
+        phase_decision.field,
+        RenderPhaseSortDecisionField::PhaseOrder
+    );
+    assert!(phase_decision.left_before_right);
+    assert_eq!(phase_decision.left_value, 0);
+    assert_eq!(phase_decision.right_value, 1);
+
+    let material_decision = RenderPhaseSortKey::breakdown(RenderPhase::Opaque3d, base_components)
+        .first_difference(RenderPhaseSortKey::breakdown(
+            RenderPhase::Opaque3d,
+            base_components
+                .with_material_queue(10)
+                .with_depth_bias(-10.0),
+        ))
+        .unwrap();
+    assert_eq!(
+        material_decision.field,
+        RenderPhaseSortDecisionField::MaterialQueue
+    );
+    assert!(material_decision.left_before_right);
+    assert_eq!(material_decision.left_value, 0);
+    assert_eq!(material_decision.right_value, 10);
+
+    let saturated_queue_left = RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 1)
+            .with_render_queue(20_000)
+            .with_material_queue(0),
+    );
+    let saturated_queue_right = RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 1)
+            .with_render_queue(16_383)
+            .with_material_queue(5),
+    );
+    assert_eq!(saturated_queue_left.render_queue, 20_000);
+    assert_eq!(saturated_queue_right.render_queue, 16_383);
+    assert_eq!(
+        saturated_queue_left.render_queue_sort_key,
+        saturated_queue_right.render_queue_sort_key
+    );
+    let saturated_queue_decision = saturated_queue_left
+        .first_difference(saturated_queue_right)
+        .unwrap();
+    assert_eq!(
+        saturated_queue_decision.field,
+        RenderPhaseSortDecisionField::MaterialQueue
+    );
+    assert!(saturated_queue_decision.left_before_right);
+    assert_eq!(saturated_queue_decision.left_value, 0);
+    assert_eq!(saturated_queue_decision.right_value, 5);
+
+    let transparent_far = RenderPhaseSortKey::breakdown(
+        RenderPhase::Transparent3d,
+        RenderPhaseSortComponents::new(100.0, 1).with_render_queue(3_000),
+    );
+    let transparent_near = RenderPhaseSortKey::breakdown(
+        RenderPhase::Transparent3d,
+        RenderPhaseSortComponents::new(1.0, 2).with_render_queue(3_000),
+    );
+    let depth_decision = transparent_far.first_difference(transparent_near).unwrap();
+    assert_eq!(
+        depth_decision.field,
+        RenderPhaseSortDecisionField::OrderedDepthKey
+    );
+    assert!(depth_decision.left_before_right);
+    assert_eq!(depth_decision.left_value, -100_000);
+    assert_eq!(depth_decision.right_value, -1_000);
+
+    let entity_key_decision = RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 2),
+    )
+    .first_difference(RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 1),
+    ))
+    .unwrap();
+    assert_eq!(
+        entity_key_decision.field,
+        RenderPhaseSortDecisionField::EntityTieBreakerKey
+    );
+    assert!(!entity_key_decision.left_before_right);
+    assert_eq!(entity_key_decision.left_value, 2);
+    assert_eq!(entity_key_decision.right_value, 1);
+
+    let entity_decision = RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 65_537),
+    )
+    .first_difference(RenderPhaseSortKey::breakdown(
+        RenderPhase::Opaque3d,
+        RenderPhaseSortComponents::new(0.0, 1),
+    ))
+    .unwrap();
+    assert_eq!(
+        entity_decision.field,
+        RenderPhaseSortDecisionField::EntityTieBreaker
+    );
+    assert!(!entity_decision.left_before_right);
+    assert_eq!(entity_decision.left_value, 65_537);
+    assert_eq!(entity_decision.right_value, 1);
+
+    let identical = RenderPhaseSortKey::breakdown(RenderPhase::Opaque3d, base_components);
+    assert_eq!(identical.first_difference(identical), None);
+}
+
+#[test]
 fn geometry_phase_inputs_feed_unified_sort_components_into_queue() {
-    let queue = GeometryExtract::from_meshes_and_phase_inputs(
+    let extract = GeometryExtract::from_meshes_and_phase_inputs(
         CorePipelineKind::Core3d,
         Vec::new(),
         vec![
@@ -209,11 +482,11 @@ fn geometry_phase_inputs_feed_unified_sort_components_into_queue() {
                 .with_material_queue(-10)
                 .with_order_in_layer(5),
         ],
-    )
-    .phase_queue;
+    );
 
     assert_eq!(
-        queue
+        extract
+            .phase_queue
             .items
             .iter()
             .map(|item| item.mesh_source)
@@ -224,6 +497,83 @@ fn geometry_phase_inputs_feed_unified_sort_components_into_queue() {
             RenderPhaseMeshSource::MeshIndex(0),
         ]
     );
+}
+
+#[test]
+fn geometry_extract_builds_static_mesh_batches_by_resource_key() {
+    let geometry = GeometryExtract::from_meshes(
+        CorePipelineKind::Core3d,
+        vec![
+            static_batch_test_mesh(
+                10,
+                "res://models/tree.obj",
+                None,
+                "res://materials/bark.mat",
+            ),
+            static_batch_test_mesh(
+                20,
+                "res://models/tree.obj",
+                None,
+                "res://materials/bark.mat",
+            ),
+            {
+                let mut mesh = static_batch_test_mesh(
+                    30,
+                    "res://models/tree.obj",
+                    None,
+                    "res://materials/bark.mat",
+                );
+                mesh.mobility = Mobility::Dynamic;
+                mesh
+            },
+            static_batch_test_mesh(
+                40,
+                "res://models/tree.obj",
+                None,
+                "res://materials/leaves.mat",
+            ),
+        ],
+    );
+
+    assert_eq!(geometry.static_batches.len(), 1);
+    let batch = &geometry.static_batches[0];
+    assert_eq!(batch.entities, vec![10, 20]);
+    assert_eq!(batch.mesh_indices, vec![0, 1]);
+    assert_eq!(batch.instance_count(), 2);
+    assert_eq!(
+        batch.model,
+        ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("res://models/tree.obj"))
+    );
+    assert_eq!(
+        batch.material,
+        ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            "res://materials/bark.mat"
+        ))
+    );
+}
+
+fn static_batch_test_mesh(
+    node_id: u64,
+    model: &str,
+    mesh: Option<&str>,
+    material: &str,
+) -> RenderMeshSnapshot {
+    RenderMeshSnapshot {
+        node_id,
+        stable_instance_key: node_id << 16,
+        transform_revision: 0,
+        transform: crate::core::math::Transform::default(),
+        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(model)),
+        mesh: mesh
+            .map(|mesh| ResourceHandle::<MeshMarker>::new(ResourceId::from_stable_label(mesh))),
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(material)),
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Vec4::ONE,
+        mobility: Mobility::Static,
+        static_state: Default::default(),
+        render_layer_mask: u32::MAX,
+    }
 }
 
 #[test]

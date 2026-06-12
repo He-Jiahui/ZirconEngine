@@ -11,10 +11,11 @@ use crate::projects::{
     RecentProject,
 };
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, TaskOperationKind, TaskStatus,
+    HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
+    ProjectMessageId, TaskOperationKind, TaskStatus,
 };
 
-use super::{recent_project_display_name, HubRuntimeSession};
+use super::{action_tasks::BackgroundTask, recent_project_display_name, HubRuntimeSession};
 
 #[derive(Debug)]
 pub(in crate::tauri_app) struct EditorLaunchReport {
@@ -27,7 +28,7 @@ pub(in crate::tauri_app) struct PendingEditorLaunch {
     command: EditorLaunchPreparedCommand,
     project_path: Option<PathBuf>,
     remember_project: bool,
-    recovery_on_launch_failure: &'static str,
+    recovery_on_launch_failure: HubMessage,
 }
 
 #[derive(Clone, Debug)]
@@ -36,8 +37,10 @@ enum EditorLaunchPreparedCommand {
     Empty { executable: PathBuf },
 }
 
-impl PendingEditorLaunch {
-    pub(in crate::tauri_app) fn run(&self) -> Result<EditorLaunchReport, HubError> {
+impl BackgroundTask for PendingEditorLaunch {
+    type Output = EditorLaunchReport;
+
+    fn run(&self) -> Result<EditorLaunchReport, HubError> {
         let child = match &self.command {
             EditorLaunchPreparedCommand::Project(command) => launch_editor(command)?,
             EditorLaunchPreparedCommand::Empty { executable } => {
@@ -48,7 +51,9 @@ impl PendingEditorLaunch {
             process_id: child.id(),
         })
     }
+}
 
+impl PendingEditorLaunch {
     fn command_line(&self) -> Vec<String> {
         match &self.command {
             EditorLaunchPreparedCommand::Project(command) => command.command_line(),
@@ -94,14 +99,21 @@ impl HubRuntimeSession {
         let Some(project) = (match self.selected_or_latest_recent_project_for_action() {
             Ok(project) => project,
             Err(error) => {
-                let detail = error.to_string();
+                let (detail, _) = error.into_status_messages();
                 self.record_editor_launch_failure(
                     self.action_target_for_project_failure(),
                     detail,
                     Vec::new(),
-                    "Select an available project or launch Editor without a project",
+                    HubMessage::new(HubMessageId::Process(
+                        ProcessMessageId::SelectProjectOrLaunchEmpty,
+                    )),
                 )?;
-                return Err(error);
+                return Err(HubError::status(
+                    HubMessage::new(HubMessageId::Process(
+                        ProcessMessageId::SelectProjectOrLaunchEmpty,
+                    )),
+                    None,
+                ));
             }
         }) else {
             return self.prepare_empty_editor_launch();
@@ -116,38 +128,48 @@ impl HubRuntimeSession {
         let project_path = project.path.clone();
         let display_name = recent_project_display_name(&project);
         if project_path.as_os_str().is_empty() {
-            let detail = "Project path is required".to_string();
+            let detail =
+                HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectPathRequired));
+            let recovery = HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::ChooseValidProjectForEditor,
+            ));
             self.record_editor_launch_failure(
                 "Project".to_string(),
                 detail.clone(),
                 Vec::new(),
-                "Choose a valid Zircon project before opening it in Editor",
+                recovery.clone(),
             )?;
-            return Err(HubError::message(detail));
+            return Err(HubError::status(detail, Some(recovery)));
         }
         if validate_project_root(&project_path) != ProjectValidation::Valid {
-            let detail = format!(
-                "Project root is not valid: {}",
-                project_path.to_string_lossy()
+            let detail = HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::RootInvalid),
+                [project_path.to_string_lossy().into_owned()],
             );
+            let recovery = HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::CheckProjectManifest,
+            ));
             self.record_editor_launch_failure(
                 display_name,
                 detail.clone(),
                 Vec::new(),
-                "Check that the selected project directory contains a Zircon project manifest",
+                recovery.clone(),
             )?;
-            return Err(HubError::message(detail));
+            return Err(HubError::status(detail, Some(recovery)));
         }
         self.activate_project_engine_for_path(&project_path);
         if let Err(error) = self.ensure_editor_available() {
-            let detail = error.to_string();
-            self.record_editor_launch_failure(
-                display_name,
-                detail,
-                Vec::new(),
-                "Build the editor/runtime payload or fix Source Engine settings before opening the project",
-            )?;
-            return Err(error);
+            let (detail, _) = error.into_status_messages();
+            let recovery = HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::BuildPayloadBeforeOpeningProject,
+            ));
+            self.record_editor_launch_failure(display_name, detail, Vec::new(), recovery.clone())?;
+            return Err(HubError::status(
+                HubMessage::new(HubMessageId::Process(
+                    ProcessMessageId::BuildPayloadBeforeOpeningProject,
+                )),
+                Some(recovery),
+            ));
         }
         let command = EditorLaunchCommand::from_preferred_engine(
             self.staged_engine_dir(),
@@ -160,21 +182,30 @@ impl HubRuntimeSession {
             command: EditorLaunchPreparedCommand::Project(command),
             project_path: Some(project_path),
             remember_project: true,
-            recovery_on_launch_failure:
-                "Verify the staged zircon_editor executable exists and the project path is accessible",
+            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::VerifyEditorAndProjectPath,
+            )),
         })
     }
 
     fn prepare_empty_editor_launch(&mut self) -> Result<PendingEditorLaunch, HubError> {
         if let Err(error) = self.ensure_editor_available() {
-            let detail = error.to_string();
+            let (detail, _) = error.into_status_messages();
+            let recovery = HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::BuildPayloadBeforeLaunching,
+            ));
             self.record_editor_launch_failure(
                 "Editor without project".to_string(),
                 detail,
                 Vec::new(),
-                "Build the editor/runtime payload or fix Source Engine settings before launching",
+                recovery.clone(),
             )?;
-            return Err(error);
+            return Err(HubError::status(
+                HubMessage::new(HubMessageId::Process(
+                    ProcessMessageId::BuildPayloadBeforeLaunching,
+                )),
+                Some(recovery),
+            ));
         }
         Ok(PendingEditorLaunch {
             target: "Editor without project".to_string(),
@@ -183,7 +214,9 @@ impl HubRuntimeSession {
             },
             project_path: None,
             remember_project: false,
-            recovery_on_launch_failure: "Verify the staged zircon_editor executable exists",
+            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::VerifyEditorExecutable,
+            )),
         })
     }
 
@@ -196,7 +229,7 @@ impl HubRuntimeSession {
         let report = match result {
             Ok(report) => report,
             Err(error) => {
-                let detail = error.to_string();
+                let detail = HubMessage::legacy(error.to_string());
                 self.record_editor_launch_failure(
                     pending_launch.target,
                     detail,
@@ -223,8 +256,11 @@ impl HubRuntimeSession {
             action: HubActionKind::OpenEditor,
             status: HubActionStatus::Success,
             target: pending_launch.target.clone(),
-            detail: format!("Started process {}", report.process_id),
-            log_excerpt: String::new(),
+            detail: HubMessage::with_params(
+                HubMessageId::Process(ProcessMessageId::StartedProcess),
+                [report.process_id.to_string()],
+            ),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: Some(report.process_id),
             command_line,
@@ -233,15 +269,18 @@ impl HubRuntimeSession {
         let (operation, detail) = if pending_launch.remember_project {
             (
                 TaskOperationKind::Project,
-                format!(
-                    "Opening {} (process {})",
-                    pending_launch.target, report.process_id
+                HubMessage::with_params(
+                    HubMessageId::Process(ProcessMessageId::OpeningTargetProcess),
+                    [pending_launch.target.clone(), report.process_id.to_string()],
                 ),
             )
         } else {
             (
                 TaskOperationKind::Process,
-                format!("Process {}", report.process_id),
+                HubMessage::with_params(
+                    HubMessageId::Process(ProcessMessageId::ProcessId),
+                    [report.process_id.to_string()],
+                ),
             )
         };
         self.task_status = TaskStatus::success("Editor launched", detail)
@@ -254,10 +293,13 @@ impl HubRuntimeSession {
             return Ok(());
         }
         let executable = preferred_editor_executable(self.staged_engine_dir());
-        Err(HubError::message(format!(
-            "Editor executable is not available: {}",
-            executable.to_string_lossy()
-        )))
+        Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Process(ProcessMessageId::EditorExecutableUnavailable),
+                [executable.to_string_lossy().into_owned()],
+            ),
+            None,
+        ))
     }
 
     fn selected_or_latest_recent_project(&mut self) -> Option<RecentProject> {
@@ -302,16 +344,19 @@ impl HubRuntimeSession {
 
     pub(super) fn selected_or_latest_recent_project_for_named_action(
         &mut self,
-        missing_project_message: &str,
-        stale_project_message: &str,
+        missing_project_message: HubMessage,
+        stale_project_message: HubMessage,
     ) -> Result<RecentProject, HubError> {
         let had_selected_project = self.selected_project_path.is_some();
         let Some(project) = self.selected_or_latest_recent_project_for_action()? else {
-            return Err(HubError::message(if had_selected_project {
-                stale_project_message
-            } else {
-                missing_project_message
-            }));
+            return Err(HubError::status(
+                if had_selected_project {
+                    stale_project_message
+                } else {
+                    missing_project_message
+                },
+                None,
+            ));
         };
         Ok(project)
     }
@@ -329,15 +374,15 @@ impl HubRuntimeSession {
             true,
             self.config.active_engine_id != active_engine_before,
         )?;
-        self.persist_with_last_project(Some(&last_project_path))
+        self.persist(Some(&last_project_path))
     }
 
     fn record_editor_launch_failure(
         &mut self,
         target: String,
-        detail: String,
+        detail: HubMessage,
         command_line: Vec<String>,
-        recovery: &str,
+        recovery: HubMessage,
     ) -> Result<(), HubError> {
         self.record_action_and_persist(HubActionRecord {
             finished_unix_ms: crate::projects::now_unix_ms(),
@@ -345,8 +390,8 @@ impl HubRuntimeSession {
             status: HubActionStatus::Failed,
             target: target.clone(),
             detail: detail.clone(),
-            log_excerpt: String::new(),
-            recovery: Some(recovery.to_string()),
+            log_excerpt: HubMessage::empty(),
+            recovery: Some(recovery.clone()),
             process_id: None,
             command_line,
             output_dir: Some(self.config.settings.default_build_output_dir.clone()),
@@ -370,7 +415,9 @@ mod tests {
 
     use crate::projects::RecentProject;
     use crate::settings::{HubConfig, HubLanguage};
-    use crate::state::{HubActionKind, HubActionStatus};
+    use crate::state::{
+        HubActionKind, HubActionStatus, HubMessage, HubMessageId, ProcessMessageId,
+    };
 
     use super::super::HubRuntimeSession;
     use super::{EditorLaunchReport, PendingEditorLaunch};
@@ -390,11 +437,7 @@ mod tests {
         assert_eq!(record.action, HubActionKind::OpenEditor);
         assert_eq!(record.status, HubActionStatus::Failed);
         assert_eq!(session.task_status.label, "Open Editor failed");
-        assert!(record
-            .recovery
-            .as_deref()
-            .unwrap()
-            .contains("editor/runtime"));
+        assert!(record.recovery.as_ref().unwrap().contains("editor/runtime"));
 
         fs::remove_dir_all(temp).unwrap();
     }
@@ -440,7 +483,9 @@ mod tests {
             },
             project_path: Some(project.clone()),
             remember_project: true,
-            recovery_on_launch_failure: "Verify the staged zircon_editor executable exists",
+            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::VerifyEditorExecutable,
+            )),
         };
 
         session
@@ -469,7 +514,9 @@ mod tests {
             },
             project_path: Some(project.clone()),
             remember_project: true,
-            recovery_on_launch_failure: "Verify the staged zircon_editor executable exists",
+            recovery_on_launch_failure: HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::VerifyEditorExecutable,
+            )),
         };
 
         session

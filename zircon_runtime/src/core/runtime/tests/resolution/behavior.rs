@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use super::super::super::*;
 use super::super::fixtures::{TestDriver, TestManager};
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{LifecycleState, ServiceKind, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
+use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
 #[test]
 fn lazy_manager_is_created_on_first_resolve() {

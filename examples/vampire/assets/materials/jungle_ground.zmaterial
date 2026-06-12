@@ -1,0 +1,23 @@
+version = 1
+name = "Jungle Ground"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000142"
+url = "res://shaders/vampire_forest"
+
+[overrides]
+base_color = [0.62, 0.86, 0.48, 0.958]
+metallic = 0.0
+roughness = 0.88
+emissive = [0.015, 0.04, 0.012]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"
+
+[textures.base_color]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://textures/jungle_ground_albedo.png"
+
+[textures.base_color.transform]
+scale = [6.0, 6.0]

@@ -71,6 +71,27 @@ fn core_runtime_records_bevy_style_time_diagnostics() {
     assert_eq!(fixed_steps, 1.0);
 }
 
+#[test]
+fn fixed_step_plan_reports_overstep_fraction_in_unit_range() {
+    let runtime = CoreRuntime::new();
+    runtime.set_fixed_timestep(Duration::from_millis(10));
+
+    let advance = runtime.advance_time_by(Duration::from_millis(25), 8);
+    let plan = advance.fixed_step_plan();
+
+    assert_eq!(plan.step_count, 2);
+    assert_eq!(plan.remaining_overstep, Duration::from_millis(5));
+    assert_eq!(plan.overstep_fraction(), 0.5);
+
+    let zero_timestep = crate::core::framework::time::FixedStepPlan::new(
+        0,
+        Duration::ZERO,
+        Duration::ZERO,
+        Duration::from_millis(1),
+    );
+    assert_eq!(zero_timestep.overstep_fraction(), 0.0);
+}
+
 fn series_value(
     snapshot: &crate::core::diagnostics::DiagnosticStoreSnapshot,
     path: &str,

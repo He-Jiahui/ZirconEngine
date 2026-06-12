@@ -135,9 +135,8 @@ fn pages_route_repeated_panel_shells_through_hub_panel() {
         ("CloudPage.tsx", 8),
         ("EditorPage.tsx", 7),
         ("ProjectBrowserPage.tsx", 3),
-        ("ProjectDetailPage.tsx", 6),
+        ("ProjectDetailPage.tsx", 3),
         ("ProjectsDashboard.tsx", 3),
-        ("SettingsPage.tsx", 7),
         ("TeamPage.tsx", 7),
         ("WorkspacePage.tsx", 7),
     ] {
@@ -158,13 +157,30 @@ fn pages_route_repeated_panel_shells_through_hub_panel() {
             ],
         );
     }
+
+    for (component, minimum_panel_count) in [
+        ("web/src/components/data/SettingsSection.tsx", 7),
+        ("web/src/components/data/ProjectDetailSidebar.tsx", 4),
+    ] {
+        let source = read_crate_file(component);
+        let hub_panel_count = source.matches("<HubPanel").count();
+        assert!(
+            hub_panel_count >= minimum_panel_count,
+            "{component} should compose repeated panel surfaces through HubPanel; expected at least {minimum_panel_count}, found {hub_panel_count}"
+        );
+        assert_contains_all(component, &source, &["HubPanel", "display: \"grid\""]);
+    }
 }
 
 #[test]
 fn project_pages_keep_dashboard_browser_and_detail_panels_componentized() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let projects_toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
+    let create_project = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
 
     assert_contains_all(
         "ProjectsDashboard.tsx",
@@ -172,18 +188,26 @@ fn project_pages_keep_dashboard_browser_and_detail_panels_componentized() {
         &[
             "ProjectBrowserPage",
             "ProjectDetailPage",
-            "HubSearchField",
-            "HubSelect",
-            "HubToggle",
+            "ProjectsToolbar",
             "ProjectCard",
+            "ProjectCardRail",
             "ProjectTable",
             "HubPanel title={text.projectBrowser}",
             "title={text.recentProjects}",
             "HubPanel title={text.quickActions}",
-            "HubDialog",
-            "gridTemplateColumns: \"repeat(4, minmax(220px, 296px))\"",
+            "CreateProjectDialog",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
         ],
+    );
+    assert_contains_all(
+        "ProjectsToolbar.tsx",
+        &projects_toolbar,
+        &["HubSearchField", "HubSelect", "HubToggle"],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_project,
+        &["HubDialog", "HubTextField", "HubComboBox"],
     );
     assert_not_contains_any(
         "ProjectsDashboard.tsx",
@@ -211,17 +235,32 @@ fn project_pages_keep_dashboard_browser_and_detail_panels_componentized() {
         &detail,
         &[
             "ProjectCover",
-            "MetricCard",
+            "ProjectMetricsGrid",
+            "ProjectDetailSidebar",
             "HubList",
             "HubTreeView",
             "QuickActions",
-            "SourceEngineList",
             "HubPanel title={text.projectOverview}",
             "HubPanel title={text.projectTree}",
+            "HubPanel title={text.projectActions}",
+            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
+        ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
+        &[
+            "MetricCard",
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &detail_sidebar,
+        &[
+            "SourceEngineList",
             "HubPanel title={text.quickActions}",
             "HubPanel title={text.sourceEngines}",
-            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
-            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
         ],
     );
 }
@@ -261,11 +300,21 @@ fn workspace_pages_share_metric_rows_side_panels_and_empty_states() {
     }
 
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     assert_contains_all(
         "SettingsPage.tsx",
         &settings,
         &[
             "MetricCard",
+            "SettingsSection",
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.42fr)\"",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "HubList",
             "HubPanel",
             "HubTreeView",
@@ -273,8 +322,6 @@ fn workspace_pages_share_metric_rows_side_panels_and_empty_states() {
             "StatusBadge",
             "HubCheckbox",
             "HubSwitch",
-            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
-            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.42fr)\"",
         ],
     );
 }

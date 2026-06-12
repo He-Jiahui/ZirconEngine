@@ -17,7 +17,6 @@ use super::super::{
 
 pub(crate) struct ResourceStreamer {
     pub(super) asset_manager: Arc<ProjectAssetManager>,
-    pub(super) material_bind_group_layout: wgpu::BindGroupLayout,
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) materials: HashMap<ResourceId, PreparedMaterial>,
@@ -26,7 +25,9 @@ pub(crate) struct ResourceStreamer {
     pub(super) post_process_lut_textures: HashMap<ResourceId, PreparedPostProcessLutTexture>,
     pub(super) shaders: HashMap<ResourceId, PreparedShader>,
     pub(super) fallback_texture: Arc<GpuTextureResource>,
+    pub(super) fallback_normal_texture: Arc<GpuTextureResource>,
     pub(super) fallback_material_uniform: Arc<GpuMaterialUniformResource>,
+    pub(super) fallback_standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) output_target_writeback_converter: OutputTargetWritebackConverter,
     pub(super) last_material_count: usize,
     pub(super) last_material_ready_count: usize,

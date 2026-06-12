@@ -9,7 +9,7 @@ use crate::graphics::{
 };
 use crate::{asset, foundation, graphics, input, platform, scene, script};
 
-use super::RuntimeTargetMode;
+use super::ids::RuntimeTargetMode;
 
 pub fn runtime_core_modules() -> Vec<Arc<dyn EngineModule>> {
     runtime_core_modules_for_target(RuntimeTargetMode::ClientRuntime)
@@ -33,10 +33,10 @@ pub(super) fn runtime_core_modules_for_target(
 pub(super) fn minimal_profile_runtime_modules() -> Vec<Arc<dyn EngineModule>> {
     vec![
         Arc::new(foundation::FoundationModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::modules::TasksModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::modules::TimeModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::modules::FrameCountModule) as Arc<dyn EngineModule>,
-        Arc::new(crate::core::modules::DiagnosticsCoreModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::runtime::modules::TasksModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::runtime::modules::TimeModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::runtime::modules::FrameCountModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::runtime::modules::DiagnosticsCoreModule) as Arc<dyn EngineModule>,
     ]
 }
 

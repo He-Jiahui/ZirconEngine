@@ -91,8 +91,75 @@ fn render_product_material_properties_prepare_uniform_payload() {
     );
     assert_eq!(
         streamer.material_uniform_buffer_byte_len(&material_id),
-        Some(64)
+        Some(128)
     );
+}
+
+#[test]
+fn render_product_streamer_reuses_material_uniforms_for_unchanged_revision() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/runtime-property-uniform-cache.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let shader_uri = locator("res://shaders/runtime-property-uniform-cache.zshader");
+    asset_manager
+        .assets::<ShaderAsset>()
+        .insert(
+            ResourceRecord::new(
+                ResourceId::from_locator(&shader_uri),
+                ResourceKind::Shader,
+                shader_uri.clone(),
+            ),
+            shader_with_property_schema("res://shaders/runtime-property-uniform-cache.zshader"),
+        )
+        .expect("shader insert");
+    let mut material = material_with_shader("res://shaders/runtime-property-uniform-cache.zshader");
+    material
+        .property_values
+        .insert("custom_gain".to_string(), toml::Value::Float(2.5));
+    material
+        .property_values
+        .insert("use_rim".to_string(), toml::Value::Boolean(true));
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("first material prepare");
+    let property_uniform = streamer.material_uniform(&material_id);
+    let standard_uniform = streamer.standard_material_uniform(&material_id);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("cached material prepare");
+
+    assert!(Arc::ptr_eq(
+        &property_uniform,
+        &streamer.material_uniform(&material_id)
+    ));
+    assert!(Arc::ptr_eq(
+        &standard_uniform,
+        &streamer.standard_material_uniform(&material_id)
+    ));
 }
 
 #[test]

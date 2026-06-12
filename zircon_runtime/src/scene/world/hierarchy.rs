@@ -7,9 +7,16 @@ use crate::scene::EntityId;
 
 impl World {
     pub fn remove_entity(&mut self, entity: EntityId) -> bool {
-        let Some(index) = self.entities.iter().position(|current| *current == entity) else {
+        let mut index = 0_usize;
+        while index < self.entities.len() {
+            if self.entities[index] == entity {
+                break;
+            }
+            index += 1;
+        }
+        if index == self.entities.len() {
             return false;
-        };
+        }
         if let Some(internal) = self.internal_entity(entity) {
             let component_ids = self.component_storage.component_ids_for_entity(internal);
             for component_id in component_ids {
@@ -62,12 +69,13 @@ impl World {
         }
         self.refresh_stable_entity_locations();
         if self.active_camera == entity {
-            self.active_camera = self
-                .cameras
-                .keys()
-                .copied()
-                .find(|camera| *camera != entity)
-                .unwrap_or(0);
+            self.active_camera = 0;
+            for camera in self.cameras.keys().copied() {
+                if camera != entity {
+                    self.active_camera = camera;
+                    break;
+                }
+            }
         }
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
@@ -138,26 +146,24 @@ impl World {
     ) -> Result<(), String> {
         match mobility {
             Mobility::Dynamic => {
-                if self
-                    .entities
-                    .iter()
-                    .copied()
-                    .filter(|child| self.parent_of(*child) == Some(entity))
-                    .any(|child| self.mobility(child) == Some(Mobility::Static))
-                {
-                    return Err(format!(
-                        "cannot make node {entity} Dynamic while it owns Static children"
-                    ));
+                for child in self.entities.iter().copied() {
+                    if self.parent_of(child) != Some(entity) {
+                        continue;
+                    }
+                    if self.mobility(child) == Some(Mobility::Static) {
+                        return Err(format!(
+                            "cannot make node {entity} Dynamic while it owns Static children"
+                        ));
+                    }
                 }
             }
             Mobility::Static => {
-                if self
-                    .parent_of(entity)
-                    .is_some_and(|parent| self.mobility(parent) == Some(Mobility::Dynamic))
-                {
-                    return Err(format!(
-                        "cannot make node {entity} Static under Dynamic parent"
-                    ));
+                if let Some(parent) = self.parent_of(entity) {
+                    if self.mobility(parent) == Some(Mobility::Dynamic) {
+                        return Err(format!(
+                            "cannot make node {entity} Static under Dynamic parent"
+                        ));
+                    }
                 }
             }
         }

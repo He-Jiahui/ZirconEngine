@@ -14,6 +14,14 @@ fn zr_vm_language_registration_reports_backend_capability() {
         .modules()
         .iter()
         .any(|module| module.name == ZR_VM_LANGUAGE_MODULE_NAME));
+    assert!(report.extensions.scene_hooks().iter().any(|hook| {
+        hook.descriptor().id == "zr_vm_language.script.scene.fixed_update"
+            && hook.descriptor().stage == zircon_runtime::scene::SystemStage::FixedUpdate
+    }));
+    assert!(report.extensions.scene_hooks().iter().any(|hook| {
+        hook.descriptor().id == "zr_vm_language.script.scene.update"
+            && hook.descriptor().stage == zircon_runtime::scene::SystemStage::Update
+    }));
     assert!(report
         .package_manifest
         .capabilities

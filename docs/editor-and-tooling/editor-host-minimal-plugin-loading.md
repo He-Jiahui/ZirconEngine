@@ -189,7 +189,7 @@ Plugin Manager 的可视行渲染现在也进入 host contract。`ModulePluginsP
 
 ### EngineModule Track
 
-`zircon_app::EntryConfig` 使用 `ProjectPluginManifest` 描述启动时 runtime 插件选择。`builtin_modules_for_config(...)` 把选择交给 `zircon_runtime::runtime_modules_for_target(...)`，该函数先生成运行模式基线，再用项目清单覆盖匹配插件 ID。`BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(...)` 接收 LibraryEmbed/SourceTemplate 产物传入的 `RuntimePluginRegistrationReport`，把插件贡献的 `ModuleDescriptor` 作为启动模块注册。
+`zircon_app::EntryConfig` 使用 `ProjectPluginManifest` 描述启动时 runtime 插件选择。`builtin_modules_for_config(...)` 把选择交给 `zircon_runtime::builtin::runtime_modules_for_target(...)`，该函数先生成运行模式基线，再用项目清单覆盖匹配插件 ID。`BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(...)` 接收 LibraryEmbed/SourceTemplate 产物传入的 `RuntimePluginRegistrationReport`，把插件贡献的 `ModuleDescriptor` 作为启动模块注册。
 
 这条轨道只用于 core/runtime 级 EngineModule。它仍然走 module descriptor、driver/manager/plugin descriptor、依赖解析和 `CoreRuntime::activate_module(...)`，不会被 editor host 的 VM 插件入口绕过。
 

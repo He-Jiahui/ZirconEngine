@@ -9,10 +9,10 @@ use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, clustered_lighting_executor,
     color_grading_postprocess_executor, depth_of_field_prepare_executor,
     effect_stack_postprocess_executor, final_composite_postprocess_executor,
-    fxaa_postprocess_executor, history_resolve_postprocess_executor, motion_vector_camera_executor,
-    motion_vector_clear_executor, motion_vector_mesh_object_executor,
-    motion_vector_neighbor_max_executor, motion_vector_tile_max_coarse_executor,
-    motion_vector_tile_max_executor, post_stack_executor,
+    fxaa_postprocess_executor, history_resolve_postprocess_executor, hzb_build_executor,
+    motion_vector_camera_executor, motion_vector_clear_executor,
+    motion_vector_mesh_object_executor, motion_vector_neighbor_max_executor,
+    motion_vector_tile_max_coarse_executor, motion_vector_tile_max_executor, post_stack_executor,
     screen_space_reflection_depth_pyramid_coarse_executor,
     screen_space_reflection_depth_pyramid_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
@@ -87,6 +87,7 @@ impl RenderPassExecutorRegistry {
             "lighting.clustered-cull".into(),
             clustered_lighting_executor,
         );
+        registry.register("visibility.hzb-build".into(), hzb_build_executor);
         registry.register("post.bloom-extract".into(), bloom_extract_executor);
         registry.register(
             "post.motion-vector-clear".into(),

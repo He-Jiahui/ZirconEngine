@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{LifecycleState, ServiceKind};
+use crate::core::CoreError;
+use crate::core::{LifecycleState, ServiceKind};
 
 use super::super::super::descriptors::ModuleDescriptor;
 use super::super::super::state::{ModuleEntry, ServiceEntryFactory};

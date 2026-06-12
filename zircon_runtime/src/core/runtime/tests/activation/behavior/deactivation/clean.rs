@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use super::super::super::super::super::*;
 use super::super::super::super::fixtures::{TestDriver, TestManager};
-use crate::core::lifecycle::{LifecycleState, ServiceKind, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
 #[test]
 fn deactivate_empty_module_skips_service_unload_precheck() {

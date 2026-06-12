@@ -7,7 +7,7 @@ use super::diagnostics::{
     diagnostics_for_plugin, diagnostics_from_behavior_report, load_report_diagnostics,
     unloaded_plugin_error,
 };
-use super::hot_reload::NativePluginHotReloadState;
+use super::hot_reload::{restore_runtime_snapshot, NativePluginHotReloadState};
 use super::keys::{live_key, module_kind_article_label, module_kind_label};
 use super::loading::lock_loaded_native_plugins;
 use super::reports::{NativePluginLiveHostCommand, NativePluginLiveHostOutcome};
@@ -123,6 +123,13 @@ impl NativePluginLiveHost {
             }
             return Err(error);
         };
+        if let Err(error) = reload_state.save_existing_runtime_snapshot(plugin_id) {
+            if let Some(existing) = reload_state.into_rollback_plugin() {
+                loaded.insert(live_key(module_kind, plugin_id), existing);
+            }
+            return Err(error);
+        }
+        let mut unloaded_existing = None;
         if let Some(existing) = reload_state.take_existing_for_unload() {
             match diagnostics_from_behavior_report(
                 &format!(
@@ -134,10 +141,38 @@ impl NativePluginLiveHost {
                 Ok(unload_diagnostics) => {
                     diagnostics.extend(unload_diagnostics.clone());
                     reload_state.mark_existing_unloaded(unload_diagnostics);
+                    unloaded_existing = Some(existing);
                 }
                 Err(error) => {
                     loaded.insert(reload_state.key.clone(), existing);
                     return Err(error);
+                }
+            }
+        }
+        if let Some(snapshot) = reload_state.runtime_snapshot() {
+            match restore_runtime_snapshot(snapshot, &plugin) {
+                Ok(restore_diagnostics) => diagnostics.extend(restore_diagnostics),
+                Err(error) => {
+                    let mut rollback_diagnostics = Vec::new();
+                    rollback_diagnostics.extend(
+                        diagnostics_from_behavior_report(
+                            &format!(
+                                "{} unload after failed hot reload",
+                                module_kind_label(module_kind)
+                            ),
+                            unload_behavior(&plugin, module_kind),
+                        )
+                        .unwrap_or_else(|unload_error| vec![unload_error]),
+                    );
+                    if let Some(existing) = unloaded_existing.take() {
+                        rollback_diagnostics.extend(
+                            restore_runtime_snapshot(snapshot, &existing)
+                                .unwrap_or_else(|restore_error| vec![restore_error]),
+                        );
+                        loaded.insert(reload_state.key.clone(), existing);
+                    }
+                    return Err(reload_state
+                        .rollback_error(format!("{error}; {}", rollback_diagnostics.join("; "))));
                 }
             }
         }

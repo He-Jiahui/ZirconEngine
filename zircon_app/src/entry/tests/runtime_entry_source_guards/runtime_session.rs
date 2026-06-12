@@ -11,6 +11,11 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
         "runtime runner should expose an explicit dynamic session profile argument"
     );
     assert!(
+        runtime_session_args_source.contains("--project")
+            && runtime_session_args_source.contains("project_root: Option<PathBuf>"),
+        "runtime runner should expose a project-root argument for standalone game projects"
+    );
+    assert!(
         runtime_session_args_source.contains("\"dev\"")
             && runtime_session_args_source.contains("\"minimal\"")
             && runtime_session_args_source.contains("\"headless\""),
@@ -33,12 +38,18 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "if runtime_session_args.help_requested",
             "return Ok(());",
             "LoadedRuntime::load_default()",
-            "RuntimeSession::create_with_profile(runtime, runtime_session_args.profile.as_bytes())",
+            "RuntimeSession::create_with_profile_and_project",
+            "runtime_session_args.profile.as_bytes()",
+            "runtime_session_args.project_root.as_deref()",
         ],
-        "runtime runner should parse logging first, allow help before dynamic loading, then pass the selected session profile to the dynamic runtime",
+        "runtime runner should parse logging first, allow help before dynamic loading, then pass the selected session profile and project root to the dynamic runtime",
     );
     assert!(
         runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),
         "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV1"
+    );
+    assert!(
+        runtime_session_source.contains("project_manifest"),
+        "runtime session creation should pass the project-root bytes through ZrRuntimeSessionConfigV1"
     );
 }

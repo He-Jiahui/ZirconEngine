@@ -1,0 +1,316 @@
+warning: output filename collision at D:\cargo-targets\zircon-vampire-app\debug\deps\zircon_runtime.pdb
+  |
+  = note: the lib target `zircon_runtime` in package `zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)` has the same output filename as the bin target `zircon_runtime` in package `zircon_app v0.1.0 (E:\Git\ZirconEngine\zircon_app)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: unused import: `RenderMaterialPropertyValue`
+ --> zircon_runtime\src\core\framework\render\material\readiness_report.rs:7:47
+  |
+7 |     RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyValue,
+  |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `UiAccessibilityAction`
+ --> zircon_runtime\src\ui\accessibility\action\range.rs:3:21
+  |
+3 |         UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityNode,
+  |                     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `UiTextHitTest`
+  --> zircon_runtime\src\ui\text\mod.rs:15:49
+   |
+15 | pub(crate) use hit_test::{hit_test_text_layout, UiTextHitTest};
+   |                                                 ^^^^^^^^^^^^^
+
+warning: unused import: `SKINNED_MESH_MAX_JOINT_MATRICES`
+ --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\skinning\mod.rs:7:37
+  |
+7 |     SkinnedMeshJointPaletteUniform, SKINNED_MESH_MAX_JOINT_MATRICES,
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT`, and `SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mod.rs:30:5
+   |
+30 |     SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+31 |     SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+32 |     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 |     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+34 |     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `runtime_modules_for_target_with_registration_inputs_for_manifest`
+  --> zircon_runtime\src\builtin\runtime_modules\assembly.rs:32:5
+   |
+32 |     runtime_modules_for_target_with_registration_inputs_for_manifest,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\dynamic_api\runtime_loop.rs:40:9
+   |
+40 |         mut extract: RenderFrameExtract,
+   |         ----^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\dynamic_api\runtime_loop.rs:88:9
+   |
+88 |         mut extract: RenderFrameExtract,
+   |         ----^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\ui\accessibility\action.rs:36:9
+   |
+36 |     let mut result = UiInputDispatchResult::new(
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\plugin\runtime_plugin\descriptor\package_manifest.rs:12:13
+   |
+12 |         let mut manifest =
+   |             ----^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\plugin\runtime_plugin\feature_registration_report\project_selection.rs:14:9
+   |
+14 |     let mut selection = ProjectPluginFeatureSelection::new(feature.id.clone())
+   |         ----^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: type `ScreenSpaceUiTextPrepareReport` is more private than the item `graphics::scene::scene_renderer::ui::render::<impl ScreenSpaceUiRenderer>::text_prepare_report`
+   --> zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:151:5
+    |
+151 |     pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `graphics::scene::scene_renderer::ui::render::<impl ScreenSpaceUiRenderer>::text_prepare_report` is reachable at visibility `pub(in crate::graphics::scene::scene_renderer)`
+    |
+note: but type `ScreenSpaceUiTextPrepareReport` is only usable at visibility `pub(in crate::graphics::scene::scene_renderer::ui)`
+   --> zircon_runtime\src\graphics\scene\scene_renderer\ui\text.rs:38:1
+    |
+ 38 | pub(super) struct ScreenSpaceUiTextPrepareReport {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: methods `submit_extract` and `present_extract` are never used
+  --> zircon_runtime\src\dynamic_api\runtime_loop.rs:38:19
+   |
+25 | impl RuntimeRenderBridge {
+   | ------------------------ methods in this implementation
+...
+38 |     pub(super) fn submit_extract(
+   |                   ^^^^^^^^^^^^^^
+...
+86 |     pub(super) fn present_extract(
+   |                   ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple fields are never read
+  --> zircon_runtime\src\graphics\backend\render_backend\offscreen_target.rs:9:16
+   |
+ 3 | pub(crate) struct OffscreenTarget {
+   |                   --------------- fields in this struct
+...
+ 9 |     pub(crate) global_illumination_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+12 |     pub(crate) scene_color_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^^^^^^
+...
+15 |     pub(crate) bloom_view: wgpu::TextureView,
+   |                ^^^^^^^^^^
+...
+18 |     pub(crate) gbuffer_albedo_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^^^^^^^^^
+...
+21 |     pub(crate) gbuffer_material_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^^^^^^^^^^^
+...
+24 |     pub(crate) normal_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^
+25 |     pub(crate) ambient_occlusion: wgpu::Texture,
+26 |     pub(crate) ambient_occlusion_view: wgpu::TextureView,
+   |                ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `RENDERDOC_MARKER_CLEAR` is never used
+ --> zircon_runtime\src\graphics\debug_markers.rs:4:18
+  |
+4 | pub(crate) const RENDERDOC_MARKER_CLEAR: &str = "zircon::Clear";
+  |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `should_execute_output_target_writeback` is never used
+   --> zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_execute_output_target_writeback.rs:117:4
+    |
+117 | fn should_execute_output_target_writeback(plan: &ViewportTextureWritebackPlan) -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `skin_mesh_asset_primitive` is never used
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\skinning.rs:50:15
+   |
+50 | pub(super) fn skin_mesh_asset_primitive(
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `skin_model_primitive` is never used
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\skinning.rs:74:15
+   |
+74 | pub(super) fn skin_model_primitive(
+   |               ^^^^^^^^^^^^^^^^^^^^
+
+warning: method `joint_matrices` is never used
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\skinning\joint_palette_uniform.rs:44:61
+   |
+18 | impl SkinnedMeshJointPaletteUniform {
+   | ----------------------------------- method in this implementation
+...
+44 |     pub(in crate::graphics::scene::scene_renderer::mesh) fn joint_matrices(
+   |                                                             ^^^^^^^^^^^^^^
+
+warning: constant `POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER` is never used
+ --> zircon_runtime\src\graphics\scene\scene_renderer\post_process\resources\shader_sources.rs:1:68
+  |
+1 | pub(in crate::graphics::scene::scene_renderer::post_process) const POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER: &str =
+  |                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `text_prepare_report` is never used
+   --> zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:151:19
+    |
+ 74 | impl ScreenSpaceUiRenderer {
+    | -------------------------- method in this implementation
+...
+151 |     pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
+    |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: function `plan_sdf_atlas` is never used
+   --> zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_atlas.rs:262:15
+    |
+262 | pub(super) fn plan_sdf_atlas(texts: &[ScreenSpaceUiTextBatch]) -> SdfAtlasPlan {
+    |               ^^^^^^^^^^^^^^
+
+warning: function `plan_sdf_atlas_with_quality` is never used
+   --> zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_atlas.rs:266:4
+    |
+266 | fn plan_sdf_atlas_with_quality(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `is_empty` is never used
+   --> zircon_runtime\src\graphics\types\viewport_motion_vector_object_history.rs:112:19
+    |
+ 36 | impl ViewportMotionVectorObjectHistory {
+    | -------------------------------------- method in this implementation
+...
+112 |     pub(crate) fn is_empty(&self) -> bool {
+    |                   ^^^^^^^^
+
+warning: method `size` is never used
+  --> zircon_runtime\src\graphics\types\viewport_render_output_target.rs:50:19
+   |
+21 | impl ViewportRenderOutputTarget {
+   | ------------------------------- method in this implementation
+...
+50 |     pub(crate) fn size(self) -> Option<UVec2> {
+   |                   ^^^^
+
+warning: `zircon_runtime` (lib) generated 25 warnings (run `cargo fix --lib -p zircon_runtime` to apply 11 suggestions)
+warning: unused import: `zircon_runtime::core::framework::animation::AnimationManager`
+ --> zircon_plugins\animation\runtime\src\scene_hook\tick.rs:4:5
+  |
+4 | use zircon_runtime::core::framework::animation::AnimationManager;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `SoundOutputRingBuffer` is never constructed
+ --> zircon_plugins\sound\runtime\src\output\ring_buffer.rs:4:19
+  |
+4 | pub(crate) struct SoundOutputRingBuffer {
+  |                   ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `new`, `available_samples`, `capacity_samples`, `push_samples`, and `drain_into_with_silence` are never used
+  --> zircon_plugins\sound\runtime\src\output\ring_buffer.rs:10:19
+   |
+ 9 | impl SoundOutputRingBuffer {
+   | -------------------------- associated items in this implementation
+10 |     pub(crate) fn new(capacity_samples: usize) -> Self {
+   |                   ^^^
+...
+17 |     pub(crate) fn available_samples(&self) -> usize {
+   |                   ^^^^^^^^^^^^^^^^^
+...
+21 |     pub(crate) fn capacity_samples(&self) -> usize {
+   |                   ^^^^^^^^^^^^^^^^
+...
+25 |     pub(crate) fn push_samples(&mut self, samples: &[f32]) -> usize {
+   |                   ^^^^^^^^^^^^
+...
+41 |     pub(crate) fn drain_into_with_silence(&mut self, output: &mut [f32]) -> usize {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `zircon_plugin_animation_runtime` (lib) generated 1 warning
+warning: `zircon_plugin_sound_runtime` (lib) generated 2 warnings
+warning: type `NavigationRuntimeState` is more private than the item `DefaultNavigationManager::state`
+  --> zircon_plugins\navigation\runtime\src\manager.rs:26:5
+   |
+26 |     pub(super) state: Mutex<NavigationRuntimeState>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ field `DefaultNavigationManager::state` is reachable at visibility `pub(crate)`
+   |
+note: but type `NavigationRuntimeState` is only usable at visibility `pub(in crate::manager)`
+  --> zircon_plugins\navigation\runtime\src\manager\state.rs:9:1
+   |
+ 9 | pub(super) struct NavigationRuntimeState {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: `zircon_plugin_navigation_runtime` (lib) generated 1 warning
+warning: methods `with_close_when_requested`, `window_descriptor`, `event_loop_policy`, `close_when_requested`, and `window_lifecycle_policy` are never used
+  --> zircon_app\src\entry\runtime_entry_app\config\app_config.rs:28:29
+   |
+11 | impl RuntimeEntryAppConfig {
+   | -------------------------- methods in this implementation
+...
+28 |     pub(in crate::entry) fn with_close_when_requested(
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+46 |     pub(in crate::entry) fn window_descriptor(&self) -> &WindowDescriptor {
+   |                             ^^^^^^^^^^^^^^^^^
+...
+50 |     pub(in crate::entry) fn event_loop_policy(&self) -> EventLoopPolicy {
+   |                             ^^^^^^^^^^^^^^^^^
+...
+54 |     pub(in crate::entry) fn close_when_requested(&self) -> bool {
+   |                             ^^^^^^^^^^^^^^^^^^^^
+...
+58 |     pub(in crate::entry) fn window_lifecycle_policy(&self) -> WindowLifecyclePolicy {
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated functions `create` and `create_with_profile` are never used
+  --> zircon_app\src\entry\runtime_library\runtime_session.rs:21:19
+   |
+20 | impl RuntimeSession {
+   | ------------------- associated functions in this implementation
+21 |     pub(crate) fn create(runtime: LoadedRuntime) -> Result<Self, RuntimeLibraryError> {
+   |                   ^^^^^^
+...
+25 |     pub(crate) fn create_with_profile(
+   |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: `zircon_app` (lib) generated 2 warnings
+   Compiling zircon_app v0.1.0 (E:\Git\ZirconEngine\zircon_app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.04s
+     Running `D:\cargo-targets\zircon-vampire-app\debug\zircon_runtime.exe --project E:\Git\ZirconEngine\examples\vampire`

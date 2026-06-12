@@ -38,7 +38,7 @@ fn button() -> UiComponentDescriptor {
         .default_prop("button_color", UiValue::Enum("primary".to_string()))
         .default_prop("button_size", UiValue::Enum("medium".to_string()))
         .default_prop("icon_placement", UiValue::Enum("none".to_string()))
-        .event(UiComponentEventKind::Commit)
+        .events(button_interaction_events())
 }
 
 fn button_group() -> UiComponentDescriptor {
@@ -115,7 +115,7 @@ fn icon_button() -> UiComponentDescriptor {
     .default_prop("button_color", UiValue::Enum("primary".to_string()))
     .default_prop("button_size", UiValue::Enum("medium".to_string()))
     .default_prop("icon_placement", UiValue::Enum("icon_only".to_string()))
-    .event(UiComponentEventKind::Commit)
+    .events(button_interaction_events())
     .requires_render_capability(UiRenderCapability::Vector)
 }
 
@@ -173,8 +173,17 @@ fn floating_action_button() -> UiComponentDescriptor {
     .default_prop("corner_radius", UiValue::Float(16.0))
     .default_prop("border_width", UiValue::Float(0.0))
     .default_prop("elevation", UiValue::Float(3.0))
-    .event(UiComponentEventKind::Commit)
+    .events(button_interaction_events())
     .requires_render_capability(UiRenderCapability::Vector)
+}
+
+fn button_interaction_events() -> [UiComponentEventKind; 4] {
+    [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::Hover,
+        UiComponentEventKind::Press,
+        UiComponentEventKind::Commit,
+    ]
 }
 
 fn override_float_prop_defaults(

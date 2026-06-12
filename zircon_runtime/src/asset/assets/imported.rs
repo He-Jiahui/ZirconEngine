@@ -5,8 +5,8 @@ use super::{
     AnimationSkeletonAsset, AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset,
     MaterialGraphAsset, MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset,
     PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
-    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset,
-    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
+    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::asset::AssetReference;
 
@@ -38,6 +38,8 @@ pub enum ImportedAsset {
     UiLayout(UiLayoutAsset),
     UiWidget(UiWidgetAsset),
     UiStyle(UiStyleAsset),
+    UiTheme(UiThemeAsset),
+    UiIcon(UiIconAsset),
     UiV2View(UiV2ViewAsset),
     UiV2Component(UiV2ComponentAsset),
     UiV2Style(UiV2StyleAsset),
@@ -61,6 +63,7 @@ impl ImportedAsset {
             Self::UiV2View(asset) => ui_v2_asset_references(&asset.document),
             Self::UiV2Component(asset) => ui_v2_asset_references(&asset.document),
             Self::UiV2Style(asset) => ui_v2_asset_references(&asset.document),
+            Self::UiIcon(asset) => asset.direct_references(),
             _ => Vec::new(),
         }
     }
@@ -94,6 +97,8 @@ pub fn asset_kind_for_imported_asset(imported: &ImportedAsset) -> crate::asset::
         ImportedAsset::UiLayout(_) => crate::asset::AssetKind::UiLayout,
         ImportedAsset::UiWidget(_) => crate::asset::AssetKind::UiWidget,
         ImportedAsset::UiStyle(_) => crate::asset::AssetKind::UiStyle,
+        ImportedAsset::UiTheme(_) => crate::asset::AssetKind::UiStyle,
+        ImportedAsset::UiIcon(_) => crate::asset::AssetKind::Texture,
         ImportedAsset::UiV2View(_) => crate::asset::AssetKind::UiLayout,
         ImportedAsset::UiV2Component(_) => crate::asset::AssetKind::UiWidget,
         ImportedAsset::UiV2Style(_) => crate::asset::AssetKind::UiStyle,

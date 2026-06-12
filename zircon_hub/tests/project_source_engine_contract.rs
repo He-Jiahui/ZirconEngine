@@ -53,6 +53,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
 fn new_project_default_engine_follows_active_source_context_in_tauri_session() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let create_dialog = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
 
     assert_contains_all(
         "runtime_state.rs",
@@ -84,19 +85,28 @@ fn new_project_default_engine_follows_active_source_context_in_tauri_session() {
         "ProjectsDashboard.tsx",
         &dashboard,
         &[
-            "const [engineId, setEngineId] = useState(state.activeSourceEngineId ?? state.sourceEngines[0]?.id ?? \"\");",
-            "state.sourceEngines.some((engine) => engine.id === currentEngineId)",
-            "return state.activeSourceEngineId ?? state.sourceEngines[0]?.id ?? \"\";",
+            "<CreateProjectDialog",
+            "activeSourceEngineId={state.activeSourceEngineId}",
+            "sourceEngines={state.sourceEngines}",
+        ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_dialog,
+        &[
+            "const [engineId, setEngineId] = useState(activeSourceEngineId ?? sourceEngines[0]?.id ?? \"\");",
+            "sourceEngines.some((engine) => engine.id === currentEngineId)",
+            "return activeSourceEngineId ?? sourceEngines[0]?.id ?? \"\";",
             "placeholder={text.sourceEngine}",
-            "options={state.sourceEngines.map((engine) => ({",
+            "options={sourceEngines.map((engine) => ({",
             "detail: engine.sourcePath",
             "onChange={setEngineId}",
             "engineId: engineId || null",
         ],
     );
     assert_not_contains_any(
-        "ProjectsDashboard.tsx",
-        &dashboard,
+        "CreateProjectDialog.tsx",
+        &create_dialog,
         &["engineId: state.activeSourceEngineId,"],
     );
 }
@@ -184,7 +194,9 @@ fn source_engine_registry_validation_history_and_dtos_are_current_owners() {
             "pub enum SourceEngineValidation",
             "MissingRoot",
             "MissingWorkspaceManifest",
+            "MissingRuntimeWorkspaceMember",
             "MissingBuildTool",
+            "workspace_includes_runtime_member",
             "pub fn validate_source_engine(path: impl AsRef<Path>) -> SourceEngineValidation",
             "path.join(\"Cargo.toml\").is_file()",
             "path.join(\"tools\").join(\"zircon_build.py\").is_file()",
@@ -227,8 +239,8 @@ fn source_engine_registry_validation_history_and_dtos_are_current_owners() {
         &source_engine_dtos,
         &[
             "pub(crate) fn source_build_history_rows(",
-            "detail: text.status_detail(&record.detail)",
-            "log_excerpt: text.status_detail(&record.log_excerpt)",
+            "detail: text.render_message(&record.detail)",
+            "log_excerpt: text.render_message(&record.log_excerpt)",
             "secondary_detail: source_build_history_secondary_detail(",
             "finished: relative_time(now_ms, record.finished_unix_ms, language)",
             "output_dir: path_text_en(&record.output_dir)",
@@ -313,12 +325,15 @@ fn editor_page_renders_source_engine_build_history_from_backend_dtos() {
         "hubData.ts",
         &fallback,
         &[
-            "buildHistory: [",
-            "detail: \"已暂存编辑器/运行时载荷\"",
-            "secondaryDetail: \"命令：python tools/zircon_build.py --targets editor,runtime；日志：编辑器/运行时目标已完成暂存。\"",
-            "logExcerpt: \"编辑器/运行时目标已完成暂存。\"",
-            "outputDir: \"E:\\\\Git\\\\ZirconEngine\\\\target\\\\zircon-hub\"",
+            "demoMode: true",
+            "activeSourceEngineId: null",
+            "sourceEngines: []",
         ],
+    );
+    assert_not_contains_any(
+        "hubData.ts",
+        &fallback,
+        &["buildHistory: [", "已暂存编辑器/运行时载荷"],
     );
     assert_contains_all(
         "tauri-react-shell.md",

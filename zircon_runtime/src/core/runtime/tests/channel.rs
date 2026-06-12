@@ -1,6 +1,6 @@
 use crossbeam_channel::unbounded;
 
-use crate::core::channel_util::recv_latest;
+use crate::core::framework::channel::recv_latest;
 
 #[test]
 fn recv_latest_keeps_last_message() {

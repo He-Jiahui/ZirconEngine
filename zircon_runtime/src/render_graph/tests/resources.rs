@@ -1,7 +1,7 @@
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
     RenderGraphBuilder, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphError, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
+    RenderGraphError, RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
     RenderGraphResourceKind,
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
@@ -9,14 +9,14 @@ use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsa
 #[test]
 fn graph_tracks_transient_lifetimes_and_resource_edges() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         128,
         64,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let depth = builder.create_transient_texture(TextureDesc::new(
+    let depth = builder.create_texture(TextureDesc::new(
         "scene-depth",
         128,
         64,
@@ -56,12 +56,57 @@ fn graph_tracks_transient_lifetimes_and_resource_edges() {
     assert_eq!(stats.read_resource_access_count, 2);
     assert_eq!(stats.write_resource_access_count, 3);
     assert_eq!(stats.external_output_count, 1);
+    assert_eq!(graph.resource_declarations().len(), 3);
+    let color_resource = RenderGraphResource::TransientTexture(color);
+    assert_eq!(
+        graph
+            .resource_declarations()
+            .iter()
+            .map(|resource| (resource.name.as_str(), resource.resource, resource.imported))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                "scene-color",
+                RenderGraphResource::TransientTexture(color),
+                false,
+            ),
+            (
+                "scene-depth",
+                RenderGraphResource::TransientTexture(depth),
+                false,
+            ),
+            (
+                "backbuffer",
+                RenderGraphResource::External(backbuffer),
+                true,
+            ),
+        ]
+    );
+    assert_eq!(
+        graph
+            .resource_declaration(color_resource)
+            .unwrap()
+            .name
+            .as_str(),
+        "scene-color"
+    );
+    assert_eq!(
+        graph
+            .resource_declaration_by_name("scene-depth")
+            .unwrap()
+            .resource,
+        RenderGraphResource::TransientTexture(depth)
+    );
 
-    let color_lifetime = graph
-        .resource_lifetimes()
-        .iter()
-        .find(|lifetime| lifetime.name == "scene-color")
-        .unwrap();
+    let color_lifetime = graph.resource_lifetime(color_resource).unwrap();
+    assert_eq!(color_lifetime.resource, color_resource);
+    assert_eq!(
+        graph
+            .resource_lifetime_by_name("scene-color")
+            .unwrap()
+            .resource,
+        color_resource
+    );
     assert_eq!(
         color_lifetime.kind,
         RenderGraphResourceKind::TransientTexture
@@ -105,7 +150,7 @@ fn graph_tracks_transient_lifetimes_and_resource_edges() {
 #[test]
 fn graph_records_attachment_clear_load_store_ops() {
     let mut builder = RenderGraphBuilder::new("attachment-ops");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         32,
         32,
@@ -163,7 +208,7 @@ fn graph_records_attachment_clear_load_store_ops() {
 #[test]
 fn graph_records_storage_writes_without_attachment_ops() {
     let mut builder = RenderGraphBuilder::new("compute-storage");
-    let storage_texture = builder.create_transient_texture(TextureDesc::new(
+    let storage_texture = builder.create_texture(TextureDesc::new(
         "ambient-occlusion",
         32,
         32,
@@ -219,7 +264,7 @@ fn graph_records_storage_writes_without_attachment_ops() {
 #[test]
 fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
     let mut builder = RenderGraphBuilder::new("sparse-texture-reservation");
-    let virtual_pages = builder.create_transient_texture(
+    let virtual_pages = builder.create_texture(
         TextureDesc::new(
             "virtual-terrain-pages",
             8192,
@@ -261,7 +306,7 @@ fn graph_preserves_sparse_texture_reservations_without_dense_transient_slot() {
 #[test]
 fn graph_preserves_compute_workload_metadata() {
     let mut builder = RenderGraphBuilder::new("compute-workload");
-    let light_list = builder.create_transient_buffer(BufferDesc::new(
+    let light_list = builder.create_buffer(BufferDesc::new(
         "light-list",
         256,
         BufferUsage::STORAGE | BufferUsage::COPY_SRC,
@@ -290,7 +335,7 @@ fn graph_preserves_compute_workload_metadata() {
 #[test]
 fn graph_rejects_transient_attachment_load_without_producer() {
     let mut builder = RenderGraphBuilder::new("load-without-producer");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         32,
         32,
@@ -314,7 +359,7 @@ fn graph_rejects_transient_attachment_load_without_producer() {
 #[test]
 fn graph_rejects_read_after_discarded_transient_attachment_store() {
     let mut builder = RenderGraphBuilder::new("discarded-store");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         32,
         32,
@@ -343,7 +388,7 @@ fn graph_rejects_read_after_discarded_transient_attachment_store() {
 #[test]
 fn graph_rejects_transient_read_without_producer() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let buffer = builder.create_transient_buffer(BufferDesc::new(
+    let buffer = builder.create_buffer(BufferDesc::new(
         "visible-instances",
         64,
         BufferUsage::STORAGE | BufferUsage::COPY_DST,
@@ -362,7 +407,7 @@ fn graph_rejects_transient_read_without_producer() {
 #[test]
 fn graph_rejects_duplicate_resource_names() {
     let mut builder = RenderGraphBuilder::new("frame");
-    builder.create_transient_texture(TextureDesc::new(
+    builder.create_texture(TextureDesc::new(
         "scene-color",
         128,
         64,
@@ -382,7 +427,7 @@ fn graph_rejects_duplicate_resource_names() {
 #[test]
 fn graph_resolves_resource_producers_after_manual_dependency_ordering() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         64,
         64,
@@ -410,7 +455,7 @@ fn graph_resolves_resource_producers_after_manual_dependency_ordering() {
 #[test]
 fn graph_rejects_write_after_write_without_dependency() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         128,
         64,
@@ -433,14 +478,14 @@ fn graph_rejects_write_after_write_without_dependency() {
 #[test]
 fn graph_culls_unused_resource_writer_but_keeps_external_output_chain() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let unused = builder.create_transient_texture(TextureDesc::new(
+    let unused = builder.create_texture(TextureDesc::new(
         "unused",
         32,
         32,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT,
     ));
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         32,
         32,
@@ -478,13 +523,38 @@ fn graph_culls_unused_resource_writer_but_keeps_external_output_chain() {
     assert_eq!(stats.resource_lifetime_count, 2);
     assert_eq!(stats.total_resource_access_count, 4);
     assert_eq!(stats.external_output_count, 1);
+
+    let unused_resource = RenderGraphResource::TransientTexture(unused);
+    let live_color = RenderGraphResource::TransientTexture(color);
+    assert_eq!(graph.resource_declarations().len(), 3);
+    assert_eq!(
+        graph
+            .resource_declaration(unused_resource)
+            .unwrap()
+            .name
+            .as_str(),
+        "unused"
+    );
+    assert_eq!(
+        graph
+            .resource_declaration_by_name("unused")
+            .unwrap()
+            .resource,
+        unused_resource
+    );
+    assert!(graph.resource_lifetime(unused_resource).is_none());
+    assert!(graph.resource_lifetime_by_name("unused").is_none());
+    assert_eq!(
+        graph.resource_lifetime(live_color).unwrap().name.as_str(),
+        "scene-color"
+    );
 }
 
 #[test]
 fn graph_culling_keeps_manual_dependencies_of_live_passes() {
     let mut builder = RenderGraphBuilder::new("frame");
     let setup_scratch =
-        builder.create_transient_buffer(BufferDesc::new("setup-scratch", 16, BufferUsage::STORAGE));
+        builder.create_buffer(BufferDesc::new("setup-scratch", 16, BufferUsage::STORAGE));
     let output = builder.import_external_resource("viewport-output");
 
     let setup = builder.add_pass("manual-setup", QueueLane::Graphics);
@@ -507,21 +577,21 @@ fn graph_culling_keeps_manual_dependencies_of_live_passes() {
 #[test]
 fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
     let mut builder = RenderGraphBuilder::new("aliasing");
-    let history = builder.create_transient_texture(TextureDesc::new(
+    let history = builder.create_texture(TextureDesc::new(
         "history",
         16,
         16,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let lighting = builder.create_transient_texture(TextureDesc::new(
+    let lighting = builder.create_texture(TextureDesc::new(
         "lighting",
         16,
         16,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let resolved = builder.create_transient_texture(TextureDesc::new(
+    let resolved = builder.create_texture(TextureDesc::new(
         "resolved",
         16,
         16,
@@ -557,14 +627,14 @@ fn graph_builds_transient_aliasing_plan_for_non_overlapping_lifetimes() {
 #[test]
 fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
     let mut builder = RenderGraphBuilder::new("byte-aware-aliasing");
-    let large_color = builder.create_transient_texture(TextureDesc::new(
+    let large_color = builder.create_texture(TextureDesc::new(
         "large-color",
         16,
         16,
         TextureFormat::Rgba8UnormSrgb,
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let small_color = builder.create_transient_texture(TextureDesc::new(
+    let small_color = builder.create_texture(TextureDesc::new(
         "small-color",
         8,
         8,
@@ -572,10 +642,10 @@ fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
         TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
     let small_buffer =
-        builder.create_transient_buffer(BufferDesc::new("small-buffer", 64, BufferUsage::STORAGE));
+        builder.create_buffer(BufferDesc::new("small-buffer", 64, BufferUsage::STORAGE));
     let large_buffer =
-        builder.create_transient_buffer(BufferDesc::new("large-buffer", 128, BufferUsage::STORAGE));
-    let sparse_pages = builder.create_transient_texture(
+        builder.create_buffer(BufferDesc::new("large-buffer", 128, BufferUsage::STORAGE));
+    let sparse_pages = builder.create_texture(
         TextureDesc::new(
             "sparse-pages",
             32,

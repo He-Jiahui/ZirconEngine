@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_hub/src/tauri_app/action_request.rs
+  - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
@@ -8,6 +9,7 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
   - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
   - zircon_hub/src/tauri_app/view_model/project_templates.rs
   - zircon_hub/src/tauri_app/view_model/localized.rs
   - zircon_hub/src/projects/create_project.rs
@@ -19,6 +21,12 @@ related_code:
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/process/editor_launch.rs
   - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/components/data/ProjectCardRail.tsx
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data/ProjectMetricsGrid.tsx
+  - zircon_hub/web/src/components/data/ProjectTable.tsx
+  - zircon_hub/web/src/components/inputs/ProjectsToolbar.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
   - zircon_hub/web/src/pages/ProjectsDashboard.tsx
   - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
   - zircon_hub/web/src/pages/ProjectDetailPage.tsx
@@ -36,6 +44,7 @@ related_code:
   - zircon_hub/tests/ui_selected_project_runtime_contract.rs
 implementation_files:
   - zircon_hub/src/tauri_app/action_request.rs
+  - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
@@ -43,6 +52,7 @@ implementation_files:
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
   - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/view_model/coming_soon.rs
   - zircon_hub/src/tauri_app/view_model/project_templates.rs
   - zircon_hub/src/tauri_app/view_model/localized.rs
   - zircon_hub/src/projects/create_project.rs
@@ -54,6 +64,12 @@ implementation_files:
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/process/editor_launch.rs
   - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/components/data/ProjectCardRail.tsx
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data/ProjectMetricsGrid.tsx
+  - zircon_hub/web/src/components/data/ProjectTable.tsx
+  - zircon_hub/web/src/components/inputs/ProjectsToolbar.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
   - zircon_hub/web/src/pages/ProjectsDashboard.tsx
   - zircon_hub/web/src/pages/ProjectBrowserPage.tsx
   - zircon_hub/web/src/pages/ProjectDetailPage.tsx
@@ -72,6 +88,7 @@ tests:
   - cargo test --manifest-path zircon_hub/Cargo.toml --test project_workflow_contract -- --nocapture
   - cargo test --manifest-path zircon_hub/Cargo.toml --test project_source_engine_contract -- --nocapture
   - cargo test --manifest-path zircon_hub/Cargo.toml --test project_quick_actions_contract -- --nocapture
+  - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_project_layout_contract -- --nocapture
   - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_project_navigation_contract -- --nocapture
   - cargo test --manifest-path zircon_hub/Cargo.toml --test ui_selected_project_runtime_contract -- --nocapture
 doc_type: workflow-detail
@@ -91,19 +108,27 @@ React does not infer filesystem identity. `web/src/tauri/projectTarget.ts` expos
 
 Dashboard-style Open Editor can fall back to the latest recent project only when no selected project exists. Selected-project actions must keep using selected-path matching and must not retarget a stale selection.
 
+`ProjectsDashboard.tsx` owns project route state and composes the reusable project surface through `ProjectsToolbar`, `ProjectCardRail`, `ProjectTable`, and `CreateProjectDialog`. `ProjectDetailPage.tsx` owns the detail route shell and delegates overview metrics to `ProjectMetricsGrid` and workflow/support panels to `ProjectDetailSidebar`. These components receive explicit nullable ids such as `selectedProjectId` and `activeSourceEngineId`; absence is represented by `null`, not by omitted props, so the React boundary matches the `HubViewModel` DTO shape.
+
 ## Create And Import
 
 `CreateProjectRequest` owns request-level validation and target-root derivation. `create_project()` currently enables only the `renderable-empty` template. It validates that the target directory is empty or missing, creates the standard local project layout, writes `zircon-project.toml`, writes the default scene and starter assets, then returns a `CreateProjectReport`.
 
-`create_project_from_payload` resolves the Source Engine id, rejects disabled templates as localized coming-soon failures, calls `create_project()`, remembers the new project in Hub recent-project metadata, stores the bound engine/template, selects the new project, refreshes selected-project scoped catalogs, records a create-project action-history row, and persists Hub plus Editor recent state.
+`create_project_from_payload` resolves the Source Engine id, rejects disabled templates as localized coming-soon failures, calls `create_project()`, remembers the new project in Hub recent-project metadata, stores the bound engine/template, selects the new project, refreshes selected-project scoped catalogs, records a create-project action-history row, and persists Hub plus Editor recent state. `CreateProjectDialog` still renders disabled template rows from the DTO so future templates remain visible, but it can submit only enabled templates.
 
 Import either uses the typed payload folder or opens the localized native folder picker. It validates `zircon-project.toml`, writes the project to recent-project metadata, binds the requested or active Source Engine when available, selects the imported project, moves Projects to Detail, refreshes scoped catalogs, records an import action-history row, and persists the selected project for Editor startup.
 
+Import paths are normalized through `src/projects/metadata.rs` before matching metadata or recent-project entries. `src/projects/validation.rs` parses `zircon-project.toml` as TOML and rejects missing or malformed manifests with localized recoverable task feedback; a native folder-picker cancellation returns to the current state without adding history or mutating recents. Successful import de-duplicates by normalized path, so the same project cannot appear twice because of slash, casing, or relative-path drift.
+
+Create-project recovery is intentionally conservative. A non-empty target directory does not overwrite files and reports an import-oriented recovery hint. If Hub fails after creating the project files but before recording recent metadata, the generated folder remains on disk for manual import instead of being deleted as part of error recovery.
+
 ## Project Detail Management
 
-`ProjectDetailPage.tsx` renders the selected project DTO passively. It does not prune metadata, normalize paths, or decide delete state. Pin, unpin, remove-from-hub, request-delete, cancel-delete, and confirm-delete dispatch typed selected-project payloads and wait for the refreshed view model.
+`ProjectDetailPage.tsx` renders the selected project DTO passively. It does not prune metadata, normalize paths, or decide delete state. `ProjectMetricsGrid` owns the fixed four-card overview, while `ProjectDetailSidebar` owns quick actions, Source Engine rows, package/install commands, and project-management buttons. Pin, unpin, remove-from-hub, request-delete, cancel-delete, and confirm-delete dispatch typed selected-project payloads and wait for the refreshed view model.
 
 Pin and unpin update only Hub project metadata. Remove from Hub prunes the recent project, selected path, pending delete path, and project metadata while leaving files on disk. Delete is a two-step Recycle Bin flow: `request-delete` sets `pending_delete_project_path`, `cancel-delete` clears it, and `confirm-delete` calls the Windows Recycle Bin command before removing Hub metadata. If the Recycle Bin command fails, Hub preserves the selected project and pending delete state so the user can retry or cancel.
+
+The Recycle Bin owner quotes filesystem paths through the command builder instead of string-concatenating raw paths. Contract tests cover spaces, Unicode, quote characters, and newline rejection, plus non-Windows recovery behavior. Delete therefore either moves the exact selected project path to the platform recycle flow or preserves Hub state for retry; it does not silently remove metadata after a failed file operation.
 
 Project status, template display, missing-path copy, pending-delete state, and action feedback are localized at the Rust DTO boundary through `HubTextBundle`. React renders those fields without reconstructing business copy.
 
@@ -123,7 +148,7 @@ Recent projects merge by normalized path key, keep newest entries, and preserve 
 
 ## Validation Ownership
 
-The project lifecycle gate is covered by Rust module tests and static React/Tauri contracts. `project_management_contract.rs` covers metadata, registry repair, template, Recycle Bin, and persistence boundaries. `project_workflow_contract.rs` covers typed action payload parsing, runtime routing, create/import/workflow actions, and the single frontend dispatcher. `project_source_engine_contract.rs` covers Source Engine binding/default behavior. `project_quick_actions_contract.rs` covers quick-action target fallback and selected-project payload forwarding. `ui_project_navigation_contract.rs` protects Dashboard/New/Browser/Detail routing. `ui_selected_project_runtime_contract.rs` protects passive selected-project DTO consumption.
+The project lifecycle gate is covered by Rust module tests and static React/Tauri contracts. `project_management_contract.rs` covers metadata, registry repair, template, Recycle Bin, and persistence boundaries. `project_workflow_contract.rs` covers typed action payload parsing, runtime routing, create/import/workflow actions, and the single frontend dispatcher. `project_source_engine_contract.rs` covers Source Engine binding/default behavior. `project_quick_actions_contract.rs` covers quick-action target fallback and selected-project payload forwarding. `ui_project_layout_contract.rs` protects dashboard toolbar/card rail/dialog, browser table, detail metrics, and detail sidebar composition. `ui_project_navigation_contract.rs` protects Dashboard/New/Browser/Detail routing. `ui_selected_project_runtime_contract.rs` protects passive selected-project DTO consumption.
 
 ## Docs Refresh Handoff
 

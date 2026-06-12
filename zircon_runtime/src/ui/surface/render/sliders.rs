@@ -25,6 +25,7 @@ const TRACK: &str = "#364046";
 const TRACK_DISABLED: &str = "#262d32";
 const VALUE_SURFACE: &str = "#11161a";
 const VALUE_BORDER: &str = "#2d3940";
+const BORDER_DISABLED: &str = "#343f47";
 const TEXT: &str = "#aebdc4";
 const TEXT_DISABLED: &str = "#59656c";
 const THUMB: &str = "#c9f2f6";
@@ -183,8 +184,11 @@ impl SliderRenderState {
         }
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn hot(self) -> bool {
@@ -280,7 +284,7 @@ fn push_tick_commands(
             ),
             clip_frame,
             z_index,
-            TICK,
+            tick_color(state),
             None,
             0.0,
             0.0,
@@ -351,21 +355,12 @@ fn push_value_box(
         value_rect,
         clip_frame,
         z_index,
-        if state.disabled() {
+        if state.unavailable() {
             DISABLED_SURFACE
         } else {
             VALUE_SURFACE
         },
-        Some(
-            if matches!(
-                state.visual_state,
-                UiPainterResolvedState::Focused | UiPainterResolvedState::Pressed
-            ) {
-                accent_color(metadata, state)
-            } else {
-                VALUE_BORDER
-            },
-        ),
+        Some(value_border(metadata, state)),
         1.0,
         4.0,
         state,
@@ -409,12 +404,12 @@ fn push_range_min_value(
         value_rect,
         clip_frame,
         z_index,
-        if state.disabled() {
+        if state.unavailable() {
             DISABLED_SURFACE
         } else {
             VALUE_SURFACE
         },
-        Some(VALUE_BORDER),
+        Some(range_value_border(state)),
         1.0,
         4.0,
         state,
@@ -552,7 +547,7 @@ fn value_label(metadata: &UiTemplateNodeMetadata, percent: f32) -> String {
 }
 
 fn track_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TRACK_DISABLED
     } else {
         color_attribute(metadata, "track_color")
@@ -562,7 +557,7 @@ fn track_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderSta
 }
 
 fn accent_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if string_attribute(metadata, "validation_level").is_some_and(|level| level == "warning")
     {
@@ -579,7 +574,7 @@ fn accent_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderSt
 }
 
 fn thumb_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "thumb_color")
@@ -592,13 +587,17 @@ fn thumb_outline_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SliderRenderState,
 ) -> &'a str {
-    color_attribute(metadata, "thumb_outline_color")
-        .or_else(|| color_attribute(metadata, "border_color"))
-        .unwrap_or_else(|| accent_color(metadata, state))
+    if state.unavailable() {
+        BORDER_DISABLED
+    } else {
+        color_attribute(metadata, "thumb_outline_color")
+            .or_else(|| color_attribute(metadata, "border_color"))
+            .unwrap_or_else(|| accent_color(metadata, state))
+    }
 }
 
 fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "label_color").unwrap_or(TEXT)
@@ -606,10 +605,39 @@ fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderSta
 }
 
 fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
+    }
+}
+
+fn value_border<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
+    if state.unavailable() {
+        BORDER_DISABLED
+    } else if matches!(
+        state.visual_state,
+        UiPainterResolvedState::Focused | UiPainterResolvedState::Pressed
+    ) {
+        accent_color(metadata, state)
+    } else {
+        VALUE_BORDER
+    }
+}
+
+fn range_value_border(state: &SliderRenderState) -> &'static str {
+    if state.unavailable() {
+        BORDER_DISABLED
+    } else {
+        VALUE_BORDER
+    }
+}
+
+fn tick_color(state: &SliderRenderState) -> &'static str {
+    if state.unavailable() {
+        BORDER_DISABLED
+    } else {
+        TICK
     }
 }
 

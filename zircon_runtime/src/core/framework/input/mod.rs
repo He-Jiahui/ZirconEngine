@@ -1,4 +1,4 @@
-use crate::core::ChannelReceiver;
+use crate::core::framework::channel::ChannelReceiver;
 
 mod button_input_state;
 mod file_drag_drop;

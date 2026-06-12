@@ -198,7 +198,9 @@ fn apply_effect(
         }
         UiDispatchEffect::DragDrop { .. } => apply_drag_drop_effect(surface, effect),
         UiDispatchEffect::RequestNavigation { .. } => apply_navigation_effect(surface, effect),
-        UiDispatchEffect::Popup { .. } | UiDispatchEffect::Tooltip { .. } => {
+        UiDispatchEffect::Popup { .. }
+        | UiDispatchEffect::Tooltip { .. }
+        | UiDispatchEffect::DismissTransientUi { .. } => {
             apply_popup_tooltip_effect(surface, effect)
         }
         UiDispatchEffect::RequestInputMethod { .. } | UiDispatchEffect::RequestClipboard { .. } => {

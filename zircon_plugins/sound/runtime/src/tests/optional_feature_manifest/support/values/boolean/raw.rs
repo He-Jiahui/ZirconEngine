@@ -1,4 +1,4 @@
-pub(super) fn bool_from_plugin_toml(value: &str) -> bool {
+pub(in super::super) fn bool_from_plugin_toml(value: &str) -> bool {
     match value {
         "true" => true,
         "false" => false,

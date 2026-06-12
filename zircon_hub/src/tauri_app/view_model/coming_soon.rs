@@ -21,6 +21,33 @@ pub(crate) fn coming_soon_entries(language: HubLanguage) -> Vec<HubComingSoonEnt
     let text = HubTextBundle::new(language);
     [
         (
+            "project-template-2d-scene",
+            "projects",
+            text.pair("2D Scene Template", "2D 场景模板"),
+            text.pair(
+                "The 2D scene template is reserved until the local authoring workflow is ready.",
+                "2D 场景模板会在本地创作工作流就绪后开放。",
+            ),
+        ),
+        (
+            "project-template-3d-scene",
+            "projects",
+            text.pair("3D Scene Template", "3D 场景模板"),
+            text.pair(
+                "The 3D scene template is reserved until the local authoring workflow is ready.",
+                "3D 场景模板会在本地创作工作流就绪后开放。",
+            ),
+        ),
+        (
+            "project-template-sample-world",
+            "projects",
+            text.pair("Sample World Template", "示例世界模板"),
+            text.pair(
+                "The sample world template is reserved for sample content generation.",
+                "示例世界模板为示例内容生成预留。",
+            ),
+        ),
+        (
             "asset-import",
             "assets",
             text.pair("Asset Import", "资产导入"),
@@ -84,6 +111,24 @@ pub(crate) fn coming_soon_entries(language: HubLanguage) -> Vec<HubComingSoonEnt
             ),
         ),
         (
+            "notification-center",
+            "shell",
+            text.pair("Notification Center", "通知中心"),
+            text.pair(
+                "Desktop notifications are reserved; v1 shows local task feedback in the Hub window.",
+                "桌面通知为预留能力；v1 在 Hub 窗口内显示本地任务反馈。",
+            ),
+        ),
+        (
+            "sign-out",
+            "shell",
+            text.pair("Sign Out", "退出登录"),
+            text.pair(
+                "Remote accounts are disabled for the local-only Hub.",
+                "本地版 Hub 不启用远程账号。",
+            ),
+        ),
+        (
             "team-invite",
             "team",
             text.pair("Invite Members", "邀请成员"),
@@ -136,8 +181,10 @@ fn coming_soon_meta(category_label: &str, status: &str, text: HubTextBundle) -> 
 fn coming_soon_category_label(category: &str, text: HubTextBundle) -> &'static str {
     match category {
         "assets" => text.pair("Assets", "资产"),
+        "projects" => text.pair("Projects", "项目"),
         "plugins" => text.pair("Plugins", "插件"),
         "local-delivery" => text.pair("Local Delivery", "本地交付"),
+        "shell" => text.pair("Shell", "外壳"),
         "team" => text.pair("Team", "团队"),
         _ => text.pair("Reserved", "预留"),
     }
@@ -145,6 +192,7 @@ fn coming_soon_category_label(category: &str, text: HubTextBundle) -> &'static s
 
 #[cfg(test)]
 mod tests {
+    use crate::projects::project_template_catalog;
     use crate::settings::HubLanguage;
 
     #[test]
@@ -160,5 +208,38 @@ mod tests {
         assert_eq!(remote_sync.status, "敬请期待");
         assert_eq!(remote_sync.meta, "本地交付 / 敬请期待");
         assert!(remote_sync.disabled);
+    }
+
+    #[test]
+    fn disabled_project_templates_have_coming_soon_entries() {
+        let entries = super::coming_soon_entries(HubLanguage::English);
+
+        for template in project_template_catalog()
+            .iter()
+            .filter(|template| !template.enabled)
+        {
+            let expected_id = format!("project-template-{}", template.id);
+            assert!(
+                entries.iter().any(|entry| entry.id == expected_id),
+                "disabled template {} is missing coming-soon entry {expected_id}",
+                template.id
+            );
+        }
+    }
+
+    #[test]
+    fn coming_soon_entries_are_non_empty_in_both_languages() {
+        for language in [HubLanguage::English, HubLanguage::Chinese] {
+            for entry in super::coming_soon_entries(language) {
+                assert!(!entry.id.trim().is_empty());
+                assert!(!entry.category.trim().is_empty());
+                assert!(!entry.category_label.trim().is_empty());
+                assert!(!entry.title.trim().is_empty());
+                assert!(!entry.detail.trim().is_empty());
+                assert!(!entry.status.trim().is_empty());
+                assert!(!entry.meta.trim().is_empty());
+                assert!(entry.disabled);
+            }
+        }
     }
 }

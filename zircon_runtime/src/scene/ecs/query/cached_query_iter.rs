@@ -256,8 +256,11 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> bool {
-        component_ticks_at_location::<T>(world, component_locations)
-            .is_some_and(|component_ticks| component_ticks.is_added(ticks))
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        component_ticks.is_added(ticks)
     }
 }
 
@@ -271,8 +274,11 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> bool {
-        component_ticks_at_location::<T>(world, component_locations)
-            .is_some_and(|component_ticks| component_ticks.is_changed(ticks))
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        component_ticks.is_changed(ticks)
     }
 }
 
@@ -330,9 +336,8 @@ where
     ) -> Option<Self::Item<'world>> {
         let component_id = world.registered_component_id::<T>()?;
         let location = component_location(component_locations, component_id)?;
-        world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value)
+        let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+        Some(value)
     }
 }
 
@@ -351,9 +356,8 @@ where
     ) -> Option<Self::Item<'world>> {
         let component_id = world.registered_component_id::<T>()?;
         let location = component_location(component_locations, component_id)?;
-        world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value)
+        let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+        Some(value)
     }
 }
 
@@ -418,10 +422,10 @@ where
         let Some(location) = component_location(component_locations, component_id) else {
             return Some(None);
         };
-        let value = world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value);
-        Some(value)
+        let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location) else {
+            return Some(None);
+        };
+        Some(Some(value))
     }
 }
 
@@ -517,7 +521,6 @@ where
 {
     let component_id = world.registered_component_id::<T>()?;
     let location = component_location(component_locations, component_id)?;
-    world
-        .component_ref_with_ticks_at_location::<T>(*location)
-        .map(|(_, ticks)| ticks)
+    let (_, ticks) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+    Some(ticks)
 }

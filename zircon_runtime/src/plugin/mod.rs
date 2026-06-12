@@ -1,3 +1,4 @@
+mod bridge;
 mod capability_status;
 mod component_type_descriptor;
 mod core_profiles;
@@ -14,6 +15,9 @@ mod runtime_profile;
 mod scene_hook;
 mod ui_component_descriptor;
 
+pub use bridge::{
+    BridgeEntry, BridgeGuard, FrozenBridgeTable, InterfaceSlot, StrongBridge, WeakBridge,
+};
 pub use capability_status::{CapabilityStatus, CapabilityStatusManifest};
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use core_profiles::{EditorCoreProfile, RuntimeCoreProfile};
@@ -22,7 +26,10 @@ pub use export_profile::{
     ExportPackagingStrategy, ExportPlatformHostKind, ExportPlatformPluginStrategy,
     ExportPlatformPolicy, ExportPlatformResourceStrategy, ExportProfile, ExportTargetPlatform,
 };
-pub use extension_registry::RuntimeExtensionRegistry;
+pub use extension_registry::{
+    ExtensionKey, ExtensionOwnership, ExtensionSlot, FrozenExtensionTable, PluginModuleId,
+    RuntimeExtensionRegistry,
+};
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use native_plugin_loader::{
     LoadedNativePlugin, NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3,
@@ -50,16 +57,18 @@ pub use native_plugin_loader::{
 };
 pub use package_manifest::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginEventManifest,
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
-    PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
+    PluginFeatureBundleManifest, PluginFeatureDependency, PluginInterfaceManifest,
+    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginPackageManifest,
 };
 pub use plugin_maturity::PluginMaturity;
 pub use project_plugin_manifest::{
     ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };
 pub use runtime_plugin::{
-    RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginFeature, RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
+    CapabilityView, PluginFinishContext, PluginRuntimeContext, RuntimeExtensionCatalogReport,
+    RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginFeature,
+    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{

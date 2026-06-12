@@ -5,7 +5,7 @@ use zircon_runtime::{
         HitTarget, PickingAxis, PickingDebugMetricKind, PointerAction, PointerButton, PointerId,
         PointerScrollUnit,
     },
-    ui::{surface::UiSurface},
+    ui::surface::UiSurface,
 };
 use zircon_runtime_interface::{
     math::Vec2,

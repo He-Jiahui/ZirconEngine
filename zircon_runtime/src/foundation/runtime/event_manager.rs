@@ -1,5 +1,7 @@
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::framework::events::EngineEvent;
 use crate::core::framework::foundation::EventManager;
-use crate::core::{ChannelReceiver, CoreHandle, EngineEvent};
+use crate::core::CoreHandle;
 use serde_json::Value;
 
 #[derive(Clone, Debug)]

@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/dispatch/descriptor_for.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
@@ -19,6 +20,11 @@ related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
+  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
@@ -41,6 +47,38 @@ related_code:
   - zircon_plugins/rendering/features/shader_graph/editor/src/lib.rs
   - zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs
   - zircon_plugins/rendering/features/vfx_graph/editor/src/lib.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_motion_vector_history.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_uniform.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
 implementation_files:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
@@ -51,10 +89,48 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/dispatch/descriptor_for.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_data_document.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_motion_vector_history.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_uniform.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/shadow_map.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/editor/src/lib.rs
@@ -88,6 +164,30 @@ tests:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
+  - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_selects_mesh_lod_by_camera_distance
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_skinned_gpu_draws_separately_from_cpu_fallbacks
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_cpu_morphed_gpu_skinning_source_as_dynamic_geometry
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
+  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_motion_vector_history.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_accept_matching_active_shared_source_weights
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_model_bind_group_layout.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_composes_pose_world_against_bind_world_matrices
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_reports_missing_parent_bone_reference
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_packs_gpu_matrices_and_count
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_rejects_current_uniform_limit_overflow
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_skinned_mesh_queue_count
   - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_plugins/rendering/runtime/src/lib.rs
@@ -164,7 +264,75 @@ The runtime built-in `Decal` feature is deliberately narrower than the
 `rendering.decals` plugin. It is a descriptor-only advanced slot for renderer-data
 sources, quality gates, and profile opt-in; enabling it only reserves the
 `decals` extract section and does not register a graph pass, executor, history
-binding, or backend capability requirement.
+binding, or backend capability requirement. Descriptor-only advanced built-ins
+are registered through the shared catalog in
+`builtin_render_feature/advanced_slots.rs`, so descriptor dispatch, explicit
+opt-in, sparse capability metadata, and tests use the same slot table.
+
+The runtime built-in `MeshLod` feature follows the same descriptor-first policy
+at the SRP layer, but conventional scene data now has a first runtime extraction
+path. Scene mesh instances can carry `lods`, each with a finite distance
+threshold and the same model/direct-mesh/material/primitive binding shape as the
+base mesh renderer. Scene extraction chooses the highest matching
+`min_distance` level for the active camera and emits ordinary flat mesh snapshots
+for the selected source. Enabling `MeshLod` still only reserves the neutral
+`mesh_lod` extract section; it does not register a plugin executor, graph pass,
+backend capability, streaming policy, cross-fade, screen-error selector, or
+Virtual Geometry/Nanite path.
+
+The runtime built-in `SkinnedMesh` feature follows the same descriptor-first
+policy for future skeletal mesh rendering. Renderer data can reference
+`SkinnedMesh` as a source or quality gate, but enabling it only reserves the
+neutral `skinned_mesh` extract section. Runtime mesh preparation now computes a
+renderer-private joint palette for the CPU-skinned fallback path, packs that
+palette through the mesh-level fixed 256-matrix uniform ABI, uploads it into a
+renderer-owned per-draw buffer when the current ABI fits, marks those fallback
+draws, and exposes `render.mesh.queue.skinned_draw_count`,
+`render.mesh.queue.skinned_palette_upload_count`, and
+`render.mesh.queue.skinned_gpu_source_candidate_count`. When the candidate has
+a palette uniform plus a shader-skinning source, and the built-in fallback
+shader pipeline, draw construction switches the active geometry to that source,
+sets the model-uniform shader-skinning flag, and exposes
+`render.mesh.queue.skinned_gpu_skinning_draw_count`. Successful submissions also
+record dynamic skinned pose history for the next frame. When the next draw has a
+matching previous skeleton pose, a previous transform, and either no current or
+previous morph weights or a direct CPU-morphed GPU-skinning source whose finite
+current and previous morph weights match, draw construction uploads a previous palette, sets the
+previous-palette model-uniform flag, and exposes
+`render.mesh.queue.skinned_previous_palette_upload_count` plus
+`render.mesh.queue.skinned_gpu_motion_vector_draw_count`. Direct `MeshAsset`
+draws with active morph weights can now use a CPU-morphed-but-unskinned source
+primitive for current-frame shader skinning; that subset is exposed as
+`render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count`. Morphed
+previous-palette velocity with changed weights still waits for a GPU-visible previous morph source.
+The mesh pipeline cache resolves that fallback shader id to the renderer
+fallback WGSL source, and custom material shader authored non-empty layouts now get renderer ABI readiness diagnostics for the same skinning ABI. Actual custom shader execution remains on the CPU fallback
+until GPU-skinning and velocity policy lands.
+GPU-skinned prepared draws still count as prepared geometry, while CPU-morphed
+shader-skinning sources count as dynamic geometry. Both are excluded from
+ordinary direct prepared batch and GPU instancing candidates because the current
+batch key does not include the per-draw palette. Oversized palettes keep the CPU
+fallback draw and skip only the palette upload. The fallback mesh shader
+now declares the joint index, joint weight, tangent, and vertex color channels;
+deferred geometry declares the same tangent/color inputs, and both fallback and
+deferred albedo multiply authored vertex color. Runtime glTF import now carries
+primitive `TANGENT` and `COLOR_0` into the model vertices and labeled mesh
+subasset attributes that feed those channels, and the CPU-morphed source applies
+standard tangent.xyz plus vertex-color morph deltas before shader skinning. Fallback mesh,
+deferred geometry, normal prepass, and shadow map WGSL now declare the same
+group 1 binding 1 current-palette ABI and execute palette skinning only behind
+the draw-level flag and palette joint-count bounds. The fallback mesh
+motion-vector shader also consumes group 1 binding 2 as the previous-palette ABI
+when `ModelUniform.motion_params.z` is set, so the built-in fallback path can
+compute current and previous clip positions from matching skinned poses. The
+mesh material texture set now binds base color and normal map separately, uses a
+neutral normal fallback, and lets fallback lighting plus the normal prepass sample
+material normal maps through the skinned tangent frame. The existing model bind
+group now reserves vertex-stage bindings 1 and 2 and every draw binds either the
+per-draw palette buffers or shared empty palette buffers, but graph pass/executor
+ownership, full GPU morph deformation, storage-buffer large-skeleton support,
+custom material shader GPU-skinning execution and velocity policy, plugin-owned skinned velocity output,
+and any plugin-owned renderer extension remain dedicated renderer work.
 
 ## V1 feature surfaces
 

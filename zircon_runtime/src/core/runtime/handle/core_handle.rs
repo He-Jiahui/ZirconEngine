@@ -1,10 +1,8 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::core::job_scheduler::JobScheduler;
-use crate::core::tasks::{TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
-
 use super::super::state::CoreRuntimeInner;
+use super::super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
 use super::super::weak::CoreWeak;
 
 #[derive(Clone)]

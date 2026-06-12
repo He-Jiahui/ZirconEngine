@@ -5,7 +5,7 @@ use crate::graphics::debug_markers::{
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
-    RenderPassExecutorRegistry, RenderPassMeshDrawLists, RenderPassPostProcessStackContext,
+    RenderPassExecutorRegistry, RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
@@ -33,7 +33,7 @@ impl SceneRendererCore {
         pipeline: &CompiledRenderPipeline,
         render_pass_executors: &RenderPassExecutorRegistry,
         graph_execution: &mut RenderGraphStageExecution<'_>,
-        mesh_draw_lists: RenderPassMeshDrawLists<'_>,
+        mesh_draw_lists: RenderPassMeshCommandLists<'_>,
         history_textures: Option<&SceneFrameHistoryTextures>,
         history_available: bool,
     ) -> Result<(), GraphicsError> {
@@ -258,7 +258,7 @@ impl SceneRendererCore {
 #[allow(clippy::too_many_arguments)]
 fn execute_mesh_graph_stage(
     mesh_pipelines: &mut MeshPipelineCache,
-    mesh_draw_lists: RenderPassMeshDrawLists<'_>,
+    mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -304,7 +304,7 @@ fn execute_mesh_graph_stage(
 #[allow(clippy::too_many_arguments)]
 fn execute_deferred_graph_stage(
     deferred: &DeferredSceneResources,
-    mesh_draw_lists: RenderPassMeshDrawLists<'_>,
+    mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,

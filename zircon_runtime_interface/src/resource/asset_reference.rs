@@ -1,3 +1,4 @@
+use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Display, Formatter};
 
@@ -37,6 +38,20 @@ impl Serialize for AssetReference {
             url: &'a ResourceLocator,
         }
 
+        if !serializer.is_human_readable() {
+            #[derive(Serialize)]
+            struct BinaryRepr {
+                uuid: String,
+                url: String,
+            }
+
+            return BinaryRepr {
+                uuid: self.uuid.to_string(),
+                url: self.locator.to_string(),
+            }
+            .serialize(serializer);
+        }
+
         Repr {
             uuid: self.uuid,
             url: &self.locator,
@@ -54,6 +69,19 @@ impl<'de> Deserialize<'de> for AssetReference {
         struct Repr {
             uuid: AssetUuid,
             url: ResourceLocator,
+        }
+
+        if !deserializer.is_human_readable() {
+            #[derive(Deserialize)]
+            struct BinaryRepr {
+                uuid: String,
+                url: String,
+            }
+
+            let BinaryRepr { uuid, url } = BinaryRepr::deserialize(deserializer)?;
+            let uuid = uuid.parse::<AssetUuid>().map_err(D::Error::custom)?;
+            let url = ResourceLocator::parse(&url).map_err(D::Error::custom)?;
+            return Ok(Self::new(uuid, url));
         }
 
         let Repr { uuid, url } = Repr::deserialize(deserializer)?;

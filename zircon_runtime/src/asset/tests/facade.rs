@@ -11,6 +11,10 @@ use crate::core::resource::{
     ResourceState, TextureMarker, UntypedResourceHandle,
 };
 
+mod failure_reason;
+mod handle_lifecycle;
+mod hot_reload;
+
 fn locator(value: &str) -> AssetUri {
     AssetUri::parse(value).expect("valid asset locator")
 }

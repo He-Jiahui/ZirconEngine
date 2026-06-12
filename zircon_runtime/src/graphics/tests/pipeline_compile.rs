@@ -1,8 +1,9 @@
 use crate::core::framework::render::{
-    FallbackSkyboxKind, PostProcessGraphResourceNames, PreviewEnvironmentExtract, ProjectionMode,
-    RenderCameraTarget, RenderDynamicResolutionSettings, RenderFrameExtract, RenderPhase,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    FallbackSkyboxKind, PostProcessGraphResourceNames, PostProcessStackDescriptor,
+    PreviewEnvironmentExtract, ProjectionMode, RenderCameraTarget, RenderDynamicResolutionSettings,
+    RenderFrameExtract, RenderPhase, RenderPostProcessEffectStackSettings,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderScreenSpaceReflectionSettings,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::render_graph::{
@@ -1201,6 +1202,13 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         .graph
         .passes()
         .iter()
+        .any(|pass| pass.name == "hzb-build"
+            && pass.queue == QueueLane::Graphics
+            && pass.declared_queue == QueueLane::AsyncCompute));
+    assert!(compiled
+        .graph
+        .passes()
+        .iter()
         .any(|pass| pass.name == "clustered-light-culling"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
@@ -1215,7 +1223,7 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         ssao_output.attachment_ops, None,
         "compute storage writes must not inherit render attachment load/store ops"
     );
-    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 2);
+    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 3);
 }
 
 #[test]
@@ -1954,6 +1962,129 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
             .contains(&"debug".to_string()),
         "overlay feature should keep requiring debug extract data"
     );
+}
+
+#[test]
+fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &Default::default(),
+        false,
+        false,
+        &Default::default(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+    let live_pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(live_pass_names.contains(&"post-process"));
+    for pass_name in [
+        "motion-vector-clear",
+        "motion-vector-camera",
+        "motion-vector-object",
+        "motion-vector-tile-max",
+        "motion-vector-tile-max-coarse",
+        "motion-vector-neighbor-max",
+        "depth-of-field-prepare",
+        "screen-space-reflection-depth-pyramid",
+        "screen-space-reflection-reflection-pyramid",
+        "screen-space-reflection-depth-pyramid-coarse",
+        "screen-space-reflection-reflection-pyramid-coarse",
+        "screen-space-reflection-specular-occlusion",
+        "screen-space-reflection-resolve",
+    ] {
+        assert!(
+            !live_pass_names.contains(&pass_name),
+            "`{pass_name}` should be culled when the effective post-process stack does not request it; live={live_pass_names:?}"
+        );
+    }
+
+    let lifetimes = compiled
+        .graph
+        .resource_lifetimes()
+        .iter()
+        .map(|lifetime| lifetime.name.as_str())
+        .collect::<Vec<_>>();
+    for resource_name in [
+        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
+        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+    ] {
+        assert!(
+            !lifetimes.contains(&resource_name),
+            "`{resource_name}` should not keep a graph lifetime when its effect family is disabled; lifetimes={lifetimes:?}"
+        );
+    }
+}
+
+#[test]
+fn effective_post_process_stack_keeps_screen_space_reflection_passes_when_requested() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &RenderPostProcessEffectStackSettings {
+            screen_space_reflection: RenderScreenSpaceReflectionSettings {
+                intensity: 0.5,
+                max_steps: 32,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &Default::default(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+    let live_pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+
+    for pass_name in [
+        "motion-vector-camera",
+        "motion-vector-object",
+        "motion-vector-tile-max",
+        "motion-vector-neighbor-max",
+        "screen-space-reflection-depth-pyramid",
+        "screen-space-reflection-reflection-pyramid",
+        "screen-space-reflection-depth-pyramid-coarse",
+        "screen-space-reflection-reflection-pyramid-coarse",
+        "screen-space-reflection-specular-occlusion",
+        "screen-space-reflection-resolve",
+    ] {
+        assert!(
+            live_pass_names.contains(&pass_name),
+            "`{pass_name}` should remain live when SSR requests it; live={live_pass_names:?}"
+        );
+    }
 }
 
 #[test]

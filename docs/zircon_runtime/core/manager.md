@@ -25,6 +25,11 @@ tests:
   - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\manager\tests.rs zircon_runtime\src\tests\extensions\manager_handles.rs
+  - rustfmt --edition 2021 --check zircon_runtime\src\core\manager\resolver.rs zircon_runtime\src\core\manager\tests.rs (2026-06-11 M5 manager resolver direct projection: passed)
+  - manager resolver direct-projection source guard for `let holder = core.resolve_manager::<$holder>($service_name)?;`, `Ok(holder.shared())`, and no old `.map(|holder| holder.shared())` closure adapter (2026-06-11 M5 manager resolver direct projection: passed)
+  - conflict-marker, trailing-whitespace, and git diff --check scans over zircon_runtime/src/core/manager/resolver.rs, zircon_runtime/src/core/manager/tests.rs, docs/zircon_runtime/core/manager.md, and .codex/sessions/20260604-1232-runtime-architecture-review.md (2026-06-11 M5 manager resolver direct projection: passed with expected LF-to-CRLF warnings only for tracked files)
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-11 M5 manager resolver direct projection: passed; plugin runtime gaps empty, unclassified public modules 2, unclassified public uses 0, unclassified hotspots 0, root surface migration debt 4, large-file migration debt 5)
+  - cargo validation for M5 manager resolver direct projection (2026-06-11: deferred because active shared Cargo/rustc lanes were running; no new Cargo command was started and no Cargo pass/fail is claimed)
 doc_type: module-detail
 ---
 
@@ -47,6 +52,8 @@ Concrete behavior stays outside this module. For example, the AI runtime plugin 
 Manager service names are static constants, so callers do not allocate or format registry names on the hot path. `CoreHandle::resolve_manager(...)` still locks the runtime service table and returns an `Arc` clone of the cached service holder. That is acceptable at setup, module activation, and coarse workflow boundaries, but repeated per-entity or per-frame inner-loop lookup should cache the returned `Arc<dyn ManagerTrait>` in the caller's runtime state.
 
 The resolver layer intentionally returns trait-object `Arc`s instead of concrete plugin managers. This keeps plugin implementations replaceable and prevents app/editor code from depending on plugin-private manager structs.
+
+M5 follow-up: resolver helpers now project the typed holder into its trait-object `Arc` through a direct `let holder = core.resolve_manager::<$holder>(...)?; Ok(holder.shared())` branch inside the macro. This keeps the existing typed downcast/error path in `CoreHandle::resolve_manager(...)`, while avoiding a per-resolver `.map(|holder| holder.shared())` closure adapter after the service holder has been resolved.
 
 ## Current Coverage
 

@@ -1,21 +1,21 @@
 ---
 related_code:
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pool.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/tasks/report.rs
-  - zircon_runtime/src/core/tasks/thread_assignment.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/report.rs
+  - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/framework/tasks/mod.rs
 implementation_files:
-  - zircon_runtime/src/core/tasks/mod.rs
-  - zircon_runtime/src/core/tasks/pool.rs
-  - zircon_runtime/src/core/tasks/pools.rs
-  - zircon_runtime/src/core/tasks/report.rs
-  - zircon_runtime/src/core/tasks/thread_assignment.rs
-  - zircon_runtime/src/core/job_scheduler.rs
+  - zircon_runtime/src/core/runtime/tasks/mod.rs
+  - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - zircon_runtime/src/core/runtime/tasks/pools.rs
+  - zircon_runtime/src/core/runtime/tasks/report.rs
+  - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
 plan_sources:
   - user: 2026-05-16 continue Bevy-style app/prelude/state/time/tasks/log/diagnostic completion
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
@@ -33,7 +33,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::tasks` is the concrete runtime executor layer for Bevy-style task pool categories. The framework task module names the shared vocabulary (`Compute`, `AsyncCompute`, and `Io`), while this module owns the actual rayon-backed thread pools used by `CoreRuntime`.
+`zircon_runtime::core::runtime::tasks` is the concrete runtime executor layer for Bevy-style task pool categories. The framework task module names the shared vocabulary (`Compute`, `AsyncCompute`, and `Io`), while this module owns the actual rayon-backed thread pools used by `CoreRuntime`.
 
 This keeps the Bevy split that matters for engine behavior: frame-critical CPU work goes to `Compute`, multi-frame background work goes to `AsyncCompute`, and blocking or low-duty IO work goes to `Io`. Zircon does not copy Bevy's global singleton model; task pools are owned by each `CoreRuntime` instance and exposed through `CoreRuntime`/`CoreHandle`.
 
@@ -47,9 +47,9 @@ Bevy's `bevy_tasks/src/usages.rs` defines the semantic distinction between `Comp
 
 The task contracts under `zircon_runtime::core::framework::tasks` remain pure DTOs and diagnostics contracts. They do not spawn work.
 
-The concrete pools under `zircon_runtime::core::tasks` own thread creation and execution. `CoreRuntime` initializes one `TaskPools` set at construction time, and `CoreHandle::task_pools()` exposes it to runtime services and managers without requiring global state.
+The concrete pools under `zircon_runtime::core::runtime::tasks` own thread creation and execution. `CoreRuntime` initializes one `TaskPools` set at construction time, and `CoreHandle::task_pools()` exposes it to runtime services and managers without requiring global state.
 
-`JobScheduler` remains as a compatibility facade for existing code. It delegates to the compute pool so older callers still schedule frame-critical work without creating a second thread pool.
+`JobScheduler` is implemented under the same owner because scheduling is runtime execution behavior. It delegates to the compute pool so existing callers can schedule frame-critical work without creating a second thread pool. The curated `core` and prelude facades re-export the task-pool types and `JobScheduler`, but the old `core::tasks` namespace has been retired.
 
 ## Data Model
 
@@ -78,6 +78,6 @@ Each pool then emits one `task_pool.kind=...` line with the actual parallelism, 
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/tasks.rs` verifies default Bevy-style thread distribution, small-host minimum pool availability, execution on all three pools, formatted task-pool diagnostics, runtime/handle report access, and the `JobScheduler` compatibility relationship to the compute pool.
+`zircon_runtime/src/tests/tasks.rs` verifies default Bevy-style thread distribution, small-host minimum pool availability, execution on all three pools, formatted task-pool diagnostics, runtime/handle report access, and the `JobScheduler` facade relationship to the compute pool.
 
 `zircon_runtime/src/tests/prelude.rs` verifies that the stable runtime prelude exports the task-pool types and diagnostic report needed by app and module authors.

@@ -14,6 +14,10 @@ pub(in crate::ui::retained_host::host_contract::painter) struct WorkbenchPopupRo
     pub disabled: bool,
     pub checked: bool,
     pub selected: bool,
+    pub open: bool,
+    pub dragging: bool,
+    pub drop_hovered: bool,
+    pub loading: bool,
     pub danger: bool,
 }
 
@@ -55,6 +59,10 @@ impl WorkbenchPopupRowState {
             disabled: self.disabled,
             checked: self.checked,
             selected: self.selected,
+            open: self.open,
+            dragging: self.dragging,
+            drop_hovered: self.drop_hovered,
+            loading: self.loading,
             ..UiPainterState::normal()
         }
     }
@@ -65,7 +73,7 @@ impl WorkbenchPopupRowState {
 }
 
 fn popup_row_background(state: UiPainterResolvedState, marked: bool, hot: bool) -> Option<[u8; 4]> {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable(state) {
         None
     } else if marked {
         Some(PALETTE.surface_selected)
@@ -77,7 +85,7 @@ fn popup_row_background(state: UiPainterResolvedState, marked: bool, hot: bool) 
 }
 
 fn popup_row_selection_mark(state: UiPainterResolvedState, marked: bool) -> Option<[u8; 4]> {
-    (marked && state != UiPainterResolvedState::Disabled).then_some(PALETTE.focus_ring)
+    (marked && !is_unavailable(state)).then_some(PALETTE.focus_ring)
 }
 
 fn popup_row_text_color(
@@ -86,7 +94,7 @@ fn popup_row_text_color(
     marked: bool,
     hot: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable(state) {
         PALETTE.text_disabled
     } else if row.danger {
         WORKBENCH_POPUP_ROW_DANGER_TEXT
@@ -98,7 +106,7 @@ fn popup_row_text_color(
 }
 
 fn popup_row_shortcut_color(state: UiPainterResolvedState) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable(state) {
         PALETTE.text_disabled
     } else {
         PALETTE.text_muted
@@ -111,7 +119,7 @@ fn popup_row_adornment_color(
     marked: bool,
     hot: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable(state) {
         PALETTE.text_disabled
     } else if row.danger {
         WORKBENCH_POPUP_ROW_DANGER_TEXT
@@ -128,7 +136,65 @@ fn is_hot(state: UiPainterResolvedState) -> bool {
         UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Pressed
             | UiPainterResolvedState::Focused
+            | UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )
+}
+
+fn is_unavailable(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn popup_row_selector_projects_full_semantic_state() {
+        let open = select_workbench_popup_row_style(WorkbenchPopupRowState {
+            open: true,
+            ..WorkbenchPopupRowState::default()
+        });
+        assert_eq!(open.state, UiPainterResolvedState::Open);
+        assert_eq!(open.background, Some(PALETTE.surface_hover));
+        assert_eq!(open.text, PALETTE.focus_ring);
+
+        let dragging = select_workbench_popup_row_style(WorkbenchPopupRowState {
+            dragging: true,
+            ..WorkbenchPopupRowState::default()
+        });
+        assert_eq!(dragging.state, UiPainterResolvedState::Dragging);
+        assert_eq!(dragging.background, Some(PALETTE.surface_hover));
+        assert_eq!(dragging.adornment, PALETTE.focus_ring);
+
+        let drop_hovered = select_workbench_popup_row_style(WorkbenchPopupRowState {
+            drop_hovered: true,
+            ..WorkbenchPopupRowState::default()
+        });
+        assert_eq!(drop_hovered.state, UiPainterResolvedState::DropHovered);
+        assert_eq!(drop_hovered.background, Some(PALETTE.surface_hover));
+        assert_eq!(drop_hovered.shortcut, PALETTE.text_muted);
+    }
+
+    #[test]
+    fn popup_row_loading_state_uses_unavailable_visuals() {
+        let loading_selected = select_workbench_popup_row_style(WorkbenchPopupRowState {
+            loading: true,
+            hovered: true,
+            selected: true,
+            danger: true,
+            ..WorkbenchPopupRowState::default()
+        });
+
+        assert_eq!(loading_selected.state, UiPainterResolvedState::Loading);
+        assert_eq!(loading_selected.background, None);
+        assert_eq!(loading_selected.selection_mark, None);
+        assert_eq!(loading_selected.text, PALETTE.text_disabled);
+        assert_eq!(loading_selected.shortcut, PALETTE.text_disabled);
+        assert_eq!(loading_selected.adornment, PALETTE.text_disabled);
+    }
 }

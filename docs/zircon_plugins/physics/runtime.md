@@ -26,7 +26,7 @@ related_code:
   - zircon_plugins/physics/runtime/src/query_contact/raycast/capsule.rs
   - zircon_plugins/physics/runtime/src/query_contact/raycast/quadratic.rs
   - zircon_plugins/physics/runtime/src/query_contact/raycast/sphere.rs
-  - zircon_plugins/physics/runtime/src/scene_hook.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
   - zircon_plugins/physics/runtime/src/trigger.rs
   - zircon_plugins/physics/runtime/src/trigger/event.rs
   - zircon_plugins/physics/runtime/src/trigger/pair.rs
@@ -88,7 +88,7 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/query_contact/raycast/capsule.rs
   - zircon_plugins/physics/runtime/src/query_contact/raycast/quadratic.rs
   - zircon_plugins/physics/runtime/src/query_contact/raycast/sphere.rs
-  - zircon_plugins/physics/runtime/src/scene_hook.rs
+  - zircon_plugins/physics/runtime/src/runtime_system.rs
   - zircon_plugins/physics/runtime/src/trigger.rs
   - zircon_plugins/physics/runtime/src/trigger/event.rs
   - zircon_plugins/physics/runtime/src/trigger/pair.rs
@@ -140,6 +140,7 @@ tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract --target-dir target\codex-shared-a
   - cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --locked --quiet (blocked: unrelated active scene world/ECS compile errors)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never (2026-06-12 plugin-architecture runtime-system migration: passed with existing warnings; zircon_plugins/Cargo.lock protected/restored)
   - cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a
   - 2026-05-31: cargo test --manifest-path .\zircon_plugins\physics\runtime\Cargo.toml physics_registration_contributes_runtime_module --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (red before linked capability-status metadata, then passed with existing runtime warnings)
   - 2026-05-31: cargo test --manifest-path .\Cargo.toml -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (passed with existing runtime warnings)
@@ -164,16 +165,19 @@ doc_type: module-detail
 
 # Physics Runtime Plugin
 
-`zircon_plugins/physics/runtime` owns the concrete physics runtime after the hard cutover. The crate provides the `PhysicsModule` descriptor, the plugin-local `PhysicsDriver`, the explicit backend selector, the `DefaultPhysicsManager` fallback/backend state, ray/query and contact helpers, and the scene hook that runs physics at `SystemStage::FixedUpdate`.
+`zircon_plugins/physics/runtime` owns the concrete physics runtime after the hard cutover. The crate provides the `PhysicsModule` descriptor, the plugin-local `PhysicsDriver`, the explicit backend selector, the `DefaultPhysicsManager` fallback/backend state, ray/query and contact helpers, and the runtime scene system that runs physics at `SystemStage::FixedUpdate`.
 
-`zircon_runtime` no longer exports `zircon_runtime::physics` and does not depend on the plugin crate. Runtime keeps only neutral contracts under `zircon_runtime::core::framework::physics`, manager service names/resolvers under `zircon_runtime::core::manager`, scene ECS state, and the generic scene hook protocol.
+`zircon_runtime` no longer exports `zircon_runtime::physics` and does not depend on the plugin crate. Runtime keeps only neutral contracts under `zircon_runtime::core::framework::physics`, manager service names/resolvers under `zircon_runtime::core::manager`, scene ECS state, and the generic runtime scene-system scheduling protocol.
+
+The current backend option decision is recorded in [Physics Plugin Options](../physics-plugin-options.md): builtin remains the only executable V1 backend, Jolt is the future native backend direction but remains unavailable until a real plugin-owned bridge is linked, and Rapier is not introduced on the primary path.
 
 ## Runtime Boundary
 
 - The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
-- The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_scene_hook(scene_hook_registration())`.
+- The plugin contributes tick behavior through `RuntimeExtensionRegistry::register_runtime_scene_system(...)` as `physics.step` in `SystemStage::FixedUpdate`, in set `physics.simulation`.
 - Static `zircon_plugins/physics/plugin.toml`, the linked runtime package manifest, and `RuntimePluginDescriptor::builtin_catalog()` all classify Physics as category `runtime`, maturity `experimental`, with partial status rows for `runtime.plugin.physics`, `runtime.capability.physics.raycast`, `runtime.capability.physics.overlap`, `runtime.capability.physics.shape_cast`, `runtime.capability.physics.trigger_events`, `runtime.capability.physics.constraints`, and `runtime.capability.physics.skeletal_joints`. This keeps package/export metadata consistent without promoting Jolt, swept-shape, trigger, constraint-solver, or ragdoll parity.
-- `PhysicsSceneRuntimeHook` resolves `PhysicsManagerHandle` through the runtime manager resolver and calls `PhysicsManager::tick_scene_world(...)`.
+- `PhysicsRuntimeSystem` resolves `PhysicsManagerHandle` through the runtime manager resolver and calls `PhysicsManager::tick_scene_world(...)`. If no manager is active, it still records the neutral fallback physics step plan on `LevelSystem`.
+- `PhysicsManager::tick_scene_world(...)` is the scheduled `FixedUpdate` entrypoint. It treats `delta_seconds` from `WorldDriver` as one already-drained runtime fixed timestep and emits a one-step `PhysicsWorldStepPlan` when the backend can simulate. The frame-delta accumulator stays behind `plan_world_step(...)` for direct manager planning callers, so scheduled fixed systems do not reaccumulate substeps.
 - `DefaultPhysicsManager` owns settings persistence, per-world accumulator state, sync snapshots, ray-cast fallback, shape-overlap/initial-shape-cast fallback, contact fallback, trigger event fallback, and joint metadata validation/sync.
 - `manager.rs` is now the structural entry for the fallback manager state and public `PhysicsTickPlan` alias. Manager behavior is folder-backed: `manager/settings.rs` owns construction and settings persistence, `clock.rs` owns fixed-step accumulator planning, `builtin_step.rs` owns builtin rigid-body writeback, `world_sync.rs` owns ECS-to-framework snapshot projection and sync sanitization, `query.rs` owns manager-level ray/shape query dispatch, `service.rs` owns the `PhysicsManager` trait implementation, and `validation.rs` owns finite-value, collider, material, joint, skeleton-binding, and query-direction validation helpers.
 - `query_contact.rs` is now the structural entry for fallback query/contact behavior. It exposes crate-local facade functions for `DefaultPhysicsManager` and trigger evaluation while keeping child-module helpers private to the query/contact subtree. `query_contact/contact.rs` computes contact events, `filter.rs` owns collision mask/group/sensor query filtering, `overlap.rs` dispatches discrete collider and shape-overlap fallback, `overlap/{query,proxies,pairwise,distance}.rs` own query traversal, finite shape proxy extraction, pairwise shape dispatch, and shared distance math, `raycast.rs` dispatches ray casts by collider shape, `raycast/{aabb,capsule,quadratic,sphere}.rs` own the shape-specific hit math, and `geometry.rs` owns shared finite geometry, scaling, distance, and hit-position helpers.
@@ -181,7 +185,7 @@ doc_type: module-detail
 - `DefaultPhysicsManager::advance_clock(...)` now fills `PhysicsWorldStepPlan.interpolation_alpha` from the remaining fixed-step accumulator, clamped to `0.0..=1.0`.
 - Builtin fixed-step integration and world sync enumerate `World::node_records()` instead of the deferred `World::nodes()` cache, so `FixedUpdate` observes bodies and colliders spawned or mutated before the next `PostUpdate` node-cache refresh.
 - `backend.rs` maps `PhysicsSettings` into the plugin-local runtime backend state. Only explicit `backend = "builtin"` activates the builtin fallback; unavailable backends do not silently fall through to builtin behavior.
-- `zircon_runtime::scene::WorldDriver` dispatches installed hooks by schedule stage and contains no physics-specific logic.
+- `zircon_runtime::scene::WorldDriver` dispatches installed runtime scene systems by schedule stage and contains no physics-specific logic.
 
 ## Backend Selection
 
@@ -217,6 +221,8 @@ The plugin can evolve Jolt or another backend behind `DefaultPhysicsManager` or 
 - Previous hard-cutover evidence: `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked --test physics_manager_runtime_contract --target-dir target\codex-shared-a` passed with 21 plugin contract tests before the backend selector seam was added.
 - Previous hard-cutover evidence: `cargo check --manifest-path zircon_plugins/Cargo.toml --locked --target-dir target\codex-shared-a` passed for the independent plugin workspace with physics included but still outside the root workspace.
 - Previous hard-cutover evidence: `cargo test -p zircon_runtime --locked --lib --target-dir target\codex-shared-a` passed with 767 runtime lib tests, validating scene hook dispatch, manager contracts, and hard-cutover structural assertions without depending on the plugin crate.
+- Current plugin-architecture slice: `runtime_system.rs` replaces the old root `scene_hook.rs` entry, `plugin.toml` declares `system_sets = ["physics.simulation"]` and `system_anchors = ["physics.step"]`, and the runtime contract test installs world runtime extensions through `CoreRuntime::install_world_runtime_extensions(...)` instead of manual hook installation. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never` passes with existing warnings. `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never` also passes with existing warnings after migrating the tests to `RuntimeTimeAdvance` tick inputs; the plugin lockfile was protected/restored around the offline check.
+- Current fixed-update runtime-system seam: `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime runtime_fixed_update_runs_one_physics_step_without_reaccumulating --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never -- --nocapture` passed, proving `physics.step` does not feed the runtime fixed delta back through the manager's frame-level accumulator when the runtime fixed timestep and `PhysicsSettings.fixed_hz` differ. `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-plugin-checks --message-format short --color never` also passes with existing warnings after this correction.
 - Current backend selector seam: `rustfmt --edition 2021` passed for the touched physics runtime source and test files.
 - Current backend selector seam: `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_physics_runtime --tests --locked --target-dir "target\codex-shared-a"` is blocked before physics test execution by unrelated active renderer code in `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs`, where the call to `render_compiled_scene(...)` supplies 10 arguments while the callee takes 8.
 - Current interpolation-alpha seam: `cargo check --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_physics_runtime --tests --locked --quiet` is blocked before physics test execution by unrelated active scene world/ECS errors: `rebuild_fixed_component_presence_for_entity` visibility and missing `flush_pending_scene_systems_if_ready` call sites.

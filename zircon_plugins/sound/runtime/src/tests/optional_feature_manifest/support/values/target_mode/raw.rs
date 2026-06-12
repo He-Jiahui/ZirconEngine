@@ -1,4 +1,4 @@
-pub(super) fn runtime_target_mode_from_plugin_toml(
+pub(in super::super) fn runtime_target_mode_from_plugin_toml(
     value: String,
 ) -> zircon_runtime::RuntimeTargetMode {
     match value.as_str() {

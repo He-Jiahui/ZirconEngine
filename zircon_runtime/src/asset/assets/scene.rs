@@ -61,6 +61,8 @@ pub struct SceneCameraAsset {
     pub clear_color: RenderCameraClearColor,
     #[serde(default = "default_camera_msaa_samples")]
     pub msaa_samples: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub post_process_settings: Option<ScenePostProcessSettingsAsset>,
 }
 
 impl Default for SceneCameraAsset {
@@ -79,6 +81,7 @@ impl Default for SceneCameraAsset {
             exposure_ev100: DEFAULT_CAMERA_EXPOSURE_EV100,
             clear_color: RenderCameraClearColor::default(),
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
+            post_process_settings: None,
         }
     }
 }
@@ -136,18 +139,18 @@ pub struct SceneMeshPrimitiveBindingAsset {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct SceneMeshInstanceAsset {
+pub struct SceneMeshLodLevelAsset {
+    #[serde(default)]
+    pub min_distance: Real,
     pub model: AssetReference,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mesh: Option<AssetReference>,
     pub material: AssetReference,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub morph_weights: Vec<Real>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primitives: Vec<SceneMeshPrimitiveBindingAsset>,
 }
 
-impl SceneMeshInstanceAsset {
+impl SceneMeshLodLevelAsset {
     pub fn direct_references(&self) -> Vec<AssetReference> {
         let mut references = Vec::with_capacity(3 + (self.primitives.len() * 2));
         references.push(self.model.clone());
@@ -167,9 +170,78 @@ impl SceneMeshInstanceAsset {
     pub fn primitive_binding_count(&self) -> usize {
         self.primitives.len()
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneMeshInstanceAsset {
+    pub model: AssetReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh: Option<AssetReference>,
+    pub material: AssetReference,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub render_queue: i32,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub material_queue: i32,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub order_in_layer: i32,
+    #[serde(default, skip_serializing_if = "is_zero_real")]
+    pub depth_bias: Real,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub morph_weights: Vec<Real>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub primitives: Vec<SceneMeshPrimitiveBindingAsset>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lods: Vec<SceneMeshLodLevelAsset>,
+}
+
+impl SceneMeshInstanceAsset {
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        let mut references = Vec::with_capacity(
+            3 + (self.primitives.len() * 2)
+                + self
+                    .lods
+                    .iter()
+                    .map(|lod| 3 + (lod.primitives.len() * 2))
+                    .sum::<usize>(),
+        );
+        references.push(self.model.clone());
+        references.extend(self.mesh.iter().cloned());
+        references.push(self.material.clone());
+        for primitive in &self.primitives {
+            references.push(primitive.mesh.clone());
+            references.push(primitive.material.clone());
+        }
+        for lod in &self.lods {
+            references.extend(lod.direct_references());
+        }
+        references
+    }
+
+    pub fn direct_mesh_reference_count(&self) -> usize {
+        usize::from(self.mesh.is_some())
+            + self.primitives.len()
+            + self
+                .lods
+                .iter()
+                .map(SceneMeshLodLevelAsset::direct_mesh_reference_count)
+                .sum::<usize>()
+    }
+
+    pub fn primitive_binding_count(&self) -> usize {
+        self.primitives.len()
+            + self
+                .lods
+                .iter()
+                .map(SceneMeshLodLevelAsset::primitive_binding_count)
+                .sum::<usize>()
+    }
 
     pub fn morph_weight_count(&self) -> usize {
         self.morph_weights.len()
+    }
+
+    pub fn lod_level_count(&self) -> usize {
+        self.lods.len()
     }
 }
 
@@ -226,6 +298,238 @@ impl Default for SceneRectLightAsset {
             intensity: default_rect_light_intensity(),
             range: default_rect_light_range(),
             size: default_rect_light_size(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneBloomSettingsAsset {
+    #[serde(default = "default_bloom_threshold")]
+    pub threshold: Real,
+    #[serde(default)]
+    pub intensity: Real,
+    #[serde(default)]
+    pub radius: Real,
+}
+
+impl Default for SceneBloomSettingsAsset {
+    fn default() -> Self {
+        Self {
+            threshold: default_bloom_threshold(),
+            intensity: 0.0,
+            radius: 0.0,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneColorGradingSettingsAsset {
+    #[serde(default = "default_one_real")]
+    pub exposure: Real,
+    #[serde(default = "default_one_real")]
+    pub contrast: Real,
+    #[serde(default = "default_one_real")]
+    pub saturation: Real,
+    #[serde(default = "default_one_real")]
+    pub gamma: Real,
+    #[serde(default = "default_color_white")]
+    pub tint: [Real; 3],
+}
+
+impl Default for SceneColorGradingSettingsAsset {
+    fn default() -> Self {
+        Self {
+            exposure: default_one_real(),
+            contrast: default_one_real(),
+            saturation: default_one_real(),
+            gamma: default_one_real(),
+            tint: default_color_white(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum SceneTonemapOperatorAsset {
+    #[default]
+    None,
+    Reinhard,
+    Aces,
+    Filmic,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneTonemapSettingsAsset {
+    #[serde(default)]
+    pub operator: SceneTonemapOperatorAsset,
+    #[serde(default)]
+    pub exposure_bias: Real,
+    #[serde(default = "default_one_real")]
+    pub white_point: Real,
+}
+
+impl Default for SceneTonemapSettingsAsset {
+    fn default() -> Self {
+        Self {
+            operator: SceneTonemapOperatorAsset::None,
+            exposure_bias: 0.0,
+            white_point: default_one_real(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneVignetteSettingsAsset {
+    #[serde(default)]
+    pub intensity: Real,
+    #[serde(default = "default_vignette_smoothness")]
+    pub smoothness: Real,
+    #[serde(default = "default_one_real")]
+    pub roundness: Real,
+}
+
+impl Default for SceneVignetteSettingsAsset {
+    fn default() -> Self {
+        Self {
+            intensity: 0.0,
+            smoothness: default_vignette_smoothness(),
+            roundness: default_one_real(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneFilmGrainSettingsAsset {
+    #[serde(default)]
+    pub intensity: Real,
+    #[serde(default = "default_one_real")]
+    pub response: Real,
+}
+
+impl Default for SceneFilmGrainSettingsAsset {
+    fn default() -> Self {
+        Self {
+            intensity: 0.0,
+            response: default_one_real(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneDitherSettingsAsset {
+    #[serde(default)]
+    pub intensity: Real,
+    #[serde(default = "default_one_real")]
+    pub scale: Real,
+}
+
+impl Default for SceneDitherSettingsAsset {
+    fn default() -> Self {
+        Self {
+            intensity: 0.0,
+            scale: default_one_real(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneChromaticAberrationSettingsAsset {
+    #[serde(default)]
+    pub intensity: Real,
+    #[serde(default = "default_one_real")]
+    pub sample_spread: Real,
+}
+
+impl Default for SceneChromaticAberrationSettingsAsset {
+    fn default() -> Self {
+        Self {
+            intensity: 0.0,
+            sample_spread: default_one_real(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneFogSettingsAsset {
+    #[serde(default)]
+    pub density: Real,
+    #[serde(default)]
+    pub height_falloff: Real,
+    #[serde(default = "default_color_white")]
+    pub color: [Real; 3],
+}
+
+impl Default for SceneFogSettingsAsset {
+    fn default() -> Self {
+        Self {
+            density: 0.0,
+            height_falloff: 0.0,
+            color: default_color_white(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct ScenePostProcessEffectStackAsset {
+    #[serde(default)]
+    pub tonemap: SceneTonemapSettingsAsset,
+    #[serde(default)]
+    pub vignette: SceneVignetteSettingsAsset,
+    #[serde(default)]
+    pub grain: SceneFilmGrainSettingsAsset,
+    #[serde(default)]
+    pub dither: SceneDitherSettingsAsset,
+    #[serde(default)]
+    pub chromatic_aberration: SceneChromaticAberrationSettingsAsset,
+    #[serde(default)]
+    pub fog: SceneFogSettingsAsset,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct ScenePostProcessSettingsAsset {
+    #[serde(default)]
+    pub bloom: SceneBloomSettingsAsset,
+    #[serde(default)]
+    pub color_grading: SceneColorGradingSettingsAsset,
+    #[serde(default)]
+    pub effect_stack: ScenePostProcessEffectStackAsset,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct ScenePostProcessVolumeProfileAsset {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bloom: Option<SceneBloomSettingsAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color_grading: Option<SceneColorGradingSettingsAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effect_stack: Option<ScenePostProcessEffectStackAsset>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ScenePostProcessVolumeAsset {
+    #[serde(default = "default_true")]
+    pub active: bool,
+    #[serde(default = "default_true")]
+    pub is_global: bool,
+    #[serde(default)]
+    pub priority: Real,
+    #[serde(default = "default_one_real")]
+    pub weight: Real,
+    #[serde(default)]
+    pub blend_distance: Real,
+    #[serde(default)]
+    pub profile: ScenePostProcessVolumeProfileAsset,
+}
+
+impl Default for ScenePostProcessVolumeAsset {
+    fn default() -> Self {
+        Self {
+            active: true,
+            is_global: true,
+            priority: 0.0,
+            weight: default_one_real(),
+            blend_distance: 0.0,
+            profile: ScenePostProcessVolumeProfileAsset::default(),
         }
     }
 }
@@ -403,6 +707,20 @@ pub struct SceneTileMapAsset {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneScriptBindingAsset {
+    pub package: String,
+    pub module: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub update: bool,
+    #[serde(default = "default_true")]
+    pub fixed_update: bool,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub properties: BTreeMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneEntityAsset {
     pub entity: u64,
     pub name: String,
@@ -426,6 +744,8 @@ pub struct SceneEntityAsset {
     #[serde(default)]
     pub spot_light: Option<SceneSpotLightAsset>,
     #[serde(default)]
+    pub post_process_volume: Option<ScenePostProcessVolumeAsset>,
+    #[serde(default)]
     pub rigid_body: Option<SceneRigidBodyAsset>,
     #[serde(default)]
     pub collider: Option<SceneColliderAsset>,
@@ -447,6 +767,8 @@ pub struct SceneEntityAsset {
     pub tilemap: Option<SceneTileMapAsset>,
     #[serde(default)]
     pub prefab_instance: Option<PrefabInstanceAsset>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub script_bindings: Vec<SceneScriptBindingAsset>,
 }
 
 // Read-only management DTOs keep scene authoring payloads stable while asset
@@ -471,6 +793,8 @@ pub struct SceneEntityOverview {
     pub has_point_light: bool,
     pub has_rect_light: bool,
     pub has_spot_light: bool,
+    pub has_post_process_settings: bool,
+    pub has_post_process_volume: bool,
     pub has_rigid_body: bool,
     pub has_collider: bool,
     pub has_collider_material: bool,
@@ -867,6 +1191,12 @@ impl SceneEntityAsset {
             has_point_light: self.point_light.is_some(),
             has_rect_light: self.rect_light.is_some(),
             has_spot_light: self.spot_light.is_some(),
+            has_post_process_settings: self
+                .camera
+                .as_ref()
+                .and_then(|camera| camera.post_process_settings.as_ref())
+                .is_some(),
+            has_post_process_volume: self.post_process_volume.is_some(),
             has_rigid_body: self.rigid_body.is_some(),
             has_collider: self.collider.is_some(),
             has_collider_material: self
@@ -1015,6 +1345,30 @@ const fn default_camera_msaa_samples() -> u32 {
 
 const fn default_viewport_depth_max() -> Real {
     1.0
+}
+
+const fn default_bloom_threshold() -> Real {
+    1.0
+}
+
+const fn default_one_real() -> Real {
+    1.0
+}
+
+const fn default_vignette_smoothness() -> Real {
+    0.5
+}
+
+const fn default_color_white() -> [Real; 3] {
+    [1.0, 1.0, 1.0]
+}
+
+fn is_zero_i32(value: &i32) -> bool {
+    *value == 0
+}
+
+fn is_zero_real(value: &Real) -> bool {
+    *value == 0.0
 }
 
 const fn default_collision_mask() -> u32 {

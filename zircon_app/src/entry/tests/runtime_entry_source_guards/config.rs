@@ -74,7 +74,8 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_runner_source,
         &[
             "parse_runtime_session_startup_args",
-            "RuntimeSession::create_with_profile(runtime, runtime_session_args.profile.as_bytes())",
+            "RuntimeSession::create_with_profile_and_project",
+            "runtime_session_args.project_root.as_deref()",
             "runtime_entry_app_config_for_session_profile(runtime_session_args.profile)",
             "RuntimeEntryApp::new(session, host_config)",
         ],

@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::{
-    ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
-};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name};
 
 pub const PLUGIN_ID: &str = "texture";

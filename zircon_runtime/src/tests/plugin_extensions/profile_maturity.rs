@@ -340,10 +340,11 @@ fn runtime_profile_module_loading_uses_linked_required_provider_reports() {
         RuntimePluginId::Rendering,
     ));
 
-    let report = crate::runtime_modules_for_runtime_profile_with_plugin_registration_reports(
-        RuntimeProfileId::Client2d,
-        [&sound, &rendering],
-    );
+    let report =
+        crate::builtin::runtime_modules_for_runtime_profile_with_plugin_registration_reports(
+            RuntimeProfileId::Client2d,
+            [&sound, &rendering],
+        );
 
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     assert!(!report
@@ -358,7 +359,7 @@ fn runtime_profile_module_loading_uses_linked_required_provider_reports() {
 
 #[test]
 fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_defaults() {
-    let report = crate::runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal);
+    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Minimal);
     let module_names = report
         .modules
         .iter()
@@ -369,17 +370,17 @@ fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_default
         module_names,
         vec![
             crate::foundation::FOUNDATION_MODULE_NAME,
-            crate::core::modules::TASKS_MODULE_NAME,
-            crate::core::modules::TIME_MODULE_NAME,
-            crate::core::modules::FRAME_COUNT_MODULE_NAME,
-            crate::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+            crate::core::runtime::modules::TASKS_MODULE_NAME,
+            crate::core::runtime::modules::TIME_MODULE_NAME,
+            crate::core::runtime::modules::FRAME_COUNT_MODULE_NAME,
+            crate::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
         ]
     );
 }
 
 #[test]
 fn runtime_profile_module_loading_keeps_missing_required_providers_fatal() {
-    let report = crate::runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
+    let report = crate::builtin::runtime_modules_for_runtime_profile(RuntimeProfileId::Client2d);
 
     assert!(report
         .required_missing()

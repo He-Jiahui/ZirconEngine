@@ -3,12 +3,13 @@ use std::collections::BTreeMap;
 use gltf::image::{Data as GltfImageData, Format as GltfImageFormat};
 
 use crate::asset::{
-    AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset,
-    DataAssetFormat, ImportedAsset, ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue,
-    MeshAsset, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset,
-    TextureAsset, TransformAsset,
+    AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, ImportedAsset,
+    ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue, MeshAsset, MeshMorphTargetAsset,
+    MeshSkinAsset, ModelAsset, ModelPrimitiveAsset, SceneAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TextureAsset,
+    TransformAsset,
 };
+use crate::core::framework::render::RenderMaterialTextureTransform;
 
 #[derive(Clone)]
 pub(crate) struct GltfMeshSubasset {
@@ -172,106 +173,6 @@ pub(crate) fn add_gltf_scene_subassets(
     outcome
 }
 
-pub(crate) fn add_gltf_animation_placeholders_and_skin_subassets(
-    mut outcome: AssetImportOutcome,
-    root_uri: &AssetUri,
-    document: &gltf::Document,
-    buffers: &[gltf::buffer::Data],
-) -> Result<AssetImportOutcome, AssetImportError> {
-    for animation in document.animations() {
-        let label = format!("Animation{}", animation.index());
-        let uri = gltf_label_uri(root_uri, &label);
-        outcome = with_root_dependency_and_entry(
-            outcome,
-            ImportedAssetEntry::new(
-                uri.clone(),
-                ImportedAsset::Data(gltf_placeholder_data_asset(
-                    uri,
-                    format!("{label}: glTF animation channel import is not implemented yet"),
-                )),
-            ),
-        );
-    }
-
-    for skin in document.skins() {
-        let label = format!("Skin{}", skin.index());
-        let uri = gltf_label_uri(root_uri, &label);
-        let inverse_bind_matrices = inverse_bind_matrices_for_skin(&skin, buffers)?;
-        let matrices_uri = inverse_bind_matrices
-            .as_ref()
-            .map(|_| gltf_label_uri(root_uri, &format!("{label}/InverseBindMatrices")));
-        let mut skin_entry = ImportedAssetEntry::new(
-            uri.clone(),
-            ImportedAsset::Data(gltf_skin_data_asset(
-                root_uri,
-                uri,
-                &label,
-                &skin,
-                matrices_uri.as_ref(),
-                inverse_bind_matrices
-                    .as_ref()
-                    .map_or(0, |matrices| matrices.len()),
-            )),
-        );
-        for joint in skin.joints() {
-            push_dependency_once(
-                &mut skin_entry,
-                gltf_label_uri(root_uri, &format!("Node{}", joint.index())),
-            );
-        }
-        if let Some(skeleton) = skin.skeleton() {
-            push_dependency_once(
-                &mut skin_entry,
-                gltf_label_uri(root_uri, &format!("Node{}", skeleton.index())),
-            );
-        }
-        if let Some(matrices_uri) = &matrices_uri {
-            push_dependency_once(&mut skin_entry, matrices_uri.clone());
-        }
-        outcome = with_root_dependency_and_entry(outcome, skin_entry);
-
-        if skin.inverse_bind_matrices().is_some() {
-            let matrices_label = format!("{label}/InverseBindMatrices");
-            let matrices_uri = matrices_uri.expect("matrix uri should exist when accessor exists");
-            let inverse_bind_matrices =
-                inverse_bind_matrices.expect("matrix payload should exist when accessor exists");
-            outcome = with_root_dependency_and_entry(
-                outcome,
-                ImportedAssetEntry::new(
-                    matrices_uri.clone(),
-                    ImportedAsset::Data(gltf_inverse_bind_matrices_data_asset(
-                        matrices_uri,
-                        &matrices_label,
-                        inverse_bind_matrices,
-                    )),
-                ),
-            );
-        }
-    }
-    Ok(outcome)
-}
-
-fn inverse_bind_matrices_for_skin(
-    skin: &gltf::Skin<'_>,
-    buffers: &[gltf::buffer::Data],
-) -> Result<Option<Vec<[[f32; 4]; 4]>>, AssetImportError> {
-    let Some(accessor) = skin.inverse_bind_matrices() else {
-        return Ok(None);
-    };
-    let matrices = skin
-        .reader(|buffer| Some(&buffers[buffer.index()].0))
-        .read_inverse_bind_matrices()
-        .ok_or_else(|| {
-            AssetImportError::Parse(format!(
-                "gltf Skin{} inverseBindMatrices accessor {} could not be read",
-                skin.index(),
-                accessor.index()
-            ))
-        })?
-        .collect();
-    Ok(Some(matrices))
-}
-
 fn rgba8_pixels_from_gltf_image(
     image: &GltfImageData,
     image_index: usize,
@@ -340,32 +241,64 @@ fn material_asset_from_gltf_material(
     material: &gltf::Material<'_>,
 ) -> MaterialAsset {
     let pbr = material.pbr_metallic_roughness();
-    let base_color_texture = pbr
-        .base_color_texture()
+    let base_color_texture_info = pbr.base_color_texture();
+    let normal_texture_info = material.normal_texture();
+    let metallic_roughness_texture_info = pbr.metallic_roughness_texture();
+    let occlusion_texture_info = material.occlusion_texture();
+    let emissive_texture_info = material.emissive_texture();
+    let base_color_texture = base_color_texture_info
+        .as_ref()
         .map(|info| texture_reference(root_uri, info.texture().index()));
-    let normal_texture = material
-        .normal_texture()
+    let normal_texture = normal_texture_info
+        .as_ref()
         .map(|texture| texture_reference(root_uri, texture.texture().index()));
-    let metallic_roughness_texture = pbr
-        .metallic_roughness_texture()
+    let metallic_roughness_texture = metallic_roughness_texture_info
+        .as_ref()
         .map(|info| texture_reference(root_uri, info.texture().index()));
-    let occlusion_texture = material
-        .occlusion_texture()
+    let occlusion_texture = occlusion_texture_info
+        .as_ref()
         .map(|texture| texture_reference(root_uri, texture.texture().index()));
-    let emissive_texture = material
-        .emissive_texture()
+    let emissive_texture = emissive_texture_info
+        .as_ref()
         .map(|info| texture_reference(root_uri, info.texture().index()));
+    let base_color_metadata = texture_info_metadata(base_color_texture_info.as_ref());
+    let normal_metadata = normal_texture_metadata(normal_texture_info.as_ref());
+    let metallic_roughness_metadata =
+        texture_info_metadata(metallic_roughness_texture_info.as_ref());
+    let occlusion_metadata = occlusion_texture_metadata(occlusion_texture_info.as_ref());
+    let emissive_metadata = texture_info_metadata(emissive_texture_info.as_ref());
 
     let mut texture_slots = BTreeMap::new();
-    insert_texture_slot(&mut texture_slots, "base_color", &base_color_texture);
-    insert_texture_slot(&mut texture_slots, "normal", &normal_texture);
+    insert_texture_slot(
+        &mut texture_slots,
+        "base_color",
+        &base_color_texture,
+        base_color_metadata,
+    );
+    insert_texture_slot(
+        &mut texture_slots,
+        "normal",
+        &normal_texture,
+        normal_metadata,
+    );
     insert_texture_slot(
         &mut texture_slots,
         "metallic_roughness",
         &metallic_roughness_texture,
+        metallic_roughness_metadata,
     );
-    insert_texture_slot(&mut texture_slots, "occlusion", &occlusion_texture);
-    insert_texture_slot(&mut texture_slots, "emissive", &emissive_texture);
+    insert_texture_slot(
+        &mut texture_slots,
+        "occlusion",
+        &occlusion_texture,
+        occlusion_metadata,
+    );
+    insert_texture_slot(
+        &mut texture_slots,
+        "emissive",
+        &emissive_texture,
+        emissive_metadata,
+    );
 
     MaterialAsset {
         name: material.name().map(str::to_owned),
@@ -389,6 +322,99 @@ fn material_asset_from_gltf_material(
             material.index().unwrap_or_default()
         )],
     }
+}
+
+#[derive(Clone, Copy, Default)]
+struct GltfTextureSlotMetadata {
+    transform: Option<RenderMaterialTextureTransform>,
+    uv_channel: u32,
+}
+
+fn texture_info_metadata(info: Option<&gltf::texture::Info<'_>>) -> GltfTextureSlotMetadata {
+    let Some(info) = info else {
+        return GltfTextureSlotMetadata::default();
+    };
+    let mut metadata = GltfTextureSlotMetadata {
+        transform: None,
+        uv_channel: info.tex_coord(),
+    };
+    if let Some(transform) = info.texture_transform() {
+        metadata.uv_channel = transform.tex_coord().unwrap_or(metadata.uv_channel);
+        metadata.transform = non_identity_texture_transform(RenderMaterialTextureTransform {
+            scale: transform.scale(),
+            offset: transform.offset(),
+        });
+    }
+    metadata
+}
+
+fn normal_texture_metadata(
+    info: Option<&gltf::material::NormalTexture<'_>>,
+) -> GltfTextureSlotMetadata {
+    let Some(info) = info else {
+        return GltfTextureSlotMetadata::default();
+    };
+    texture_transform_extension_metadata(
+        info.tex_coord(),
+        info.extension_value("KHR_texture_transform"),
+    )
+}
+
+fn occlusion_texture_metadata(
+    info: Option<&gltf::material::OcclusionTexture<'_>>,
+) -> GltfTextureSlotMetadata {
+    let Some(info) = info else {
+        return GltfTextureSlotMetadata::default();
+    };
+    texture_transform_extension_metadata(
+        info.tex_coord(),
+        info.extension_value("KHR_texture_transform"),
+    )
+}
+
+fn texture_transform_extension_metadata(
+    fallback_uv_channel: u32,
+    value: Option<&serde_json::Value>,
+) -> GltfTextureSlotMetadata {
+    let Some(value) = value else {
+        return GltfTextureSlotMetadata {
+            transform: None,
+            uv_channel: fallback_uv_channel,
+        };
+    };
+    let uv_channel = value
+        .get("texCoord")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|value| u32::try_from(value).ok())
+        .unwrap_or(fallback_uv_channel);
+    let transform = RenderMaterialTextureTransform {
+        scale: value
+            .get("scale")
+            .and_then(json_vec2)
+            .unwrap_or(RenderMaterialTextureTransform::IDENTITY.scale),
+        offset: value
+            .get("offset")
+            .and_then(json_vec2)
+            .unwrap_or(RenderMaterialTextureTransform::IDENTITY.offset),
+    };
+    GltfTextureSlotMetadata {
+        transform: non_identity_texture_transform(transform),
+        uv_channel,
+    }
+}
+
+fn json_vec2(value: &serde_json::Value) -> Option<[f32; 2]> {
+    let items = value.as_array()?;
+    Some([
+        items.first()?.as_f64()? as f32,
+        items.get(1)?.as_f64()? as f32,
+    ])
+}
+
+fn non_identity_texture_transform(
+    transform: RenderMaterialTextureTransform,
+) -> Option<RenderMaterialTextureTransform> {
+    (!transform.is_identity()).then_some(transform)
 }
 
 fn default_material_asset(uri: AssetUri) -> MaterialAsset {
@@ -418,12 +444,13 @@ fn insert_texture_slot(
     slots: &mut BTreeMap<String, MaterialTextureSlotValue>,
     slot: &str,
     reference: &Option<AssetReference>,
+    metadata: GltfTextureSlotMetadata,
 ) {
     if let Some(reference) = reference {
-        slots.insert(
-            slot.to_string(),
-            MaterialTextureSlotValue::new(reference.clone()),
-        );
+        let mut value = MaterialTextureSlotValue::new(reference.clone());
+        value.transform = metadata.transform;
+        value.uv_channel = metadata.uv_channel;
+        slots.insert(slot.to_string(), value);
     }
 }
 
@@ -519,6 +546,7 @@ fn scene_entity_from_gltf_node(
         point_light: None,
         rect_light: None,
         spot_light: None,
+        post_process_volume: None,
         rigid_body: None,
         collider: None,
         joint: None,
@@ -530,6 +558,7 @@ fn scene_entity_from_gltf_node(
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        script_bindings: Vec::new(),
     }
 }
 
@@ -542,11 +571,16 @@ fn mesh_instance_from_gltf_node(
         model: gltf_label_reference(root_uri, &format!("Mesh{}", mesh.index())),
         mesh: None,
         material: material_reference_for_index(root_uri, first_mesh_material_index(&mesh)),
+        render_queue: 0,
+        material_queue: 0,
+        order_in_layer: 0,
+        depth_bias: 0.0,
         morph_weights: mesh
             .weights()
             .map(|weights| weights.to_vec())
             .unwrap_or_default(),
         primitives: mesh_primitive_bindings_from_gltf_mesh(root_uri, &mesh),
+        lods: Vec::new(),
     })
 }
 
@@ -577,81 +611,6 @@ fn transform_from_gltf_node(node: &gltf::Node<'_>) -> TransformAsset {
         translation,
         rotation,
         scale,
-    }
-}
-
-fn gltf_placeholder_data_asset(uri: AssetUri, text: String) -> DataAsset {
-    DataAsset {
-        uri,
-        format: DataAssetFormat::Text,
-        text,
-        canonical_json: Default::default(),
-    }
-}
-
-fn gltf_skin_data_asset(
-    root_uri: &AssetUri,
-    uri: AssetUri,
-    label: &str,
-    skin: &gltf::Skin<'_>,
-    inverse_bind_matrices_uri: Option<&AssetUri>,
-    inverse_bind_matrix_count: usize,
-) -> DataAsset {
-    let joints = skin
-        .joints()
-        .map(|joint| {
-            serde_json::json!({
-                "node_index": joint.index(),
-                "node": gltf_label_uri(root_uri, &format!("Node{}", joint.index())).to_string(),
-                "name": joint.name(),
-            })
-        })
-        .collect::<Vec<_>>();
-    let joint_count = joints.len();
-    let skeleton = skin.skeleton().map(|node| {
-        serde_json::json!({
-            "node_index": node.index(),
-            "node": gltf_label_uri(root_uri, &format!("Node{}", node.index())).to_string(),
-            "name": node.name(),
-        })
-    });
-    let canonical_json = serde_json::json!({
-        "kind": "gltf_skin",
-        "label": label,
-        "skin_index": skin.index(),
-        "name": skin.name(),
-        "skeleton": skeleton,
-        "joints": joints,
-        "joint_count": joint_count,
-        "inverse_bind_matrices": inverse_bind_matrices_uri.map(ToString::to_string),
-        "inverse_bind_matrix_count": inverse_bind_matrix_count,
-    });
-    json_data_asset(uri, canonical_json)
-}
-
-fn gltf_inverse_bind_matrices_data_asset(
-    uri: AssetUri,
-    label: &str,
-    inverse_bind_matrices: Vec<[[f32; 4]; 4]>,
-) -> DataAsset {
-    json_data_asset(
-        uri,
-        serde_json::json!({
-            "kind": "gltf_inverse_bind_matrices",
-            "label": label,
-            "matrix_count": inverse_bind_matrices.len(),
-            "matrices": inverse_bind_matrices,
-        }),
-    )
-}
-
-fn json_data_asset(uri: AssetUri, canonical_json: serde_json::Value) -> DataAsset {
-    DataAsset {
-        uri,
-        format: DataAssetFormat::Json,
-        text: serde_json::to_string_pretty(&canonical_json)
-            .expect("generated gltf data JSON should serialize"),
-        canonical_json,
     }
 }
 
@@ -690,7 +649,7 @@ fn material_uri_for_index(root_uri: &AssetUri, material_index: Option<usize>) ->
 
 fn default_pbr_shader_reference() -> AssetReference {
     AssetReference::from_locator(
-        AssetUri::parse("res://shaders/default_pbr.zshader")
+        AssetUri::parse("res://shaders/default_pbr")
             .expect("default pbr shader locator must be valid"),
     )
 }

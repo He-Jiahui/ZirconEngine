@@ -23,6 +23,7 @@ impl RuntimeEntryApp {
             session,
             viewport: ZrRuntimeViewportHandle::new(1),
             viewport_size: ZrRuntimeViewportSizeV1::new(window_size.x, window_size.y),
+            last_pointer_position: None,
             #[cfg(feature = "gamepad-gilrs")]
             gamepads: super::gamepad::create_gilrs(),
             #[cfg(feature = "gamepad-gilrs")]

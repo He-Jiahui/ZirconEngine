@@ -288,7 +288,8 @@ fn material_component_lab_chip_sample_uses_runtime_descriptor_and_theme_selector
 
 #[test]
 fn material_component_lab_badge_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_badges.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_badges.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -392,7 +393,8 @@ fn material_component_lab_skeleton_sample_uses_runtime_descriptor_and_theme_sele
 
 #[test]
 fn material_component_lab_avatar_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_avatars.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_avatars.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -471,7 +473,8 @@ fn material_component_lab_list_sample_uses_runtime_descriptor_and_theme_selector
 
 #[test]
 fn material_component_lab_image_list_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_image_list.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_image_list.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -551,7 +554,8 @@ fn material_component_lab_table_sample_uses_runtime_descriptor_and_theme_selecto
 
 #[test]
 fn material_component_lab_divider_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_dividers.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_dividers.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -591,7 +595,8 @@ fn material_component_lab_divider_sample_uses_runtime_descriptor_and_theme_selec
 
 #[test]
 fn material_component_lab_typography_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_typography.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_typography.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -629,7 +634,8 @@ fn material_component_lab_typography_sample_uses_runtime_descriptor_and_theme_se
 
 #[test]
 fn material_component_lab_timeline_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_timeline.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/data_display/material_timeline.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -714,7 +720,8 @@ fn material_component_lab_timeline_sample_uses_runtime_descriptor_and_theme_sele
 
 #[test]
 fn material_component_lab_transfer_list_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/navigation/material_transfer_list.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/navigation/material_transfer_list.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -803,7 +810,8 @@ fn material_component_lab_transfer_list_sample_uses_runtime_descriptor_and_theme
 
 #[test]
 fn material_component_lab_autocomplete_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/inputs/material_autocomplete.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/inputs/material_autocomplete.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

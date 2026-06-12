@@ -1,4 +1,4 @@
-use crate::core::math::{Real, Transform, Vec3, Vec4};
+use crate::core::math::{Real, Transform, Vec2, Vec3, Vec4};
 use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
 };
@@ -11,17 +11,113 @@ use super::light::{
 };
 use super::{FallbackSkyboxKind, RenderOverlayExtract, ViewportCameraSnapshot};
 
+pub const RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS: u32 = 16;
+pub const RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL: u32 =
+    (1_u32 << RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS) - 1;
+
+pub fn render_mesh_stable_instance_key(entity: EntityId, primitive_ordinal: u32) -> u64 {
+    assert!(
+        primitive_ordinal <= RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
+        "render mesh primitive ordinal exceeds stable instance key packing range"
+    );
+    debug_assert!(
+        entity <= (u64::MAX >> RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS),
+        "entity id exceeds stable instance key packing range"
+    );
+    (entity << RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS) | u64::from(primitive_ordinal)
+}
+
+pub fn render_mesh_transform_revision(transform: &Transform) -> u64 {
+    let mut revision = FNV_OFFSET_BASIS;
+    for lane in transform.translation.to_array() {
+        revision = fnv1a_u32(revision, lane.to_bits());
+    }
+    for lane in transform.rotation.to_array() {
+        revision = fnv1a_u32(revision, lane.to_bits());
+    }
+    for lane in transform.scale.to_array() {
+        revision = fnv1a_u32(revision, lane.to_bits());
+    }
+    revision
+}
+
+const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+const fn fnv1a_u32(mut hash: u64, value: u32) -> u64 {
+    let bytes = value.to_le_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        hash ^= bytes[index] as u64;
+        hash = hash.wrapping_mul(FNV_PRIME);
+        index += 1;
+    }
+    hash
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct RenderMeshStaticState {
+    pub transform_static: bool,
+    pub geometry_revision: u64,
+    pub material_revision: u64,
+}
+
+impl RenderMeshStaticState {
+    pub const fn new(
+        transform_static: bool,
+        geometry_revision: u64,
+        material_revision: u64,
+    ) -> Self {
+        Self {
+            transform_static,
+            geometry_revision,
+            material_revision,
+        }
+    }
+
+    pub const fn from_transform_static(transform_static: bool) -> Self {
+        Self {
+            transform_static,
+            geometry_revision: 0,
+            material_revision: 0,
+        }
+    }
+
+    pub const fn has_authoritative_revisions(self) -> bool {
+        self.transform_static && self.geometry_revision != 0 && self.material_revision != 0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderMeshSnapshot {
     pub node_id: EntityId,
+    pub stable_instance_key: u64,
+    pub transform_revision: u64,
     pub transform: Transform,
     pub model: ResourceHandle<ModelMarker>,
     pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
+    pub mesh_lod: Option<RenderMeshLodSelection>,
     pub morph_weights: Vec<Real>,
     pub tint: Vec4,
     pub mobility: Mobility,
+    pub static_state: RenderMeshStaticState,
     pub render_layer_mask: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderMeshLodSelection {
+    pub level_index: u32,
+    pub min_distance: Real,
+}
+
+impl RenderMeshLodSelection {
+    pub fn new(level_index: u32, min_distance: Real) -> Self {
+        Self {
+            level_index,
+            min_distance,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -305,7 +401,10 @@ pub struct RenderParticleSpriteSnapshot {
     pub entity: EntityId,
     pub position: Vec3,
     pub size: Real,
+    pub aspect_ratio: Real,
+    pub billboard_offset: Vec2,
     pub rotation: Real,
+    pub sort_order: i32,
     pub color: Vec4,
     pub intensity: Real,
     pub material: Option<ResourceHandle<MaterialMarker>>,
@@ -318,7 +417,10 @@ impl Default for RenderParticleSpriteSnapshot {
             entity: 0,
             position: Vec3::ZERO,
             size: 0.0,
+            aspect_ratio: 1.0,
+            billboard_offset: Vec2::ZERO,
             rotation: 0.0,
+            sort_order: 0,
             color: Vec4::ZERO,
             intensity: 0.0,
             material: None,

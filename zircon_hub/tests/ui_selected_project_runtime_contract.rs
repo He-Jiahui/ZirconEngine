@@ -117,7 +117,7 @@ fn tauri_runtime_persists_selected_project_and_refreshes_context() {
             "self.selected_project_path = Some(project.path.clone());",
             "self.activate_project_engine_for_path(&project.path);",
             "self.refresh_project_context_views(",
-            "self.persist_with_last_project(Some(&project.path))",
+            "self.persist(Some(&project.path))",
             "fn open_project_detail(&mut self, target: &str) -> Result<(), HubError>",
             "self.project_subpage = ProjectSubpage::ProjectDetail;",
             "self.project_view_mode = ProjectViewMode::List;",
@@ -176,15 +176,15 @@ fn tauri_view_model_projects_selected_state_into_react_dtos() {
         "types/hub.ts",
         &types,
         &[
-            "selectedProjectId?: string | null;",
-            "selectedProject?: HubProjectDetail | null;",
+            "selectedProjectId: string | null;",
+            "selectedProject: HubProjectDetail | null;",
             "export interface HubProjectDetail",
-            "engineId?: string | null;",
-            "templateId?: string | null;",
+            "engineId: string | null;",
+            "templateId: string | null;",
             "templateLabel: string;",
             "exists: boolean;",
             "status: string;",
-            "activeSourceEngineId?: string | null;",
+            "activeSourceEngineId: string | null;",
         ],
     );
 }
@@ -194,6 +194,7 @@ fn react_pages_consume_selected_project_state_passively() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
     let editor = read_crate_file("web/src/pages/EditorPage.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
@@ -233,6 +234,18 @@ fn react_pages_consume_selected_project_state_passively() {
             "HubList items={detailRows}",
             "HubTreeView nodes={projectTree} defaultExpanded={[\"project-root\"]}",
             "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+            "<ProjectDetailSidebar",
+            "projectTarget={projectTarget}",
+            "quickActionProjectTarget={quickActionProjectTarget}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &detail_sidebar,
+        &[
+            "project: HubProjectDetail;",
+            "projectTarget?: ProjectTargetPayload;",
+            "quickActionProjectTarget?: ProjectTargetPayload;",
             "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}",
             "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}",
         ],
@@ -255,11 +268,24 @@ fn react_pages_consume_selected_project_state_passively() {
         &builds,
         &[
             "const project = state.selectedProject;",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.buildProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}",
+            "void onAction(actionId, undefined, workflowProjectTarget);",
+            "workflowProject ? (",
+            "workflowProjectPath(workflowProject)",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+        ],
+    );
+    assert_not_contains_any(
+        "BuildsPage.tsx",
+        &builds,
+        &[
             "const projectTarget = projectTargetPayload(project);",
-            "onClick={() => void onAction(HUB_ACTION.buildProject, undefined, projectTarget)}",
-            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}",
-            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}",
-            "void onAction(actionId, undefined, projectTarget);",
+            "undefined, projectTarget",
         ],
     );
     assert_contains_all(
@@ -267,10 +293,25 @@ fn react_pages_consume_selected_project_state_passively() {
         &cloud,
         &[
             "const project = state.selectedProject;",
+            "const workflowProjectTarget = workflowProjectTargetPayload(state);",
+            "const workflowProject = workflowTargetProject(state);",
+            "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
+            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, workflowProjectTarget)}",
+            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, workflowProjectTarget)}",
+            "detail: workflowProject?.name ?? common.noProjectSelected",
+            "workflowProject ? workflowProjectPath(workflowProject) : common.noProjectSelected",
+            "HubSwitch checked={Boolean(workflowProject && (!(\"exists\" in workflowProject) || workflowProject.exists))}",
+            "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
+        ],
+    );
+    assert_not_contains_any(
+        "CloudPage.tsx",
+        &cloud,
+        &[
             "const projectTarget = projectTargetPayload(project);",
-            "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}",
-            "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}",
-            "HubSwitch checked={Boolean(project?.exists)} label={state.ui.editor.projectAvailable}",
+            "undefined, projectTarget",
+            "project?.path ?? common.noProjectSelected",
+            "HubSwitch checked={Boolean(project?.exists)}",
         ],
     );
 }
@@ -284,9 +325,9 @@ fn frontend_dispatch_uses_tauri_state_and_keeps_current_state_on_action_error() 
         "hubApi.ts",
         &hub_api,
         &[
-            "return await invoke<HubShellState>(\"hub_state\");",
+            "return assertHubShellState(await invoke<unknown>(\"hub_state\"));",
             "export async function dispatchHubAction<TActionId extends HubActionId>(",
-            "return await invoke<HubShellState>(\"hub_action\", {",
+            "await invoke<unknown>(\"hub_action\", {",
             "request: { actionId, targetId, payload },",
         ],
     );
@@ -295,9 +336,12 @@ fn frontend_dispatch_uses_tauri_state_and_keeps_current_state_on_action_error() 
         &app,
         &[
             "const [state, setState] = useState<HubShellState>(fallbackShellState);",
+            "const actionSequenceRef = useRef(0);",
+            "const stateGenerationRef = useRef(0);",
+            "function applyHubState(nextState: HubShellState) {",
             "loadHubState().then((nextState) => {",
             "const nextState = await dispatchHubAction(actionId, targetId, payload);",
-            "setState(nextState);",
+            "applyHubState(nextState);",
             "const shellText = stateRef.current.ui.shell;",
             "setState((current) => ({",
             "...current,",
@@ -307,6 +351,7 @@ fn frontend_dispatch_uses_tauri_state_and_keeps_current_state_on_action_error() 
             "<HubSnackbar task={state.taskSummary}",
         ],
     );
+    assert_not_contains_any("App.tsx", &app, &["setState(nextState);"]);
 }
 
 #[test]
@@ -328,6 +373,7 @@ fn selected_project_runtime_documentation_records_react_mui_contract_cutover() {
             "src/tauri_app/view_model.rs",
             "web/src/types/hub.ts",
             "web/src/pages/ProjectDetailPage.tsx",
+            "Builds and Cloud consume selected-project state passively while routing their main workflow buttons through `workflowProjectTargetPayload`",
         ],
     );
     assert_contains_all(
@@ -337,6 +383,7 @@ fn selected_project_runtime_documentation_records_react_mui_contract_cutover() {
             "`ui_selected_project_runtime_contract.rs`",
             "React/MUI selected-project runtime scope",
             "canonical HubScope resolver, Tauri runtime selected-project persistence, React selectedProject DTOs, and passive page consumption",
+            "Builds and Cloud read `state.selectedProject` for context but use `workflowProjectTargetPayload`",
         ],
     );
 }

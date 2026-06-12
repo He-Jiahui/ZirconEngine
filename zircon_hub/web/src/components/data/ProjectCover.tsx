@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import { brandMark, coverById } from "../../data/hubData";
+import { hubTokens } from "../../theme/tokens";
 
 export interface ProjectCoverProps {
   coverId: string;
@@ -17,8 +18,8 @@ export function ProjectCover({ coverId, size = "card" }: ProjectCoverProps) {
         width: thumb ? 30 : "100%",
         height: thumb ? 30 : "100%",
         overflow: "hidden",
-        borderRadius: thumb ? "4px" : "inherit",
-        backgroundColor: "#141414",
+        borderRadius: thumb ? `${hubTokens.radius.thumb}px` : "inherit",
+        backgroundColor: hubTokens.colors.coverBackdrop,
         border: "1px solid rgba(255,255,255,0.08)",
       }}
     >
@@ -54,7 +55,7 @@ export function ProjectCover({ coverId, size = "card" }: ProjectCoverProps) {
             bottom: 14,
             width: 30,
             height: 30,
-            borderRadius: "6px",
+            borderRadius: `${hubTokens.radius.brandMark}px`,
             backgroundColor: "rgba(10,20,22,0.72)",
             p: "4px",
           }}

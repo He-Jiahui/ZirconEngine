@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use crate::error::HubError;
-use crate::process::{pick_folder, FolderPickerRequest};
+use crate::process::FolderPickerRequest;
 use crate::settings::HubSettings;
-use crate::state::{TaskOperationKind, TaskStatus};
+use crate::state::{HubMessage, HubMessageId, SettingsMessageId, TaskOperationKind, TaskStatus};
 use crate::tauri_app::action_request::BrowseSettingsFolderPayload;
 use crate::tauri_app::view_model::{HubSettingsPayload, HubTextBundle};
 
@@ -88,6 +88,16 @@ impl SettingsFolderField {
 }
 
 impl HubRuntimeSession {
+    pub(super) fn update_settings_draft_from_action(
+        &mut self,
+        settings_payload: HubSettingsPayload,
+    ) -> Result<(), HubError> {
+        let mut draft = self.settings_draft.clone();
+        settings_payload.apply_to_draft(&mut draft)?;
+        self.settings_draft = draft;
+        Ok(())
+    }
+
     pub(super) fn save_settings_from_action(
         &mut self,
         settings_payload: Option<HubSettingsPayload>,
@@ -95,17 +105,40 @@ impl HubRuntimeSession {
         self.save_settings(settings_payload)
     }
 
+    pub(super) fn discard_settings_draft(&mut self) {
+        self.settings_draft = self.config.settings.clone();
+        self.task_status = TaskStatus::success(
+            "Settings draft discarded",
+            HubMessage::new(HubMessageId::Settings(
+                SettingsMessageId::DraftRestoredSaved,
+            )),
+        )
+        .with_operation(TaskOperationKind::Settings, "Hub settings");
+    }
+
+    pub(super) fn restore_default_settings(&mut self) {
+        self.settings_draft = HubSettings::default();
+        self.task_status = TaskStatus::success(
+            "Default settings restored",
+            HubMessage::new(HubMessageId::Settings(
+                SettingsMessageId::DraftRestoredDefaults,
+            )),
+        )
+        .with_operation(TaskOperationKind::Settings, "Hub settings");
+    }
+
     pub(super) fn browse_settings_folder(
         &mut self,
         target_id: Option<&str>,
         payload: Option<BrowseSettingsFolderPayload>,
     ) -> Result<(), HubError> {
+        let mut draft = self.settings_draft.clone();
         if let Some(settings_payload) = payload
             .as_ref()
             .and_then(|payload| payload.settings.clone())
         {
-            if let Err(error) = settings_payload.apply_to(&mut self.settings_draft) {
-                self.record_settings_folder_failure(error.to_string());
+            if let Err(error) = settings_payload.apply_to_draft(&mut draft) {
+                self.record_settings_folder_failure(error.into_status_messages().0);
                 return Ok(());
             }
         }
@@ -113,49 +146,56 @@ impl HubRuntimeSession {
         let field = match settings_folder_field_from_target(target_id, payload.as_ref()) {
             Ok(field) => field,
             Err(error) => {
-                self.record_settings_folder_failure(error.to_string());
+                self.record_settings_folder_failure(error.into_status_messages().0);
                 return Ok(());
             }
         };
         let initial_dir = payload
             .as_ref()
             .and_then(|payload| payload.initial_dir.clone())
-            .unwrap_or_else(|| field.current_path(&self.settings_draft));
+            .unwrap_or_else(|| field.current_path(&draft));
 
-        let text = HubTextBundle::new(self.settings_draft.language);
-        match pick_folder(&FolderPickerRequest::new(
+        let text = HubTextBundle::new(draft.language);
+        match (self.folder_picker)(&FolderPickerRequest::new(
             field.picker_title(text),
             Some(initial_dir),
         )) {
             Ok(Some(path)) => {
+                field.set_path(&mut draft, path.clone());
+                self.settings_draft = draft;
                 let text = HubTextBundle::new(self.settings_draft.language);
-                field.set_path(&mut self.settings_draft, path.clone());
                 self.task_status = TaskStatus::success(
                     text.status_label("Folder selected"),
-                    path.to_string_lossy().into_owned(),
+                    HubMessage::legacy(path.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Settings, field.label(text));
             }
             Ok(None) => {
-                let text = HubTextBundle::new(self.settings_draft.language);
+                let text = HubTextBundle::new(draft.language);
                 self.task_status = TaskStatus::warning(
                     text.status_label("Folder selection cancelled"),
-                    text.status_detail("No folder was selected"),
-                    text.status_detail("Choose a folder or keep the current setting"),
+                    HubMessage::new(HubMessageId::Settings(SettingsMessageId::NoFolderSelected)),
+                    HubMessage::new(HubMessageId::Settings(
+                        SettingsMessageId::ChooseFolderOrKeepCurrent,
+                    )),
                 )
                 .with_operation(TaskOperationKind::Settings, field.label(text));
             }
-            Err(error) => self.record_settings_folder_failure(error.to_string()),
+            Err(error) => {
+                self.record_settings_folder_failure(HubMessage::legacy(error.to_string()))
+            }
         }
         Ok(())
     }
 
-    pub(super) fn record_settings_save_failure(&mut self, detail: String) {
+    pub(super) fn record_settings_save_failure(&mut self, detail: HubMessage) {
         let text = HubTextBundle::new(self.settings_draft.language);
         self.task_status = TaskStatus::error(
             text.status_label("Save Settings failed"),
-            text.status_detail(&detail),
-            text.status_detail("Check Settings values and save again"),
+            detail,
+            HubMessage::new(HubMessageId::Settings(
+                SettingsMessageId::CheckValuesAndSave,
+            )),
         )
         .with_operation(
             TaskOperationKind::Settings,
@@ -163,12 +203,14 @@ impl HubRuntimeSession {
         );
     }
 
-    fn record_settings_folder_failure(&mut self, detail: String) {
+    fn record_settings_folder_failure(&mut self, detail: HubMessage) {
         let text = HubTextBundle::new(self.settings_draft.language);
         self.task_status = TaskStatus::error(
             text.status_label("Browse folder failed"),
-            text.status_detail(&detail),
-            text.status_detail("Choose an existing local folder or type the path manually"),
+            detail,
+            HubMessage::new(HubMessageId::Settings(
+                SettingsMessageId::ChooseExistingFolderOrManual,
+            )),
         )
         .with_operation(
             TaskOperationKind::Settings,
@@ -186,10 +228,24 @@ fn settings_folder_field_from_target(
         .filter(|target| !target.is_empty())
         .map(str::to_string)
         .or_else(|| payload.and_then(|payload| payload.field.clone()))
-        .ok_or_else(|| HubError::message("Settings folder field is required"))?;
+        .ok_or_else(|| {
+            HubError::status(
+                HubMessage::new(HubMessageId::Settings(
+                    SettingsMessageId::FolderFieldRequired,
+                )),
+                None,
+            )
+        })?;
 
-    SettingsFolderField::from_id(&field_id)
-        .ok_or_else(|| HubError::message(format!("Unknown settings folder field: {field_id}")))
+    SettingsFolderField::from_id(&field_id).ok_or_else(|| {
+        HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Settings(SettingsMessageId::UnknownFolderField),
+                [field_id],
+            ),
+            None,
+        )
+    })
 }
 
 #[cfg(test)]
@@ -202,19 +258,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn browse_settings_folder_payload_accepts_wrapped_field_and_initial_dir() {
+    fn browse_settings_folder_payload_accepts_flat_field_and_initial_dir() {
         let initial_dir = PathBuf::from("E:/Drafts");
 
         let action = HubActionRequest {
             action_id: "browse-settings-folder".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "folder": {
-                    "field": "defaultProjectDir",
-                    "initialDir": initial_dir.to_string_lossy(),
-                    "settings": {
-                        "defaultProjectDir": "E:/Projects"
-                    }
+                "field": "defaultProjectDir",
+                "initialDir": initial_dir.to_string_lossy(),
+                "settings": {
+                    "defaultProjectDir": "E:/Projects"
                 }
             })),
         }
@@ -241,6 +295,7 @@ mod tests {
         let selected_output = temp.join("selected-output");
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("persisted-output");
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.save(&config_path).unwrap();
         fs::write(
             &editor_config_path,
@@ -287,6 +342,269 @@ mod tests {
     }
 
     #[test]
+    fn update_settings_draft_recomputes_health_without_persisting() {
+        let temp = temp_test_dir("zircon-hub-settings-draft-health");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.python_path = "python".to_string();
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+
+        let model = session
+            .apply_action(HubActionRequest {
+                action_id: "update-settings-draft".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "settings": {
+                        "pythonPath": ""
+                    }
+                })),
+            })
+            .expect("update-settings-draft should apply to the editable draft");
+
+        assert_eq!(model.settings.python_path, "python");
+        assert_eq!(model.settings_draft.python_path, "");
+        let python_row = model
+            .settings_draft
+            .health
+            .rows
+            .iter()
+            .find(|row| row.id == "python-path")
+            .expect("Python health row should exist");
+        assert_eq!(python_row.state, "error");
+        assert_eq!(python_row.meta, "必需");
+        assert_eq!(model.settings_draft.health.tone, "warning");
+        assert_eq!(
+            HubConfig::load(&config_path).unwrap().settings.python_path,
+            "python"
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn discard_settings_draft_restores_saved_settings_without_persisting() {
+        let temp = temp_test_dir("zircon-hub-settings-discard-draft");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
+        config.settings.python_path = "python".to_string();
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+        session.settings_draft.python_path = "broken-python".to_string();
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "discard-settings-draft".to_string(),
+                target_id: None,
+                payload: None,
+            })
+            .expect("discard-settings-draft should refresh state");
+
+        assert_eq!(session.settings_draft.python_path, "python");
+        assert_eq!(
+            HubConfig::load(&config_path).unwrap().settings.python_path,
+            "python"
+        );
+        assert_eq!(session.task_status.label, "Settings draft discarded");
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn restore_default_settings_updates_draft_without_persisting() {
+        let temp = temp_test_dir("zircon-hub-settings-restore-defaults");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
+        config.settings.python_path = "custom-python".to_string();
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "restore-default-settings".to_string(),
+                target_id: None,
+                payload: None,
+            })
+            .expect("restore-default-settings should refresh state");
+
+        assert_eq!(session.settings_draft, HubSettings::default());
+        assert_eq!(
+            HubConfig::load(&config_path).unwrap().settings.python_path,
+            "custom-python"
+        );
+        assert_eq!(session.task_status.label, "Default settings restored");
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn browse_settings_folder_cancel_keeps_existing_draft() {
+        let temp = temp_test_dir("zircon-hub-settings-browse-cancel");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
+        config.settings.default_project_dir = temp.join("persisted-projects");
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+        session.folder_picker = |_| Ok(None);
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "browse-settings-folder".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "field": "defaultProjectDir",
+                    "settings": {
+                        "defaultProjectDir": temp.join("payload-projects")
+                    }
+                })),
+            })
+            .expect("cancelled browse should refresh state");
+
+        assert_eq!(
+            session.settings_draft.default_project_dir,
+            temp.join("persisted-projects")
+        );
+        assert_eq!(
+            HubConfig::load(&config_path)
+                .unwrap()
+                .settings
+                .default_project_dir,
+            temp.join("persisted-projects")
+        );
+        assert_eq!(session.task_status.label, "已取消选择文件夹");
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn save_settings_rejects_invalid_draft_from_shared_field_spec() {
+        let temp = temp_test_dir("zircon-hub-settings-save-shared-field-spec");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
+        config.settings.python_path = "python".to_string();
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+        session.settings_draft.python_path.clear();
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "save-settings".to_string(),
+                target_id: None,
+                payload: None,
+            })
+            .expect("invalid draft save should be recoverable");
+
+        assert_eq!(session.task_status.label, "保存设置失败");
+        assert_eq!(
+            session
+                .task_status
+                .detail
+                .render(crate::settings::HubLanguage::Chinese),
+            "需要 Python 可执行文件"
+        );
+        assert_eq!(
+            HubConfig::load(&config_path).unwrap().settings.python_path,
+            "python"
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn save_settings_rejects_source_engine_without_runtime_workspace_member() {
+        let temp = temp_test_dir("zircon-hub-settings-save-invalid-source");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let invalid_source = temp.join("InvalidSource");
+        fs::create_dir_all(invalid_source.join("tools")).unwrap();
+        fs::write(
+            invalid_source.join("Cargo.toml"),
+            "[workspace]\nmembers = []\n",
+        )
+        .unwrap();
+        fs::write(invalid_source.join("tools").join("zircon_build.py"), "").unwrap();
+        let mut config = HubConfig::default();
+        config.settings.default_source_dir = create_valid_source_checkout(&temp);
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "save-settings".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "settings": {
+                        "defaultSourceDir": invalid_source
+                    }
+                })),
+            })
+            .expect("invalid source checkout should be recoverable");
+
+        assert_eq!(session.task_status.label, "保存设置失败");
+        assert_eq!(
+            session
+                .task_status
+                .detail
+                .render(crate::settings::HubLanguage::Chinese),
+            "源码检出工作区缺少 zircon_runtime 成员"
+        );
+        assert_ne!(
+            HubConfig::load(&config_path)
+                .unwrap()
+                .settings
+                .default_source_dir,
+            invalid_source
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
     fn browse_settings_folder_errors_use_current_language() {
         let temp = temp_test_dir("zircon-hub-settings-folder-language");
         let config_path = temp.join("hub.toml");
@@ -308,7 +626,12 @@ mod tests {
 
         assert_eq!(session.task_status.label, "浏览文件夹失败");
         assert_eq!(
-            session.task_status.recovery.as_deref(),
+            session
+                .task_status
+                .recovery
+                .as_ref()
+                .map(|message| message.render(crate::settings::HubLanguage::Chinese))
+                .as_deref(),
             Some("选择已有本地文件夹或手动输入路径")
         );
         assert_eq!(session.task_status.target.as_deref(), Some("设置文件夹"));
@@ -397,5 +720,18 @@ mod tests {
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path
+    }
+
+    fn create_valid_source_checkout(temp: &std::path::Path) -> PathBuf {
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(source.join("tools")).unwrap();
+        fs::create_dir_all(source.join("zircon_runtime")).unwrap();
+        fs::write(
+            source.join("Cargo.toml"),
+            "[workspace]\nmembers = [\"zircon_runtime\"]\n",
+        )
+        .unwrap();
+        fs::write(source.join("tools").join("zircon_build.py"), "").unwrap();
+        source
     }
 }

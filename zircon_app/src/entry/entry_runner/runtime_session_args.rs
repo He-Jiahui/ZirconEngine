@@ -1,5 +1,7 @@
 use std::error::Error;
+use std::path::PathBuf;
 
+const RUNTIME_SESSION_PROJECT_ARG: &str = "--project";
 const RUNTIME_SESSION_PROFILE_ARG: &str = "--runtime-session-profile";
 const RUNTIME_SESSION_HELP_ARG: &str = "--help";
 const RUNTIME_SESSION_SHORT_HELP_ARG: &str = "-h";
@@ -8,6 +10,8 @@ pub(super) const RUNTIME_SESSION_STARTUP_HELP: &str = "\
 Usage: zircon_runtime [OPTIONS]
 
 Options:
+  --project <path>                     Load a Zircon project root and run its default scene
+  --project=<path>                     Load the same project root with an equals-form argument
   --runtime-session-profile <profile>   Select runtime, editor, dev, minimal, or headless dynamic session policy
   --runtime-session-profile=<profile>   Select the same dynamic session policy with an equals-form argument
   --log-level <level>                   Select verbose, debug, log, warn, error, or off process logging
@@ -32,6 +36,7 @@ Profiles:
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeSessionStartupArgs {
     pub(super) profile: RuntimeSessionProfile,
+    pub(super) project_root: Option<PathBuf>,
     pub(super) help_requested: bool,
     pub(super) remaining_args: Vec<String>,
 }
@@ -56,12 +61,42 @@ where
     let mut remaining_args = Vec::new();
     let mut profile = RuntimeSessionProfile::default();
     let mut profile_provided = false;
+    let mut project_root = None;
     let mut help_requested = false;
     let mut args = args.into_iter().map(Into::into);
 
     while let Some(arg) = args.next() {
         if arg == RUNTIME_SESSION_HELP_ARG || arg == RUNTIME_SESSION_SHORT_HELP_ARG {
             help_requested = true;
+            continue;
+        }
+
+        if arg == RUNTIME_SESSION_PROJECT_ARG {
+            if project_root.is_some() {
+                return Err(
+                    format!("{RUNTIME_SESSION_PROJECT_ARG} was provided more than once").into(),
+                );
+            }
+            let Some(value) = args.next() else {
+                return Err(missing_project_value_error().into());
+            };
+            if value.is_empty() {
+                return Err(missing_project_value_error().into());
+            }
+            project_root = Some(PathBuf::from(value));
+            continue;
+        }
+
+        if let Some(value) = arg.strip_prefix("--project=") {
+            if project_root.is_some() {
+                return Err(
+                    format!("{RUNTIME_SESSION_PROJECT_ARG} was provided more than once").into(),
+                );
+            }
+            if value.is_empty() {
+                return Err(missing_project_value_error().into());
+            }
+            project_root = Some(PathBuf::from(value));
             continue;
         }
 
@@ -98,6 +133,7 @@ where
 
     Ok(RuntimeSessionStartupArgs {
         profile,
+        project_root,
         help_requested,
         remaining_args,
     })
@@ -138,6 +174,10 @@ fn missing_profile_value_error() -> String {
     format!("{RUNTIME_SESSION_PROFILE_ARG} requires runtime, editor, dev, minimal, or headless")
 }
 
+fn missing_project_value_error() -> String {
+    format!("{RUNTIME_SESSION_PROJECT_ARG} requires a project root path")
+}
+
 #[cfg(test)]
 mod tests {
     use super::{parse_runtime_session_startup_args, RuntimeSessionProfile};
@@ -148,6 +188,7 @@ mod tests {
 
         assert_eq!(parsed.profile, RuntimeSessionProfile::Runtime);
         assert_eq!(parsed.profile.as_bytes(), b"runtime");
+        assert_eq!(parsed.project_root, None);
         assert!(!parsed.help_requested);
         assert_eq!(parsed.remaining_args, ["--log-level=debug"]);
     }
@@ -163,6 +204,7 @@ mod tests {
 
         assert_eq!(parsed.profile, RuntimeSessionProfile::Dev);
         assert_eq!(parsed.profile.as_bytes(), b"dev");
+        assert_eq!(parsed.project_root, None);
         assert_eq!(parsed.remaining_args, ["--leftover"]);
     }
 
@@ -174,7 +216,37 @@ mod tests {
 
         assert_eq!(parsed.profile, RuntimeSessionProfile::Headless);
         assert_eq!(parsed.profile.as_bytes(), b"headless");
+        assert_eq!(parsed.project_root, None);
         assert!(!parsed.help_requested);
+        assert!(parsed.remaining_args.is_empty());
+    }
+
+    #[test]
+    fn runtime_session_args_strip_space_separated_project_root() {
+        let parsed = parse_runtime_session_startup_args([
+            "--project".to_string(),
+            "examples/vampire".to_string(),
+            "--runtime-session-profile=dev".to_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(parsed.profile, RuntimeSessionProfile::Dev);
+        assert_eq!(
+            parsed.project_root.as_deref(),
+            Some(std::path::Path::new("examples/vampire"))
+        );
+        assert!(parsed.remaining_args.is_empty());
+    }
+
+    #[test]
+    fn runtime_session_args_strip_equals_project_root() {
+        let parsed =
+            parse_runtime_session_startup_args(["--project=examples/vampire".to_string()]).unwrap();
+
+        assert_eq!(
+            parsed.project_root.as_deref(),
+            Some(std::path::Path::new("examples/vampire"))
+        );
         assert!(parsed.remaining_args.is_empty());
     }
 
@@ -201,6 +273,7 @@ mod tests {
             "dev",
             "minimal",
             "headless",
+            "--project",
             "--log-level",
             "--log-filter",
             "ZIRCON_RUNTIME_LIBRARY",
@@ -214,6 +287,32 @@ mod tests {
                 "runtime help should mention `{expected}`"
             );
         }
+    }
+
+    #[test]
+    fn runtime_session_args_reject_duplicate_project_roots() {
+        let error = parse_runtime_session_startup_args([
+            "--project=examples/vampire".to_string(),
+            "--project".to_string(),
+            "examples/other".to_string(),
+        ])
+        .unwrap_err();
+
+        assert_eq!(error.to_string(), "--project was provided more than once");
+    }
+
+    #[test]
+    fn runtime_session_args_reject_missing_project_root() {
+        let error = parse_runtime_session_startup_args(["--project".to_string()]).unwrap_err();
+
+        assert_eq!(error.to_string(), "--project requires a project root path");
+    }
+
+    #[test]
+    fn runtime_session_args_reject_empty_project_root() {
+        let error = parse_runtime_session_startup_args(["--project=".to_string()]).unwrap_err();
+
+        assert_eq!(error.to_string(), "--project requires a project root path");
     }
 
     #[test]

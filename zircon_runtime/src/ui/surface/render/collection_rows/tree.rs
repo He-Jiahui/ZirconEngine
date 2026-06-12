@@ -141,7 +141,7 @@ pub(super) fn tree_row_commands(
 }
 
 fn background(state: &RowRenderState) -> Option<&'static str> {
-    if state.disabled() {
+    if state.unavailable() {
         None
     } else if state.marked() {
         Some(SURFACE_SELECTED)
@@ -155,7 +155,7 @@ fn background(state: &RowRenderState) -> Option<&'static str> {
 }
 
 fn border(state: &RowRenderState) -> Option<&'static str> {
-    (!state.disabled() && (state.focus_or_press() || state.marked())).then_some(ACCENT)
+    (!state.unavailable() && (state.focus_or_press() || state.marked())).then_some(ACCENT)
 }
 
 fn border_width(state: &RowRenderState) -> f32 {
@@ -167,7 +167,7 @@ fn border_width(state: &RowRenderState) -> f32 {
 }
 
 fn text(state: &RowRenderState) -> &'static str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if state.marked() {
         TEXT_SELECTED
@@ -177,7 +177,7 @@ fn text(state: &RowRenderState) -> &'static str {
 }
 
 fn secondary(state: &RowRenderState) -> &'static str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if state.marked() {
         TEXT_SELECTED
@@ -187,7 +187,7 @@ fn secondary(state: &RowRenderState) -> &'static str {
 }
 
 fn action(state: &RowRenderState) -> &'static str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if state.marked() {
         TEXT_SELECTED
@@ -197,7 +197,7 @@ fn action(state: &RowRenderState) -> &'static str {
 }
 
 fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if state.marked() {
         TEXT_SELECTED

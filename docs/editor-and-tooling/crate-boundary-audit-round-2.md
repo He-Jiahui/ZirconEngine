@@ -587,7 +587,7 @@ doc_type: module-detail
 
 graphics public owner cutover 在入口侧已经继续收口：
 
-- `zircon_runtime::builtin_runtime_modules()` 现在直接持有 `GraphicsModule`
+- `zircon_runtime::builtin::builtin_runtime_modules()` 现在直接持有 `GraphicsModule`
 - `zircon_app/src/entry/builtin_modules.rs` 不再手工插入 `GraphicsModule`
 - `asset -> graphics -> scene` 这段 builtin module 顺序现在完全由 runtime 持有，app 只保留 editor profile 附加模块
 
@@ -607,7 +607,7 @@ graphics public owner cutover 在入口侧已经继续收口：
 
 继续往下做时，当前剩余 TODO tasks 是：
 
-1. 继续审计 runtime graphics 内部较深的 helper/public surface，确认 graphics owner cutover 在入口之外也没有遗留 root-surface 泄漏；`GraphicsModule` 本身已经稳定由 `zircon_runtime::graphics` 与 `zircon_runtime::builtin_runtime_modules()` 持有。
+1. 继续审计 runtime graphics 内部较深的 helper/public surface，确认 graphics owner cutover 在入口之外也没有遗留 root-surface 泄漏；`GraphicsModule` 本身已经稳定由 `zircon_runtime::graphics` 与 `zircon_runtime::builtin::builtin_runtime_modules()` 持有。
 2. `RenderingBackendInfo` 目前已有充分 keep 证据；后续只需在 `RenderingManager` façade 真正删除或出现第二实现时再重开审计。
 3. 继续细分 `zircon_runtime::ui` watchlist；当前 production path 已经固定 tree authority，下一步若要再升级，先要证明 `UiTemplateDocument` / `UiTemplateLoader` 已经脱离 runtime 自己的 validator/instance/surface fixture coverage。
 4. 持续扫 live `docs/` 中对旧 asset/scene owner 的残留描述；当前仓库没有 `docs/source/` 目录，因此文档清扫目标以总览型文档为准。

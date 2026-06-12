@@ -1,4 +1,4 @@
-pub(super) fn module_kind_from_plugin_toml(
+pub(in super::super) fn module_kind_from_plugin_toml(
     value: &str,
 ) -> zircon_runtime::plugin::PluginModuleKind {
     match value {

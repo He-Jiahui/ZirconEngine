@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "bb90b1f3-800c-4798-92bd-71b02930dee6"
+url = "res://models/kenney_graveyard/lantern-candle.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/2632ff8d-8249-a913-d30f-e38a94a8f6df.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "a1c0c73cbb6c3c41"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/lantern-candle.glb#Texture0",
+    "res://models/kenney_graveyard/lantern-candle.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/lantern-candle.glb#Material0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Node0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "bb90b1f3-800c-4798-92bd-71b02930dee6"
+url = "res://models/kenney_graveyard/lantern-candle.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/2632ff8d-8249-a913-d30f-e38a94a8f6df.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/lantern-candle.glb#Texture0",
+    "res://models/kenney_graveyard/lantern-candle.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/lantern-candle.glb#Material0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Node0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Scene0",
+]
+
+[[entries]]
+uuid = "5df39879-aeb1-4346-b50a-44b3ac25070a"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/76a94141-60cf-1c75-048e-67b76304e40d.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c5442cbb-fb1c-47c5-92a9-e24f1f7c2c54"
+url = "res://models/kenney_graveyard/lantern-candle.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/e666e82a-60be-4401-453e-7b454025f770.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "01381ab8-13a4-4b02-bdcb-51754e6f4574"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/071029d9-0435-1ac3-cb97-e25104c12d85.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/lantern-candle.glb#Texture0",
+]
+
+[[entries]]
+uuid = "717b4dcb-eba0-41b4-9a65-3dbfdeccf07e"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/1ba06ac7-00f8-8cc4-61a1-b1782932b283.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Material0",
+]
+
+[[entries]]
+uuid = "36a47e42-de7a-412e-be43-bdf17cb2f94c"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/bb387ea7-00fc-f8aa-6d30-3d17ef521d9a.zasset"
+dependencies = ["res://models/kenney_graveyard/lantern-candle.glb#Material0"]
+
+[[entries]]
+uuid = "b29a39fb-447b-4daf-8137-bff77e5c7f1c"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/06c85d81-e468-9d43-00f0-6473a5d72929.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/lantern-candle.glb#Node0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Material0",
+]
+
+[[entries]]
+uuid = "6ac1fd56-dc48-42d9-b973-daad6f09ee62"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/efc83405-5a9c-f366-c38a-abf8e17c2950.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/lantern-candle.glb#Node0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/lantern-candle.glb#Material0",
+]

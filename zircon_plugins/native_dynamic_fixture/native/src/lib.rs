@@ -24,7 +24,7 @@ version = "0.1.0"
 sdk_api_version = "0.1.0"
 display_name = "Native Dynamic Fixture"
 category = "sdk"
-description = "Real dynamic library fixture for ABI v2 native plugin loading."
+description = "Real dynamic library fixture for ABI v3 native plugin loading with ABI v2 fallback coverage."
 maturity = "experimental"
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
@@ -62,8 +62,11 @@ const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] = b"runtime.plugin.native_dynamic_f
 const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.native_dynamic_fixture\0";
 const RUNTIME_DIAGNOSTICS_V1: &[u8] = b"runtime entry reached\0";
 const EDITOR_DIAGNOSTICS_V1: &[u8] = b"editor entry reached\0";
-const EDITOR_DIAGNOSTICS: &[u8] =
+const EDITOR_DIAGNOSTICS_V2: &[u8] =
     b"editor entry reached with v2 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
+#[cfg(not(feature = "abi_v2_only"))]
+const EDITOR_DIAGNOSTICS_V3: &[u8] =
+    b"editor entry reached with v3 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] = b"native v2 entry missing negotiated host ABI table\0";
 #[cfg(not(feature = "abi_v2_only"))]
 const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated host ABI table\0";
@@ -412,7 +415,7 @@ static RUNTIME_REPORT: SyncEntryReportV2 = SyncEntryReportV2(NativePluginEntryRe
 static EDITOR_REPORT: SyncEntryReportV2 = SyncEntryReportV2(NativePluginEntryReportV2 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: EDITOR_DIAGNOSTICS.as_ptr().cast(),
+    diagnostics: EDITOR_DIAGNOSTICS_V2.as_ptr().cast(),
     negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
     behavior: &EDITOR_BEHAVIOR.0,
 });
@@ -440,7 +443,7 @@ static RUNTIME_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntr
 static EDITOR_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: EDITOR_DIAGNOSTICS.as_ptr().cast(),
+    diagnostics: EDITOR_DIAGNOSTICS_V3.as_ptr().cast(),
     negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
     behavior: &EDITOR_BEHAVIOR_V3.0,
 });

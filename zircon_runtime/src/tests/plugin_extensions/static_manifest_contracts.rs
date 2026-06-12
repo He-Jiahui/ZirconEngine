@@ -6,6 +6,7 @@ mod dependency_rows;
 mod event_catalogs;
 mod feature_bundles;
 mod feature_extensions;
+mod interfaces;
 mod manifest_schema;
 mod modules;
 mod optional_features;
@@ -21,7 +22,8 @@ mod table_rows;
 
 use dependency_rows::{
     visit_asset_importer_required_capabilities, visit_feature_dependency_rows,
-    visit_option_required_capabilities, visit_package_dependency_rows,
+    visit_option_required_capabilities, visit_package_dependency_ids,
+    visit_package_dependency_rows,
 };
 use feature_bundles::{
     for_each_feature_extension, for_each_module_row, for_each_optional_feature, visit_module_rows,

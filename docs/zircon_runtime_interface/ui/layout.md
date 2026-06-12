@@ -3,24 +3,32 @@ related_code:
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/constraints.rs
+  - zircon_runtime_interface/src/ui/layout/debug.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
+  - zircon_runtime_interface/src/ui/layout/style.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
   - zircon_runtime_interface/src/ui/layout/linear_sizing.rs
+  - zircon_runtime_interface/src/tests/ui_layout.rs
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
   - dev/bevy/crates/bevy_ui/src/layout/convert.rs
   - docs/ui-and-layout/slate-style-ui-surface-frame.md
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
+  - zircon_runtime_interface/src/ui/layout/debug.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
+  - zircon_runtime_interface/src/ui/layout/style.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
 plan_sources:
   - .codex/plans/Bevy-Informed Zircon UI 架构优化里程碑计划.md
   - docs/ui-and-layout/bevy-informed-ui-m0-gap-audit.md
   - user: 2026-05-08 continue M3 layout-engine interface preflight slice
   - user: 2026-05-24 continue ZirconEditor MUI Web parity Masonry layout
+  - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
+  - docs/plans/zircon_editor/editor_ui/02-layout-taffy-and-containers.md
 tests:
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_layout.rs
   - 2026-05-08: cargo test -p zircon_runtime_interface --lib layout_engine_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (3 passed; 0 failed; 73 filtered out)
   - 2026-05-08: cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (passed)
   - 2026-05-08: rustfmt --edition 2021 --check touched M3 layout-engine files (passed)
@@ -30,6 +38,9 @@ tests:
   - 2026-06-06: cargo check -p zircon_runtime_interface --lib --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-taffy-family-contract-0606 --message-format short --color never (passed)
   - 2026-06-06: cargo test -p zircon_runtime_interface --lib layout_engine_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-taffy-family-contract-0606 --message-format short --color never -- --nocapture --test-threads=1 (8 passed; 0 failed; 126 filtered out)
   - 2026-06-07: cargo check -p zircon_runtime_interface --lib --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-stretched-interface-0607 --message-format short --color never (passed)
+  - 2026-06-12: cargo check -p zircon_runtime_interface --lib --locked (passed)
+  - 2026-06-12: cargo test -p zircon_runtime_interface --lib ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults --locked --target-dir target/codex-editor-ui (passed)
+  - 2026-06-12: cargo test -p zircon_runtime --lib style_mapping --locked --jobs 1 --target-dir target/codex-editor-ui-runtime --message-format short --color never -- --nocapture --test-threads=1 (passed, 2 passed)
 doc_type: module-detail
 ---
 
@@ -64,3 +75,11 @@ The Zircon Slate-style surface-frame contract remains the repository boundary re
 This module does not implement `UiLayoutEngine`, Taffy conversion, measure/arrange passes, dirty propagation, or `.ui.toml` schema expansion. Runtime `zircon_runtime::ui::layout` remains the owner of layout execution. Later M3 runtime work should use these DTOs to report engine selection while preserving the existing `UiArrangedTree` and `UiSurfaceFrame` outputs.
 
 The focused tests in `zircon_runtime_interface/src/tests/layout_engine_contracts.rs` cover capability support, current container-to-family mapping, fallback selection, aggregate reporting, and serde round-trips. The 2026-05-24 interface check and 2026-05-25 focused family-mapping test passed after adding `UiMasonryBoxConfig`, `UiContainerKind::MasonryBox`, and the Zircon-owned `Masonry` engine family. The 2026-06-06 contract update hard-renamed the Taffy capability helper to `taffy_flex_grid_wrap_block()`, added `UiLayoutEngineFamily::is_taffy_owned()`, and made the runtime bridge consume that predicate instead of keeping a private duplicate family list. The 2026-06-07 Canvas slot update adds `UiCanvasSlotPlacement.anchor_max` so stretched Slate-style Canvas anchors can be serialized and consumed by runtime Free/Canvas arrange while fixed-anchor payloads keep their older default shape; the interface lib/tests check passed after the DTO documentation refresh.
+
+## Style and Debug DTOs
+
+`UiLayoutStyle` is the editor UI style DTO introduced for the 2026-06-12 editor UI architecture slice. It records the shared layout subset used by flex/grid/block-compatible runtime layout: display, direction, wrap, justify/alignment fields, gap, flex sizing, grid tracks and placement, size constraints, aspect ratio, edges, positioning, inset, and overflow. The interface crate still does not depend on Taffy; conversion lives in `zircon_runtime::ui::layout::style_mapping`.
+
+`UiLayoutDisplay` includes `Overlay`, `Canvas`, `Scroll`, and `Virtual` even though those are not Taffy-owned. Keeping those variants in the DTO lets assets and diagnostics describe mixed trees while runtime routing can explicitly preserve Zircon-owned semantics for retained placement, scroll windows, virtualization, and hit-grid authority.
+
+`UiLayoutDebugPacket` and `UiLayoutDebugNode` give the future editor reflector a neutral payload for layout inspection. A node row can carry final geometry, constraints, chosen backend, fallback reason, and style source references without importing runtime-only structures into the interface crate.

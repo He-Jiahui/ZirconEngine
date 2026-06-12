@@ -32,7 +32,11 @@ implementation_files:
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
+  - zircon_runtime/src/scene/tests/authoring_boundary.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
+  - zircon_runtime/src/scene/tests/dynamic_scene.rs
+  - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
@@ -50,8 +54,11 @@ plan_sources:
   - dev/bevy/crates/bevy_ecs/src/world/reflect.rs
   - dev/UnrealEngine/Engine/Source/Editor/AdvancedPreviewScene/Public/SAdvancedPreviewDetailsTab.h
 tests:
+  - zircon_runtime/src/scene/tests/authoring_boundary.rs
+  - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
+  - zircon_runtime/src/scene/tests/dynamic_scene.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py
@@ -117,14 +124,27 @@ Scene inspection is read-only runtime projection, and project serialization is r
 
 Allowed scene/project serialization data includes runtime world state, hierarchy, component values, runtime camera identity, render order, and camera render viewport rectangles such as `SceneViewportRectAsset` or `RenderViewportRect`.
 
-Forbidden serialized authoring data includes selection, editor viewport tools, grid/view-orientation controls, overlays, gizmos, preview camera overrides, preview lighting, and display modes. These belong in `zircon_editor` state or editor-session snapshots, not in runtime scene assets or project saves.
+Forbidden serialized authoring data includes selection, editor viewport tools, grid/view-orientation controls, overlays, gizmos, preview camera overrides, preview lighting, display modes, and editor pane state. These belong in `zircon_editor` state or editor-session snapshots, not in runtime scene assets or project saves.
 
-The structural audit reports this as `scene_project_serialization_boundary`, with its owner module in `runtime_structure_audits/scene_project_serialization_boundary.py`. The mirrored Rust source guard is `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state`, and the JSON roundtrip guard is part of `scene::tests::world_basics::project_roundtrip_preserves_imported_meshes`.
+The structural audit reports this as `scene_project_serialization_boundary`, with its owner module in `runtime_structure_audits/scene_project_serialization_boundary.py`. The mirrored Rust source guard is `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state`, and runtime serialization guards share the explicit authoring-token list in `scene::tests::authoring_boundary`.
+
+## Serialization Guard Matrix
+
+| Runtime outlet | Serialized token guard | Source token guard |
+|---|---|---|
+| World project JSON | `scene::tests::world_basics::project_roundtrip_preserves_imported_meshes` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
+| Dynamic scene JSON | `scene::tests::dynamic_scene::dynamic_scene_roundtrips_reflected_components_with_entity_remap` and `scene::tests::dynamic_scene::versioned_json_migrates_legacy_world_project_documents` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
+| Asset scene JSON | `scene::tests::asset_scene::scene_assets_instantiate_world_with_asset_bound_meshes` | `scene::tests::component_structure::scene_project_serialization_sources_do_not_store_editor_authoring_state` |
+| World inspection JSON | `scene::tests::inspection::world_inspection_serialization_excludes_editor_authoring_tokens` | Neutral public-surface guard in `scene::tests::component_structure::runtime_scene_exposes_neutral_world_inspection_surface` |
+
+`SERIALIZED_AUTHORING_TOKENS` and `SOURCE_AUTHORING_TOKENS` are intentionally narrow deny lists, not a global ban on words such as `selection` in runtime code. Runtime production code may use those words for platform/module selection or accessibility semantics, but scene/project serialization exits must not persist editor authoring state. The token tables must stay sorted and deduplicated through `scene::tests::authoring_boundary::authoring_token_tables_stay_sorted_and_deduplicated`. When `zircon_editor/src/scene` adds a new authoring state type, overlay, gizmo, viewport tool, preview override, or extract DTO, the matching runtime deny-list token must be added in the same change if it could cross a runtime serialization or inspection boundary.
 
 ## Validation
 
-`zircon_runtime/src/scene/tests/inspection.rs` verifies hierarchy order, focus filtering, fixed component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, and non-mutating invalid-focus behavior.
+`zircon_runtime/src/scene/tests/inspection.rs` verifies hierarchy order, focus filtering, fixed component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
 
 `zircon_runtime/src/scene/tests/component_structure.rs` rejects reintroducing the old production `scene/editor_projection` module, checks that the runtime scene public inspection files do not expose `SceneEditor*` symbols, and guards scene/project serialization source files against editor authoring-state names.
 
 `zircon_runtime/src/scene/tests/world_basics.rs` keeps project roundtrip JSON free of selection, overlay, gizmo, preview override, editor viewport tool, and display-mode keys.
+
+`zircon_runtime/src/scene/tests/dynamic_scene.rs` and `zircon_runtime/src/scene/tests/asset_scene.rs` keep dynamic scene and scene asset JSON on the same authoring-state boundary as world project JSON.

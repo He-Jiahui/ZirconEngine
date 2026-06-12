@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint};
+use zircon_runtime_interface::ui::{
+    dispatch::UiTransientDismissalTarget, event_ui::UiNodeId, layout::UiPoint,
+};
 
 use super::UiSurfaceInputState;
 
@@ -111,5 +113,39 @@ impl UiSurfaceInputState {
             .as_ref()
             .filter(|tooltip| tooltip.tooltip_id.as_str() == tooltip_id)
             .and_then(|tooltip| tooltip.owner)
+    }
+
+    pub fn dismiss_transient_ui(&mut self, target: UiTransientDismissalTarget) -> Option<UiNodeId> {
+        let route_owner = self.transient_dismissal_owner(target);
+        match target {
+            UiTransientDismissalTarget::All => {
+                self.popup_stack.clear();
+                self.tooltip = None;
+            }
+            UiTransientDismissalTarget::PopupStack => {
+                self.popup_stack.clear();
+            }
+            UiTransientDismissalTarget::Tooltip => {
+                self.tooltip = None;
+            }
+        }
+        route_owner
+    }
+
+    fn transient_dismissal_owner(&self, target: UiTransientDismissalTarget) -> Option<UiNodeId> {
+        match target {
+            UiTransientDismissalTarget::All => self
+                .popup_stack
+                .iter()
+                .rev()
+                .find_map(|popup| popup.owner)
+                .or_else(|| self.tooltip.as_ref().and_then(|tooltip| tooltip.owner)),
+            UiTransientDismissalTarget::PopupStack => {
+                self.popup_stack.iter().rev().find_map(|popup| popup.owner)
+            }
+            UiTransientDismissalTarget::Tooltip => {
+                self.tooltip.as_ref().and_then(|tooltip| tooltip.owner)
+            }
+        }
     }
 }

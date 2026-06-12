@@ -18,7 +18,8 @@ pub use input::{
     UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind, UiPopupInputEvent,
     UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit,
     UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-    UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+    UiTooltipTimerInputEventKind, UiTransientDismissalReason, UiTransientDismissalTarget, UiUserId,
+    UiWindowId,
 };
 pub use navigation::{
     UiNavigationDispatchContext, UiNavigationDispatchEffect, UiNavigationDispatchInvocation,

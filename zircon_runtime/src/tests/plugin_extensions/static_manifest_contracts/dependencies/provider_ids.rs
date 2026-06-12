@@ -1,13 +1,13 @@
 use super::super::{
     for_each_feature_extension, for_each_optional_feature, for_each_static_plugin_manifest,
-    visit_feature_dependency_rows, visit_package_dependency_rows,
+    visit_feature_dependency_rows, visit_package_dependency_ids,
 };
 use super::provider_tokens::assert_dependency_provider_id_token;
 
 #[test]
 fn plugin_tomls_declare_dependency_provider_ids_are_tokens() {
     for_each_static_plugin_manifest(|relative_path, table| {
-        visit_package_dependency_rows(table, relative_path, &mut |dependency_id, _| {
+        visit_package_dependency_ids(table, relative_path, &mut |dependency_id| {
             assert_dependency_provider_id_token(
                 relative_path,
                 &format!("top-level dependency `{dependency_id}`"),

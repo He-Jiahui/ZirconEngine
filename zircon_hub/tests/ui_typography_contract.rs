@@ -378,7 +378,7 @@ fn routed_pages_use_page_title_subtitle_typography_and_shared_components() {
         "ProjectDetailPage.tsx",
         &read_crate_file("web/src/pages/ProjectDetailPage.tsx"),
         &[
-            "MetricCard",
+            "ProjectMetricsGrid",
             "HubList",
             "HubTreeView",
             "StatusBadge",
@@ -386,8 +386,18 @@ fn routed_pages_use_page_title_subtitle_typography_and_shared_components() {
         ],
     );
     assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx"),
+        &["MetricCard"],
+    );
+    assert_contains_all(
         "SettingsPage.tsx",
         &read_crate_file("web/src/pages/SettingsPage.tsx"),
+        &["MetricCard", "HubTabs", "SettingsSection"],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &read_crate_file("web/src/components/data/SettingsSection.tsx"),
         &[
             "HubCheckbox",
             "HubSwitch",

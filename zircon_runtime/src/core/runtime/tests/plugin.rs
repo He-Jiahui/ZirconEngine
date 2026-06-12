@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use super::super::*;
 use super::fixtures::RecordedPlugin;
-use crate::core::lifecycle::{ServiceKind, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::{ServiceKind, StartupMode};
 
 #[test]
 fn plugin_resolution_builds_plugin_context_instead_of_passing_only_core_handle() {

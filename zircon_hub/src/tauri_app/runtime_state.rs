@@ -5,7 +5,7 @@ use std::{
 };
 
 mod action_targets;
-mod action_tasks;
+pub(in crate::tauri_app) mod action_tasks;
 mod build_actions;
 mod editor_launch_actions;
 mod learn_actions;
@@ -20,27 +20,30 @@ mod settings_actions;
 use crate::assets::AssetCatalogEntry;
 use crate::engines::{
     ensure_active_source_engine, prune_project_engine_bindings, same_source_engine_path,
-    source_engine_display_name, source_engine_id, upsert_source_engine, SourceEngineInstall,
+    source_engine_display_name, source_engine_id, upsert_source_engine, validate_source_engine,
+    SourceEngineInstall, SourceEngineValidation,
 };
 use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
 use crate::plugins::PluginCatalogEntry;
 use crate::projects::{
     load_editor_recent_project_session, merge_recent_projects, metadata_for_path,
-    project_metadata_key, project_paths_match, save_editor_recent_projects,
-    save_editor_recent_projects_with_last_project, RecentProject,
+    project_filesystem_path_key, project_metadata_key, project_paths_match,
+    save_editor_recent_projects, save_editor_recent_projects_with_last_project, RecentProject,
 };
 use crate::settings::{
     default_hub_config_path, editor_config_path, HubConfig, HubRuntimeState, HubSettings,
 };
 use crate::state::{
-    HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
-    TaskOperationKind, TaskStatus,
+    EngineMessageId, HubMessage, HubMessageId, HubPage, HubSnapshot, ProjectFilterMode,
+    ProjectMessageId, ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId,
+    ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::team::TeamOverview;
 
+use super::action_id::HubActionId;
 use super::action_request::{HubAction, HubActionRequest};
-use super::view_model::{HubSettingsPayload, HubViewModel};
+use super::view_model::{validate_settings_for_save, HubSettingsPayload, HubViewModel};
 
 const VISUAL_TASK_STATE_ENV: &str = "ZIRCON_HUB_VISUAL_TASK_STATE";
 
@@ -61,7 +64,10 @@ pub(super) struct HubRuntimeSession {
     new_project_location: PathBuf,
     new_project_engine_id: Option<String>,
     pending_delete_project_path: Option<PathBuf>,
+    folder_picker: fn(&crate::process::FolderPickerRequest) -> Result<Option<PathBuf>, HubError>,
+    recycle_delete: fn(PathBuf) -> Result<(), HubError>,
     task_status: TaskStatus,
+    background_task_counter: u64,
     background_worker_active: bool,
     background_action_queue: VecDeque<HubActionRequest>,
     asset_catalog: Vec<AssetCatalogEntry>,
@@ -111,7 +117,10 @@ impl HubRuntimeSession {
             new_project_location: runtime_state.new_project_location,
             new_project_engine_id: runtime_state.new_project_engine_id,
             pending_delete_project_path: None,
+            folder_picker: crate::process::pick_folder,
+            recycle_delete: |path| crate::projects::recycle_delete_project(path),
             task_status: TaskStatus::idle(),
+            background_task_counter: 0,
             background_worker_active: false,
             background_action_queue: VecDeque::new(),
             asset_catalog: Vec::new(),
@@ -119,7 +128,14 @@ impl HubRuntimeSession {
             plugin_catalog: Vec::new(),
             team_overview: TeamOverview::empty(),
         };
-        session.register_source_engine_from_settings();
+        if let Err(validation) = session.register_source_engine_from_settings() {
+            session.task_status = TaskStatus::warning(
+                "Source Engine invalid",
+                source_engine_validation_detail(validation),
+                source_engine_validation_recovery(validation),
+            )
+            .with_operation(TaskOperationKind::SourceEngine, "Settings source checkout");
+        }
         session.prune_stale_project_engine_bindings();
         session.config.repair_registries();
         if let Some(path) = session.selected_project_path.clone() {
@@ -128,7 +144,7 @@ impl HubRuntimeSession {
         session.ensure_new_project_engine_selection();
         session.refresh_source_scoped_views()?;
         session.apply_visual_task_state_override_from_env();
-        session.persist()?;
+        session.persist(None)?;
         Ok(session)
     }
 
@@ -140,7 +156,16 @@ impl HubRuntimeSession {
         &mut self,
         request: HubActionRequest,
     ) -> Result<HubViewModel, HubError> {
-        match request.parse()? {
+        let action_id = request.action()?;
+        let action = match request.parse_as(action_id) {
+            Ok(action) => action,
+            Err(error) => {
+                self.record_action_payload_failure(action_id, error)?;
+                return Ok(self.view_model());
+            }
+        };
+
+        match action {
             HubAction::ShowPage { target_id } => self.select_page_by_id(&target_id)?,
             HubAction::ShowProjectSubpage { target_id } => {
                 self.show_project_subpage_by_id(&target_id)?
@@ -163,7 +188,12 @@ impl HubRuntimeSession {
                 self.update_new_project_draft(payload)?
             }
             HubAction::SelectEngine { target_id } => self.select_engine_by_id(&target_id)?,
+            HubAction::UpdateSettingsDraft { payload } => {
+                self.update_settings_draft_from_action(payload)?
+            }
             HubAction::SaveSettings { payload } => self.save_settings_from_action(payload)?,
+            HubAction::DiscardSettingsDraft => self.discard_settings_draft(),
+            HubAction::RestoreDefaultSettings => self.restore_default_settings(),
             HubAction::BrowseSettingsFolder { target_id, payload } => {
                 self.browse_settings_folder(target_id.as_deref(), payload)?
             }
@@ -199,7 +229,7 @@ impl HubRuntimeSession {
                 self.apply_action_project_target(
                     target_id.as_deref(),
                     payload.as_ref(),
-                    "build-project",
+                    HubActionId::BuildProject,
                 )?;
                 self.build_selected_project_engine()?
             }
@@ -207,7 +237,7 @@ impl HubRuntimeSession {
                 self.apply_action_project_target(
                     target_id.as_deref(),
                     payload.as_ref(),
-                    "package-project",
+                    HubActionId::PackageProject,
                 )?;
                 self.package_recent_project()?
             }
@@ -215,7 +245,7 @@ impl HubRuntimeSession {
                 self.apply_action_project_target(
                     target_id.as_deref(),
                     payload.as_ref(),
-                    "install-device",
+                    HubActionId::InstallDevice,
                 )?;
                 self.install_recent_project_to_device()?
             }
@@ -223,13 +253,30 @@ impl HubRuntimeSession {
                 self.apply_action_project_target(
                     target_id.as_deref(),
                     payload.as_ref(),
-                    "open-editor",
+                    HubActionId::OpenEditor,
                 )?;
                 self.open_selected_project_or_editor()?
             }
         }
 
         Ok(self.view_model())
+    }
+
+    fn record_action_payload_failure(
+        &mut self,
+        action: HubActionId,
+        error: HubError,
+    ) -> Result<(), HubError> {
+        let (detail, recovery) = error.into_status_messages();
+        self.task_status = TaskStatus::error(
+            "Action failed",
+            detail,
+            recovery.unwrap_or_else(|| {
+                HubMessage::new(HubMessageId::Shell(ShellMessageId::ReviewActionPayload))
+            }),
+        )
+        .with_operation(TaskOperationKind::Hub, action.as_str());
+        self.persist(None)
     }
 
     fn snapshot(&self) -> HubSnapshot {
@@ -247,6 +294,7 @@ impl HubRuntimeSession {
             new_project_engine_id: self.new_project_engine_id.clone(),
             pending_delete_project_path: self.pending_delete_project_path.clone(),
             task_status: self.task_status.clone(),
+            queued_background_actions: self.background_action_queue.len(),
             recent_projects: self.config.recent_projects.clone(),
             project_metadata: self.config.project_metadata.clone(),
             assets: self.asset_catalog.clone(),
@@ -266,7 +314,7 @@ impl HubRuntimeSession {
             return Err(HubError::message(format!("Unknown Hub page: {page_id}")));
         };
         self.selected_page = page;
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn show_project_subpage_by_id(&mut self, subpage_id: &str) -> Result<(), HubError> {
@@ -283,12 +331,12 @@ impl HubRuntimeSession {
             self.ensure_new_project_engine_selection();
         }
         self.pending_delete_project_path = None;
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn search_projects(&mut self, query: &str) {
         self.search_query = query.to_string();
-        let _ = self.persist_hub_config();
+        let _ = self.persist(None);
     }
 
     fn set_project_filter_by_id(&mut self, filter_id: &str) -> Result<(), HubError> {
@@ -300,10 +348,16 @@ impl HubRuntimeSession {
         self.project_filter = filter;
         self.task_status = TaskStatus::success(
             "Projects filtered",
-            format!("Showing {}", self.project_filter.label()),
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::ShowingFilter),
+                [project_filter_label(
+                    self.project_filter,
+                    self.config.settings.language,
+                )],
+            ),
         )
         .with_operation(TaskOperationKind::Hub, "Projects");
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn set_project_sort_by_id(&mut self, sort_id: &str) -> Result<(), HubError> {
@@ -315,10 +369,16 @@ impl HubRuntimeSession {
         self.project_sort = sort;
         self.task_status = TaskStatus::success(
             "Projects sorted",
-            format!("Sorting by {}", self.project_sort.label()),
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::SortingBy),
+                [project_sort_label(
+                    self.project_sort,
+                    self.config.settings.language,
+                )],
+            ),
         )
         .with_operation(TaskOperationKind::Hub, "Projects");
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn set_project_view_mode_by_id(&mut self, mode_id: &str) -> Result<(), HubError> {
@@ -333,7 +393,7 @@ impl HubRuntimeSession {
         } else {
             ProjectSubpage::Dashboard
         };
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn select_project_target(&mut self, target: &str) -> Result<(), HubError> {
@@ -350,9 +410,10 @@ impl HubRuntimeSession {
             self.config.active_engine_id != active_engine_before,
         )?;
         let display_name = recent_project_display_name(&project);
-        self.task_status = TaskStatus::success("Project selected", display_name.clone())
-            .with_operation(TaskOperationKind::Project, display_name);
-        self.persist_with_last_project(Some(&project.path))
+        self.task_status =
+            TaskStatus::success("Project selected", HubMessage::legacy(display_name.clone()))
+                .with_operation(TaskOperationKind::Project, display_name);
+        self.persist(Some(&project.path))
     }
 
     fn open_project_detail(&mut self, target: &str) -> Result<(), HubError> {
@@ -360,7 +421,7 @@ impl HubRuntimeSession {
         self.project_subpage = ProjectSubpage::ProjectDetail;
         self.project_view_mode = ProjectViewMode::List;
         self.pending_delete_project_path = None;
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     fn view_all_projects(&mut self) {
@@ -368,9 +429,14 @@ impl HubRuntimeSession {
         self.project_filter = ProjectFilterMode::All;
         self.project_view_mode = ProjectViewMode::List;
         self.project_subpage = ProjectSubpage::ProjectBrowser;
-        self.task_status = TaskStatus::success("All projects", "Showing all recent projects")
-            .with_operation(TaskOperationKind::Hub, "Projects");
-        let _ = self.persist_hub_config();
+        self.task_status = TaskStatus::success(
+            "All projects",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::ShowingAllRecentProjects,
+            )),
+        )
+        .with_operation(TaskOperationKind::Hub, "Projects");
+        let _ = self.persist(None);
     }
 
     fn select_engine_by_id(&mut self, engine_id: &str) -> Result<(), HubError> {
@@ -392,9 +458,12 @@ impl HubRuntimeSession {
         self.settings_draft = self.config.settings.clone();
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
         self.refresh_source_scoped_views()?;
-        self.persist_hub_config()?;
-        self.task_status = TaskStatus::success("Engine selected", engine.display_name.clone())
-            .with_operation(TaskOperationKind::SourceEngine, engine.display_name);
+        self.persist(None)?;
+        self.task_status = TaskStatus::success(
+            "Engine selected",
+            HubMessage::legacy(engine.display_name.clone()),
+        )
+        .with_operation(TaskOperationKind::SourceEngine, engine.display_name);
         Ok(())
     }
 
@@ -402,40 +471,62 @@ impl HubRuntimeSession {
         &mut self,
         settings_payload: Option<HubSettingsPayload>,
     ) -> Result<(), HubError> {
-        if let Some(settings_payload) = settings_payload {
+        let settings = if let Some(settings_payload) = settings_payload {
             let mut settings = self.config.settings.clone();
             if let Err(error) = settings_payload.apply_to(&mut settings) {
-                self.record_settings_save_failure(error.to_string());
+                self.record_settings_save_failure(error.into_status_messages().0);
                 return Ok(());
             }
-            self.config.settings = settings;
+            settings
         } else {
-            self.config.settings = self.settings_draft.clone();
+            self.settings_draft.clone()
+        };
+        if let Err(error) = validate_settings_for_save(&settings) {
+            self.record_settings_save_failure(error.into_status_messages().0);
+            return Ok(());
         }
-        self.register_source_engine_from_settings();
+        if let Err(validation) = validate_settings_source_engine(&settings) {
+            self.record_settings_save_failure(source_engine_validation_detail(validation));
+            return Ok(());
+        }
+        self.config.settings = settings;
+        if let Err(validation) = self.register_source_engine_from_settings() {
+            self.record_settings_save_failure(source_engine_validation_detail(validation));
+            return Ok(());
+        }
         self.refresh_source_scoped_views()?;
-        self.persist()?;
+        self.persist(None)?;
         self.settings_draft = self.config.settings.clone();
         self.task_status = TaskStatus::success(
             "Settings saved",
-            self.config_path.to_string_lossy().into_owned(),
+            HubMessage::with_params(
+                HubMessageId::Settings(SettingsMessageId::SettingsSavedPath),
+                [self.config_path.to_string_lossy()],
+            ),
         )
         .with_operation(TaskOperationKind::Settings, "Hub settings");
         Ok(())
     }
 
-    fn persist(&self) -> Result<(), HubError> {
-        self.persist_with_last_project(None)
+    fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError> {
+        match self.persist_unchecked(last_project_path) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.task_status = TaskStatus::error(
+                    "Save Hub state failed",
+                    HubMessage::legacy(error.to_string()),
+                    HubMessage::new(HubMessageId::Shell(ShellMessageId::CheckConfigPath)),
+                )
+                .with_operation(TaskOperationKind::Hub, "Hub state");
+                Err(error)
+            }
+        }
     }
 
-    fn persist_hub_config(&self) -> Result<(), HubError> {
+    fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError> {
         let mut config = self.config.clone();
         config.runtime = self.runtime_state_for_config();
-        config.save(&self.config_path)
-    }
-
-    fn persist_with_last_project(&self, last_project_path: Option<&Path>) -> Result<(), HubError> {
-        self.persist_hub_config()?;
+        config.save(&self.config_path)?;
         match last_project_path {
             Some(path) => save_editor_recent_projects_with_last_project(
                 &self.editor_config_path,
@@ -474,7 +565,7 @@ impl HubRuntimeSession {
             "loading" | "running" => {
                 self.task_status = TaskStatus::running_operation(
                     "Loading Hub state",
-                    "Refreshing projects, source engines, and build workflows",
+                    HubMessage::new(HubMessageId::Shell(ShellMessageId::RefreshingCatalogs)),
                     TaskOperationKind::Hub,
                     "Visual verification",
                 );
@@ -482,33 +573,47 @@ impl HubRuntimeSession {
             "error" => {
                 self.task_status = TaskStatus::error(
                     "Action failed",
-                    "Visual verification error state",
-                    "Check the highlighted workflow target before retrying",
+                    HubMessage::new(HubMessageId::Shell(ShellMessageId::VisualVerificationError)),
+                    HubMessage::new(HubMessageId::Shell(
+                        ShellMessageId::CheckHighlightedWorkflowTarget,
+                    )),
                 )
                 .with_operation(TaskOperationKind::Hub, "Visual verification");
             }
             "warning" => {
                 self.task_status = TaskStatus::warning(
                     "Warning",
-                    "Visual verification warning state",
-                    "Review settings before continuing",
+                    HubMessage::new(HubMessageId::Shell(
+                        ShellMessageId::VisualVerificationWarning,
+                    )),
+                    HubMessage::new(HubMessageId::Shell(
+                        ShellMessageId::ReviewSettingsBeforeContinuing,
+                    )),
                 )
                 .with_operation(TaskOperationKind::Hub, "Visual verification");
             }
             "success" => {
-                self.task_status =
-                    TaskStatus::success("Success", "Visual verification success state")
-                        .with_operation(TaskOperationKind::Hub, "Visual verification");
+                self.task_status = TaskStatus::success(
+                    "Success",
+                    HubMessage::new(HubMessageId::Shell(
+                        ShellMessageId::VisualVerificationSuccess,
+                    )),
+                )
+                .with_operation(TaskOperationKind::Hub, "Visual verification");
             }
             _ => {}
         }
     }
 
-    fn register_source_engine_from_settings(&mut self) {
+    fn register_source_engine_from_settings(&mut self) -> Result<(), SourceEngineValidation> {
         let source_dir = self.config.settings.default_source_dir.clone();
         let output_dir = self.config.settings.default_build_output_dir.clone();
         if source_dir.as_os_str().is_empty() {
-            return;
+            return Ok(());
+        }
+        let validation = validate_source_engine(&source_dir);
+        if validation != SourceEngineValidation::Valid {
+            return Err(validation);
         }
         let active_engine_before = self.config.active_engine_id.clone();
         let engine_id = source_engine_id(&source_dir);
@@ -544,6 +649,7 @@ impl HubRuntimeSession {
         self.config.active_engine_id = Some(engine_id);
         ensure_active_source_engine(&self.config.engines, &mut self.config.active_engine_id);
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
+        Ok(())
     }
 
     fn prune_stale_project_engine_bindings(&mut self) -> usize {
@@ -671,6 +777,15 @@ impl HubRuntimeSession {
             .cloned()
     }
 
+    fn find_recent_project_by_filesystem_key(&self, path: &Path) -> Option<RecentProject> {
+        let key = project_filesystem_path_key(path);
+        self.config
+            .recent_projects
+            .iter()
+            .find(|project| project_filesystem_path_key(&project.path) == key)
+            .cloned()
+    }
+
     fn refresh_project_context_views(
         &mut self,
         selected_project_changed: bool,
@@ -706,6 +821,72 @@ fn startup_selected_project_path(
         .iter()
         .find(|project| project_paths_match(&project.path, last_project_path))
         .map(|project| project.path.clone())
+}
+
+fn validate_settings_source_engine(settings: &HubSettings) -> Result<(), SourceEngineValidation> {
+    if settings.default_source_dir.as_os_str().is_empty() {
+        return Ok(());
+    }
+    let validation = validate_source_engine(&settings.default_source_dir);
+    if validation == SourceEngineValidation::Valid {
+        Ok(())
+    } else {
+        Err(validation)
+    }
+}
+
+fn source_engine_validation_detail(validation: SourceEngineValidation) -> HubMessage {
+    let id = match validation {
+        SourceEngineValidation::Valid => EngineMessageId::SourceEngineReady,
+        SourceEngineValidation::MissingRoot => EngineMessageId::CheckoutDirectoryMissing,
+        SourceEngineValidation::MissingWorkspaceManifest => EngineMessageId::MissingCargoToml,
+        SourceEngineValidation::MissingRuntimeWorkspaceMember => {
+            EngineMessageId::MissingRuntimeMember
+        }
+        SourceEngineValidation::MissingBuildTool => EngineMessageId::MissingBuildTool,
+    };
+    HubMessage::new(HubMessageId::Engine(id))
+}
+
+fn source_engine_validation_recovery(validation: SourceEngineValidation) -> HubMessage {
+    let id = match validation {
+        SourceEngineValidation::Valid => {
+            return HubMessage::new(HubMessageId::Shell(ShellMessageId::NoRecoveryRequired));
+        }
+        SourceEngineValidation::MissingRoot => EngineMessageId::LocateCheckoutRecovery,
+        SourceEngineValidation::MissingWorkspaceManifest => EngineMessageId::SelectRepositoryRoot,
+        SourceEngineValidation::MissingRuntimeWorkspaceMember => {
+            EngineMessageId::SelectRepositoryWithRuntime
+        }
+        SourceEngineValidation::MissingBuildTool => EngineMessageId::SelectCompleteCheckout,
+    };
+    HubMessage::new(HubMessageId::Engine(id))
+}
+
+fn project_filter_label(
+    filter: ProjectFilterMode,
+    language: crate::settings::HubLanguage,
+) -> String {
+    match language {
+        crate::settings::HubLanguage::Chinese => match filter {
+            ProjectFilterMode::All => "全部项目",
+            ProjectFilterMode::Existing => "存在项目",
+            ProjectFilterMode::Missing => "缺失项目",
+        },
+        crate::settings::HubLanguage::English => filter.label(),
+    }
+    .to_string()
+}
+
+fn project_sort_label(sort: ProjectSortMode, language: crate::settings::HubLanguage) -> String {
+    match language {
+        crate::settings::HubLanguage::Chinese => match sort {
+            ProjectSortMode::LastModified => "最近修改",
+            ProjectSortMode::Name => "名称",
+        },
+        crate::settings::HubLanguage::English => sort.label(),
+    }
+    .to_string()
 }
 
 fn recent_project_display_name(project: &RecentProject) -> String {
@@ -758,6 +939,17 @@ mod tests {
         path
     }
 
+    fn create_valid_source_checkout(source_path: &Path) {
+        fs::create_dir_all(source_path.join("tools")).unwrap();
+        fs::create_dir_all(source_path.join("zircon_runtime")).unwrap();
+        fs::write(
+            source_path.join("Cargo.toml"),
+            "[workspace]\nmembers = [\"zircon_runtime\"]\n",
+        )
+        .unwrap();
+        fs::write(source_path.join("tools").join("zircon_build.py"), "").unwrap();
+    }
+
     #[test]
     fn startup_selection_preserves_persisted_stale_project_path() {
         let recent_projects = vec![RecentProject::new("Recent", "E:/Projects/Recent", 30)];
@@ -779,7 +971,7 @@ mod tests {
         let project_path = temp.join("Game");
         let source_path = temp.join("ZirconEngine");
         fs::create_dir_all(&project_path).unwrap();
-        fs::create_dir_all(&source_path).unwrap();
+        create_valid_source_checkout(&source_path);
 
         let mut config = HubConfig::default();
         config.recent_projects = vec![RecentProject::new("Game", &project_path, 4)];
@@ -836,7 +1028,7 @@ mod tests {
         let source_path = temp.join("ZirconEngine");
         let build_output = temp.join("build-output");
         let device_install = temp.join("device-install");
-        fs::create_dir_all(&source_path).unwrap();
+        create_valid_source_checkout(&source_path);
         fs::write(
             &editor_config_path,
             r#"{"editor.startup.session":{"recent_projects":[]}}"#,
@@ -923,6 +1115,7 @@ mod tests {
             .join("docs")
             .join("settings")
             .join("source-settings-refresh.md");
+        create_valid_source_checkout(&source_path);
         fs::create_dir_all(asset_path.parent().unwrap()).unwrap();
         fs::write(&asset_path, "<svg></svg>").unwrap();
         fs::create_dir_all(plugin_manifest_path.parent().unwrap()).unwrap();
@@ -1016,6 +1209,105 @@ kind = "editor"
                 resource.title == "Source Settings Refresh" && resource.source_key == "engine"
             }),
             "learn resources should include refreshed Source Engine doc, got {learn_debug:?}"
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn apply_action_records_payload_validation_failure_as_recoverable_status() {
+        let temp = temp_test_dir("zircon-hub-tauri-payload-validation-status");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        let mut config = HubConfig::default();
+        config.settings.language = HubLanguage::Chinese;
+        config.save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
+                .expect("Tauri runtime session should load");
+
+        let model = session
+            .apply_action(HubActionRequest {
+                action_id: "create-project".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "name": "Game",
+                    "location": "projects/Game",
+                    "template": "renderable-empty"
+                })),
+            })
+            .expect("payload validation failures should return refreshed Hub state");
+
+        assert_eq!(model.task_summary.label, "操作失败");
+        assert_eq!(
+            model.task_summary.detail,
+            "项目位置必须是绝对路径：projects/Game"
+        );
+        assert_eq!(
+            model.task_summary.recovery.as_deref(),
+            Some("检查操作 payload 后从 Hub 重试")
+        );
+        assert_eq!(model.task_summary.tone, "error");
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn persist_failure_sets_recoverable_status_and_recovers_after_retry() {
+        let temp = temp_test_dir("zircon-hub-tauri-persist-failure");
+        let config_path = temp.join("hub.toml");
+        let editor_config_path = temp.join("editor.json");
+        HubConfig::default().save(&config_path).unwrap();
+        fs::write(
+            &editor_config_path,
+            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+        )
+        .unwrap();
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
+                .expect("Tauri runtime session should load");
+        let blocked_parent = temp.join("blocked-parent");
+        fs::write(&blocked_parent, "not a directory").unwrap();
+        session.config_path = blocked_parent.join("hub.toml");
+
+        let error = session
+            .apply_action(HubActionRequest {
+                action_id: "show-page".to_string(),
+                target_id: Some("settings".to_string()),
+                payload: None,
+            })
+            .expect_err("blocked config parent should fail persist");
+
+        assert!(error.to_string().contains("I/O error"));
+        assert_eq!(session.task_status.label, "Save Hub state failed");
+        assert_eq!(
+            session
+                .task_status
+                .recovery
+                .as_ref()
+                .map(|message| message.render(HubLanguage::English))
+                .as_deref(),
+            Some("Check the Hub config path and retry the action")
+        );
+
+        session.config_path = config_path.clone();
+        let model = session
+            .apply_action(HubActionRequest {
+                action_id: "show-page".to_string(),
+                target_id: Some("projects".to_string()),
+                payload: None,
+            })
+            .expect("restored config path should persist again");
+
+        assert_eq!(model.active_page, "projects");
+        assert_eq!(
+            HubConfig::load(&config_path).unwrap().runtime.selected_page,
+            HubPage::Projects
         );
 
         fs::remove_dir_all(temp).unwrap();

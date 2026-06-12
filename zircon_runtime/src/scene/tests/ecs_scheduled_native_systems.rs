@@ -218,6 +218,7 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
         ScheduledSceneStep::iter_sorted_for_stage(SystemStage::Update, &[], &native_steps, &[])
             .map(|step| match step {
                 ScheduledSceneStepRef::Native { id, .. } => format!("native:{id}"),
+                ScheduledSceneStepRef::Runtime { id, .. } => format!("runtime:{id}"),
                 ScheduledSceneStepRef::ApplyDeferred {
                     after_system_id, ..
                 } => format!("apply_deferred:{after_system_id}"),
@@ -298,10 +299,28 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(step_source.contains("internal_systems: &[SceneSystemDescriptor]"));
     assert!(step_source.contains("native_steps: &[Self]"));
     assert!(step_source.contains("hooks: &[SceneRuntimeHookRegistration]"));
-    assert!(step_source
-        .contains("debug_assert!(internal_systems.iter().all(|system| system.stage == stage));"));
-    assert!(step_source
-        .contains("debug_assert!(hooks.iter().all(|hook| hook.descriptor().stage == stage));"));
+    assert!(
+        step_source.contains("let mut next = match self.internal_systems.get(self.internal_index)")
+    );
+    assert!(step_source.contains("fn should_replace_next_step("));
+    assert!(step_source.contains("match current"));
+    assert!(!step_source.contains(".map(ScheduledSceneStepRef::Internal)"));
+    assert!(!step_source.contains(".is_none_or(|current| compare_step_refs("));
+    assert!(step_source.contains("debug_assert!(internal_systems_match_stage("));
+    assert!(step_source.contains("debug_assert!(native_steps_match_stage("));
+    assert!(step_source.contains("debug_assert!(hooks_match_stage("));
+    assert!(step_source.contains("fn internal_systems_match_stage("));
+    assert!(step_source.contains("for system in internal_systems"));
+    assert!(step_source.contains("if system.stage != stage"));
+    assert!(step_source.contains("fn native_steps_match_stage("));
+    assert!(step_source.contains("for step in native_steps"));
+    assert!(step_source.contains("if step.stage() != stage"));
+    assert!(step_source.contains("fn hooks_match_stage("));
+    assert!(step_source.contains("for hook in hooks"));
+    assert!(step_source.contains("if hook.descriptor().stage != stage"));
+    assert!(!step_source.contains("internal_systems.iter().all(|system| system.stage == stage)"));
+    assert!(!step_source.contains("native_steps.iter().all(|step| step.stage() == stage)"));
+    assert!(!step_source.contains("hooks.iter().all(|hook| hook.descriptor().stage == stage)"));
     assert!(!step_source.contains("internal_systems: Vec<SceneSystemDescriptor>"));
     assert!(!step_source.contains("native_steps: Vec<Self>"));
     assert!(!step_source.contains("hooks: Vec<SceneRuntimeHookRegistration>"));
@@ -317,6 +336,11 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_source
         .contains("native_steps_by_stage: [Vec<ScheduledSceneStep>; SystemStage::COUNT]"));
     assert!(schedule_source.contains("let systems = registry.systems();"));
+    assert!(schedule_source.contains("let mut stage_order = Vec::with_capacity(stages.len());"));
+    assert!(schedule_source.contains("for stage in stages.iter().copied()"));
+    assert!(schedule_source.contains("stage_order.push(stage);"));
+    assert!(schedule_source.contains("stages: stage_order,"));
+    assert!(!schedule_source.contains("stages: stages.to_vec(),"));
     assert!(schedule_source
         .contains("let internal_system_counts = internal_system_counts_by_stage(systems);"));
     assert!(schedule_source.contains(
@@ -334,10 +358,64 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
     assert!(schedule_owner_source.contains("fn refresh_executor_plan(&mut self)"));
     assert!(schedule_owner_source.contains("self.refresh_executor_plan();"));
+    assert!(schedule_owner_source.contains("taken_native_system_ids: Vec<String>"));
+    assert!(schedule_owner_source
+        .contains("self.taken_native_system_ids.push(system.id().to_string());"));
+    assert!(schedule_owner_source.contains("let system_id = system.id();"));
+    assert!(schedule_owner_source
+        .contains("remove_taken_native_system_id(&mut self.taken_native_system_ids, system_id);"));
+    assert!(schedule_owner_source.contains("taken_native_system_ids: Vec::new()"));
+    assert!(schedule_owner_source.contains("taken_native_system_id_exists("));
+    assert!(schedule_owner_source.contains(
+        "fn taken_native_system_id_exists(taken_native_system_ids: &[String], id: &str)"
+    ));
+    assert!(schedule_owner_source.contains("fn remove_taken_native_system_id("));
+    assert!(schedule_owner_source.contains("for taken_id in taken_native_system_ids"));
+    assert!(schedule_owner_source.contains("if taken_id.as_str() == id"));
+    assert!(schedule_owner_source.contains("let mut index = 0_usize;"));
+    assert!(schedule_owner_source.contains("while index < taken_native_system_ids.len()"));
+    assert!(schedule_owner_source.contains("taken_native_system_ids[index].as_str() == id"));
+    assert!(schedule_owner_source.contains("index += 1;"));
+    assert!(schedule_owner_source.contains("taken_native_system_ids.swap_remove(index);"));
+    assert!(!schedule_owner_source.contains(".any(|taken_id| taken_id.as_str() == id)"));
+    assert!(!schedule_owner_source.contains(".position(|taken_id| taken_id.as_str() == id)"));
+    assert!(schedule_owner_source.contains(
+        "Taken ids are a membership guard only; restore order is already owned by the registry."
+    ));
     assert!(schedule_owner_source.contains("impl<'de> Deserialize<'de> for Schedule"));
     assert!(schedule_owner_source.contains("impl Clone for Schedule"));
+    let default_stage_order_body = schedule_owner_source
+        .split("pub fn default_stage_order() -> Vec<SystemStage>")
+        .nth(1)
+        .and_then(|text| text.split("fn default_system_registry").next())
+        .expect("read default_stage_order body");
+    assert!(default_stage_order_body.contains("Vec::with_capacity(SystemStage::ORDER.len())"));
+    assert!(default_stage_order_body.contains("for stage in SystemStage::ORDER.iter().copied()"));
+    assert!(default_stage_order_body.contains("stages.push(stage);"));
+    assert!(default_stage_order_body.contains("stages"));
+    assert!(!default_stage_order_body.contains("SystemStage::ORDER.to_vec()"));
     assert!(!schedule_owner_source.contains("pub stages: Vec<SystemStage>"));
+    assert!(!schedule_owner_source.contains("use std::collections::BTreeSet;"));
+    assert!(!schedule_owner_source.contains("taken_native_system_ids: BTreeSet<String>"));
+    assert!(!schedule_owner_source.contains("BTreeSet::new()"));
+    assert!(!schedule_owner_source.contains("self.taken_native_system_ids.insert("));
+    assert!(!schedule_owner_source.contains("self.taken_native_system_ids.remove(&system_id)"));
+    assert!(!schedule_owner_source
+        .contains("taken_native_system_ids.retain(|taken_id| taken_id.as_str() != id);"));
     assert!(!schedule_owner_source.contains("SceneScheduleStagePlan::from_schedule(self)"));
+    let restore_native_system_body = schedule_owner_source
+        .split("pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem)")
+        .nth(1)
+        .and_then(|text| text.split("fn from_parts(").next())
+        .expect("read Schedule::restore_native_system body");
+    assert!(!restore_native_system_body.contains("system.id().to_string()"));
+    let borrowed_restore_id_index = restore_native_system_body
+        .find("let system_id = system.id();")
+        .expect("restore should borrow the native system id");
+    let restore_system_index = restore_native_system_body
+        .find("self.systems.restore_native_system(system);")
+        .expect("restore should move the native system back into the registry");
+    assert!(borrowed_restore_id_index < restore_system_index);
 
     let registry_source = include_str!("../ecs/scene_system_registry.rs");
     assert!(registry_source.contains("native_system_steps_by_stage("));
@@ -352,6 +430,93 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("Vec::with_capacity(native_step_counts[stage_index])"));
     assert!(!registry_source.contains("fn empty_native_step_groups("));
     assert!(!registry_source.contains("std::array::from_fn(|_| Vec::new())"));
+    assert!(registry_source.contains("insert_system_sorted(&mut self.systems, descriptor);"));
+    assert_eq!(
+        registry_source
+            .matches("insert_native_system_sorted(&mut self.native_systems, system);")
+            .count(),
+        2,
+        "native registration and restore must share ordered insertion"
+    );
+    assert!(registry_source.contains("fn insert_system_sorted("));
+    assert!(registry_source.contains("fn compare_system_descriptors("));
+    assert!(registry_source.contains("fn insert_native_system_sorted("));
+    assert!(registry_source.contains("fn compare_native_systems("));
+    assert!(registry_source.contains(".binary_search_by(|existing|"));
+    assert!(registry_source.contains("Ok(index) | Err(index) => index"));
+    assert!(registry_source.contains("systems.insert(insert_index, descriptor);"));
+    assert!(registry_source.contains("systems.insert(insert_index, system);"));
+    assert!(!registry_source.contains(".unwrap_or_else(|index| index)"));
+    assert!(
+        registry_source.contains("let system = match system.into_scene_system(metadata, world)")
+    );
+    assert!(registry_source.contains("Err(source) => {"));
+    assert!(registry_source.contains("return Err(ScheduleError::SystemParam"));
+    assert!(!registry_source.contains(".map_err(|source| ScheduleError::SystemParam"));
+    assert!(registry_source.contains("SystemsForStage::new(&self.systems, stage)"));
+    assert!(registry_source.contains("struct SystemsForStage<'registry>"));
+    assert!(registry_source.contains("impl<'registry> Iterator for SystemsForStage<'registry>"));
+    assert!(registry_source.contains("return Some(system);"));
+    assert!(!registry_source.contains(".filter(move |system| system.stage == stage)"));
+    assert!(registry_source.contains("NativeSystemsForStage::new(&self.native_systems, stage)"));
+    assert!(registry_source.contains("struct NativeSystemsForStage<'registry>"));
+    assert!(
+        registry_source.contains("impl<'registry> Iterator for NativeSystemsForStage<'registry>")
+    );
+    assert!(registry_source.contains("for system in self.systems.by_ref()"));
+    assert!(registry_source.contains("return Some(system.as_ref());"));
+    assert!(!registry_source.contains(".map(|system| system.as_ref())"));
+    assert!(registry_source.contains("registered_system_id_exists(&self.systems, id)"));
+    assert!(
+        registry_source.contains("registered_native_system_id_exists(&self.native_systems, id)")
+    );
+    assert!(registry_source.contains("fn registered_system_id_exists("));
+    assert!(registry_source.contains("fn registered_native_system_id_exists("));
+    assert!(registry_source.contains("for system in systems"));
+    assert!(registry_source.contains("return true;"));
+    assert!(!registry_source.contains(".iter().any(|system| system.id == id)"));
+    assert!(!registry_source.contains(".iter().any(|system| system.id() == id)"));
+    let take_native_system_body = registry_source
+        .split("pub(crate) fn take_native_system(&mut self, id: &str)")
+        .nth(1)
+        .and_then(|text| text.split("pub(crate) fn restore_native_system").next())
+        .expect("read SceneSystemRegistry::take_native_system body");
+    assert!(take_native_system_body.contains("let mut index = 0_usize;"));
+    assert!(take_native_system_body.contains("while index < self.native_systems.len()"));
+    assert!(take_native_system_body.contains("self.native_systems[index].id() == id"));
+    assert!(take_native_system_body.contains("return Some(self.native_systems.remove(index));"));
+    assert!(take_native_system_body.contains("index += 1;"));
+    assert!(take_native_system_body.contains("None"));
+    assert!(!take_native_system_body.contains(".position(|system| system.id() == id)"));
+    assert!(!registry_source.contains("sort_systems(&mut self.systems);"));
+    assert!(!registry_source.contains("sort_native_systems(&mut self.native_systems);"));
+    assert!(!registry_source.contains("fn sort_systems("));
+    assert!(!registry_source.contains("fn sort_native_systems("));
+
+    assert!(registry_source.contains("native_system_conflict_graph_for_stage("));
+    assert!(registry_source.contains(
+        "let node_count = native_conflict_graph_node_count_for_stage(&self.native_systems, stage);"
+    ));
+    assert!(registry_source.contains("let mut nodes = Vec::with_capacity(node_count);"));
+    assert!(registry_source.contains("nodes.push(ScheduleConflictNode::new("));
+    assert!(registry_source.contains("nodes.push(ScheduleConflictNode::barrier("));
+    assert!(registry_source.contains("ScheduleConflictGraph::from_node_vec(nodes)"));
+    assert!(registry_source.contains("fn native_conflict_graph_node_count_for_stage("));
+    assert!(
+        registry_source.contains("count += if system.has_deferred_commands() { 2 } else { 1 };")
+    );
+    let native_conflict_graph_body = registry_source
+        .split("pub fn native_system_conflict_graph_for_stage(")
+        .nth(1)
+        .and_then(|text| text.split("pub(crate) fn take_native_system").next())
+        .expect("read native system conflict-graph builder");
+    assert!(!native_conflict_graph_body.contains(".filter(|system| system.stage() == stage)"));
+    assert!(!native_conflict_graph_body.contains(".flat_map(|system|"));
+
+    let graph_source = include_str!("../ecs/schedule_conflict_graph.rs");
+    assert!(graph_source
+        .contains("pub(crate) fn from_node_vec(nodes: Vec<ScheduleConflictNode>) -> Self"));
+    assert!(graph_source.contains("Self::from_node_vec(nodes)"));
 }
 
 #[test]

@@ -50,6 +50,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
         target: SceneCameraTargetAsset::Texture {
             texture: camera_target.clone(),
         },
+        post_process_settings: None,
         ..SceneCameraAsset::default()
     });
 
@@ -62,8 +63,13 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
         model: model.clone(),
         mesh: Some(mesh.clone()),
         material: material.clone(),
+        render_queue: 0,
+        material_queue: 0,
+        order_in_layer: 0,
+        depth_bias: 0.0,
         morph_weights: vec![0.25, 0.75],
         primitives: Vec::new(),
+        lods: Vec::new(),
     });
     hero_entity.point_light = Some(ScenePointLightAsset {
         color: [1.0, 0.8, 0.6],
@@ -237,6 +243,7 @@ fn scene_asset_management_record_set_sorts_and_summarizes_records() {
         target: SceneCameraTargetAsset::Texture {
             texture: camera_target,
         },
+        post_process_settings: None,
         ..SceneCameraAsset::default()
     });
 
@@ -247,8 +254,13 @@ fn scene_asset_management_record_set_sorts_and_summarizes_records() {
         model,
         mesh: None,
         material,
+        render_queue: 0,
+        material_queue: 0,
+        order_in_layer: 0,
+        depth_bias: 0.0,
         morph_weights: Vec::new(),
         primitives: Vec::new(),
+        lods: Vec::new(),
     });
     actor_entity.directional_light = Some(SceneDirectionalLightAsset {
         direction: [0.0, -1.0, 0.0],
@@ -377,6 +389,7 @@ fn empty_scene_entity(entity: u64, name: &str) -> SceneEntityAsset {
         point_light: None,
         rect_light: None,
         spot_light: None,
+        post_process_volume: None,
         rigid_body: None,
         collider: None,
         joint: None,
@@ -388,6 +401,7 @@ fn empty_scene_entity(entity: u64, name: &str) -> SceneEntityAsset {
         terrain: None,
         tilemap: None,
         prefab_instance: None,
+        script_bindings: Vec::new(),
     }
 }
 

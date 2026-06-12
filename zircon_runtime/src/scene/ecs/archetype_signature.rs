@@ -39,7 +39,9 @@ impl ArchetypeSignature {
 }
 
 fn normalize_components(mut components: Vec<ComponentId>) -> Vec<ComponentId> {
-    components.sort_unstable();
-    components.dedup();
+    if components.len() > 1 {
+        components.sort_unstable();
+        components.dedup();
+    }
     components
 }

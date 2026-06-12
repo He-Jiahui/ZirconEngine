@@ -13,6 +13,50 @@ use crate::graphics::runtime::WgpuRenderFramework;
 use crate::scene::world::World;
 
 #[test]
+fn render_framework_skips_advanced_postprocess_work_when_effects_are_disabled() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("default-postprocess-submit")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_anti_alias(false),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, default_post_process_extract(viewport_size))
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(
+        stats.last_motion_vector_camera_status,
+        MotionVectorCameraStatus::NotRequested
+    );
+    assert!(!stats
+        .last_post_process_effect_stack_report
+        .active_families
+        .contains(&"depth-of-field".to_string()));
+    assert!(!stats
+        .last_post_process_effect_stack_report
+        .active_families
+        .contains(&"motion-blur".to_string()));
+    assert!(!stats
+        .last_post_process_effect_stack_report
+        .active_families
+        .contains(&"screen-space-reflection".to_string()));
+}
+
+#[test]
 fn render_framework_submits_advanced_postprocess_graph_passes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
@@ -37,7 +81,10 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
         .submit_frame_extract(viewport, advanced_post_process_extract(viewport_size))
         .unwrap();
     assert_eq!(
-        server.query_stats().unwrap().last_motion_vector_camera_status,
+        server
+            .query_stats()
+            .unwrap()
+            .last_motion_vector_camera_status,
         MotionVectorCameraStatus::MissingPreviousCamera
     );
     let first_stats = server.query_stats().unwrap();
@@ -67,10 +114,7 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
         stats.last_motion_vector_camera_status,
         MotionVectorCameraStatus::Ready
     );
-    assert_eq!(
-        stats.last_motion_vector_previous_object_history_count,
-        2
-    );
+    assert_eq!(stats.last_motion_vector_previous_object_history_count, 2);
     assert_eq!(stats.last_motion_vector_current_object_history_count, 2);
     assert_eq!(stats.last_motion_vector_matched_object_history_count, 2);
     assert_eq!(stats.last_motion_vector_missing_object_history_count, 0);
@@ -203,18 +247,29 @@ fn advanced_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {
     extract
 }
 
+fn default_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {
+    let mut extract = World::new().to_render_frame_extract();
+    extract.apply_viewport_size(viewport_size);
+    extract.geometry.meshes = vec![motion_vector_mesh(1001, Vec3::new(1.0, 0.0, 0.0))];
+    extract
+}
+
 fn motion_vector_mesh(node_id: u64, translation: Vec3) -> RenderMeshSnapshot {
     RenderMeshSnapshot {
         node_id,
+        stable_instance_key: node_id << 16,
+        transform_revision: 0,
         transform: Transform::from_translation(translation),
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
         mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
             "builtin://material/pbr",
         )),
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
+        static_state: Default::default(),
         render_layer_mask: u32::MAX,
     }
 }

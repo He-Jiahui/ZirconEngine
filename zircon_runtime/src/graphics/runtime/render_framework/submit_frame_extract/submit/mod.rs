@@ -8,7 +8,9 @@ mod submit;
 mod submit_runtime_frame;
 mod update_motion_vector_history;
 
-pub(in crate::graphics::runtime::render_framework) use present_frame_extract::present_frame_extract;
+pub(in crate::graphics::runtime::render_framework) use present_frame_extract::{
+    present_frame_extract, present_frame_extract_with_ui,
+};
 pub(in crate::graphics::runtime::render_framework) use submit::submit_frame_extract;
 pub(in crate::graphics::runtime::render_framework) use submit::submit_frame_extract_with_ui;
 pub(in crate::graphics::runtime::render_framework) use submit_runtime_frame::submit_runtime_frame;

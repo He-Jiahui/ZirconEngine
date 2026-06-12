@@ -6,7 +6,7 @@ display_name = "Workbench Scene Tree Panel"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
   "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
@@ -54,10 +54,11 @@ layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch 
 children = [{ node = "scene_search_field" }, { node = "scene_filter_button" }, { node = "scene_add_button" }]
 
 [nodes.scene_search_field]
-component = "WorkbenchField"
+component = "WorkbenchSearchInput"
 control_id = "WorkbenchSceneSearchField"
-classes = ["workbench-field", "workbench-muted"]
-props = { value = "", placeholder = "Search..." }
+classes = ["workbench-search-input", "workbench-muted"]
+props = { query = "", placeholder = "Search..." }
+widget = { value_property = "query" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.scene_filter_button]

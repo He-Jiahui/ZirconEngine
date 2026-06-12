@@ -4,14 +4,14 @@ use std::path::Path;
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
     importer_with_first_wave_plugin_fixtures, sample_animation_sequence_asset,
-    sample_physics_material_asset, write_default_animation_sequence,
+    sample_physics_material_asset, write_checker_png, write_default_animation_sequence,
     write_default_physics_material,
 };
 use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterCapabilityStatus,
     AssetImporterDescriptor, AssetImporterRegistry, AssetImporterRegistryError, AssetUri,
-    DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset,
+    DataAssetFormat, DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, MeshVertex,
+    ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -242,25 +242,59 @@ fn importer_registry_rejects_unknown_typed_toml_instead_of_plain_data_fallback()
 }
 
 #[test]
-fn importer_default_reports_missing_first_wave_plugin_backend() {
-    let root = unique_temp_project_root("missing_first_wave_plugin_importer");
+fn importer_default_decodes_builtin_png_texture_without_plugin_backend() {
+    let root = unique_temp_project_root("builtin_png_texture_importer");
     fs::create_dir_all(&root).unwrap();
     let path = root.join("checker.png");
-    fs::write(&path, b"not decoded by the diagnostic importer").unwrap();
+    write_checker_png(path.clone());
 
-    let error = AssetImporter::default()
+    let report = AssetImporter::default()
+        .capability_report_for_source(&path)
+        .expect("png importer report");
+    assert_eq!(report.descriptor.id, "zircon.builtin.texture.image");
+    assert_eq!(report.status, AssetImporterCapabilityStatus::Available);
+
+    let imported = AssetImporter::default()
         .import_from_source(
             &path,
             &AssetUri::parse("res://textures/checker.png").unwrap(),
         )
-        .unwrap_err();
+        .unwrap();
 
-    assert!(
-        error
-            .to_string()
-            .contains("texture image importer plugin is not installed"),
-        "unexpected error: {error}"
-    );
+    match imported {
+        ImportedAsset::Texture(texture) => {
+            assert_eq!(texture.width, 2);
+            assert_eq!(texture.height, 2);
+            assert_eq!(texture.rgba.len(), 16);
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_default_decodes_txt_as_text_data() {
+    let root = unique_temp_project_root("builtin_text_data_importer");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("license.txt");
+    fs::write(&path, "CC0 fixture").unwrap();
+
+    let imported = AssetImporter::default()
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://licenses/license.txt").unwrap(),
+        )
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Data(data) => {
+            assert_eq!(data.format, DataAssetFormat::Text);
+            assert_eq!(data.text, "CC0 fixture");
+            assert_eq!(data.canonical_json, serde_json::Value::Null);
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
 
     let _ = fs::remove_dir_all(root);
 }

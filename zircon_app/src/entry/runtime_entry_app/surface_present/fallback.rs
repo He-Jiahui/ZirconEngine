@@ -1,4 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::diagnostic_log::{write_error, write_log};
 
 use super::super::RuntimeEntryApp;
 use crate::runtime_presenter::SoftbufferRuntimePresenter;
@@ -17,9 +18,23 @@ impl RuntimeEntryApp {
         match SoftbufferRuntimePresenter::new(window.clone()) {
             Ok(presenter) => {
                 self.presenter = Some(presenter);
+                write_log(
+                    "runtime_surface_present",
+                    format!(
+                        "runtime_fallback_presenter_created size={}x{}",
+                        self.viewport_size.width, self.viewport_size.height
+                    ),
+                );
                 true
             }
-            Err(_) => {
+            Err(error) => {
+                write_error(
+                    "runtime_surface_present",
+                    format!(
+                        "runtime_fallback_presenter_create_failed size={}x{} error={error}",
+                        self.viewport_size.width, self.viewport_size.height
+                    ),
+                );
                 event_loop.exit();
                 false
             }

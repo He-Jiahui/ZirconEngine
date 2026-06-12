@@ -31,6 +31,8 @@ export function TopBar({ state, onAction }: TopBarProps) {
   const engineLabel = activeEngine?.name ?? state.engineVersion;
   const userName = state.team.identityName || state.ui.common.notConfigured;
   const userInitials = initialsFromName(userName);
+  const notificationDetail = comingSoonDetail(state, "notification-center");
+  const signOutDetail = comingSoonDetail(state, "sign-out");
   const handleMinimize = () => runWindowAction((appWindow) => appWindow.minimize());
   const handleToggleMaximize = () => runWindowAction((appWindow) => appWindow.toggleMaximize());
   const handleClose = () => runWindowAction((appWindow) => appWindow.close());
@@ -56,7 +58,7 @@ export function TopBar({ state, onAction }: TopBarProps) {
       sx={{
         height: hubTokens.window.topBarHeight,
         display: "grid",
-        gridTemplateColumns: "222px minmax(250px, 1fr) auto",
+        gridTemplateColumns: "222px minmax(0, 1fr) auto",
         alignItems: "center",
         borderBottom: `1px solid ${hubTokens.colors.line}`,
         backgroundColor: "rgba(17,17,17,0.96)",
@@ -118,12 +120,13 @@ export function TopBar({ state, onAction }: TopBarProps) {
           {state.taskStatus.map((status) => (
             <StatusBadge key={status.id} label={status.label} tone={status.tone} />
           ))}
+          {state.demoMode ? <StatusBadge label={state.ui.shell.demoModeBadge} tone="warning" /> : null}
         </Box>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1.4 }}>
         <Box sx={{ display: "flex", gap: 0.5, "@media (max-width: 1180px)": { display: "none" } }}>
-          <HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled sx={topIconSx}>
+          <HubIconButton label={state.ui.shell.notifications} tooltip={notificationDetail} disabled sx={topIconSx}>
             <NotificationsNoneIcon />
           </HubIconButton>
           <HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, "learn")} sx={topIconSx}>
@@ -149,7 +152,7 @@ export function TopBar({ state, onAction }: TopBarProps) {
             "&:hover": { backgroundColor: "rgba(255,255,255,0.045)" },
           }}
         >
-          <Avatar sx={{ width: 36, height: 36, bgcolor: "#4b4f52", fontSize: 14 }}>{userInitials}</Avatar>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: hubTokens.colors.avatar, fontSize: 14 }}>{userInitials}</Avatar>
           <Typography variant="body2" noWrap sx={{ maxWidth: 126, "@media (max-width: 1180px)": { display: "none" } }}>
             {userName}
           </Typography>
@@ -191,11 +194,16 @@ export function TopBar({ state, onAction }: TopBarProps) {
         initials={userInitials}
         userName={userName}
         text={state.ui.shell}
+        signOutDetail={signOutDetail}
         onClose={() => setUserAnchor(null)}
         onAction={handleUserAction}
       />
     </Box>
   );
+}
+
+function comingSoonDetail(state: HubShellState, id: string): string {
+  return state.comingSoon.find((entry) => entry.id === id)?.detail ?? "";
 }
 
 function initialsFromName(name: string): string {

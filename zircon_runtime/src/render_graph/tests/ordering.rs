@@ -42,7 +42,7 @@ fn compile_preserves_declared_dependencies_on_compiled_passes() {
 #[test]
 fn compile_exposes_inferred_resource_dependencies_on_compiled_passes() {
     let mut builder = RenderGraphBuilder::new("frame");
-    let color = builder.create_transient_texture(TextureDesc::new(
+    let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         64,
         64,

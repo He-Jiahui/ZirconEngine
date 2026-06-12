@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::asset::ProjectAssetManager;
-use zircon_runtime::core::framework::animation::AnimationManager;
 use zircon_runtime::core::manager::resolve_animation_manager;
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::CoreHandle;
@@ -9,6 +8,7 @@ use zircon_runtime::scene::LevelSystem;
 
 use super::events::{publish_clip_events, publish_events};
 use super::graph::resolve_graph_pose_requests;
+use super::node_pose::apply_pose_transforms_to_scene_nodes;
 use super::pose::sample_pose_requests;
 use super::scan::scan_animation_scene;
 use super::sequences::apply_loaded_sequences;
@@ -83,6 +83,7 @@ pub(super) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         });
     }
 
+    apply_pose_transforms_to_scene_nodes(level, &animation_poses);
     level.record_animation_poses(animation_poses);
     level.record_animation_playback_times(
         scan.next_graph_times,

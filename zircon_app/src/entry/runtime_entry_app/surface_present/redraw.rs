@@ -1,4 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::diagnostic_log::{write_error, write_warn};
 
 use super::super::RuntimeEntryApp;
 
@@ -16,9 +17,23 @@ impl RuntimeEntryApp {
             {
                 Ok(true) => return,
                 Ok(false) => {
+                    write_warn(
+                        "runtime_surface_present",
+                        format!(
+                            "runtime_surface_present_returned_false viewport={:?} size={}x{}",
+                            self.viewport, self.viewport_size.width, self.viewport_size.height
+                        ),
+                    );
                     self.fail_surface_present();
                 }
-                Err(_) => {
+                Err(error) => {
+                    write_warn(
+                        "runtime_surface_present",
+                        format!(
+                            "runtime_surface_present_error viewport={:?} size={}x{} error={error}",
+                            self.viewport, self.viewport_size.width, self.viewport_size.height
+                        ),
+                    );
                     self.fail_surface_present();
                 }
             }
@@ -32,11 +47,29 @@ impl RuntimeEntryApp {
                 .capture_frame(self.viewport, self.viewport_size)
             {
                 Ok(frame) => {
-                    if presenter.present(&frame).is_err() {
+                    if let Err(error) = presenter.present(&frame) {
+                        write_error(
+                            "runtime_surface_present",
+                            format!(
+                                "runtime_fallback_present_failed viewport={:?} size={}x{} frame={}x{} error={error}",
+                                self.viewport,
+                                self.viewport_size.width,
+                                self.viewport_size.height,
+                                frame.width(),
+                                frame.height()
+                            ),
+                        );
                         event_loop.exit();
                     }
                 }
-                Err(_) => {
+                Err(error) => {
+                    write_error(
+                        "runtime_surface_present",
+                        format!(
+                            "runtime_capture_frame_failed viewport={:?} size={}x{} error={error}",
+                            self.viewport, self.viewport_size.width, self.viewport_size.height
+                        ),
+                    );
                     event_loop.exit();
                 }
             }

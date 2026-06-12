@@ -2,6 +2,7 @@ use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
+    style::{UiPainterFamily, UiPainterResolvedState},
     surface::UiRenderCommandKind,
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -131,6 +132,126 @@ drop_hovered = true
 
     let commands = &surface.render_extract.list.commands;
     assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.background_color.as_deref() == Some("#35c7d03a")
+            && command.frame.width == 20.0
+            && command.frame.height == 20.0
+    }));
+}
+
+#[test]
+fn render_extract_loading_slider_uses_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.sliders.loading"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/slider"))
+                .with_frame(UiFrame::new(8.0, 12.0, 240.0, 30.0))
+                .with_state_flags(UiStateFlags {
+                    pressed: true,
+                    ..visible_state()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RangeField".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+label = "Value"
+value_percent = 0.75
+value_text = "0.75"
+tick_count = 5
+pressed = true
+focused = true
+drop_hovered = true
+loading = true
+validation_level = "warning"
+track_color = "#364046"
+value_color = "#35c7d0"
+thumb_color = "#c9f2f6"
+thumb_outline_color = "#35c7d0"
+label_color = "#aebdc4"
+foreground_color = "#d9fbff"
+state_layer_color = "#35c7d03a"
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(78.0, 25.5, 108.0, 3.0)
+            && command.style.painter_family == UiPainterFamily::Slider
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#262d32")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(78.0, 25.5, 81.0, 3.0)
+            && command.style.painter_family == UiPainterFamily::Slider
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(153.5, 21.5, 11.0, 11.0)
+            && command.style.painter_family == UiPainterFamily::Slider
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#59656c")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(196.0, 15.0, 44.0, 24.0)
+            && command.style.painter_family == UiPainterFamily::Slider
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Value")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("0.75")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert_eq!(
+        commands
+            .iter()
+            .filter(|command| {
+                command.node_id == UiNodeId::new(2)
+                    && command.kind == UiRenderCommandKind::Quad
+                    && command.frame.y == 33.5
+                    && command.frame.width == 1.0
+                    && command.frame.height == 4.0
+                    && command.style.background_color.as_deref() == Some("#343f47")
+            })
+            .count(),
+        5
+    );
+    assert!(!commands.iter().any(|command| {
         command.node_id == UiNodeId::new(2)
             && command.kind == UiRenderCommandKind::Quad
             && command.style.background_color.as_deref() == Some("#35c7d03a")

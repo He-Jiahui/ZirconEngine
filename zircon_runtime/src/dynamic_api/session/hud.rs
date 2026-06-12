@@ -1,0 +1,207 @@
+use crate::core::math::UVec2;
+use crate::scene::World;
+use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
+    UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
+    UiTextRenderMode, UiTextWrap,
+};
+
+const HUD_COMPONENT_IDS: [&str; 2] = ["gameplay.hud_text", "vampire.hud_text"];
+const HUD_TREE_ID: &str = "runtime.gameplay.hud";
+const HUD_MARGIN: f32 = 16.0;
+const HUD_MIN_WIDTH: f32 = 220.0;
+const HUD_MAX_WIDTH: f32 = 420.0;
+const HUD_LINE_HEIGHT: f32 = 19.0;
+const HUD_PADDING_X: f32 = 12.0;
+const HUD_PADDING_Y: f32 = 10.0;
+
+pub(super) fn runtime_session_hud_extract(
+    world: &World,
+    viewport_size: UVec2,
+) -> Option<UiRenderExtract> {
+    let text = collect_hud_text(world)?;
+    if is_vampire_combat_hud_text(&text) {
+        return None;
+    }
+    Some(build_text_hud_extract(text, viewport_size))
+}
+
+fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract {
+    let width = hud_width(viewport_size);
+    let height = hud_height(&text);
+    let panel_frame = UiFrame::new(HUD_MARGIN, HUD_MARGIN, width, height);
+    let text_frame = UiFrame::new(
+        HUD_MARGIN + HUD_PADDING_X,
+        HUD_MARGIN + HUD_PADDING_Y,
+        (width - HUD_PADDING_X * 2.0).max(1.0),
+        (height - HUD_PADDING_Y * 2.0).max(1.0),
+    );
+    UiRenderExtract {
+        tree_id: UiTreeId::new(HUD_TREE_ID),
+        list: UiRenderList {
+            commands: vec![
+                UiRenderCommand {
+                    node_id: UiNodeId::new(1),
+                    kind: UiRenderCommandKind::Quad,
+                    frame: panel_frame,
+                    clip_frame: None,
+                    z_index: 100,
+                    style: UiResolvedStyle {
+                        background_color: Some("#05070cff".to_string()),
+                        border_color: Some("#b7e1ffff".to_string()),
+                        border_width: 1.0,
+                        corner_radius: 6.0,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: None,
+                    image: None,
+                    opacity: 1.0,
+                },
+                UiRenderCommand {
+                    node_id: UiNodeId::new(2),
+                    kind: UiRenderCommandKind::Text,
+                    frame: text_frame,
+                    clip_frame: Some(panel_frame),
+                    z_index: 101,
+                    style: UiResolvedStyle {
+                        foreground_color: Some("#f8fbffff".to_string()),
+                        font_size: 15.0,
+                        line_height: HUD_LINE_HEIGHT,
+                        wrap: UiTextWrap::Word,
+                        text_render_mode: UiTextRenderMode::Auto,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: Some(text),
+                    image: None,
+                    opacity: 1.0,
+                },
+            ],
+        },
+    }
+}
+
+fn collect_hud_text(world: &World) -> Option<String> {
+    for node in world.node_records() {
+        for component_id in HUD_COMPONENT_IDS {
+            let Some(value) = world.dynamic_component(node.id, component_id) else {
+                continue;
+            };
+            if let Some(text) = hud_text_from_value(value) {
+                return Some(text);
+            }
+        }
+    }
+    None
+}
+
+fn hud_text_from_value(value: &serde_json::Value) -> Option<String> {
+    value
+        .as_str()
+        .or_else(|| value.get("text").and_then(serde_json::Value::as_str))
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
+}
+
+fn hud_width(viewport_size: UVec2) -> f32 {
+    let available = viewport_size.x.saturating_sub(32) as f32;
+    available.clamp(HUD_MIN_WIDTH, HUD_MAX_WIDTH)
+}
+
+fn hud_height(text: &str) -> f32 {
+    let line_count = text.lines().count().max(1) as f32;
+    (line_count * HUD_LINE_HEIGHT + 24.0).clamp(48.0, 220.0)
+}
+
+fn is_vampire_combat_hud_text(text: &str) -> bool {
+    let mut has_hp = false;
+    let mut has_xp = false;
+    let mut has_weapons = false;
+
+    for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        let tokens = line
+            .split_whitespace()
+            .map(|token| token.trim_end_matches(':'))
+            .collect::<Vec<_>>();
+        has_hp |= token_pair_f32_after(&tokens, "HP").is_some();
+        has_xp |= token_pair_i64_after(&tokens, "XP").is_some();
+        has_weapons |= token_i64_after(&tokens, "Orbit").is_some()
+            || token_i64_after(&tokens, "Lance").is_some()
+            || token_i64_after(&tokens, "Pulse").is_some();
+    }
+
+    has_hp && has_xp && has_weapons
+}
+
+fn token_str_after<'a>(tokens: &'a [&str], label: &str) -> Option<&'a str> {
+    tokens
+        .windows(2)
+        .find(|pair| pair[0] == label)
+        .map(|pair| pair[1])
+}
+
+fn token_i64_after(tokens: &[&str], label: &str) -> Option<i64> {
+    token_str_after(tokens, label)?.parse().ok()
+}
+
+fn token_pair_i64_after(tokens: &[&str], label: &str) -> Option<(i64, i64)> {
+    let value = token_str_after(tokens, label)?;
+    let (left, right) = value.split_once('/')?;
+    Some((left.parse().ok()?, right.parse().ok()?))
+}
+
+fn token_pair_f32_after(tokens: &[&str], label: &str) -> Option<(f32, f32)> {
+    let value = token_str_after(tokens, label)?;
+    let (left, right) = value.split_once('/')?;
+    Some((left.parse().ok()?, right.parse().ok()?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scene::components::NodeKind;
+
+    #[test]
+    fn runtime_session_hud_extract_reads_text_component() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                "gameplay.hud_text",
+                serde_json::json!("Lv 2\nBuff: Haste"),
+            )
+            .unwrap();
+
+        let extract = runtime_session_hud_extract(&world, UVec2::new(800, 600)).unwrap();
+        let panel = extract.list.commands.first().unwrap();
+        let text = extract.list.commands.get(1).unwrap();
+        assert_eq!(text.text.as_deref(), Some("Lv 2\nBuff: Haste"));
+        assert!(panel.frame.width >= HUD_MIN_WIDTH);
+        assert!(text.frame.x > panel.frame.x);
+        assert!(text.frame.y > panel.frame.y);
+    }
+
+    #[test]
+    fn runtime_session_hud_extract_suppresses_vampire_combat_panel_text() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                "gameplay.hud_text",
+                serde_json::json!(
+                    "Lv 3  XP 9/30  HP 80/120\nTime 01:10  Kills 7  Enemies 4\nWeapons Orbit 1 Lance 2 Pulse 0\nShield 18  Blood 6s  Haste 5s"
+                ),
+            )
+            .unwrap();
+
+        assert!(
+            runtime_session_hud_extract(&world, UVec2::new(1280, 720)).is_none(),
+            "vampire health must render through scene-following world HUD bars, not a screen-space panel"
+        );
+    }
+}

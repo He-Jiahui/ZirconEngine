@@ -469,6 +469,8 @@ fn extract_with_camera_and_mesh(
                 camera,
                 meshes: vec![RenderMeshSnapshot {
                     node_id: 9,
+                    stable_instance_key: 9 << 16,
+                    transform_revision: 0,
                     transform: mesh_transform,
                     model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                         "history-test-model",
@@ -477,9 +479,11 @@ fn extract_with_camera_and_mesh(
                     material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
                         "history-test-material",
                     )),
+                    mesh_lod: None,
                     morph_weights: Vec::new(),
                     tint: Vec4::ONE,
                     mobility: Mobility::Dynamic,
+                    static_state: Default::default(),
                     render_layer_mask: default_render_layer_mask(),
                 }],
                 directional_lights: Vec::new(),

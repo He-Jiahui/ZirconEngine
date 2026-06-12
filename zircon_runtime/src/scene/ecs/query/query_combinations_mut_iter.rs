@@ -49,24 +49,31 @@ where
         ticks: ChangeTickWindow,
     ) -> Self {
         assert!(K != 0, "query combinations require K greater than zero");
+        if K > entities.len() {
+            return Self::empty(world, ticks);
+        }
         let cache_indices = {
             let world = &*world;
             let mut cache_indices = Vec::with_capacity(entities.len());
-            for (index, entity) in entities.iter().copied().enumerate() {
-                let component_locations = cached_query_component_locations(
+            let mut index = 0_usize;
+            while index < entities.len() {
+                let entity = entities[index];
+                if let Some(component_locations) = cached_query_component_locations(
                     component_locations,
                     component_location_offsets,
                     index,
-                );
-                let Some(component_locations) = component_locations else {
-                    continue;
-                };
-                if F::matches_component_locations(world, entity, component_locations, ticks) {
-                    cache_indices.push(index);
+                ) {
+                    if F::matches_component_locations(world, entity, component_locations, ticks) {
+                        cache_indices.push(index);
+                    }
                 }
+                index += 1;
             }
             cache_indices
         };
+        if cache_indices.len() < K {
+            return Self::empty(world, ticks);
+        }
         let candidates = QueryCombinationMutCandidates {
             entities,
             cache_indices,
@@ -77,6 +84,20 @@ where
             candidates,
             indices: array::from_fn(|index| index),
             remaining,
+            ticks,
+            _marker: PhantomData,
+        }
+    }
+
+    fn empty(world: &'world mut World, ticks: ChangeTickWindow) -> Self {
+        Self {
+            world,
+            candidates: QueryCombinationMutCandidates {
+                entities: &[],
+                cache_indices: Vec::new(),
+            },
+            indices: array::from_fn(|index| index),
+            remaining: 0,
             ticks,
             _marker: PhantomData,
         }

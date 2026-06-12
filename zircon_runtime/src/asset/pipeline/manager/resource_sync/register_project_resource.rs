@@ -1,5 +1,5 @@
 use crate::core::resource::ResourceManager;
-use crate::core::resource::ResourceRecord;
+use crate::core::resource::{ResourceRecord, ResourceState};
 
 use crate::asset::ImportedAsset;
 
@@ -8,6 +8,8 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
     metadata: ResourceRecord,
     imported: ImportedAsset,
 ) {
+    prepare_ready_registration(resource_manager, &metadata);
+
     match imported {
         ImportedAsset::Data(asset) => {
             resource_manager.register_ready(metadata, asset);
@@ -46,6 +48,12 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::UiStyle(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::UiTheme(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::UiIcon(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
         ImportedAsset::UiV2View(asset) => {
@@ -96,5 +104,15 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
         ImportedAsset::AnimationStateMachine(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
+    }
+}
+
+fn prepare_ready_registration(resource_manager: &ResourceManager, metadata: &ResourceRecord) {
+    let previous_state = resource_manager
+        .registry()
+        .get(metadata.id())
+        .map(|record| record.state);
+    if matches!(previous_state, Some(ResourceState::Error)) {
+        resource_manager.start_reload(metadata.id(), Vec::new());
     }
 }

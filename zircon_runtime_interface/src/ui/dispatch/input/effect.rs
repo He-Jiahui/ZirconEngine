@@ -73,6 +73,10 @@ pub enum UiDispatchEffect {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         owner: Option<UiNodeId>,
     },
+    DismissTransientUi {
+        target: UiTransientDismissalTarget,
+        reason: UiTransientDismissalReason,
+    },
     RequestInputMethod {
         request: UiInputMethodRequest,
     },
@@ -148,6 +152,24 @@ pub enum UiTooltipEffectKind {
     Show,
     Hide,
     Cancel,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum UiTransientDismissalTarget {
+    #[default]
+    All,
+    PopupStack,
+    Tooltip,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum UiTransientDismissalReason {
+    #[default]
+    Programmatic,
+    OutsideInteraction,
+    FocusLost,
+    WindowAction,
+    ApplicationDeactivated,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

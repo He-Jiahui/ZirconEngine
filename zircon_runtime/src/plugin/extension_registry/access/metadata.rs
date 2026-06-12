@@ -7,18 +7,18 @@ use super::super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
     pub fn components(&self) -> &[ComponentTypeDescriptor] {
-        &self.components
+        self.components.values()
     }
 
     pub fn ui_components(&self) -> &[UiComponentDescriptor] {
-        &self.ui_components
+        self.ui_components.values()
     }
 
     pub fn plugin_options(&self) -> &[PluginOptionManifest] {
-        &self.plugin_options
+        self.plugin_options.values()
     }
 
     pub fn plugin_event_catalogs(&self) -> &[PluginEventCatalogManifest] {
-        &self.plugin_event_catalogs
+        self.plugin_event_catalogs.values()
     }
 }

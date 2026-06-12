@@ -5,6 +5,8 @@ use std::path::Path;
 use crate::asset::AssetUri;
 use crate::{plugin::ExportProfile, plugin::ProjectPluginManifest};
 
+use super::ProjectScriptManifest;
+
 const PROJECT_FORMAT_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,6 +19,8 @@ pub struct ProjectManifest {
     pub library_version: u32,
     #[serde(default, skip_serializing_if = "ProjectPluginManifest::is_empty")]
     pub plugins: ProjectPluginManifest,
+    #[serde(default, skip_serializing_if = "ProjectScriptManifest::is_empty")]
+    pub scripts: ProjectScriptManifest,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub export_profiles: Vec<ExportProfile>,
 }
@@ -29,6 +33,7 @@ impl ProjectManifest {
             default_scene,
             library_version,
             plugins: ProjectPluginManifest::default(),
+            scripts: ProjectScriptManifest::default(),
             export_profiles: Vec::new(),
         }
     }

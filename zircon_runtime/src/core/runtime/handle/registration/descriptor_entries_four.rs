@@ -3,7 +3,7 @@ use super::super::super::state::ServiceEntry;
 use super::descriptor_entries::{
     prepare_driver_entry, prepare_manager_entry, prepare_plugin_entry,
 };
-use crate::core::error::CoreError;
+use crate::core::CoreError;
 
 pub(super) fn prepare_four_descriptor_service_entries(
     owner_module: &str,

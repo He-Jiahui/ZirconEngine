@@ -1,6 +1,7 @@
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassGpuExecutionContext;
@@ -27,16 +28,8 @@ impl RenderPassGpuExecutionContext<'_> {
                 "mesh object motion-vector graph executor for pass `{pass_name}` requires mesh pipeline context"
             )
         })?;
-        let draws = mesh_draw_lists
-            .non_transparent
-            .iter()
-            .copied()
-            .filter(|draw| {
-                draw.queue_profile().motion_vector_history_eligible()
-                    && draw.has_previous_motion_vector_transform()
-            })
-            .collect::<Vec<_>>();
-        if draws.is_empty() {
+        let stream = mesh_draw_lists.velocity_stream();
+        if stream.is_empty() {
             return Ok(());
         }
 
@@ -60,17 +53,29 @@ impl RenderPassGpuExecutionContext<'_> {
             occlusion_query_set: None,
             multiview_mask: None,
         });
+        let forward_shadow_receiver_bind_group =
+            mesh_pipelines.create_forward_shadow_receiver_bind_group(self.device, None);
         pass.set_bind_group(0, self.scene_bind_group, &[]);
-        for draw in draws {
-            let pipeline =
-                mesh_pipelines.ensure_motion_vector_pipeline(self.device, draw.pipeline_key());
-            pass.set_pipeline(pipeline);
-            draw.bind_model(&mut pass);
-            draw.bind_texture(&mut pass);
-            draw.bind_material(&mut pass);
-            draw.bind_geometry_buffers(&mut pass);
-            draw.record_indexed_draw(&mut pass);
-        }
+        pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
+        let mut replayer = MeshDrawCommandReplayer::default();
+        replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
+            if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id) {
+                let pipeline = mesh_pipelines
+                    .ensure_motion_vector_pipeline_for_variant(
+                        self.device,
+                        command.pipeline_variant_id,
+                    )
+                    .expect(
+                        "motion-vector mesh command must resolve a cache-backed pipeline variant",
+                    );
+                pass.set_pipeline(pipeline);
+            }
+            replayer.bind_gpu_scene_if_needed(pass, command, mesh_draw_lists.gpu_scene_bind_group);
+            replayer.bind_standard_material_if_needed(pass, command);
+            replayer.bind_geometry_if_needed(pass, command);
+            true
+        });
+        mesh_draw_lists.replay_stats.record(replayer.stats());
 
         Ok(())
     }
@@ -78,7 +83,6 @@ impl RenderPassGpuExecutionContext<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::core::framework::render::PostProcessGraphResourceNames;
 
     #[test]
@@ -87,5 +91,13 @@ mod tests {
             PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
             "scene-motion-vector"
         );
+    }
+
+    #[test]
+    fn object_motion_vectors_bind_forward_shadow_receiver_group() {
+        let source = include_str!("mesh_motion_vector.rs");
+
+        assert!(source.contains("create_forward_shadow_receiver_bind_group(self.device, None)"));
+        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
     }
 }

@@ -1,7 +1,7 @@
 use std::any::type_name;
 use std::sync::{Arc, Mutex};
 
-use crate::core::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
+use crate::core::framework::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 use crate::core::CoreRuntime;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -155,4 +155,14 @@ fn independent_state_specs_keep_events_and_current_values_separate() {
     );
     assert_eq!(runtime.state_transition_events::<GameFlow>().len(), 2);
     assert_eq!(runtime.state_transition_events::<PauseMode>().len(), 2);
+}
+
+#[test]
+fn state_handle_init_existing_state_uses_direct_projection() {
+    let states_source = include_str!("../core/runtime/handle/states.rs");
+
+    assert!(states_source.contains("let entered = match self.state::<T>()"));
+    assert!(states_source.contains("Some(state) => Some(state.into_inner())"));
+    assert!(states_source.contains("StateTransitionEvent::new(None, entered, true)"));
+    assert!(!states_source.contains("self.state::<T>().map(State::into_inner)"));
 }

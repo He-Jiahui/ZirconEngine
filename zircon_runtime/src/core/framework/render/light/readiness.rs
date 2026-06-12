@@ -1,6 +1,7 @@
 use super::snapshots::{RenderAmbientLightSnapshot, RenderRectLightSnapshot};
 
 pub const BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT: usize = 1;
+pub const BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderLightFamilyReadiness {
@@ -43,7 +44,10 @@ impl RenderLightReadinessReport {
                 directional_light_count,
                 ready_directional_light_count(directional_light_count),
             ),
-            point: RenderLightFamilyReadiness::new(point_light_count, 0),
+            point: RenderLightFamilyReadiness::new(
+                point_light_count,
+                ready_point_light_count(point_light_count),
+            ),
             spot: RenderLightFamilyReadiness::new(spot_light_count, 0),
             ambient: RenderLightFamilyReadiness::new(
                 ambient_lights.len(),
@@ -59,6 +63,10 @@ impl RenderLightReadinessReport {
 
 fn ready_directional_light_count(total_count: usize) -> usize {
     total_count.min(BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT)
+}
+
+fn ready_point_light_count(total_count: usize) -> usize {
+    total_count.min(BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT)
 }
 
 fn ready_ambient_light_count(lights: &[RenderAmbientLightSnapshot]) -> usize {
@@ -80,7 +88,7 @@ mod tests {
     use crate::core::framework::render::{RenderAmbientLightSnapshot, RenderRectLightSnapshot};
     use crate::core::math::{Vec2, Vec3};
 
-    use super::RenderLightReadinessReport;
+    use super::{RenderLightReadinessReport, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT};
 
     #[test]
     fn light_status_counts_split_ready_and_degraded_slots() {
@@ -107,14 +115,25 @@ mod tests {
             },
         ];
 
-        let report =
-            RenderLightReadinessReport::from_light_slices(2, 2, 1, &ambient_lights, &rect_lights);
+        let report = RenderLightReadinessReport::from_light_slices(
+            2,
+            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT + 2,
+            1,
+            &ambient_lights,
+            &rect_lights,
+        );
 
         assert_eq!(report.directional.total_count, 2);
         assert_eq!(report.directional.ready_count, 1);
         assert_eq!(report.directional.degraded_count, 1);
-        assert_eq!(report.point.total_count, 2);
-        assert_eq!(report.point.ready_count, 0);
+        assert_eq!(
+            report.point.total_count,
+            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT + 2
+        );
+        assert_eq!(
+            report.point.ready_count,
+            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT
+        );
         assert_eq!(report.point.degraded_count, 2);
         assert_eq!(report.spot.total_count, 1);
         assert_eq!(report.spot.ready_count, 0);

@@ -51,13 +51,19 @@ impl RenderGraphComputeDispatchRecord {
 pub struct RenderGraphComputeWorkloadDispatchContext {
     pub viewport_size: [u32; 2],
     pub cluster_grid_size: [u32; 2],
+    pub hzb_furthest_size: [u32; 2],
 }
 
 impl RenderGraphComputeWorkloadDispatchContext {
-    pub fn new(viewport_size: [u32; 2], cluster_grid_size: [u32; 2]) -> Self {
+    pub fn new(
+        viewport_size: [u32; 2],
+        cluster_grid_size: [u32; 2],
+        hzb_furthest_size: [u32; 2],
+    ) -> Self {
         Self {
             viewport_size: [viewport_size[0].max(1), viewport_size[1].max(1)],
             cluster_grid_size: [cluster_grid_size[0].max(1), cluster_grid_size[1].max(1)],
+            hzb_furthest_size: [hzb_furthest_size[0].max(1), hzb_furthest_size[1].max(1)],
         }
     }
 
@@ -68,6 +74,9 @@ impl RenderGraphComputeWorkloadDispatchContext {
             }
             RenderGraphComputeDispatchExtent::ClusterGrid => {
                 dispatch_groups_for_2d_extent(self.cluster_grid_size, workload.workgroup_size)
+            }
+            RenderGraphComputeDispatchExtent::HzbFurthest => {
+                dispatch_groups_for_2d_extent(self.hzb_furthest_size, workload.workgroup_size)
             }
             RenderGraphComputeDispatchExtent::Fixed(groups) => *groups,
         }
@@ -611,7 +620,7 @@ mod tests {
     };
 
     fn dispatch_context() -> RenderGraphComputeWorkloadDispatchContext {
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30])
+        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024])
     }
 
     #[test]
@@ -627,8 +636,16 @@ mod tests {
     #[test]
     fn execution_record_preserves_history_copy_report() {
         let mut record = RenderGraphExecutionRecord::default();
-        let report =
-            RenderHistoryCopyReport::new(true, UVec2::new(640, 360), 4, true, true, true, false);
+        let report = RenderHistoryCopyReport::new(
+            true,
+            UVec2::new(640, 360),
+            4,
+            true,
+            true,
+            true,
+            false,
+            false,
+        );
 
         record.set_history_copy_report(report);
 
@@ -971,6 +988,23 @@ mod tests {
             )],
         );
         record.audit_compute_workload(
+            "hzb-build",
+            "visibility.hzb-build",
+            Some(&RenderGraphComputeWorkload::hzb_furthest(
+                "zircon-hzb-build-pipeline",
+                [8, 8, 1],
+            )),
+            dispatch_context(),
+            &[RenderGraphComputeDispatchRecord::new(
+                "hzb-build",
+                "visibility.hzb-build",
+                "zircon-hzb-build-pipeline",
+                [8, 8, 1],
+                [128, 128, 1],
+                vec!["hzb-furthest".to_string()],
+            )],
+        );
+        record.audit_compute_workload(
             "clustered-light-culling",
             "lighting.clustered-cull",
             Some(&RenderGraphComputeWorkload::new(
@@ -989,8 +1023,8 @@ mod tests {
             &[unexpected],
         );
 
-        assert_eq!(record.compute_workload_planned_count(), 3);
-        assert_eq!(record.compute_workload_matched_count(), 2);
+        assert_eq!(record.compute_workload_planned_count(), 4);
+        assert_eq!(record.compute_workload_matched_count(), 3);
         assert_eq!(record.compute_workload_missing_dispatch_count(), 1);
         assert_eq!(record.compute_workload_unexpected_dispatch_count(), 1);
         assert_eq!(record.compute_workload_mismatch_count(), 0);
@@ -1004,10 +1038,14 @@ mod tests {
         );
         assert_eq!(
             record.compute_workload_audit()[2].status,
-            RenderGraphComputeWorkloadAuditStatus::MissingDispatch
+            RenderGraphComputeWorkloadAuditStatus::Matched
         );
         assert_eq!(
             record.compute_workload_audit()[3].status,
+            RenderGraphComputeWorkloadAuditStatus::MissingDispatch
+        );
+        assert_eq!(
+            record.compute_workload_audit()[4].status,
             RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch
         );
         assert_eq!(
@@ -1020,10 +1058,14 @@ mod tests {
         );
         assert_eq!(
             record.compute_workload_audit()[2].planned_dispatch_groups,
+            Some([128, 128, 1])
+        );
+        assert_eq!(
+            record.compute_workload_audit()[3].planned_dispatch_groups,
             Some([5, 4, 1])
         );
         assert_eq!(
-            record.compute_workload_audit()[3].actual_dispatch_groups,
+            record.compute_workload_audit()[4].actual_dispatch_groups,
             Some([1, 1, 1])
         );
     }

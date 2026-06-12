@@ -1,11 +1,20 @@
 use std::path::PathBuf;
 
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::error::HubError;
+use crate::projects::project_template_catalog;
+use crate::{
+    error::HubError,
+    state::{
+        DeliveryMessageId, HubMessage, HubMessageId, LearnMessageId, ProjectMessageId,
+        SettingsMessageId, ShellMessageId,
+    },
+};
 
-use super::view_model::{settings_payload_from_value, HubSettingsPayload};
+use super::action_id::HubActionId;
+use super::view_model::{HubSettingsActionPayload, HubSettingsPayload};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,9 +59,14 @@ pub(crate) enum HubAction {
     SelectEngine {
         target_id: String,
     },
+    UpdateSettingsDraft {
+        payload: HubSettingsPayload,
+    },
     SaveSettings {
         payload: Option<HubSettingsPayload>,
     },
+    DiscardSettingsDraft,
+    RestoreDefaultSettings,
     BrowseSettingsFolder {
         target_id: Option<String>,
         payload: Option<BrowseSettingsFolderPayload>,
@@ -115,6 +129,7 @@ pub(crate) enum HubAction {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SearchProjectsPayload {
     #[serde(default)]
@@ -122,12 +137,7 @@ pub(crate) struct SearchProjectsPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SearchProjectsEnvelope {
-    search: SearchProjectsPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewProjectDraftActionPayload {
     #[serde(alias = "projectName")]
@@ -138,12 +148,7 @@ pub(crate) struct NewProjectDraftActionPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NewProjectDraftActionEnvelope {
-    draft: NewProjectDraftActionPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CreateProjectActionPayload {
     #[serde(alias = "projectName")]
@@ -154,12 +159,7 @@ pub(crate) struct CreateProjectActionPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CreateProjectActionEnvelope {
-    project: CreateProjectActionPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ImportProjectActionPayload {
     pub path: Option<PathBuf>,
@@ -168,12 +168,7 @@ pub(crate) struct ImportProjectActionPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ImportProjectActionEnvelope {
-    project: ImportProjectActionPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ProjectTargetActionPayload {
     #[serde(alias = "id")]
@@ -183,12 +178,7 @@ pub(crate) struct ProjectTargetActionPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ProjectTargetActionEnvelope {
-    project: ProjectTargetActionPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct BrowseSettingsFolderPayload {
     pub field: Option<String>,
@@ -197,12 +187,7 @@ pub(crate) struct BrowseSettingsFolderPayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct BrowseSettingsFolderEnvelope {
-    folder: BrowseSettingsFolderPayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OpenResourcePayload {
     pub resource_id: Option<String>,
@@ -210,12 +195,7 @@ pub(crate) struct OpenResourcePayload {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OpenResourceEnvelope {
-    resource: OpenResourcePayload,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct OpenOutputFolderPayload {
     pub path: Option<PathBuf>,
@@ -223,124 +203,133 @@ pub(crate) struct OpenOutputFolderPayload {
     pub history_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OpenOutputFolderEnvelope {
-    output: OpenOutputFolderPayload,
-}
-
 impl HubActionRequest {
+    pub(crate) fn action(&self) -> Result<HubActionId, HubError> {
+        HubActionId::from_str(&self.action_id)
+            .ok_or_else(|| HubError::message(format!("Unknown Hub action: {}", self.action_id)))
+    }
+
+    #[allow(dead_code)]
     pub(crate) fn parse(&self) -> Result<HubAction, HubError> {
-        match self.action_id.trim() {
-            "show-page" | "page" => Ok(HubAction::ShowPage {
+        self.parse_as(self.action()?)
+    }
+
+    pub(in crate::tauri_app) fn parse_as(
+        &self,
+        action: HubActionId,
+    ) -> Result<HubAction, HubError> {
+        match action {
+            HubActionId::ShowPage => Ok(HubAction::ShowPage {
                 target_id: self.required_target()?.to_string(),
             }),
-            "show-project-subpage" | "project-subpage" => Ok(HubAction::ShowProjectSubpage {
+            HubActionId::ShowProjectSubpage => Ok(HubAction::ShowProjectSubpage {
                 target_id: self.required_target()?.to_string(),
             }),
-            "search-projects" => Ok(HubAction::SearchProjects {
-                query: search_projects_payload_from_value(
+            HubActionId::SearchProjects => Ok(HubAction::SearchProjects {
+                query: parse_payload::<SearchProjectsPayload>(action, self.payload.as_ref())?.query,
+            }),
+            HubActionId::SetProjectFilter => Ok(HubAction::SetProjectFilter {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::SetProjectSort => Ok(HubAction::SetProjectSort {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::SetProjectViewMode => Ok(HubAction::SetProjectViewMode {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::SelectProject => Ok(HubAction::SelectProject {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::OpenProjectDetail => Ok(HubAction::OpenProjectDetail {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::ViewAllProjects => Ok(HubAction::ViewAllProjects),
+            HubActionId::NewProject => Ok(HubAction::NewProject),
+            HubActionId::UpdateNewProjectDraft => Ok(HubAction::UpdateNewProjectDraft {
+                payload: parse_payload(action, self.payload.as_ref())?,
+            }),
+            HubActionId::SelectEngine => Ok(HubAction::SelectEngine {
+                target_id: self.required_target()?.to_string(),
+            }),
+            HubActionId::UpdateSettingsDraft => Ok(HubAction::UpdateSettingsDraft {
+                payload: parse_payload::<HubSettingsActionPayload>(action, self.payload.as_ref())?
+                    .settings,
+            }),
+            HubActionId::SaveSettings => Ok(HubAction::SaveSettings {
+                payload: parse_optional_payload::<HubSettingsActionPayload>(
+                    action,
                     self.payload.as_ref(),
-                    self.target_id.as_deref(),
                 )?
-                .query,
+                .map(|payload| payload.settings),
             }),
-            "set-project-filter" => Ok(HubAction::SetProjectFilter {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "set-project-sort" => Ok(HubAction::SetProjectSort {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "set-project-view-mode" => Ok(HubAction::SetProjectViewMode {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "select-project" | "open-project" => Ok(HubAction::SelectProject {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "open-project-detail" => Ok(HubAction::OpenProjectDetail {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "view-all-projects" => Ok(HubAction::ViewAllProjects),
-            "new-project" => Ok(HubAction::NewProject),
-            "update-new-project-draft" => Ok(HubAction::UpdateNewProjectDraft {
-                payload: new_project_draft_payload_from_value(self.payload.as_ref())?,
-            }),
-            "select-engine" => Ok(HubAction::SelectEngine {
-                target_id: self.required_target()?.to_string(),
-            }),
-            "save-settings" => Ok(HubAction::SaveSettings {
-                payload: settings_payload_from_value(self.payload.as_ref())?,
-            }),
-            "browse-settings-folder" => Ok(HubAction::BrowseSettingsFolder {
+            HubActionId::DiscardSettingsDraft => Ok(HubAction::DiscardSettingsDraft),
+            HubActionId::RestoreDefaultSettings => Ok(HubAction::RestoreDefaultSettings),
+            HubActionId::BrowseSettingsFolder => Ok(HubAction::BrowseSettingsFolder {
                 target_id: self.trimmed_target(),
-                payload: browse_settings_folder_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "create-project" => Ok(HubAction::CreateProject {
-                payload: create_project_payload_from_value(self.payload.as_ref())?,
+            HubActionId::CreateProject => Ok(HubAction::CreateProject {
+                payload: parse_payload(action, self.payload.as_ref())?,
             }),
-            "import-project" => Ok(HubAction::ImportProject {
+            HubActionId::ImportProject => Ok(HubAction::ImportProject {
                 target_id: self.trimmed_target(),
-                payload: import_project_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "pin-project" => Ok(HubAction::PinProject {
+            HubActionId::PinProject => Ok(HubAction::PinProject {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "unpin-project" => Ok(HubAction::UnpinProject {
+            HubActionId::UnpinProject => Ok(HubAction::UnpinProject {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "remove-from-hub" => Ok(HubAction::RemoveFromHub {
+            HubActionId::RemoveFromHub => Ok(HubAction::RemoveFromHub {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "request-delete" => Ok(HubAction::RequestDelete {
+            HubActionId::RequestDelete => Ok(HubAction::RequestDelete {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "cancel-delete" => Ok(HubAction::CancelDelete {
+            HubActionId::CancelDelete => Ok(HubAction::CancelDelete {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "confirm-delete" => Ok(HubAction::ConfirmDelete {
+            HubActionId::ConfirmDelete => Ok(HubAction::ConfirmDelete {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "open-resource" => Ok(HubAction::OpenResource {
+            HubActionId::OpenResource => Ok(HubAction::OpenResource {
                 target_id: self.trimmed_target(),
-                payload: open_resource_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "open-output-folder" => Ok(HubAction::OpenOutputFolder {
+            HubActionId::OpenOutputFolder => Ok(HubAction::OpenOutputFolder {
                 target_id: self.trimmed_target(),
-                payload: open_output_folder_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "build-project" => Ok(HubAction::BuildProject {
+            HubActionId::BuildProject => Ok(HubAction::BuildProject {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "package-project" => Ok(HubAction::PackageProject {
+            HubActionId::PackageProject => Ok(HubAction::PackageProject {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "install-device" => Ok(HubAction::InstallDevice {
+            HubActionId::InstallDevice => Ok(HubAction::InstallDevice {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            "open-editor" => Ok(HubAction::OpenEditor {
+            HubActionId::OpenEditor => Ok(HubAction::OpenEditor {
                 target_id: self.trimmed_target(),
-                payload: project_target_payload_from_value(self.payload.as_ref())?,
+                payload: parse_optional_payload(action, self.payload.as_ref())?,
             }),
-            _ => Err(HubError::message(format!(
-                "Unknown Hub action: {}",
-                self.action_id
-            ))),
         }
     }
 
     pub(crate) fn project_target_payload(
         &self,
     ) -> Result<Option<ProjectTargetActionPayload>, HubError> {
-        project_target_payload_from_value(self.payload.as_ref())
+        parse_optional_payload(self.action()?, self.payload.as_ref())
     }
 
     fn trimmed_target(&self) -> Option<String> {
@@ -365,154 +354,210 @@ impl HubActionRequest {
     }
 }
 
-fn search_projects_payload_from_value(
-    payload: Option<&Value>,
-    target_id: Option<&str>,
-) -> Result<SearchProjectsPayload, HubError> {
-    let Some(payload) = payload else {
-        return Ok(SearchProjectsPayload {
-            query: target_id.unwrap_or("").to_string(),
-        });
-    };
-    if let Some(query) = payload.as_str() {
-        return Ok(SearchProjectsPayload {
-            query: query.to_string(),
-        });
+pub(crate) trait ValidatePayload {
+    fn validate(&self) -> Result<(), HubError> {
+        Ok(())
     }
-    if payload.get("search").is_some() {
-        let envelope: SearchProjectsEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(envelope.search);
-    }
-    Ok(serde_json::from_value(payload.clone())?)
 }
 
-fn new_project_draft_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<NewProjectDraftActionPayload, HubError> {
+fn parse_payload<T>(action: HubActionId, payload: Option<&Value>) -> Result<T, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
     let Some(payload) = payload else {
-        return Err(HubError::message("New Project draft payload is required"));
+        return Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Shell(ShellMessageId::PayloadRequiredForAction),
+                [action.as_str()],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        ));
     };
-    if payload.get("draft").is_some() {
-        let envelope: NewProjectDraftActionEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(envelope.draft);
-    }
-    Ok(serde_json::from_value(payload.clone())?)
+    deserialize_payload(action, payload)
 }
 
-fn create_project_payload_from_value(
+fn parse_optional_payload<T>(
+    action: HubActionId,
     payload: Option<&Value>,
-) -> Result<CreateProjectActionPayload, HubError> {
-    let Some(payload) = payload else {
-        return Err(HubError::message("Create Project payload is required"));
-    };
-    if payload.get("project").is_some() {
-        let envelope: CreateProjectActionEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(envelope.project);
-    }
-    Ok(serde_json::from_value(payload.clone())?)
-}
-
-fn import_project_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<ImportProjectActionPayload>, HubError> {
+) -> Result<Option<T>, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
     let Some(payload) = payload else {
         return Ok(None);
     };
-    if let Some(path) = payload.as_str() {
-        return Ok(Some(ImportProjectActionPayload {
-            path: Some(PathBuf::from(path)),
-            folder: None,
-            engine_id: None,
-        }));
-    }
-    if payload.get("project").is_some() {
-        let envelope: ImportProjectActionEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(Some(envelope.project));
-    }
-    Ok(Some(serde_json::from_value(payload.clone())?))
+    deserialize_payload(action, payload).map(Some)
 }
 
-fn project_target_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<ProjectTargetActionPayload>, HubError> {
-    let Some(payload) = payload else {
-        return Ok(None);
-    };
-    if let Some(target) = payload
-        .as_str()
-        .map(str::trim)
-        .filter(|target| !target.is_empty())
+fn deserialize_payload<T>(action: HubActionId, payload: &Value) -> Result<T, HubError>
+where
+    T: DeserializeOwned + ValidatePayload,
+{
+    let parsed: T = serde_json::from_value(payload.clone()).map_err(|error| {
+        HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Shell(ShellMessageId::InvalidPayloadForAction),
+                [action.as_str().to_string(), error.to_string()],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        )
+    })?;
+    parsed.validate()?;
+    Ok(parsed)
+}
+
+impl ValidatePayload for SearchProjectsPayload {}
+
+impl ValidatePayload for NewProjectDraftActionPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_project_creation_payload(&self.name, &self.location, &self.template)
+    }
+}
+
+impl ValidatePayload for CreateProjectActionPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_project_creation_payload(&self.name, &self.location, &self.template)
+    }
+}
+
+impl ValidatePayload for ImportProjectActionPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_optional_absolute_path(self.path.as_ref(), "Import path")?;
+        validate_optional_absolute_path(self.folder.as_ref(), "Import folder")
+    }
+}
+
+impl ValidatePayload for ProjectTargetActionPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_optional_absolute_path(self.project_path.as_ref(), "Project path")
+    }
+}
+
+impl ValidatePayload for BrowseSettingsFolderPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        if let Some(field) = self.field.as_deref() {
+            validate_settings_folder_field(field)?;
+        }
+        validate_optional_absolute_path(self.initial_dir.as_ref(), "Initial directory")
+    }
+}
+
+impl ValidatePayload for OpenResourcePayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_optional_absolute_path(self.path.as_ref(), "Resource path")
+    }
+}
+
+impl ValidatePayload for OpenOutputFolderPayload {
+    fn validate(&self) -> Result<(), HubError> {
+        validate_optional_absolute_path(self.path.as_ref(), "Output path")?;
+        validate_optional_absolute_path(self.output_dir.as_ref(), "Output directory")
+    }
+}
+
+impl ValidatePayload for HubSettingsActionPayload {}
+
+fn validate_project_creation_payload(
+    name: &str,
+    location: &PathBuf,
+    template: &str,
+) -> Result<(), HubError> {
+    if name.trim().is_empty() {
+        return Err(HubError::status(
+            HubMessage::new(HubMessageId::Settings(
+                SettingsMessageId::ProjectNameRequired,
+            )),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        ));
+    }
+    validate_absolute_path(location, "Project location")?;
+    if !project_template_catalog()
+        .iter()
+        .any(|candidate| candidate.id == template.trim())
     {
-        return Ok(Some(ProjectTargetActionPayload {
-            project_id: Some(target.to_string()),
-            project_path: None,
-        }));
+        return Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::UnknownTemplate),
+                [template],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        ));
     }
-    if payload.get("project").is_some() {
-        let envelope: ProjectTargetActionEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(Some(envelope.project));
-    }
-    Ok(Some(serde_json::from_value(payload.clone())?))
+    Ok(())
 }
 
-fn browse_settings_folder_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<BrowseSettingsFolderPayload>, HubError> {
-    let Some(payload) = payload else {
-        return Ok(None);
-    };
-    if payload.get("folder").is_some() {
-        let envelope: BrowseSettingsFolderEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(Some(envelope.folder));
+fn validate_optional_absolute_path(path: Option<&PathBuf>, label: &str) -> Result<(), HubError> {
+    if let Some(path) = path.filter(|path| !path.as_os_str().is_empty()) {
+        validate_absolute_path(path, label)?;
     }
-    Ok(Some(serde_json::from_value(payload.clone())?))
+    Ok(())
 }
 
-fn open_resource_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<OpenResourcePayload>, HubError> {
-    let Some(payload) = payload else {
-        return Ok(None);
-    };
-    if let Some(target) = payload
-        .as_str()
-        .map(str::trim)
-        .filter(|target| !target.is_empty())
-    {
-        return Ok(Some(OpenResourcePayload {
-            resource_id: Some(target.to_string()),
-            path: None,
-        }));
+fn validate_absolute_path(path: &PathBuf, label: &str) -> Result<(), HubError> {
+    if !path.is_absolute() {
+        return Err(HubError::status(
+            HubMessage::with_params(
+                absolute_path_message_id(label),
+                [path.to_string_lossy().into_owned()],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        ));
     }
-    if payload.get("resource").is_some() {
-        let envelope: OpenResourceEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(Some(envelope.resource));
-    }
-    Ok(Some(serde_json::from_value(payload.clone())?))
+    Ok(())
 }
 
-fn open_output_folder_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<OpenOutputFolderPayload>, HubError> {
-    let Some(payload) = payload else {
-        return Ok(None);
-    };
-    if let Some(path) = payload
-        .as_str()
-        .map(str::trim)
-        .filter(|path| !path.is_empty())
-    {
-        return Ok(Some(OpenOutputFolderPayload {
-            path: Some(PathBuf::from(path)),
-            output_dir: None,
-            history_id: None,
-        }));
+fn validate_settings_folder_field(field: &str) -> Result<(), HubError> {
+    match field.trim() {
+        "defaultProjectDir"
+        | "default-project-dir"
+        | "project-dir"
+        | "defaultSourceDir"
+        | "default-source-dir"
+        | "source-dir"
+        | "defaultBuildOutputDir"
+        | "default-build-output-dir"
+        | "build-output"
+        | "defaultDeviceInstallDir"
+        | "default-device-install-dir"
+        | "device-install" => Ok(()),
+        _ => Err(HubError::status(
+            HubMessage::with_params(
+                HubMessageId::Settings(SettingsMessageId::UnknownFolderField),
+                [field],
+            ),
+            Some(HubMessage::new(HubMessageId::Shell(
+                ShellMessageId::ReviewActionPayload,
+            ))),
+        )),
     }
-    if payload.get("output").is_some() {
-        let envelope: OpenOutputFolderEnvelope = serde_json::from_value(payload.clone())?;
-        return Ok(Some(envelope.output));
+}
+
+fn absolute_path_message_id(label: &str) -> HubMessageId {
+    match label {
+        "Project location" => HubMessageId::Project(ProjectMessageId::LocationMustBeAbsolute),
+        "Project path" => HubMessageId::Project(ProjectMessageId::PathMustBeAbsolute),
+        "Import path" => HubMessageId::Project(ProjectMessageId::ImportPathMustBeAbsolute),
+        "Import folder" => HubMessageId::Project(ProjectMessageId::ImportFolderMustBeAbsolute),
+        "Initial directory" => {
+            HubMessageId::Settings(SettingsMessageId::InitialDirectoryMustBeAbsolute)
+        }
+        "Resource path" => HubMessageId::Learn(LearnMessageId::ResourcePathMustBeAbsolute),
+        "Output path" => HubMessageId::Delivery(DeliveryMessageId::OutputPathMustBeAbsolute),
+        "Output directory" => {
+            HubMessageId::Delivery(DeliveryMessageId::OutputDirectoryMustBeAbsolute)
+        }
+        _ => HubMessageId::Project(ProjectMessageId::PathMustBeAbsolute),
     }
-    Ok(Some(serde_json::from_value(payload.clone())?))
 }
 
 #[cfg(test)]
@@ -525,12 +570,10 @@ mod tests {
             action_id: "create-project".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "project": {
-                    "name": "Game",
-                    "location": "E:/Projects",
-                    "template": "renderable-empty",
-                    "engineId": "engine"
-                }
+                "name": "Game",
+                "location": "E:/Projects",
+                "template": "renderable-empty",
+                "engineId": "engine"
             })),
         }
         .parse()
@@ -550,12 +593,10 @@ mod tests {
             action_id: "update-new-project-draft".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "draft": {
-                    "name": "Draft Game",
-                    "location": "E:/Drafts",
-                    "template": "renderable-empty",
-                    "engineId": "engine"
-                }
+                "name": "Draft Game",
+                "location": "E:/Drafts",
+                "template": "renderable-empty",
+                "engineId": "engine"
             })),
         }
         .parse()
@@ -571,7 +612,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_search_projects_typed_payload_before_target_fallback() {
+    fn parses_search_projects_typed_payload() {
         let action = HubActionRequest {
             action_id: "search-projects".to_string(),
             target_id: Some("legacy query".to_string()),
@@ -594,12 +635,10 @@ mod tests {
             action_id: "browse-settings-folder".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "folder": {
-                    "field": "defaultProjectDir",
-                    "initialDir": "E:/Drafts",
-                    "settings": {
-                        "defaultProjectDir": "E:/Projects"
-                    }
+                "field": "defaultProjectDir",
+                "initialDir": "E:/Drafts",
+                "settings": {
+                    "defaultProjectDir": "E:/Projects"
                 }
             })),
         }
@@ -616,15 +655,35 @@ mod tests {
     }
 
     #[test]
+    fn parses_update_settings_draft_payload_for_draft_action() {
+        let action = HubActionRequest {
+            action_id: "update-settings-draft".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "settings": {
+                    "pythonPath": "",
+                    "language": "Chinese"
+                }
+            })),
+        }
+        .parse()
+        .expect("update-settings-draft should parse a settings payload");
+
+        let HubAction::UpdateSettingsDraft { payload } = action else {
+            panic!("update-settings-draft should parse to the settings draft action variant");
+        };
+        assert_eq!(payload.python_path.as_deref(), Some(""));
+        assert_eq!(payload.language.as_deref(), Some("Chinese"));
+    }
+
+    #[test]
     fn parses_project_target_payload_for_background_project_actions() {
         let action = HubActionRequest {
             action_id: "package-project".to_string(),
             target_id: Some("fallback-project".to_string()),
             payload: Some(serde_json::json!({
-                "project": {
-                    "projectId": "target-project",
-                    "projectPath": "E:/Projects/Target"
-                }
+                "projectId": "target-project",
+                "projectPath": "E:/Projects/Target"
             })),
         }
         .parse()
@@ -648,10 +707,8 @@ mod tests {
             action_id: "cancel-delete".to_string(),
             target_id: Some("fallback-project".to_string()),
             payload: Some(serde_json::json!({
-                "project": {
-                    "projectId": "target-project",
-                    "projectPath": "E:/Projects/Target"
-                }
+                "projectId": "target-project",
+                "projectPath": "E:/Projects/Target"
             })),
         }
         .parse()
@@ -670,14 +727,12 @@ mod tests {
     }
 
     #[test]
-    fn parses_open_output_folder_wrapped_payload_for_output_action() {
+    fn parses_open_output_folder_flat_payload_for_output_action() {
         let action = HubActionRequest {
             action_id: "open-output-folder".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "output": {
-                    "historyId": "123:package-project:Game"
-                }
+                "historyId": "123:package-project:Game"
             })),
         }
         .parse()
@@ -693,6 +748,131 @@ mod tests {
                 .as_deref(),
             Some("123:package-project:Game")
         );
+    }
+
+    #[test]
+    fn create_project_rejects_empty_name_with_recoverable_message() {
+        let error = HubActionRequest {
+            action_id: "create-project".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "name": "  ",
+                "location": "E:/Projects",
+                "template": "renderable-empty"
+            })),
+        }
+        .parse()
+        .expect_err("empty project names should be rejected");
+
+        assert_eq!(error.to_string(), "Project name must not be empty");
+    }
+
+    #[test]
+    fn create_project_rejects_relative_location() {
+        let error = HubActionRequest {
+            action_id: "create-project".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "name": "Game",
+                "location": "projects/Game",
+                "template": "renderable-empty"
+            })),
+        }
+        .parse()
+        .expect_err("relative project locations should be rejected");
+
+        assert_eq!(
+            error.to_string(),
+            "Project location must be an absolute path: projects/Game"
+        );
+    }
+
+    #[test]
+    fn create_project_rejects_unknown_template_id() {
+        let disabled_template = HubActionRequest {
+            action_id: "create-project".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "name": "Game",
+                "location": "E:/Projects",
+                "template": "3d-scene"
+            })),
+        }
+        .parse()
+        .expect("disabled catalog templates should reach runtime as coming soon");
+        assert!(matches!(
+            disabled_template,
+            HubAction::CreateProject { payload } if payload.template == "3d-scene"
+        ));
+
+        let error = HubActionRequest {
+            action_id: "create-project".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "name": "Game",
+                "location": "E:/Projects",
+                "template": "not-a-template"
+            })),
+        }
+        .parse()
+        .expect_err("unknown templates should be rejected before runtime creation");
+
+        assert_eq!(
+            error.to_string(),
+            "Unknown project template: not-a-template"
+        );
+    }
+
+    #[test]
+    fn project_target_envelope_payload_is_rejected_after_hard_cutover() {
+        let error = HubActionRequest {
+            action_id: "package-project".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "project": {
+                    "projectId": "target-project"
+                }
+            })),
+        }
+        .parse()
+        .expect_err("project target envelopes should be removed after hard cutover");
+
+        assert!(error
+            .to_string()
+            .contains("Invalid payload for Hub action package-project"));
+    }
+
+    #[test]
+    fn missing_required_payload_is_rejected_with_action_id() {
+        let error = HubActionRequest {
+            action_id: "create-project".to_string(),
+            target_id: None,
+            payload: None,
+        }
+        .parse()
+        .expect_err("required payloads should include the action id in errors");
+
+        assert_eq!(
+            error.to_string(),
+            "Payload is required for Hub action: create-project"
+        );
+    }
+
+    #[test]
+    fn settings_payload_requires_settings_wrapper() {
+        let error = HubActionRequest {
+            action_id: "update-settings-draft".to_string(),
+            target_id: None,
+            payload: Some(serde_json::json!({
+                "pythonPath": "python"
+            })),
+        }
+        .parse()
+        .expect_err("settings actions should require a settings wrapper");
+
+        assert!(error
+            .to_string()
+            .contains("Invalid payload for Hub action update-settings-draft"));
     }
 
     #[test]

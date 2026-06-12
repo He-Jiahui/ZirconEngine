@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use super::super::RegistryName;
-use crate::core::error::CoreError;
-use crate::core::lifecycle::ServiceKind;
+use crate::core::CoreError;
+use crate::core::ServiceKind;
 
 #[test]
 fn registry_name_accepts_only_exact_three_segment_names() {
@@ -85,13 +85,22 @@ fn registry_name_caches_segments_without_changing_string_contract() {
     assert!(registry_name_source.contains("impl Hash for RegistryName"));
     assert!(registry_name_source.contains("self.as_str().hash(state)"));
     assert!(registry_name_source.contains("fn registry_separator_offsets(value: &str)"));
-    assert!(registry_name_source.contains("value.bytes().enumerate()"));
-    assert!(registry_name_source.contains("first_separator = Some(index)"));
-    assert!(registry_name_source.contains("second_separator = Some(index)"));
+    assert!(registry_name_source.contains("let bytes = value.as_bytes();"));
+    assert!(registry_name_source.contains("let mut separator_count = 0;"));
+    assert!(registry_name_source.contains("while index < bytes.len()"));
+    assert!(registry_name_source.contains("first_separator = index;"));
+    assert!(registry_name_source.contains("second_separator = index;"));
+    assert!(registry_name_source.contains("separator_count += 1;"));
+    assert!(registry_name_source.contains("if separator_count == 2"));
+    assert!(registry_name_source.contains("Some((first_separator, second_separator))"));
     assert!(registry_name_source.contains("return None;"));
     assert!(registry_name_source.contains("fn is_canonical_segment(value: &str) -> bool"));
     assert!(registry_name_source.contains("fn is_canonical_dot_free_segment(value: &str) -> bool"));
     assert!(registry_name_source.contains("first.is_whitespace()"));
+    assert!(registry_name_source.contains("let last = match chars.next_back()"));
+    assert!(registry_name_source.contains("Some(last) => last"));
+    assert!(registry_name_source.contains("None => first"));
+    assert!(registry_name_source.contains("!last.is_whitespace()"));
     assert!(registry_name_source.contains("ch == '.'"));
     assert!(registry_name_source.contains("!last.is_whitespace()"));
     assert!(registry_name_source.contains("is_canonical_dot_free_segment(module)"));
@@ -116,6 +125,21 @@ fn registry_name_caches_segments_without_changing_string_contract() {
     assert!(!registry_name_source.contains(".split("));
     assert!(!registry_name_source.contains("split_once"));
     assert!(!registry_name_source.contains("rsplit_once"));
+    assert!(!registry_name_source.contains("first_separator?"));
+    assert!(!registry_name_source.contains("second_separator?"));
+    assert!(!registry_name_source.contains("value.bytes().enumerate()"));
+    assert!(!registry_name_source.contains(".unwrap_or("));
+    let deserialize_start = registry_name_source
+        .find("impl<'de> Deserialize<'de> for RegistryName")
+        .expect("RegistryName serde implementation should stay visible");
+    let display_start = registry_name_source
+        .find("impl fmt::Display for RegistryName")
+        .expect("Display impl should delimit serde source");
+    let deserialize_source = &registry_name_source[deserialize_start..display_start];
+    assert!(deserialize_source.contains("match Self::new(value)"));
+    assert!(deserialize_source.contains("Ok(name) => Ok(name)"));
+    assert!(deserialize_source.contains("Err(error) => Err(serde::de::Error::custom(error))"));
+    assert!(!deserialize_source.contains(".map_err("));
 }
 
 #[test]
@@ -136,7 +160,7 @@ fn service_kind_registry_segments_are_canonical() {
 
 #[test]
 fn service_kind_registry_segments_use_direct_byte_match() {
-    let lifecycle_source = include_str!("../../lifecycle.rs");
+    let lifecycle_source = include_str!("../lifecycle.rs");
 
     assert!(lifecycle_source.contains("pub fn from_registry_segment(value: &str) -> Option<Self>"));
     assert!(lifecycle_source.contains("Self::from_registry_segment_bytes(value.as_bytes())"));
@@ -166,7 +190,7 @@ fn service_kind_registry_segments_use_direct_byte_match() {
 #[test]
 fn registry_name_new_uses_service_kind_byte_slice_parser() {
     let registry_name_source = include_str!("../descriptors/registry_name.rs");
-    let lifecycle_source = include_str!("../../lifecycle.rs");
+    let lifecycle_source = include_str!("../lifecycle.rs");
 
     assert!(lifecycle_source
         .contains("pub(crate) fn from_registry_segment_bytes(value: &[u8]) -> Option<Self>"));

@@ -91,7 +91,7 @@ pub(super) fn table_row_commands(
         } else {
             "more-horizontal"
         },
-        TEXT_MUTED,
+        action(state),
         state,
         opacity,
     ));
@@ -99,7 +99,7 @@ pub(super) fn table_row_commands(
 }
 
 fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         SURFACE_DISABLED
     } else if state.marked() {
         color_attribute(metadata, "background_color").unwrap_or(SURFACE_SELECTED)
@@ -117,7 +117,7 @@ fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) 
 }
 
 fn border(state: &RowRenderState) -> Option<&'static str> {
-    state.focus_or_press().then_some(ACCENT)
+    (!state.unavailable() && state.focus_or_press()).then_some(ACCENT)
 }
 
 fn border_width(state: &RowRenderState) -> f32 {
@@ -129,7 +129,7 @@ fn border_width(state: &RowRenderState) -> f32 {
 }
 
 fn text<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState, index: usize) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if is_header(metadata) {
         "#aab5ba"
@@ -139,6 +139,14 @@ fn text<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState, index:
         TEXT_MUTED
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
+    }
+}
+
+fn action(state: &RowRenderState) -> &'static str {
+    if state.unavailable() {
+        TEXT_DISABLED
+    } else {
+        TEXT_MUTED
     }
 }
 

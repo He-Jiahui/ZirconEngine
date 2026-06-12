@@ -61,6 +61,10 @@ impl ProjectAssetManager {
         self.assets::<TAsset>().load_state(handle)
     }
 
+    pub fn failure_reason<TAsset: Asset>(&self, handle: Handle<TAsset>) -> Option<String> {
+        self.assets::<TAsset>().failure_reason(handle)
+    }
+
     pub fn dependency_load_state<TAsset: Asset>(
         &self,
         handle: Handle<TAsset>,

@@ -169,11 +169,11 @@ fn ui_window_events_carry_cursor_focus_scale_redraw_and_close_contracts() {
     ));
     assert!(matches!(
         app_active.kind,
-        UiWindowEventKind::Focused { focused: true }
+        UiWindowEventKind::ApplicationActivation { is_active: true }
     ));
     assert!(matches!(
         app_inactive.kind,
-        UiWindowEventKind::Focused { focused: false }
+        UiWindowEventKind::ApplicationActivation { is_active: false }
     ));
     assert_eq!(activated.impact(), focused.impact());
     assert_eq!(activated_by_mouse.impact(), focused.impact());

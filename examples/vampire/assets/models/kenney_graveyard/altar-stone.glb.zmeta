@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "3aaec0ab-14dd-403d-b660-6eb0cabbf4f8"
+url = "res://models/kenney_graveyard/altar-stone.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/18583950-a705-3b8c-ebe6-bb678d33fbdc.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670020000
+source_hash = "06447e999198ba71"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/altar-stone.glb#Texture0",
+    "res://models/kenney_graveyard/altar-stone.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/altar-stone.glb#Material0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/altar-stone.glb#Node0",
+    "res://models/kenney_graveyard/altar-stone.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "3aaec0ab-14dd-403d-b660-6eb0cabbf4f8"
+url = "res://models/kenney_graveyard/altar-stone.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/18583950-a705-3b8c-ebe6-bb678d33fbdc.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/altar-stone.glb#Texture0",
+    "res://models/kenney_graveyard/altar-stone.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/altar-stone.glb#Material0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/altar-stone.glb#Node0",
+    "res://models/kenney_graveyard/altar-stone.glb#Scene0",
+]
+
+[[entries]]
+uuid = "1620078c-0ee2-4c84-a6ee-362b7c95f563"
+url = "res://models/kenney_graveyard/altar-stone.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/1575a85e-8c7e-1376-116f-78fe47b95fe5.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "7d969865-ff82-4e3c-a588-3dc9280df009"
+url = "res://models/kenney_graveyard/altar-stone.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/8032bca8-2b43-cb9d-9b10-fe91b9123212.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "84c29c2e-549f-43d5-82cb-d87484da0919"
+url = "res://models/kenney_graveyard/altar-stone.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/455bc809-ee4f-4ce1-8868-27666cb7af91.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/altar-stone.glb#Texture0",
+]
+
+[[entries]]
+uuid = "ecd38bbb-a812-4c18-bfd9-295ae1b2fe51"
+url = "res://models/kenney_graveyard/altar-stone.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/80b9d060-ecb7-6463-2afe-18f02ec70d18.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/altar-stone.glb#Material0",
+]
+
+[[entries]]
+uuid = "3a7fb2d8-837e-414c-9e0c-9848e2808f71"
+url = "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/51a29238-f81c-4d06-268c-1f1a433a3c35.zasset"
+dependencies = ["res://models/kenney_graveyard/altar-stone.glb#Material0"]
+
+[[entries]]
+uuid = "0ea80740-708d-47c9-a7f4-69e90abb7149"
+url = "res://models/kenney_graveyard/altar-stone.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/18bf70dd-151c-7b7d-91b5-84c6cebcd12b.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/altar-stone.glb#Node0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/altar-stone.glb#Material0",
+]
+
+[[entries]]
+uuid = "a079b0cc-1f6f-441e-9675-afe67c9615c5"
+url = "res://models/kenney_graveyard/altar-stone.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/05ef8778-c7f5-0cda-d0c2-96acf51c4ff5.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/altar-stone.glb#Node0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0",
+    "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/altar-stone.glb#Material0",
+]

@@ -1,0 +1,943 @@
+format_version = 6
+uuid = "952d5d7c-8510-4af8-b0f4-960ea6808f71"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/cd7dcf55-3fce-0917-0c62-37e6bc3da6da.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670020000
+source_hash = "ed60a87cbfd3d8e8"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Texture0",
+    "res://models/kenney_graveyard/character-vampire.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node1",
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Scene0",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation0",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation0/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation1",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation1/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation2",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation2/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation3",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation3/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation4",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation4/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation5",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation5/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation6",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation6/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation7",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation7/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation8",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation8/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation9",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation9/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation10",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation10/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation11",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation11/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation12",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation12/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation13",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation13/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation14",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation14/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation15",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation15/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation16",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation16/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation17",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation17/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation18",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation18/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation19",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation19/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation20",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation20/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation21",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation21/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation22",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation22/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation23",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation23/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation24",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation24/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation25",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation25/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation26",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation26/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation27",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation27/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation28",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation28/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation29",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation29/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation30",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation30/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation31",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation31/Skeleton",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "952d5d7c-8510-4af8-b0f4-960ea6808f71"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/cd7dcf55-3fce-0917-0c62-37e6bc3da6da.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Texture0",
+    "res://models/kenney_graveyard/character-vampire.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node1",
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Scene0",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation0",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation0/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation1",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation1/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation2",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation2/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation3",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation3/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation4",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation4/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation5",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation5/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation6",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation6/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation7",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation7/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation8",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation8/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation9",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation9/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation10",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation10/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation11",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation11/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation12",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation12/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation13",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation13/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation14",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation14/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation15",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation15/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation16",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation16/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation17",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation17/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation18",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation18/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation19",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation19/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation20",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation20/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation21",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation21/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation22",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation22/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation23",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation23/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation24",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation24/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation25",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation25/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation26",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation26/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation27",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation27/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation28",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation28/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation29",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation29/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation30",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation30/Skeleton",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation31",
+    "res://models/kenney_graveyard/character-vampire.glb#Animation31/Skeleton",
+]
+
+[[entries]]
+uuid = "d8cd37b5-556d-4359-afd0-8328879951b1"
+url = "res://models/kenney_graveyard/character-vampire.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/de67ea49-2461-2382-f032-cb367dce1d00.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "9bdae523-e954-4c42-968e-7c01eecbcdaa"
+url = "res://models/kenney_graveyard/character-vampire.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/21daf5e4-bc9e-8e23-adab-d6825882df5a.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "c7e1b6d5-eb21-48ef-91c5-82b0ec031997"
+url = "res://models/kenney_graveyard/character-vampire.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/4961c585-10be-1561-f62f-49a7d60699eb.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/character-vampire.glb#Texture0",
+]
+
+[[entries]]
+uuid = "c874b15e-eead-4d53-af30-c1025b511bcf"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/32497552-fc61-87d4-7a71-a2a925dd5753.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "5b7fd694-d5c9-4335-b489-a67ec2430581"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/647bf436-7dad-90b4-5999-0918fd320a7e.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "d3d622e4-4e2e-4bee-b09c-c3e4687540a1"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh1"
+asset_kind = "Model"
+artifact_locator = "lib://models/7381f152-2bf4-89ad-4e37-488f997288ba.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "ef8c0e3f-a209-4aea-8812-9389d38a537f"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/ecf9408a-b4af-d72e-a7e9-7452f8d7fabb.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "809a6e29-bc22-4be3-bc97-bac8a526f4c5"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh2"
+asset_kind = "Model"
+artifact_locator = "lib://models/5b3f8427-40ed-2e40-86c5-eb752a4ee758.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "60ba61e3-5b69-4e52-ad5b-747e706212ae"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/d533f462-588b-6be2-fb2f-5405b478fe14.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "4e16d2f3-92cc-4bee-8519-399f9f02eeb2"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh3"
+asset_kind = "Model"
+artifact_locator = "lib://models/092f995e-e863-1b7f-cb5c-4728fbbe5b43.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "b6ed7e00-272d-4d53-99b0-31a6f0557569"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/1745742c-33de-2f87-9c69-e86855e19f2e.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "4ac532eb-a300-44cd-b4ab-e3ae37ad8bee"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh4"
+asset_kind = "Model"
+artifact_locator = "lib://models/98a3478d-25ee-658d-129e-bcb344a94ec9.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "a63d62c3-a6ee-4df4-aabd-69bac7d6fc41"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/9c629881-2df9-2890-874d-c00a1387bdde.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "5c097642-643b-40cb-b2f9-95514c0e291d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh5"
+asset_kind = "Model"
+artifact_locator = "lib://models/f64adf04-85f4-cce3-e575-2f876e83b373.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "ebe97210-cd0e-4e4c-8517-2c372f948889"
+url = "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/c11a70b6-7230-241b-3311-12bfa9fd4a9b.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Material0"]
+
+[[entries]]
+uuid = "34d4bca1-cd65-46e0-9854-af3b1be9b525"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/203e7465-5e38-886c-bf02-99a29c7c85f2.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node1",
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+]
+
+[[entries]]
+uuid = "b0b11799-8fda-4630-8cf3-6265f545faf7"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node1"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/90190fe4-8422-3ffc-5f3b-48884f0fc78f.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node1",
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+]
+
+[[entries]]
+uuid = "8d81ab06-b7d7-48a4-93cf-17228286b299"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node2"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/9c588abe-e842-b5e8-afe7-d4eab4d10918.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+]
+
+[[entries]]
+uuid = "3625315f-41b6-43ec-b6f3-24649b31b25a"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node3"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/3c08d36e-3691-4811-7718-e6d645204c9c.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "96633cb2-f4b1-4bc5-8962-babed51b7da0"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node4"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/76e1db1c-45ec-a1a1-6e7d-374ec9b66fd8.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "a4992553-721c-4591-8e58-f3bc09deca4f"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node5"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/e5c60c2c-6ffa-bd9b-7be4-c8529fbe074a.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "4fa6ea82-6a2d-461c-ad54-4be211c873df"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node6"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/721abcd2-a8f7-6f94-953b-427b818c2474.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "8e4c18cc-380a-4d1b-8eb7-62765e66af52"
+url = "res://models/kenney_graveyard/character-vampire.glb#Node7"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/aeadc122-c8b7-643e-b5f2-886ea172b82d.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+]
+
+[[entries]]
+uuid = "69d9022a-e623-41b7-9634-05924279d8de"
+url = "res://models/kenney_graveyard/character-vampire.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/30f54b55-6710-5a5d-12be-8846667748d4.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/character-vampire.glb#Node0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node1",
+    "res://models/kenney_graveyard/character-vampire.glb#Node2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Material0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node6",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0",
+    "res://models/kenney_graveyard/character-vampire.glb#Node7",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5",
+    "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0",
+]
+
+[[entries]]
+uuid = "e8456684-e3b6-40d2-a362-e7ae9b97d06a"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation0"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/0792bb3d-3f20-f64a-68c7-657629f602c3.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation0/Skeleton"]
+
+[[entries]]
+uuid = "44869684-0a6a-431a-aaa9-7de8d6da6276"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation0/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/ecf74bfc-686e-2444-1959-b025a5bac46a.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "214d2743-08ed-406e-823c-cf589bc22ef4"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation1"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/b2ebaeec-806d-07ce-5abb-bef91038e38c.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation1/Skeleton"]
+
+[[entries]]
+uuid = "909777ae-2afb-489d-aa5b-fe5c32dbceb3"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation1/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/192c3c15-bf06-1525-f602-0ed5b04343a7.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "3932f62e-d4bc-4633-bbfe-9352d0fe7d20"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation2"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/3081bae6-4526-6f84-3ed0-d213ee7f1939.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation2/Skeleton"]
+
+[[entries]]
+uuid = "3cc3d058-d22b-486e-9ec0-87b516176745"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation2/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/3a0adeed-e4b1-cd53-ba5f-e9151d232a3d.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "005d6316-0fb4-4f4c-90a4-4c8fcf4256a4"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation3"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/30e871db-a77b-4b9f-377b-a1ac4e96e2c2.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation3/Skeleton"]
+
+[[entries]]
+uuid = "5c02f350-699c-4a96-bbf5-357a370c87a4"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation3/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/d599a8bd-8eb9-a394-7b81-b39644107fbd.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "8435adf8-8923-47ac-93f7-ddc5dbdc92b9"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation4"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/e8a7af4f-a983-9824-33ba-d94552c2095c.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation4/Skeleton"]
+
+[[entries]]
+uuid = "80e5c8cc-290b-4da2-b5c3-5500e65fe12d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation4/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/2fe9a023-7914-89a7-0d9c-e9b46f4aa960.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "35aa7e46-c697-423f-89ed-33b9af7def05"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation5"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/4e16948e-236d-d37b-7fdc-4a2e1db57866.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation5/Skeleton"]
+
+[[entries]]
+uuid = "586d07b0-d4d7-4449-a356-6337ffe013f2"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation5/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/bd275adf-93b9-5374-2e44-b733ab94fbbb.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "240fefcb-5764-4a43-b062-6cab495fb14b"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation6"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/2352fcb4-6b20-9073-7ecb-2f96e961b5d7.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation6/Skeleton"]
+
+[[entries]]
+uuid = "58b85f84-dd0c-471a-a19e-261dc59e8917"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation6/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/7c6a7fda-a222-1749-7085-81916c2012ef.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c8926dfb-49df-447b-b362-2fb532f0c021"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation7"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/8017da55-7765-5e1f-d480-34633c98f87e.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation7/Skeleton"]
+
+[[entries]]
+uuid = "a0ad8c0e-7dd8-48fc-8e74-ea5c871f0582"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation7/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/d95aac00-cd26-5dd0-5b78-284538df80f5.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "cf148a03-14eb-49c2-ba3b-92a6a94f6397"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation8"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/9826a69b-c3a4-a289-d02f-bc1970171f0f.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation8/Skeleton"]
+
+[[entries]]
+uuid = "509b1366-6e65-477b-b7bc-6a11c73d0c60"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation8/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/24406a46-4893-035e-635b-2344218f7feb.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "31db62fa-a738-46a4-ab89-da03fe633b19"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation9"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/3e88613c-a34b-9661-165d-f1c84023f20c.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation9/Skeleton"]
+
+[[entries]]
+uuid = "460c9f90-9a91-406f-b781-8e8ba7227142"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation9/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/10b96c4f-a5d1-66f8-6857-998275353a27.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "274fae7b-a4e2-4dec-9f1f-900471686d61"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation10"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/d01266e8-bd87-0b73-0b78-d2b600dca511.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation10/Skeleton"]
+
+[[entries]]
+uuid = "2edb0897-5573-4fd9-bde3-9a99c89a9063"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation10/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/34876ff0-bcd4-8c3d-6cd6-43b0704fb767.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "85d2b936-8210-4c9a-9205-c42a78f08a4e"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation11"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/50f17269-aa11-1ba7-e435-9225f088907e.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation11/Skeleton"]
+
+[[entries]]
+uuid = "eaa6cf86-1e8c-4121-b815-026779f553b7"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation11/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/239c9a3d-449c-0b43-3006-a75b0e64d919.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "e36efc52-f719-417f-a66f-984c0d94b362"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation12"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/9de79a8d-9a99-2800-d355-585e312fcb40.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation12/Skeleton"]
+
+[[entries]]
+uuid = "35cccf6b-7f5b-4ddf-9351-d0bff299d312"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation12/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/b2f29c4d-6fd1-a418-8001-52c476a17583.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "eb06d2f2-6cfd-439c-98e0-53710a1f442b"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation13"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/e4731b6d-713d-41c9-31f7-5b5be6f1912f.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation13/Skeleton"]
+
+[[entries]]
+uuid = "2da2d2bf-0b45-4265-9297-b6d4917b2600"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation13/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/a0defed9-97bc-e563-8b1a-89edfa6c2232.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c44171bc-6ac7-46b3-90c0-fc1c10c25ffe"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation14"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/2f449d27-d6ca-4d8f-9f5b-d7c3e4bf9ef7.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation14/Skeleton"]
+
+[[entries]]
+uuid = "aec7a74b-d822-45e2-8ce0-21b6de140948"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation14/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/2d77637c-d401-a86e-1f39-08650bfd2b88.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "41a0f631-dae2-49f1-ae88-caf13f16c704"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation15"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/50ed8ba7-9d84-555b-d0f4-92cb3912a765.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation15/Skeleton"]
+
+[[entries]]
+uuid = "fcee238a-e299-4220-b184-99af71a6fc6c"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation15/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/a505d2d2-e226-a867-da19-fe59253b543e.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "6c1a4994-05a5-4be5-a657-34e3364a4a1d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation16"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/58bbb5ff-5ddb-4576-6ebf-9742e681106e.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation16/Skeleton"]
+
+[[entries]]
+uuid = "a3034777-8332-4403-9d90-ea1662347097"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation16/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/29f1fd00-7c72-788a-ce0b-1fb90aca087b.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "5f279e99-c96b-4b59-8cac-50551859272c"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation17"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/e6d26214-9854-adb7-db42-a399cf648c60.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation17/Skeleton"]
+
+[[entries]]
+uuid = "232410f5-85ed-4e9c-8455-20884ebd3228"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation17/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/f534888c-854b-fe8a-66ca-b40b8fdd17db.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "2823a03c-e1aa-4c6e-ae1e-76bf1727cb67"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation18"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/537bbc47-1d16-da6a-f4f5-2a7266d50ef6.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation18/Skeleton"]
+
+[[entries]]
+uuid = "7dca7c0f-c2ea-4dd6-b3ac-77688a749c57"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation18/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/881e19e1-5e86-20ae-54b4-67effc96dcf4.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "6819ce72-7827-4b45-9a69-43e724589d87"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation19"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/99079973-570e-cd0e-8715-956bafd1a5a8.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation19/Skeleton"]
+
+[[entries]]
+uuid = "8d94ffec-2a60-4a3e-8845-36e20e5e5aaa"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation19/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/19bd80d1-d96e-5276-0594-1a5b20d7ecf6.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c6b39865-812c-4393-af34-18b20ee81ffe"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation20"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/f783a315-68aa-230c-e423-e9bd8b430b87.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation20/Skeleton"]
+
+[[entries]]
+uuid = "f135f6d7-7aff-449c-b507-a748609298ac"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation20/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/d4d17d98-ab08-c85d-43ca-6aa2132379d4.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "5dd9064a-778a-49a9-a043-6406875439ca"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation21"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/fc9b588a-dff1-9306-b5ca-0c18c4d14f3f.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation21/Skeleton"]
+
+[[entries]]
+uuid = "9dce6bda-c208-4920-b024-0eb0a4f26a4d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation21/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/8220e1eb-5a07-342b-9ff5-76d22dda5f7f.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "83b0bfd7-6a83-49af-9007-fff3503ee184"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation22"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/d60bdc20-2ed5-f727-f4b9-24954d589a4a.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation22/Skeleton"]
+
+[[entries]]
+uuid = "13f946b9-4938-409e-a2ed-77a142c0666d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation22/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/d707da0c-20e6-cba9-682a-7e2a5d7830aa.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "08f394f7-3c96-474b-8f89-fc21c654fcd8"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation23"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/faf45452-8d36-bbc6-a70f-8ec108e9ba65.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation23/Skeleton"]
+
+[[entries]]
+uuid = "b082317c-b260-4a35-a0bb-b97f3b7552c8"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation23/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/b656b03e-1fa2-f125-8ec9-97ba6bb55f58.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "24cbc342-6a1e-4df0-ac5a-ab20794be39d"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation24"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/13e9f7a3-fdd4-b8c6-080a-c826b29cbc6a.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation24/Skeleton"]
+
+[[entries]]
+uuid = "65b3851f-3a5d-46cc-bca7-4a79b955b2fb"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation24/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/b448b980-0375-3fe0-2854-cad70da60b49.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "6cd500f1-3bff-4027-b40c-19e8692cd763"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation25"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/b2244953-ffbb-b0cc-6504-3cc5c41d6b88.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation25/Skeleton"]
+
+[[entries]]
+uuid = "551da822-7515-4b6e-bf08-1920a21f38c4"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation25/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/8aaa41f6-7f3c-5f24-4577-bd8c206f7fa3.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c1d0b996-9647-48b3-8c47-24a937b5b544"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation26"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/5359cd31-b90c-605f-ed17-1d95a59fd8ca.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation26/Skeleton"]
+
+[[entries]]
+uuid = "c9d53b0e-8867-4106-834a-9c169c8bbaa8"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation26/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/bab66aa6-39e4-bfb8-9ac8-ed30e893ea92.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "80e4dbf4-13fe-4e45-9908-7e6ba0228cc3"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation27"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/e1fcd7ac-60fe-2204-9fa9-43681380b0db.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation27/Skeleton"]
+
+[[entries]]
+uuid = "27fc001f-5304-4beb-a85f-a83f330e677a"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation27/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/d39c1589-9b2d-0e55-9fd2-6b81bd872e74.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "6cea2b69-c506-48c7-b4e3-6d2d7d2e4f19"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation28"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/0b8985ea-8642-7c80-16f8-f55f17c4f3b7.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation28/Skeleton"]
+
+[[entries]]
+uuid = "882d004a-6708-4861-8b90-8251fb78e436"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation28/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/34558060-1ee3-4b6f-8d9e-3206db1835b3.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "84a845a5-7664-4c54-9324-623d45127dd7"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation29"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/0ab4b6f3-44a2-9a70-e8c8-8e1a1f50e774.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation29/Skeleton"]
+
+[[entries]]
+uuid = "069039d7-a7bd-4fd0-84cc-f01b28d46f6b"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation29/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/0c236e4e-ab4c-c86e-743e-d055f4c14f1f.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "182a5515-249f-4925-8134-733a498a4fc2"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation30"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/3c019188-39e9-6fac-e3c5-2252f0f1104a.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation30/Skeleton"]
+
+[[entries]]
+uuid = "320530b6-159d-48e1-bd3f-cdbf739143a8"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation30/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/73d67007-9d88-a6ce-cd5e-27a14805738d.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "2680ef8b-5803-4178-b907-560c5b6058d6"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation31"
+asset_kind = "AnimationClip"
+artifact_locator = "lib://animation/clips/66408325-bacc-e8b9-c4c5-2da4a3478d8c.zasset"
+dependencies = ["res://models/kenney_graveyard/character-vampire.glb#Animation31/Skeleton"]
+
+[[entries]]
+uuid = "15d4fc5a-90e6-4705-9885-301fb6e47214"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation31/Skeleton"
+asset_kind = "AnimationSkeleton"
+artifact_locator = "lib://animation/skeletons/7f4fe2f9-7989-f56e-fd04-33cde4506789.zasset"
+dependencies = []

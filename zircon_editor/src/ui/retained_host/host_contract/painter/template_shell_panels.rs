@@ -1,19 +1,17 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
+use super::style_selector::{
+    select_workbench_chrome_style, WorkbenchChromeKind as ShellPanelKind, WorkbenchChromeStyle,
+};
+#[cfg(test)]
+use super::style_selector::{
+    WORKBENCH_CHROME_DRAWER_BG as DRAWER_BG, WORKBENCH_CHROME_PANEL_BG as PANEL_BG,
+    WORKBENCH_CHROME_SOFT_SEPARATOR as SOFT_SEPARATOR, WORKBENCH_CHROME_STATUS_BG as STATUS_BG,
+    WORKBENCH_CHROME_STRONG_SEPARATOR as STRONG_SEPARATOR, WORKBENCH_CHROME_TOPBAR_BG as TOPBAR_BG,
+};
+#[cfg(test)]
+use super::theme::PALETTE;
 
-const ROOT_BG: [u8; 4] = [8, 11, 14, 255];
-const TOPBAR_BG: [u8; 4] = [14, 18, 22, 255];
-const MAIN_BG: [u8; 4] = [10, 13, 16, 255];
-const RAIL_BG: [u8; 4] = [12, 16, 20, 255];
-const PANEL_BG: [u8; 4] = [15, 20, 24, 255];
-const VIEWPORT_FRAME_BG: [u8; 4] = [9, 12, 15, 255];
-const DRAWER_BG: [u8; 4] = [13, 18, 22, 255];
-const DRAWER_BODY_BG: [u8; 4] = [12, 16, 20, 255];
-const STATUS_BG: [u8; 4] = [12, 17, 21, 255];
-const TAB_BG: [u8; 4] = [14, 19, 23, 255];
-const SEPARATOR: [u8; 4] = [29, 38, 44, 255];
-const STRONG_SEPARATOR: [u8; 4] = [38, 49, 56, 255];
-const SOFT_SEPARATOR: [u8; 4] = [24, 31, 36, 255];
 const DRAWER_COLUMN_SEPARATOR_OFFSET: f32 = -6.0;
 
 pub(super) fn push_shell_panel_commands(
@@ -32,7 +30,8 @@ pub(super) fn push_shell_panel_commands(
         return true;
     }
 
-    if let Some(fill) = shell_panel_fill(kind) {
+    let style = select_workbench_chrome_style(node, kind);
+    if let Some(fill) = style.fill {
         commands.push(HostPaintCommand::quad(
             rect.clone(),
             Some(clip.clone()),
@@ -44,25 +43,8 @@ pub(super) fn push_shell_panel_commands(
             opacity,
         ));
     }
-    push_shell_panel_separators(commands, kind, &rect, clip, order + 1, opacity);
+    push_shell_panel_separators(commands, kind, &style, &rect, clip, order + 1, opacity);
     true
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum ShellPanelKind {
-    WindowRoot,
-    TopToolbar,
-    MainBand,
-    ActivityRail,
-    ScenePanel,
-    ViewportPanel,
-    InspectorPanel,
-    ComponentDrawer,
-    DrawerBody,
-    DrawerColumn,
-    StatusBar,
-    TabsBand,
-    InspectorSection,
 }
 
 fn shell_panel_kind(node: &TemplatePaneNodeData) -> Option<ShellPanelKind> {
@@ -107,27 +89,10 @@ fn shell_panel_kind(node: &TemplatePaneNodeData) -> Option<ShellPanelKind> {
     }
 }
 
-fn shell_panel_fill(kind: ShellPanelKind) -> Option<[u8; 4]> {
-    match kind {
-        ShellPanelKind::WindowRoot => Some(ROOT_BG),
-        ShellPanelKind::TopToolbar => Some(TOPBAR_BG),
-        ShellPanelKind::MainBand => Some(MAIN_BG),
-        ShellPanelKind::ActivityRail => Some(RAIL_BG),
-        ShellPanelKind::ScenePanel
-        | ShellPanelKind::InspectorPanel
-        | ShellPanelKind::InspectorSection => Some(PANEL_BG),
-        ShellPanelKind::ViewportPanel => Some(VIEWPORT_FRAME_BG),
-        ShellPanelKind::ComponentDrawer => Some(DRAWER_BG),
-        ShellPanelKind::DrawerBody => Some(DRAWER_BODY_BG),
-        ShellPanelKind::DrawerColumn => None,
-        ShellPanelKind::StatusBar => Some(STATUS_BG),
-        ShellPanelKind::TabsBand => Some(TAB_BG),
-    }
-}
-
 fn push_shell_panel_separators(
     commands: &mut Vec<HostPaintCommand>,
     kind: ShellPanelKind,
+    style: &WorkbenchChromeStyle,
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
@@ -135,23 +100,23 @@ fn push_shell_panel_separators(
 ) {
     match kind {
         ShellPanelKind::TopToolbar => {
-            push_bottom_line(commands, rect, clip, order, STRONG_SEPARATOR, opacity);
+            push_bottom_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
         ShellPanelKind::ActivityRail | ShellPanelKind::ScenePanel => {
-            push_right_line(commands, rect, clip, order, STRONG_SEPARATOR, opacity);
+            push_right_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
         ShellPanelKind::ViewportPanel => {
-            push_left_line(commands, rect, clip, order, SOFT_SEPARATOR, opacity);
-            push_right_line(commands, rect, clip, order, SOFT_SEPARATOR, opacity);
+            push_left_line(commands, rect, clip, order, style.soft_separator, opacity);
+            push_right_line(commands, rect, clip, order, style.soft_separator, opacity);
         }
         ShellPanelKind::InspectorPanel => {
-            push_left_line(commands, rect, clip, order, STRONG_SEPARATOR, opacity);
+            push_left_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
         ShellPanelKind::ComponentDrawer | ShellPanelKind::StatusBar => {
-            push_top_line(commands, rect, clip, order, STRONG_SEPARATOR, opacity);
+            push_top_line(commands, rect, clip, order, style.strong_separator, opacity);
         }
         ShellPanelKind::TabsBand | ShellPanelKind::InspectorSection => {
-            push_bottom_line(commands, rect, clip, order, SEPARATOR, opacity);
+            push_bottom_line(commands, rect, clip, order, style.separator, opacity);
         }
         ShellPanelKind::DrawerColumn => {
             push_vertical_line(
@@ -161,7 +126,7 @@ fn push_shell_panel_separators(
                 rect.height,
                 clip,
                 order,
-                SOFT_SEPARATOR,
+                style.soft_separator,
                 opacity,
             );
         }
@@ -414,6 +379,28 @@ mod tests {
 
         assert_eq!(pixel_at(&bytes, 160, 66, 24), SOFT_SEPARATOR);
         assert_eq!(pixel_at(&bytes, 160, 96, 24), [0, 0, 0, 255]);
+    }
+
+    #[test]
+    fn shell_panel_chrome_selector_states_reach_native_paint() {
+        let mut loading_status = panel_node("WorkbenchWindowStatusBar", 12.0, 8.0, 118.0, 26.0);
+        loading_status.button_style.loading = true;
+        loading_status.focused = true;
+        loading_status.selected = true;
+
+        let mut focused_inspector = panel_node("WorkbenchInspectorPanel", 152.0, 8.0, 72.0, 48.0);
+        focused_inspector.focused = true;
+
+        let bytes = paint_template_nodes_for_test(
+            240,
+            72,
+            model_rc(vec![loading_status, focused_inspector]),
+        );
+
+        assert_eq!(pixel_at(&bytes, 240, 20, 8), PALETTE.border_disabled);
+        assert_eq!(pixel_at(&bytes, 240, 20, 22), PALETTE.surface_disabled);
+        assert_eq!(pixel_at(&bytes, 240, 152, 24), PALETTE.focus_ring);
+        assert_eq!(pixel_at(&bytes, 240, 184, 24), PALETTE.surface_selected);
     }
 
     fn panel_node(

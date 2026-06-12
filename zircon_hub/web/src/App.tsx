@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { HubSnackbar } from "./components/feedback";
+import { HubErrorBoundary, HubSnackbar } from "./components/feedback";
 import { HubWindow } from "./components/shell";
 import { fallbackShellState } from "./data/hubData";
 import { dispatchHubAction, loadHubState, subscribeHubStateChanged } from "./tauri/hubApi";
@@ -9,6 +9,18 @@ export function App() {
   const [state, setState] = useState<HubShellState>(fallbackShellState);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const stateRef = useRef(state);
+  const stateGenerationRef = useRef(0);
+  const actionSequenceRef = useRef(0);
+
+  function applyHubState(nextState: HubShellState) {
+    stateGenerationRef.current += 1;
+    setState(() => nextState);
+  }
+
+  async function reloadHubState() {
+    const nextState = await loadHubState();
+    applyHubState(nextState);
+  }
 
   useEffect(() => {
     stateRef.current = state;
@@ -16,9 +28,15 @@ export function App() {
 
   useEffect(() => {
     let cancelled = false;
+    const actionSequenceAtLoad = actionSequenceRef.current;
+    const stateGenerationAtLoad = stateGenerationRef.current;
     loadHubState().then((nextState) => {
-      if (!cancelled) {
-        setState(nextState);
+      if (
+        !cancelled &&
+        actionSequenceRef.current === actionSequenceAtLoad &&
+        stateGenerationRef.current === stateGenerationAtLoad
+      ) {
+        applyHubState(nextState);
       }
     });
     return () => {
@@ -32,7 +50,7 @@ export function App() {
 
     subscribeHubStateChanged((nextState) => {
       if (!cancelled) {
-        setState(nextState);
+        applyHubState(nextState);
       }
     })
       .then((cleanup) => {
@@ -49,6 +67,7 @@ export function App() {
         }
 
         const shellText = stateRef.current.ui.shell;
+        stateGenerationRef.current += 1;
         setState((current) => ({
           ...current,
           taskSummary: {
@@ -59,6 +78,8 @@ export function App() {
             recovery: shellText.stateRefreshAfterCommand,
             operation: shellText.liveUpdatesUnavailable,
             progressPercent: 0,
+            taskId: current.taskSummary.taskId,
+            queued: current.taskSummary.queued,
           },
         }));
         console.warn(shellText.liveUpdatesUnavailable, error);
@@ -77,11 +98,22 @@ export function App() {
   }, [state.taskSummary.recovery, state.taskSummary.running, state.taskSummary.tone]);
 
   const handleAction: HubActionHandler = async (actionId, targetId, payload) => {
+    const actionSequence = actionSequenceRef.current + 1;
+    actionSequenceRef.current = actionSequence;
+    const stateGenerationAtDispatch = stateGenerationRef.current;
+
     try {
       const nextState = await dispatchHubAction(actionId, targetId, payload);
-      setState(nextState);
+      if (actionSequence === actionSequenceRef.current && stateGenerationRef.current === stateGenerationAtDispatch) {
+        applyHubState(nextState);
+      }
     } catch (error) {
+      if (actionSequence !== actionSequenceRef.current || stateGenerationRef.current !== stateGenerationAtDispatch) {
+        return;
+      }
+
       const shellText = stateRef.current.ui.shell;
+      stateGenerationRef.current += 1;
       setState((current) => ({
         ...current,
         taskSummary: {
@@ -92,6 +124,8 @@ export function App() {
           recovery: shellText.checkActionTarget,
           operation: shellText.actionFailed,
           progressPercent: 0,
+          taskId: current.taskSummary.taskId,
+          queued: current.taskSummary.queued,
         },
         taskStatus: current.taskStatus.map((status) => (status.id === "error" ? { ...status, tone: "error" } : status)),
       }));
@@ -101,7 +135,9 @@ export function App() {
 
   return (
     <>
-      <HubWindow state={state} onAction={handleAction} />
+      <HubErrorBoundary shellText={state.ui.shell} onReset={() => void reloadHubState()}>
+        <HubWindow state={state} onAction={handleAction} />
+      </HubErrorBoundary>
       <HubSnackbar task={state.taskSummary} open={snackbarOpen} onClose={() => setSnackbarOpen(false)} />
     </>
   );

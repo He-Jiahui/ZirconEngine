@@ -21,24 +21,43 @@ impl World {
         self.archetype_index.generation()
     }
 
-    pub(crate) fn entity_locations_matching_query_archetypes(
+    pub(crate) fn matching_query_archetypes(&self, access: &QueryAccess) -> Vec<ArchetypeId> {
+        self.archetype_index
+            .matching_archetypes(access.with(), access.without())
+    }
+
+    pub(crate) fn matching_query_archetype_entity_count(
         &self,
-        access: &QueryAccess,
-    ) -> (Vec<ArchetypeId>, Vec<StableEntityLocation>) {
-        let archetypes = self
-            .archetype_index
-            .matching_archetypes(access.with(), access.without());
-        let locations = self
-            .entities
-            .iter()
-            .filter_map(|entity| self.internal_entity_location(*entity))
-            .filter(|location| {
-                archetypes
-                    .binary_search(&location.location.archetype_id)
-                    .is_ok()
-            })
-            .collect();
-        (archetypes, locations)
+        archetypes: &[ArchetypeId],
+    ) -> usize {
+        let mut count = 0;
+        for archetype in archetypes {
+            if let Some(entities) = self.archetype_index.entities(*archetype) {
+                count += entities.len();
+            }
+        }
+        count
+    }
+
+    pub(crate) fn visit_entity_locations_matching_archetypes(
+        &self,
+        archetypes: &[ArchetypeId],
+        mut visitor: impl FnMut(StableEntityLocation),
+    ) {
+        if archetypes.is_empty() {
+            return;
+        }
+        for entity in self.entities.iter().copied() {
+            let Some(location) = self.internal_entity_location(entity) else {
+                continue;
+            };
+            if archetypes
+                .binary_search(&location.location.archetype_id)
+                .is_ok()
+            {
+                visitor(location);
+            }
+        }
     }
 
     pub(crate) fn component_storage_locations_for_internal(
@@ -48,11 +67,16 @@ impl World {
         output: &mut Vec<ComponentStorageLocation>,
     ) {
         output.clear();
-        output.extend(
-            component_ids.iter().filter_map(|component_id| {
-                self.component_storage.location(*component_id, internal)
-            }),
-        );
+        let component_count = component_ids.len();
+        if component_count == 0 {
+            return;
+        }
+        output.reserve(component_count);
+        for component_id in component_ids {
+            if let Some(location) = self.component_storage.location(*component_id, internal) {
+                output.push(location);
+            }
+        }
     }
 
     pub(crate) fn component_ref_with_ticks_at_location<T>(
@@ -67,7 +91,7 @@ impl World {
     }
 
     pub fn contains_entity(&self, entity: EntityId) -> bool {
-        self.entities.contains(&entity)
+        self.entity_registry.contains_stable(entity)
     }
 
     pub fn camera_count(&self) -> usize {
@@ -75,9 +99,11 @@ impl World {
     }
 
     pub fn parent_of(&self, entity: EntityId) -> Option<EntityId> {
-        self.hierarchy
-            .get(&entity)
-            .and_then(|hierarchy| hierarchy.parent)
+        let Some(hierarchy) = self.hierarchy.get(&entity) else {
+            return None;
+        };
+
+        hierarchy.parent
     }
 
     pub fn active_camera(&self) -> EntityId {
@@ -96,12 +122,13 @@ impl World {
     }
 
     pub fn node_records(&self) -> Vec<SceneNode> {
-        let mut nodes = self
-            .entities
-            .iter()
-            .copied()
-            .filter_map(|entity| self.project_node_for_read(entity))
-            .collect::<Vec<_>>();
+        let mut nodes = Vec::with_capacity(self.entities.len());
+        for entity in self.entities.iter().copied() {
+            let Some(node) = self.project_node_for_read(entity) else {
+                continue;
+            };
+            nodes.push(node);
+        }
         nodes.sort_by_key(|node| node.id);
         nodes
     }
@@ -119,10 +146,11 @@ impl World {
     }
 
     pub fn active_self(&self, entity: EntityId) -> Option<bool> {
-        self.active_self
-            .get(&entity)
-            .copied()
-            .map(|active| active.0)
+        let Some(active) = self.active_self.get(&entity) else {
+            return None;
+        };
+
+        Some(active.0)
     }
 
     pub fn set_active_self(&mut self, entity: EntityId, active: bool) -> Result<bool, String> {
@@ -143,10 +171,11 @@ impl World {
     }
 
     pub fn render_layer_mask(&self, entity: EntityId) -> Option<u32> {
-        self.render_layer_masks
-            .get(&entity)
-            .copied()
-            .map(|mask| mask.0)
+        let Some(mask) = self.render_layer_masks.get(&entity) else {
+            return None;
+        };
+
+        Some(mask.0)
     }
 
     pub fn set_render_layer_mask(&mut self, entity: EntityId, mask: u32) -> Result<bool, String> {

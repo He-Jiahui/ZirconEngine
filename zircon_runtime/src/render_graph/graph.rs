@@ -1,7 +1,7 @@
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
-    RenderGraphResourceLifetime, RenderPassId,
+    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
+    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,6 +105,7 @@ impl CompiledRenderGraphStats {
 pub struct CompiledRenderGraph {
     name: String,
     passes: Vec<CompiledRenderPass>,
+    resource_declarations: Vec<RenderGraphResourceDeclaration>,
     resource_lifetimes: Vec<RenderGraphResourceLifetime>,
 }
 
@@ -112,11 +113,13 @@ impl CompiledRenderGraph {
     pub(crate) fn new(
         name: String,
         passes: Vec<CompiledRenderPass>,
+        resource_declarations: Vec<RenderGraphResourceDeclaration>,
         resource_lifetimes: Vec<RenderGraphResourceLifetime>,
     ) -> Self {
         Self {
             name,
             passes,
+            resource_declarations,
             resource_lifetimes,
         }
     }
@@ -129,8 +132,45 @@ impl CompiledRenderGraph {
         &self.passes
     }
 
+    pub fn resource_declarations(&self) -> &[RenderGraphResourceDeclaration] {
+        &self.resource_declarations
+    }
+
+    pub fn resource_declaration(
+        &self,
+        resource: RenderGraphResource,
+    ) -> Option<&RenderGraphResourceDeclaration> {
+        self.resource_declarations
+            .iter()
+            .find(|declaration| declaration.resource == resource)
+    }
+
+    pub fn resource_declaration_by_name(
+        &self,
+        name: &str,
+    ) -> Option<&RenderGraphResourceDeclaration> {
+        self.resource_declarations
+            .iter()
+            .find(|declaration| declaration.name == name)
+    }
+
     pub fn resource_lifetimes(&self) -> &[RenderGraphResourceLifetime] {
         &self.resource_lifetimes
+    }
+
+    pub fn resource_lifetime(
+        &self,
+        resource: RenderGraphResource,
+    ) -> Option<&RenderGraphResourceLifetime> {
+        self.resource_lifetimes
+            .iter()
+            .find(|lifetime| lifetime.resource == resource)
+    }
+
+    pub fn resource_lifetime_by_name(&self, name: &str) -> Option<&RenderGraphResourceLifetime> {
+        self.resource_lifetimes
+            .iter()
+            .find(|lifetime| lifetime.name == name)
     }
 
     pub fn transient_allocation_plan(&self) -> CompiledRenderGraphTransientAllocationPlan {

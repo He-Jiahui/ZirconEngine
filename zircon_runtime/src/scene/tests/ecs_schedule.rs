@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use crate::core::framework::render::{
     DisplayMode, ProjectionMode, RenderCameraClearColor, RenderExtractContext, RenderLayerSet,
@@ -14,12 +15,14 @@ use crate::plugin::{
 };
 use crate::scene::components::{CameraComponent, MeshRenderer, Mobility};
 use crate::scene::ecs::{
-    CommandsParam, Component, EventStore, Events, InternalSceneSystem, ResourceStore,
-    SceneSystemDescriptor, Schedule, SystemStage, SystemState,
+    CommandsParam, Component, EventStore, Events, FunctionRuntimeSceneSystem, InternalSceneSystem,
+    ResourceStore, SceneSystemDescriptor, SceneSystemMetadata, Schedule, SystemOrderingConstraint,
+    SystemRef, SystemSetRegistry, SystemStage, SystemState,
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World, SCENE_MODULE_NAME};
 
 mod conflict_graph;
+mod parallel_executor;
 
 #[derive(Debug, PartialEq, Eq)]
 struct DeferredMarker;
@@ -49,6 +52,18 @@ fn resource_store_keeps_resources_by_concrete_type() {
         Some(SceneFrameCounter(3))
     );
     assert!(!resources.contains::<SceneFrameCounter>());
+}
+
+#[test]
+fn resource_store_type_names_preallocate_from_resource_count() {
+    let resource_store_source = include_str!("../ecs/resource_store.rs");
+
+    assert!(
+        resource_store_source.contains("let mut names = Vec::with_capacity(self.resources.len());")
+    );
+    assert!(resource_store_source.contains("for stored in self.resources.values()"));
+    assert!(resource_store_source.contains("names.push(stored.type_name);"));
+    assert!(!resource_store_source.contains("map(|stored| stored.type_name)"));
 }
 
 #[test]
@@ -113,7 +128,9 @@ fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems() {
         vec![
             SystemStage::First,
             SystemStage::PreUpdate,
+            SystemStage::FixedFirst,
             SystemStage::FixedUpdate,
+            SystemStage::FixedPostUpdate,
             SystemStage::Update,
             SystemStage::PostUpdate,
             SystemStage::Last,
@@ -147,6 +164,166 @@ fn schedule_uses_bevy_style_stage_order_and_builtin_post_update_systems() {
         render_extract,
         vec![InternalSceneSystem::RenderExtractPrepare]
     );
+}
+
+#[test]
+fn system_set_intern_is_stable() {
+    let mut registry = SystemSetRegistry::default();
+
+    let first = registry.intern("physics.main").unwrap();
+    let repeated = registry.intern("physics.main").unwrap();
+    let second = registry.intern("animation.main").unwrap();
+
+    assert_eq!(first, repeated);
+    assert_ne!(first, second);
+    assert_eq!(registry.name(first), Some("physics.main"));
+    assert_eq!(registry.name(second), Some("animation.main"));
+}
+
+#[test]
+fn stage_plan_orders_by_constraints_then_order() {
+    let mut schedule = Schedule::default();
+
+    schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "plugin.physics.step",
+                SystemStage::Update,
+                InternalSceneSystem::NodeCache,
+            )
+            .with_order(100),
+        )
+        .unwrap();
+    schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "plugin.animation.evaluate",
+                SystemStage::Update,
+                InternalSceneSystem::NodeCache,
+            )
+            .with_order(-100)
+            .after(SystemRef::System("plugin.physics.step".to_string())),
+        )
+        .unwrap();
+
+    let plan = schedule.stage_plan();
+    let ids = plan
+        .internal_systems_for_stage(SystemStage::Update)
+        .iter()
+        .map(|system| system.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        ids,
+        vec!["plugin.physics.step", "plugin.animation.evaluate"]
+    );
+}
+
+#[test]
+fn schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration() {
+    fn ordered_update_ids(register_animation_first: bool) -> Vec<String> {
+        let mut schedule = Schedule::default();
+        let physics = SceneSystemDescriptor::new(
+            "plugin.physics.step",
+            SystemStage::Update,
+            InternalSceneSystem::NodeCache,
+        );
+        let animation = SceneSystemDescriptor::new(
+            "plugin.animation.evaluate",
+            SystemStage::Update,
+            InternalSceneSystem::NodeCache,
+        )
+        .after(SystemRef::System("plugin.physics.step".to_string()));
+
+        if register_animation_first {
+            schedule.register_system(animation).unwrap();
+            schedule.register_system(physics).unwrap();
+        } else {
+            schedule.register_system(physics).unwrap();
+            schedule.register_system(animation).unwrap();
+        }
+
+        schedule
+            .stage_plan()
+            .internal_systems_for_stage(SystemStage::Update)
+            .iter()
+            .map(|system| system.id.clone())
+            .collect::<Vec<_>>()
+    }
+
+    let expected = vec![
+        "plugin.physics.step".to_string(),
+        "plugin.animation.evaluate".to_string(),
+    ];
+    assert_eq!(ordered_update_ids(false), expected);
+    assert_eq!(ordered_update_ids(true), expected);
+}
+
+#[test]
+fn ordering_cycle_reports_chain() {
+    let mut schedule = Schedule::default();
+
+    schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "plugin.a",
+                SystemStage::Update,
+                InternalSceneSystem::NodeCache,
+            )
+            .after(SystemRef::System("plugin.b".to_string())),
+        )
+        .unwrap();
+    let error = schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "plugin.b",
+                SystemStage::Update,
+                InternalSceneSystem::NodeCache,
+            )
+            .after(SystemRef::System("plugin.a".to_string())),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        crate::scene::ecs::ScheduleError::OrderingCycle { .. }
+    ));
+    assert!(error.to_string().contains("ordering cycle"));
+    assert!(error.to_string().contains("plugin.a"));
+    assert!(error.to_string().contains("plugin.b"));
+}
+
+#[test]
+fn cross_stage_constraint_rejected() {
+    let mut schedule = Schedule::default();
+
+    schedule
+        .register_system(SceneSystemDescriptor::new(
+            "plugin.update",
+            SystemStage::Update,
+            InternalSceneSystem::NodeCache,
+        ))
+        .unwrap();
+    let error = schedule
+        .register_system(
+            SceneSystemDescriptor::new(
+                "plugin.post_update",
+                SystemStage::PostUpdate,
+                InternalSceneSystem::NodeCache,
+            )
+            .with_constraint(SystemOrderingConstraint::After(SystemRef::System(
+                "plugin.update".to_string(),
+            ))),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        crate::scene::ecs::ScheduleError::CrossStageConstraint { .. }
+    ));
+    assert!(error.to_string().contains("cross-stage"));
+    assert!(error.to_string().contains("plugin.post_update"));
+    assert!(error.to_string().contains("plugin.update"));
 }
 
 #[test]
@@ -232,6 +409,7 @@ fn schedule_defers_executor_plan_refresh_while_native_system_is_taken() {
         .any(|step| match step {
             crate::scene::ecs::ScheduledSceneStep::Native { id, .. } =>
                 id == "zircon.test.running_native",
+            crate::scene::ecs::ScheduledSceneStep::Runtime { .. } => false,
             crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => false,
         }));
 }
@@ -765,7 +943,8 @@ fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
         .unwrap();
     runtime.install_scene_runtime_hooks(&registry).unwrap();
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
 
     assert_eq!(
         *events.lock().unwrap(),
@@ -778,6 +957,25 @@ fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
         level.with_world(|world| world.world_transform(cube).unwrap().translation),
         Vec3::new(9.0, 0.0, 0.0)
     );
+}
+
+#[test]
+fn world_driver_consumes_runtime_time_advance_without_advancing_clocks_again() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    runtime.set_fixed_timestep(Duration::from_millis(10));
+    let level = create_default_level(&runtime.handle()).unwrap();
+
+    let advance = runtime.advance_time_by(Duration::from_millis(25), 8);
+    assert_eq!(advance.fixed_step_plan().step_count, 2);
+
+    level.tick(&runtime.handle(), advance).unwrap();
+
+    let clocks = runtime.time_clocks();
+    assert_eq!(clocks.real().frame_index(), 1);
+    assert_eq!(clocks.fixed().frame_index(), 2);
+    assert_eq!(clocks.fixed().overstep(), Duration::from_millis(5));
 }
 
 #[test]
@@ -816,7 +1014,8 @@ fn world_driver_runs_native_render_extract_system_before_render_extract_hooks() 
         .unwrap();
     runtime.install_scene_runtime_hooks(&registry).unwrap();
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
 
     assert_eq!(
         *events.lock().unwrap(),
@@ -877,7 +1076,8 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
         .unwrap();
     runtime.install_scene_runtime_hooks(&registry).unwrap();
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
 
     assert_eq!(
         *events.lock().unwrap(),
@@ -885,6 +1085,86 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
             "native-before-hook".to_string(),
             "hook".to_string(),
             "native-after-hook".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+
+    {
+        let events = events.clone();
+        level
+            .with_world_mut(|world| {
+                world.register_native_system::<(), _>(
+                    "gameplay.native.before-runtime",
+                    SystemStage::Update,
+                    -1,
+                    move |()| {
+                        events
+                            .lock()
+                            .unwrap()
+                            .push("native-before-runtime".to_string())
+                    },
+                )
+            })
+            .unwrap();
+    }
+    {
+        let events = events.clone();
+        let system = FunctionRuntimeSceneSystem::new(
+            SceneSystemMetadata::new("gameplay.runtime.context", SystemStage::Update, 0),
+            move |context| {
+                context.level.with_world(|_| {
+                    events
+                        .lock()
+                        .unwrap()
+                        .push(format!("runtime-delta={:.3}", context.delta_seconds));
+                });
+                assert!(context
+                    .core
+                    .resolve_driver::<crate::scene::WorldDriver>(crate::scene::WORLD_DRIVER_NAME)
+                    .is_ok());
+                Ok(())
+            },
+        );
+        level
+            .with_world_mut(|world| world.register_boxed_runtime_scene_system(Box::new(system)))
+            .unwrap();
+    }
+    {
+        let events = events.clone();
+        level
+            .with_world_mut(|world| {
+                world.register_native_system::<(), _>(
+                    "gameplay.native.after-runtime",
+                    SystemStage::Update,
+                    1,
+                    move |()| {
+                        events
+                            .lock()
+                            .unwrap()
+                            .push("native-after-runtime".to_string())
+                    },
+                )
+            })
+            .unwrap();
+    }
+
+    let advance = runtime.advance_time_by(Duration::from_millis(16), 8);
+    level.tick(&runtime.handle(), advance).unwrap();
+
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec![
+            "native-before-runtime".to_string(),
+            "runtime-delta=0.016".to_string(),
+            "native-after-runtime".to_string(),
         ]
     );
 }

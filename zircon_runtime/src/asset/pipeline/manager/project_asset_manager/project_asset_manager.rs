@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex, RwLock};
 
+use crate::core::framework::channel::ChannelSender;
 use crate::core::resource::ResourceManager;
-use crate::core::ChannelSender;
 
 use crate::asset::project::ProjectManager;
-use crate::asset::watch::{AssetChange, AssetWatcher};
+use crate::asset::watch::{AssetChange, AssetWatchError, AssetWatcher};
 use crate::asset::AssetImporterRegistry;
 
 #[derive(Clone)]
@@ -15,5 +15,7 @@ pub struct ProjectAssetManager {
     pub(in crate::asset::pipeline::manager) resource_manager: ResourceManager,
     pub(in crate::asset::pipeline::manager) change_subscribers:
         Arc<Mutex<Vec<ChannelSender<AssetChange>>>>,
+    pub(in crate::asset::pipeline::manager) watch_error_subscribers:
+        Arc<Mutex<Vec<ChannelSender<AssetWatchError>>>>,
     pub(in crate::asset::pipeline::manager) watcher: Arc<Mutex<Option<AssetWatcher>>>,
 }

@@ -54,6 +54,15 @@ pub trait RenderFramework: Send + Sync {
         })
     }
 
+    fn present_frame_extract_with_ui(
+        &self,
+        viewport: RenderViewportHandle,
+        extract: RenderFrameExtract,
+        _ui: Option<UiRenderExtract>,
+    ) -> Result<(), RenderFrameworkError> {
+        self.present_frame_extract(viewport, extract)
+    }
+
     fn set_pipeline_asset(
         &self,
         viewport: RenderViewportHandle,

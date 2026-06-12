@@ -3,6 +3,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::marker::PhantomData;
 
+pub trait Event: 'static + Send + Sync {}
+
+impl<T> Event for T where T: 'static + Send + Sync {}
+
 #[derive(Clone, Debug)]
 pub struct Events<T> {
     current: Vec<T>,
@@ -40,9 +44,13 @@ impl<T> Events<T> {
     where
         I: IntoIterator<Item = T>,
     {
+        let events = events.into_iter();
+        let (lower_bound, _) = events.size_hint();
+        self.next.reserve(lower_bound);
+
         let mut written = 0;
         for event in events {
-            self.send(event);
+            self.next.push(event);
             written += 1;
         }
         written
@@ -63,7 +71,7 @@ impl<T> Events<T> {
     }
 
     pub fn drain(&mut self) -> Vec<T> {
-        self.current.drain(..).collect()
+        std::mem::take(&mut self.current)
     }
 
     pub fn clear(&mut self) {
@@ -122,15 +130,14 @@ impl<T> EventCursor<T> {
     }
 
     pub fn unread_count(&self, events: Option<&Events<T>>) -> usize {
-        events
-            .map(|events| {
-                if self.generation == events.generation() {
-                    events.len().saturating_sub(self.cursor.min(events.len()))
-                } else {
-                    events.len()
-                }
-            })
-            .unwrap_or_default()
+        let Some(events) = events else {
+            return 0;
+        };
+        if self.generation == events.generation() {
+            events.len().saturating_sub(self.cursor.min(events.len()))
+        } else {
+            events.len()
+        }
     }
 
     pub fn clear(&mut self, events: Option<&Events<T>>) {
@@ -174,9 +181,8 @@ pub struct EventStore {
 
 impl EventStore {
     pub fn events<T: 'static + Send + Sync>(&self) -> Option<&Events<T>> {
-        self.stores
-            .get(&TypeId::of::<T>())
-            .and_then(|store| store.downcast_ref::<Events<T>>())
+        let store = self.stores.get(&TypeId::of::<T>())?;
+        store.downcast_ref::<Events<T>>()
     }
 
     pub fn events_mut<T: 'static + Send + Sync>(&mut self) -> &mut Events<T> {
@@ -210,7 +216,10 @@ impl EventStore {
     }
 
     pub fn registered_type_names(&self) -> Vec<&'static str> {
-        let mut names = self.type_names.values().copied().collect::<Vec<_>>();
+        let mut names = Vec::with_capacity(self.type_names.len());
+        for name in self.type_names.values() {
+            names.push(*name);
+        }
         names.sort_unstable();
         names
     }

@@ -2,14 +2,18 @@ use std::fs;
 
 use super::gltf_external_fixtures::{write_external_texture_gltf, write_missing_buffer_gltf};
 use super::gltf_primitive_fixtures::{
-    write_line_gltf, write_skinned_triangle_gltf, write_triangle_gltf, write_two_primitive_gltf,
+    write_line_gltf, write_node_animation_gltf, write_skinned_triangle_gltf,
+    write_tangent_color_triangle_gltf, write_texture_transform_triangle_gltf, write_triangle_gltf,
+    write_two_primitive_gltf, write_uv_channel_triangle_gltf,
 };
 use super::gltf_scene_fixtures::write_two_scene_gltf;
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
 use crate::asset::{
-    AssetImportOutcome, AssetUri, DataAssetFormat, ImportedAsset, ImportedAssetEntry,
-    MeshAttributeValues, ModelPrimitiveAsset, MESH_ATTRIBUTE_POSITION,
+    AnimationChannelValueAsset, AnimationInterpolationAsset, AssetImportOutcome, AssetImporter,
+    AssetImporterCapabilityStatus, AssetUri, DataAssetFormat, ImportedAsset, ImportedAssetEntry,
+    MaterialAsset, MeshAttributeValues, ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
 };
 
 #[test]
@@ -34,6 +38,56 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
             assert_cooked_virtual_geometry(&model.primitives[0], "res://models/triangle.gltf");
         }
         other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn default_importer_decodes_gltf_without_first_wave_plugin_fixture() {
+    let root = unique_temp_project_root("default_triangle_gltf_model_import");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_triangle_gltf(&root);
+    let importer = AssetImporter::default();
+    let root_uri = AssetUri::parse("res://models/default_triangle.gltf").unwrap();
+
+    let report = importer
+        .capability_report_for_source(&gltf_path)
+        .expect("default importer should report gltf capability");
+    assert_eq!(report.descriptor.id, "zircon.builtin.model.gltf");
+    assert_eq!(
+        report.descriptor.plugin_id,
+        "zircon.builtin.asset_importers"
+    );
+    assert_eq!(report.status, AssetImporterCapabilityStatus::Available);
+
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+    match &outcome.root_entry().expect("root gltf entry").asset {
+        ImportedAsset::Model(model) => {
+            assert_eq!(model.primitives.len(), 1);
+            assert_cooked_virtual_geometry(
+                &model.primitives[0],
+                "res://models/default_triangle.gltf",
+            );
+        }
+        other => panic!("unexpected root gltf asset: {other:?}"),
+    }
+    for label in [
+        "Scene0",
+        "Mesh0",
+        "Mesh0/Primitive0",
+        "Material0",
+        "Texture0",
+    ] {
+        assert!(
+            outcome
+                .entries
+                .iter()
+                .any(|entry| entry.locator == label_uri(&root_uri, label)),
+            "outcome should include {label}"
+        );
     }
 
     let _ = fs::remove_dir_all(root);
@@ -71,6 +125,7 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
         "DefaultMaterial",
         "Animation0",
         "Skin0",
+        "Skin0/Skeleton",
         "Skin0/InverseBindMatrices",
     ] {
         assert!(
@@ -162,10 +217,22 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
         other => panic!("unexpected Node0 asset: {other:?}"),
     }
     match &entry_for_label(&outcome, &root_uri, "Animation0").asset {
-        ImportedAsset::Data(data) => assert!(
-            data.text.contains("not implemented yet"),
-            "Animation0 should remain a diagnostic placeholder"
-        ),
+        ImportedAsset::AnimationClip(clip) => {
+            assert_eq!(
+                clip.skeleton.locator,
+                label_uri(&root_uri, "Skin0/Skeleton")
+            );
+            assert_eq!(clip.duration_seconds, 0.0);
+            assert_eq!(clip.tracks.len(), 1);
+            let track = &clip.tracks[0];
+            assert_eq!(track.bone_name, "Node0:TriangleNode");
+            assert_eq!(track.target_id.as_deref(), Some("Node0:TriangleNode"));
+            assert_eq!(track.translation.keys.len(), 1);
+            assert_eq!(
+                track.translation.keys[0].value,
+                AnimationChannelValueAsset::Vec3([0.0, 0.0, 0.0])
+            );
+        }
         other => panic!("unexpected Animation0 asset: {other:?}"),
     }
     match &entry_for_label(&outcome, &root_uri, "Skin0").asset {
@@ -182,9 +249,23 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
                 data.canonical_json["inverse_bind_matrices"],
                 label_uri(&root_uri, "Skin0/InverseBindMatrices").to_string()
             );
+            assert_eq!(
+                data.canonical_json["skeleton_asset"],
+                label_uri(&root_uri, "Skin0/Skeleton").to_string()
+            );
             assert_eq!(data.canonical_json["inverse_bind_matrix_count"], 1);
         }
         other => panic!("unexpected Skin0 asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, &root_uri, "Skin0/Skeleton").asset {
+        ImportedAsset::AnimationSkeleton(skeleton) => {
+            assert_eq!(skeleton.name.as_deref(), Some("Skin0"));
+            assert_eq!(skeleton.bones.len(), 1);
+            assert_eq!(skeleton.bones[0].name, "Node0:TriangleNode");
+            assert_eq!(skeleton.bones[0].parent_index, None);
+            assert_eq!(skeleton.bones[0].local_translation, [0.0, 0.0, 0.0]);
+        }
+        other => panic!("unexpected Skin0/Skeleton asset: {other:?}"),
     }
     match &entry_for_label(&outcome, &root_uri, "Skin0/InverseBindMatrices").asset {
         ImportedAsset::Data(data) => {
@@ -197,6 +278,74 @@ fn importer_emits_bevy_style_gltf_labeled_subassets() {
             );
         }
         other => panic!("unexpected Skin0/InverseBindMatrices asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_emits_synthetic_skeleton_for_node_animation_without_skin() {
+    let root = unique_temp_project_root("gltf_node_animation_subassets");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_node_animation_gltf(&root);
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let root_uri = AssetUri::parse("res://models/node_animation.gltf").unwrap();
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+
+    let root_entry = outcome.root_entry().expect("root gltf entry");
+    for label in ["Animation0", "Animation0/Skeleton"] {
+        assert!(
+            root_entry
+                .dependencies
+                .contains(&label_uri(&root_uri, label)),
+            "root dependencies should include {label}"
+        );
+        assert!(
+            outcome
+                .entries
+                .iter()
+                .any(|entry| entry.locator == label_uri(&root_uri, label)),
+            "outcome should include {label}"
+        );
+    }
+
+    match &entry_for_label(&outcome, &root_uri, "Animation0").asset {
+        ImportedAsset::AnimationClip(clip) => {
+            assert_eq!(clip.name.as_deref(), Some("bob"));
+            assert_eq!(
+                clip.skeleton.locator,
+                label_uri(&root_uri, "Animation0/Skeleton")
+            );
+            assert_eq!(clip.duration_seconds, 1.0);
+            assert_eq!(clip.tracks.len(), 1);
+            let track = &clip.tracks[0];
+            assert_eq!(track.bone_name, "Node1:Body");
+            assert_eq!(track.target_id.as_deref(), Some("Node1:Body"));
+            assert_eq!(
+                track.translation.interpolation,
+                AnimationInterpolationAsset::Linear
+            );
+            assert_eq!(track.translation.keys.len(), 2);
+            assert_eq!(
+                track.translation.keys[1].value,
+                AnimationChannelValueAsset::Vec3([0.0, 0.5, 0.0])
+            );
+        }
+        other => panic!("unexpected Animation0 asset: {other:?}"),
+    }
+    match &entry_for_label(&outcome, &root_uri, "Animation0/Skeleton").asset {
+        ImportedAsset::AnimationSkeleton(skeleton) => {
+            assert_eq!(skeleton.name.as_deref(), Some("bob"));
+            assert_eq!(skeleton.bones.len(), 2);
+            assert_eq!(skeleton.bones[0].name, "Node0:Root");
+            assert_eq!(skeleton.bones[0].parent_index, None);
+            assert_eq!(skeleton.bones[1].name, "Node1:Body");
+            assert_eq!(skeleton.bones[1].parent_index, Some(0));
+            assert_eq!(skeleton.bones[1].local_translation, [0.0, 0.25, 0.0]);
+        }
+        other => panic!("unexpected Animation0/Skeleton asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
@@ -471,6 +620,202 @@ fn importer_preserves_gltf_skinning_channels_on_model_vertices() {
 }
 
 #[test]
+fn importer_preserves_gltf_tangent_and_color_channels_on_model_vertices() {
+    let root = unique_temp_project_root("tangent_color_model_import");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_tangent_color_triangle_gltf(&root);
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let root_uri = AssetUri::parse("res://models/tangent_color_triangle.gltf").unwrap();
+
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+
+    let expected_tangents = vec![
+        [1.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, -1.0],
+        [0.0, 0.0, 1.0, 1.0],
+    ];
+    let expected_colors = vec![
+        [1.0, 0.25, 0.5, 0.75],
+        [0.25, 1.0, 0.5, 0.5],
+        [0.1, 0.2, 1.0, 1.0],
+    ];
+
+    match &outcome.root_entry().expect("root gltf entry").asset {
+        ImportedAsset::Model(model) => {
+            assert_eq!(model.primitives.len(), 1);
+            let vertices = &model.primitives[0].vertices;
+            assert_eq!(vertices.len(), 3);
+            for (index, vertex) in vertices.iter().enumerate() {
+                assert_eq!(vertex.tangent, expected_tangents[index]);
+                assert_eq!(vertex.color, expected_colors[index]);
+            }
+        }
+        other => panic!("unexpected root gltf asset: {other:?}"),
+    }
+
+    match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => {
+            assert_eq!(
+                mesh.attributes.get(MESH_ATTRIBUTE_TANGENT),
+                Some(&MeshAttributeValues::Float32x4(expected_tangents))
+            );
+            assert_eq!(
+                mesh.attributes.get(MESH_ATTRIBUTE_COLOR),
+                Some(&MeshAttributeValues::Float32x4(expected_colors))
+            );
+        }
+        other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset() {
+    let root = unique_temp_project_root("uv_channel_model_import");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_uv_channel_triangle_gltf(&root);
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let root_uri = AssetUri::parse("res://models/uv_channel_triangle.gltf").unwrap();
+
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+
+    let expected_uv0 = vec![[0.0, 0.0], [0.5, 0.0], [0.0, 0.5]];
+    let expected_uv1 = vec![[1.0, 0.25], [0.25, 1.0], [0.75, 0.75]];
+
+    match &outcome.root_entry().expect("root gltf entry").asset {
+        ImportedAsset::Model(model) => {
+            assert_eq!(model.primitives.len(), 1);
+            let vertices = &model.primitives[0].vertices;
+            assert_eq!(vertices.len(), 3);
+            for (index, vertex) in vertices.iter().enumerate() {
+                assert_eq!(vertex.uv, expected_uv0[index]);
+                assert_eq!(vertex.uv1, expected_uv1[index]);
+            }
+        }
+        other => panic!("unexpected root gltf asset: {other:?}"),
+    }
+
+    match &entry_for_label(&outcome, &root_uri, "Mesh0/Primitive0").asset {
+        ImportedAsset::Mesh(mesh) => {
+            assert_eq!(
+                mesh.attributes.get(MESH_ATTRIBUTE_UV0),
+                Some(&MeshAttributeValues::Float32x2(expected_uv0))
+            );
+            assert_eq!(
+                mesh.attributes.get(MESH_ATTRIBUTE_UV1),
+                Some(&MeshAttributeValues::Float32x2(expected_uv1))
+            );
+        }
+        other => panic!("unexpected Mesh0/Primitive0 asset: {other:?}"),
+    }
+
+    match &entry_for_label(&outcome, &root_uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            let base_color = material
+                .texture_slots
+                .get("base_color")
+                .expect("base_color texture slot should be imported");
+            assert_eq!(
+                base_color.reference.as_ref().unwrap().locator,
+                label_uri(&root_uri, "Texture0")
+            );
+            assert_eq!(base_color.texture_uv_channel(), 1);
+            assert_eq!(
+                material
+                    .standard_material_descriptor()
+                    .base_color_texture_uv_channel,
+                1
+            );
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_preserves_gltf_texture_transform_on_standard_material_slots() {
+    let root = unique_temp_project_root("texture_transform_model_import");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_texture_transform_triangle_gltf(&root);
+    let importer = importer_with_first_wave_plugin_fixtures();
+    let root_uri = AssetUri::parse("res://models/texture_transform_triangle.gltf").unwrap();
+
+    let outcome = importer
+        .import_with_settings(&gltf_path, &root_uri, Default::default())
+        .unwrap();
+
+    match &entry_for_label(&outcome, &root_uri, "Material0").asset {
+        ImportedAsset::Material(material) => {
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "base_color",
+                [0.3, 0.4],
+                [0.1, 0.2],
+                1,
+            );
+            assert_texture_slot_transform(material, &root_uri, "normal", [0.5, 0.6], [0.3, 0.4], 0);
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "metallic_roughness",
+                [0.4, 0.5],
+                [0.2, 0.3],
+                0,
+            );
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "occlusion",
+                [0.6, 0.7],
+                [0.4, 0.5],
+                1,
+            );
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "emissive",
+                [0.7, 0.8],
+                [0.5, 0.6],
+                1,
+            );
+
+            let descriptor = material.standard_material_descriptor();
+            assert_vec2_near(descriptor.base_color_texture_transform.scale, [0.3, 0.4]);
+            assert_vec2_near(descriptor.base_color_texture_transform.offset, [0.1, 0.2]);
+            assert_eq!(descriptor.base_color_texture_uv_channel, 1);
+            assert_vec2_near(descriptor.normal_texture_transform.scale, [0.5, 0.6]);
+            assert_vec2_near(descriptor.normal_texture_transform.offset, [0.3, 0.4]);
+            assert_eq!(descriptor.normal_texture_uv_channel, 0);
+            assert_vec2_near(
+                descriptor.metallic_roughness_texture_transform.scale,
+                [0.4, 0.5],
+            );
+            assert_vec2_near(
+                descriptor.metallic_roughness_texture_transform.offset,
+                [0.2, 0.3],
+            );
+            assert_eq!(descriptor.metallic_roughness_texture_uv_channel, 0);
+            assert_vec2_near(descriptor.occlusion_texture_transform.scale, [0.6, 0.7]);
+            assert_vec2_near(descriptor.occlusion_texture_transform.offset, [0.4, 0.5]);
+            assert_eq!(descriptor.occlusion_texture_uv_channel, 1);
+            assert_vec2_near(descriptor.emissive_texture_transform.scale, [0.7, 0.8]);
+            assert_vec2_near(descriptor.emissive_texture_transform.offset, [0.5, 0.6]);
+            assert_eq!(descriptor.emissive_texture_uv_channel, 1);
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn importer_emits_gltf_multi_scene_labels() {
     let root = unique_temp_project_root("gltf_multi_scene_labels");
     fs::create_dir_all(&root).unwrap();
@@ -594,6 +939,37 @@ fn assert_scene_entity(entry: &ImportedAssetEntry, expected_name: &str, root_uri
             );
         }
         other => panic!("unexpected scene asset: {other:?}"),
+    }
+}
+
+fn assert_texture_slot_transform(
+    material: &MaterialAsset,
+    root_uri: &AssetUri,
+    slot: &str,
+    expected_scale: [f32; 2],
+    expected_offset: [f32; 2],
+    expected_uv_channel: u32,
+) {
+    let value = material
+        .texture_slots
+        .get(slot)
+        .unwrap_or_else(|| panic!("{slot} texture slot should be imported"));
+    assert_eq!(
+        value.reference.as_ref().unwrap().locator,
+        label_uri(root_uri, "Texture0")
+    );
+    let transform = value.texture_transform();
+    assert_vec2_near(transform.scale, expected_scale);
+    assert_vec2_near(transform.offset, expected_offset);
+    assert_eq!(value.texture_uv_channel(), expected_uv_channel);
+}
+
+fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {
+    for (actual, expected) in actual.into_iter().zip(expected) {
+        assert!(
+            (actual - expected).abs() <= 0.000_001,
+            "expected {expected:?}, got {actual:?}"
+        );
     }
 }
 

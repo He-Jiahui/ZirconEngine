@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceLocator, ResourceState};
+use super::{
+    ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceId, ResourceKind, ResourceLocator,
+    ResourceState,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRecord {
@@ -86,5 +89,17 @@ impl ResourceRecord {
     pub fn with_dependency_ids(mut self, dependency_ids: Vec<ResourceId>) -> Self {
         self.dependency_ids = dependency_ids;
         self
+    }
+
+    pub fn failure_reason(&self) -> Option<&str> {
+        if self.state != ResourceState::Error {
+            return None;
+        }
+
+        self.diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.severity == ResourceDiagnosticSeverity::Error)
+            .or_else(|| self.diagnostics.first())
+            .map(|diagnostic| diagnostic.message.as_str())
     }
 }

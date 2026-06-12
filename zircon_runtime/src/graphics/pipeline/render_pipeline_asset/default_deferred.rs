@@ -40,6 +40,7 @@ impl RenderPipelineAsset {
                 features: vec![
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredGeometry),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Shadows),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Hzb),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredLighting),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess),

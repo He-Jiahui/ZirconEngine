@@ -56,7 +56,7 @@ pub(super) fn list_row_commands(
             opacity,
         ));
     }
-    let icon = if state.disabled() {
+    let icon = if state.unavailable() {
         "diamond"
     } else if state.marked() {
         "check"
@@ -82,7 +82,7 @@ pub(super) fn list_row_commands(
 }
 
 fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> Option<&'a str> {
-    if state.disabled() {
+    if state.unavailable() {
         None
     } else if state.marked() {
         Some(color_attribute(metadata, "background_color").unwrap_or(SURFACE_SELECTED))
@@ -96,12 +96,12 @@ fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) 
 }
 
 fn border<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> Option<&'a str> {
-    (state.focus_or_press() || state.marked())
+    (!state.unavailable() && (state.focus_or_press() || state.marked()))
         .then(|| color_attribute(metadata, "focus_border_color").unwrap_or(ACCENT))
 }
 
 fn border_width(state: &RowRenderState) -> f32 {
-    if state.focus_or_press() || state.marked() {
+    if !state.unavailable() && (state.focus_or_press() || state.marked()) {
         1.0
     } else {
         0.0
@@ -109,7 +109,7 @@ fn border_width(state: &RowRenderState) -> f32 {
 }
 
 fn text<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(if state.marked() {
@@ -121,7 +121,7 @@ fn text<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a
 }
 
 fn adornment<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "icon_color").unwrap_or(if state.marked() {

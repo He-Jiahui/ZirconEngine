@@ -1,3 +1,9 @@
+use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
+use crate::core::framework::render::{
+    RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension, RenderImageFallbackKind,
+    RenderImageUsage,
+};
+
 use super::super::GpuTextureResource;
 
 pub(in crate::graphics::scene::resources) fn create_fallback_texture(
@@ -5,8 +11,50 @@ pub(in crate::graphics::scene::resources) fn create_fallback_texture(
     queue: &wgpu::Queue,
     texture_layout: &wgpu::BindGroupLayout,
 ) -> GpuTextureResource {
+    create_solid_fallback_texture(
+        device,
+        queue,
+        texture_layout,
+        "zircon-fallback-texture",
+        "zircon-fallback-bind-group",
+        [255, 255, 255, 255],
+        RGBA8_UNORM_SRGB_FORMAT,
+        RenderImageColorSpace::Srgb,
+        RenderImageFallbackKind::OpaqueWhite,
+    )
+}
+
+pub(in crate::graphics::scene::resources) fn create_fallback_normal_texture(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture_layout: &wgpu::BindGroupLayout,
+) -> GpuTextureResource {
+    create_solid_fallback_texture(
+        device,
+        queue,
+        texture_layout,
+        "zircon-fallback-normal-texture",
+        "zircon-fallback-normal-bind-group",
+        [128, 128, 255, 255],
+        RGBA8_UNORM_FORMAT,
+        RenderImageColorSpace::Linear,
+        RenderImageFallbackKind::NormalMap,
+    )
+}
+
+fn create_solid_fallback_texture(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture_layout: &wgpu::BindGroupLayout,
+    texture_label: &'static str,
+    bind_group_label: &'static str,
+    rgba: [u8; 4],
+    format: &str,
+    color_space: RenderImageColorSpace,
+    fallback: RenderImageFallbackKind,
+) -> GpuTextureResource {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("zircon-fallback-texture"),
+        label: Some(texture_label),
         size: wgpu::Extent3d {
             width: 1,
             height: 1,
@@ -21,7 +69,7 @@ pub(in crate::graphics::scene::resources) fn create_fallback_texture(
     });
     queue.write_texture(
         texture.as_image_copy(),
-        &[255, 255, 255, 255],
+        &rgba,
         wgpu::TexelCopyBufferLayout {
             offset: 0,
             bytes_per_row: Some(4),
@@ -36,7 +84,7 @@ pub(in crate::graphics::scene::resources) fn create_fallback_texture(
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor::default());
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("zircon-fallback-bind-group"),
+        label: Some(bind_group_label),
         layout: texture_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -51,19 +99,19 @@ pub(in crate::graphics::scene::resources) fn create_fallback_texture(
     });
     GpuTextureResource {
         id: None,
-        descriptor: crate::core::framework::render::RenderImageDescriptor {
+        descriptor: RenderImageDescriptor {
             width: 1,
             height: 1,
             depth_or_array_layers: 1,
-            dimension: crate::core::framework::render::RenderImageDimension::D2,
-            format: crate::asset::RGBA8_UNORM_SRGB_FORMAT.to_string(),
-            color_space: crate::core::framework::render::RenderImageColorSpace::Srgb,
+            dimension: RenderImageDimension::D2,
+            format: format.to_string(),
+            color_space,
             sampler: crate::core::framework::render::RenderSamplerDescriptor::default(),
-            usage: vec![crate::core::framework::render::RenderImageUsage::Sampled],
+            usage: vec![RenderImageUsage::Sampled],
             asset_usage: Vec::new(),
             mip_count: 1,
             array_layer_count: 1,
-            fallback: crate::core::framework::render::RenderImageFallbackKind::OpaqueWhite,
+            fallback,
         },
         texture,
         view,

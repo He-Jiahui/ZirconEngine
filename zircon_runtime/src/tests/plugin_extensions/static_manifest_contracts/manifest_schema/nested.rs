@@ -5,8 +5,8 @@ use super::assertions::{
 };
 use super::field_sets::{
     KNOWN_ASSET_IMPORTER_FIELDS, KNOWN_CAPABILITY_STATUS_FIELDS, KNOWN_DEPENDENCY_FIELDS,
-    KNOWN_EVENT_CATALOG_FIELDS, KNOWN_EVENT_FIELDS, KNOWN_MODULE_FIELDS, KNOWN_OPTION_FIELDS,
-    KNOWN_UI_COMPONENT_FIELDS,
+    KNOWN_EVENT_CATALOG_FIELDS, KNOWN_EVENT_FIELDS, KNOWN_INTERFACE_FIELDS, KNOWN_MODULE_FIELDS,
+    KNOWN_OPTION_FIELDS, KNOWN_UI_COMPONENT_FIELDS,
 };
 
 #[test]
@@ -33,6 +33,13 @@ fn plugin_tomls_declare_known_nested_fields() {
             "dependencies",
             "top-level dependency",
             &KNOWN_DEPENDENCY_FIELDS,
+        );
+        assert_known_row_fields(
+            table,
+            relative_path,
+            "provides_interfaces",
+            "provided interface",
+            &KNOWN_INTERFACE_FIELDS,
         );
         assert_known_row_fields(
             table,

@@ -26,7 +26,11 @@ fn runtime_entry_application_handler_stays_folder_backed_hook_surface() {
         runtime_handler_source,
         &[
             "impl ApplicationHandler for RuntimeEntryApp",
+            "fn resumed",
+            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"resumed\");",
+            "self.create_primary_window_surface(event_loop);",
             "fn can_create_surfaces",
+            "zircon_runtime::profile_scope!(\"app\", \"runtime_entry\", \"can_create_surfaces\");",
             "self.create_primary_window_surface(event_loop);",
             "fn window_event",
             "self.handle_window_event(event_loop, event);",

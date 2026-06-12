@@ -48,11 +48,22 @@ pub(super) fn accessibility_tree_request(
 pub(super) fn create_test_session(
     api: &zircon_runtime_interface::ZrRuntimeApiV1,
 ) -> ZrRuntimeSessionHandle {
+    create_test_session_with_profile(api, b"headless")
+}
+
+pub(super) fn create_test_session_with_profile(
+    api: &zircon_runtime_interface::ZrRuntimeApiV1,
+    profile: &'static [u8],
+) -> ZrRuntimeSessionHandle {
     let create_session = api.create_session.expect("create_session");
     let mut session = ZrRuntimeSessionHandle::invalid();
     let status = unsafe {
         create_session(
-            ZrRuntimeSessionConfigV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1),
+            ZrRuntimeSessionConfigV1 {
+                abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+                profile: ZrByteSlice::from_static(profile),
+                project_manifest: ZrByteSlice::empty(),
+            },
             &mut session,
         )
     };

@@ -34,6 +34,24 @@ impl RuntimePluginDescriptor {
         self
     }
 
+    pub fn with_system_sets<I, S>(mut self, system_sets: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.system_sets = system_sets.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_system_anchors<I, S>(mut self, system_anchors: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.system_anchors = system_anchors.into_iter().map(Into::into).collect();
+        self
+    }
+
     pub fn with_maturity(mut self, maturity: PluginMaturity) -> Self {
         self.maturity = maturity;
         self

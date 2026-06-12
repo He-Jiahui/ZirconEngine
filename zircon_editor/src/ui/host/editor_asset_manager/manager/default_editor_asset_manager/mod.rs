@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::core::ChannelSender;
+use zircon_runtime::core::framework::channel::ChannelSender;
 
 use super::super::EditorAssetChangeRecord;
 

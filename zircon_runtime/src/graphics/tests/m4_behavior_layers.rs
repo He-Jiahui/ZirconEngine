@@ -31,19 +31,26 @@ use super::plugin_render_feature_fixtures::{
     default_rendering_feature_descriptors, particle_render_feature_descriptor,
 };
 
+const GPU_SCENE_TEST_WGSL: &str =
+    include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+
 #[test]
 fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
     let fixture = RenderFixture::new("graphics_m4_bloom", [1.0, 1.0, 1.0, 1.0]);
     let extract = fixture.frame_extract(
         vec![RenderMeshSnapshot {
             node_id: 1,
+            stable_instance_key: 1 << 16,
+            transform_revision: 0,
             transform: centered_quad_transform(0.35),
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         }],
         Vec::new(),
@@ -89,13 +96,17 @@ fn color_grading_extract_tints_scene_after_post_process() {
     let extract = fixture.frame_extract(
         vec![RenderMeshSnapshot {
             node_id: 1,
+            stable_instance_key: 1 << 16,
+            transform_revision: 0,
             transform: fullscreen_quad_transform(),
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         }],
         Vec::new(),
@@ -147,13 +158,17 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
     let base_extract = fixture.frame_extract(
         vec![RenderMeshSnapshot {
             node_id: 1,
+            stable_instance_key: 1 << 16,
+            transform_revision: 0,
             transform: fullscreen_quad_transform(),
             model: fixture.model,
             mesh: None,
             material: fixture.material,
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         }],
         vec![RenderDirectionalLightSnapshot {
@@ -223,7 +238,10 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
             entity: 42,
             position: Vec3::ZERO,
             size: 0.9,
+            aspect_ratio: 1.0,
+            billboard_offset: crate::core::math::Vec2::ZERO,
             rotation: 0.0,
+            sort_order: 0,
             color: Vec4::new(1.0, 0.48, 0.12, 0.8),
             intensity: 1.0,
             material: None,
@@ -548,22 +566,31 @@ fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
     fs::write(
         path,
         format!(
-            r#"
+            "{GPU_SCENE_TEST_WGSL}\n{}",
+            format!(
+                r#"
 struct SceneUniform {{
     view_proj: mat4x4<f32>,
     light_dir: vec4<f32>,
     light_color: vec4<f32>,
     ambient_color: vec4<f32>,
 }};
-struct ModelUniform {{
-    model: mat4x4<f32>,
-    tint: vec4<f32>,
-    shadow_params: vec4<f32>,
+
+struct MaterialPropertyUniform {{
+    data0: vec4<f32>,
+    data1: vec4<f32>,
+    data2: vec4<f32>,
+    data3: vec4<f32>,
+    data4: vec4<f32>,
+    data5: vec4<f32>,
+    data6: vec4<f32>,
+    data7: vec4<f32>,
 }};
+
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(1) @binding(0) var<uniform> model_data: ModelUniform;
 @group(2) @binding(0) var albedo_tex: texture_2d<f32>;
 @group(2) @binding(1) var albedo_sampler: sampler;
+@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
 
 struct VertexInput {{
     @location(0) position: vec3<f32>,
@@ -574,24 +601,27 @@ struct VertexInput {{
 struct VertexOutput {{
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
+    @location(1) tint: vec4<f32>,
 }};
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {{
+fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {{
     var output: VertexOutput;
-    let world = model_data.model * vec4<f32>(input.position, 1.0);
+    let world = zr_world_from_local(instance_index) * vec4<f32>(input.position, 1.0);
     output.clip_position = scene.view_proj * world;
     output.uv = input.uv;
+    output.tint = zr_gpu_scene_tint(instance_index);
     return output;
 }}
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
     let alpha = textureSample(albedo_tex, albedo_sampler, input.uv).a;
-    return vec4<f32>({:.6}, {:.6}, {:.6}, alpha) * model_data.tint;
+    return vec4<f32>({:.6}, {:.6}, {:.6}, alpha) * input.tint;
 }}
 "#,
-            color[0], color[1], color[2]
+                color[0], color[1], color[2]
+            )
         ),
     )
     .unwrap();

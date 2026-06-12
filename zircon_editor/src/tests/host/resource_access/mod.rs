@@ -89,7 +89,9 @@ impl ResourceManager for FakeResourceManager {
             .map(|record| record.revision)
     }
 
-    fn subscribe_resource_changes(&self) -> zircon_runtime::core::ChannelReceiver<ResourceEvent> {
+    fn subscribe_resource_changes(
+        &self,
+    ) -> zircon_runtime::core::framework::channel::ChannelReceiver<ResourceEvent> {
         let (_sender, receiver) = unbounded();
         receiver
     }

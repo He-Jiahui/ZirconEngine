@@ -8,6 +8,8 @@ use crate::settings::HubLanguage;
 use crate::state::{HubSnapshot, ProjectEngineScopeState, ProjectScope, TaskSeverity};
 use crate::team::{TeamMemberEntry, TeamOverview};
 
+use super::action_id::HubActionId;
+
 mod action_history;
 mod catalog;
 mod coming_soon;
@@ -26,8 +28,10 @@ use display::{path_text, path_text_en, relative_time};
 pub(crate) use localized::HubTextBundle;
 use new_project::{new_project_draft, HubNewProjectDraft};
 use project_templates::{project_template_label, project_template_rows, HubProjectTemplate};
-pub(crate) use settings_dto::{settings_payload_from_value, HubSettingsPayload};
 use settings_dto::{settings_summary, HubSettingsSummary};
+pub(crate) use settings_dto::{
+    validate_settings_for_save, HubSettingsActionPayload, HubSettingsPayload,
+};
 use source_engines::source_build_history_rows;
 use ui_text::{ui_text, HubUiText};
 
@@ -88,6 +92,8 @@ pub(crate) struct HubTaskSummary {
     pub recovery: Option<String>,
     pub operation: String,
     pub progress_percent: u8,
+    pub task_id: u64,
+    pub queued: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -111,6 +117,7 @@ pub(crate) struct HubRecentProject {
     pub modified: String,
     pub location: String,
     pub cover_id: String,
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -301,7 +308,7 @@ impl HubViewModel {
 fn task_summary(snapshot: &HubSnapshot, text: HubTextBundle) -> HubTaskSummary {
     HubTaskSummary {
         label: text.status_label(&snapshot.task_status.label),
-        detail: text.status_detail(&snapshot.task_status.detail),
+        detail: text.render_message(&snapshot.task_status.detail),
         tone: if snapshot.task_status.running {
             "running".to_string()
         } else {
@@ -311,25 +318,32 @@ fn task_summary(snapshot: &HubSnapshot, text: HubTextBundle) -> HubTaskSummary {
         recovery: snapshot
             .task_status
             .recovery
-            .as_deref()
-            .map(|recovery| text.status_detail(recovery)),
+            .as_ref()
+            .map(|recovery| text.render_message(recovery)),
         operation: operation_summary(snapshot, text),
         progress_percent: snapshot.task_status.progress_percent,
+        task_id: snapshot.task_status.task_id,
+        queued: snapshot.queued_background_actions,
     }
 }
 
 fn header_statuses(snapshot: &HubSnapshot, text: HubTextBundle) -> Vec<HubStatusPill> {
-    let current_tone = if snapshot.task_status.running {
-        "running"
+    if !snapshot.task_status.running && snapshot.task_status.severity == TaskSeverity::Info {
+        return Vec::new();
+    }
+
+    let (id, tone) = if snapshot.task_status.running {
+        ("running", "running")
     } else {
-        severity_tone(snapshot.task_status.severity)
+        let tone = severity_tone(snapshot.task_status.severity);
+        (tone, tone)
     };
-    vec![
-        status("running", &text.status_label("Running"), current_tone),
-        status("success", &text.status_label("Success"), "success"),
-        status("warning", &text.status_label("Warning"), "warning"),
-        status("error", &text.status_label("Error"), "error"),
-    ]
+
+    vec![status(
+        id,
+        &text.status_label(&snapshot.task_status.label),
+        tone,
+    )]
 }
 
 fn status(id: &str, label: &str, tone: &str) -> HubStatusPill {
@@ -384,6 +398,8 @@ fn project_summary(
 
 fn recent_project_row(snapshot: &HubSnapshot, project: &RecentProject) -> HubRecentProject {
     let summary = project_summary(snapshot, project, false, snapshot.settings.language);
+    let pinned = metadata_for_path(&snapshot.project_metadata, &project.path)
+        .is_some_and(|metadata| metadata.pinned);
     HubRecentProject {
         id: summary.id,
         name: summary.name,
@@ -391,6 +407,7 @@ fn recent_project_row(snapshot: &HubSnapshot, project: &RecentProject) -> HubRec
         modified: summary.modified,
         location: summary.path,
         cover_id: summary.cover_id,
+        pinned,
     }
 }
 
@@ -488,7 +505,7 @@ fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction> {
     let project_target = quick_action_project_target(snapshot);
     [
         quick_action(
-            "build-project",
+            HubActionId::BuildProject.as_str(),
             localized_quick_action_title(QuickActionKind::BuildProject, snapshot.settings.language),
             "build",
             quick_action_detail(
@@ -499,7 +516,7 @@ fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction> {
             quick_action_enabled(QuickActionKind::BuildProject, &project_target),
         ),
         quick_action(
-            "install-device",
+            HubActionId::InstallDevice.as_str(),
             localized_quick_action_title(
                 QuickActionKind::InstallToDevice,
                 snapshot.settings.language,
@@ -513,7 +530,7 @@ fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction> {
             quick_action_enabled(QuickActionKind::InstallToDevice, &project_target),
         ),
         quick_action(
-            "package-project",
+            HubActionId::PackageProject.as_str(),
             localized_quick_action_title(
                 QuickActionKind::PackageProject,
                 snapshot.settings.language,
@@ -527,7 +544,7 @@ fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction> {
             quick_action_enabled(QuickActionKind::PackageProject, &project_target),
         ),
         quick_action(
-            "open-editor",
+            HubActionId::OpenEditor.as_str(),
             localized_quick_action_title(QuickActionKind::OpenEditor, snapshot.settings.language),
             "editor",
             quick_action_detail(
@@ -988,7 +1005,8 @@ mod tests {
     use crate::projects::{project_metadata_key, ProjectMetadata};
     use crate::settings::{HubLanguage, HubSettings};
     use crate::state::{
-        HubPage, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
+        DeliveryMessageId, HubMessage, HubMessageId, HubPage, ProjectFilterMode, ProjectMessageId,
+        ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId, TaskStatus,
         TASK_PROGRESS_PREPARED_PERCENT,
     };
     use crate::team::TeamOverview;
@@ -1006,11 +1024,13 @@ mod tests {
             project_subpage: ProjectSubpage::ProjectBrowser,
             search_query: "stellar".to_string(),
             selected_project_path: Some(PathBuf::from("E:/Projects/StellarOutpost")),
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects: vec![
                 RecentProject::new("Elysium Chronicles", "E:/Projects/Elysium", 30),
                 RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
@@ -1045,7 +1065,7 @@ mod tests {
                 .map(|project| project.name.as_str()),
             Some("Stellar Outpost")
         );
-        assert_eq!(model.task_summary.label, "Ready");
+        assert_eq!(model.task_summary.label, "就绪");
         assert_eq!(model.task_summary.operation, "Hub");
         assert_eq!(model.task_summary.progress_percent, 0);
         assert_eq!(model.assets.len(), 0);
@@ -1069,11 +1089,11 @@ mod tests {
         assert!(quick_action(&model, "build-project").enabled);
         assert_eq!(
             quick_action(&model, "build-project").detail,
-            "Build selected project Game"
+            "构建已选项目 Game"
         );
         assert_eq!(
             quick_action(&model, "package-project").detail,
-            "Package selected project Game"
+            "打包已选项目 Game"
         );
     }
 
@@ -1115,7 +1135,7 @@ mod tests {
         assert!(quick_action(&unbound, "package-project").enabled);
         assert_eq!(
             quick_action(&unbound, "build-project").detail,
-            "Bind a Source Engine to Game before building"
+            "先为 Game 绑定源码引擎"
         );
 
         let stale = HubViewModel::from_snapshot(&snapshot_with_projects(
@@ -1127,11 +1147,11 @@ mod tests {
         assert!(!quick_action(&stale, "package-project").enabled);
         assert_eq!(
             quick_action(&stale, "build-project").detail,
-            "Selected project is no longer available"
+            "已选项目不再可用"
         );
         assert_eq!(
             quick_action(&stale, "open-editor").detail,
-            "Open Editor without a project"
+            "不带项目打开编辑器"
         );
     }
 
@@ -1152,11 +1172,11 @@ mod tests {
         assert!(quick_action(&model, "build-project").enabled);
         assert_eq!(
             quick_action(&model, "build-project").detail,
-            "Build latest recent project Latest"
+            "构建最近项目 Latest"
         );
         assert_eq!(
             quick_action(&model, "install-device").detail,
-            "Install latest recent project Latest"
+            "安装最近项目 Latest"
         );
     }
 
@@ -1213,12 +1233,14 @@ mod tests {
     }
 
     #[test]
-    fn task_summary_localizes_running_status_detail_and_operation_scope() {
+    fn task_summary_localizes_running_message_detail_and_operation_scope() {
         let mut snapshot = snapshot_with_projects(None, Vec::new());
         snapshot.settings.language = HubLanguage::Chinese;
         snapshot.task_status = TaskStatus::running_operation(
             "Packaging",
-            "Copying project into package output",
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::CopyingProjectToPackage,
+            )),
             crate::state::TaskOperationKind::Project,
             "Game",
         );
@@ -1235,7 +1257,9 @@ mod tests {
         let mut snapshot = snapshot_with_projects(None, Vec::new());
         snapshot.task_status = TaskStatus::running_operation(
             "Packaging",
-            "Copying project into package output",
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::CopyingProjectToPackage,
+            )),
             crate::state::TaskOperationKind::Project,
             "Game",
         )
@@ -1255,8 +1279,10 @@ mod tests {
         snapshot.settings.language = HubLanguage::Chinese;
         snapshot.task_status = TaskStatus::warning(
             "Import cancelled",
-            "No project folder was selected",
-            "Run Import Project again and choose a Zircon project folder",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoProjectFolderSelected,
+            )),
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::RunImportAgain)),
         )
         .with_operation(crate::state::TaskOperationKind::Project, "Import Project");
 
@@ -1276,8 +1302,12 @@ mod tests {
         snapshot.settings.language = HubLanguage::Chinese;
         snapshot.task_status = TaskStatus::error(
             "Open Output failed",
-            "Open Output target is required",
-            "Choose a recorded package, install, or build output before opening the folder",
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::OpenOutputTargetRequired,
+            )),
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::ChooseRecordedOutputRecovery,
+            )),
         )
         .with_operation(crate::state::TaskOperationKind::Process, "Output Folder");
 
@@ -1287,7 +1317,10 @@ mod tests {
 
         snapshot.task_status = TaskStatus::success(
             "Settings saved",
-            "E:\\Git\\ZirconEngine\\zircon_hub\\hub.toml",
+            HubMessage::with_params(
+                HubMessageId::Settings(SettingsMessageId::SettingsSavedPath),
+                ["E:\\Git\\ZirconEngine\\zircon_hub\\hub.toml"],
+            ),
         )
         .with_operation(crate::state::TaskOperationKind::Settings, "Hub settings");
 
@@ -1308,11 +1341,13 @@ mod tests {
             project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path,
+            new_project_name: String::new(),
             selected_template_id: "renderable-empty".to_string(),
             new_project_location: PathBuf::from("E:/Projects"),
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects,
             project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),

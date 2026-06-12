@@ -54,6 +54,10 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_but
     let mut style = base_button_style(kind, interaction);
     style.interaction = interaction;
 
+    if is_unavailable_button_interaction(interaction) {
+        return style;
+    }
+
     if let Some(surface) =
         declared_button_style_color(node.button_style.element.background_color.as_ref())
     {
@@ -82,20 +86,24 @@ fn base_button_style(
     interaction: ButtonInteractionState,
 ) -> WorkbenchButtonStyle {
     match interaction {
-        ButtonInteractionState::Disabled => WorkbenchButtonStyle {
-            surface: PALETTE.surface_disabled,
-            border: PALETTE.border_disabled,
-            border_width: 1.0,
-            text: PALETTE.text_disabled,
-            glyph: PALETTE.text_disabled,
-            interaction,
-        },
-        ButtonInteractionState::Loading | ButtonInteractionState::Normal => {
-            normal_button_style(kind, interaction)
+        ButtonInteractionState::Disabled | ButtonInteractionState::Loading => {
+            unavailable_button_style(interaction)
         }
+        ButtonInteractionState::Normal => normal_button_style(kind, interaction),
         ButtonInteractionState::Hover => hover_button_style(kind, interaction),
         ButtonInteractionState::Pressed => pressed_button_style(kind, interaction),
         ButtonInteractionState::Focused => focused_button_style(kind, interaction),
+    }
+}
+
+fn unavailable_button_style(interaction: ButtonInteractionState) -> WorkbenchButtonStyle {
+    WorkbenchButtonStyle {
+        surface: PALETTE.surface_disabled,
+        border: PALETTE.border_disabled,
+        border_width: 1.0,
+        text: PALETTE.text_disabled,
+        glyph: PALETTE.text_disabled,
+        interaction,
     }
 }
 
@@ -204,6 +212,13 @@ fn declared_button_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> 
     resolved_style_color(color).filter(|color| color[3] > 0)
 }
 
+fn is_unavailable_button_interaction(interaction: ButtonInteractionState) -> bool {
+    matches!(
+        interaction,
+        ButtonInteractionState::Disabled | ButtonInteractionState::Loading
+    )
+}
+
 fn apply_visual_brightness(style: WorkbenchButtonStyle, brightness: f32) -> WorkbenchButtonStyle {
     if !brightness.is_finite() || brightness <= 0.0 || (brightness - 1.0).abs() < 0.001 {
         return style;
@@ -230,4 +245,35 @@ fn scaled_color(color: [u8; 4], brightness: f32) -> [u8; 4] {
 
 fn scaled_channel(value: u8, brightness: f32) -> u8 {
     (f32::from(value) * brightness).round().clamp(0.0, 255.0) as u8
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn button_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+        node.button_style.loading = true;
+        node.label_brightness = 1.5;
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(41, 164, 184, 255)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(28, 135, 152, 255)));
+        node.button_style.element.foreground_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(8, 24, 27, 255)));
+
+        let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, true);
+
+        assert_eq!(style.interaction, ButtonInteractionState::Loading);
+        assert_eq!(style.surface, PALETTE.surface_disabled);
+        assert_eq!(style.border, PALETTE.border_disabled);
+        assert_eq!(style.border_width, 1.0);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.glyph, PALETTE.text_disabled);
+    }
 }

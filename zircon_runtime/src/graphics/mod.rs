@@ -37,8 +37,9 @@ pub use pipeline::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
     RenderPipelineAssetContext, RenderPipelineCompileOptions, RenderPipelineCompileReport,
     RendererAsset, RendererDataDocument, RendererDataDocumentError, RendererFeatureAsset,
-    RendererFeatureAssetReferences, RendererFeatureContractDiagnostic, RendererFeatureDocument,
-    RendererFeatureSource, RENDERER_DATA_DOCUMENT_VERSION,
+    RendererFeatureAssetReferences, RendererFeatureContractDiagnostic,
+    RendererFeatureContractDiagnosticSeverity, RendererFeatureDocument,
+    RendererFeatureReferenceListKind, RendererFeatureSource, RENDERER_DATA_DOCUMENT_VERSION,
 };
 pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,
@@ -72,11 +73,12 @@ pub use virtual_geometry_runtime_provider::{
     VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
 };
 pub use visibility::{
+    FrameVisibility, HzbBuildPlan, HzbBuilder, ViewCullingStats, ViewVisibilityContext,
     VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,
     VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,
     VisibilityHistoryEntry, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
     VisibilityHybridGiProbe, VisibilityHybridGiUpdatePlan, VisibilityInstanceUploadPlan,
-    VisibilityParticleUploadPlan, VisibilityVirtualGeometryCluster,
+    VisibilityParticleUploadPlan, VisibilityViewKey, VisibilityVirtualGeometryCluster,
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan,
 };

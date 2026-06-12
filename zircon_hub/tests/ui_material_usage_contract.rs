@@ -516,8 +516,8 @@ fn pages_compose_shared_components_with_responsive_layouts() {
                 "ProjectCard",
                 "ProjectTable",
                 "QuickActions",
-                "HubDialog",
-                "HubSearchField",
+                "CreateProjectDialog",
+                "ProjectsToolbar",
                 "@media (max-width: 980px)",
             ],
         ),
@@ -534,22 +534,16 @@ fn pages_compose_shared_components_with_responsive_layouts() {
         (
             "web/src/pages/ProjectDetailPage.tsx",
             vec![
-                "MetricCard",
+                "ProjectMetricsGrid",
+                "ProjectDetailSidebar",
                 "HubTabs",
                 "HubTreeView",
-                "SourceEngineList",
                 "QuickActions",
             ],
         ),
         (
             "web/src/pages/SettingsPage.tsx",
-            vec![
-                "HubComboBox",
-                "HubTextField",
-                "HubSwitch",
-                "HubCheckbox",
-                "HubTreeView",
-            ],
+            vec!["MetricCard", "HubTabs", "SettingsSection"],
         ),
         (
             "web/src/pages/CatalogPage.tsx",
@@ -610,20 +604,57 @@ fn pages_compose_shared_components_with_responsive_layouts() {
         );
     }
 
+    for (source_path, snippets) in [
+        (
+            "web/src/components/inputs/ProjectsToolbar.tsx",
+            vec![
+                "HubSearchField",
+                "HubSelect",
+                "HubToggle",
+                "gridTemplateColumns",
+            ],
+        ),
+        (
+            "web/src/components/overlays/CreateProjectDialog.tsx",
+            vec!["HubDialog", "HubButton", "HubComboBox", "HubTextField"],
+        ),
+        (
+            "web/src/components/data/ProjectMetricsGrid.tsx",
+            vec!["MetricCard", "gridTemplateColumns"],
+        ),
+        (
+            "web/src/components/data/ProjectDetailSidebar.tsx",
+            vec!["QuickActions", "SourceEngineList", "HubButton"],
+        ),
+        (
+            "web/src/components/data/SettingsSection.tsx",
+            vec![
+                "HubComboBox",
+                "HubTextField",
+                "HubSwitch",
+                "HubCheckbox",
+                "HubTreeView",
+            ],
+        ),
+    ] {
+        let source = read_crate_file(source_path);
+        assert_contains_all(source_path, &source, &snippets);
+    }
+
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
     assert_contains_all(
         "web/src/components/shell/HubWindow.tsx",
         &hub_window,
         &[
-            "state.activePage === \"projects\"",
-            "state.activePage === \"editor\"",
-            "state.activePage === \"builds\"",
-            "state.activePage === \"cloud\"",
-            "state.activePage === \"assets\"",
-            "state.activePage === \"plugins\"",
-            "state.activePage === \"learn\"",
-            "state.activePage === \"team\"",
-            "state.activePage === \"settings\"",
+            "projects: ProjectsDashboard,",
+            "editor: EditorPage,",
+            "builds: BuildsPage,",
+            "cloud: CloudPage,",
+            "assets: CatalogPage,",
+            "plugins: CatalogPage,",
+            "learn: CatalogPage,",
+            "team: TeamPage,",
+            "settings: SettingsPage,",
         ],
     );
 }

@@ -35,6 +35,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
         };
     apply_submission_target_size_to_runtime_frame(&mut frame, &context);
     apply_submission_output_target_to_runtime_frame(&mut frame, &context);
+    apply_submission_visibility_to_runtime_frame(&mut frame, &context);
     apply_effective_advanced_extracts_to_runtime_frame(&mut frame, &context);
     apply_effective_post_process_graph_to_runtime_frame(&mut frame, &context);
     let mut state = server.lock_state();
@@ -60,6 +61,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
         match state.renderer.render_frame_with_pipeline(
             &runtime_frame,
             context.compiled_pipeline(),
+            context.capabilities(),
             resolved_history.current_history_handle(),
             resolved_history.previous_history_available(),
         ) {
@@ -127,6 +129,13 @@ fn apply_submission_target_size_to_runtime_frame(
 ) {
     frame.viewport_size = context.size();
     frame.extract.apply_viewport_size(context.size());
+}
+
+fn apply_submission_visibility_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.frame_visibility = Some(context.visibility_context().frame_visibility.clone());
 }
 
 fn apply_effective_advanced_extracts_to_runtime_frame(
@@ -282,6 +291,7 @@ mod tests {
             0,
             None,
             empty_pipeline(),
+            RenderCapabilitySummary::default(),
             crate::VisibilityContext::from_extract(&extract),
             None,
             None,

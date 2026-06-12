@@ -21,6 +21,7 @@ mod window_surface;
 
 use std::sync::Arc;
 
+use winit::dpi::PhysicalPosition;
 use winit::window::Window;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecyclePolicy};
 use zircon_runtime::platform::EventLoopPolicy;
@@ -43,6 +44,7 @@ pub(super) struct RuntimeEntryApp {
     session: RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
     viewport_size: ZrRuntimeViewportSizeV1,
+    last_pointer_position: Option<PhysicalPosition<f64>>,
     #[cfg(feature = "gamepad-gilrs")]
     gamepads: Option<gilrs::Gilrs>,
     #[cfg(feature = "gamepad-gilrs")]

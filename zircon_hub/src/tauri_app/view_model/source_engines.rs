@@ -23,9 +23,9 @@ pub(crate) fn source_build_history_rows(
             status_tone: status_tone(&record.status).to_string(),
             profile: record.profile.clone(),
             jobs: record.jobs,
-            detail: text.status_detail(&record.detail),
+            detail: text.render_message(&record.detail),
             secondary_detail: source_build_history_secondary_detail(record, text, language),
-            log_excerpt: text.status_detail(&record.log_excerpt),
+            log_excerpt: text.render_message(&record.log_excerpt),
             command_line: record.command_line.clone(),
             output_dir: path_text_en(&record.output_dir),
             finished: relative_time(now_ms, record.finished_unix_ms, language),
@@ -43,10 +43,10 @@ fn source_build_history_secondary_detail(
     } else {
         record.command_line.join(" ")
     };
-    let log_excerpt = if record.log_excerpt.trim().is_empty() {
+    let log_excerpt = if record.log_excerpt.is_empty() {
         text.pair("No log excerpt", "没有日志摘录").to_string()
     } else {
-        text.status_detail(&record.log_excerpt)
+        text.render_message(&record.log_excerpt)
     };
 
     match language {
@@ -89,6 +89,7 @@ mod tests {
 
     use crate::engines::{SourceBuildRecord, SourceEngineInstall};
     use crate::settings::HubLanguage;
+    use crate::state::{EngineMessageId, HubMessage, HubMessageId};
 
     #[test]
     fn source_build_history_rows_localize_detail_status_and_finished_time() {
@@ -104,8 +105,12 @@ mod tests {
                 profile: "debug".to_string(),
                 jobs: Some(4),
                 output_dir: PathBuf::from("E:/Source/ZirconEngine/out"),
-                detail: "Staged editor/runtime payload".to_string(),
-                log_excerpt: "Staged editor/runtime payload".to_string(),
+                detail: HubMessage::new(HubMessageId::Engine(
+                    EngineMessageId::StagedEditorRuntimePayload,
+                )),
+                log_excerpt: HubMessage::new(HubMessageId::Engine(
+                    EngineMessageId::StagedEditorRuntimePayload,
+                )),
                 command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
             }],
         };

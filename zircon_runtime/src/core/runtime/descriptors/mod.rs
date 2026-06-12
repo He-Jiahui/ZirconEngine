@@ -6,6 +6,7 @@ mod plugin_descriptor;
 mod plugin_factory;
 mod registry_name;
 mod service_factory;
+mod service_object;
 
 pub use dependency_spec::DependencySpec;
 pub use driver_descriptor::DriverDescriptor;
@@ -15,3 +16,4 @@ pub use plugin_descriptor::PluginDescriptor;
 pub use plugin_factory::PluginFactory;
 pub use registry_name::RegistryName;
 pub use service_factory::ServiceFactory;
+pub use service_object::ServiceObject;

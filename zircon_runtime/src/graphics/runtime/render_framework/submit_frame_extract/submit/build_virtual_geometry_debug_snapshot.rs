@@ -27,7 +27,8 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{view_matrix, Mat4};
 use crate::graphics::{
-    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityViewKey, VisibilityVirtualGeometryDrawSegment,
+    VisibilityVirtualGeometryPageUploadPlan,
 };
 
 pub(super) fn build_virtual_geometry_debug_snapshot(
@@ -412,7 +413,10 @@ fn build_node_and_cluster_cull_global_state(
     context: &FrameSubmissionContext,
     cull_input: RenderVirtualGeometryCullInputSnapshot,
 ) -> RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
-    let camera = &frame_extract.view.camera;
+    let camera = context
+        .view_visibility(&VisibilityViewKey::MainCamera)
+        .map(|view| &view.camera)
+        .unwrap_or(&frame_extract.view.camera);
     let size = context.size();
     let aspect = size.x.max(1) as f32 / size.y.max(1) as f32;
     let view_proj = Mat4::perspective_rh(camera.fov_y_radians, aspect, camera.z_near, camera.z_far)

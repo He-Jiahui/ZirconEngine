@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::dispatch::UiWindowId;
+use crate::ui::dispatch::{
+    UiDispatchEffect, UiTransientDismissalReason, UiTransientDismissalTarget, UiWindowId,
+};
 use crate::ui::layout::UiPoint;
 
 use super::{UiWindowEventImpact, UiWindowEventMetadata, UiWindowMetrics, UiWindowPixelPosition};
@@ -31,7 +33,10 @@ impl UiWindowEvent {
         metadata: UiWindowEventMetadata,
         is_active: bool,
     ) -> Self {
-        Self::window_focused(metadata, is_active)
+        Self::new(
+            metadata,
+            UiWindowEventKind::ApplicationActivation { is_active },
+        )
     }
 
     pub const fn size_changed(metadata: UiWindowEventMetadata, metrics: UiWindowMetrics) -> Self {
@@ -79,6 +84,30 @@ impl UiWindowEvent {
     pub const fn is_redraw_request(&self) -> bool {
         matches!(self.kind, UiWindowEventKind::RequestRedraw { .. })
     }
+
+    pub fn transient_dismissal_effect(&self) -> Option<UiDispatchEffect> {
+        match &self.kind {
+            UiWindowEventKind::Focused { focused: false } => {
+                Some(UiDispatchEffect::DismissTransientUi {
+                    target: UiTransientDismissalTarget::All,
+                    reason: UiTransientDismissalReason::FocusLost,
+                })
+            }
+            UiWindowEventKind::ApplicationActivation { is_active: false } => {
+                Some(UiDispatchEffect::DismissTransientUi {
+                    target: UiTransientDismissalTarget::All,
+                    reason: UiTransientDismissalReason::ApplicationDeactivated,
+                })
+            }
+            UiWindowEventKind::WindowAction {
+                action: UiWindowAction::ClickedNonClientArea,
+            } => Some(UiDispatchEffect::DismissTransientUi {
+                target: UiTransientDismissalTarget::PopupStack,
+                reason: UiTransientDismissalReason::WindowAction,
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -99,6 +128,9 @@ pub enum UiWindowEventKind {
     CursorLeft,
     Focused {
         focused: bool,
+    },
+    ApplicationActivation {
+        is_active: bool,
     },
     Occluded {
         occluded: bool,
@@ -132,9 +164,10 @@ impl UiWindowEventKind {
             Self::ScaleFactorChanged { .. } | Self::BackendScaleFactorChanged { .. } => {
                 UiWindowEventImpact::layout_metrics()
             }
-            Self::CursorMoved { .. } | Self::CursorEntered | Self::Focused { .. } => {
-                UiWindowEventImpact::input_state()
-            }
+            Self::CursorMoved { .. }
+            | Self::CursorEntered
+            | Self::Focused { .. }
+            | Self::ApplicationActivation { .. } => UiWindowEventImpact::input_state(),
             Self::CursorLeft => UiWindowEventImpact::input_state()
                 .with_hover_clear()
                 .with_redraw(),

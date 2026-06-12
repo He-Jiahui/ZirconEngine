@@ -96,8 +96,11 @@ impl TextFieldRenderState {
         }
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn focused(self) -> bool {
@@ -122,7 +125,7 @@ impl TextFieldRenderState {
 fn is_text_field(metadata: &UiTemplateNodeMetadata) -> bool {
     matches!(
         metadata.component.as_str(),
-        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
+        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" | "SearchField"
     ) || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
 }
 
@@ -174,7 +177,7 @@ fn text_command(
         .unwrap_or(text_frame);
     let mut style = text_style(metadata, state, base_style, visible_text);
     let mut layout = layout_text(visible_text, &style, text_frame, Some(text_clip));
-    if state.focused() && !state.disabled() {
+    if state.focused() && !state.unavailable() {
         layout.editable = editable.cloned();
     }
     style = style.with_painter_state(state.family, state.visual_state);
@@ -226,7 +229,7 @@ fn surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &TextFieldRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         SURFACE_DISABLED
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(SURFACE_PRESSED)
@@ -243,7 +246,7 @@ fn surface_color<'a>(
 }
 
 fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &TextFieldRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         BORDER_DISABLED
     } else if state.focused() || state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_FOCUS)
@@ -259,7 +262,7 @@ fn text_color<'a>(
     state: &TextFieldRenderState,
     visible_text: &str,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if is_placeholder_text(metadata, visible_text) {
         color_attribute(metadata, "placeholder_color").unwrap_or(TEXT_PLACEHOLDER)

@@ -6,9 +6,8 @@ use super::shader_source::DEFERRED_GEOMETRY_SHADER;
 pub(in crate::graphics::scene::scene_renderer::deferred) fn create_geometry_pipeline(
     device: &wgpu::Device,
     scene_layout: &wgpu::BindGroupLayout,
-    model_layout: &wgpu::BindGroupLayout,
-    texture_layout: &wgpu::BindGroupLayout,
     material_layout: &wgpu::BindGroupLayout,
+    gpu_scene_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::RenderPipeline {
     let geometry_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-deferred-geometry-shader"),
@@ -18,9 +17,9 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_geometry_pipe
         label: Some("zircon-deferred-geometry-layout"),
         bind_group_layouts: &[
             Some(scene_layout),
-            Some(model_layout),
-            Some(texture_layout),
+            None,
             Some(material_layout),
+            Some(gpu_scene_layout),
         ],
         immediate_size: 0,
     });

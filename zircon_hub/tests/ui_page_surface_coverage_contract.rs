@@ -56,14 +56,16 @@ fn react_window_routes_every_primary_page_surface() {
             "import { SettingsPage } from \"../../pages/SettingsPage\";",
             "import { TeamPage } from \"../../pages/TeamPage\";",
             "import { WorkspacePage } from \"../../pages/WorkspacePage\";",
-            "state.activePage === \"projects\"",
-            "state.activePage === \"editor\"",
-            "state.activePage === \"builds\"",
-            "state.activePage === \"cloud\"",
-            "state.activePage === \"assets\" || state.activePage === \"plugins\" || state.activePage === \"learn\"",
-            "state.activePage === \"team\"",
-            "state.activePage === \"settings\"",
-            "<WorkspacePage state={state} onAction={onAction} />",
+            "projects: ProjectsDashboard,",
+            "editor: EditorPage,",
+            "builds: BuildsPage,",
+            "cloud: CloudPage,",
+            "assets: CatalogPage,",
+            "plugins: CatalogPage,",
+            "learn: CatalogPage,",
+            "team: TeamPage,",
+            "settings: SettingsPage,",
+            "<PageComponent state={state} onAction={onAction} />",
             "component=\"main\"",
             "height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`",
         ],
@@ -109,8 +111,12 @@ fn projects_dashboard_does_not_render_visual_button_state_reference_strip() {
 #[test]
 fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
     let dashboard = page_source("ProjectsDashboard");
+    let projects_toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
+    let create_project = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
     let browser = page_source("ProjectBrowserPage");
     let detail = page_source("ProjectDetailPage");
+    let metrics_grid = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
 
     assert_contains_all(
         &dashboard,
@@ -119,22 +125,41 @@ fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
             "return <ProjectBrowserPage state={state} onAction={onAction} />;",
             "if (state.projectSubpage === \"project-detail\")",
             "return <ProjectDetailPage state={state} onAction={onAction} />;",
-            "HubSearchField",
-            "HubSelect",
-            "HubToggle",
+            "ProjectsToolbar",
             "ProjectCard",
             "ProjectTable",
             "QuickActions",
             "EmptyStateBlock",
-            "HubDialog",
+            "CreateProjectDialog",
             "open={state.projectSubpage === \"new-project\"}",
-            "HubTextField label={text.projectName}",
-            "HubComboBox",
             "onAction(HUB_ACTION.newProject)",
             "onAction(HUB_ACTION.openProjectDetail, project.id)",
             "onAction(HUB_ACTION.setProjectViewMode, value)",
         ],
         "ProjectsDashboard",
+    );
+    assert_contains_all(
+        &projects_toolbar,
+        &[
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "{ value: \"grid\", label: text.gridView",
+            "{ value: \"list\", label: text.listView",
+        ],
+        "ProjectsToolbar",
+    );
+    assert_contains_all(
+        &create_project,
+        &[
+            "HubDialog",
+            "open={open}",
+            "title={text.newProjectDialog}",
+            "HubTextField label={text.projectName}",
+            "HubTextField label={text.location}",
+            "HubComboBox",
+        ],
+        "CreateProjectDialog",
     );
     assert_contains_all(
         &browser,
@@ -163,29 +188,46 @@ fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
             "export function ProjectDetailPage",
             "const project = state.selectedProject ?? null;",
             "HubStatusBanner",
-            "MetricCard",
+            "ProjectMetricsGrid",
+            "ProjectDetailSidebar",
             "HubTabs",
             "ProjectCover",
             "HubList",
             "HubTreeView",
             "StatusBadge",
             "QuickActions",
-            "SourceEngineList",
             "EmptyStateBlock title={text.noProjectSelected}",
             "{ value: \"overview\", label: text.overview }",
             "{ value: \"files\", label: text.files }",
             "{ value: \"actions\", label: text.actions }",
             "projectTargetPayload(project)",
             "onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+        ],
+        "ProjectDetailPage",
+    );
+    assert_contains_all(
+        &metrics_grid,
+        &[
+            "MetricCard",
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+        ],
+        "ProjectMetricsGrid",
+    );
+    assert_contains_all(
+        &detail_sidebar,
+        &[
+            "QuickActions",
+            "SourceEngineList",
             "onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
             "onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
         ],
-        "ProjectDetailPage",
+        "ProjectDetailSidebar",
     );
 }
 
 #[test]
 fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     for (page, snippets) in [
         (
             "EditorPage",
@@ -250,7 +292,6 @@ fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
                 "StatusBadge",
                 "EmptyStateBlock title={text.noEntriesFound}",
                 "EmptyStateBlock title={text.noCatalogEntrySelected}",
-                "state.activePage === \"plugins\" || state.activePage === \"learn\"",
                 "state.plugins.map",
                 "state.learnResources.map",
                 "state.assets.map",
@@ -306,22 +347,9 @@ fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
             "SettingsPage",
             &[
                 "HubStatusBanner",
-                "LinearProgress",
                 "MetricCard",
                 "HubTabs",
-                "HubPanel title={settingsText.buildDefaultsPanel}",
-                "HubPanel title={settingsText.configurationPathsPanel}",
-                "HubPanel title={settingsText.sourceEnginesPanel}",
-                "HubPanel title={settingsText.pathDefaultsPanel}",
-                "HubPanel title={settingsText.advancedConfigurationPanel}",
-                "HubPanel title={settingsText.configurationHealthPanel}",
-                "HubComboBox",
-                "HubTextField",
-                "HubSwitch",
-                "HubCheckbox",
-                "HubTreeView",
-                "SourceEngineList",
-                "StatusBadge",
+                "SettingsSection",
                 "onAction(HUB_ACTION.saveSettings",
             ][..],
         ),
@@ -352,6 +380,26 @@ fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
             "{page} must keep responsive page-surface constraints"
         );
     }
+    assert_contains_all(
+        &settings_section,
+        &[
+            "LinearProgress",
+            "HubPanel title={settingsText.buildDefaultsPanel}",
+            "HubPanel title={settingsText.configurationPathsPanel}",
+            "HubPanel title={settingsText.sourceEnginesPanel}",
+            "HubPanel title={settingsText.pathDefaultsPanel}",
+            "HubPanel title={settingsText.advancedConfigurationPanel}",
+            "HubPanel title={settingsText.configurationHealthPanel}",
+            "HubComboBox",
+            "HubTextField",
+            "HubSwitch",
+            "HubCheckbox",
+            "HubTreeView",
+            "SourceEngineList",
+            "StatusBadge",
+        ],
+        "SettingsSection",
+    );
 }
 
 #[test]
@@ -500,7 +548,7 @@ fn feedback_popups_and_state_surfaces_cover_menu_empty_loading_and_error_cases()
             "{ id: \"account\", label: text.userAccount",
             "{ id: \"preferences\", label: text.preferences",
             "{ id: \"documentation\", label: text.documentation",
-            "{ id: \"sign-out\", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
+            "{ id: \"sign-out\", label: text.signOut, detail: signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
             "const isDisabled = Boolean(disabled);",
             "disabled={isDisabled}",
             "if (isDisabled) {",
@@ -520,6 +568,7 @@ fn feedback_popups_and_state_surfaces_cover_menu_empty_loading_and_error_cases()
             "void onAction(HUB_ACTION.showPage, \"settings\");",
             "void onAction(HUB_ACTION.showPage, \"learn\");",
             "void onAction(HUB_ACTION.showPage, \"team\");",
+            "signOutDetail={signOutDetail}",
         ],
         "TopBar",
     );
@@ -602,10 +651,15 @@ fn page_surface_contract_is_cut_over_to_react_sources() {
             "HubSnackbar.tsx",
             "HubStatusBanner.tsx",
             "HubDialog.tsx",
+            "CreateProjectDialog.tsx",
             "HubPopover.tsx",
             "SourceEnginePopover.tsx",
             "UserMenuPopover.tsx",
             "EmptyStateBlock.tsx",
+            "ProjectsToolbar.tsx",
+            "ProjectMetricsGrid.tsx",
+            "ProjectDetailSidebar.tsx",
+            "SettingsSection.tsx",
             "ProjectsDashboard",
             "ProjectBrowserPage",
             "ProjectDetailPage",

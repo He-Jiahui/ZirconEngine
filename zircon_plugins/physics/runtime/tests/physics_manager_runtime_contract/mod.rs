@@ -1,7 +1,9 @@
+use std::time::Duration;
+
 use zircon_plugin_physics_runtime::{
     build_world_sync_state, integrate_builtin_physics_steps, module_descriptor,
-    scene_hook_registration, DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME,
-    PHYSICS_MODULE_NAME,
+    register_runtime_system, DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME,
+    PHYSICS_MODULE_NAME, PLUGIN_RUNTIME_MODULE_NAME,
 };
 use zircon_runtime::core::framework::physics::{
     PhysicsBackendState, PhysicsColliderShape, PhysicsJointConstraintMetadata, PhysicsJointDrive,
@@ -18,10 +20,14 @@ use zircon_runtime::scene::components::{
     ColliderComponent, ColliderShape, JointComponent, JointKind, NodeKind, RigidBodyComponent,
     RigidBodyType,
 };
-use zircon_runtime::scene::{create_default_level, SCENE_MODULE_NAME};
+use zircon_runtime::scene::{create_default_level, LevelSystem, SCENE_MODULE_NAME};
+
+const TEST_MAX_FIXED_STEPS: u32 = 4;
+const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
 
 fn create_runtime_with_scene_and_physics() -> CoreRuntime {
     let runtime = CoreRuntime::new();
+    runtime.set_fixed_timestep(test_fixed_timestep());
     runtime
         .register_module(zircon_runtime::foundation::module_descriptor())
         .unwrap();
@@ -30,14 +36,27 @@ fn create_runtime_with_scene_and_physics() -> CoreRuntime {
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     let mut extensions = RuntimeExtensionRegistry::default();
-    extensions
-        .register_scene_hook(scene_hook_registration())
+    let owner = extensions
+        .intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)
         .unwrap();
-    runtime.install_scene_runtime_hooks(&extensions).unwrap();
+    register_runtime_system(&mut extensions, owner).unwrap();
+    runtime
+        .install_world_runtime_extensions(&extensions)
+        .unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     runtime.activate_module(PHYSICS_MODULE_NAME).unwrap();
     runtime
+}
+
+fn tick_physics_level(runtime: &CoreRuntime, level: &LevelSystem) {
+    let core = runtime.handle();
+    let advance = runtime.advance_time_by(test_fixed_timestep(), TEST_MAX_FIXED_STEPS);
+    level.tick(&core, advance).unwrap();
+}
+
+fn test_fixed_timestep() -> Duration {
+    Duration::from_nanos(TEST_FIXED_TIMESTEP_NANOS)
 }
 
 #[test]

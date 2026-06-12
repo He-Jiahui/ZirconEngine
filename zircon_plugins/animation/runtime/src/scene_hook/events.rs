@@ -1,7 +1,6 @@
+use zircon_runtime::animation::sample_clip_events;
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::scene::LevelSystem;
-
-use crate::clip_event::sample_clip_events;
 
 use super::pending::PendingClipEventSample;
 

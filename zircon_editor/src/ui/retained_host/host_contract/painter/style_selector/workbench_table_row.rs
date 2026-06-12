@@ -42,7 +42,7 @@ impl WorkbenchTableRowStyle {
         self,
         index: usize,
     ) -> [u8; 4] {
-        if self.state == UiPainterResolvedState::Disabled {
+        if is_unavailable_table_row_state(self.state) {
             PALETTE.text_disabled
         } else if self.header {
             WORKBENCH_TABLE_HEADER_TEXT
@@ -69,7 +69,7 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_tab
         border: table_row_border(state),
         border_width: table_row_border_width(state),
         separator: WORKBENCH_TABLE_SEPARATOR,
-        action: WORKBENCH_TABLE_ACTION_MUTED,
+        action: table_row_action_color(state),
         state,
         text: PALETTE.text,
         muted_text: PALETTE.text_muted,
@@ -86,7 +86,7 @@ fn table_row_background(
     header: bool,
     tail: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_table_row_state(state) {
         PALETTE.surface_disabled
     } else if marked {
         declared_background_color(node).unwrap_or(WORKBENCH_TABLE_SELECTED_BG)
@@ -108,6 +108,9 @@ fn table_row_background(
 }
 
 fn table_row_border(state: UiPainterResolvedState) -> Option<[u8; 4]> {
+    if is_unavailable_table_row_state(state) {
+        return None;
+    }
     matches!(
         state,
         UiPainterResolvedState::Focused
@@ -123,6 +126,14 @@ fn table_row_border_width(state: UiPainterResolvedState) -> f32 {
         1.0
     } else {
         0.0
+    }
+}
+
+fn table_row_action_color(state: UiPainterResolvedState) -> [u8; 4] {
+    if is_unavailable_table_row_state(state) {
+        PALETTE.text_disabled
+    } else {
+        WORKBENCH_TABLE_ACTION_MUTED
     }
 }
 
@@ -156,4 +167,40 @@ fn is_hot(state: UiPainterResolvedState) -> bool {
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )
+}
+
+fn is_unavailable_table_row_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::primitives::Color;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn table_row_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.control_id = "WorkbenchTableSelected".into();
+        node.hovered = true;
+        node.selected = true;
+        node.button_style.loading = true;
+        node.value_color = Color::from_rgb_u8(170, 181, 186);
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(13, 65, 73, 255)));
+
+        let style = select_workbench_table_row_style(&node);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.background, PALETTE.surface_disabled);
+        assert_eq!(style.border, None);
+        assert_eq!(style.border_width, 0.0);
+        assert_eq!(style.action, PALETTE.text_disabled);
+        assert_eq!(style.text_for_cell(0), PALETTE.text_disabled);
+        assert_eq!(style.text_for_cell(3), PALETTE.text_disabled);
+    }
 }

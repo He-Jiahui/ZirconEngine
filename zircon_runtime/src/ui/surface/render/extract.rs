@@ -8,9 +8,13 @@ use zircon_runtime_interface::ui::tree::UiTree;
 use super::buttons::{
     button_render_commands, button_suppresses_owner_image, button_suppresses_owner_text,
 };
+use super::chrome::{
+    chrome_render_commands, chrome_suppresses_owner_image, chrome_suppresses_owner_surface,
+    chrome_suppresses_owner_text,
+};
 use super::collection_rows::{
     collection_row_render_commands, collection_row_suppresses_owner_image,
-    collection_row_suppresses_owner_text,
+    collection_row_suppresses_owner_surface, collection_row_suppresses_owner_text,
 };
 use super::dropdowns::{dropdown_render_commands, dropdown_suppresses_owner_text};
 use super::feedback::{
@@ -77,6 +81,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                     || segmented_control_suppresses_owner_text(node.template_metadata.as_ref())
                     || collection_row_suppresses_owner_text(node.template_metadata.as_ref())
                     || feedback_suppresses_owner_text(node.template_metadata.as_ref())
+                    || chrome_suppresses_owner_text(node.template_metadata.as_ref())
                 {
                     None
                 } else {
@@ -85,16 +90,30 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
             let owner_image = if button_suppresses_owner_image(node.template_metadata.as_ref())
                 || collection_row_suppresses_owner_image(node.template_metadata.as_ref())
                 || feedback_suppresses_owner_image(node.template_metadata.as_ref())
+                || chrome_suppresses_owner_image(node.template_metadata.as_ref())
             {
                 None
             } else {
                 visual.image.clone()
             };
+            let owner_style =
+                if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || chrome_suppresses_owner_surface(node.template_metadata.as_ref())
+                {
+                    let mut style = visual.style.clone();
+                    style.background_color = None;
+                    style.border_color = None;
+                    style.border_width = 0.0;
+                    style.corner_radius = 0.0;
+                    style
+                } else {
+                    visual.style.clone()
+                };
 
             let text_layout = owner_text.as_deref().map(|text| {
                 let mut layout = layout_text(
                     text,
-                    &visual.style,
+                    &owner_style,
                     arranged_node.frame,
                     Some(arranged_node.clip_frame),
                 );
@@ -103,15 +122,11 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
             });
             let command = UiRenderCommand {
                 node_id,
-                kind: resolve_command_kind(
-                    &visual.style,
-                    owner_text.as_ref(),
-                    owner_image.as_ref(),
-                ),
+                kind: resolve_command_kind(&owner_style, owner_text.as_ref(), owner_image.as_ref()),
                 frame: arranged_node.frame,
                 clip_frame: Some(arranged_node.clip_frame),
                 z_index: arranged_node.z_index,
-                style: visual.style.clone(),
+                style: owner_style,
                 text_layout,
                 text: owner_text,
                 image: owner_image,
@@ -192,6 +207,16 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                 visual.opacity,
             ));
             commands.extend(feedback_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(chrome_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,

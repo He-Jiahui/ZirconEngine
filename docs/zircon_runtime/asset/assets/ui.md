@@ -1,0 +1,72 @@
+---
+related_code:
+  - zircon_runtime/src/asset/assets/ui.rs
+  - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/facade/impls.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+  - zircon_runtime/src/asset/artifact/cache_payload.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
+  - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
+  - zircon_runtime/src/asset/tests/assets/ui.rs
+implementation_files:
+  - zircon_runtime/src/asset/assets/ui.rs
+  - zircon_runtime/src/asset/assets/imported.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/facade/impls.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+  - zircon_runtime/src/asset/artifact/cache_payload.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
+  - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
+  - zircon_runtime/src/asset/tests/assets/ui.rs
+plan_sources:
+  - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
+  - docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md
+tests:
+  - rustfmt --edition 2021 --check touched UI asset/theme importer files (2026-06-12 UiThemeAsset slice: passed)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-theme-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiThemeAsset slice: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib ui_theme_asset --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-theme-asset-0612-coremin-check --message-format short --color never -- --test-threads=1 --nocapture (2026-06-12 UiThemeAsset slice: timed out after 904s while compiling the runtime lib-test target; no Rust diagnostics returned; matching UI-theme cargo/rustc processes stopped)
+  - rustfmt --edition 2021 touched UiIconAsset importer, facade, cache, load, sync, and test files (2026-06-12 UiIconAsset slice: passed)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiIconAsset slice: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib ui_icon --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never -- --test-threads=1 --nocapture (2026-06-12 UiIconAsset slice: passed, 4 passed / 0 failed / 3563 filtered out)
+doc_type: module-detail
+---
+
+# Runtime UI Assets
+
+`zircon_runtime::asset::assets::ui` owns the typed asset wrappers for runtime UI documents. The first wave keeps three existing UI document families:
+
+- `UiLayoutAsset`, `UiWidgetAsset`, and `UiStyleAsset` wrap v1 `UiAssetDocument` payloads and validate `[asset.kind]`.
+- `UiV2ViewAsset`, `UiV2ComponentAsset`, and `UiV2StyleAsset` wrap v2 `UiV2AssetDocument` payloads. `.zui` remains the production component source path.
+- `UiThemeAsset` wraps `zircon_runtime_interface::ui::style::UiThemeDocument` directly. It is the first standalone theme asset type for editor UI plan 05; existing `editor_*.v2.ui.toml` style-token files remain v2 style assets.
+- `UiIconAsset` describes icon sources for editor/tool UI chrome without rasterizing them yet. It supports inline SVG text, external SVG asset URIs, and bitmap asset URIs through `UiIconSource { kind, text, uri }`.
+
+`UiThemeAsset::from_toml_str(...)` parses sparse theme TOML through the interface theme DTO, so omitted palette, typography, shape, spacing, control-size, and elevation fields inherit the default dark-theme values. `UiThemeAsset::to_toml_string()` serializes the same document shape for asset cache and tooling roundtrips.
+
+`UiIconAsset::from_toml_str(...)` validates a positive finite `default_size`, a non-empty `semantic_id`, and source-specific payload fields. External `svg_asset` and `bitmap` sources must carry a valid `ResourceLocator` URI and expose that URI through `direct_references()`. Inline SVG sources must carry non-empty `text` and do not create asset dependency edges. The source shape intentionally stays as a plain struct plus `UiIconSourceKind` enum, because bincode artifact caching requires every serialized field to stay present in order; authoring-only serde conveniences such as internally tagged enums or skipped `Option` fields break binary restore.
+
+## Facade And Import
+
+`UiThemeAsset` uses the existing `UiStyleMarker` and `AssetKind::UiStyle` rather than adding a new public `ResourceKind`. The typed facade label is `ui_theme`, which lets editor/tool surfaces distinguish the payload while preserving the stable UI style resource family used by handles, registry rows, and readiness state.
+
+The built-in importer registers `.theme.toml` as `zircon.builtin.ui_theme.toml` and emits `ImportedAsset::UiTheme`. The generic `.toml` data importer still handles ordinary TOML files, and `.v2.ui.toml` continues to be reserved for test-only source-template importers plus existing editor authored style-token files. Project scan writes the imported theme to the same `.zasset` artifact cache path as other imported assets, and `ProjectAssetManager::load_imported_asset(...)` restores UI style-family payloads in this order: v2 style, theme, then v1 style.
+
+`UiIconAsset` uses the existing `TextureMarker` and `AssetKind::Texture` with typed facade label `ui_icon`. This keeps icon authoring assets in the image/texture resource family that later atlas and rasterization work will consume, without adding a public icon resource kind before plan 05 M4 defines the runtime atlas channel. The built-in importer registers `.icon.toml` as `zircon.builtin.ui_icon.toml` and emits `ImportedAsset::UiIcon`. Project scan writes icon artifacts under the texture library directory, stores/restores the `UiIconAsset` payload through the binary artifact cache, and `ProjectAssetManager::load_imported_asset(...)` checks UI icon payloads before ordinary texture payloads for `AssetKind::Texture`.
+
+## Coverage
+
+`zircon_runtime/src/asset/tests/assets/ui.rs` covers sparse theme TOML parsing, default palette inheritance, facade label and marker kind, TOML roundtrip, default importer selection for `.theme.toml`, and project-manager scan/restore of the theme payload as `AssetKind::UiStyle`. The same test module covers `.icon.toml` parsing, external icon dependency extraction, `ui_icon` facade label and `TextureMarker` mapping, default importer selection, and project-manager scan plus artifact restore of icon payloads as `AssetKind::Texture`.

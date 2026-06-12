@@ -3,7 +3,7 @@ use crate::plugin::{
     RuntimePluginRegistrationReport, RuntimeProfileDescriptor, RuntimeProfileId,
 };
 
-use super::RuntimeTargetMode;
+use super::ids::RuntimeTargetMode;
 
 pub(super) fn runtime_profile_availability(
     profile: &RuntimeProfileDescriptor,

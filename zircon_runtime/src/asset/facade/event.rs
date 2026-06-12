@@ -6,10 +6,11 @@ use crossbeam_channel::{
 use serde::{Deserialize, Serialize};
 
 use super::{Asset, Handle};
+use crate::core::framework::channel::ChannelReceiver;
 use crate::core::resource::{
     ResourceEvent, ResourceEventKind, ResourceKind, ResourceLocator, ResourceMarker,
 };
-use crate::core::{spawn_named_thread, ChannelReceiver};
+use crate::core::runtime::tasks::spawn_named_thread;
 
 pub struct AssetEventReceiver<TAsset: Asset> {
     receiver: Receiver<AssetEvent<TAsset>>,

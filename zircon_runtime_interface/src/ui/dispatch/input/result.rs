@@ -7,6 +7,7 @@ use crate::ui::event_ui::UiNodeId;
 use super::{
     UiClipboardRequest, UiDispatchEffect, UiDispatchReply, UiDispatchReplyStepTrace, UiInputEvent,
     UiInputMethodRequest, UiPointerLockPolicy, UiPopupEffectKind, UiTooltipEffectKind,
+    UiTransientDismissalReason, UiTransientDismissalTarget,
 };
 use crate::ui::layout::UiPoint;
 
@@ -101,6 +102,10 @@ pub enum UiDispatchHostRequestKind {
     Tooltip {
         kind: UiTooltipEffectKind,
         tooltip_id: String,
+    },
+    DismissTransientUi {
+        target: UiTransientDismissalTarget,
+        reason: UiTransientDismissalReason,
     },
 }
 

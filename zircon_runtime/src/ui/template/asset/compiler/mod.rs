@@ -11,7 +11,11 @@ mod ui_document_compiler;
 mod ui_style_resolver;
 mod value_normalizer;
 
-pub use cache::{compile_cache_key_from_compiler, UiAssetCompileCache, UiCompileCacheOutcome};
+pub use cache::{
+    compile_cache_key_from_compiler, UiAssetCompileCache, UiAssetCompileCacheEvictionReport,
+    UiCompileCacheOutcome, UiCompiledArtifactKey, UiCompiledArtifactStore,
+    UiCompiledArtifactStoreEvictionReport,
+};
 pub use package::{
     compiled_asset_package_manifest_from_artifact_bytes, UiRuntimeCompiledAssetArtifact,
 };

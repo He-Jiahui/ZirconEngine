@@ -57,6 +57,13 @@ const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
         sampled_in_component_drawer: true,
     },
     WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/inputs/workbench_search_input.zui",
+        component_name: "WorkbenchSearchInput",
+        root_component: "SearchField",
+        interactive: true,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
         file_name: "workbench/primitives/inputs/workbench_checkbox.zui",
         component_name: "WorkbenchCheckbox",
         root_component: "Checkbox",
@@ -241,13 +248,13 @@ const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
         root_control_id: "WorkbenchSceneTreePanel",
         root_classes: &["workbench-panel", "workbench-left-panel"],
         required_widget_imports: &[
-            "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+            "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
             "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
             "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
             "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
         ],
         required_mounted_components: &[
-            "WorkbenchField",
+            "WorkbenchSearchInput",
             "WorkbenchIconButton",
             "WorkbenchTab",
             "WorkbenchTreeRow",
@@ -467,7 +474,7 @@ fn workbench_primitive_component_assets_keep_native_component_contract() {
     }
 
     assert!(
-        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 23,
+        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 24,
         "workbench primitive contract should cover the low-level atom/collection/property/shell-leaf set"
     );
     assert!(

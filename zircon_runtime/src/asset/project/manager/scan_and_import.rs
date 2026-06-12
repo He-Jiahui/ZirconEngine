@@ -289,7 +289,12 @@ impl ProjectManager {
             let Some(artifact_uri) = &entry.artifact_locator else {
                 return Ok(None);
             };
-            if self.artifact_store.read(&self.paths, artifact_uri).is_err() {
+            if let Err(_error) = self.artifact_store.read(&self.paths, artifact_uri) {
+                #[cfg(feature = "zr-vm-real-backend")]
+                eprintln!(
+                    "stale artifact cache for {} at {}: {_error}",
+                    entry.url, artifact_uri
+                );
                 return Ok(None);
             }
         }

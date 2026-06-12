@@ -1,9 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, Weak};
 
+use crate::core::framework::script::ScriptHostValue;
 use crate::core::{CoreRuntime, PluginContext};
 
-use super::super::backend::{BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError};
+use super::super::backend::{
+    BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError, ZrVmBackendFamily,
+};
 use super::super::handles::PluginSlotId;
 use super::super::host::{
     register_builtin_host_modules, HostExportRegistry, HostRegistry, VmPluginHostContext,
@@ -120,6 +123,7 @@ impl VmPluginManager {
             selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
         });
         manager.register_family(Arc::new(BuiltinVmBackendFamily));
+        manager.register_family(Arc::new(ZrVmBackendFamily));
         manager
     }
 
@@ -231,6 +235,32 @@ impl VmPluginManager {
 
     pub fn slot(&self, slot: PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
         self.coordinator.slot(slot)
+    }
+
+    pub fn slot_for_package_name(&self, package_name: &str) -> Result<PluginSlotId, VmError> {
+        self.coordinator.slot_for_package_name(package_name)
+    }
+
+    pub fn call_slot_export(
+        &self,
+        slot: PluginSlotId,
+        module_name: &str,
+        export_name: &str,
+        arguments: &[ScriptHostValue],
+    ) -> Result<Option<ScriptHostValue>, VmError> {
+        self.coordinator
+            .call_slot_export(slot, module_name, export_name, arguments)
+    }
+
+    pub fn call_package_export(
+        &self,
+        package_name: &str,
+        module_name: &str,
+        export_name: &str,
+        arguments: &[ScriptHostValue],
+    ) -> Result<Option<ScriptHostValue>, VmError> {
+        let slot = self.slot_for_package_name(package_name)?;
+        self.call_slot_export(slot, module_name, export_name, arguments)
     }
 
     pub fn list_slots(&self) -> Vec<VmPluginSlotRecord> {

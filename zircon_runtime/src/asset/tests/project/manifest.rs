@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::project::{ProjectManifest, ProjectPaths, ProjectScriptManifest};
 use crate::asset::AssetUri;
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
@@ -100,6 +100,32 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
 }
 
 #[test]
+fn project_manifest_roundtrip_preserves_script_package_roots() {
+    let root = unique_temp_project_root("manifest_scripts");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+
+    let mut manifest = ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        3,
+    );
+    manifest.scripts = ProjectScriptManifest {
+        package_roots: vec!["scripts".to_string()],
+        startup_packages: vec!["vampire_game".to_string()],
+    };
+
+    manifest.save(paths.manifest_path()).unwrap();
+    let loaded = ProjectManifest::load(paths.manifest_path()).unwrap();
+
+    assert_eq!(loaded.scripts.package_roots, ["scripts"]);
+    assert_eq!(loaded.scripts.startup_packages, ["vampire_game"]);
+    assert_eq!(loaded, manifest);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn export_profile_runtime_profile_id_is_backward_compatible() {
     let source = r#"
 name = "Sandbox"
@@ -118,4 +144,5 @@ output_name = "client"
 
     assert_eq!(manifest.export_profiles.len(), 1);
     assert_eq!(manifest.export_profiles[0].runtime_profile_id, None);
+    assert!(manifest.scripts.is_empty());
 }

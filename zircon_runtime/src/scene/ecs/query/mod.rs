@@ -31,7 +31,7 @@ pub use query_many_mut_iter::QueryManyMutIter;
 pub use query_many_unique_mut_iter::QueryManyUniqueMutIter;
 pub use query_mut_iter::QueryMutIter;
 pub use query_single_error::QuerySingleError;
-pub use query_state::QueryState;
+pub use query_state::{QueryState, QueryStateCacheStats};
 pub use unique_entities::UniqueEntityArray;
 
 pub(crate) use query_single_error::single_from_iter;

@@ -47,9 +47,16 @@ impl EntryRunner {
         #[cfg(feature = "profiling")]
         let profile_capture =
             zircon_runtime::core::diagnostics::profiling::start_capture_from_env("runtime");
+        zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_start");
         let runtime = LoadedRuntime::load_default()?;
-        let session =
-            RuntimeSession::create_with_profile(runtime, runtime_session_args.profile.as_bytes())?;
+        zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_done");
+        zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_start");
+        let session = RuntimeSession::create_with_profile_and_project(
+            runtime,
+            runtime_session_args.profile.as_bytes(),
+            runtime_session_args.project_root.as_deref(),
+        )?;
+        zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_done");
         let host_config =
             runtime_entry_app_config_for_session_profile(runtime_session_args.profile);
         let event_loop = EventLoop::new()?;

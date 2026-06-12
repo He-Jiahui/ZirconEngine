@@ -8,7 +8,7 @@ use crate::{
 
 use super::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginInterfaceManifest, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,6 +48,8 @@ pub struct PluginPackageManifest {
     pub modules: Vec<PluginModuleManifest>,
     #[serde(default)]
     pub dependencies: Vec<PluginDependencyManifest>,
+    #[serde(default)]
+    pub provides_interfaces: Vec<PluginInterfaceManifest>,
     #[serde(default)]
     pub options: Vec<PluginOptionManifest>,
     #[serde(default)]

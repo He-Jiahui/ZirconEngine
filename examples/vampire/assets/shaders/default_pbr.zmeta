@@ -1,0 +1,41 @@
+format_version = 6
+uuid = "00000000-0000-0000-0000-000000000041"
+url = "res://shaders/default_pbr"
+asset_kind = "Shader"
+unit = "compound"
+included_files = [
+    "res://shaders/default_pbr/default_pbr.wgsl",
+    "res://shaders/default_pbr/default_pbr.zshader",
+]
+artifact_locator = "lib://shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset"
+importer_id = "zircon.builtin.shader.zshader_package"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781201280973
+source_hash = "fa7a71462cd8260b"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "00000000-0000-0000-0000-000000000041"
+url = "res://shaders/default_pbr"
+asset_kind = "Shader"
+artifact_locator = "lib://shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "08fac24b-a1ac-4c24-9e35-256ffd8f558d"
+url = "res://shaders/default_pbr#zshader:default_pbr.zshader"
+asset_kind = "Data"
+artifact_locator = "lib://data/d72416df-bf23-9071-c120-ae473bf9e511.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "d4d296c0-25e6-413f-84a3-9413dc11f67b"
+url = "res://shaders/default_pbr#wgsl:default_pbr.wgsl"
+asset_kind = "Data"
+artifact_locator = "lib://data/1c972210-e2fa-8926-0c97-7ac6a184e979.zasset"
+dependencies = []

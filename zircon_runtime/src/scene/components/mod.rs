@@ -10,8 +10,8 @@ pub use scene::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, CameraComponent,
     ColliderComponent, ColliderShape, DirectionalLight, Hierarchy, JointComponent, JointKind,
-    LocalTransform, MeshRenderer, MeshRendererPrimitiveBinding, Name, NodeKind, NodeRecord,
-    PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
-    RenderLayerMask, RigidBodyComponent, RigidBodyType, SceneNode, SpotLight, WorldMatrix,
-    WorldTransform,
+    LocalTransform, MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding, Name,
+    NodeKind, NodeRecord, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent,
+    RectLight, RenderLayerMask, RigidBodyComponent, RigidBodyType, SceneNode, SpotLight,
+    WorldMatrix, WorldTransform,
 };

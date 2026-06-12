@@ -128,6 +128,125 @@ selected = true
     );
 }
 
+#[test]
+fn render_extract_loading_tabs_and_segmented_controls_use_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.segmented_controls.loading",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 280.0, 128.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "SegmentedControl",
+        UiFrame::new(12.0, 8.0, 150.0, 48.0),
+        r##"
+label = "Mode"
+value = "center"
+options = ["left", "center", "right"]
+selected = true
+checked = true
+loading = true
+hovered = true
+focused = true
+pressed = true
+background_color = "#1d2327"
+border_color = "#4b626d"
+selected_background_color = "#0f6574"
+selected_border_color = "#35c7d0"
+selected_underline_color = "#35c7d0"
+selected_underline_height = 1.0
+foreground_color = "#8fa3ac"
+selected_foreground_color = "#e6f1f4"
+label_color = "#a1acb2"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Tab",
+        UiFrame::new(12.0, 72.0, 132.0, 32.0),
+        r##"
+text = "UI Components"
+checked = true
+selected = true
+loading = true
+hovered = true
+pressed = true
+background_color = "#1d2327"
+selected_underline_color = "#35c7d0"
+selected_foreground_color = "#e6f1f4"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Mode")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#58656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 26.0, 150.0, 30.0)
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#191d22")
+            && command.style.border_color.as_deref() == Some("#334852")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(64.0, 28.0, 46.0, 26.0)
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#191d22")
+            && command.style.border_color.as_deref() == Some("#334852")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(64.0, 53.0, 46.0, 1.0)
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#58656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Center")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#58656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 72.0, 132.0, 32.0)
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#191d22")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 102.0, 132.0, 2.0)
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#58656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("UI Components")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#58656c")
+    }));
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,

@@ -19,7 +19,7 @@ pub use diagnostics::{
     UiSurfaceRebuildDebugStats, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
 };
 pub use focus_state::{UiFocusPath, UiFocusState, UiModalFocusRestoreState};
-pub use frame::UiSurfaceFrame;
+pub use frame::{UiSurfaceFrame, UiSurfaceWindowState};
 pub use hit::{
     UiHitCoordinateSpace, UiHitPath, UiHitTestCell, UiHitTestDebugDump, UiHitTestEntry,
     UiHitTestGrid, UiHitTestQuery, UiHitTestReject, UiHitTestRejectReason, UiHitTestScope,

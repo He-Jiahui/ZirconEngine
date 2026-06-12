@@ -93,7 +93,7 @@ doc_type: module-detail
 
 - `zircon_runtime/src/ui/mod.rs` + `zircon_runtime/src/ui/module.rs`
   - 持有 `UiModule`、`UiConfig`、`UI_MODULE_NAME` 与 `module_descriptor()`
-  - `zircon_runtime::builtin_runtime_modules()` 通过这里注册 runtime UI 模块
+  - `zircon_runtime::builtin::builtin_runtime_modules()` 通过这里注册 runtime UI 模块
 - `zircon_runtime/src/ui/mod.rs`
   - 继续暴露 binding、event_ui、layout、template、tree 等共享 UI 实现与 DTO surface
 - `zircon_runtime/src/ui/dispatch/mod.rs` 与 `zircon_runtime/src/ui/surface/mod.rs`

@@ -5,6 +5,7 @@ pub mod handles;
 pub mod manifest;
 pub mod math;
 pub mod plugin_api;
+pub mod plugin_diagnostics;
 pub mod plugin_events;
 pub mod profiling;
 pub mod reflect;
@@ -14,12 +15,19 @@ pub mod status;
 pub mod ui;
 pub mod version;
 
-pub use buffer::{ZrByteSlice, ZrFreeBytesFn, ZrOwnedByteBuffer};
+pub use buffer::{ZrByteBufferRef, ZrByteSlice, ZrFreeBytesFn, ZrOwnedByteBuffer};
 pub use handles::{ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
 pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTargetMode};
 pub use plugin_api::{
-    ZrPluginApiV1, ZrPluginEntryFnV1, ZrPluginEntryReportV1, ZR_PLUGIN_ENTRY_SYMBOL_V1,
+    ZrComponentDescV1, ZrEventTypeId, ZrHostApiV3, ZrHostAssetApiV1, ZrHostAssetRequestFnV1,
+    ZrHostDiagnosticsApiV1, ZrHostDiagnosticsEmitFnV1, ZrHostDiagnosticsMetricFnV1, ZrHostEcsApiV1,
+    ZrHostEventApiV1, ZrHostEventDrainFnV1, ZrHostEventEmitFnV1, ZrHostRegisterComponentFnV1,
+    ZrHostRegisterSystemFnV1, ZrHostSpawnCommandFnV1, ZrNativeSystemInvokeFnV1, ZrPluginApiV1,
+    ZrPluginEntryFnV1, ZrPluginEntryFnV3, ZrPluginEntryReportV1, ZrPluginSnapshotRestoreFnV1,
+    ZrPluginSnapshotSaveFnV1, ZrPluginStateSnapshotApiV1, ZrSystemRegistrationV1,
+    ZR_PLUGIN_ENTRY_SYMBOL_V1, ZR_PLUGIN_ENTRY_SYMBOL_V3,
 };
+pub use plugin_diagnostics::{RegistrationDiagnostic, RegistrationDiagnosticSeverity};
 pub use plugin_events::{
     ZrPluginEventCallbackFnV1, ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1,
 };
@@ -80,12 +88,13 @@ pub use runtime_api::{
     ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1,
     ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
     ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
-    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_BOOL_FALSE_V1,
-    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
+    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
+    ZR_RUNTIME_WINDOW_BOOL_FALSE_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
+    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,

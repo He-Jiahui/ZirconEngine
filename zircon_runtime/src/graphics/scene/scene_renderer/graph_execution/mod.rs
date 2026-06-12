@@ -7,6 +7,7 @@ mod render_pass_execution_context;
 mod render_pass_executor_id;
 mod render_pass_executor_registration;
 mod render_pass_executor_registry;
+mod transient_resource_pool;
 
 pub use render_graph_execution_record::{
     RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadDispatchContext,
@@ -18,8 +19,9 @@ pub use render_pass_execution_context::{
     RenderPassExecutionContext, RenderPassGpuExecutionContext,
 };
 pub(in crate::graphics::scene::scene_renderer) use render_pass_execution_context::{
-    RenderPassMeshDrawLists, RenderPassPostProcessStackContext,
+    RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 pub use render_pass_executor_id::RenderPassExecutorId;
 pub use render_pass_executor_registration::{RenderPassExecutor, RenderPassExecutorRegistration};
 pub use render_pass_executor_registry::{RenderPassExecutorFn, RenderPassExecutorRegistry};
+pub(in crate::graphics::scene::scene_renderer) use transient_resource_pool::TransientResourcePool;

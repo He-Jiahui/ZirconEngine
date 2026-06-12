@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use crate::error::HubError;
 use crate::process::{open_folder, OpenFolderCommand};
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, TaskOperationKind, TaskStatus,
+    DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+    ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::tauri_app::action_request::OpenOutputFolderPayload;
 
@@ -18,10 +19,15 @@ impl HubRuntimeSession {
         let output_dir = match self.resolve_output_folder(target_id, payload) {
             Ok(output_dir) => output_dir,
             Err(error) => {
+                let (detail, recovery) = error.into_status_messages();
                 self.record_output_folder_failure(
                     "Output Folder".to_string(),
-                    error.to_string(),
-                    "Choose a recorded package, install, or build output before opening the folder",
+                    detail,
+                    recovery.unwrap_or_else(|| {
+                        HubMessage::new(HubMessageId::Delivery(
+                            DeliveryMessageId::ChooseRecordedOutputRecovery,
+                        ))
+                    }),
                 )?;
                 return Ok(());
             }
@@ -29,11 +35,13 @@ impl HubRuntimeSession {
         if !output_dir.is_dir() {
             self.record_output_folder_failure(
                 output_dir.to_string_lossy().into_owned(),
-                format!(
-                    "Output folder does not exist: {}",
-                    output_dir.to_string_lossy()
+                HubMessage::with_params(
+                    HubMessageId::Delivery(DeliveryMessageId::OutputFolderDoesNotExist),
+                    [output_dir.to_string_lossy().into_owned()],
                 ),
-                "Run the build, package, or install workflow again and then open its output folder",
+                HubMessage::new(HubMessageId::Delivery(
+                    DeliveryMessageId::RunWorkflowAgainRecovery,
+                )),
             )?;
             return Ok(());
         }
@@ -50,23 +58,30 @@ impl HubRuntimeSession {
                         action: HubActionKind::OpenOutput,
                         status: HubActionStatus::Success,
                         target: output_dir.to_string_lossy().into_owned(),
-                        detail: format!("Opened {}", output_dir.to_string_lossy()),
-                        log_excerpt: String::new(),
+                        detail: HubMessage::with_params(
+                            HubMessageId::Shell(ShellMessageId::OpenedPath),
+                            [output_dir.to_string_lossy().into_owned()],
+                        ),
+                        log_excerpt: HubMessage::empty(),
                         recovery: None,
                         process_id: Some(process_id),
                         command_line,
                         output_dir: Some(output_dir.clone()),
                     },
                 );
-                self.task_status =
-                    TaskStatus::success("Output folder opened", output_dir.to_string_lossy())
-                        .with_operation(TaskOperationKind::Process, output_dir.to_string_lossy());
-                self.persist_hub_config()
+                self.task_status = TaskStatus::success(
+                    "Output folder opened",
+                    HubMessage::legacy(output_dir.to_string_lossy().into_owned()),
+                )
+                .with_operation(TaskOperationKind::Process, output_dir.to_string_lossy());
+                self.persist(None)
             }
             Err(error) => self.record_output_folder_failure(
                 output_dir.to_string_lossy().into_owned(),
-                error.to_string(),
-                "Open the folder manually from the file system and verify shell integration",
+                HubMessage::legacy(error.to_string()),
+                HubMessage::new(HubMessageId::Delivery(
+                    DeliveryMessageId::OpenFolderManuallyRecovery,
+                )),
             ),
         }
     }
@@ -93,7 +108,14 @@ impl HubRuntimeSession {
         });
 
         let Some(target) = target else {
-            return Err(HubError::message("Open Output target is required"));
+            return Err(HubError::status(
+                HubMessage::new(HubMessageId::Delivery(
+                    DeliveryMessageId::OpenOutputTargetRequired,
+                )),
+                Some(HubMessage::new(HubMessageId::Delivery(
+                    DeliveryMessageId::ChooseRecordedOutputRecovery,
+                ))),
+            ));
         };
 
         if let Some(record) = self.config.action_history.iter().find(|record| {
@@ -112,8 +134,8 @@ impl HubRuntimeSession {
     fn record_output_folder_failure(
         &mut self,
         target: String,
-        detail: String,
-        recovery: &str,
+        detail: HubMessage,
+        recovery: HubMessage,
     ) -> Result<(), HubError> {
         crate::state::push_action_record(
             &mut self.config.action_history,
@@ -124,7 +146,7 @@ impl HubRuntimeSession {
                 target: target.clone(),
                 detail: detail.clone(),
                 log_excerpt: detail.clone(),
-                recovery: Some(recovery.to_string()),
+                recovery: Some(recovery.clone()),
                 process_id: None,
                 command_line: Vec::new(),
                 output_dir: None,
@@ -132,7 +154,7 @@ impl HubRuntimeSession {
         );
         self.task_status = TaskStatus::error("Open Output failed", detail, recovery)
             .with_operation(TaskOperationKind::Process, target);
-        self.persist_hub_config()
+        self.persist(None)
     }
 }
 
@@ -151,14 +173,14 @@ mod tests {
 
     use crate::{
         settings::{HubConfig, HubLanguage},
-        state::{HubActionKind, HubActionRecord, HubActionStatus},
+        state::{HubActionKind, HubActionRecord, HubActionStatus, HubMessage},
     };
 
     use super::super::{HubActionRequest, HubRuntimeSession};
     use crate::tauri_app::action_request::HubAction;
 
     #[test]
-    fn open_output_folder_payload_accepts_wrapped_output_path() {
+    fn open_output_folder_payload_accepts_flat_output_path() {
         let temp = temp_test_dir("zircon-hub-open-output-payload");
         let output_dir = temp.join("package-output");
 
@@ -166,9 +188,7 @@ mod tests {
             action_id: "open-output-folder".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "output": {
-                    "path": output_dir.to_string_lossy()
-                }
+                "path": output_dir.to_string_lossy()
             })),
         }
         .parse()
@@ -314,8 +334,8 @@ mod tests {
             action: HubActionKind::PackageProject,
             status: HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: "Packaged Game".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::legacy("Packaged Game"),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: None,
             command_line: Vec::new(),

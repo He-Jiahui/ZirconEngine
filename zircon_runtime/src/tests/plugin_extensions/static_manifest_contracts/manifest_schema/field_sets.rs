@@ -1,4 +1,4 @@
-pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 27] = [
+pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 28] = [
     "asset_importers",
     "asset_roots",
     "capabilities",
@@ -21,6 +21,7 @@ pub(super) const KNOWN_TOP_LEVEL_FIELDS: [&str; 27] = [
     "package_kind",
     "package_name",
     "package_prefix",
+    "provides_interfaces",
     "sdk_api_version",
     "supported_platforms",
     "supported_targets",
@@ -51,9 +52,11 @@ pub(super) const KNOWN_CAPABILITY_STATUS_FIELDS: [&str; 5] = [
 pub(super) const KNOWN_COMPONENT_FIELDS: [&str; 4] =
     ["display_name", "plugin_id", "properties", "type_id"];
 pub(super) const KNOWN_COMPONENT_PROPERTY_FIELDS: [&str; 3] = ["editable", "name", "value_type"];
-pub(super) const KNOWN_DEPENDENCY_FIELDS: [&str; 3] = ["capability", "id", "required"];
+pub(super) const KNOWN_DEPENDENCY_FIELDS: [&str; 4] =
+    ["capability", "id", "interfaces", "required"];
 pub(super) const KNOWN_EVENT_CATALOG_FIELDS: [&str; 3] = ["events", "namespace", "version"];
 pub(super) const KNOWN_EVENT_FIELDS: [&str; 3] = ["display_name", "id", "payload_schema"];
+pub(super) const KNOWN_INTERFACE_FIELDS: [&str; 1] = ["id"];
 pub(super) const KNOWN_MODULE_FIELDS: [&str; 5] =
     ["capabilities", "crate_name", "kind", "name", "target_modes"];
 pub(super) const KNOWN_OPTION_FIELDS: [&str; 6] = [

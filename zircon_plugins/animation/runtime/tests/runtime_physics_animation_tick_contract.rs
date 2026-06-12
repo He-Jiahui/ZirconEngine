@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 use zircon_runtime::asset::{
     self, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
@@ -30,6 +31,9 @@ use zircon_runtime::scene::components::{
     ColliderShape, NodeKind, RigidBodyComponent, RigidBodyType,
 };
 use zircon_runtime::{foundation, scene};
+
+const TEST_MAX_FIXED_STEPS: u32 = 4;
+const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
 
 #[test]
 fn plugin_runtime_resolves_physics_and_animation_managers() {
@@ -103,7 +107,7 @@ fn level_tick_advances_physics_and_records_contacts() {
         body
     });
 
-    level.tick(&core, 1.0 / 60.0).unwrap();
+    tick_level(&runtime, &level, 1.0 / 60.0);
 
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
@@ -144,7 +148,7 @@ fn level_tick_without_physics_plugin_does_not_run_physics() {
     });
     let before = level.with_world(|world| world.find_node(body).unwrap().transform);
 
-    level.tick(&core, 1.0 / 60.0).unwrap();
+    tick_level(&runtime, &level, 1.0 / 60.0);
 
     let after = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(after, before);
@@ -185,7 +189,7 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
         cube
     });
 
-    level.tick(&core, 0.5).unwrap();
+    tick_level(&runtime, &level, 0.5);
 
     let (translation, player_time) = level.with_world(|world| {
         (
@@ -243,7 +247,7 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
         entity
     });
 
-    level.tick(&core, 0.1).unwrap();
+    tick_level(&runtime, &level, 0.1);
     let events = drain_animation_clip_events(&level);
 
     assert_eq!(events.len(), 1);
@@ -356,7 +360,7 @@ fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
         entity
     });
 
-    level.tick(&core, 0.3).unwrap();
+    tick_level(&runtime, &level, 0.3);
     let events = drain_animation_clip_events(&level);
 
     assert_eq!(events.len(), 1);
@@ -434,7 +438,7 @@ fn state_machine_player_emits_active_graph_clip_events() {
         entity
     });
 
-    level.tick(&core, 0.5).unwrap();
+    tick_level(&runtime, &level, 0.5);
     let events = drain_animation_clip_events(&level);
 
     assert_eq!(events.len(), 1);
@@ -542,7 +546,7 @@ fn state_machine_transition_emits_from_and_to_graph_clip_events() {
         entity
     });
 
-    level.tick(&core, 0.1).unwrap();
+    tick_level(&runtime, &level, 0.1);
     let mut events = drain_animation_clip_events(&level);
     events.sort_by(|a, b| a.event.cmp(&b.event));
 
@@ -590,7 +594,7 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
         cube
     });
 
-    level.tick(&core, 0.5).unwrap();
+    tick_level(&runtime, &level, 0.5);
 
     let (translation, player_time) = level.with_world(|world| {
         (
@@ -657,7 +661,7 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
         entity
     });
 
-    level.tick(&core, 0.0).unwrap();
+    tick_level(&runtime, &level, 0.0);
 
     let pose = level
         .animation_pose(entity)
@@ -779,7 +783,7 @@ fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
         entity
     });
 
-    level.tick(&core, 0.0).unwrap();
+    tick_level(&runtime, &level, 0.0);
 
     let pose = level
         .animation_pose(entity)
@@ -852,7 +856,7 @@ fn sequence_runtime_resolves_target_id_before_entity_path_fallback() {
         cube
     });
 
-    level.tick(&core, 0.5).unwrap();
+    tick_level(&runtime, &level, 0.5);
 
     let translation =
         level.with_world(|world| world.find_node(cube).unwrap().transform.translation);
@@ -909,7 +913,7 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
         entity
     });
 
-    level.tick(&core, 0.1).unwrap();
+    tick_level(&runtime, &level, 0.1);
 
     let midway_pose = level
         .animation_pose(entity)
@@ -932,7 +936,7 @@ fn level_tick_blends_state_machine_transition_until_duration_completes() {
         Some("Idle".to_string())
     );
 
-    level.tick(&core, 0.1).unwrap();
+    tick_level(&runtime, &level, 0.1);
 
     let final_pose = level
         .animation_pose(entity)
@@ -985,6 +989,7 @@ fn runtime_with_physics_animation_scene_asset() -> CoreRuntime {
     );
 
     let runtime = CoreRuntime::new();
+    runtime.set_fixed_timestep(test_fixed_timestep());
     runtime
         .register_module(foundation::module_descriptor())
         .unwrap();
@@ -994,7 +999,7 @@ fn runtime_with_physics_animation_scene_asset() -> CoreRuntime {
         runtime.register_module(module.clone()).unwrap();
     }
     runtime
-        .install_scene_runtime_hooks(&extension_report.registry)
+        .install_world_runtime_extensions(&extension_report.registry)
         .unwrap();
     runtime
         .activate_module(foundation::FOUNDATION_MODULE_NAME)
@@ -1021,6 +1026,7 @@ fn runtime_physics_manager(
 
 fn runtime_with_scene_asset_only() -> CoreRuntime {
     let runtime = CoreRuntime::new();
+    runtime.set_fixed_timestep(test_fixed_timestep());
     runtime
         .register_module(foundation::module_descriptor())
         .unwrap();
@@ -1032,6 +1038,24 @@ fn runtime_with_scene_asset_only() -> CoreRuntime {
     runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();
     runtime.activate_module(scene::SCENE_MODULE_NAME).unwrap();
     runtime
+}
+
+fn tick_level(runtime: &CoreRuntime, level: &scene::LevelSystem, seconds: f64) {
+    let core = runtime.handle();
+    let advance = runtime.advance_time_by(duration_from_seconds(seconds), TEST_MAX_FIXED_STEPS);
+    level.tick(&core, advance).unwrap();
+}
+
+fn duration_from_seconds(seconds: f64) -> Duration {
+    if seconds.is_finite() && seconds > 0.0 {
+        Duration::from_secs_f64(seconds)
+    } else {
+        Duration::ZERO
+    }
+}
+
+fn test_fixed_timestep() -> Duration {
+    Duration::from_nanos(TEST_FIXED_TIMESTEP_NANOS)
 }
 
 fn runtime_asset_manager(core: &CoreHandle) -> std::sync::Arc<ProjectAssetManager> {

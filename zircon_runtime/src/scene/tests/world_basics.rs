@@ -3,14 +3,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::render::{
     ProjectionMode, RenderAmbientLightSnapshot, RenderMaterialAlphaMode, RenderPhase,
-    RenderPhaseMeshSource, RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteRect,
+    RenderPhaseMeshSource, RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteImageMode,
+    RenderSpriteRect, RenderSpriteSliceBorder, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
 };
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::{Transform, Vec2, Vec3, Vec4};
 
-use crate::scene::components::{CameraComponent, Mesh2dComponent, Name, Sprite2dComponent};
+use crate::scene::components::{
+    CameraComponent, Mesh2dComponent, MeshRenderer, Name, Sprite2dComponent,
+};
 use crate::scene::{world::World, NodeKind, SystemStage};
 
+use super::authoring_boundary::{
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+};
 use super::support::{material_handle, model_handle};
 
 #[test]
@@ -107,6 +113,94 @@ fn updated_transform_is_reflected_in_render_extract() {
 }
 
 #[test]
+fn mesh_renderer_sort_fields_feed_geometry_phase_queue() {
+    let mut world = World::new();
+    let render_first = world.spawn_node(NodeKind::Mesh);
+    let depth_earlier = world.spawn_node(NodeKind::Mesh);
+    let depth_later = world.spawn_node(NodeKind::Mesh);
+    let order_middle = world.spawn_node(NodeKind::Mesh);
+    let material_later = world.spawn_node(NodeKind::Mesh);
+
+    let fixtures = [
+        (render_first, -10, 90, 90, 0.0),
+        (depth_earlier, 0, 0, 0, 2.0),
+        (depth_later, 0, 0, 0, 0.0),
+        (order_middle, 0, 0, 10, 0.0),
+        (material_later, 0, 5, -99, 0.0),
+    ];
+
+    for (entity, render_queue, material_queue, order_in_layer, depth_bias) in fixtures {
+        let mesh = world.get_mut::<MeshRenderer>(entity).unwrap();
+        mesh.material_alpha_mode = RenderMaterialAlphaMode::Blend;
+        mesh.render_queue = render_queue;
+        mesh.material_queue = material_queue;
+        mesh.order_in_layer = order_in_layer;
+        mesh.depth_bias = depth_bias;
+        world
+            .update_transform(
+                entity,
+                Transform::from_translation(Vec3::new(0.0, 0.0, 5.0)),
+            )
+            .unwrap();
+    }
+
+    let extract = world.to_render_frame_extract();
+    let mesh_index = |entity| {
+        extract
+            .geometry
+            .meshes
+            .iter()
+            .position(|mesh| mesh.node_id == entity)
+            .expect("mesh should be extracted")
+    };
+    let render_first_index = mesh_index(render_first);
+    let depth_earlier_index = mesh_index(depth_earlier);
+    let depth_later_index = mesh_index(depth_later);
+    let order_middle_index = mesh_index(order_middle);
+    let material_later_index = mesh_index(material_later);
+
+    for (entity, render_queue, material_queue, order_in_layer, depth_bias) in fixtures {
+        let mesh_index = mesh_index(entity);
+        let input = extract
+            .geometry
+            .phase_inputs
+            .iter()
+            .find(|input| input.entity == entity && input.mesh_index == mesh_index)
+            .expect("phase input should carry mesh sort fields");
+        assert_eq!(input.render_queue, render_queue);
+        assert_eq!(input.material_queue, material_queue);
+        assert_eq!(input.order_in_layer, order_in_layer);
+        assert_eq!(input.depth_bias, depth_bias);
+    }
+
+    assert_eq!(
+        extract
+            .geometry
+            .phase_queue
+            .items_for_phase(RenderPhase::Transparent3d)
+            .filter(|item| {
+                [
+                    render_first,
+                    depth_earlier,
+                    depth_later,
+                    order_middle,
+                    material_later,
+                ]
+                .contains(&item.entity)
+            })
+            .map(|item| item.mesh_source)
+            .collect::<Vec<_>>(),
+        vec![
+            RenderPhaseMeshSource::MeshIndex(render_first_index),
+            RenderPhaseMeshSource::MeshIndex(depth_earlier_index),
+            RenderPhaseMeshSource::MeshIndex(depth_later_index),
+            RenderPhaseMeshSource::MeshIndex(order_middle_index),
+            RenderPhaseMeshSource::MeshIndex(material_later_index),
+        ]
+    );
+}
+
+#[test]
 fn project_roundtrip_preserves_imported_meshes() {
     let mut world = World::new();
     let imported = world.spawn_mesh_node(
@@ -124,29 +218,11 @@ fn project_roundtrip_preserves_imported_meshes() {
     let loaded = World::load_project_from_path(&path).unwrap();
     let _ = fs::remove_file(&path);
 
-    for forbidden in [
-        "selected",
-        "selection",
-        "selection_anchors",
-        "scene_gizmos",
-        "gizmo",
-        "overlay",
-        "active_camera_override",
-        "camera_override",
-        "preview_lighting",
-        "preview_skybox",
-        "display_mode",
-        "grid_mode",
-        "view_orientation",
-        "transform_space",
-        "SceneViewportSettings",
-        "SceneViewportTool",
-    ] {
-        assert!(
-            !saved.contains(forbidden),
-            "world project serialization must not contain editor authoring token {forbidden}"
-        );
-    }
+    assert_text_excludes_authoring_tokens(
+        "world project serialization",
+        &saved,
+        SERIALIZED_AUTHORING_TOKENS,
+    );
     let imported_node = loaded.find_node(imported).unwrap();
     assert!(matches!(imported_node.kind, NodeKind::Mesh));
     assert_eq!(
@@ -460,6 +536,17 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
                 flip_y: false,
                 anchor: RenderSpriteAnchor::TOP_LEFT,
                 custom_size: Some(Vec2::new(2.0, 4.0)),
+                image_mode: RenderSpriteImageMode::Sliced(RenderSpriteSlicer {
+                    border: RenderSpriteSliceBorder {
+                        left: 4.0,
+                        right: 6.0,
+                        top: 8.0,
+                        bottom: 10.0,
+                    },
+                    center_scale_mode: RenderSpriteSliceScaleMode::Tile { stretch_value: 0.5 },
+                    sides_scale_mode: RenderSpriteSliceScaleMode::Stretch,
+                    max_corner_scale: 1.0,
+                }),
                 color: Vec4::new(0.5, 0.75, 1.0, 0.6),
                 z_order: 3,
                 material_alpha_mode: RenderMaterialAlphaMode::Blend,
@@ -491,6 +578,20 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
     );
     assert_eq!(sprite.anchor, RenderSpriteAnchor::TOP_LEFT);
     assert_eq!(sprite.custom_size, Some(Vec2::new(2.0, 4.0)));
+    assert_eq!(
+        sprite.image_mode,
+        RenderSpriteImageMode::Sliced(RenderSpriteSlicer {
+            border: RenderSpriteSliceBorder {
+                left: 4.0,
+                right: 6.0,
+                top: 8.0,
+                bottom: 10.0,
+            },
+            center_scale_mode: RenderSpriteSliceScaleMode::Tile { stretch_value: 0.5 },
+            sides_scale_mode: RenderSpriteSliceScaleMode::Stretch,
+            max_corner_scale: 1.0,
+        })
+    );
     assert!(sprite.flip_x);
     assert_eq!(sprite.z_order, 3);
     assert_eq!(

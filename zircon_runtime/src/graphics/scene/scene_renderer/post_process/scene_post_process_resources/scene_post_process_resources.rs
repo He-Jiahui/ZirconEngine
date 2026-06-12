@@ -9,6 +9,8 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_bind_group_layout:
@@ -24,6 +26,8 @@ pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_pipeline:
         std::sync::OnceLock<wgpu::ComputePipeline>,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_pipeline:
+        wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_pipeline:
         wgpu::RenderPipeline,
@@ -51,6 +55,7 @@ pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_params_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_params_buffer:
@@ -68,10 +73,26 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) white_texture_view:
         wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_source_texture_view:
+        wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_texture_view:
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_texture_3d_view:
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_sampler: wgpu::Sampler,
     pub(in crate::graphics::scene::scene_renderer::post_process) scene_depth_sampler: wgpu::Sampler,
+}
+
+impl ScenePostProcessResources {
+    pub(in crate::graphics::scene::scene_renderer) fn black_texture_view(
+        &self,
+    ) -> &wgpu::TextureView {
+        &self.black_texture_view
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn white_texture_view(
+        &self,
+    ) -> &wgpu::TextureView {
+        &self.white_texture_view
+    }
 }

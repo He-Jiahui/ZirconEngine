@@ -1,11 +1,14 @@
 use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::ui::template::{
-    UiAssetCompileCache, UiAssetLoader, UiDocumentCompiler, BROAD_SELECTOR_WARNING_THRESHOLD,
+    UiAssetCompileCache, UiAssetLoader, UiCompiledArtifactKey, UiCompiledArtifactStore,
+    UiDocumentCompiler, BROAD_SELECTOR_WARNING_THRESHOLD,
 };
 use zircon_runtime_interface::ui::component::{
     UiComponentCategory, UiComponentDescriptor, UiDefaultNodeTemplate,
 };
-use zircon_runtime_interface::ui::template::{UiAssetChange, UiInvalidationStage};
+use zircon_runtime_interface::ui::template::{
+    UiAssetChange, UiCompiledAssetPackageProfile, UiInvalidationStage,
+};
 
 const SIMPLE_LAYOUT_A: &str = r#"
 [asset]
@@ -532,6 +535,120 @@ fn asset_compile_cache_reports_diagnostics_on_miss() {
         .any(|diagnostic| diagnostic.code == "broad_selector"));
 }
 
+#[test]
+fn persistent_cache_round_trips_compiled_artifact_with_fingerprint_key() {
+    let temp_dir = persistent_cache_temp_dir("roundtrip");
+    let document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_A).unwrap();
+    let compiler = UiDocumentCompiler::default();
+    let store = UiCompiledArtifactStore::new(temp_dir.clone());
+    let artifact = compiler
+        .compile_package_artifact(&document, UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+    let key = UiCompiledArtifactKey::from_artifact(&artifact);
+    let expected_fingerprint = UiCompiledArtifactKey::fingerprint_compile_cache_key(
+        &artifact.report.header.compile_cache_key,
+    );
+
+    let artifact_path = store.store(&key, &artifact).unwrap();
+    let loaded = store.load(&key).unwrap().unwrap();
+    let loaded_bytes = store.load_bytes(&key).unwrap().unwrap();
+
+    assert_eq!(key.asset_id, "editor.compile_cache");
+    assert_eq!(key.fingerprint, expected_fingerprint);
+    assert!(artifact_path.exists());
+    assert_eq!(loaded, artifact);
+    assert_eq!(loaded_bytes, artifact.to_bytes().unwrap());
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn persistent_cache_misses_stale_schema_compiler_and_fingerprint_keys() {
+    let temp_dir = persistent_cache_temp_dir("stale_keys");
+    let document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_A).unwrap();
+    let compiler = UiDocumentCompiler::default();
+    let store = UiCompiledArtifactStore::new(temp_dir.clone());
+    let artifact = compiler
+        .compile_package_artifact(&document, UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+    let key = UiCompiledArtifactKey::from_artifact(&artifact);
+    store.store(&key, &artifact).unwrap();
+
+    let stale_schema = UiCompiledArtifactKey::new(
+        key.asset_id.clone(),
+        key.fingerprint,
+        key.schema_version + 1,
+        key.compiler_version,
+    );
+    let stale_compiler = UiCompiledArtifactKey::new(
+        key.asset_id.clone(),
+        key.fingerprint,
+        key.schema_version,
+        key.compiler_version + 1,
+    );
+    let stale_fingerprint = UiCompiledArtifactKey::new(
+        key.asset_id.clone(),
+        key.fingerprint.wrapping_add(1),
+        key.schema_version,
+        key.compiler_version,
+    );
+
+    assert!(store.load(&stale_schema).unwrap().is_none());
+    assert!(store.load(&stale_compiler).unwrap().is_none());
+    assert!(store.load(&stale_fingerprint).unwrap().is_none());
+    assert!(store.load(&key).unwrap().is_some());
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn persistent_cache_treats_corrupt_records_as_misses() {
+    let temp_dir = persistent_cache_temp_dir("corrupt_record");
+    let document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_A).unwrap();
+    let compiler = UiDocumentCompiler::default();
+    let store = UiCompiledArtifactStore::new(temp_dir.clone());
+    let artifact = compiler
+        .compile_package_artifact(&document, UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+    let key = UiCompiledArtifactKey::from_artifact(&artifact);
+    let artifact_path = store.store(&key, &artifact).unwrap();
+
+    std::fs::write(&artifact_path, b"not a persistent ui cache record").unwrap();
+
+    assert!(store.load(&key).unwrap().is_none());
+    assert!(store.load_bytes(&key).unwrap().is_none());
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn persistent_cache_evicts_all_versions_for_asset_id() {
+    let temp_dir = persistent_cache_temp_dir("evict_asset");
+    let first_document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_A).unwrap();
+    let second_document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_B).unwrap();
+    let compiler = UiDocumentCompiler::default();
+    let store = UiCompiledArtifactStore::new(temp_dir.clone());
+    let first_artifact = compiler
+        .compile_package_artifact(&first_document, UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+    let second_artifact = compiler
+        .compile_package_artifact(&second_document, UiCompiledAssetPackageProfile::Runtime)
+        .unwrap();
+    let first_key = UiCompiledArtifactKey::from_artifact(&first_artifact);
+    let second_key = UiCompiledArtifactKey::from_artifact(&second_artifact);
+    store.store(&first_key, &first_artifact).unwrap();
+    store.store(&second_key, &second_artifact).unwrap();
+
+    let report = store.evict_asset("editor.compile_cache").unwrap();
+
+    assert_eq!(report.files_removed, 2);
+    assert!(report.bytes_removed > 0);
+    assert!(store.load(&first_key).unwrap().is_none());
+    assert!(store.load(&second_key).unwrap().is_none());
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
 fn broad_selector_layout() -> String {
     let mut source = String::from(
         r#"
@@ -559,4 +676,14 @@ set = { self = { text = "Diagnostic" } }
         );
     }
     source
+}
+
+fn persistent_cache_temp_dir(test_name: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "zircon_ui_persistent_cache_{test_name}_{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
 }

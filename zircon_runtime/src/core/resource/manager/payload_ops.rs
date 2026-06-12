@@ -23,6 +23,13 @@ impl ResourceManager {
                 .write()
                 .expect("resource registry lock poisoned");
             let previous = registry.get(record.id).cloned();
+            if previous
+                .as_ref()
+                .is_some_and(|current| current.state == ResourceState::Error)
+            {
+                let current = previous.expect("checked above");
+                return UntypedResourceHandle::new(current.id, current.kind);
+            }
             record.state = ResourceState::Ready;
             record.revision = previous
                 .as_ref()

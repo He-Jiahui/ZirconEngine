@@ -258,6 +258,164 @@ pressed = true
     }));
 }
 
+#[test]
+fn render_extract_loading_feedback_controls_use_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.feedback.loading"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 360.0, 160.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Tooltip",
+        UiFrame::new(12.0, 12.0, 112.0, 52.0),
+        r##"
+text = "Tooltip"
+label = "Shows detail"
+icon = "info"
+loading = true
+pressed = true
+focused = true
+background_color = "#171c20"
+border_color = "#252d32"
+foreground_color = "#d0d9dd"
+label_color = "#a8b3b8"
+icon_color = "#259ca7"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Toast",
+        UiFrame::new(12.0, 76.0, 280.0, 32.0),
+        r##"
+text = "Operation completed successfully"
+action = "UNDO"
+icon = "check-circle"
+loading = true
+hovered = true
+pressed = true
+background_color = "#153035"
+border_color = "#35c7d014"
+foreground_color = "#cee0e2"
+label_color = "#35c7d0"
+action_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(4),
+        "Alert",
+        UiFrame::new(12.0, 120.0, 280.0, 32.0),
+        r##"
+message = "Renderer warning"
+severity = "warning"
+action = "FIX"
+loading = true
+hovered = true
+pressed = true
+background_color = "#453214"
+border_color = "#845e23"
+foreground_color = "#e0a33a"
+icon_color = "#e0a33a"
+action_color = "#e0a33a"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Tooltip
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Tooltip")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Shows detail")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Image
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Toast
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Image
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Operation completed successfully")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("UNDO")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(4)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Alert
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(4)
+            && command.kind == UiRenderCommandKind::Image
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(4)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Renderer warning")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(4)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("FIX")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+}
+
 fn commands_for_component(
     component: &str,
     frame: UiFrame,

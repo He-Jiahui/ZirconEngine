@@ -96,7 +96,7 @@ This document is the cutover authority for the current workspace refactor. Every
 ### `zircon_app`
 
 - Old owner: app-side knowledge of runtime builtin ordering
-- New owner: `zircon_runtime::builtin_runtime_modules()`
+- New owner: `zircon_runtime::builtin::builtin_runtime_modules()`
 - App responsibility that remains: append `EditorModule` for editor profile and start the selected host path
 
 ### `zircon_runtime`
@@ -104,7 +104,7 @@ This document is the cutover authority for the current workspace refactor. Every
 - Old owner: crate root flattened exports for internal graphics/runtime seams and plugin/native/export DTOs
 - New owner: direct submodule paths plus crate-private visibility where appropriate; plugin package manifests, project selections, export plans, native loader/ABI types, runtime extension registries, and runtime plugin catalogs are imported through `zircon_runtime::plugin`
 - Old owner: builtin module list implementation living directly in `src/builtin/mod.rs`
-- New owner: `src/builtin/runtime_modules.rs`, with `src/builtin/mod.rs` reduced to a structural entry that only re-exports `builtin_runtime_modules()`
+- New owner: `src/builtin/runtime_modules.rs`, with `src/builtin/mod.rs` reduced to a structural entry that exposes `zircon_runtime::builtin::builtin_runtime_modules()`
 - Old owner: production runtime fixture resources under `src/ui/runtime_ui/fixtures`
 - New owner: crate assets under `zircon_runtime/assets/ui/runtime/fixtures`
 - Old owner: one oversized root test umbrella in `src/tests/mod.rs`

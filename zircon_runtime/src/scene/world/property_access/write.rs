@@ -5,11 +5,11 @@ use crate::scene::EntityId;
 
 use super::super::World;
 use super::value_conversion::{
-    axis_index, expect_animation_parameter, expect_bool, expect_enum, expect_quat,
+    axis_index, expect_animation_parameter, expect_bool, expect_enum, expect_i32, expect_quat,
     expect_resource_id, expect_scalar, expect_segment, expect_segment_count, expect_string,
     expect_u32, expect_vec2, expect_vec3, expect_vec4, missing_component_error,
-    normalized_identifier, parse_combine_rule, parse_joint_kind, parse_mobility,
-    parse_rigid_body_type, property_type_error, quat_axis_index,
+    normalized_identifier, normalized_identifier_matches, parse_combine_rule, parse_joint_kind,
+    parse_mobility, parse_rigid_body_type, property_type_error, quat_axis_index,
     set_animation_player_like_property, unknown_property_error, validate_quat_array,
 };
 
@@ -34,11 +34,11 @@ impl World {
         }
 
         let component = normalized_identifier(property_path.component());
-        let segments = property_path
-            .property_segments()
-            .iter()
-            .map(|segment| normalized_identifier(segment))
-            .collect::<Vec<_>>();
+        let raw_segments = property_path.property_segments();
+        let mut segments = Vec::with_capacity(raw_segments.len());
+        for segment in raw_segments {
+            segments.push(normalized_identifier(segment));
+        }
 
         match component.as_str() {
             "name" => {
@@ -135,9 +135,42 @@ impl World {
                         }
                         mesh.material = crate::core::resource::ResourceHandle::new(resource);
                     }
+                    [field] if field == "renderqueue" => {
+                        let next = expect_i32(value, property_path)?;
+                        if mesh.render_queue == next {
+                            return Ok(false);
+                        }
+                        mesh.render_queue = next;
+                    }
+                    [field] if field == "materialqueue" => {
+                        let next = expect_i32(value, property_path)?;
+                        if mesh.material_queue == next {
+                            return Ok(false);
+                        }
+                        mesh.material_queue = next;
+                    }
+                    [field] if field == "orderinlayer" => {
+                        let next = expect_i32(value, property_path)?;
+                        if mesh.order_in_layer == next {
+                            return Ok(false);
+                        }
+                        mesh.order_in_layer = next;
+                    }
+                    [field] if field == "depthbias" => {
+                        let next = expect_scalar(value, property_path)?;
+                        if mesh.depth_bias == next {
+                            return Ok(false);
+                        }
+                        mesh.depth_bias = next;
+                    }
                     [field] if field == "primitivebindingcount" || field == "primitives" => {
                         return Err(format!(
                             "property {property_path} is read-only mesh primitive binding data"
+                        ));
+                    }
+                    [field] if field == "lodlevelcount" || field == "lods" => {
+                        return Err(format!(
+                            "property {property_path} is read-only mesh LOD data"
                         ));
                     }
                     [field] if field == "morphweightcount" => {
@@ -485,7 +518,7 @@ impl World {
                     }
                     [field] if field == "activestate" => {
                         let next = expect_string(value, property_path)?;
-                        let next = (!next.is_empty()).then_some(next);
+                        let next = if next.is_empty() { None } else { Some(next) };
                         if player.active_state == next {
                             false
                         } else {
@@ -699,12 +732,10 @@ impl World {
             }
             [field] if field == "material" => {
                 let next = expect_resource_id(value, property_path)?;
-                if collider
-                    .material
-                    .as_ref()
-                    .is_some_and(|handle| handle.id() == next)
-                {
-                    return Ok(false);
+                if let Some(material) = collider.material.as_ref() {
+                    if material.id() == next {
+                        return Ok(false);
+                    }
                 }
                 collider.material = Some(crate::core::resource::ResourceHandle::new(next));
             }
@@ -768,16 +799,19 @@ impl World {
                 match (&mut collider.shape, shape_field.as_str()) {
                     (shape, "kind") => {
                         let next_kind = expect_enum(value, property_path)?;
-                        let replacement = match normalized_identifier(&next_kind).as_str() {
-                            "box" => ColliderShape::Box {
+                        let replacement = if normalized_identifier_matches(&next_kind, "box") {
+                            ColliderShape::Box {
                                 half_extents: Vec3::splat(0.5),
-                            },
-                            "sphere" => ColliderShape::Sphere { radius: 0.5 },
-                            "capsule" => ColliderShape::Capsule {
+                            }
+                        } else if normalized_identifier_matches(&next_kind, "sphere") {
+                            ColliderShape::Sphere { radius: 0.5 }
+                        } else if normalized_identifier_matches(&next_kind, "capsule") {
+                            ColliderShape::Capsule {
                                 radius: 0.5,
                                 half_height: 0.5,
-                            },
-                            _ => return Err(format!("unsupported collider shape `{next_kind}`")),
+                            }
+                        } else {
+                            return Err(format!("unsupported collider shape `{next_kind}`"));
                         };
                         if *shape == replacement {
                             return Ok(false);

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::lifecycle::StartupMode;
+use crate::core::StartupMode;
 
 use super::{DependencySpec, PluginFactory, RegistryName};
 

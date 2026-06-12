@@ -41,7 +41,7 @@ fn runtime_extension_registry_installs_asset_importers_before_project_open() {
 fn runtime_module_registration_reports_install_asset_importers_before_project_open() {
     let plugin = WeatherImporterRuntimePlugin::new();
     let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
-    let report = crate::runtime_modules_for_target_with_plugin_registration_reports(
+    let report = crate::builtin::runtime_modules_for_target_with_plugin_registration_reports(
         RuntimeTargetMode::ClientRuntime,
         None,
         [&registration],

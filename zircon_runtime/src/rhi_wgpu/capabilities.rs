@@ -15,6 +15,8 @@ pub fn wgpu_backend_caps(
         .with_pipeline_cache(false)
         .with_storage_buffers(true)
         .with_indirect_draw(true)
+        .with_multi_draw_indirect(features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT))
+        .with_indirect_first_instance(features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE))
         .with_buffer_readback(true)
         .with_buffer_binding_array(features.contains(wgpu::Features::BUFFER_BINDING_ARRAY))
         .with_texture_binding_array(features.contains(wgpu::Features::TEXTURE_BINDING_ARRAY))

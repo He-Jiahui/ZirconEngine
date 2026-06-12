@@ -11,6 +11,7 @@ mod default_packaging;
 mod embedded_feature_providers;
 mod embedded_feature_targets;
 mod embedded_features;
+mod interfaces;
 mod layout;
 mod modules;
 mod roots;
@@ -25,6 +26,7 @@ pub(in crate::plugin::runtime_plugin) use capability_status::validate_runtime_pl
 pub(in crate::plugin::runtime_plugin) use contributions::validate_runtime_plugin_package_contributions;
 pub(in crate::plugin::runtime_plugin) use default_packaging::validate_runtime_plugin_default_packaging;
 pub(in crate::plugin::runtime_plugin) use embedded_features::validate_runtime_plugin_package_embedded_features;
+pub(in crate::plugin::runtime_plugin) use interfaces::validate_runtime_plugin_package_interfaces;
 pub(in crate::plugin::runtime_plugin) use layout::validate_runtime_plugin_package_layout;
 pub(in crate::plugin::runtime_plugin) use modules::validate_runtime_plugin_package_modules;
 pub(in crate::plugin::runtime_plugin) use shape::{

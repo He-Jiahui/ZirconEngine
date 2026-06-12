@@ -46,7 +46,7 @@ pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
 pub use ecs::{
     Added, ArchetypeId, BoxedSceneSystem, Bundle, ChangeTick, ChangeTickWindow, Changed, Command,
     CommandQueue, Commands, CommandsParam, Component, ComponentDescriptor,
-    ComponentDescriptorSource, ComponentId, ComponentKey, ComponentRegistry, ComponentRemoveResult,
+    ComponentDescriptorSource, ComponentId, ComponentRegistry, ComponentRemoveResult,
     ComponentStorage, ComponentTicks, EntityCommands, EntityLocation, EntityRegistry,
     EntityRegistryError, EventReader, EventReaderParam, EventStore, EventWriter, EventWriterParam,
     Events, FnCommand, FunctionSceneSystem, InternalEntity, IntoSceneSystem, Local, LocalParam,

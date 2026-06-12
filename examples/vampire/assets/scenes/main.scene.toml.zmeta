@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "21eb5d31-93de-495a-803d-dc16501d3bf4"
+url = "res://scenes/main.scene.toml"
+asset_kind = "Scene"
+unit = "single"
+included_files = []
+artifact_locator = "lib://scenes/69f192fc-7696-7923-389d-b461b86e8a79.zasset"
+importer_id = "zircon.builtin.toml.scene"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781167201938
+source_hash = "652fe9b01e77e665"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "21eb5d31-93de-495a-803d-dc16501d3bf4"
+url = "res://scenes/main.scene.toml"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/69f192fc-7696-7923-389d-b461b86e8a79.zasset"
+dependencies = []

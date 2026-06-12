@@ -1,0 +1,32 @@
+format_version = 6
+uuid = "e8228625-4333-492d-a15d-e733b134b674"
+url = "res://materials/pale_bone.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/fbfc4436-17ca-c084-15c1-53ee807126e8.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689598
+source_hash = "40caf902665d6e79"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = [
+    "res://shaders/vampire_actor",
+    "res://models/kenney_graveyard/character-skeleton.glb#Texture0",
+    "res://models/kenney_graveyard/character-skeleton.glb#Texture0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "e8228625-4333-492d-a15d-e733b134b674"
+url = "res://materials/pale_bone.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/fbfc4436-17ca-c084-15c1-53ee807126e8.zasset"
+dependencies = [
+    "res://shaders/vampire_actor",
+    "res://models/kenney_graveyard/character-skeleton.glb#Texture0",
+    "res://models/kenney_graveyard/character-skeleton.glb#Texture0",
+]

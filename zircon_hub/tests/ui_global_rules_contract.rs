@@ -307,13 +307,16 @@ fn app_and_shell_keep_state_loading_routing_and_feedback_boundaries() {
         &[
             "loadHubState().then",
             "dispatchHubAction(actionId, targetId, payload)",
-            "setState(nextState)",
+            "actionSequenceRef",
+            "stateGenerationRef",
+            "applyHubState(nextState)",
             "HubWindow state={state} onAction={handleAction}",
             "HubSnackbar task={state.taskSummary}",
             "const shellText = stateRef.current.ui.shell;",
             "shellText.actionFailed",
         ],
     );
+    assert_not_contains_any("App.tsx", &app, &["setState(nextState);"]);
     assert_contains_all(
         "HubWindow.tsx",
         &hub_window,
@@ -322,11 +325,19 @@ fn app_and_shell_keep_state_loading_routing_and_feedback_boundaries() {
             "height: \"100vh\"",
             "overflow: \"hidden\"",
             "TopBar state={state} onAction={onAction}",
-            "NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction}",
+            "<NavigationDrawer",
+            "activePage={state.activePage}",
+            "text={state.ui.shell}",
+            "engineVersion={state.engineVersion}",
+            "sourceEngines={state.sourceEngines}",
+            "activeSourceEngineId={state.activeSourceEngineId}",
+            "onAction={onAction}",
             "component=\"main\"",
-            "state.activePage === \"projects\"",
-            "CatalogPage state={state} onAction={onAction}",
-            "WorkspacePage state={state} onAction={onAction}",
+            "const pageRoutes: Record<HubPageId, HubPageComponent> = {",
+            "projects: ProjectsDashboard,",
+            "assets: CatalogPage,",
+            "const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;",
+            "<PageComponent state={state} onAction={onAction} />",
         ],
     );
     assert_contains_all(

@@ -1,20 +1,24 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderFrameExtract, RenderPhase,
+    PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessStackDescriptor,
+    RenderFrameExtract, RenderPhase,
 };
+use crate::core::math::UVec2;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphBuilder};
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
 use crate::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
-    RenderFeatureDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
+    BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
     RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
     RenderPipelineCompileOptions, RendererFeatureAsset,
 };
+use crate::graphics::visibility::HzbBuilder;
 
 use super::super::validation::{stage_pass_descriptors, validate_renderer_asset};
 
@@ -55,7 +59,7 @@ impl RenderPipelineAsset {
             .collect::<Vec<_>>();
         let enabled_descriptors = enabled_features
             .iter()
-            .map(feature_descriptor)
+            .map(|feature| feature_descriptor_for_options(feature, options))
             .collect::<Vec<_>>();
 
         let mut required_extract_sections = BTreeSet::new();
@@ -97,13 +101,13 @@ impl RenderPipelineAsset {
                 RenderFeatureResourceKind::Texture => {
                     texture_resources.insert(
                         name.clone(),
-                        graph.create_transient_texture(texture_desc_for(name, extract, options)),
+                        graph.create_texture(texture_desc_for(name, extract, options)),
                     );
                 }
                 RenderFeatureResourceKind::Buffer => {
                     buffer_resources.insert(
                         name.clone(),
-                        graph.create_transient_buffer(buffer_desc_for(name, extract)),
+                        graph.create_buffer(buffer_desc_for(name, extract)),
                     );
                 }
                 RenderFeatureResourceKind::External => {
@@ -366,6 +370,216 @@ fn render_phase_for_stage(stage: RenderPassStage) -> Option<RenderPhase> {
 
 fn feature_descriptor(feature: &RendererFeatureAsset) -> RenderFeatureDescriptor {
     feature.descriptor()
+}
+
+fn feature_descriptor_for_options(
+    feature: &RendererFeatureAsset,
+    options: &RenderPipelineCompileOptions,
+) -> RenderFeatureDescriptor {
+    let descriptor = feature.descriptor();
+    let Some(post_process_stack) = options.post_process_stack.as_ref() else {
+        return descriptor;
+    };
+    let Some(builtin_feature) = feature.builtin_feature() else {
+        return descriptor;
+    };
+    if !post_process_stack_filters_feature(builtin_feature) {
+        return descriptor;
+    }
+
+    filter_post_process_descriptor(descriptor, builtin_feature, post_process_stack)
+}
+
+fn post_process_stack_filters_feature(feature: BuiltinRenderFeature) -> bool {
+    matches!(
+        feature,
+        BuiltinRenderFeature::Bloom
+            | BuiltinRenderFeature::ColorGrading
+            | BuiltinRenderFeature::HistoryResolve
+            | BuiltinRenderFeature::AntiAlias
+            | BuiltinRenderFeature::PostProcess
+    )
+}
+
+fn filter_post_process_descriptor(
+    mut descriptor: RenderFeatureDescriptor,
+    feature: BuiltinRenderFeature,
+    stack: &PostProcessStackDescriptor,
+) -> RenderFeatureDescriptor {
+    descriptor.stage_passes = descriptor
+        .stage_passes
+        .into_iter()
+        .filter_map(|pass| filter_post_process_pass(pass, feature, stack))
+        .collect();
+    descriptor
+}
+
+fn filter_post_process_pass(
+    mut pass: RenderFeaturePassDescriptor,
+    feature: BuiltinRenderFeature,
+    stack: &PostProcessStackDescriptor,
+) -> Option<RenderFeaturePassDescriptor> {
+    if !post_process_pass_can_be_filtered(feature, pass.executor_id.as_str()) {
+        return Some(pass);
+    }
+    if !optional_post_process_pass_enabled(feature, pass.executor_id.as_str(), stack) {
+        return None;
+    }
+    let active_resources = active_post_process_graph_resources(stack);
+    pass.resources = pass
+        .resources
+        .into_iter()
+        .filter(|resource| post_process_resource_is_active(resource, &active_resources))
+        .collect();
+    (!pass.resources.is_empty()).then_some(pass)
+}
+
+fn post_process_pass_can_be_filtered(feature: BuiltinRenderFeature, executor_id: &str) -> bool {
+    match (feature, executor_id) {
+        (BuiltinRenderFeature::PostProcess, "post.motion-vector-clear")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-camera")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-object")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max-coarse")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-neighbor-max")
+        | (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare")
+        | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-depth-pyramid")
+        | (
+            BuiltinRenderFeature::PostProcess,
+            "post.screen-space-reflection-depth-pyramid-coarse",
+        )
+        | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid")
+        | (
+            BuiltinRenderFeature::PostProcess,
+            "post.screen-space-reflection-reflection-pyramid-coarse",
+        )
+        | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-specular-occlusion")
+        | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-resolve")
+        | (BuiltinRenderFeature::PostProcess, "post.stack")
+        | (BuiltinRenderFeature::Bloom, "post.bloom-extract" | "post.bloom")
+        | (BuiltinRenderFeature::ColorGrading, "post.color-grade")
+        | (BuiltinRenderFeature::HistoryResolve, "history.scene-color" | "post.history-resolve")
+        | (BuiltinRenderFeature::AntiAlias, _) => true,
+        _ => false,
+    }
+}
+
+fn optional_post_process_pass_enabled(
+    feature: BuiltinRenderFeature,
+    executor_id: &str,
+    stack: &PostProcessStackDescriptor,
+) -> bool {
+    match (feature, executor_id) {
+        (BuiltinRenderFeature::Bloom, "post.bloom-extract" | "post.bloom") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::Bloom)
+        }
+        (BuiltinRenderFeature::ColorGrading, "post.color-grade") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::ColorGrading)
+        }
+        (BuiltinRenderFeature::HistoryResolve, "history.scene-color" | "post.history-resolve") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::HistoryResolve)
+        }
+        (BuiltinRenderFeature::AntiAlias, _) => {
+            stack_effect_enabled(stack, PostProcessEffectKind::Fxaa)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.motion-vector-clear")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-camera")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-object")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max-coarse")
+        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-neighbor-max") => {
+            post_process_stack_uses_motion_vectors(stack)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare") => {
+            post_process_stack_uses_depth_of_field(stack)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-depth-pyramid") => {
+            stack_effect_enabled(
+                stack,
+                PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid,
+            )
+        }
+        (
+            BuiltinRenderFeature::PostProcess,
+            "post.screen-space-reflection-depth-pyramid-coarse",
+        ) => stack_effect_enabled(
+            stack,
+            PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse,
+        ),
+        (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid") => {
+            stack_effect_enabled(
+                stack,
+                PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid,
+            )
+        }
+        (
+            BuiltinRenderFeature::PostProcess,
+            "post.screen-space-reflection-reflection-pyramid-coarse",
+        ) => stack_effect_enabled(
+            stack,
+            PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse,
+        ),
+        (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-specular-occlusion") => {
+            stack_effect_enabled(
+                stack,
+                PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion,
+            )
+        }
+        (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-resolve") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::ScreenSpaceReflectionResolve)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.stack") => true,
+        _ => true,
+    }
+}
+
+fn post_process_stack_uses_motion_vectors(stack: &PostProcessStackDescriptor) -> bool {
+    stack.initial_resources.iter().any(|resource| {
+        resource == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+            || resource == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+    })
+}
+
+fn post_process_stack_uses_depth_of_field(stack: &PostProcessStackDescriptor) -> bool {
+    stack.effects.iter().any(|effect| {
+        effect.enabled
+            && effect.produced_outputs.iter().any(|resource| {
+                resource == PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC
+                    || resource == PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH
+            })
+    })
+}
+
+fn active_post_process_graph_resources(stack: &PostProcessStackDescriptor) -> BTreeSet<String> {
+    let mut resources = stack
+        .initial_resources
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    for effect in stack.effects.iter().filter(|effect| effect.enabled) {
+        resources.extend(effect.required_inputs.iter().cloned());
+        resources.extend(effect.produced_outputs.iter().cloned());
+    }
+    resources
+}
+
+fn post_process_resource_is_active(
+    resource: &RenderFeatureResourceDescriptor,
+    active_resources: &BTreeSet<String>,
+) -> bool {
+    matches!(
+        resource.name.as_str(),
+        PostProcessGraphResourceNames::FINAL_COLOR
+            | PostProcessGraphResourceNames::FINAL_COMPOSITED
+            | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION
+    ) || active_resources.contains(&resource.name)
+}
+
+fn stack_effect_enabled(stack: &PostProcessStackDescriptor, kind: PostProcessEffectKind) -> bool {
+    stack
+        .effects
+        .iter()
+        .any(|effect| effect.enabled && effect.kind == kind)
 }
 
 fn validate_feature_descriptors(
@@ -673,6 +887,7 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
         | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
         | PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+        | PostProcessGraphResourceNames::HZB_FURTHEST
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
@@ -693,6 +908,10 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
 
 fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, u32) {
     match name {
+        PostProcessGraphResourceNames::HZB_FURTHEST => {
+            let plan = HzbBuilder::new(UVec2::new(width, height)).build_plan();
+            (plan.hzb_size.x, plan.hzb_size.y)
+        }
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
@@ -711,6 +930,7 @@ fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, 
 
 fn post_process_intermediate_mip_levels(name: &str, width: u32, height: u32) -> u32 {
     match name {
+        PostProcessGraphResourceNames::HZB_FURTHEST => full_mip_chain_level_count(width, height),
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
             full_mip_chain_level_count(width, height)
@@ -905,6 +1125,29 @@ mod tests {
             (32, 16)
         );
         assert_eq!(reflection_pyramid_coarse.mip_levels, 1);
+    }
+
+    #[test]
+    fn compile_describes_hzb_as_half_power_of_two_mip_chain() {
+        let mut extract = test_extract();
+        extract.apply_viewport_size(crate::core::math::UVec2::new(1923, 1081));
+        let compiled = RenderPipelineAsset::default_forward_plus()
+            .compile(&extract)
+            .unwrap();
+
+        let hzb_furthest = texture_lifetime(&compiled, PostProcessGraphResourceNames::HZB_FURTHEST);
+        let hzb_pass = compiled
+            .graph
+            .passes()
+            .iter()
+            .find(|pass| pass.name == "hzb-build")
+            .expect("default 3D pipelines should build the shared HZB resource");
+
+        assert_eq!((hzb_furthest.width, hzb_furthest.height), (1024, 1024));
+        assert_eq!(hzb_furthest.mip_levels, 11);
+        assert_eq!(hzb_furthest.format, crate::rhi::TextureFormat::Rgba16Float);
+        assert!(!hzb_pass.culled);
+        assert!(hzb_pass.flags.has_side_effects);
     }
 
     #[test]

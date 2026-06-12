@@ -1,13 +1,13 @@
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 #[cfg(test)]
 use super::ScheduledSceneStep;
 use super::{
-    BoxedSceneSystem, IntoSceneSystem, SceneScheduleStagePlan, SceneSystem, SceneSystemDescriptor,
-    SceneSystemRegistry, ScheduleConflictGraph, ScheduleError, SystemParam, SystemStage,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, SceneScheduleStagePlan,
+    SceneSystem, SceneSystemDescriptor, SceneSystemRegistry, ScheduleConflictGraph, ScheduleError,
+    SystemParam, SystemStage,
 };
 
 #[derive(Debug, Serialize)]
@@ -20,7 +20,9 @@ pub struct Schedule {
     #[serde(skip)]
     executor_plan_dirty: bool,
     #[serde(skip)]
-    taken_native_system_ids: BTreeSet<String>,
+    taken_native_system_ids: Vec<String>,
+    #[serde(skip)]
+    taken_runtime_system_ids: Vec<String>,
 }
 
 impl Schedule {
@@ -28,9 +30,29 @@ impl Schedule {
         &mut self,
         descriptor: SceneSystemDescriptor,
     ) -> Result<(), ScheduleError> {
+        let system_id = descriptor.id.clone();
         self.ensure_id_not_taken(&descriptor.id)?;
         self.systems.register_system(descriptor)?;
-        self.refresh_or_defer_executor_plan();
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.remove_system(&system_id);
+            self.refresh_or_defer_executor_plan()?;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn register_boxed_runtime_system(
+        &mut self,
+        system: BoxedRuntimeSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        let id = system.id().to_string();
+        self.ensure_id_not_taken(&id)?;
+        self.systems.register_boxed_runtime_system(system)?;
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.remove_runtime_system(&id);
+            self.refresh_or_defer_executor_plan()?;
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -50,8 +72,27 @@ impl Schedule {
         let id = id.into();
         self.ensure_id_not_taken(&id)?;
         self.systems
-            .register_native_system::<P, S>(id, stage, order, world, system)?;
-        self.refresh_or_defer_executor_plan();
+            .register_native_system::<P, S>(id.clone(), stage, order, world, system)?;
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.remove_native_system(&id);
+            self.refresh_or_defer_executor_plan()?;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn register_boxed_native_system(
+        &mut self,
+        system: BoxedSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        let id = system.id().to_string();
+        self.ensure_id_not_taken(&id)?;
+        self.systems.register_boxed_native_system(system)?;
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.remove_native_system(&id);
+            self.refresh_or_defer_executor_plan()?;
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -93,7 +134,7 @@ impl Schedule {
         &self,
         stage: SystemStage,
     ) -> Vec<ScheduledSceneStep> {
-        self.systems.native_system_steps_for_stage(stage)
+        self.executor_plan.native_steps_for_stage(stage).to_vec()
     }
 
     pub(crate) fn stage_plan(&self) -> Arc<SceneScheduleStagePlan> {
@@ -102,51 +143,101 @@ impl Schedule {
 
     pub(crate) fn take_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
         let system = self.systems.take_native_system(id)?;
-        self.taken_native_system_ids.insert(system.id().to_string());
+        self.taken_native_system_ids.push(system.id().to_string());
+        Some(system)
+    }
+
+    pub(crate) fn take_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
+        let system = self.systems.take_runtime_system(id)?;
+        self.taken_runtime_system_ids.push(system.id().to_string());
         Some(system)
     }
 
     pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem) {
-        let system_id = system.id().to_string();
+        let system_id = system.id();
+        remove_taken_system_id(&mut self.taken_native_system_ids, system_id);
         self.systems.restore_native_system(system);
-        self.taken_native_system_ids.remove(&system_id);
-        if self.taken_native_system_ids.is_empty() && self.executor_plan_dirty {
-            self.refresh_executor_plan();
+        if self.no_taken_systems() && self.executor_plan_dirty {
+            self.refresh_executor_plan()
+                .expect("deferred scene schedule refresh must stay valid");
+        }
+    }
+
+    pub(crate) fn restore_runtime_system(&mut self, system: BoxedRuntimeSceneSystem) {
+        let system_id = system.id();
+        remove_taken_system_id(&mut self.taken_runtime_system_ids, system_id);
+        self.systems.restore_runtime_system(system);
+        if self.no_taken_systems() && self.executor_plan_dirty {
+            self.refresh_executor_plan()
+                .expect("deferred scene schedule refresh must stay valid");
         }
     }
 
     fn from_parts(stages: Vec<SystemStage>, systems: SceneSystemRegistry) -> Self {
-        let executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(&stages, &systems));
+        let executor_plan = Arc::new(
+            SceneScheduleStagePlan::from_registry(&stages, &systems)
+                .expect("default scene schedule must produce an executor plan"),
+        );
         Self {
             stages,
             systems,
             executor_plan,
             executor_plan_dirty: false,
-            taken_native_system_ids: BTreeSet::new(),
+            taken_native_system_ids: Vec::new(),
+            taken_runtime_system_ids: Vec::new(),
         }
     }
 
-    fn refresh_or_defer_executor_plan(&mut self) {
-        if self.taken_native_system_ids.is_empty() {
-            self.refresh_executor_plan();
+    fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError> {
+        if self.no_taken_systems() {
+            self.refresh_executor_plan()?;
         } else {
             self.executor_plan_dirty = true;
         }
+        Ok(())
     }
 
-    fn refresh_executor_plan(&mut self) {
+    fn refresh_executor_plan(&mut self) -> Result<(), ScheduleError> {
         self.executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(
             &self.stages,
             &self.systems,
-        ));
+        )?);
         self.executor_plan_dirty = false;
+        Ok(())
     }
 
     fn ensure_id_not_taken(&self, id: &str) -> Result<(), ScheduleError> {
-        if self.taken_native_system_ids.contains(id) {
+        if taken_system_id_exists(&self.taken_native_system_ids, id)
+            || taken_system_id_exists(&self.taken_runtime_system_ids, id)
+        {
             return Err(ScheduleError::DuplicateSystem(id.to_string()));
         }
         Ok(())
+    }
+
+    fn no_taken_systems(&self) -> bool {
+        self.taken_native_system_ids.is_empty() && self.taken_runtime_system_ids.is_empty()
+    }
+}
+
+fn taken_system_id_exists(taken_system_ids: &[String], id: &str) -> bool {
+    for taken_id in taken_system_ids {
+        if taken_id.as_str() == id {
+            return true;
+        }
+    }
+    false
+}
+
+fn remove_taken_system_id(taken_native_system_ids: &mut Vec<String>, id: &str) {
+    let mut index = 0_usize;
+    while index < taken_native_system_ids.len() {
+        if taken_native_system_ids[index].as_str() == id {
+            // Taken ids are a membership guard only; restore order is already owned by the registry.
+            taken_native_system_ids.swap_remove(index);
+            return;
+        }
+        index += 1;
     }
 }
 
@@ -184,12 +275,33 @@ impl<'de> Deserialize<'de> for Schedule {
         }
 
         let document = ScheduleDocument::deserialize(deserializer)?;
-        Ok(Schedule::from_parts(document.stages, document.systems))
+        Schedule::try_from_parts(document.stages, document.systems).map_err(D::Error::custom)
+    }
+}
+
+impl Schedule {
+    fn try_from_parts(
+        stages: Vec<SystemStage>,
+        systems: SceneSystemRegistry,
+    ) -> Result<Self, ScheduleError> {
+        let executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(&stages, &systems)?);
+        Ok(Self {
+            stages,
+            systems,
+            executor_plan,
+            executor_plan_dirty: false,
+            taken_native_system_ids: Vec::new(),
+            taken_runtime_system_ids: Vec::new(),
+        })
     }
 }
 
 pub fn default_stage_order() -> Vec<SystemStage> {
-    SystemStage::ORDER.to_vec()
+    let mut stages = Vec::with_capacity(SystemStage::ORDER.len());
+    for stage in SystemStage::ORDER.iter().copied() {
+        stages.push(stage);
+    }
+    stages
 }
 
 fn default_system_registry() -> SceneSystemRegistry {

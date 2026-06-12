@@ -1,5 +1,6 @@
 mod buttons;
 mod cache;
+mod chrome;
 mod collection_rows;
 mod dropdowns;
 mod extract;

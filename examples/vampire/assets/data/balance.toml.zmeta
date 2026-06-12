@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "9b98afe6-d07d-42ff-a4ab-3618563f751e"
+url = "res://data/balance.toml"
+asset_kind = "Data"
+unit = "single"
+included_files = []
+artifact_locator = "lib://data/ab07618a-f036-f358-43aa-b7becd53982e.zasset"
+importer_id = "zircon.builtin.data.toml"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1780997708917
+source_hash = "1236aed10321fd34"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "9b98afe6-d07d-42ff-a4ab-3618563f751e"
+url = "res://data/balance.toml"
+asset_kind = "Data"
+artifact_locator = "lib://data/ab07618a-f036-f358-43aa-b7becd53982e.zasset"
+dependencies = []

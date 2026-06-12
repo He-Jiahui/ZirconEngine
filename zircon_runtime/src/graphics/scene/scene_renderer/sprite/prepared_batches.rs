@@ -16,6 +16,8 @@ pub(in crate::graphics::scene::scene_renderer::sprite) struct PreparedSpriteDraw
 pub(crate) struct PreparedSpriteQueueStats {
     pub(crate) draw_batch_count: usize,
     pub(crate) sprite_count: usize,
+    pub(crate) image_slice_count: usize,
+    pub(crate) expanded_image_slice_count: usize,
     pub(crate) vertex_count: usize,
     pub(crate) opaque_draw_batch_count: usize,
     pub(crate) alpha_mask_draw_batch_count: usize,
@@ -34,7 +36,13 @@ impl PreparedSpriteDrawBatch {
     fn sprite_count(&self) -> usize {
         self.sprite_count
     }
+
+    fn image_slice_count(&self) -> usize {
+        self.vertices.len() / SPRITE_IMAGE_SLICE_VERTEX_COUNT
+    }
 }
+
+const SPRITE_IMAGE_SLICE_VERTEX_COUNT: usize = 6;
 
 pub(in crate::graphics::scene::scene_renderer::sprite) fn prepare_sprite_draw_batches(
     frame: &ViewportRenderFrame,
@@ -98,6 +106,11 @@ impl PreparedSpriteQueueStats {
             .iter()
             .map(PreparedSpriteDrawBatch::sprite_count)
             .sum::<usize>();
+        self.image_slice_count += batches
+            .iter()
+            .map(PreparedSpriteDrawBatch::image_slice_count)
+            .sum::<usize>();
+        self.expanded_image_slice_count = self.image_slice_count.saturating_sub(self.sprite_count);
         self.vertex_count += batches
             .iter()
             .map(|batch| batch.vertices().len())
@@ -177,12 +190,28 @@ mod tests {
             PreparedSpriteQueueStats {
                 draw_batch_count: 3,
                 sprite_count: 4,
+                image_slice_count: 4,
+                expanded_image_slice_count: 0,
                 vertex_count: 24,
                 opaque_draw_batch_count: 2,
                 alpha_mask_draw_batch_count: 0,
                 transparent_draw_batch_count: 1,
             }
         );
+    }
+
+    #[test]
+    fn sprite_queue_stats_report_generated_image_slices_separately_from_sprites() {
+        let texture_a = ResourceId::from_stable_label("builtin://test/sprite-a");
+        let expanded_batches = batch_sprite_draw_items([(0, texture_a, repeated_vertices(3))]);
+        let mut stats = PreparedSpriteQueueStats::default();
+
+        stats.accumulate_stage(RenderPassStage::Transparent2d, &expanded_batches);
+
+        assert_eq!(stats.sprite_count, 1);
+        assert_eq!(stats.image_slice_count, 3);
+        assert_eq!(stats.expanded_image_slice_count, 2);
+        assert_eq!(stats.vertex_count, 18);
     }
 
     fn test_vertices() -> Vec<SpriteVertex> {
@@ -194,5 +223,13 @@ mod tests {
             SpriteVertex::new(Vec3::X, Vec2::X, Vec4::ONE),
             SpriteVertex::new(Vec3::ONE, Vec2::ONE, Vec4::ONE),
         ]
+    }
+
+    fn repeated_vertices(image_slice_count: usize) -> Vec<SpriteVertex> {
+        let mut vertices = Vec::new();
+        for _ in 0..image_slice_count {
+            vertices.extend(test_vertices());
+        }
+        vertices
     }
 }

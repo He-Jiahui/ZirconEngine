@@ -184,6 +184,100 @@ fn manager_failed_reload_keeps_last_good_payload_and_emits_events() {
 }
 
 #[test]
+fn resource_state_rejects_error_to_ready_without_reloading() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://models/broken.obj");
+    let id = ResourceId::from_locator(&locator);
+    manager.register_record(
+        ResourceRecord::new(id, ResourceKind::Model, locator.clone())
+            .with_state(ResourceState::Error)
+            .with_diagnostics(vec![ResourceDiagnostic::error("initial import failed")]),
+    );
+    let events = manager.subscribe();
+
+    let handle = manager.register_ready(
+        ResourceRecord::new(id, ResourceKind::Model, locator),
+        TestPayload {
+            name: "should-not-load",
+        },
+    );
+
+    assert_eq!(handle.id(), id);
+    assert!(events.try_recv().is_err());
+    assert!(manager
+        .get::<ModelMarker, TestPayload>(ResourceHandle::new(id))
+        .is_none());
+    let record = manager.registry().get(id).cloned().expect("record exists");
+    assert_eq!(record.state, ResourceState::Error);
+    assert_eq!(record.failure_reason(), Some("initial import failed"));
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Unloaded)
+    );
+}
+
+#[test]
+fn resource_state_recovers_from_error_only_through_reloading() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://models/retry.obj");
+    let id = ResourceId::from_locator(&locator);
+
+    manager.register_record(
+        ResourceRecord::new(id, ResourceKind::Model, locator.clone())
+            .with_state(ResourceState::Error)
+            .with_diagnostics(vec![ResourceDiagnostic::error("decode failed")]),
+    );
+    let reloading = manager
+        .start_reload(id, vec![ResourceDiagnostic::error("retry started")])
+        .expect("error records can enter retry reload");
+    assert_eq!(reloading.state, ResourceState::Reloading);
+
+    let handle = manager
+        .register_ready(
+            ResourceRecord::new(id, ResourceKind::Model, locator),
+            TestPayload {
+                name: "retry-ready",
+            },
+        )
+        .typed::<ModelMarker>()
+        .expect("model handle");
+
+    let payload = manager
+        .get::<ModelMarker, TestPayload>(handle)
+        .expect("retry payload");
+    assert_eq!(payload.name, "retry-ready");
+    let record = manager.registry().get(id).cloned().expect("record exists");
+    assert_eq!(record.state, ResourceState::Ready);
+    assert_eq!(record.failure_reason(), None);
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Loaded)
+    );
+}
+
+#[test]
+fn resource_state_rejects_reload_failure_without_reload_boundary() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://models/ready.obj");
+    let id = ResourceId::from_locator(&locator);
+    manager.register_ready(
+        ResourceRecord::new(id, ResourceKind::Model, locator),
+        TestPayload { name: "ready" },
+    );
+
+    assert!(manager
+        .fail_reload(id, vec![ResourceDiagnostic::error("unexpected failure")])
+        .is_none());
+    let record = manager.registry().get(id).cloned().expect("record exists");
+    assert_eq!(record.state, ResourceState::Ready);
+    assert_eq!(record.failure_reason(), None);
+    assert_eq!(
+        manager.runtime_state(id),
+        Some(RuntimeResourceState::Loaded)
+    );
+}
+
+#[test]
 fn resource_leases_increment_refcount_and_drop_unloads_payload() {
     let manager = ResourceManager::new();
     let locator = locator("res://models/cube.obj");

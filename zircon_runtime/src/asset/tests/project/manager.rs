@@ -4,6 +4,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::asset::project::AssetMetaDocument;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use crate::asset::tests::project::binary_library_assertions::{
+    assert_binary_library_artifact, assert_library_files_are_zassets,
+};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
     sample_animation_sequence_asset, sample_physics_material_asset, sample_sound_asset,
@@ -82,12 +85,25 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
         .registry()
         .get_by_locator(&AssetUri::parse("res://models/triangle.obj").unwrap())
         .unwrap();
+    let material_record = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
+        .unwrap();
     assert_eq!(
         model_meta.url,
         AssetUri::parse("res://models/triangle.obj").unwrap()
     );
     assert_eq!(model_meta.asset_kind, AssetKind::Model);
     assert_eq!(model_record.id(), AssetId::from_asset_uuid(model_meta.uuid));
+    assert_binary_library_artifact(
+        paths.library_root(),
+        model_record.artifact_locator().unwrap(),
+    );
+    assert_binary_library_artifact(
+        paths.library_root(),
+        material_record.artifact_locator().unwrap(),
+    );
+    assert_library_files_are_zassets(paths.library_root());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -184,6 +200,26 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_library() {
         sequence,
         ImportedAsset::AnimationSequence(sample_animation_sequence_asset())
     );
+    assert_binary_library_artifact(
+        paths.library_root(),
+        manager
+            .registry()
+            .get_by_locator(
+                &AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap(),
+            )
+            .unwrap()
+            .artifact_locator()
+            .unwrap(),
+    );
+    assert_binary_library_artifact(
+        paths.library_root(),
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://animation/hero.sequence.zranim").unwrap())
+            .unwrap()
+            .artifact_locator()
+            .unwrap(),
+    );
 
     assert!(paths
         .library_root()
@@ -228,6 +264,7 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_library() {
         physics_meta.url,
         AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap()
     );
+    assert_library_files_are_zassets(paths.library_root());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -265,6 +302,16 @@ fn project_manager_imports_sound_assets_into_runtime_library() {
         ImportedAsset::Sound(sample_sound_asset("res://audio/ping.wav"))
     );
     assert!(paths.library_root().join("sound").is_dir());
+    assert_binary_library_artifact(
+        paths.library_root(),
+        manager
+            .registry()
+            .get_by_locator(&AssetUri::parse("res://audio/ping.wav").unwrap())
+            .unwrap()
+            .artifact_locator()
+            .unwrap(),
+    );
+    assert_library_files_are_zassets(paths.library_root());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -299,6 +346,7 @@ fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
 
     let record = manager.registry().get_by_locator(&uri).unwrap();
     let artifact_locator = record.artifact_locator().cloned().unwrap();
+    assert_binary_library_artifact(paths.library_root(), &artifact_locator);
     let meta = AssetMetaDocument::load(
         paths
             .assets_root()
@@ -332,6 +380,7 @@ fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
         ImportedAsset::Data(asset) => assert!(asset.text.contains("\"answer\"")),
         other => panic!("unexpected imported asset: {other:?}"),
     }
+    assert_library_files_are_zassets(paths.library_root());
 
     let _ = fs::remove_dir_all(root);
 }

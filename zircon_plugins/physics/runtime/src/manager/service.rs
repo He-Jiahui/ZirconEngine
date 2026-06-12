@@ -136,9 +136,9 @@ impl PhysicsManager for DefaultPhysicsManager {
         world: &mut World,
         delta_seconds: Real,
     ) -> PhysicsSceneStepResult {
-        let step_plan = self.plan_world_step(world_handle, delta_seconds);
         let settings = self.settings();
-        if select_runtime_backend(&settings).allows_step(settings.simulation_mode) {
+        let step_plan = fixed_update_step_plan(&settings, delta_seconds);
+        if step_plan.steps > 0 {
             integrate_builtin_physics_steps(world, step_plan);
         }
         self.sync_world(build_world_sync_state(world_handle, world));
@@ -147,5 +147,40 @@ impl PhysicsManager for DefaultPhysicsManager {
             contacts: self.drain_contacts(world_handle),
             triggers: self.drain_triggers(world_handle),
         }
+    }
+}
+
+fn fixed_update_step_plan(settings: &PhysicsSettings, delta_seconds: Real) -> PhysicsWorldStepPlan {
+    let configured_step = configured_step_seconds(settings);
+    if !select_runtime_backend(settings).allows_step(settings.simulation_mode)
+        || configured_step <= 0.0
+    {
+        return PhysicsWorldStepPlan {
+            steps: 0,
+            step_seconds: configured_step,
+            remaining_seconds: 0.0,
+            interpolation_alpha: 0.0,
+        };
+    }
+
+    let delta_seconds = if delta_seconds.is_finite() {
+        delta_seconds.max(0.0)
+    } else {
+        0.0
+    };
+    if delta_seconds <= 0.0 {
+        return PhysicsWorldStepPlan {
+            steps: 0,
+            step_seconds: configured_step,
+            remaining_seconds: 0.0,
+            interpolation_alpha: 0.0,
+        };
+    }
+
+    PhysicsWorldStepPlan {
+        steps: 1,
+        step_seconds: delta_seconds,
+        remaining_seconds: 0.0,
+        interpolation_alpha: 0.0,
     }
 }

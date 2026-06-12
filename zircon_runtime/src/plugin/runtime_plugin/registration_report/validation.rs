@@ -1,8 +1,12 @@
 mod identity;
+mod interfaces;
+mod system_anchors;
 
 use crate::plugin::PluginPackageManifest;
 
 use self::identity::validate_runtime_plugin_registration_package_identity;
+pub(in crate::plugin::runtime_plugin::registration_report) use self::interfaces::validate_runtime_plugin_registration_interfaces;
+pub(in crate::plugin::runtime_plugin::registration_report) use self::system_anchors::validate_runtime_plugin_registration_system_anchors;
 
 use super::super::{
     package_validation::{
@@ -11,7 +15,8 @@ use super::super::{
         validate_runtime_plugin_package_capability_statuses,
         validate_runtime_plugin_package_contributions,
         validate_runtime_plugin_package_dependencies,
-        validate_runtime_plugin_package_embedded_features, validate_runtime_plugin_package_layout,
+        validate_runtime_plugin_package_embedded_features,
+        validate_runtime_plugin_package_interfaces, validate_runtime_plugin_package_layout,
         validate_runtime_plugin_package_modules, validate_runtime_plugin_package_semver,
     },
     RuntimePluginDescriptor,
@@ -41,6 +46,7 @@ pub(in crate::plugin::runtime_plugin::registration_report) fn validate_runtime_p
     );
     validate_runtime_plugin_package_capabilities(package_manifest, diagnostics);
     validate_runtime_plugin_package_dependencies(package_manifest, diagnostics);
+    validate_runtime_plugin_package_interfaces(package_manifest, diagnostics);
     validate_runtime_plugin_package_contributions(package_manifest, diagnostics);
     validate_runtime_plugin_package_asset_importers(package_manifest, diagnostics);
     validate_runtime_plugin_package_embedded_features(package_manifest, diagnostics);

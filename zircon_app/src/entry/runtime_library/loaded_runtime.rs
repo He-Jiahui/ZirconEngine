@@ -48,7 +48,7 @@ impl LoadedRuntime {
         };
         let api = NonNull::new(api as *mut ZrRuntimeApiV1)
             .ok_or_else(|| RuntimeLibraryError::new("runtime library rejected host ABI version"))?;
-        let size_bytes = validate_api(api)?;
+        let size_bytes = validate_runtime_api_pointer(api.as_ptr())?;
         let loaded = Self {
             _library: library,
             api,
@@ -113,6 +113,14 @@ impl LoadedRuntime {
     fn api_function_field<T: Copy>(&self, field_offset: usize) -> Option<T> {
         read_api_function_field(self.api, self.size_bytes, field_offset)
     }
+}
+
+pub(super) fn validate_runtime_api_pointer(
+    api: *const ZrRuntimeApiV1,
+) -> Result<usize, RuntimeLibraryError> {
+    let api = NonNull::new(api as *mut ZrRuntimeApiV1)
+        .ok_or_else(|| RuntimeLibraryError::new("runtime library rejected host ABI version"))?;
+    validate_api(api)
 }
 
 fn validate_api(api: NonNull<ZrRuntimeApiV1>) -> Result<usize, RuntimeLibraryError> {

@@ -1,6 +1,9 @@
+use std::collections::BTreeSet;
+
 use zircon_runtime::{
     plugin::PluginModuleManifest, plugin::PluginPackageManifest, RuntimeTargetMode,
 };
+use zircon_runtime_interface::RegistrationDiagnostic;
 
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorExtensionRegistryError};
 use crate::core::editor_plugin_sdk::lifecycle::{
@@ -60,166 +63,7 @@ impl EditorPluginDescriptor {
     }
 
     pub fn builtin_catalog() -> Vec<Self> {
-        let entries: &[(&str, &str, &str, &[&str])] = &[
-            (
-                "physics",
-                "Physics",
-                "zircon_plugin_physics_editor",
-                &["editor.extension.physics_authoring"],
-            ),
-            (
-                "sound",
-                "Sound",
-                "zircon_plugin_sound_editor",
-                &["editor.extension.sound_authoring"],
-            ),
-            (
-                "texture",
-                "Texture",
-                "zircon_plugin_texture_editor",
-                &["editor.extension.texture_authoring"],
-            ),
-            (
-                "net",
-                "Network",
-                "zircon_plugin_net_editor",
-                &["editor.extension.net_authoring"],
-            ),
-            (
-                "navigation",
-                "Navigation",
-                "zircon_plugin_navigation_editor",
-                &["editor.extension.navigation_authoring"],
-            ),
-            (
-                "particles",
-                "Particles",
-                "zircon_plugin_particles_editor",
-                &["editor.extension.particles_authoring"],
-            ),
-            (
-                "animation",
-                "Animation",
-                "zircon_plugin_animation_editor",
-                &["editor.extension.animation_authoring"],
-            ),
-            (
-                "terrain",
-                "Terrain",
-                "zircon_plugin_terrain_editor",
-                &["editor.extension.terrain_authoring"],
-            ),
-            (
-                "tilemap_2d",
-                "Tilemap 2D",
-                "zircon_plugin_tilemap_2d_editor",
-                &["editor.extension.tilemap_2d_authoring"],
-            ),
-            (
-                "material_editor",
-                "Material Editor",
-                "zircon_plugin_material_editor_editor",
-                &["editor.extension.material_editor_authoring"],
-            ),
-            (
-                "prefab_tools",
-                "Prefab Tools",
-                "zircon_plugin_prefab_tools_editor",
-                &["editor.extension.prefab_tools_authoring"],
-            ),
-            (
-                "timeline_sequence",
-                "Timeline Sequence",
-                "zircon_plugin_timeline_sequence_editor",
-                &["editor.extension.timeline_sequence_authoring"],
-            ),
-            (
-                "animation_graph",
-                "Animation Graph",
-                "zircon_plugin_animation_graph_editor",
-                &["editor.extension.animation_graph_authoring"],
-            ),
-            (
-                "rendering",
-                "Rendering",
-                "zircon_plugin_rendering_editor",
-                &["editor.extension.rendering_authoring"],
-            ),
-            (
-                "virtual_geometry",
-                "Virtual Geometry",
-                "zircon_plugin_virtual_geometry_editor",
-                &["editor.extension.virtual_geometry_authoring"],
-            ),
-            (
-                "hybrid_gi",
-                "Hybrid GI",
-                "zircon_plugin_hybrid_gi_editor",
-                &["editor.extension.hybrid_gi_authoring"],
-            ),
-            (
-                "runtime_diagnostics",
-                "Runtime Diagnostics",
-                "zircon_plugin_runtime_diagnostics_editor",
-                &["editor.extension.runtime_diagnostics"],
-            ),
-            (
-                "ui_asset_authoring",
-                "UI Asset Authoring",
-                "zircon_plugin_ui_asset_authoring_editor",
-                &["editor.extension.ui_asset_authoring"],
-            ),
-            (
-                "native_window_hosting",
-                "Native Window Hosting",
-                "zircon_plugin_native_window_hosting_editor",
-                &["editor.extension.native_window_hosting"],
-            ),
-            (
-                "editor_build_export_desktop",
-                "Desktop Build Export",
-                "zircon_plugin_editor_build_export_desktop_editor",
-                &[
-                    "editor.extension.build_export_desktop",
-                    "editor.extension.build_export_desktop.diagnostics",
-                    "editor.extension.build_export_desktop.native_dynamic_report",
-                ],
-            ),
-            (
-                "plugin_sdk_examples",
-                "Plugin SDK Examples",
-                "zircon_plugin_sdk_examples_editor",
-                &[
-                    "editor.extension.plugin_sdk_examples",
-                    "editor.extension.plugin_sdk_examples.window",
-                    "editor.extension.plugin_sdk_examples.asset_fixture",
-                ],
-            ),
-        ];
-
-        entries
-            .iter()
-            .map(|(id, name, crate_name, capabilities)| {
-                let mut descriptor = Self::new(*id, *name, *crate_name)
-                    .with_category(editor_plugin_descriptor_category(id));
-                for capability in *capabilities {
-                    descriptor = descriptor.with_capability(*capability);
-                }
-                descriptor
-            })
-            .collect()
-    }
-}
-
-fn editor_plugin_descriptor_category(package_id: &str) -> &'static str {
-    match package_id {
-        "material_editor" | "timeline_sequence" | "animation_graph" | "ui_asset_authoring" => {
-            "authoring"
-        }
-        "runtime_diagnostics" => "diagnostics",
-        "native_window_hosting" | "editor_build_export_desktop" => "platform",
-        "plugin_sdk_examples" => "sdk",
-        _ => "uncategorized",
+        crate::core::editor_plugin_catalog_gen::builtin_editor_plugin_descriptors()
     }
 }
 
@@ -436,6 +280,29 @@ impl EditorPluginCatalog {
             .collect()
     }
 
+    pub fn validate_capabilities<I, S>(&self, enabled_capabilities: I) -> EditorCapabilityReport
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let enabled_capabilities = enabled_capabilities
+            .into_iter()
+            .map(|capability| capability.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        let mut diagnostics = Vec::new();
+        for registration in &self.registrations {
+            for capability in &registration.capabilities {
+                if !enabled_capabilities.contains(capability) {
+                    diagnostics.push(RegistrationDiagnostic::missing_capability(
+                        registration.package_manifest.id.clone(),
+                        capability.clone(),
+                    ));
+                }
+            }
+        }
+        EditorCapabilityReport { diagnostics }
+    }
+
     pub fn editor_extensions(&self) -> EditorExtensionCatalogReport {
         let mut registry = EditorExtensionRegistry::default();
         let mut diagnostics = Vec::new();
@@ -537,6 +404,20 @@ impl EditorPluginCatalog {
 
     pub fn is_success(&self) -> bool {
         self.diagnostics.is_empty()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EditorCapabilityReport {
+    pub diagnostics: Vec<RegistrationDiagnostic>,
+}
+
+impl EditorCapabilityReport {
+    pub fn is_success(&self) -> bool {
+        !self
+            .diagnostics
+            .iter()
+            .any(RegistrationDiagnostic::is_error)
     }
 }
 

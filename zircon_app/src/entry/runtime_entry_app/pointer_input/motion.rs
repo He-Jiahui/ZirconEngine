@@ -14,6 +14,7 @@ impl RuntimeEntryApp {
         position: PhysicalPosition<f64>,
         source: PointerSource,
     ) {
+        self.last_pointer_position = Some(position);
         let event = if let Some(pointer_id) = pointer_source_touch_id(&source) {
             ZrRuntimeEventV1::touch(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,

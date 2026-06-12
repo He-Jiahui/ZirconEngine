@@ -156,3 +156,93 @@ fn stale_popup_close_event_does_not_emit_host_request_after_popup_replaced() {
         vec!["menu.file", "menu.edit"]
     );
 }
+
+#[test]
+fn transient_dismissal_reply_closes_popup_stack_and_tooltip_with_host_request() {
+    let mut surface = route_surface();
+
+    surface.apply_dispatch_reply(
+        popup_event(UiPopupInputEventKind::OpenRequested, "menu.file"),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
+            kind: UiPopupEffectKind::Open,
+            popup_id: "menu.file".to_string(),
+            owner: Some(UiNodeId::new(2)),
+            anchor: Some(UiPoint::new(8.0, 12.0)),
+        }),
+    );
+    surface.apply_dispatch_reply(
+        popup_event(UiPopupInputEventKind::OpenRequested, "menu.edit"),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::Popup {
+            kind: UiPopupEffectKind::Open,
+            popup_id: "menu.edit".to_string(),
+            owner: Some(UiNodeId::new(3)),
+            anchor: Some(UiPoint::new(24.0, 12.0)),
+        }),
+    );
+    surface.apply_dispatch_reply(
+        tooltip_event(
+            UiTooltipTimerInputEventKind::Elapsed,
+            "status.hint",
+            Some(UiNodeId::new(2)),
+        ),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::Tooltip {
+            kind: UiTooltipEffectKind::Show,
+            tooltip_id: "status.hint".to_string(),
+            owner: Some(UiNodeId::new(2)),
+        }),
+    );
+
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["menu.file", "menu.edit"]
+    );
+    assert!(surface.input.tooltip.is_some());
+
+    let result = surface.apply_dispatch_reply(
+        popup_event_without_owner(UiPopupInputEventKind::Dismissed, "host.transient"),
+        UiDispatchReply::handled()
+            .in_phase(UiDispatchPhase::DefaultAction)
+            .with_effect(UiDispatchEffect::DismissTransientUi {
+                target: UiTransientDismissalTarget::All,
+                reason: UiTransientDismissalReason::WindowAction,
+            }),
+    );
+
+    assert!(result.rejected_effects.is_empty());
+    assert!(surface.input.popup_stack.is_empty());
+    assert!(surface.input.tooltip.is_none());
+    assert_eq!(result.applied_effects.len(), 1);
+    assert!(matches!(
+        result.applied_effects[0].effect,
+        UiDispatchEffect::DismissTransientUi {
+            target: UiTransientDismissalTarget::All,
+            reason: UiTransientDismissalReason::WindowAction,
+        }
+    ));
+    assert_eq!(result.host_requests.len(), 1);
+    assert!(matches!(
+        result.host_requests[0].request,
+        UiDispatchHostRequestKind::DismissTransientUi {
+            target: UiTransientDismissalTarget::All,
+            reason: UiTransientDismissalReason::WindowAction,
+        }
+    ));
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::DefaultAction
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("default_action")
+    );
+    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(3)));
+    assert_eq!(
+        result.diagnostics.route_trace.popup_stack,
+        Vec::<String>::new()
+    );
+}

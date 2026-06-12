@@ -6,8 +6,26 @@ use crate::scene::ecs::SystemParamError;
 pub enum ScheduleError {
     #[error("system id cannot be empty")]
     EmptySystemId,
+    #[error("system set name cannot be empty")]
+    EmptySystemSetName,
+    #[error("system set {0} must be dot-separated")]
+    InvalidSystemSetName(String),
     #[error("system {0} already registered")]
     DuplicateSystem(String),
+    #[error("system {0} registration builder was already consumed")]
+    SystemBuilderConsumed(String),
+    #[error("cross-stage ordering constraint in {system_id}: target {target_id} is in {target_stage:?}, not {stage:?}")]
+    CrossStageConstraint {
+        system_id: String,
+        target_id: String,
+        stage: super::SystemStage,
+        target_stage: super::SystemStage,
+    },
+    #[error("ordering cycle in {stage:?}: {chain}")]
+    OrderingCycle {
+        stage: super::SystemStage,
+        chain: String,
+    },
     #[error("system {system_id} failed to initialize params: {source}")]
     SystemParam {
         system_id: String,

@@ -39,7 +39,7 @@ pub(crate) struct HubShellText {
     pub documentation: String,
     pub documentation_detail: String,
     pub sign_out: String,
-    pub sign_out_detail: String,
+    pub demo_mode_badge: String,
     pub live_updates_unavailable: String,
     pub live_updates_unavailable_detail: String,
     pub action_failed: String,
@@ -54,7 +54,6 @@ pub(crate) struct HubShellText {
     pub collapse: String,
     pub expand: String,
     pub notifications: String,
-    pub notifications_detail: String,
     pub help: String,
     pub settings: String,
     pub minimize: String,
@@ -393,12 +392,7 @@ pub(crate) fn ui_text(language: HubLanguage) -> HubUiText {
                 .pair("Guides and local help", "指南和本地帮助")
                 .to_string(),
             sign_out: text.pair("Sign Out", "退出").to_string(),
-            sign_out_detail: text
-                .pair(
-                    "Remote account service is not enabled in local v1.",
-                    "本地 v1 不启用远程账号服务。",
-                )
-                .to_string(),
+            demo_mode_badge: text.pair("Demo Data", "演示数据").to_string(),
             live_updates_unavailable: text
                 .pair("Live updates unavailable", "实时更新不可用")
                 .to_string(),
@@ -442,12 +436,6 @@ pub(crate) fn ui_text(language: HubLanguage) -> HubUiText {
             collapse: text.pair("Collapse", "收起").to_string(),
             expand: text.pair("Expand", "展开").to_string(),
             notifications: text.pair("Notifications", "通知").to_string(),
-            notifications_detail: text
-                .pair(
-                    "Notification center is coming soon; local v1 does not enable a notification service.",
-                    "通知中心敬请期待；本地 v1 不启用通知服务。",
-                )
-                .to_string(),
             help: text.pair("Help", "帮助").to_string(),
             settings: text.pair("Settings", "设置").to_string(),
             minimize: text.pair("Minimize", "最小化").to_string(),
@@ -935,13 +923,47 @@ mod tests {
             "本地 v1 不启用远程更新服务。"
         );
         assert_eq!(text.shell.expand, "展开");
-        assert_eq!(
-            text.shell.notifications_detail,
-            "通知中心敬请期待；本地 v1 不启用通知服务。"
-        );
+        assert_eq!(text.shell.demo_mode_badge, "演示数据");
         assert_eq!(text.projects.search_placeholder, "搜索项目...");
         assert_eq!(text.catalog.search_placeholder_prefix, "搜索");
         assert_eq!(text.catalog.search_placeholder_separator, "");
         assert_eq!(text.catalog.search_placeholder_suffix, "...");
+    }
+
+    #[test]
+    fn ui_text_strings_are_non_empty_except_explicit_separator() {
+        for language in [HubLanguage::English, HubLanguage::Chinese] {
+            let value =
+                serde_json::to_value(super::ui_text(language)).expect("ui text should serialize");
+
+            assert_non_empty_strings(&value, "");
+        }
+    }
+
+    fn assert_non_empty_strings(value: &serde_json::Value, path: &str) {
+        match value {
+            serde_json::Value::String(text) => {
+                if path == "catalog.searchPlaceholderSeparator" {
+                    return;
+                }
+                assert!(!text.trim().is_empty(), "empty UI text at {path}");
+            }
+            serde_json::Value::Array(values) => {
+                for (index, child) in values.iter().enumerate() {
+                    assert_non_empty_strings(child, &format!("{path}[{index}]"));
+                }
+            }
+            serde_json::Value::Object(fields) => {
+                for (key, child) in fields {
+                    let next_path = if path.is_empty() {
+                        key.to_string()
+                    } else {
+                        format!("{path}.{key}")
+                    };
+                    assert_non_empty_strings(child, &next_path);
+                }
+            }
+            _ => {}
+        }
     }
 }

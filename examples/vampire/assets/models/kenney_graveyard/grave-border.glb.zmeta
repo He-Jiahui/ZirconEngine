@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "774171fc-25b6-49b4-a27c-e21d73414cc2"
+url = "res://models/kenney_graveyard/grave-border.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/121c27f0-f3be-bf65-4268-a043176ba0e2.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "874f9405ebda4794"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/grave-border.glb#Texture0",
+    "res://models/kenney_graveyard/grave-border.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/grave-border.glb#Material0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave-border.glb#Node0",
+    "res://models/kenney_graveyard/grave-border.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "774171fc-25b6-49b4-a27c-e21d73414cc2"
+url = "res://models/kenney_graveyard/grave-border.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/121c27f0-f3be-bf65-4268-a043176ba0e2.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave-border.glb#Texture0",
+    "res://models/kenney_graveyard/grave-border.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/grave-border.glb#Material0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave-border.glb#Node0",
+    "res://models/kenney_graveyard/grave-border.glb#Scene0",
+]
+
+[[entries]]
+uuid = "43d8bff1-7135-4c54-b8b6-c46c99950901"
+url = "res://models/kenney_graveyard/grave-border.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/dab7d644-7b1c-4b7e-ab4b-b592486798d6.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "6bf51a79-52ca-4d0e-a192-76e69ef75631"
+url = "res://models/kenney_graveyard/grave-border.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/48f64607-1e69-0fbc-6b22-565eb76e82e9.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "b75715d0-6204-462e-bfd0-f2a567dd78c5"
+url = "res://models/kenney_graveyard/grave-border.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/32a182ad-88fc-76ba-0595-f4622e806f36.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/grave-border.glb#Texture0",
+]
+
+[[entries]]
+uuid = "75b4a1b8-2d63-43dd-9ccb-4defcdb59dc9"
+url = "res://models/kenney_graveyard/grave-border.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/0701268d-db9f-1ae9-be08-4915380f5426.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave-border.glb#Material0",
+]
+
+[[entries]]
+uuid = "fba2f858-7a5e-441f-98b1-eac1cfb8c896"
+url = "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/a4ef9151-993f-4a94-d0b0-be9cd37a4eb5.zasset"
+dependencies = ["res://models/kenney_graveyard/grave-border.glb#Material0"]
+
+[[entries]]
+uuid = "de9b8f12-4e9d-46a6-ae87-b677341a3c66"
+url = "res://models/kenney_graveyard/grave-border.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/0f2ff0db-13f0-d077-2e87-6ac332be46bc.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave-border.glb#Node0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave-border.glb#Material0",
+]
+
+[[entries]]
+uuid = "ff3d53bd-2459-4c25-8435-a849ba9a73c4"
+url = "res://models/kenney_graveyard/grave-border.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/4e4d838c-ecae-25fc-7242-246a8cfd241e.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave-border.glb#Node0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0",
+    "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave-border.glb#Material0",
+]

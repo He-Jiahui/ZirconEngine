@@ -6,7 +6,7 @@ use super::super::errors::{asset_error, asset_error_message};
 use super::super::resource_sync::register_project_resource;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
-use crate::asset::watch::{AssetChange, AssetWatcher};
+use crate::asset::watch::{AssetChange, AssetWatchError, AssetWatcher};
 use crate::core::resource::ResourceState;
 
 impl ProjectAssetManager {
@@ -38,6 +38,17 @@ impl ProjectAssetManager {
         });
     }
 
+    pub(in crate::asset::pipeline::manager) fn broadcast_watch_error(
+        &self,
+        error: AssetWatchError,
+    ) {
+        let mut subscribers = self
+            .watch_error_subscribers
+            .lock()
+            .expect("asset watch error subscribers lock poisoned");
+        subscribers.retain(|sender| sender.send(error.clone()).is_ok());
+    }
+
     pub(in crate::asset::pipeline::manager) fn restart_watcher(&self) -> Result<(), CoreError> {
         let assets_root = {
             let project = self.project_read();
@@ -47,9 +58,16 @@ impl ProjectAssetManager {
             project.paths().assets_root().to_path_buf()
         };
         let manager = self.clone();
-        let watcher = AssetWatcher::spawn(assets_root, move |changes| {
-            manager.process_watch_changes(changes);
-        })
+        let error_manager = self.clone();
+        let watcher = AssetWatcher::spawn(
+            assets_root,
+            move |changes| {
+                manager.process_watch_changes(changes);
+            },
+            move |error| {
+                error_manager.broadcast_watch_error(error);
+            },
+        )
         .map_err(asset_error)?;
         *self.watcher.lock().expect("asset watcher lock poisoned") = Some(watcher);
         Ok(())
@@ -82,7 +100,18 @@ impl ProjectAssetManager {
             let Some(project) = project.as_mut() else {
                 return;
             };
-            if project.scan_and_import().is_err() || self.sync_project_resources(project).is_err() {
+            if let Err(error) = project.scan_and_import() {
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    project.paths().assets_root().to_path_buf(),
+                    error.to_string(),
+                ));
+                return;
+            }
+            if let Err(error) = self.sync_project_resources(project) {
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    project.paths().assets_root().to_path_buf(),
+                    error.to_string(),
+                ));
                 return;
             }
         }

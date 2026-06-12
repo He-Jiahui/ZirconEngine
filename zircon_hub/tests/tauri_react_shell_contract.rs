@@ -170,6 +170,7 @@ fn tauri_cutover_has_no_compiled_slint_entry_path() {
 fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
     let commands = read_crate_file("src/tauri_app/commands.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
     let scoped_views = read_crate_file("src/tauri_app/runtime_state/scoped_views.rs");
     let build_actions = read_crate_file("src/tauri_app/runtime_state/build_actions.rs");
     let editor_launch_actions =
@@ -177,16 +178,17 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
     let quick_actions = read_crate_file("src/tauri_app/runtime_state/quick_actions.rs");
     let project_delivery_actions =
         read_crate_file("src/tauri_app/runtime_state/project_delivery_actions.rs");
+    let hub_snapshot = read_crate_file("src/state/hub_snapshot.rs");
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
     let action_history_dto = read_crate_file("src/tauri_app/view_model/action_history.rs");
     let tauri_tree = format!(
-        "{commands}\n{runtime_state}\n{scoped_views}\n{build_actions}\n{editor_launch_actions}\n{quick_actions}\n{project_delivery_actions}\n{view_model}\n{action_history_dto}"
+        "{commands}\n{runtime_state}\n{action_tasks}\n{scoped_views}\n{build_actions}\n{editor_launch_actions}\n{quick_actions}\n{project_delivery_actions}\n{view_model}\n{action_history_dto}"
     );
 
     for snippet in [
         "struct HubCommandState",
         "Mutex<HubRuntimeSession>",
-        "app.emit(\"hub-state-changed\", &view_model)",
+        "app.emit(\"hub-state-changed\", view_model)",
         "HubConfig::load(&config_path)",
         "load_editor_recent_project_session(&editor_config_path)",
         "merge_recent_projects(config.recent_projects, editor_recent.recent_projects)",
@@ -206,14 +208,14 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
         "pub(in crate::tauri_app) struct PendingDeviceInstall",
         "package_project(&self.request)",
         "install_package_to_device(&install_request)",
-        "run_background_package_action(request, session_handle, app);",
-        "run_background_install_action(request, session_handle, app);",
-        "run_background_editor_action(request, session_handle, app);",
+        "run_background_worker_loop(request, &session_handle, &emit_state);",
+        "pub(in crate::tauri_app) trait BackgroundTask",
+        "pub(in crate::tauri_app) fn execute_background_task",
         "pub(in crate::tauri_app) struct PendingEditorLaunch",
         "launch_editor(command)?",
-        "run_build_command(pending_build.command())",
+        "let result = pending_build.run()",
         "record_package_success",
-        "Editor executable is not available",
+        "ProcessMessageId::EditorExecutableUnavailable",
         "pub browser_projects: Vec<HubRecentProject>",
         "pub selected_project: Option<HubProjectDetail>",
         "pub assets: Vec<HubAssetItem>",
@@ -235,7 +237,7 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
         "action_history: action_history_rows(",
         "snapshot.settings.language",
         "kind: record.action.id().to_string()",
-        "let log_excerpt = text.status_detail(&record.log_excerpt);",
+        "let log_excerpt = text.render_message(&record.log_excerpt);",
         "log_excerpt,",
         "command_line: record.command_line.clone()",
     ] {
@@ -252,11 +254,13 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
         "Stellar Outpost",
         "Sands of Time",
         "Whispering Woods",
+        "ZirconProjects",
     ] {
         assert!(
             !commands.contains(forbidden)
                 && !runtime_state.contains(forbidden)
-                && !quick_actions.contains(forbidden),
+                && !quick_actions.contains(forbidden)
+                && !hub_snapshot.contains(forbidden),
             "Tauri command/runtime state must not keep static dashboard fixtures: {forbidden}"
         );
     }
@@ -382,23 +386,23 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "<TopBar state={state} onAction={onAction} />",
         "<NavigationDrawer",
         "onAction={onAction}",
-        "state.activePage === \"projects\"",
-        "<ProjectsDashboard state={state} onAction={onAction} />",
-        "state.activePage === \"editor\"",
-        "<EditorPage state={state} onAction={onAction} />",
-        "state.activePage === \"builds\"",
-        "<BuildsPage state={state} onAction={onAction} />",
-        "state.activePage === \"cloud\"",
-        "<CloudPage state={state} onAction={onAction} />",
-        "state.activePage === \"assets\"",
-        "state.activePage === \"plugins\"",
-        "state.activePage === \"learn\"",
-        "<CatalogPage state={state} onAction={onAction} />",
-        "state.activePage === \"team\"",
-        "<TeamPage state={state} onAction={onAction} />",
-        "state.activePage === \"settings\"",
-        "<SettingsPage state={state} onAction={onAction} />",
-        "<WorkspacePage state={state} onAction={onAction} />",
+        "projects: ProjectsDashboard,",
+        "projects: ProjectsDashboard,",
+        "editor: EditorPage,",
+        "editor: EditorPage,",
+        "builds: BuildsPage,",
+        "builds: BuildsPage,",
+        "cloud: CloudPage,",
+        "cloud: CloudPage,",
+        "assets: CatalogPage,",
+        "plugins: CatalogPage,",
+        "learn: CatalogPage,",
+        "assets: CatalogPage,",
+        "team: TeamPage,",
+        "team: TeamPage,",
+        "settings: SettingsPage,",
+        "settings: SettingsPage,",
+        "<PageComponent state={state} onAction={onAction} />",
     ] {
         assert!(
             shell.contains(snippet),
@@ -417,7 +421,8 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "onAction(HUB_ACTION.showPage, \"settings\")",
         "onAction(HUB_ACTION.showPage, \"learn\")",
         "onAction(HUB_ACTION.showPage, \"team\")",
-        "HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled",
+        "const notificationDetail = comingSoonDetail(state, \"notification-center\");",
+        "HubIconButton label={state.ui.shell.notifications} tooltip={notificationDetail} disabled",
         "HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, \"learn\")}",
     ] {
         assert!(
@@ -477,29 +482,47 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
     }
 
     let page = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let projects_toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
+    let create_project_dialog =
+        read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
     for snippet in [
         "ProjectBrowserPage",
         "ProjectDetailPage",
         "ProjectCard",
         "ProjectTable",
         "QuickActions",
-        "HubSearchField",
-        "HubSelect",
-        "HubToggle",
-        "HubDialog",
-        "HubTextField",
-        "HubComboBox",
+        "ProjectsToolbar",
+        "CreateProjectDialog",
         "EmptyStateBlock",
         "state.projectSubpage === \"project-browser\"",
         "state.projectSubpage === \"project-detail\"",
         "onAction(HUB_ACTION.openProjectDetail, project.id)",
+    ] {
+        assert!(
+            page.contains(snippet),
+            "ProjectsDashboard must compose shared components instead of page-local control markup; missing {snippet}"
+        );
+    }
+    for snippet in ["HubSearchField", "HubSelect", "HubToggle"] {
+        assert!(
+            projects_toolbar.contains(snippet),
+            "ProjectsToolbar must own shared project filter controls; missing {snippet}"
+        );
+    }
+    for snippet in [
         "onAction(HUB_ACTION.setProjectFilter, value)",
         "onAction(HUB_ACTION.setProjectSort, value)",
         "onAction(HUB_ACTION.setProjectViewMode, value)",
     ] {
         assert!(
             page.contains(snippet),
-            "ProjectsDashboard must compose shared components instead of page-local control markup; missing {snippet}"
+            "ProjectsDashboard must route project toolbar actions; missing {snippet}"
+        );
+    }
+    for snippet in ["HubDialog", "HubTextField", "HubComboBox"] {
+        assert!(
+            create_project_dialog.contains(snippet),
+            "CreateProjectDialog must own project creation form controls; missing {snippet}"
         );
     }
     for obsolete in ["ButtonStatesPanel", "text.buttonStates"] {
@@ -511,7 +534,7 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
 
     let project_table = read_crate_file("web/src/components/data/ProjectTable.tsx");
     for snippet in [
-        "selectedProjectId?: string | null",
+        "selectedProjectId: string | null",
         "onSelect?: (project: HubRecentProject) => void",
         "onOpenDetail?: (project: HubRecentProject) => void",
         "selected={selected}",
@@ -543,23 +566,39 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
     }
 
     let detail_page = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let detail_metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
     for snippet in [
         "state.selectedProject",
-        "MetricCard",
         "HubTabs",
         "ProjectCover",
         "HubList",
         "HubTreeView",
-        "QuickActions",
-        "SourceEngineList",
+        "ProjectMetricsGrid",
+        "ProjectDetailSidebar",
         "StatusBadge",
         "onAction(HUB_ACTION.viewAllProjects)",
         "projectTargetPayload(project)",
-        "onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
     ] {
         assert!(
             detail_page.contains(snippet),
             "ProjectDetailPage must compose shared detail, tree, quick-action, and status components from selectedProject; missing {snippet}"
+        );
+    }
+    for snippet in ["MetricCard"] {
+        assert!(
+            detail_metrics.contains(snippet),
+            "ProjectMetricsGrid must own selected-project metric cards; missing {snippet}"
+        );
+    }
+    for snippet in [
+        "QuickActions",
+        "SourceEngineList",
+        "onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
+    ] {
+        assert!(
+            detail_sidebar.contains(snippet),
+            "ProjectDetailSidebar must own selected-project side actions; missing {snippet}"
         );
     }
 
@@ -574,7 +613,7 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "export interface HubActionHistoryItem",
         "kind: HubActionHistoryKind;",
         "browserProjects: HubRecentProject[]",
-        "selectedProject?: HubProjectDetail | null",
+        "selectedProject: HubProjectDetail | null",
         "assets: HubAssetItem[]",
         "plugins: HubPluginItem[]",
         "learnResources: HubLearnItem[]",
@@ -704,12 +743,23 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
     }
 
     let settings_page = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     for snippet in [
         "settingsText.heading",
         "settingsDraftState(state)",
         "HubStatusBanner",
         "MetricCard",
         "HubTabs",
+        "SettingsSection",
+        "onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+        "onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft })",
+    ] {
+        assert!(
+            settings_page.contains(snippet),
+            "SettingsPage must compose the settings shell and route actions; missing {snippet}"
+        );
+    }
+    for snippet in [
         "HubComboBox",
         "HubTextField",
         "HubIconButton",
@@ -720,16 +770,14 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "SourceEngineList",
         "StatusBadge",
         "LinearProgress",
-        "onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
-        "onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft })",
         "onAction(HUB_ACTION.selectEngine, engine.id)",
         "state.ui.actions.browseFolder",
         "settingsText.buildProfileOptions",
         "settingsText.languageOptions",
     ] {
         assert!(
-            settings_page.contains(snippet),
-            "SettingsPage must be a focused MUI settings composition rather than generic workspace filler; missing {snippet}"
+            settings_section.contains(snippet),
+            "SettingsSection must own focused MUI settings controls; missing {snippet}"
         );
     }
 
@@ -760,8 +808,10 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "subscribeHubStateChanged",
         "unlisten?.()",
         "stateRef.current.ui.shell",
+        "stateGenerationRef",
+        "actionSequenceRef",
+        "applyHubState(nextState)",
         "shellText.liveUpdatesUnavailable",
-        "setState(nextState)",
         "shellText.actionFailed",
         "shellText.stateRefreshAfterCommand",
         "shellText.checkActionTarget",
@@ -774,6 +824,10 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
             "React shell must refresh the composed window after Tauri actions; missing {snippet}"
         );
     }
+    assert!(
+        !app.contains("setState(nextState);"),
+        "React shell must guard direct Tauri action replies instead of unconditionally replacing state"
+    );
 
     let hub_api = read_crate_file("web/src/tauri/hubApi.ts");
     for snippet in [
@@ -782,8 +836,9 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
         "export async function subscribeHubStateChanged",
         "Promise<UnlistenFn>",
         "return () => {};",
-        "listen<HubShellState>(\"hub-state-changed\"",
-        "onStateChanged(event.payload)",
+        "listen<unknown>(\"hub-state-changed\"",
+        "onStateChanged(assertHubShellState(event.payload))",
+        "Ignored invalid hub-state-changed payload.",
     ] {
         assert!(
             hub_api.contains(snippet),
@@ -794,7 +849,10 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
     let dispatch = hub_api
         .split("export async function dispatchHubAction")
         .nth(1)
-        .expect("hubApi.ts must define dispatchHubAction");
+        .expect("hubApi.ts must define dispatchHubAction")
+        .split("export async function subscribeHubStateChanged")
+        .next()
+        .expect("dispatchHubAction must be followed by subscribeHubStateChanged");
     assert!(
         !dispatch.contains("catch"),
         "dispatchHubAction must not fall back to demo state on Tauri action errors; App owns visible error feedback"

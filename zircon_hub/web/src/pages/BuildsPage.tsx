@@ -169,7 +169,7 @@ export function BuildsPage({ state, onAction }: BuildsPageProps) {
                   value={state.taskSummary.progressPercent}
                   sx={{
                     height: 7,
-                    borderRadius: 999,
+                    borderRadius: hubTokens.radius.pill,
                     backgroundColor: "rgba(255,255,255,0.08)",
                     "& .MuiLinearProgress-bar": { backgroundColor: hubTokens.colors.accent },
                   }}

@@ -7,9 +7,9 @@ use super::graph::{CompiledRenderGraph, CompiledRenderPass};
 use super::types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
     RenderGraphAttachmentStoreOp, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
-    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
-    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId, TransientBuffer,
-    TransientTexture,
+    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
+    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
+    RgBufferHandle, RgTextureHandle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,8 +50,8 @@ pub struct RenderGraphBuilder {
     name: String,
     passes: Vec<RenderPassNode>,
     resources: Vec<ResourceNode>,
-    next_transient_texture: usize,
-    next_transient_buffer: usize,
+    next_texture: usize,
+    next_buffer: usize,
     next_external_resource: usize,
 }
 
@@ -61,8 +61,8 @@ impl RenderGraphBuilder {
             name: name.into(),
             passes: Vec::new(),
             resources: Vec::new(),
-            next_transient_texture: 0,
-            next_transient_buffer: 0,
+            next_texture: 0,
+            next_buffer: 0,
             next_external_resource: 0,
         }
     }
@@ -136,14 +136,14 @@ impl RenderGraphBuilder {
         Ok(())
     }
 
-    pub fn create_transient_texture(&mut self, desc: TextureDesc) -> TransientTexture {
-        let id = self.next_transient_texture;
-        self.next_transient_texture += 1;
-        let handle = TransientTexture(id);
+    pub fn create_texture(&mut self, desc: TextureDesc) -> RgTextureHandle {
+        let id = self.next_texture;
+        self.next_texture += 1;
+        let handle = RgTextureHandle::from_index(id);
         let name = desc
             .label
             .clone()
-            .unwrap_or_else(|| format!("transient-texture-{id}"));
+            .unwrap_or_else(|| format!("rg-texture-{id}"));
         self.resources.push(ResourceNode {
             resource: RenderGraphResource::TransientTexture(handle),
             name,
@@ -152,14 +152,14 @@ impl RenderGraphBuilder {
         handle
     }
 
-    pub fn create_transient_buffer(&mut self, desc: BufferDesc) -> TransientBuffer {
-        let id = self.next_transient_buffer;
-        self.next_transient_buffer += 1;
-        let handle = TransientBuffer(id);
+    pub fn create_buffer(&mut self, desc: BufferDesc) -> RgBufferHandle {
+        let id = self.next_buffer;
+        self.next_buffer += 1;
+        let handle = RgBufferHandle::from_index(id);
         let name = desc
             .label
             .clone()
-            .unwrap_or_else(|| format!("transient-buffer-{id}"));
+            .unwrap_or_else(|| format!("rg-buffer-{id}"));
         self.resources.push(ResourceNode {
             resource: RenderGraphResource::TransientBuffer(handle),
             name,
@@ -171,7 +171,7 @@ impl RenderGraphBuilder {
     pub fn import_external_resource(&mut self, name: impl Into<String>) -> ExternalResource {
         let id = self.next_external_resource;
         self.next_external_resource += 1;
-        let handle = ExternalResource(id);
+        let handle = ExternalResource::from_index(id);
         self.resources.push(ResourceNode {
             resource: RenderGraphResource::External(handle),
             name: name.into(),
@@ -183,7 +183,7 @@ impl RenderGraphBuilder {
     pub fn read_texture(
         &mut self,
         pass: RenderPassId,
-        texture: TransientTexture,
+        texture: RgTextureHandle,
     ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
             pass,
@@ -196,7 +196,7 @@ impl RenderGraphBuilder {
     pub fn write_texture(
         &mut self,
         pass: RenderPassId,
-        texture: TransientTexture,
+        texture: RgTextureHandle,
     ) -> Result<(), RenderGraphError> {
         self.write_texture_with_ops(pass, texture, RenderGraphAttachmentOps::clear_store())
     }
@@ -204,7 +204,7 @@ impl RenderGraphBuilder {
     pub fn write_storage_texture(
         &mut self,
         pass: RenderPassId,
-        texture: TransientTexture,
+        texture: RgTextureHandle,
     ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
             pass,
@@ -217,7 +217,7 @@ impl RenderGraphBuilder {
     pub fn write_texture_with_ops(
         &mut self,
         pass: RenderPassId,
-        texture: TransientTexture,
+        texture: RgTextureHandle,
         ops: RenderGraphAttachmentOps,
     ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
@@ -231,7 +231,7 @@ impl RenderGraphBuilder {
     pub fn read_buffer(
         &mut self,
         pass: RenderPassId,
-        buffer: TransientBuffer,
+        buffer: RgBufferHandle,
     ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
             pass,
@@ -244,7 +244,7 @@ impl RenderGraphBuilder {
     pub fn write_buffer(
         &mut self,
         pass: RenderPassId,
-        buffer: TransientBuffer,
+        buffer: RgBufferHandle,
     ) -> Result<(), RenderGraphError> {
         self.add_resource_access(
             pass,
@@ -346,7 +346,7 @@ impl RenderGraphBuilder {
                                 .get(&access.resource)
                                 .cloned()
                                 .unwrap_or_else(|| format!("{:?}", access.resource)),
-                            kind: render_graph_resource_kind(access.resource),
+                            kind: access.resource.kind(),
                             access: render_graph_resource_access_kind(access.kind),
                             attachment_ops: access.attachment_ops,
                         })
@@ -354,11 +354,13 @@ impl RenderGraphBuilder {
                 }
             })
             .collect::<Vec<_>>();
+        let resource_declarations = self.resource_declarations();
         let lifetimes = self.resource_lifetimes(&ordered, &culled);
 
         Ok(CompiledRenderGraph::new(
             self.name,
             compiled_passes,
+            resource_declarations,
             lifetimes,
         ))
     }
@@ -413,6 +415,19 @@ impl RenderGraphBuilder {
         self.resources
             .iter()
             .map(|resource| (resource.resource, resource.name.clone()))
+            .collect()
+    }
+
+    fn resource_declarations(&self) -> Vec<RenderGraphResourceDeclaration> {
+        self.resources
+            .iter()
+            .map(|resource| RenderGraphResourceDeclaration {
+                resource: resource.resource,
+                name: resource.name.clone(),
+                kind: resource.resource.kind(),
+                desc: resource.desc.clone(),
+                imported: matches!(&resource.desc, RenderGraphResourceDesc::External),
+            })
             .collect()
     }
 
@@ -721,6 +736,7 @@ impl RenderGraphBuilder {
                     RenderGraphResource::External(_) => RenderGraphResourceKind::External,
                 };
                 RenderGraphResourceLifetime {
+                    resource,
                     name: resource_names
                         .get(&resource)
                         .cloned()
@@ -758,14 +774,6 @@ fn resource_name(
         .get(&resource)
         .cloned()
         .unwrap_or_else(|| format!("{resource:?}"))
-}
-
-fn render_graph_resource_kind(resource: RenderGraphResource) -> RenderGraphResourceKind {
-    match resource {
-        RenderGraphResource::TransientTexture(_) => RenderGraphResourceKind::TransientTexture,
-        RenderGraphResource::TransientBuffer(_) => RenderGraphResourceKind::TransientBuffer,
-        RenderGraphResource::External(_) => RenderGraphResourceKind::External,
-    }
 }
 
 fn render_graph_resource_access_kind(kind: ResourceAccessKind) -> RenderGraphResourceAccessKind {

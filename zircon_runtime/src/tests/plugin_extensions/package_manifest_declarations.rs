@@ -1,8 +1,9 @@
 use crate::asset::AssetImporterDescriptor;
 use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
-    PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
-    PluginPackageKind, PluginPackageManifest, UiComponentDescriptor,
+    PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
+    PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest, PluginPackageKind,
+    PluginPackageManifest, UiComponentDescriptor,
 };
 use crate::RuntimeTargetMode;
 
@@ -115,6 +116,86 @@ fn plugin_package_manifest_declares_public_package_metadata() {
     assert!(encoded.contains("sdk_api_version = \"0.2.0\""));
     assert!(encoded.contains("kind = \"native\""));
     assert!(encoded.contains("kind = \"vm\""));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn plugin_module_manifest_declares_system_sets_and_anchors() {
+    let manifest = PluginPackageManifest::new("physics", "Physics").with_runtime_module(
+        PluginModuleManifest::runtime("physics.runtime", "zircon_plugin_physics_runtime")
+            .with_target_modes([
+                RuntimeTargetMode::ClientRuntime,
+                RuntimeTargetMode::EditorHost,
+            ])
+            .with_capabilities(["runtime.plugin.physics"])
+            .with_system_sets(["physics.main", "physics.simulation"])
+            .with_system_anchors(["physics.step", "physics.sync_to_scene"]),
+    );
+
+    assert_eq!(
+        manifest.modules[0].system_sets,
+        vec!["physics.main".to_string(), "physics.simulation".to_string()]
+    );
+    assert_eq!(
+        manifest.modules[0].system_anchors,
+        vec![
+            "physics.step".to_string(),
+            "physics.sync_to_scene".to_string()
+        ]
+    );
+
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("system_sets = ["));
+    assert!(encoded.contains("\"physics.main\""));
+    assert!(encoded.contains("system_anchors = ["));
+    assert!(encoded.contains("\"physics.step\""));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn plugin_package_manifest_declares_bridge_interfaces() {
+    let manifest = PluginPackageManifest::new("weather", "Weather")
+        .with_provided_interface(PluginInterfaceManifest::new("weather.query.v1"))
+        .with_provided_interface_id("weather.forecast.v1")
+        .with_dependency(
+            PluginDependencyManifest::new("physics", true)
+                .with_capability("runtime.plugin.physics")
+                .with_interfaces(["physics.query.v1", "physics.force.v1"]),
+        )
+        .with_dependency(
+            PluginDependencyManifest::new("sound", false)
+                .with_capability("runtime.plugin.sound")
+                .with_interface("sound.occlusion.v1"),
+        );
+
+    assert_eq!(
+        manifest.provides_interfaces,
+        vec![
+            PluginInterfaceManifest::new("weather.query.v1"),
+            PluginInterfaceManifest::new("weather.forecast.v1"),
+        ]
+    );
+    assert_eq!(
+        manifest.dependencies[0].interfaces,
+        vec![
+            "physics.query.v1".to_string(),
+            "physics.force.v1".to_string()
+        ]
+    );
+    assert_eq!(
+        manifest.dependencies[1].interfaces,
+        vec!["sound.occlusion.v1".to_string()]
+    );
+
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("[[provides_interfaces]]"));
+    assert!(encoded.contains("id = \"weather.query.v1\""));
+    assert!(encoded.contains("interfaces = ["));
+    assert!(encoded.contains("\"physics.query.v1\""));
 
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
     assert_eq!(decoded, manifest);

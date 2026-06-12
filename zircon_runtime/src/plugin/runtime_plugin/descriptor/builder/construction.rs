@@ -19,6 +19,8 @@ impl RuntimePluginDescriptor {
             required_by_default: false,
             target_modes: Vec::new(),
             capabilities: Vec::new(),
+            system_sets: Vec::new(),
+            system_anchors: Vec::new(),
             capability_statuses: Vec::new(),
             maturity: PluginMaturity::default(),
             optional_features: Vec::new(),

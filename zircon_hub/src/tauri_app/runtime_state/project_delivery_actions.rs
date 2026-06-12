@@ -7,10 +7,12 @@ use crate::projects::{
     RecentProject,
 };
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, TaskOperationKind, TaskStatus,
+    DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+    ProjectMessageId, TaskOperationKind, TaskStatus,
 };
+use crate::tauri_app::action_id::HubActionId;
 
-use super::{recent_project_display_name, HubRuntimeSession};
+use super::{action_tasks::BackgroundTask, recent_project_display_name, HubRuntimeSession};
 
 #[derive(Clone, Debug)]
 pub(in crate::tauri_app) struct PendingProjectPackage {
@@ -25,16 +27,18 @@ pub(in crate::tauri_app) struct PendingDeviceInstall {
     device_root: PathBuf,
 }
 
-impl PendingProjectPackage {
-    pub(in crate::tauri_app) fn run(&self) -> Result<ProjectPackageReport, HubError> {
+impl BackgroundTask for PendingProjectPackage {
+    type Output = ProjectPackageReport;
+
+    fn run(&self) -> Result<ProjectPackageReport, HubError> {
         package_project(&self.request)
     }
 }
 
-impl PendingDeviceInstall {
-    pub(in crate::tauri_app) fn run(
-        &self,
-    ) -> Result<(ProjectPackageReport, DeviceInstallReport), HubError> {
+impl BackgroundTask for PendingDeviceInstall {
+    type Output = (ProjectPackageReport, DeviceInstallReport);
+
+    fn run(&self) -> Result<(ProjectPackageReport, DeviceInstallReport), HubError> {
         let package_report = package_project(&self.package_request)?;
         let install_request =
             DeviceInstallRequest::new(package_report.package_dir.clone(), self.device_root.clone());
@@ -46,8 +50,12 @@ impl PendingDeviceInstall {
 impl HubRuntimeSession {
     pub(super) fn package_recent_project(&mut self) -> Result<(), HubError> {
         let pending_package = match self.prepare_project_package(
-            "No recent project is available to package",
-            "Selected project is no longer available to package",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoRecentProjectToPackage,
+            )),
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::SelectedProjectStaleForPackage,
+            )),
         ) {
             Ok(pending_package) => pending_package,
             Err(_) => return Ok(()),
@@ -69,8 +77,12 @@ impl HubRuntimeSession {
         &mut self,
     ) -> Result<Option<PendingProjectPackage>, HubError> {
         match self.prepare_project_package(
-            "No recent project is available to package",
-            "Selected project is no longer available to package",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoRecentProjectToPackage,
+            )),
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::SelectedProjectStaleForPackage,
+            )),
         ) {
             Ok(pending_package) => {
                 self.mark_background_action_prepared();
@@ -112,8 +124,8 @@ impl HubRuntimeSession {
 
     fn prepare_project_package(
         &mut self,
-        missing_project_message: &str,
-        stale_project_message: &str,
+        missing_project_message: HubMessage,
+        stale_project_message: HubMessage,
     ) -> Result<PendingProjectPackage, HubError> {
         let project = match self.selected_or_latest_recent_project_for_named_action(
             missing_project_message,
@@ -121,15 +133,18 @@ impl HubRuntimeSession {
         ) {
             Ok(project) => project,
             Err(error) => {
-                let detail = error.to_string();
+                let (detail, _) = error.into_status_messages();
+                let recovery = HubMessage::new(HubMessageId::Project(
+                    ProjectMessageId::SelectProjectBeforePackaging,
+                ));
                 self.record_project_action_failure(
                     HubActionKind::PackageProject,
                     self.action_target_for_project_failure(),
-                    detail,
-                    "Select an available project before packaging",
+                    detail.clone(),
+                    recovery.clone(),
                     Some(self.config.settings.default_build_output_dir.clone()),
                 )?;
-                return Err(error);
+                return Err(HubError::status(detail, Some(recovery)));
             }
         };
         self.pending_project_package_from_project(project)
@@ -137,20 +152,27 @@ impl HubRuntimeSession {
 
     fn prepare_device_install(&mut self) -> Result<PendingDeviceInstall, HubError> {
         let package = match self.prepare_project_package(
-            "No recent project is available to install",
-            "Selected project is no longer available to install",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoRecentProjectToInstall,
+            )),
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::SelectedProjectStaleForInstall,
+            )),
         ) {
             Ok(package) => package,
             Err(error) => {
-                let detail = error.to_string();
+                let (detail, _) = error.into_status_messages();
+                let recovery = HubMessage::new(HubMessageId::Project(
+                    ProjectMessageId::SelectProjectBeforeInstalling,
+                ));
                 self.record_project_action_failure(
                     HubActionKind::InstallProject,
                     self.action_target_for_project_failure(),
-                    detail,
-                    "Select a valid project and package it before installing to a device",
+                    detail.clone(),
+                    recovery.clone(),
                     Some(self.config.settings.default_device_install_dir.clone()),
                 )?;
-                return Err(error);
+                return Err(HubError::status(detail, Some(recovery)));
             }
         };
         Ok(PendingDeviceInstall {
@@ -165,18 +187,21 @@ impl HubRuntimeSession {
         project: RecentProject,
     ) -> Result<PendingProjectPackage, HubError> {
         if validate_project_root(&project.path) != ProjectValidation::Valid {
-            let detail = format!(
-                "Project root is not valid: {}",
-                project.path.to_string_lossy()
+            let detail = HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::RootInvalid),
+                [project.path.to_string_lossy().into_owned()],
             );
+            let recovery = HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::CheckProjectManifest,
+            ));
             self.record_project_action_failure(
                 HubActionKind::PackageProject,
                 recent_project_display_name(&project),
                 detail.clone(),
-                "Check that the selected project directory contains a Zircon project manifest",
+                recovery.clone(),
                 Some(self.config.settings.default_build_output_dir.clone()),
             )?;
-            return Err(HubError::message(detail));
+            return Err(HubError::status(detail, Some(recovery)));
         }
         let display_name = recent_project_display_name(&project);
         let request = ProjectPackageRequest::new(
@@ -202,12 +227,14 @@ impl HubRuntimeSession {
         let report = match result {
             Ok(report) => report,
             Err(error) => {
-                let detail = error.to_string();
+                let (detail, _) = error.into_status_messages();
                 self.record_project_action_failure(
                     HubActionKind::PackageProject,
                     project_name,
                     detail,
-                    "Check that the project root exists and the package output is outside the project",
+                    HubMessage::new(HubMessageId::Delivery(
+                        DeliveryMessageId::CheckPackageOutputRecovery,
+                    )),
                     Some(self.config.settings.default_build_output_dir.clone()),
                 )?;
                 return Ok(());
@@ -232,23 +259,24 @@ impl HubRuntimeSession {
         let (package_report, install_report) = match result {
             Ok(reports) => reports,
             Err(error) => {
-                let detail = error.to_string();
+                let (detail, _) = error.into_status_messages();
                 self.record_project_action_failure(
                     HubActionKind::InstallProject,
                     project_name,
                     detail,
-                    "Check the package output and configured local device install directory before retrying",
+                    HubMessage::new(HubMessageId::Delivery(
+                        DeliveryMessageId::CheckInstallOutputRecovery,
+                    )),
                     Some(self.config.settings.default_device_install_dir.clone()),
                 )?;
                 return Ok(());
             }
         };
         self.record_package_success(project_name.clone(), &package_request, &package_report)?;
-        let detail = format!(
-            "{} -> {} ({} files)",
-            project_name,
-            install_report.install_dir.to_string_lossy(),
-            install_report.files_copied
+        let detail = delivery_file_count_detail(
+            &project_name,
+            install_report.install_dir.to_string_lossy().as_ref(),
+            install_report.files_copied,
         );
         let command_line = install_command_line(&package_request, &device_root);
         let log_excerpt = install_log_excerpt(&project_name, &install_report);
@@ -274,12 +302,11 @@ impl HubRuntimeSession {
         project_name: String,
         request: &ProjectPackageRequest,
         report: &ProjectPackageReport,
-    ) -> Result<String, HubError> {
-        let detail = format!(
-            "{} -> {} ({} files)",
-            project_name,
-            report.package_dir.to_string_lossy(),
-            report.files_copied
+    ) -> Result<HubMessage, HubError> {
+        let detail = delivery_file_count_detail(
+            &project_name,
+            report.package_dir.to_string_lossy().as_ref(),
+            report.files_copied,
         );
         let log_excerpt = package_log_excerpt(&project_name, report);
         self.record_action_and_persist(HubActionRecord {
@@ -301,8 +328,8 @@ impl HubRuntimeSession {
         &mut self,
         action: HubActionKind,
         target: String,
-        detail: String,
-        recovery: &str,
+        detail: HubMessage,
+        recovery: HubMessage,
         output_dir: Option<PathBuf>,
     ) -> Result<(), HubError> {
         self.record_action_and_persist(HubActionRecord {
@@ -311,8 +338,8 @@ impl HubRuntimeSession {
             status: HubActionStatus::Failed,
             target: target.clone(),
             detail: detail.clone(),
-            log_excerpt: String::new(),
-            recovery: Some(recovery.to_string()),
+            log_excerpt: HubMessage::empty(),
+            recovery: Some(recovery.clone()),
             process_id: None,
             command_line: Vec::new(),
             output_dir,
@@ -325,7 +352,7 @@ impl HubRuntimeSession {
 fn package_command_line(request: &ProjectPackageRequest) -> Vec<String> {
     vec![
         "zircon_hub".to_string(),
-        "package-project".to_string(),
+        HubActionId::PackageProject.as_str().to_string(),
         "--project".to_string(),
         request.project_root.to_string_lossy().into_owned(),
         "--output".to_string(),
@@ -339,7 +366,7 @@ fn install_command_line(
 ) -> Vec<String> {
     vec![
         "zircon_hub".to_string(),
-        "install-device".to_string(),
+        HubActionId::InstallDevice.as_str().to_string(),
         "--project".to_string(),
         package_request.project_root.to_string_lossy().into_owned(),
         "--package-output".to_string(),
@@ -349,19 +376,40 @@ fn install_command_line(
     ]
 }
 
-fn package_log_excerpt(project_name: &str, report: &ProjectPackageReport) -> String {
-    format!(
-        "Packaged {project_name} to {} ({} files)",
-        report.package_dir.to_string_lossy(),
-        report.files_copied
+fn delivery_file_count_detail(
+    project_name: &str,
+    output_path: &str,
+    file_count: usize,
+) -> HubMessage {
+    HubMessage::with_params(
+        HubMessageId::Delivery(DeliveryMessageId::FileCountDetail),
+        [
+            project_name.to_string(),
+            output_path.to_string(),
+            file_count.to_string(),
+        ],
     )
 }
 
-fn install_log_excerpt(project_name: &str, report: &DeviceInstallReport) -> String {
-    format!(
-        "Installed {project_name} to {} ({} files)",
-        report.install_dir.to_string_lossy(),
-        report.files_copied
+fn package_log_excerpt(project_name: &str, report: &ProjectPackageReport) -> HubMessage {
+    HubMessage::with_params(
+        HubMessageId::Delivery(DeliveryMessageId::PackageLogExcerpt),
+        [
+            project_name.to_string(),
+            report.package_dir.to_string_lossy().into_owned(),
+            report.files_copied.to_string(),
+        ],
+    )
+}
+
+fn install_log_excerpt(project_name: &str, report: &DeviceInstallReport) -> HubMessage {
+    HubMessage::with_params(
+        HubMessageId::Delivery(DeliveryMessageId::InstallLogExcerpt),
+        [
+            project_name.to_string(),
+            report.install_dir.to_string_lossy().into_owned(),
+            report.files_copied.to_string(),
+        ],
     )
 }
 
@@ -373,7 +421,7 @@ mod tests {
     use crate::settings::{HubConfig, HubLanguage};
     use crate::state::{HubActionKind, HubActionStatus};
 
-    use super::{super::HubRuntimeSession, PendingDeviceInstall};
+    use super::{super::HubRuntimeSession, BackgroundTask, PendingDeviceInstall};
 
     #[test]
     fn background_package_prepares_request_without_copying_or_recording_history() {

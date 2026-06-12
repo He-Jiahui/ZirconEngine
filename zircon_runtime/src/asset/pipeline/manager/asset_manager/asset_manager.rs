@@ -1,6 +1,7 @@
-use crate::core::{ChannelReceiver, CoreError};
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::CoreError;
 
-use crate::asset::watch::AssetChange;
+use crate::asset::watch::{AssetChange, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetPipelineInfo,
     AssetStatusRecord, ProjectInfo,
@@ -23,6 +24,7 @@ pub trait AssetManager: Send + Sync {
     fn asset_status(&self, uri: &str) -> Option<AssetStatusRecord>;
     fn list_assets(&self) -> Vec<AssetStatusRecord>;
     fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange>;
+    fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError>;
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError>;
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError>;
 }

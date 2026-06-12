@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "2273d226-8fda-4b00-aad5-6f0ccb7ad204"
+url = "res://materials/forest_grass_billboard.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/6c0fb101-db55-52d5-b259-32e23a094277.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689611
+source_hash = "5a84f43e0ceebf29"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = ["res://shaders/vampire_forest"]
+
+[import_settings]
+
+[[entries]]
+uuid = "2273d226-8fda-4b00-aad5-6f0ccb7ad204"
+url = "res://materials/forest_grass_billboard.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/6c0fb101-db55-52d5-b259-32e23a094277.zasset"
+dependencies = ["res://shaders/vampire_forest"]

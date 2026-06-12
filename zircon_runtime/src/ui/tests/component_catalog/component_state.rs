@@ -5,8 +5,11 @@ use zircon_runtime_interface::ui::component::UiComponentEventError;
 
 use super::*;
 
+mod button;
+mod overlay;
 mod selection;
 mod value_validation;
+mod windowing;
 
 #[test]
 fn component_state_applies_retained_number_dropdown_collection_and_drop_events() {

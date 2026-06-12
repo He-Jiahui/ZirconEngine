@@ -1,13 +1,16 @@
+use super::{HubMessage, HubMessageId, ShellMessageId};
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TaskStatus {
     pub label: String,
-    pub detail: String,
+    pub detail: HubMessage,
     pub running: bool,
     pub severity: TaskSeverity,
-    pub recovery: Option<String>,
+    pub recovery: Option<HubMessage>,
     pub operation: Option<TaskOperationKind>,
     pub target: Option<String>,
     pub progress_percent: u8,
+    pub task_id: u64,
 }
 
 pub const TASK_PROGRESS_IDLE_PERCENT: u8 = 0;
@@ -38,67 +41,61 @@ impl TaskStatus {
     pub fn idle() -> Self {
         Self {
             label: "Ready".to_string(),
-            detail: "Hub is ready".to_string(),
+            detail: HubMessage::new(HubMessageId::Shell(ShellMessageId::HubReady)),
             running: false,
             severity: TaskSeverity::Info,
             recovery: None,
             operation: Some(TaskOperationKind::Hub),
             target: None,
             progress_percent: TASK_PROGRESS_IDLE_PERCENT,
+            task_id: 0,
         }
     }
 
-    pub fn running(label: impl Into<String>, detail: impl Into<String>) -> Self {
+    pub fn running(label: impl Into<String>, detail: HubMessage) -> Self {
         Self {
             label: label.into(),
-            detail: detail.into(),
+            detail,
             running: true,
             severity: TaskSeverity::Info,
             recovery: None,
             operation: None,
             target: None,
             progress_percent: TASK_PROGRESS_STARTED_PERCENT,
+            task_id: 0,
         }
     }
 
     pub fn running_operation(
         label: impl Into<String>,
-        detail: impl Into<String>,
+        detail: HubMessage,
         operation: TaskOperationKind,
         target: impl Into<String>,
     ) -> Self {
         Self::running(label, detail).with_operation(operation, target)
     }
 
-    pub fn success(label: impl Into<String>, detail: impl Into<String>) -> Self {
+    pub fn success(label: impl Into<String>, detail: HubMessage) -> Self {
         Self::new(label, detail, TaskSeverity::Success, None)
     }
 
-    pub fn warning(
-        label: impl Into<String>,
-        detail: impl Into<String>,
-        recovery: impl Into<String>,
-    ) -> Self {
-        Self::new(label, detail, TaskSeverity::Warning, Some(recovery.into()))
+    pub fn warning(label: impl Into<String>, detail: HubMessage, recovery: HubMessage) -> Self {
+        Self::new(label, detail, TaskSeverity::Warning, Some(recovery))
     }
 
-    pub fn error(
-        label: impl Into<String>,
-        detail: impl Into<String>,
-        recovery: impl Into<String>,
-    ) -> Self {
-        Self::new(label, detail, TaskSeverity::Error, Some(recovery.into()))
+    pub fn error(label: impl Into<String>, detail: HubMessage, recovery: HubMessage) -> Self {
+        Self::new(label, detail, TaskSeverity::Error, Some(recovery))
     }
 
     fn new(
         label: impl Into<String>,
-        detail: impl Into<String>,
+        detail: HubMessage,
         severity: TaskSeverity,
-        recovery: Option<String>,
+        recovery: Option<HubMessage>,
     ) -> Self {
         Self {
             label: label.into(),
-            detail: detail.into(),
+            detail,
             running: false,
             severity,
             recovery,
@@ -108,7 +105,13 @@ impl TaskStatus {
                 TaskSeverity::Success => TASK_PROGRESS_COMPLETE_PERCENT,
                 _ => TASK_PROGRESS_IDLE_PERCENT,
             },
+            task_id: 0,
         }
+    }
+
+    pub fn with_task_id(mut self, task_id: u64) -> Self {
+        self.task_id = task_id;
+        self
     }
 
     pub fn with_progress_percent(mut self, progress_percent: u8) -> Self {
@@ -152,18 +155,6 @@ impl TaskStatus {
             None => scope.to_string(),
         }
     }
-
-    pub fn detail_with_recovery(&self) -> String {
-        match self
-            .recovery
-            .as_deref()
-            .filter(|value| !value.trim().is_empty())
-        {
-            Some(recovery) if self.detail.trim().is_empty() => recovery.to_string(),
-            Some(recovery) => format!("{} — {}", self.detail, recovery),
-            None => self.detail.clone(),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -171,24 +162,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn task_status_preserves_recovery_without_hiding_detail() {
-        let status = TaskStatus::error(
-            "Build failed",
-            "cargo exited with code 101",
-            "Review build history and fix the first compiler error",
-        );
-
-        assert_eq!(status.severity, TaskSeverity::Error);
-        assert!(!status.running);
-        assert_eq!(
-            status.detail_with_recovery(),
-            "cargo exited with code 101 — Review build history and fix the first compiler error"
-        );
-    }
-
-    #[test]
     fn task_status_operation_summary_names_scope_and_target() {
-        let status = TaskStatus::success("Project selected", "Game")
+        let status = TaskStatus::success("Project selected", HubMessage::legacy("Game"))
             .with_operation(TaskOperationKind::Project, "Game");
 
         assert_eq!(status.operation_summary(), "Project: Game");
@@ -201,20 +176,32 @@ mod tests {
             TASK_PROGRESS_IDLE_PERCENT
         );
         assert_eq!(
-            TaskStatus::running("Building", "Running tools/zircon_build.py").progress_percent,
+            TaskStatus::running(
+                "Building",
+                HubMessage::legacy("Running tools/zircon_build.py")
+            )
+            .progress_percent,
             TASK_PROGRESS_STARTED_PERCENT
         );
         assert_eq!(
-            TaskStatus::success("Build complete", "out").progress_percent,
+            TaskStatus::success("Build complete", HubMessage::legacy("out")).progress_percent,
             TASK_PROGRESS_COMPLETE_PERCENT
         );
         assert_eq!(
-            TaskStatus::error("Build failed", "failed", "retry").progress_percent,
+            TaskStatus::error(
+                "Build failed",
+                HubMessage::legacy("failed"),
+                HubMessage::legacy("retry"),
+            )
+            .progress_percent,
             TASK_PROGRESS_IDLE_PERCENT
         );
 
-        let clamped = TaskStatus::running("Building", "Running tools/zircon_build.py")
-            .with_progress_percent(TASK_PROGRESS_COMPLETE_PERCENT + 1);
+        let clamped = TaskStatus::running(
+            "Building",
+            HubMessage::legacy("Running tools/zircon_build.py"),
+        )
+        .with_progress_percent(TASK_PROGRESS_COMPLETE_PERCENT + 1);
 
         assert_eq!(clamped.progress_percent, TASK_PROGRESS_COMPLETE_PERCENT);
     }

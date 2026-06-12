@@ -16,7 +16,9 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
         if sprite.size <= f32::EPSILON || sprite.color.w <= f32::EPSILON {
             continue;
         }
-        let half = sprite.size * 0.5;
+        let aspect_ratio = sprite.aspect_ratio.max(f32::EPSILON);
+        let half_width = sprite.size * aspect_ratio * 0.5;
+        let half_height = sprite.size * 0.5;
         let color = Vec4::new(
             sprite.color.x * sprite.intensity,
             sprite.color.y * sprite.intensity,
@@ -26,10 +28,12 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
         let sin = sprite.rotation.sin();
         let cos = sprite.rotation.cos();
         let rotated = |x: f32, y: f32| right * (x * cos - y * sin) + up * (x * sin + y * cos);
-        let top_left = sprite.position + rotated(-half, half);
-        let top_right = sprite.position + rotated(half, half);
-        let bottom_left = sprite.position + rotated(-half, -half);
-        let bottom_right = sprite.position + rotated(half, -half);
+        let center =
+            sprite.position + rotated(sprite.billboard_offset.x, sprite.billboard_offset.y);
+        let top_left = center + rotated(-half_width, half_height);
+        let top_right = center + rotated(half_width, half_height);
+        let bottom_left = center + rotated(-half_width, -half_height);
+        let bottom_right = center + rotated(half_width, -half_height);
         vertices.extend_from_slice(&[
             ParticleVertex::new(top_left, color),
             ParticleVertex::new(bottom_left, color),

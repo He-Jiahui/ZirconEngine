@@ -7,6 +7,7 @@ mod viewport_render_frame;
 mod viewport_render_frame_from_extract;
 mod viewport_render_frame_from_public_runtime;
 mod viewport_render_frame_from_snapshot;
+mod viewport_render_frame_with_frame_visibility;
 mod viewport_render_frame_with_output_target;
 mod viewport_render_frame_with_prepared_runtime_sidebands;
 mod viewport_render_frame_with_previous_motion_vector_camera;

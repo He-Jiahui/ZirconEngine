@@ -1,5 +1,6 @@
 mod workbench_alert;
 mod workbench_button;
+mod workbench_chrome;
 mod workbench_dropdown;
 mod workbench_icon_button;
 mod workbench_list_row;
@@ -52,6 +53,14 @@ pub(super) use workbench_button::{
     select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle, ADD_COMPONENT_GLYPH,
     ADD_COMPONENT_TEXT, OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
 };
+pub(super) use workbench_chrome::{
+    select_workbench_chrome_style, WorkbenchChromeKind, WorkbenchChromeStyle,
+};
+#[cfg(test)]
+pub(super) use workbench_chrome::{
+    WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_PANEL_BG, WORKBENCH_CHROME_SOFT_SEPARATOR,
+    WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR, WORKBENCH_CHROME_TOPBAR_BG,
+};
 pub(super) use workbench_dropdown::{
     select_workbench_dropdown_style, WorkbenchDropdownStyle, WORKBENCH_DROPDOWN_BORDER,
     WORKBENCH_DROPDOWN_FOCUS_BORDER, WORKBENCH_DROPDOWN_PLACEHOLDER, WORKBENCH_DROPDOWN_SURFACE,
@@ -70,8 +79,8 @@ pub(super) use workbench_segmented_control::{
     WorkbenchSegmentedControlStyle, WORKBENCH_SEGMENT_IDLE_BACKGROUND,
 };
 pub(super) use workbench_selection_control::{
-    is_workbench_selection_state_hot, select_workbench_selection_control_style,
-    WorkbenchSelectionControlKind, WorkbenchSelectionControlStyle, WORKBENCH_CHECKBOX_CHECKED_FILL,
+    select_workbench_selection_control_style, WorkbenchSelectionControlKind,
+    WorkbenchSelectionControlStyle, WORKBENCH_CHECKBOX_CHECKED_FILL,
     WORKBENCH_RADIO_CHECKED_BORDER, WORKBENCH_RADIO_CHECKED_FILL, WORKBENCH_SELECTION_LABEL_MUTED,
     WORKBENCH_SELECTION_MARK_IDLE_BORDER, WORKBENCH_SELECTION_MARK_IDLE_FILL,
 };

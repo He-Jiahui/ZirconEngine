@@ -13,3 +13,13 @@ pub(crate) struct GpuTextureResource {
     pub(in crate::graphics::scene::resources) sampler: wgpu::Sampler,
     pub(crate) bind_group: wgpu::BindGroup,
 }
+
+impl GpuTextureResource {
+    pub(crate) fn view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
+
+    pub(crate) fn sampler(&self) -> &wgpu::Sampler {
+        &self.sampler
+    }
+}

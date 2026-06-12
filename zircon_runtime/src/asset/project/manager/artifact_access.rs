@@ -15,7 +15,13 @@ impl ProjectManager {
         let artifact_uri = metadata.artifact_locator().ok_or_else(|| {
             AssetImportError::Parse(format!("missing artifact uri for source uri {uri}"))
         })?;
-        self.artifact_store.read(&self.paths, artifact_uri)
+        self.artifact_store
+            .read(&self.paths, artifact_uri)
+            .map_err(|error| {
+                AssetImportError::Parse(format!(
+                    "read artifact {artifact_uri} for source uri {uri}: {error}"
+                ))
+            })
     }
 
     pub fn load_artifact_by_id(&self, id: AssetId) -> Result<ImportedAsset, AssetImportError> {
@@ -25,7 +31,13 @@ impl ProjectManager {
         let artifact_uri = metadata.artifact_locator().ok_or_else(|| {
             AssetImportError::Parse(format!("missing artifact uri for asset id {id}"))
         })?;
-        self.artifact_store.read(&self.paths, artifact_uri)
+        self.artifact_store
+            .read(&self.paths, artifact_uri)
+            .map_err(|error| {
+                AssetImportError::Parse(format!(
+                    "read artifact {artifact_uri} for asset id {id}: {error}"
+                ))
+            })
     }
 }
 

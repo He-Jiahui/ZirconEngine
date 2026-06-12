@@ -140,6 +140,7 @@ pub fn resolve_button_style_from_values(values: &BTreeMap<String, Value>) -> Res
     let scope = Arc::new(StyleSheetScope::new(UiV2ResolvedStyle {
         self_values: values.clone(),
         slot: BTreeMap::new(),
+        style_tokens: BTreeMap::new(),
     }));
     ButtonStyleFields::default().resolve(&[Arc::downgrade(&scope)])
 }

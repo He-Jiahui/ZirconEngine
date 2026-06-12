@@ -43,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_tre
 }
 
 fn tree_row_background(state: UiPainterResolvedState, marked: bool) -> Option<[u8; 4]> {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_tree_row_state(state) {
         None
     } else if marked {
         Some(PALETTE.surface_selected)
@@ -57,7 +57,7 @@ fn tree_row_background(state: UiPainterResolvedState, marked: bool) -> Option<[u
 }
 
 fn tree_row_border(state: UiPainterResolvedState, marked: bool) -> Option<[u8; 4]> {
-    (state != UiPainterResolvedState::Disabled && (marked || is_focus_or_press(state)))
+    (!is_unavailable_tree_row_state(state) && (marked || is_focus_or_press(state)))
         .then_some(PALETTE.focus_ring)
 }
 
@@ -70,7 +70,7 @@ fn tree_row_border_width(state: UiPainterResolvedState, marked: bool) -> f32 {
 }
 
 fn tree_row_primary_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_tree_row_state(state) {
         PALETTE.text_disabled
     } else if marked {
         WORKBENCH_TREE_ROW_TEXT_SELECTED
@@ -80,7 +80,7 @@ fn tree_row_primary_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4
 }
 
 fn tree_row_icon_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_tree_row_state(state) {
         PALETTE.text_disabled
     } else if marked {
         WORKBENCH_TREE_ROW_TEXT_SELECTED
@@ -90,7 +90,7 @@ fn tree_row_icon_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4] {
 }
 
 fn tree_row_secondary_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_tree_row_state(state) {
         PALETTE.text_disabled
     } else if marked {
         WORKBENCH_TREE_ROW_TEXT_SELECTED
@@ -100,7 +100,7 @@ fn tree_row_secondary_color(state: UiPainterResolvedState, marked: bool) -> [u8;
 }
 
 fn tree_row_action_color(state: UiPainterResolvedState, marked: bool) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_tree_row_state(state) {
         PALETTE.text_disabled
     } else if marked {
         WORKBENCH_TREE_ROW_TEXT_SELECTED
@@ -128,4 +128,37 @@ fn is_hot(state: UiPainterResolvedState) -> bool {
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )
+}
+
+fn is_unavailable_tree_row_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tree_row_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.focused = true;
+        node.selected = true;
+        node.checked = true;
+        node.button_style.loading = true;
+
+        let style = select_workbench_tree_row_style(&node);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.background, None);
+        assert_eq!(style.border, None);
+        assert_eq!(style.border_width, 0.0);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.icon, PALETTE.text_disabled);
+        assert_eq!(style.secondary, PALETTE.text_disabled);
+        assert_eq!(style.action, PALETTE.text_disabled);
+    }
 }

@@ -7,7 +7,7 @@ use crate::scene::ecs::{
 use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::super::single_from_iter;
+use super::super::{cached_query_iter::cached_query_component_locations, single_from_iter};
 use super::helpers::collect_many_query_items;
 use super::QueryState;
 
@@ -188,7 +188,35 @@ where
         world: &World,
         ticks: ChangeTickWindow,
     ) -> bool {
-        self.iter_cached_with_ticks(world, ticks).next().is_none()
+        self.update_cache(world);
+        let mut index = 0_usize;
+        while index < self.cached_entities.len() {
+            let entity = self.cached_entities[index];
+            let Some(stable_location) = self.cached_locations.get(index).copied() else {
+                return true;
+            };
+            let Some(component_locations) = cached_query_component_locations(
+                &self.cached_component_locations,
+                &self.cached_component_location_offsets,
+                index,
+            ) else {
+                return true;
+            };
+            if F::matches_component_locations(world, entity, component_locations, ticks)
+                && D::fetch_with_component_locations(
+                    world,
+                    entity,
+                    stable_location,
+                    component_locations,
+                    ticks,
+                )
+                .is_some()
+            {
+                return false;
+            }
+            index += 1;
+        }
+        true
     }
 
     pub(crate) fn count_cached_with_ticks(
@@ -196,7 +224,36 @@ where
         world: &World,
         ticks: ChangeTickWindow,
     ) -> usize {
-        self.iter_cached_with_ticks(world, ticks).count()
+        self.update_cache(world);
+        let mut count = 0_usize;
+        let mut index = 0_usize;
+        while index < self.cached_entities.len() {
+            let entity = self.cached_entities[index];
+            let Some(stable_location) = self.cached_locations.get(index).copied() else {
+                return count;
+            };
+            let Some(component_locations) = cached_query_component_locations(
+                &self.cached_component_locations,
+                &self.cached_component_location_offsets,
+                index,
+            ) else {
+                return count;
+            };
+            if F::matches_component_locations(world, entity, component_locations, ticks)
+                && D::fetch_with_component_locations(
+                    world,
+                    entity,
+                    stable_location,
+                    component_locations,
+                    ticks,
+                )
+                .is_some()
+            {
+                count += 1;
+            }
+            index += 1;
+        }
+        count
     }
 
     pub(crate) fn contains_cached_with_ticks(
@@ -241,14 +298,16 @@ where
         if !F::matches_component_locations(world, entity, component_locations, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
-        D::fetch_with_component_locations(
+        let Some(item) = D::fetch_with_component_locations(
             world,
             entity,
             stable_location,
             component_locations,
             ticks,
-        )
-        .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+        ) else {
+            return Err(QueryEntityError::QueryDoesNotMatch(entity));
+        };
+        Ok(item)
     }
 
     pub(crate) fn get_many_cached_with_ticks<'world, const N: usize>(

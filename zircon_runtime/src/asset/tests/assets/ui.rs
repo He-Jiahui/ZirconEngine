@@ -4,9 +4,12 @@ use crate::asset::assets::{ui_asset_references, ui_v2_asset_references};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
-    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiLayoutAsset, UiStyleAsset,
-    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiIconAsset, UiIconSource, UiIconSourceKind,
+    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    UiWidgetAsset,
 };
+use zircon_runtime_interface::resource::{ResourceKind, ResourceMarker};
+use zircon_runtime_interface::ui::style::UiRgbaColor;
 use zircon_runtime_interface::ui::template::UiAssetKind;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
@@ -196,6 +199,29 @@ selector = "Text"
 set = { foreground = { color = "#ffffff" } }
 "##;
 
+const THEME_UI_TOML: &str = r#"
+id = "zircon.test.dark"
+
+[palette]
+accent = { red = 0.1, green = 0.2, blue = 0.3, alpha = 1.0 }
+
+[[typography]]
+variant = "body"
+family = "Inter"
+size = 13.0
+weight = 400
+line_height = 1.45
+"#;
+
+const ICON_UI_TOML: &str = r##"
+semantic_id = "icons/run"
+default_size = 18.0
+
+[source]
+kind = "svg_asset"
+uri = "res://ui/icons/run.svg"
+"##;
+
 #[test]
 fn ui_asset_wrappers_parse_and_validate_kind() {
     let layout = UiLayoutAsset::from_toml_str(LAYOUT_UI_TOML).unwrap();
@@ -206,6 +232,60 @@ fn ui_asset_wrappers_parse_and_validate_kind() {
     assert_eq!(widget.document.asset.kind, UiAssetKind::Widget);
     assert_eq!(style.document.asset.kind, UiAssetKind::Style);
     assert!(UiLayoutAsset::from_toml_str(WIDGET_UI_TOML).is_err());
+}
+
+#[test]
+fn ui_theme_asset_round_trips_toml_and_registers_facade_label() {
+    let theme = UiThemeAsset::from_toml_str(THEME_UI_TOML).unwrap();
+
+    assert_eq!(theme.document.id, "zircon.test.dark");
+    assert_eq!(
+        theme.document.palette.accent,
+        UiRgbaColor::new(0.1, 0.2, 0.3, 1.0)
+    );
+    assert_eq!(
+        theme.document.palette.surface[2],
+        UiRgbaColor::from_u8(27, 31, 35, 255)
+    );
+    assert_eq!(<UiThemeAsset as crate::asset::Asset>::LABEL, "ui_theme");
+    assert_eq!(
+        <<UiThemeAsset as crate::asset::Asset>::Marker as ResourceMarker>::KIND,
+        ResourceKind::UiStyle
+    );
+
+    let round_trip = UiThemeAsset::from_toml_str(&theme.to_toml_string().unwrap()).unwrap();
+    assert_eq!(round_trip, theme);
+}
+
+#[test]
+fn ui_icon_asset_round_trips_toml_and_registers_facade_label() {
+    let icon = UiIconAsset::from_toml_str(ICON_UI_TOML).unwrap();
+
+    assert_eq!(icon.semantic_id, "icons/run");
+    assert_eq!(icon.default_size, 18.0);
+    assert_eq!(
+        icon.source,
+        UiIconSource {
+            kind: UiIconSourceKind::SvgAsset,
+            text: None,
+            uri: Some("res://ui/icons/run.svg".to_string())
+        }
+    );
+    assert_eq!(
+        icon.direct_references()
+            .iter()
+            .map(|reference| reference.locator.to_string())
+            .collect::<Vec<_>>(),
+        vec!["res://ui/icons/run.svg"]
+    );
+    assert_eq!(<UiIconAsset as crate::asset::Asset>::LABEL, "ui_icon");
+    assert_eq!(
+        <<UiIconAsset as crate::asset::Asset>::Marker as ResourceMarker>::KIND,
+        ResourceKind::Texture
+    );
+
+    let round_trip = UiIconAsset::from_toml_str(&icon.to_toml_string().unwrap()).unwrap();
+    assert_eq!(round_trip, icon);
 }
 
 #[test]
@@ -290,6 +370,34 @@ fn ui_v2_asset_direct_references_include_imports_and_resources() {
 }
 
 #[test]
+fn importer_decodes_ui_theme_assets_from_theme_toml() {
+    let root = unique_temp_project_root("ui_theme_asset_import");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("editor.theme.toml");
+    fs::write(&path, THEME_UI_TOML).unwrap();
+
+    let theme = AssetImporter::default()
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://ui/theme/editor.theme.toml").unwrap(),
+        )
+        .unwrap();
+
+    match theme {
+        ImportedAsset::UiTheme(asset) => {
+            assert_eq!(asset.document.id, "zircon.test.dark");
+            assert_eq!(
+                asset.document.palette.accent,
+                UiRgbaColor::new(0.1, 0.2, 0.3, 1.0)
+            );
+        }
+        other => panic!("unexpected theme import: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml() {
     let root = unique_temp_project_root("ui_asset_import");
     fs::create_dir_all(&root).unwrap();
@@ -344,6 +452,33 @@ fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml() {
 }
 
 #[test]
+fn importer_decodes_ui_icon_assets_from_icon_toml() {
+    let root = unique_temp_project_root("ui_icon_asset_import");
+    fs::create_dir_all(&root).unwrap();
+    let icon_path = root.join("run.icon.toml");
+    fs::write(&icon_path, ICON_UI_TOML).unwrap();
+
+    let importer = AssetImporter::default();
+
+    let icon = importer
+        .import_from_source(
+            &icon_path,
+            &AssetUri::parse("res://ui/icons/run.icon.toml").unwrap(),
+        )
+        .unwrap();
+
+    match icon {
+        ImportedAsset::UiIcon(asset) => {
+            assert_eq!(asset.semantic_id, "icons/run");
+            assert_eq!(asset.direct_references().len(), 1);
+        }
+        other => panic!("unexpected icon import: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn importer_decodes_zui_component_assets_from_zui() {
     let root = unique_temp_project_root("zui_asset_import");
     fs::create_dir_all(&root).unwrap();
@@ -364,6 +499,98 @@ fn importer_decodes_zui_component_assets_from_zui() {
             assert!(asset.document.components.contains_key("ToolbarButton"));
         }
         other => panic!("unexpected zui component import: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_scans_ui_theme_assets_and_restores_theme_payloads() {
+    let root = unique_temp_project_root("ui_theme_asset_project");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "UiThemeSandbox",
+        AssetUri::parse("res://ui/theme/editor.theme.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let theme_dir = paths.assets_root().join("ui").join("theme");
+    fs::create_dir_all(&theme_dir).unwrap();
+    fs::write(theme_dir.join("editor.theme.toml"), THEME_UI_TOML).unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    let theme = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://ui/theme/editor.theme.toml").unwrap())
+        .unwrap();
+
+    assert_eq!(theme.kind, AssetKind::UiStyle);
+
+    match manager
+        .load_artifact(&AssetUri::parse("res://ui/theme/editor.theme.toml").unwrap())
+        .unwrap()
+    {
+        ImportedAsset::UiTheme(asset) => {
+            assert_eq!(asset.document.id, "zircon.test.dark");
+            assert_eq!(
+                asset.document.palette.surface[0],
+                UiRgbaColor::from_u8(17, 20, 22, 255)
+            );
+        }
+        other => panic!("unexpected project theme asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_scans_ui_icon_assets_and_restores_icon_payloads() {
+    let root = unique_temp_project_root("ui_icon_asset_project");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "UiIconSandbox",
+        AssetUri::parse("res://ui/icons/run.icon.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let icon_dir = paths.assets_root().join("ui").join("icons");
+    fs::create_dir_all(&icon_dir).unwrap();
+    fs::write(icon_dir.join("run.icon.toml"), ICON_UI_TOML).unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    let icon = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://ui/icons/run.icon.toml").unwrap())
+        .unwrap();
+
+    assert_eq!(icon.kind, AssetKind::Texture);
+
+    match manager
+        .load_artifact(&AssetUri::parse("res://ui/icons/run.icon.toml").unwrap())
+        .unwrap()
+    {
+        ImportedAsset::UiIcon(asset) => {
+            assert_eq!(asset.semantic_id, "icons/run");
+            assert_eq!(
+                asset
+                    .direct_references()
+                    .iter()
+                    .map(|reference| reference.locator.to_string())
+                    .collect::<Vec<_>>(),
+                vec!["res://ui/icons/run.svg"]
+            );
+        }
+        other => panic!("unexpected project icon asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);

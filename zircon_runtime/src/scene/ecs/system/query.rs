@@ -168,11 +168,15 @@ where
     }
 
     pub fn is_empty(&self) -> bool {
-        self.iter().next().is_none()
+        let world = unsafe { &*self.world };
+        let state = unsafe { &mut *self.state };
+        state.is_empty_cached_with_ticks(world, self.ticks)
     }
 
     pub fn count(&self) -> usize {
-        self.iter().count()
+        let world = unsafe { &*self.world };
+        let state = unsafe { &mut *self.state };
+        state.count_cached_with_ticks(world, self.ticks)
     }
 
     pub fn contains(&self, entity: EntityId) -> bool {

@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "3a822f9f-2768-42c1-b412-0b9ded3d6787"
+url = "res://navigation/main.navmesh.toml"
+asset_kind = "NavMesh"
+unit = "single"
+included_files = []
+artifact_locator = "lib://navigation/navmeshes/e6c7b4b0-fef0-a316-2ba6-7c88702d08bf.zasset"
+importer_id = "zircon.builtin.toml.navmesh"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781081404469
+source_hash = "a403fb3f2641d91a"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "3a822f9f-2768-42c1-b412-0b9ded3d6787"
+url = "res://navigation/main.navmesh.toml"
+asset_kind = "NavMesh"
+artifact_locator = "lib://navigation/navmeshes/e6c7b4b0-fef0-a316-2ba6-7c88702d08bf.zasset"
+dependencies = []

@@ -14,7 +14,7 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
 fn assert_button(registry: &UiComponentDescriptorRegistry) {
     let button = registry.descriptor("Button").expect("Button descriptor");
     assert_button_style_schema_with_variant_default(button, "none", "default");
-    assert_has_event(button, UiComponentEventKind::Commit);
+    assert_button_interaction_events(button);
     assert_enum_options(
         button,
         "slint_material_button_variant",
@@ -88,7 +88,7 @@ fn assert_icon_button(registry: &UiComponentDescriptorRegistry) {
         .descriptor("IconButton")
         .expect("IconButton descriptor");
     assert_button_style_schema_with_variant_default(icon_button, "icon_only", "default");
-    assert_has_event(icon_button, UiComponentEventKind::Commit);
+    assert_button_interaction_events(icon_button);
     for prop in [
         "checked_icon",
         "checkable",
@@ -161,10 +161,23 @@ fn assert_floating_action_button(registry: &UiComponentDescriptorRegistry) {
     assert_bool_prop_default(fab, "state_layer_enabled", true);
     assert_bool_prop_default(fab, "ripple_enabled", true);
     assert_bool_prop_default(fab, "clip_ripple", true);
-    assert_has_event(fab, UiComponentEventKind::Commit);
+    assert_button_interaction_events(fab);
     assert!(fab
         .required_render_capabilities
         .contains(&UiRenderCapability::Vector));
+}
+
+fn assert_button_interaction_events(
+    descriptor: &zircon_runtime_interface::ui::component::UiComponentDescriptor,
+) {
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::Hover,
+        UiComponentEventKind::Press,
+        UiComponentEventKind::Commit,
+    ] {
+        assert_has_event(descriptor, event);
+    }
 }
 
 fn assert_bool_prop_default(

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::core::error::CoreError;
-use crate::core::event_bus::EngineEvent;
-use crate::core::types::ChannelReceiver;
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::framework::events::EngineEvent;
+use crate::core::CoreError;
 
 use super::CoreHandle;
 

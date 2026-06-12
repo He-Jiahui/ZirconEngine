@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::engines::{active_source_engine, SourceEngineInstall};
 use crate::error::HubError;
-use crate::state::{HubActionKind, HubActionRecord, TaskOperationKind, TaskStatus};
+use crate::state::{HubActionKind, HubActionRecord, HubMessage, TaskOperationKind, TaskStatus};
 
 use super::HubRuntimeSession;
 
@@ -15,22 +15,19 @@ impl HubRuntimeSession {
         self.config
             .action_history
             .truncate(crate::state::ACTION_HISTORY_LIMIT);
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     pub(super) fn set_action_failure_status(
         &mut self,
         action: HubActionKind,
         target: String,
-        detail: String,
-        recovery: &str,
+        detail: HubMessage,
+        recovery: HubMessage,
     ) {
-        self.task_status = TaskStatus::error(
-            format!("{} failed", action.label()),
-            detail,
-            recovery.to_string(),
-        )
-        .with_operation(action_operation_kind(action), target);
+        self.task_status =
+            TaskStatus::error(format!("{} failed", action.label()), detail, recovery)
+                .with_operation(action_operation_kind(action), target);
     }
 
     pub(super) fn action_target_for_project_failure(&self) -> String {
@@ -165,11 +162,7 @@ mod tests {
         assert_eq!(record.action, HubActionKind::OpenEditor);
         assert_eq!(record.status, HubActionStatus::Failed);
         assert_eq!(session.task_status.label, "Open Editor failed");
-        assert!(record
-            .recovery
-            .as_deref()
-            .unwrap()
-            .contains("editor/runtime"));
+        assert!(record.recovery.as_ref().unwrap().contains("editor/runtime"));
         assert_eq!(view_model.active_page, "projects");
 
         fs::remove_dir_all(temp).unwrap();

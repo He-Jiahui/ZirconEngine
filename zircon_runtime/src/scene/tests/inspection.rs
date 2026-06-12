@@ -4,6 +4,10 @@ use zircon_runtime_interface::reflect::ReflectedValue;
 use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::{NodeKind, World};
 
+use super::authoring_boundary::{
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+};
+
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
 const NAME_TYPE_PATH: &str = "zircon_runtime::scene::components::Name";
 const MESH_RENDERER_TYPE_PATH: &str = "zircon_runtime::scene::components::MeshRenderer";
@@ -65,6 +69,53 @@ fn world_inspection_builds_hierarchy_and_reflected_fields() {
     assert!(!mesh_model.writable);
     assert!(!mesh_model.plugin_owned);
 
+    let mesh_order = inspection
+        .fields
+        .iter()
+        .find(|field| {
+            field.component_type_path == MESH_RENDERER_TYPE_PATH
+                && field.field_name == "order_in_layer"
+        })
+        .expect("fixed MeshRenderer order should be reflected into inspection");
+    assert_eq!(mesh_order.value, ReflectedValue::Integer(0));
+    assert!(mesh_order.writable);
+    assert!(!mesh_order.plugin_owned);
+
+    let mesh_render_queue = inspection
+        .fields
+        .iter()
+        .find(|field| {
+            field.component_type_path == MESH_RENDERER_TYPE_PATH
+                && field.field_name == "render_queue"
+        })
+        .expect("fixed MeshRenderer render queue should be reflected into inspection");
+    assert_eq!(mesh_render_queue.value, ReflectedValue::Integer(0));
+    assert!(mesh_render_queue.writable);
+    assert!(!mesh_render_queue.plugin_owned);
+
+    let mesh_material_queue = inspection
+        .fields
+        .iter()
+        .find(|field| {
+            field.component_type_path == MESH_RENDERER_TYPE_PATH
+                && field.field_name == "material_queue"
+        })
+        .expect("fixed MeshRenderer material queue should be reflected into inspection");
+    assert_eq!(mesh_material_queue.value, ReflectedValue::Integer(0));
+    assert!(mesh_material_queue.writable);
+    assert!(!mesh_material_queue.plugin_owned);
+
+    let mesh_depth_bias = inspection
+        .fields
+        .iter()
+        .find(|field| {
+            field.component_type_path == MESH_RENDERER_TYPE_PATH && field.field_name == "depth_bias"
+        })
+        .expect("fixed MeshRenderer depth bias should be reflected into inspection");
+    assert_eq!(mesh_depth_bias.value, ReflectedValue::Scalar(0.0));
+    assert!(mesh_depth_bias.writable);
+    assert!(!mesh_depth_bias.plugin_owned);
+
     let coverage = inspection
         .fields
         .iter()
@@ -104,6 +155,24 @@ fn world_inspection_filters_missing_focus_without_storing_authoring_state() {
     assert_eq!(inspection.hierarchy_rows.len(), 1);
     assert!(inspection.fields.is_empty());
     assert!(world.contains_entity(entity));
+}
+
+#[test]
+fn world_inspection_serialization_excludes_editor_authoring_tokens() {
+    let mut world = World::empty();
+    let entity = world.spawn_node(NodeKind::Mesh);
+    world
+        .rename_node(entity, "Runtime Mesh")
+        .expect("entity should be named");
+
+    let inspection = world.inspect_world(Some(entity));
+    let serialized = serde_json::to_string(&inspection).expect("inspection should serialize");
+
+    assert_text_excludes_authoring_tokens(
+        "world inspection serialization",
+        &serialized,
+        SERIALIZED_AUTHORING_TOKENS,
+    );
 }
 
 fn cloud_layer_descriptor() -> ComponentTypeDescriptor {

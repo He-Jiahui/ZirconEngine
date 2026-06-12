@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    RenderCameraTargetGraphImportReport, RenderPluginRendererOutputs,
+    RenderCameraTargetGraphImportReport, RenderCapabilitySummary, RenderPluginRendererOutputs,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
@@ -13,7 +13,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutorRegistry, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::mesh::prepare_mesh_queue;
+use crate::graphics::scene::scene_renderer::mesh::{
+    build_mesh_pass_command_buffers_cached, prepare_mesh_queue, MeshDrawReplayStatsAccumulator,
+    MeshPassIndirectDrawExecutions,
+};
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{
@@ -32,7 +35,6 @@ use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_graph_stage::{
     execute_graph_stage, import_frame_targets, RenderGraphStageExecution,
 };
-use super::partition_mesh_draws::partition_mesh_draws;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
 
 const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
@@ -63,6 +65,7 @@ impl SceneRendererCore {
         frame: &ViewportRenderFrame,
         target: &mut OffscreenTarget,
         pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
         render_pass_executors: &RenderPassExecutorRegistry,
         runtime_features: SceneRuntimeFeatureFlags,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
@@ -76,11 +79,14 @@ impl SceneRendererCore {
             label: Some("zircon-compiled-scene-encoder"),
         });
         insert_marker(&mut encoder, RENDERDOC_MARKER_FRAME_EXTRACT);
+        let frame_generation = self.mesh_command_generation;
         let mut compiled_scene_draws = build_compiled_scene_draws(
             &self.advanced_plugin_resources,
             device,
+            queue,
             &mut encoder,
-            &self.model_bind_group_layout,
+            &self.material_texture_bind_group_layout,
+            &mut self.gpu_scene,
             streamer,
             frame,
             runtime_features.virtual_geometry_enabled,
@@ -91,25 +97,77 @@ impl SceneRendererCore {
             compiled_scene_draws.draws_mut(),
             runtime_features.deferred_lighting_enabled,
         );
-        let mesh_draw_partitions = partition_mesh_draws(compiled_scene_draws.draws());
-        let non_transparent_mesh_draws = mesh_draw_partitions.non_transparent();
         let prepared_mesh_queue = prepare_mesh_queue(compiled_scene_draws.draws());
+        let mesh_pass_command_buffers = build_mesh_pass_command_buffers_cached(
+            compiled_scene_draws.draws(),
+            &mut self.mesh_pipelines,
+            &mut self.cached_mesh_draw_commands,
+            frame_generation,
+        );
+        self.cached_mesh_draw_commands
+            .retain_generation(frame_generation);
+        self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
+        let mesh_pass_command_stats =
+            mesh_pass_command_buffers.stats_with_indirect_batches(capabilities);
+        let mesh_pass_indirect_draws =
+            MeshPassIndirectDrawExecutions::build(device, capabilities, &mesh_pass_command_buffers);
+        let prepared_mesh_queue_stats = prepared_mesh_queue
+            .stats()
+            .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats);
         debug_assert_eq!(
-            prepared_mesh_queue.stats().draw_count,
+            prepared_mesh_queue_stats.draw_count,
             compiled_scene_draws.draws().len()
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.depth_prepass_command_count,
+            prepared_mesh_queue_stats.early_z_draw_count
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.shadow_command_count,
+            prepared_mesh_queue_stats.shadow_caster_draw_count
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.opaque_command_count,
+            prepared_mesh_queue_stats.opaque_draw_count
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.alpha_mask_command_count,
+            prepared_mesh_queue_stats.alpha_mask_draw_count
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.transparent_command_count,
+            prepared_mesh_queue_stats.transparent_draw_count
+        );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.velocity_command_count,
+            mesh_pass_command_buffers.velocity().commands().len()
         );
         let prepared_sprite_queue_stats = runtime_features
             .sprite_rendering_enabled
             .then(|| prepare_sprite_queue_stats(frame, active_sprite_graph_stages(pipeline)))
             .unwrap_or_default();
+        let mesh_draw_replay_stats = MeshDrawReplayStatsAccumulator::default();
+        let gpu_scene_bind_group = self.gpu_scene.scene_bind_group().clone();
+        let gpu_scene_bind_handle =
+            crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshSceneDataBindHandle::new(
+                &gpu_scene_bind_group,
+            );
         let mesh_draw_lists =
-            crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshDrawLists {
-                depth_prepass: prepared_mesh_queue.early_z_draws(),
-                opaque: &mesh_draw_partitions.opaque,
-                alpha_mask: &mesh_draw_partitions.alpha_mask,
-                transparent: &mesh_draw_partitions.transparent,
-                non_transparent: &non_transparent_mesh_draws,
-                shadow_casters: &mesh_draw_partitions.shadow_casters,
+            crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists {
+                replay_stats: &mesh_draw_replay_stats,
+                gpu_scene_bind_group: Some(gpu_scene_bind_handle),
+                depth_prepass_commands: mesh_pass_command_buffers.depth_prepass().commands(),
+                shadow_commands: mesh_pass_command_buffers.shadow().commands(),
+                opaque_commands: mesh_pass_command_buffers.opaque().commands(),
+                alpha_mask_commands: mesh_pass_command_buffers.alpha_mask().commands(),
+                transparent_commands: mesh_pass_command_buffers.transparent().commands(),
+                velocity_commands: mesh_pass_command_buffers.velocity().commands(),
+                depth_prepass_indirect: mesh_pass_indirect_draws.depth_prepass(),
+                shadow_indirect: mesh_pass_indirect_draws.shadow(),
+                opaque_indirect: mesh_pass_indirect_draws.opaque(),
+                alpha_mask_indirect: mesh_pass_indirect_draws.alpha_mask(),
+                transparent_indirect: mesh_pass_indirect_draws.transparent(),
+                velocity_indirect: mesh_pass_indirect_draws.velocity(),
             };
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
         let material_gbuffer_valid = pipeline_writes_resource(
@@ -127,10 +185,15 @@ impl SceneRendererCore {
                 pipeline,
                 crate::core::framework::render::PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
             );
+        let hzb_history_enabled = pipeline_writes_resource(
+            pipeline,
+            crate::core::framework::render::PostProcessGraphResourceNames::HZB_FURTHEST,
+        );
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
+        self.transient_resource_pool.begin_frame();
         let direct_imported_final_target = direct_imported_final_target(streamer, frame);
         let imported_final_target =
             direct_imported_final_target
@@ -160,9 +223,19 @@ impl SceneRendererCore {
                         .create_view(&wgpu::TextureViewDescriptor::default()),
                 );
             }
+            if hzb_history_enabled {
+                graph_resources.import_texture_view(
+                    crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
+                    history_textures.hzb_furthest_view.clone(),
+                );
+            }
         }
         graph_resources
-            .materialize_transient_resources(device, &pipeline.graph)
+            .materialize_transient_resources_with_pool(
+                device,
+                &pipeline.graph,
+                &mut self.transient_resource_pool,
+            )
             .map_err(GraphicsError::Asset)?;
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
         graph_execution_record.set_resource_report(graph_resources.resource_report());
@@ -308,7 +381,8 @@ impl SceneRendererCore {
             && (runtime_features.history_resolve_enabled
                 || runtime_features.hybrid_global_illumination_enabled
                 || runtime_features.ssao_enabled
-                || screen_space_reflection_history_enabled);
+                || screen_space_reflection_history_enabled
+                || hzb_history_enabled);
         if history_copy_required {
             insert_marker(&mut encoder, RENDERDOC_MARKER_HISTORY_COPY);
         }
@@ -319,6 +393,7 @@ impl SceneRendererCore {
             history_textures,
             runtime_features,
             screen_space_reflection_history_enabled,
+            hzb_history_enabled,
         );
         graph_execution
             .record
@@ -357,12 +432,26 @@ impl SceneRendererCore {
         }
         drop(graph_execution);
         queue.submit([encoder.finish()]);
+        graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
+        self.transient_resource_pool.end_frame();
+        graph_execution_record.set_resource_report(
+            graph_execution_record
+                .resource_report()
+                .with_transient_pool_report(self.transient_resource_pool.last_frame_report()),
+        );
+
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
+        let prepared_mesh_queue_stats =
+            prepared_mesh_queue_stats.with_mesh_draw_replay_stats(mesh_draw_replay_stats.stats());
+        let prepared_mesh_queue_stats = prepared_mesh_queue_stats.with_gpu_scene_stats(
+            self.gpu_scene.stats(),
+            compiled_scene_draws.gpu_scene_upload_report(),
+        );
         let outputs = SceneRendererCompiledSceneOutputs::new(
             SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
             graph_execution_record,
-            prepared_mesh_queue.stats(),
+            prepared_mesh_queue_stats,
             prepared_sprite_queue_stats,
         );
         Ok(match direct_import_report {

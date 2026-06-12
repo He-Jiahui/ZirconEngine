@@ -1,0 +1,69 @@
+[player]
+hp = 120
+move_speed = 5.2
+pickup_radius = 2.8
+hit_invulnerability_seconds = 0.35
+
+[weapon.blood_bolt]
+range = 9.0
+cooldown_seconds = 0.65
+damage = 14
+projectile_speed = 18.0
+pierce = 1
+
+[enemy.skeleton]
+hp = 24
+move_speed = 3.3
+contact_damage = 8
+attack_cooldown_seconds = 0.75
+repath_interval_seconds = 0.4
+xp = 1
+
+[enemy.zombie]
+hp = 46
+move_speed = 2.35
+contact_damage = 12
+attack_cooldown_seconds = 0.9
+repath_interval_seconds = 0.55
+xp = 2
+
+[enemy.ghost]
+hp = 18
+move_speed = 3.9
+contact_damage = 6
+attack_cooldown_seconds = 0.55
+repath_interval_seconds = 0.3
+xp = 1
+
+[progression]
+level_formula = "8 + level * 4 + floor(level^1.35 * 3)"
+upgrades = [
+  "+18% Blood Bolt damage",
+  "-12% Blood Bolt cooldown",
+  "+10% move speed",
+  "+1 pierce",
+  "+24 max HP",
+  "+2.0 attack range",
+]
+
+[spawning]
+initial_interval_seconds = 2.0
+minimum_interval_seconds = 0.45
+ramp_seconds = 600.0
+max_alive = 80
+win_seconds = 600.0
+
+[waves.minute_0]
+skeleton_weight = 1.0
+zombie_weight = 0.0
+ghost_weight = 0.0
+
+[waves.minute_3]
+skeleton_weight = 0.75
+zombie_weight = 0.2
+ghost_weight = 0.05
+
+[waves.minute_7]
+skeleton_weight = 0.55
+zombie_weight = 0.25
+ghost_weight = 0.2

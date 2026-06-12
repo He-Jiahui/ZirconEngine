@@ -28,8 +28,9 @@ pub(super) fn collect_many_query_items<Item, const N: usize>(
         }
     }
 
-    Ok(values.map(|value| {
-        // Every slot was written by the loop above.
-        unsafe { value.assume_init() }
-    }))
+    // Every slot was written by the loop above. The MaybeUninit backing array
+    // does not drop Item, so reading the initialized Item array transfers
+    // ownership to the caller without a second per-slot adapter pass.
+    let initialized = unsafe { (&values as *const _ as *const [Item; N]).read() };
+    Ok(initialized)
 }

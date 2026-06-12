@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "6700d51f-98c1-4c09-a0d3-1c3fb9f9d504"
+url = "res://materials/jungle_mist.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/eab020f5-d260-5a74-0043-62cc3d519174.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689608
+source_hash = "0c4e2f411aef1f92"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = ["res://shaders/vampire_effect"]
+
+[import_settings]
+
+[[entries]]
+uuid = "6700d51f-98c1-4c09-a0d3-1c3fb9f9d504"
+url = "res://materials/jungle_mist.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/eab020f5-d260-5a74-0043-62cc3d519174.zasset"
+dependencies = ["res://shaders/vampire_effect"]

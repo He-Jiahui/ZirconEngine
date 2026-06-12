@@ -1,7 +1,9 @@
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
+};
 use crate::render_graph::RenderGraphAttachmentOps;
 
-use super::super::super::mesh::MeshDraw;
 use super::DeferredSceneResources;
 
 impl DeferredSceneResources {
@@ -12,11 +14,13 @@ impl DeferredSceneResources {
         gbuffer_material_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
         albedo_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
-        mesh_draws: I,
-    ) where
-        I: IntoIterator<Item = &'a MeshDraw>,
+        mesh_draw_commands: I,
+    ) -> MeshDrawReplayStats
+    where
+        I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
     {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("DeferredGeometryPass"),
@@ -51,12 +55,15 @@ impl DeferredSceneResources {
         });
         pass.set_pipeline(&self.geometry_pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
-        for draw in mesh_draws {
-            draw.bind_model(&mut pass);
-            draw.bind_texture(&mut pass);
-            draw.bind_material(&mut pass);
-            draw.bind_geometry_buffers(&mut pass);
-            draw.record_indexed_draw(&mut pass);
+        let mut replayer = MeshDrawCommandReplayer::default();
+        for stream in mesh_draw_commands {
+            replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
+                replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
+                replayer.bind_standard_material_if_needed(pass, command);
+                replayer.bind_geometry_if_needed(pass, command);
+                true
+            });
         }
+        replayer.stats()
     }
 }

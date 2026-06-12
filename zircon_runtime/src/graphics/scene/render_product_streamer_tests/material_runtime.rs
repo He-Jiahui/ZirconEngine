@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::framework::render::RenderMaterialTextureTransform;
 
 #[test]
 fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
@@ -60,11 +61,79 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert!(material.cast_shadows);
     assert!(capture.receive_shadows);
     assert!(material.receive_shadows);
+    assert_eq!(material.render_queue, 0);
+    assert_eq!(material.material_queue, 0);
+    assert_eq!(material.depth_bias, 0.0);
     assert!(capture.base_color_texture.is_some());
     assert!(capture.normal_texture.is_some());
     assert!(capture.metallic_roughness_texture.is_some());
     assert!(capture.occlusion_texture.is_some());
     assert!(capture.emissive_texture.is_some());
+    assert_eq!(
+        capture.base_color_texture_transform,
+        transform([2.0, 2.0], [0.125, 0.25])
+    );
+    assert_eq!(capture.base_color_texture_uv_channel, 1);
+    assert_eq!(
+        capture.normal_texture_transform,
+        transform([1.0, 1.0], [0.0, 0.0])
+    );
+    assert_eq!(capture.normal_texture_uv_channel, 0);
+    assert_eq!(
+        capture.metallic_roughness_texture_transform,
+        transform([0.5, 0.5], [0.5, 0.0])
+    );
+    assert_eq!(capture.metallic_roughness_texture_uv_channel, 1);
+    assert_eq!(
+        capture.occlusion_texture_transform,
+        transform([3.0, 4.0], [0.0, 0.75])
+    );
+    assert_eq!(capture.occlusion_texture_uv_channel, 1);
+    assert_eq!(
+        capture.emissive_texture_transform,
+        transform([1.5, 1.25], [0.25, 0.125])
+    );
+    assert_eq!(capture.emissive_texture_uv_channel, 0);
+    assert_eq!(
+        material.base_color_texture_transform,
+        capture.base_color_texture_transform
+    );
+    assert_eq!(
+        material.base_color_texture_uv_channel,
+        capture.base_color_texture_uv_channel
+    );
+    assert_eq!(
+        material.normal_texture_transform,
+        capture.normal_texture_transform
+    );
+    assert_eq!(
+        material.normal_texture_uv_channel,
+        capture.normal_texture_uv_channel
+    );
+    assert_eq!(
+        material.metallic_roughness_texture_transform,
+        capture.metallic_roughness_texture_transform
+    );
+    assert_eq!(
+        material.metallic_roughness_texture_uv_channel,
+        capture.metallic_roughness_texture_uv_channel
+    );
+    assert_eq!(
+        material.occlusion_texture_transform,
+        capture.occlusion_texture_transform
+    );
+    assert_eq!(
+        material.occlusion_texture_uv_channel,
+        capture.occlusion_texture_uv_channel
+    );
+    assert_eq!(
+        material.emissive_texture_transform,
+        capture.emissive_texture_transform
+    );
+    assert_eq!(
+        material.emissive_texture_uv_channel,
+        capture.emissive_texture_uv_channel
+    );
     assert!(material.pipeline_key.double_sided);
     assert!(!material.pipeline_key.alpha_blend);
     assert!(material.pipeline_key.alpha_mask);
@@ -112,6 +181,62 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert_eq!(standard_summary.total_count, 5);
     assert_eq!(standard_summary.resolved_count, 5);
     assert_eq!(standard_summary.fallback_count, 0);
+    assert!(
+        material.readiness_report.is_ready(),
+        "readiness report: {:?}",
+        material.readiness_report
+    );
+}
+
+fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {
+    RenderMaterialTextureTransform { scale, offset }
+}
+
+#[test]
+fn render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/sort-offsets.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material
+        .property_values
+        .insert("render_queue".to_string(), toml::Value::Integer(-8));
+    material
+        .property_values
+        .insert("material_queue".to_string(), toml::Value::Integer(12));
+    material
+        .property_values
+        .insert("depth_bias".to_string(), toml::Value::Float(-0.75));
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("material prepares");
+
+    let material = streamer.material(&material_id).expect("runtime material");
+    assert_eq!(material.render_queue, -8);
+    assert_eq!(material.material_queue, 12);
+    assert_eq!(material.depth_bias, -0.75);
+    assert!(!material.pipeline_key.alpha_blend);
+    assert!(!material.pipeline_key.alpha_mask);
+    assert!(!material.pipeline_key.double_sided);
+    assert!(!material.pipeline_key.has_base_color_texture);
     assert!(material.readiness_report.is_ready());
 }
 

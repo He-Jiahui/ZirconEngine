@@ -3,8 +3,16 @@ use std::path::PathBuf;
 
 use crate::core::resource::{ResourceRecord, ResourceScheme};
 
+use super::cache_payload::ArtifactCacheAsset;
 use crate::asset::project::ProjectPaths;
-use crate::asset::{AssetImportError, AssetKind, AssetUri, ImportedAsset};
+use crate::asset::{
+    asset_kind_for_imported_asset, AssetImportError, AssetKind, AssetUri, ImportedAsset,
+};
+
+const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
+const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
+const ARTIFACT_CACHE_MAGIC: &[u8] = b"ZRARTZ01";
+const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 
 #[derive(Clone, Debug, Default)]
 pub struct ArtifactStore;
@@ -20,14 +28,22 @@ impl ArtifactStore {
             "{}/{}.{}",
             asset_kind_directory(metadata.kind),
             metadata.id(),
-            artifact_extension(metadata.kind)
+            ARTIFACT_CACHE_EXTENSION
         );
         let artifact_uri = AssetUri::parse(&format!("lib://{relative_path}"))?;
         let artifact_path = resolve_library_path(paths, &artifact_uri)?;
         if let Some(parent) = artifact_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(&artifact_path, serialize_asset(asset)?)?;
+        let payload = serialize_asset(asset).map_err(|error| {
+            AssetImportError::Parse(format!(
+                "serialize artifact cache for kind {:?}, id {}, locator {}: {error}",
+                metadata.kind,
+                metadata.id(),
+                metadata.primary_locator
+            ))
+        })?;
+        fs::write(&artifact_path, payload)?;
         Ok(artifact_uri)
     }
 
@@ -85,80 +101,44 @@ fn asset_kind_directory(kind: AssetKind) -> &'static str {
     }
 }
 
-fn artifact_extension(kind: AssetKind) -> &'static str {
-    match kind {
-        AssetKind::AnimationSkeleton
-        | AssetKind::AnimationClip
-        | AssetKind::AnimationSequence
-        | AssetKind::AnimationGraph
-        | AssetKind::AnimationStateMachine => "bin",
-        AssetKind::NavMesh => "znavmesh",
-        AssetKind::NavigationSettings => "toml",
-        AssetKind::Terrain => "zterrain",
-        AssetKind::TerrainLayerStack => "toml",
-        AssetKind::TileSet => "toml",
-        AssetKind::TileMap => "ztilemap",
-        AssetKind::Prefab => "zprefab",
-        _ => "json",
-    }
-}
-
 fn serialize_asset(asset: &ImportedAsset) -> Result<Vec<u8>, AssetImportError> {
-    match asset {
-        ImportedAsset::AnimationSkeleton(asset) => {
-            asset.to_bytes().map_err(AssetImportError::Parse)
-        }
-        ImportedAsset::AnimationClip(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
-        ImportedAsset::AnimationSequence(asset) => {
-            asset.to_bytes().map_err(AssetImportError::Parse)
-        }
-        ImportedAsset::AnimationGraph(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
-        ImportedAsset::AnimationStateMachine(asset) => {
-            asset.to_bytes().map_err(AssetImportError::Parse)
-        }
-        ImportedAsset::NavMesh(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
-        ImportedAsset::NavigationSettings(asset) => toml::to_string_pretty(asset)
-            .map(|document| document.into_bytes())
-            .map_err(|error| AssetImportError::Parse(error.to_string())),
-        _ => serde_json::to_vec_pretty(asset).map_err(AssetImportError::from),
-    }
+    let cache_asset = ArtifactCacheAsset::from_imported(asset);
+    let bytes = bincode::serialize(&cache_asset)
+        .map_err(|error| AssetImportError::Parse(format!("serialize artifact cache: {error}")))?;
+    let compressed = zstd::stream::encode_all(&bytes[..], ARTIFACT_CACHE_ZSTD_LEVEL)?;
+    let mut payload = Vec::with_capacity(ARTIFACT_CACHE_MAGIC.len() + compressed.len());
+    payload.extend_from_slice(ARTIFACT_CACHE_MAGIC);
+    payload.extend_from_slice(&compressed);
+    Ok(payload)
 }
 
 fn deserialize_asset(path: &str, payload: &[u8]) -> Result<ImportedAsset, AssetImportError> {
-    match asset_kind_from_artifact_path(path) {
-        Some(AssetKind::AnimationSkeleton) => {
-            crate::asset::AnimationSkeletonAsset::from_bytes(payload)
-                .map(ImportedAsset::AnimationSkeleton)
-                .map_err(AssetImportError::Parse)
-        }
-        Some(AssetKind::AnimationClip) => crate::asset::AnimationClipAsset::from_bytes(payload)
-            .map(ImportedAsset::AnimationClip)
-            .map_err(AssetImportError::Parse),
-        Some(AssetKind::AnimationSequence) => {
-            crate::asset::AnimationSequenceAsset::from_bytes(payload)
-                .map(ImportedAsset::AnimationSequence)
-                .map_err(AssetImportError::Parse)
-        }
-        Some(AssetKind::AnimationGraph) => crate::asset::AnimationGraphAsset::from_bytes(payload)
-            .map(ImportedAsset::AnimationGraph)
-            .map_err(AssetImportError::Parse),
-        Some(AssetKind::AnimationStateMachine) => {
-            crate::asset::AnimationStateMachineAsset::from_bytes(payload)
-                .map(ImportedAsset::AnimationStateMachine)
-                .map_err(AssetImportError::Parse)
-        }
-        Some(AssetKind::NavMesh) => crate::asset::NavMeshAsset::from_bytes(payload)
-            .map(ImportedAsset::NavMesh)
-            .map_err(AssetImportError::Parse),
-        Some(AssetKind::NavigationSettings) => {
-            let document = std::str::from_utf8(payload)
-                .map_err(|error| AssetImportError::Parse(error.to_string()))?;
-            toml::from_str::<crate::asset::NavigationSettingsAsset>(document)
-                .map(ImportedAsset::NavigationSettings)
-                .map_err(|error| AssetImportError::Parse(error.to_string()))
-        }
-        _ => serde_json::from_slice(payload).map_err(AssetImportError::from),
+    if !path.ends_with(ARTIFACT_CACHE_SUFFIX) {
+        return Err(AssetImportError::Parse(format!(
+            "unsupported artifact cache extension for {path}; expected {ARTIFACT_CACHE_SUFFIX}"
+        )));
     }
+    if !payload.starts_with(ARTIFACT_CACHE_MAGIC) {
+        return Err(AssetImportError::Parse(
+            "unsupported artifact cache format; expected compressed binary cache".to_string(),
+        ));
+    }
+    let expected_kind = asset_kind_from_artifact_path(path);
+    let bytes = zstd::stream::decode_all(&payload[ARTIFACT_CACHE_MAGIC.len()..])?;
+    let cache_asset = bincode::deserialize::<ArtifactCacheAsset>(&bytes)
+        .map_err(|error| AssetImportError::Parse(format!("deserialize artifact cache: {error}")))?;
+    let asset = cache_asset
+        .into_imported()
+        .map_err(|error| AssetImportError::Parse(format!("deserialize artifact cache: {error}")))?;
+    if let Some(expected_kind) = expected_kind {
+        let actual_kind = asset_kind_for_imported_asset(&asset);
+        if actual_kind != expected_kind {
+            return Err(AssetImportError::Parse(format!(
+                "artifact cache kind mismatch for {path}: path is {expected_kind:?}, payload is {actual_kind:?}"
+            )));
+        }
+    }
+    Ok(asset)
 }
 
 fn asset_kind_from_artifact_path(path: &str) -> Option<AssetKind> {

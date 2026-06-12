@@ -7,15 +7,20 @@ pub(super) fn update_motion_vector_history_after_success(
     frame: &ViewportRenderFrame,
 ) {
     record.replace_motion_vector_camera(frame.extract.view.camera.clone());
-    record.replace_motion_vector_object_history(ViewportMotionVectorObjectHistory::from_meshes(
-        frame.meshes(),
-    ));
+    record.replace_motion_vector_object_history(
+        ViewportMotionVectorObjectHistory::from_meshes_and_animation_poses(
+            frame.meshes(),
+            &frame.extract.animation_poses,
+        ),
+    );
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
     use crate::core::framework::render::{
-        RenderFrameExtract, RenderMeshSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+        RenderFrameExtract, RenderMeshSnapshot, RenderSkeletalPoseExtract,
+        RenderViewportDescriptor, RenderWorldSnapshotHandle,
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -38,6 +43,24 @@ mod tests {
             test_mesh(42, Mobility::Dynamic, dynamic_transform),
             test_mesh(99, Mobility::Static, static_transform),
         ];
+        let skeleton = ResourceId::from_stable_label("tests/skeleton");
+        let pose = AnimationPoseOutput {
+            source: AnimationPoseSource::Graph,
+            active_state: Some("Walk".to_string()),
+            bones: Vec::new(),
+        };
+        extract.animation_poses = vec![
+            RenderSkeletalPoseExtract {
+                entity: 42,
+                skeleton,
+                pose: pose.clone(),
+            },
+            RenderSkeletalPoseExtract {
+                entity: 99,
+                skeleton,
+                pose: pose.clone(),
+            },
+        ];
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
         let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
 
@@ -49,23 +72,31 @@ mod tests {
         assert_eq!(history.len(), 1);
         assert_eq!(history.transform(42), Some(&dynamic_transform));
         assert_eq!(history.transform(99), None);
-        assert_eq!(record.motion_vector_camera(), Some(&frame.extract.view.camera));
+        assert_eq!(history.skinned_pose_count(), 1);
+        let skinned_pose = history.skinned_pose(42).expect("dynamic skinned pose");
+        assert_eq!(skinned_pose.skeleton(), skeleton);
+        assert_eq!(skinned_pose.pose(), &pose);
+        assert!(history.skinned_pose(99).is_none());
+        assert_eq!(
+            record.motion_vector_camera(),
+            Some(&frame.extract.view.camera)
+        );
     }
 
-    fn test_mesh(
-        node_id: u64,
-        mobility: Mobility,
-        transform: Transform,
-    ) -> RenderMeshSnapshot {
+    fn test_mesh(node_id: u64, mobility: Mobility, transform: Transform) -> RenderMeshSnapshot {
         RenderMeshSnapshot {
             node_id,
+            stable_instance_key: node_id << 16,
+            transform_revision: 0,
             transform,
             model: ResourceHandle::new(ResourceId::from_stable_label("tests/model")),
             mesh: None,
             material: ResourceHandle::new(ResourceId::from_stable_label("tests/material")),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility,
+            static_state: Default::default(),
             render_layer_mask: 1,
         }
     }

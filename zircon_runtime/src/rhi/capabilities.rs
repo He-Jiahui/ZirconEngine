@@ -46,6 +46,8 @@ pub struct RenderBackendCaps {
     pub supports_pipeline_cache: bool,
     pub supports_storage_buffers: bool,
     pub supports_indirect_draw: bool,
+    pub supports_multi_draw_indirect: bool,
+    pub supports_indirect_first_instance: bool,
     pub supports_buffer_readback: bool,
     pub supports_buffer_binding_array: bool,
     pub supports_texture_binding_array: bool,
@@ -71,6 +73,8 @@ impl RenderBackendCaps {
             supports_pipeline_cache: false,
             supports_storage_buffers: false,
             supports_indirect_draw: false,
+            supports_multi_draw_indirect: false,
+            supports_indirect_first_instance: false,
             supports_buffer_readback: false,
             supports_buffer_binding_array: false,
             supports_texture_binding_array: false,
@@ -128,6 +132,16 @@ impl RenderBackendCaps {
 
     pub fn with_indirect_draw(mut self, enabled: bool) -> Self {
         self.supports_indirect_draw = enabled;
+        self
+    }
+
+    pub fn with_multi_draw_indirect(mut self, enabled: bool) -> Self {
+        self.supports_multi_draw_indirect = enabled;
+        self
+    }
+
+    pub fn with_indirect_first_instance(mut self, enabled: bool) -> Self {
+        self.supports_indirect_first_instance = enabled;
         self
     }
 

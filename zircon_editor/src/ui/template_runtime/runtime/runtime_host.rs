@@ -11,6 +11,7 @@ use crate::ui::template::{
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::theme::UiThemeRegistry;
 use zircon_runtime::ui::v2::{
     UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder,
 };
@@ -60,6 +61,7 @@ pub struct EditorUiHostRuntime {
     pub(super) template_adapter: EditorTemplateAdapter,
     pub(super) template_service: EditorTemplateRuntimeService,
     pub(super) v2_documents: BTreeMap<String, EditorUiHostV2Document>,
+    pub(super) active_theme: UiThemeRegistry,
     pub(super) builtin_host_templates_loaded: bool,
     showcase_demo_state: UiComponentShowcaseDemoState,
 }
@@ -258,10 +260,11 @@ impl EditorUiHostRuntime {
         document_id: &str,
     ) -> Result<UiSurface, EditorUiHostRuntimeError> {
         if let Some(document) = self.v2_documents.get(document_id) {
-            return UiV2SurfaceBuilder::build_surface_from_compiled_document(
+            return UiV2SurfaceBuilder::build_surface_from_compiled_document_with_theme(
                 UiTreeId::new(format!("template.v2.{document_id}")),
                 document.document.as_ref(),
                 document.compiled.as_ref(),
+                &self.active_theme,
             )
             .map_err(EditorUiHostRuntimeError::from);
         }

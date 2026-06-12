@@ -1,5 +1,6 @@
 use crate::core::math::UVec2;
-use crate::core::resource::ResourceId;
+use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId};
+use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
@@ -9,12 +10,13 @@ use super::{
     DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
     PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
     RenderBakedLightingExtract, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
-    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
-    RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPhaseQueue,
-    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderPostProcessVolumeStack,
-    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderFramePhaseQueueSummary,
+    RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
+    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
+    RenderPhaseQueue, RenderPhaseQueueSummary, RenderPointLightSnapshot,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeStack, RenderRectLightSnapshot,
+    RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
     SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
 };
@@ -181,8 +183,25 @@ pub struct GeometryExtract {
     pub meshes: Vec<RenderMeshSnapshot>,
     pub phase_inputs: Vec<GeometryPhaseInput>,
     pub phase_queue: RenderPhaseQueue,
+    pub static_batches: Vec<StaticMeshBatchExtract>,
     pub virtual_geometry: Option<RenderVirtualGeometryExtract>,
     pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StaticMeshBatchExtract {
+    pub model: ResourceHandle<ModelMarker>,
+    pub mesh: Option<ResourceHandle<MeshMarker>>,
+    pub material: ResourceHandle<MaterialMarker>,
+    pub render_layer_mask: u32,
+    pub mesh_indices: Vec<usize>,
+    pub entities: Vec<EntityId>,
+}
+
+impl StaticMeshBatchExtract {
+    pub fn instance_count(&self) -> usize {
+        self.mesh_indices.len()
+    }
 }
 
 impl GeometryExtract {
@@ -222,10 +241,13 @@ impl GeometryExtract {
             }),
         );
 
+        let static_batches = build_static_mesh_batches(&meshes);
+
         Self {
             meshes,
             phase_inputs,
             phase_queue,
+            static_batches,
             virtual_geometry: None,
             virtual_geometry_debug: None,
         }
@@ -247,6 +269,56 @@ impl GeometryExtract {
             }),
         );
     }
+
+    /// Builds a diagnostics summary from the current sorted mesh phase queue.
+    pub fn phase_queue_summary(&self) -> RenderPhaseQueueSummary {
+        self.phase_queue.summary()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct StaticMeshBatchKey {
+    model: ResourceId,
+    mesh: Option<ResourceId>,
+    material: ResourceId,
+    render_layer_mask: u32,
+}
+
+fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBatchExtract> {
+    let mut batch_indices_by_key: BTreeMap<StaticMeshBatchKey, Vec<usize>> = BTreeMap::new();
+    for (mesh_index, mesh) in meshes.iter().enumerate() {
+        if mesh.mobility != Mobility::Static {
+            continue;
+        }
+        batch_indices_by_key
+            .entry(StaticMeshBatchKey {
+                model: mesh.model.id(),
+                mesh: mesh.mesh.map(ResourceHandle::id),
+                material: mesh.material.id(),
+                render_layer_mask: mesh.render_layer_mask,
+            })
+            .or_default()
+            .push(mesh_index);
+    }
+
+    batch_indices_by_key
+        .into_values()
+        .filter(|mesh_indices| mesh_indices.len() > 1)
+        .map(|mesh_indices| {
+            let first_mesh = &meshes[mesh_indices[0]];
+            StaticMeshBatchExtract {
+                model: first_mesh.model,
+                mesh: first_mesh.mesh,
+                material: first_mesh.material,
+                render_layer_mask: first_mesh.render_layer_mask,
+                entities: mesh_indices
+                    .iter()
+                    .map(|mesh_index| meshes[*mesh_index].node_id)
+                    .collect(),
+                mesh_indices,
+            }
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -650,6 +722,14 @@ impl RenderFrameExtract {
     pub fn with_viewport_size(mut self, viewport_size: UVec2) -> Self {
         self.apply_viewport_size(viewport_size);
         self
+    }
+
+    /// Builds a diagnostics summary for the frame's mesh and sprite phase queues.
+    pub fn phase_queue_summary(&self) -> RenderFramePhaseQueueSummary {
+        RenderFramePhaseQueueSummary::new(
+            self.geometry.phase_queue_summary(),
+            self.sprites.phase_queue_summary(),
+        )
     }
 }
 

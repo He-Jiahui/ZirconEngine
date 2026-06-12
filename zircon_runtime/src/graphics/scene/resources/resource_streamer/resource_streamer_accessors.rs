@@ -1,6 +1,8 @@
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{
-    AssetManagementFamilyStatusIndex, AssetManagementFamilySummary, AssetManagementOverview,
+    AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
+    AssetManagementFamilyIssueView, AssetManagementFamilyStatus, AssetManagementFamilyStatusIndex,
+    AssetManagementFamilyStatusView, AssetManagementFamilySummary, AssetManagementOverview,
     AssetManagementRecordSets, MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
     MaterialAssetOverview, MeshAsset, MeshAssetManagementRecord, MeshAssetManagementRecordSet,
     MeshAssetOverview, MeshValidationError, ModelAssetManagementRecord,
@@ -46,8 +48,16 @@ impl ResourceStreamer {
         self.models.get(id).map(|prepared| &prepared.resource)
     }
 
+    pub(crate) fn model_revision(&self, id: &ResourceId) -> Option<u64> {
+        self.models.get(id).map(|prepared| prepared.revision)
+    }
+
     pub(crate) fn mesh(&self, id: &ResourceId) -> Option<&Arc<GpuMeshResource>> {
         self.meshes.get(id).map(|prepared| &prepared.resource)
+    }
+
+    pub(crate) fn mesh_revision(&self, id: &ResourceId) -> Option<u64> {
+        self.meshes.get(id).map(|prepared| prepared.revision)
     }
 
     pub(crate) fn mesh_asset(&self, id: &ResourceId) -> Option<&Arc<MeshAsset>> {
@@ -243,8 +253,37 @@ impl ResourceStreamer {
         self.asset_management_record_sets().family_status_index
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn asset_management_family_status_view(
+        &self,
+        status: AssetManagementFamilyStatus,
+    ) -> AssetManagementFamilyStatusView {
+        self.asset_management_record_sets()
+            .family_status_view(status)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn asset_management_family_issue_index(&self) -> AssetManagementFamilyIssueIndex {
+        self.asset_management_record_sets().family_issue_index
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn asset_management_family_issue_view(
+        &self,
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> AssetManagementFamilyIssueView {
+        self.asset_management_record_sets()
+            .family_issue_view(bucket)
+    }
+
     pub(crate) fn material(&self, id: &ResourceId) -> Option<&MaterialRuntime> {
         self.materials.get(id).map(|prepared| &prepared.runtime)
+    }
+
+    pub(crate) fn material_revision(&self, id: &ResourceId) -> Option<u64> {
+        self.materials
+            .get(id)
+            .and_then(|prepared| prepared.revision)
     }
 
     pub(crate) fn material_uniform(&self, id: &ResourceId) -> Arc<GpuMaterialUniformResource> {
@@ -252,6 +291,16 @@ impl ResourceStreamer {
             .get(id)
             .map(|prepared| prepared.uniform.clone())
             .unwrap_or_else(|| self.fallback_material_uniform.clone())
+    }
+
+    pub(crate) fn standard_material_uniform(
+        &self,
+        id: &ResourceId,
+    ) -> Arc<GpuMaterialUniformResource> {
+        self.materials
+            .get(id)
+            .map(|prepared| prepared.standard_uniform.clone())
+            .unwrap_or_else(|| self.fallback_standard_material_uniform.clone())
     }
 
     #[allow(dead_code)]
@@ -593,30 +642,42 @@ impl ResourceStreamer {
                                     descriptor.base_color_texture.as_ref(),
                                 )
                                 .id(),
+                            base_color_texture_transform: descriptor.base_color_texture_transform,
+                            base_color_texture_uv_channel: descriptor.base_color_texture_uv_channel,
                             normal_texture: self
                                 .resolve_texture_reference(
                                     "normal_texture",
                                     descriptor.normal_texture.as_ref(),
                                 )
                                 .id(),
+                            normal_texture_transform: descriptor.normal_texture_transform,
+                            normal_texture_uv_channel: descriptor.normal_texture_uv_channel,
                             metallic_roughness_texture: self
                                 .resolve_texture_reference(
                                     "metallic_roughness_texture",
                                     descriptor.metallic_roughness_texture.as_ref(),
                                 )
                                 .id(),
+                            metallic_roughness_texture_transform: descriptor
+                                .metallic_roughness_texture_transform,
+                            metallic_roughness_texture_uv_channel: descriptor
+                                .metallic_roughness_texture_uv_channel,
                             occlusion_texture: self
                                 .resolve_texture_reference(
                                     "occlusion_texture",
                                     descriptor.occlusion_texture.as_ref(),
                                 )
                                 .id(),
+                            occlusion_texture_transform: descriptor.occlusion_texture_transform,
+                            occlusion_texture_uv_channel: descriptor.occlusion_texture_uv_channel,
                             emissive_texture: self
                                 .resolve_texture_reference(
                                     "emissive_texture",
                                     descriptor.emissive_texture.as_ref(),
                                 )
                                 .id(),
+                            emissive_texture_transform: descriptor.emissive_texture_transform,
+                            emissive_texture_uv_channel: descriptor.emissive_texture_uv_channel,
                         }
                     })
             })
@@ -639,6 +700,15 @@ impl ResourceStreamer {
                 .map(|prepared| prepared.resource.clone())
         })
         .unwrap_or_else(|| self.fallback_texture.clone())
+    }
+
+    pub(crate) fn normal_texture(&self, id: Option<ResourceId>) -> Arc<GpuTextureResource> {
+        id.and_then(|texture_id| {
+            self.textures
+                .get(&texture_id)
+                .map(|prepared| prepared.resource.clone())
+        })
+        .unwrap_or_else(|| self.fallback_normal_texture.clone())
     }
 
     pub(crate) fn prepared_post_process_lut_2d_view(

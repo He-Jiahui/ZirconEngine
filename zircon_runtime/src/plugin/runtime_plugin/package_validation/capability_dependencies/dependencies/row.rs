@@ -14,6 +14,13 @@ pub(super) fn validate_runtime_plugin_package_dependency_row<'a>(
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_dependency_provider(dependency, diagnostics);
+    if dependency.capability.is_none() && dependency.interfaces.is_empty() {
+        diagnostics.push(format!(
+            "runtime plugin package manifest dependency `{}` must declare a capability or at least one interface",
+            dependency.id
+        ));
+        return;
+    }
     let Some(capability) =
         validate_runtime_plugin_package_dependency_row_capability(dependency, diagnostics)
     else {

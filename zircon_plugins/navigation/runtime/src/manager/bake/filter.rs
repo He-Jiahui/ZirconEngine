@@ -63,6 +63,7 @@ fn layer_included(world: &World, node: &SceneNode, surface: &NavMeshSurfaceDescr
 
 fn node_kind_name(kind: &NodeKind) -> &'static str {
     match kind {
+        NodeKind::Empty => "empty",
         NodeKind::Camera => "camera",
         NodeKind::Cube => "cube",
         NodeKind::Mesh => "mesh",

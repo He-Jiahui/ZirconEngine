@@ -42,6 +42,12 @@ pub(super) fn host_request_for_effect(
             kind: *kind,
             tooltip_id: tooltip_id.clone(),
         },
+        UiDispatchEffect::DismissTransientUi { target, reason } => {
+            UiDispatchHostRequestKind::DismissTransientUi {
+                target: *target,
+                reason: *reason,
+            }
+        }
         UiDispatchEffect::RequestInputMethod { request } => {
             UiDispatchHostRequestKind::InputMethod(request.clone())
         }

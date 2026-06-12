@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{UiAlignment, UiAxis, UiCanvasSlotPlacement, UiFrame, UiMargin, UiSlot},
+    layout::{UiAlignment, UiAxis, UiCanvasSlotPlacement, UiFrame, UiMargin, UiSlot, UiSlotKind},
     tree::{UiTree, UiTreeError},
 };
 
@@ -17,14 +17,17 @@ pub(crate) fn free_child_frame(
         .node(node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
 
-    if let Some(placement) = slot.and_then(|slot| slot.canvas_placement) {
-        return Ok(canvas_slot_child_frame(
-            node.constraints,
-            node.layout_cache.desired_size.width,
-            node.layout_cache.desired_size.height,
-            parent_frame,
-            placement,
-        ));
+    if let Some(slot) = slot {
+        if let Some(placement) = slot.canvas_placement {
+            return Ok(canvas_slot_child_frame(
+                node.constraints,
+                node.layout_cache.desired_size.width,
+                node.layout_cache.desired_size.height,
+                parent_frame,
+                slot.kind,
+                placement,
+            ));
+        }
     }
 
     if has_slot_frame_policy(slot) {
@@ -64,6 +67,7 @@ fn canvas_slot_child_frame(
     desired_width: f32,
     desired_height: f32,
     parent_frame: UiFrame,
+    slot_kind: UiSlotKind,
     placement: UiCanvasSlotPlacement,
 ) -> UiFrame {
     let anchor_max = placement.resolved_anchor_max();
@@ -90,8 +94,20 @@ fn canvas_slot_child_frame(
     } else {
         placement.offset.bottom
     };
-    let width = arranged_axis_extent(constraints.width, desired_width, slot_width.max(0.0));
-    let height = arranged_axis_extent(constraints.height, desired_height, slot_height.max(0.0));
+    let width = canvas_slot_axis_extent(
+        slot_kind,
+        constraints.width,
+        desired_width,
+        slot_width.max(0.0),
+        is_horizontal_stretch || (!placement.auto_size && placement.offset.right > 0.0),
+    );
+    let height = canvas_slot_axis_extent(
+        slot_kind,
+        constraints.height,
+        desired_height,
+        slot_height.max(0.0),
+        is_vertical_stretch || (!placement.auto_size && placement.offset.bottom > 0.0),
+    );
     UiFrame::new(
         parent_frame.x
             + if is_horizontal_stretch {
@@ -108,6 +124,19 @@ fn canvas_slot_child_frame(
         width,
         height,
     )
+}
+
+fn canvas_slot_axis_extent(
+    slot_kind: UiSlotKind,
+    constraint: zircon_runtime_interface::ui::layout::AxisConstraint,
+    desired: f32,
+    slot_extent: f32,
+    slot_controls_axis: bool,
+) -> f32 {
+    if slot_kind == UiSlotKind::Canvas && slot_controls_axis {
+        return slot_extent;
+    }
+    arranged_axis_extent(constraint, desired, slot_extent)
 }
 
 pub(crate) fn linear_child_frame(

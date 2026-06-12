@@ -143,7 +143,7 @@ fn dev_runtime_profile_selects_dev_plugin_group() {
     assert_eq!(report.plugin_group, "DevPlugins");
     assert!(report
         .module_keys()
-        .contains(&zircon_runtime::core::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
 }
 
 #[test]

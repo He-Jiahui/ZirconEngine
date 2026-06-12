@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "58e9f950-3477-4ae2-bf53-b4c07e5a036c"
+url = "res://models/kenney_graveyard/gravestone-cross.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/82e9aedf-84c7-86a1-e27c-882999f0a63f.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "3b12a570fb17634a"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-cross.glb#Texture0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Material0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "58e9f950-3477-4ae2-bf53-b4c07e5a036c"
+url = "res://models/kenney_graveyard/gravestone-cross.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/82e9aedf-84c7-86a1-e27c-882999f0a63f.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-cross.glb#Texture0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Material0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Scene0",
+]
+
+[[entries]]
+uuid = "6b221d81-2b1e-4263-ab9f-2065035845b8"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/e714721f-7a29-bcf5-961a-2dfea5bea132.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "c7caa319-31b3-4780-adf5-7b59abe4bb04"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/f7713a09-7170-e3c1-7050-cc6a33e226f4.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "82cb09be-908a-40c5-8fea-5c039e1f2ab1"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/ac46adca-02e1-e7ac-b673-40d061033ae0.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Texture0",
+]
+
+[[entries]]
+uuid = "823a2820-2bb9-4644-aced-edba85a49401"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/e5f085bd-cbd4-1e47-692d-84321da8875f.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Material0",
+]
+
+[[entries]]
+uuid = "e6fa5d9e-a9bf-42c3-af70-1a3b5bf9448d"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/2410a5bf-417c-bf5c-13b0-583c591c4723.zasset"
+dependencies = ["res://models/kenney_graveyard/gravestone-cross.glb#Material0"]
+
+[[entries]]
+uuid = "9bcb7d40-1aff-4346-8c14-a4d48f09b843"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/17095767-af54-5baf-caff-a5c3801f7b21.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-cross.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Material0",
+]
+
+[[entries]]
+uuid = "14935e2d-cee5-4bde-bea3-021da1c68159"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/33cf2d4a-c042-2bc9-62b2-08eafcf79853.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-cross.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-cross.glb#Material0",
+]

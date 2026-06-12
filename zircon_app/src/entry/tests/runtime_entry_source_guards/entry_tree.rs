@@ -219,8 +219,12 @@ fn entry_uses_runtime_owned_builtin_module_list_without_manual_graphics_insertio
     let builtin_modules_source = include_str!("../../builtin_modules.rs");
 
     assert!(
+        builtin_modules_source.contains("use zircon_runtime::builtin::{"),
+        "entry bootstrap should import runtime module assembly through the builtin namespace owner"
+    );
+    assert!(
         builtin_modules_source.contains("runtime_modules_for_target"),
-        "entry bootstrap should source runtime modules through target-aware runtime loader"
+        "entry bootstrap should source runtime modules through the target-aware builtin runtime loader"
     );
     for forbidden in [
         "use zircon_runtime::graphics::GraphicsModule;",

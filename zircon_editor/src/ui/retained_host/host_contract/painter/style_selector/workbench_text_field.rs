@@ -54,23 +54,28 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_tex
 
 fn text_field_surface(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
     let color = match state {
-        UiPainterResolvedState::Disabled => WORKBENCH_TEXT_FIELD_DISABLED_SURFACE,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
+            WORKBENCH_TEXT_FIELD_DISABLED_SURFACE
+        }
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open => WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE,
         UiPainterResolvedState::Hovered
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered => WORKBENCH_TEXT_FIELD_HOVER_SURFACE,
-        UiPainterResolvedState::Loading
-        | UiPainterResolvedState::Checked
+        UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Normal => WORKBENCH_TEXT_FIELD_SURFACE,
     };
-    declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
+    if is_unavailable_text_field_state(state) {
+        color
+    } else {
+        declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
+    }
 }
 
 fn text_field_border(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    let color = if state == UiPainterResolvedState::Disabled {
+    let color = if is_unavailable_text_field_state(state) {
         WORKBENCH_TEXT_FIELD_DISABLED_BORDER
     } else if matches!(node.validation_level.as_str(), "error" | "danger") {
         PALETTE.error
@@ -91,11 +96,15 @@ fn text_field_border(node: &TemplatePaneNodeData, state: UiPainterResolvedState)
             | UiPainterResolvedState::Normal => WORKBENCH_TEXT_FIELD_BORDER,
         }
     };
-    declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
+    if is_unavailable_text_field_state(state) {
+        color
+    } else {
+        declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
+    }
 }
 
 fn text_field_text(state: UiPainterResolvedState, label_is_placeholder: bool) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_text_field_state(state) {
         WORKBENCH_TEXT_FIELD_DISABLED_TEXT
     } else if label_is_placeholder {
         WORKBENCH_TEXT_FIELD_PLACEHOLDER
@@ -105,15 +114,50 @@ fn text_field_text(state: UiPainterResolvedState, label_is_placeholder: bool) ->
 }
 
 fn text_field_stepper(state: UiPainterResolvedState) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_text_field_state(state) {
         PALETTE.text_disabled
     } else {
         PALETTE.text_muted
     }
 }
 
+fn is_unavailable_text_field_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
 fn declared_style_color(
     color: Option<&zircon_runtime_interface::ui::style::UiStyleColor>,
 ) -> Option<[u8; 4]> {
     resolved_style_color(color).filter(|color| color[3] > 0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn text_field_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+        node.validation_level = "error".into();
+        node.button_style.loading = true;
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(16, 22, 26, 255)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(239, 112, 102, 255)));
+
+        let style = select_workbench_text_field_style(&node, true);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.surface, WORKBENCH_TEXT_FIELD_DISABLED_SURFACE);
+        assert_eq!(style.border, WORKBENCH_TEXT_FIELD_DISABLED_BORDER);
+        assert_eq!(style.text, WORKBENCH_TEXT_FIELD_DISABLED_TEXT);
+        assert_eq!(style.stepper, PALETTE.text_disabled);
+    }
 }

@@ -1,4 +1,4 @@
-pub(super) fn packaging_strategy_from_plugin_toml(
+pub(in super::super) fn packaging_strategy_from_plugin_toml(
     value: String,
 ) -> zircon_runtime::plugin::ExportPackagingStrategy {
     match value.as_str() {

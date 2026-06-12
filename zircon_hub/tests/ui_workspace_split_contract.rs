@@ -51,46 +51,56 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
 
 #[test]
 fn workspace_pages_share_main_sidebar_split_and_collapse_rule() {
-    for (page, split_grid) in [
+    for (page, split_grid, content_snippet) in [
         (
             "ProjectsDashboard.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
+            "HubPanel",
         ),
         (
             "ProjectBrowserPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(320px, 0.42fr)\"",
+            "HubPanel",
         ),
         (
             "ProjectDetailPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
+            "HubPanel",
         ),
         (
             "EditorPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+            "HubPanel",
         ),
         (
             "BuildsPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+            "HubPanel",
         ),
         (
             "CatalogPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+            "HubPanel",
         ),
         (
             "CloudPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+            "HubPanel",
         ),
         (
             "TeamPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.55fr)\"",
+            "HubPanel",
         ),
         (
             "SettingsPage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.42fr)\"",
+            "SettingsSection",
         ),
         (
             "WorkspacePage.tsx",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
+            "HubPanel",
         ),
     ] {
         let source = read_crate_file(&format!("web/src/pages/{page}"));
@@ -103,7 +113,7 @@ fn workspace_pages_share_main_sidebar_split_and_collapse_rule() {
                 "gap: 1.4",
                 "@media (max-width: 1180px)",
                 "gridTemplateColumns: \"1fr\"",
-                "HubPanel",
+                content_snippet,
             ],
         );
         assert_not_contains_any(
@@ -123,14 +133,18 @@ fn workspace_pages_share_main_sidebar_split_and_collapse_rule() {
 
 #[test]
 fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
-    for (page, main_panel, support_panels) in [
+    for (page, main_source_path, support_source_path, main_panel, support_panels) in [
         (
             "ProjectsDashboard.tsx",
+            "web/src/pages/ProjectsDashboard.tsx",
+            "web/src/pages/ProjectsDashboard.tsx",
             "title={text.recentProjects}",
             vec!["HubPanel title={text.quickActions}"],
         ),
         (
             "ProjectBrowserPage.tsx",
+            "web/src/pages/ProjectBrowserPage.tsx",
+            "web/src/pages/ProjectBrowserPage.tsx",
             "HubPanel title={text.allProjects}",
             vec![
                 "HubPanel title={text.quickActions}",
@@ -139,6 +153,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "ProjectDetailPage.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectDetailSidebar.tsx",
             "HubPanel title={text.projectOverview}",
             vec![
                 "HubPanel title={text.quickActions}",
@@ -148,6 +164,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "EditorPage.tsx",
+            "web/src/pages/EditorPage.tsx",
+            "web/src/pages/EditorPage.tsx",
             "HubPanel title={text.launchTarget}",
             vec![
                 "HubPanel title={common.sourceEngines}",
@@ -157,6 +175,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "BuildsPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
+            "web/src/pages/BuildsPage.tsx",
             "HubPanel title={text.buildWorkflow}",
             vec![
                 "HubPanel title={common.selectedProject}",
@@ -166,6 +186,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "CatalogPage.tsx",
+            "web/src/pages/CatalogPage.tsx",
+            "web/src/pages/CatalogPage.tsx",
             "HubPanel title={catalogPanelTitle(mode, text)}",
             vec![
                 "HubPanel title={text.selectedEntry}",
@@ -175,6 +197,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "CloudPage.tsx",
+            "web/src/pages/CloudPage.tsx",
+            "web/src/pages/CloudPage.tsx",
             "HubPanel title={text.packageOutputs}",
             vec![
                 "HubPanel title={text.packageTarget}",
@@ -184,6 +208,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "TeamPage.tsx",
+            "web/src/pages/TeamPage.tsx",
+            "web/src/pages/TeamPage.tsx",
             "HubPanel title={text.teamMembers}",
             vec![
                 "HubPanel title={text.repositoryIdentity}",
@@ -193,6 +219,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "SettingsPage.tsx",
+            "web/src/components/data/SettingsSection.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "HubPanel title={settingsText.buildDefaultsPanel}",
             vec![
                 "HubPanel title={settingsText.configurationHealthPanel}",
@@ -201,6 +229,8 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
         ),
         (
             "WorkspacePage.tsx",
+            "web/src/pages/WorkspacePage.tsx",
+            "web/src/pages/WorkspacePage.tsx",
             "HubPanel title={common.sourceEngines}",
             vec![
                 "HubPanel title={settingsText.heading}",
@@ -209,22 +239,23 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
             ],
         ),
     ] {
-        let source = read_crate_file(&format!("web/src/pages/{page}"));
-        assert_contains_all(page, &source, &[main_panel]);
+        let main_source = read_crate_file(main_source_path);
+        let support_source = read_crate_file(support_source_path);
+        assert_contains_all(page, &main_source, &[main_panel]);
         assert_contains_all(
             page,
-            &source,
+            &support_source,
             &support_panels.into_iter().collect::<Vec<_>>(),
         );
     }
 }
 
 #[test]
-fn settings_page_keeps_explicit_left_and_right_split_groups() {
-    let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+fn settings_section_keeps_explicit_left_and_right_split_groups() {
+    let settings = read_crate_file("web/src/components/data/SettingsSection.tsx");
 
     assert_contains_all(
-        "SettingsPage.tsx",
+        "SettingsSection.tsx",
         &settings,
         &[
             "<Box sx={{ minWidth: 0, display: \"grid\", gap: 1.4 }}>",
@@ -255,12 +286,14 @@ fn workspace_split_documentation_records_react_mui_contract_cutover() {
             "web/src/pages/ProjectsDashboard.tsx",
             "web/src/pages/ProjectBrowserPage.tsx",
             "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectDetailSidebar.tsx",
             "web/src/pages/EditorPage.tsx",
             "web/src/pages/BuildsPage.tsx",
             "web/src/pages/CatalogPage.tsx",
             "web/src/pages/CloudPage.tsx",
             "web/src/pages/TeamPage.tsx",
             "web/src/pages/SettingsPage.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "web/src/pages/WorkspacePage.tsx",
         ],
     );
@@ -292,12 +325,14 @@ fn workspace_split_contract_is_cut_over_to_react_sources() {
             "web/src/pages/ProjectsDashboard.tsx",
             "web/src/pages/ProjectBrowserPage.tsx",
             "web/src/pages/ProjectDetailPage.tsx",
+            "web/src/components/data/ProjectDetailSidebar.tsx",
             "web/src/pages/EditorPage.tsx",
             "web/src/pages/BuildsPage.tsx",
             "web/src/pages/CatalogPage.tsx",
             "web/src/pages/CloudPage.tsx",
             "web/src/pages/TeamPage.tsx",
             "web/src/pages/SettingsPage.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "web/src/pages/WorkspacePage.tsx",
         ],
     );

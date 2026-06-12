@@ -8,6 +8,7 @@ use crate::core::framework::render::{
 use crate::core::manager::resolve_render_framework;
 use crate::core::math::UVec2;
 use crate::core::{CoreError, CoreHandle};
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ActiveViewport {
@@ -39,11 +40,20 @@ impl RuntimeRenderBridge {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        self.submit_extract_with_ui(extract, size, None)
+    }
+
+    pub(super) fn submit_extract_with_ui(
+        &mut self,
+        mut extract: RenderFrameExtract,
+        size: UVec2,
+        ui: Option<UiRenderExtract>,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         crate::profile_scope!("runtime", "render_bridge", "submit_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         self.render_framework
-            .submit_frame_extract(viewport, extract)?;
+            .submit_frame_extract_with_ui(viewport, extract, ui)?;
         let Some(frame) = self.render_framework.capture_frame(viewport)? else {
             return Ok(None);
         };
@@ -78,11 +88,20 @@ impl RuntimeRenderBridge {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
+        self.present_extract_with_ui(extract, size, None)
+    }
+
+    pub(super) fn present_extract_with_ui(
+        &mut self,
+        mut extract: RenderFrameExtract,
+        size: UVec2,
+        ui: Option<UiRenderExtract>,
+    ) -> Result<(), RenderFrameworkError> {
         crate::profile_scope!("runtime", "render_bridge", "present_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         self.render_framework
-            .present_frame_extract(viewport, extract)
+            .present_frame_extract_with_ui(viewport, extract, ui)
     }
 
     fn ensure_viewport(

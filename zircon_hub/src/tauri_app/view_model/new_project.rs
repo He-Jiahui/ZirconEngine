@@ -110,6 +110,7 @@ mod tests {
             new_project_engine_id: Some("engine-b".to_string()),
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects: Vec::new(),
             project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),

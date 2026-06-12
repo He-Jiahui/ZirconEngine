@@ -1,6 +1,5 @@
 use crate::scene::ecs::{
-    ArchetypeId, ArchetypeSignature, EntityLocation, EntityRegistryError, InternalEntity,
-    StableEntityLocation, StorageType,
+    ArchetypeId, ArchetypeSignature, EntityLocation, InternalEntity, StableEntityLocation,
 };
 use crate::scene::EntityId;
 
@@ -23,14 +22,17 @@ impl World {
         &mut self,
         entity: EntityId,
     ) -> Result<InternalEntity, String> {
-        let row = self
-            .entities
-            .iter()
-            .position(|candidate| *candidate == entity)
-            .unwrap_or(self.entities.len());
-        self.entity_registry
+        // Callers append the entity immediately after registration, so the current list length is its row.
+        let row = self.entities.len();
+        let internal = match self
+            .entity_registry
             .spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, row))
-            .map_err(entity_registry_error_to_string)
+        {
+            Ok(internal) => internal,
+            Err(error) => return Err(error.to_string()),
+        };
+
+        Ok(internal)
     }
 
     pub(super) fn unregister_stable_entity(&mut self, entity: EntityId) {
@@ -49,16 +51,17 @@ impl World {
     }
 
     pub(super) fn refresh_entity_archetype(&mut self, entity: EntityId) {
-        let previous = self
-            .entity_registry
-            .location_for_stable(entity)
-            .map(|location| location.location.archetype_id);
+        let previous = match self.entity_registry.location_for_stable(entity) {
+            Some(location) => Some(location.location.archetype_id),
+            None => None,
+        };
         self.assign_entity_archetype(entity, previous);
     }
 
     pub(super) fn rebuild_archetype_index(&mut self) {
         self.archetype_index = Default::default();
-        for entity in self.entities.clone() {
+        for entity_index in 0..self.entities.len() {
+            let entity = self.entities[entity_index];
             self.assign_entity_archetype(entity, None);
         }
     }
@@ -91,17 +94,11 @@ impl World {
     fn archetype_signature_for_internal(&self, internal: InternalEntity) -> ArchetypeSignature {
         let mut table_components = Vec::new();
         let mut sparse_set_components = Vec::new();
-        for component_id in self.component_storage.component_ids_for_entity(internal) {
-            match self.component_storage.storage_type(component_id) {
-                Some(StorageType::Table) => table_components.push(component_id),
-                Some(StorageType::SparseSet) => sparse_set_components.push(component_id),
-                None => {}
-            }
-        }
+        self.component_storage.component_ids_for_entity_by_storage(
+            internal,
+            &mut table_components,
+            &mut sparse_set_components,
+        );
         ArchetypeSignature::new(table_components, sparse_set_components)
     }
-}
-
-fn entity_registry_error_to_string(error: EntityRegistryError) -> String {
-    error.to_string()
 }

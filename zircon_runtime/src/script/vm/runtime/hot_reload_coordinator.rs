@@ -3,6 +3,8 @@ use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
+use crate::core::framework::script::ScriptHostValue;
+
 use super::super::backend::{VmBackend, VmError};
 use super::super::handles::PluginSlotId;
 use super::super::host::VmPluginHostContext;
@@ -234,6 +236,53 @@ impl HotReloadCoordinator {
         let slots = self.slots.lock().unwrap();
         let slot_entry = slots.get(&slot).ok_or(VmError::MissingSlot(slot.get()))?;
         Ok(slot_entry.record(slot))
+    }
+
+    pub fn slot_for_package_name(&self, package_name: &str) -> Result<PluginSlotId, VmError> {
+        let slots = self.slots.lock().unwrap();
+        slots
+            .iter()
+            .filter(|(_, entry)| {
+                entry.state == VmPluginSlotState::Active
+                    && entry.package.manifest.name == package_name
+            })
+            .map(|(slot, _)| *slot)
+            .min_by_key(|slot| slot.get())
+            .ok_or_else(|| {
+                VmError::Operation(format!("vm plugin package {package_name} is not loaded"))
+            })
+    }
+
+    pub fn call_slot_export(
+        &self,
+        slot: PluginSlotId,
+        module_name: &str,
+        export_name: &str,
+        arguments: &[ScriptHostValue],
+    ) -> Result<Option<ScriptHostValue>, VmError> {
+        let mut instance = {
+            let mut slots = self.slots.lock().unwrap();
+            let slot_entry = slots
+                .get_mut(&slot)
+                .ok_or(VmError::MissingSlot(slot.get()))?;
+            if slot_entry.state != VmPluginSlotState::Active {
+                return Err(VmError::Operation(format!(
+                    "vm plugin slot {} cannot call export while {}",
+                    slot.get(),
+                    slot_entry.state.label()
+                )));
+            }
+            slot_entry.instance.take().ok_or_else(|| {
+                VmError::Operation(format!(
+                    "vm plugin slot {} cannot call export while active instance is unavailable",
+                    slot.get()
+                ))
+            })?
+        };
+
+        let result = instance.call_export(module_name, export_name, arguments);
+        self.restore_slot_instance(slot, instance, VmPluginSlotState::Active);
+        result
     }
 
     pub fn list_slots(&self) -> Vec<VmPluginSlotRecord> {

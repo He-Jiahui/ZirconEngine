@@ -4,26 +4,24 @@ use super::forward_shadow_receiver::{
     create_fallback_shadow_map_view, create_forward_shadow_compare_sampler,
     create_forward_shadow_receiver_layout, create_forward_shadow_receiver_uniform_buffer,
 };
-use super::MeshPipelineCache;
+use super::{MeshPipelineCache, MeshPipelineVariantRegistry};
 
 impl MeshPipelineCache {
     pub(crate) fn new(
         device: &wgpu::Device,
         target_format: wgpu::TextureFormat,
         scene_layout: &wgpu::BindGroupLayout,
-        model_layout: &wgpu::BindGroupLayout,
-        texture_layout: &wgpu::BindGroupLayout,
         material_layout: &wgpu::BindGroupLayout,
+        gpu_scene_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         let forward_shadow_receiver_layout = create_forward_shadow_receiver_layout(device);
         let mesh_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-mesh-layout"),
             bind_group_layouts: &[
                 Some(scene_layout),
-                Some(model_layout),
-                Some(texture_layout),
-                Some(material_layout),
                 Some(&forward_shadow_receiver_layout),
+                Some(material_layout),
+                Some(gpu_scene_layout),
             ],
             immediate_size: 0,
         });
@@ -49,6 +47,7 @@ impl MeshPipelineCache {
             shader_modules: HashMap::new(),
             mesh_pipelines: HashMap::new(),
             motion_vector_mesh_pipelines: HashMap::new(),
+            pipeline_variant_registry: MeshPipelineVariantRegistry::default(),
         }
     }
 }

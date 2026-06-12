@@ -15,10 +15,13 @@ use super::{
     MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshSkinAsset, MeshValidationError,
     MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
     MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    MESH_ATTRIBUTE_UV1,
 };
 
 const DEFAULT_NORMAL: [f32; 3] = [0.0, 0.0, 1.0];
 const DEFAULT_UV: [f32; 2] = [0.0, 0.0];
+const DEFAULT_TANGENT: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const DEFAULT_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const DEFAULT_JOINT_INDICES: [u16; 4] = [0, 0, 0, 0];
 const DEFAULT_JOINT_WEIGHTS: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
 
@@ -237,6 +240,37 @@ impl MeshAsset {
                 primitive.vertices.iter().map(|vertex| vertex.uv).collect(),
             ),
         );
+        let uv1_values = primitive
+            .vertices
+            .iter()
+            .map(|vertex| vertex.uv1)
+            .collect::<Vec<_>>();
+        if uv1_values.iter().any(|uv| *uv != DEFAULT_UV) {
+            attributes.insert(
+                MESH_ATTRIBUTE_UV1.to_string(),
+                MeshAttributeValues::Float32x2(uv1_values),
+            );
+        }
+        attributes.insert(
+            MESH_ATTRIBUTE_TANGENT.to_string(),
+            MeshAttributeValues::Float32x4(
+                primitive
+                    .vertices
+                    .iter()
+                    .map(|vertex| vertex.tangent)
+                    .collect(),
+            ),
+        );
+        attributes.insert(
+            MESH_ATTRIBUTE_COLOR.to_string(),
+            MeshAttributeValues::Float32x4(
+                primitive
+                    .vertices
+                    .iter()
+                    .map(|vertex| vertex.color)
+                    .collect(),
+            ),
+        );
         attributes.insert(
             MESH_ATTRIBUTE_JOINT_INDEX.to_string(),
             MeshAttributeValues::Uint16x4(
@@ -275,6 +309,9 @@ impl MeshAsset {
         let positions = self.positions()?;
         let normals = optional_float32x3(self, MESH_ATTRIBUTE_NORMAL)?;
         let uvs = optional_float32x2(self, MESH_ATTRIBUTE_UV0)?;
+        let uv1s = optional_float32x2(self, MESH_ATTRIBUTE_UV1)?;
+        let tangents = optional_float32x4(self, MESH_ATTRIBUTE_TANGENT)?;
+        let colors = optional_float32x4(self, MESH_ATTRIBUTE_COLOR)?;
         let joint_indices = optional_uint16x4(self, MESH_ATTRIBUTE_JOINT_INDEX)?;
         let joint_weights = optional_float32x4(self, MESH_ATTRIBUTE_JOINT_WEIGHT)?;
 
@@ -285,6 +322,9 @@ impl MeshAsset {
                 position: *position,
                 normal: normals.map_or(DEFAULT_NORMAL, |values| values[index]),
                 uv: uvs.map_or(DEFAULT_UV, |values| values[index]),
+                uv1: uv1s.map_or(DEFAULT_UV, |values| values[index]),
+                tangent: tangents.map_or(DEFAULT_TANGENT, |values| values[index]),
+                color: colors.map_or(DEFAULT_COLOR, |values| values[index]),
                 joint_indices: joint_indices.map_or(DEFAULT_JOINT_INDICES, |values| values[index]),
                 joint_weights: joint_weights.map_or(DEFAULT_JOINT_WEIGHTS, |values| values[index]),
             })
@@ -533,6 +573,7 @@ fn apply_morph_targets(
     morph_weights: &[f32],
 ) -> Result<(), MeshValidationError> {
     let mut morphed_normals = vec![false; vertices.len()];
+    let mut morphed_tangents = vec![false; vertices.len()];
 
     for (target_index, target) in morph_targets.iter().enumerate() {
         let weight = morph_weights.get(target_index).copied().unwrap_or_default();
@@ -562,6 +603,39 @@ fn apply_morph_targets(
                 morphed_normals[vertex_index] = true;
             }
         }
+
+        if let Some(tangent_deltas) =
+            morph_target_float32x3_attribute(target_index, target, MESH_ATTRIBUTE_TANGENT)?
+        {
+            for (vertex_index, (vertex, delta)) in
+                vertices.iter_mut().zip(tangent_deltas.iter()).enumerate()
+            {
+                let tangent_xyz =
+                    Vec3::new(vertex.tangent[0], vertex.tangent[1], vertex.tangent[2])
+                        + Vec3::from_array(*delta) * weight;
+                let tangent_xyz = tangent_xyz.to_array();
+                vertex.tangent = [
+                    tangent_xyz[0],
+                    tangent_xyz[1],
+                    tangent_xyz[2],
+                    vertex.tangent[3],
+                ];
+                morphed_tangents[vertex_index] = true;
+            }
+        }
+
+        if let Some(color_deltas) =
+            morph_target_float32x4_attribute(target_index, target, MESH_ATTRIBUTE_COLOR)?
+        {
+            for (vertex, delta) in vertices.iter_mut().zip(color_deltas.iter()) {
+                vertex.color = [
+                    vertex.color[0] + delta[0] * weight,
+                    vertex.color[1] + delta[1] * weight,
+                    vertex.color[2] + delta[2] * weight,
+                    vertex.color[3] + delta[3] * weight,
+                ];
+            }
+        }
     }
 
     for (vertex, morphed) in vertices.iter_mut().zip(morphed_normals.iter()) {
@@ -569,6 +643,15 @@ fn apply_morph_targets(
             vertex.normal = Vec3::from_array(vertex.normal)
                 .normalize_or_zero()
                 .to_array();
+        }
+    }
+
+    for (vertex, morphed) in vertices.iter_mut().zip(morphed_tangents.iter()) {
+        if *morphed {
+            let tangent = Vec3::new(vertex.tangent[0], vertex.tangent[1], vertex.tangent[2])
+                .normalize_or_zero()
+                .to_array();
+            vertex.tangent = [tangent[0], tangent[1], tangent[2], vertex.tangent[3]];
         }
     }
 
@@ -591,6 +674,22 @@ fn morph_target_float32x3_attribute<'a>(
     })
 }
 
+fn morph_target_float32x4_attribute<'a>(
+    target_index: usize,
+    target: &'a MeshMorphTargetAsset,
+    name: &str,
+) -> Result<Option<&'a [[f32; 4]]>, MeshValidationError> {
+    target.attributes.get(name).map_or(Ok(None), |values| {
+        values
+            .as_float32x4()
+            .map(Some)
+            .ok_or_else(|| MeshValidationError::InvalidAttributeFormat {
+                attribute: format!("morph_targets[{target_index}].{name}"),
+                expected: "float32x4",
+            })
+    })
+}
+
 fn validate_builtin_attribute_formats(
     attributes: &BTreeMap<String, MeshAttributeValues>,
 ) -> Result<(), MeshValidationError> {
@@ -603,6 +702,9 @@ fn validate_builtin_attribute_formats(
                 Some("float32x4")
             }
             MESH_ATTRIBUTE_UV0 if !matches!(values, MeshAttributeValues::Float32x2(_)) => {
+                Some("float32x2")
+            }
+            MESH_ATTRIBUTE_UV1 if !matches!(values, MeshAttributeValues::Float32x2(_)) => {
                 Some("float32x2")
             }
             MESH_ATTRIBUTE_COLOR if !matches!(values, MeshAttributeValues::Float32x4(_)) => {
@@ -635,6 +737,7 @@ fn is_builtin_attribute_name(name: &str) -> bool {
             | MESH_ATTRIBUTE_NORMAL
             | MESH_ATTRIBUTE_TANGENT
             | MESH_ATTRIBUTE_UV0
+            | MESH_ATTRIBUTE_UV1
             | MESH_ATTRIBUTE_COLOR
             | MESH_ATTRIBUTE_JOINT_INDEX
             | MESH_ATTRIBUTE_JOINT_WEIGHT

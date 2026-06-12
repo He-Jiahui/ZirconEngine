@@ -109,7 +109,6 @@ fn workspace_pages_share_responsive_mui_page_shells() {
                 "Typography variant=\"body1\" color=\"text.secondary\"",
                 "HubStatusBanner task={state.taskSummary}",
                 "HubTabs",
-                "HubPanel",
                 "MetricCard",
                 metric_grid,
                 main_grid,
@@ -117,7 +116,13 @@ fn workspace_pages_share_responsive_mui_page_shells() {
                 "@media (max-width: 1180px)",
             ],
         );
-        let panel_count = source.matches("<HubPanel").count();
+        let panel_source = if page == "SettingsPage.tsx" {
+            read_crate_file("web/src/components/data/SettingsSection.tsx")
+        } else {
+            source.clone()
+        };
+        assert_contains_all(page, &panel_source, &["HubPanel"]);
+        let panel_count = panel_source.matches("<HubPanel").count();
         assert!(
             panel_count >= minimum_panel_count,
             "{page} should keep workspace panels on shared HubPanel; expected at least {minimum_panel_count}, found {panel_count}"
@@ -130,6 +135,7 @@ fn editor_builds_and_settings_pages_preserve_workspace_specific_state_projection
     let editor = read_crate_file("web/src/pages/EditorPage.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
 
     assert_contains_all(
         "EditorPage.tsx",
@@ -187,6 +193,14 @@ fn editor_builds_and_settings_pages_preserve_workspace_specific_state_projection
             "const healthRows = useMemo",
             "const pathTree = useMemo",
             "HubStatusBanner",
+            "SettingsSection",
+            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "HubComboBox",
             "HubTextField",
             "HubSwitch",
@@ -200,7 +214,6 @@ fn editor_builds_and_settings_pages_preserve_workspace_specific_state_projection
             "HubPanel title={settingsText.advancedConfigurationPanel}",
             "HubPanel title={settingsText.configurationHealthPanel}",
             "HubPanel title={settingsText.activeSourceEnginePanel}",
-            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
         ],
     );
 }
@@ -367,6 +380,7 @@ fn workspace_layout_documentation_records_react_mui_contract_cutover() {
             "web/src/pages/CloudPage.tsx",
             "web/src/pages/TeamPage.tsx",
             "web/src/pages/SettingsPage.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "web/src/pages/WorkspacePage.tsx",
         ],
     );
@@ -402,6 +416,7 @@ fn workspace_layout_contract_is_cut_over_to_react_sources() {
             "web/src/pages/CloudPage.tsx",
             "web/src/pages/TeamPage.tsx",
             "web/src/pages/SettingsPage.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "web/src/pages/WorkspacePage.tsx",
         ],
     );

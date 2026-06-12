@@ -6,7 +6,7 @@ use super::library_path::{
 };
 use super::loaded_runtime::{
     runtime_api_field_available, runtime_api_required_prefix_available,
-    runtime_api_supports_viewport_surface_present,
+    runtime_api_supports_viewport_surface_present, validate_runtime_api_pointer, LoadedRuntime,
 };
 use zircon_runtime_interface::runtime_api::{
     ZrRuntimeCaptureFrameFnV1, ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeProfileControlFnV1,
@@ -14,7 +14,8 @@ use zircon_runtime_interface::runtime_api::{
 };
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeBindViewportSurfaceRequestV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeSessionConfigV1,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
 };
 
 #[test]
@@ -90,6 +91,76 @@ fn runtime_api_required_prefix_must_cover_required_capture_field() {
 
     assert!(runtime_api_required_prefix_available(required_size));
     assert!(!runtime_api_required_prefix_available(required_size - 1));
+}
+
+#[test]
+fn runtime_api_pointer_rejects_null_from_entry_symbol() {
+    let error = validate_runtime_api_pointer(core::ptr::null())
+        .expect_err("null runtime API pointer should be rejected");
+
+    assert_eq!(
+        error.to_string(),
+        "runtime library rejected host ABI version"
+    );
+}
+
+#[test]
+fn runtime_api_pointer_rejects_version_mismatch_before_session_creation() {
+    let api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1 + 1);
+
+    let error = validate_runtime_api_pointer(&api)
+        .expect_err("unsupported runtime ABI version should be rejected");
+
+    assert_eq!(error.to_string(), "unsupported runtime ABI version 2");
+}
+
+#[test]
+fn runtime_api_pointer_rejects_missing_required_functions_before_session_creation() {
+    let mut api = valid_runtime_api_table(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1);
+    api.create_session = None;
+
+    let error = validate_runtime_api_pointer(&api)
+        .expect_err("missing required runtime API functions should be rejected");
+
+    assert_eq!(
+        error.to_string(),
+        "runtime API table is missing required functions"
+    );
+}
+
+#[test]
+fn runtime_library_loader_reports_missing_entry_symbol_source_path() {
+    let source = include_str!("loaded_runtime.rs");
+
+    assert!(source.contains(".get::<ZrRuntimeGetApiFnV1>(ZR_RUNTIME_GET_API_SYMBOL_V1)"));
+    assert!(source.contains("failed to resolve zircon runtime API symbol"));
+}
+
+#[test]
+fn runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library() {
+    let result = LoadedRuntime::load(missing_entry_symbol_fixture_library());
+    let error = match result {
+        Ok(_) => panic!("system library should not export the zircon runtime API symbol"),
+        Err(error) => error,
+    };
+    let message = error.to_string();
+
+    assert!(
+        message.contains("failed to resolve zircon runtime API symbol"),
+        "{message}"
+    );
+}
+
+#[test]
+fn runtime_session_create_reports_first_call_failure_context() {
+    let source = include_str!("runtime_session.rs");
+    let create_start = source
+        .find("pub(crate) fn create_with_profile_and_project")
+        .expect("runtime session create path");
+    let create_body = &source[create_start..];
+
+    assert!(create_body.contains("create_session("));
+    assert!(create_body.contains("ensure_status(status, \"create runtime session\")?;"));
 }
 
 #[test]
@@ -201,6 +272,40 @@ fn runtime_api_drain_host_requests_is_optional_after_tick_frame() {
     ));
 }
 
+#[test]
+fn runtime_library_project_capture_frame_draws_vampire_hud() {
+    let runtime = LoadedRuntime::load_default().unwrap();
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .to_path_buf();
+    let project_root = workspace_root.join("examples").join("vampire");
+    let session = super::runtime_session::RuntimeSession::create_with_profile_and_project(
+        runtime,
+        b"runtime",
+        Some(project_root.as_path()),
+    )
+    .unwrap();
+
+    for _ in 0..3 {
+        session.tick_frame().unwrap();
+    }
+
+    let frame = session
+        .capture_frame(
+            ZrRuntimeViewportHandle::new(1),
+            ZrRuntimeViewportSizeV1::new(640, 360),
+        )
+        .unwrap();
+    let hud_panel_pixels =
+        count_vampire_hud_panel_pixels(frame.rgba(), frame.width(), frame.height());
+
+    assert!(
+        hud_panel_pixels > 48,
+        "runtime library capture should include the vampire HUD panel, found {hud_panel_pixels}"
+    );
+}
+
 fn runtime_library_temp_dir(case_name: &str) -> PathBuf {
     let temp = std::env::temp_dir().join(format!(
         "zircon-runtime-library-path-{}-{case_name}",
@@ -210,10 +315,83 @@ fn runtime_library_temp_dir(case_name: &str) -> PathBuf {
     temp
 }
 
+fn count_vampire_hud_panel_pixels(rgba: &[u8], width: u32, height: u32) -> usize {
+    let width = width as usize;
+    let height = height as usize;
+    let y_start = 16usize.min(height);
+    let y_end = 80usize.min(height);
+    let x_start = 16usize.min(width);
+    let x_end = 260usize.min(width);
+    let mut count = 0;
+    for y in y_start..y_end {
+        for x in x_start..x_end {
+            let index = (y * width + x) * 4;
+            let Some(pixel) = rgba.get(index..index + 4) else {
+                continue;
+            };
+            if pixel[0] <= 48 && pixel[1] <= 58 && pixel[2] <= 76 && pixel[3] >= 180 {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
 fn remove_runtime_library_temp_dir(path: &std::path::Path) {
     if path.exists() {
         std::fs::remove_dir_all(path).unwrap();
     }
+}
+
+fn missing_entry_symbol_fixture_library() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "kernel32.dll"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "/usr/lib/libSystem.B.dylib"
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        "libc.so.6"
+    }
+}
+
+fn valid_runtime_api_table(abi_version: u32) -> ZrRuntimeApiV1 {
+    let mut api = ZrRuntimeApiV1::empty(abi_version);
+    api.size_bytes = core::mem::size_of::<ZrRuntimeApiV1>();
+    api.create_session = Some(fake_create_session);
+    api.destroy_session = Some(fake_destroy_session);
+    api.handle_event = Some(fake_handle_event);
+    api.capture_frame = Some(fake_capture_frame);
+    api
+}
+
+unsafe extern "C" fn fake_create_session(
+    _config: ZrRuntimeSessionConfigV1,
+    _out_session: *mut ZrRuntimeSessionHandle,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_destroy_session(_session: ZrRuntimeSessionHandle) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_handle_event(
+    _session: ZrRuntimeSessionHandle,
+    _event: ZrRuntimeEventV1,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_capture_frame(
+    _session: ZrRuntimeSessionHandle,
+    _request: ZrRuntimeFrameRequestV1,
+    _out_frame: *mut ZrRuntimeFrameV1,
+) -> ZrStatus {
+    ZrStatus::ok()
 }
 
 unsafe extern "C" fn fake_bind_viewport_surface(

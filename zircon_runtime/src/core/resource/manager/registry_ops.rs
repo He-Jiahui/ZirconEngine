@@ -1,6 +1,6 @@
 use crate::core::resource::{
     ResourceDiagnostic, ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator,
-    ResourceRecord, RuntimeResourceState, UntypedResourceHandle,
+    ResourceRecord, ResourceState, RuntimeResourceState, UntypedResourceHandle,
 };
 
 use super::resource_manager::ResourceManager;
@@ -42,6 +42,12 @@ impl ResourceManager {
                 .write()
                 .expect("resource registry lock poisoned");
             let mut record = registry.get(id).cloned()?;
+            if !matches!(
+                record.state,
+                ResourceState::Ready | ResourceState::Reloading | ResourceState::Error
+            ) {
+                return None;
+            }
             record.state = crate::core::resource::ResourceState::Reloading;
             record.diagnostics = diagnostics;
             registry.upsert(record.clone());
@@ -72,6 +78,12 @@ impl ResourceManager {
                 .write()
                 .expect("resource registry lock poisoned");
             let mut record = registry.get(id).cloned()?;
+            if !matches!(
+                record.state,
+                ResourceState::Pending | ResourceState::Reloading | ResourceState::Error
+            ) {
+                return None;
+            }
             record.state = crate::core::resource::ResourceState::Error;
             record.diagnostics = diagnostics;
             registry.upsert(record.clone());

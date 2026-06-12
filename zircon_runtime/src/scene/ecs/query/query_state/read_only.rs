@@ -103,11 +103,11 @@ where
     }
 
     pub fn is_empty(&self, world: &World) -> bool {
-        self.iter(world).next().is_none()
+        self.is_empty_with_ticks(world, ChangeTickWindow::all(world.read_change_tick()))
     }
 
     pub fn count(&self, world: &World) -> usize {
-        self.iter(world).count()
+        self.count_with_ticks(world, ChangeTickWindow::all(world.read_change_tick()))
     }
 
     pub fn contains(&self, world: &World, entity: EntityId) -> bool {
@@ -129,6 +129,31 @@ where
             && F::matches(world, entity, ticks)
     }
 
+    pub(crate) fn is_empty_with_ticks(&self, world: &World, ticks: ChangeTickWindow) -> bool {
+        for entity in world.entity_ids_for_query().iter().copied() {
+            if !F::matches(world, entity, ticks) || !D::matches_data(world, entity) {
+                continue;
+            }
+            if D::fetch_with_ticks(world, entity, ticks).is_some() {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub(crate) fn count_with_ticks(&self, world: &World, ticks: ChangeTickWindow) -> usize {
+        let mut count = 0_usize;
+        for entity in world.entity_ids_for_query().iter().copied() {
+            if !F::matches(world, entity, ticks) || !D::matches_data(world, entity) {
+                continue;
+            }
+            if D::fetch_with_ticks(world, entity, ticks).is_some() {
+                count += 1;
+            }
+        }
+        count
+    }
+
     pub(crate) fn get_with_ticks<'world>(
         &self,
         world: &'world World,
@@ -141,7 +166,10 @@ where
         if !D::matches_data(world, entity) || !F::matches(world, entity, ticks) {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
-        D::fetch_with_ticks(world, entity, ticks).ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+        let Some(item) = D::fetch_with_ticks(world, entity, ticks) else {
+            return Err(QueryEntityError::QueryDoesNotMatch(entity));
+        };
+        Ok(item)
     }
 
     pub(crate) fn get_many_with_ticks<'world, const N: usize>(
@@ -189,6 +217,6 @@ where
         world: &'world World,
         ticks: ChangeTickWindow,
     ) -> QueryCombinationIter<'world, 'state, D, F, K> {
-        QueryCombinationIter::new(world, world.entity_ids_for_query().iter().copied(), ticks)
+        QueryCombinationIter::new(world, world.entity_ids_for_query(), ticks)
     }
 }

@@ -18,9 +18,20 @@ pub(in crate::dynamic_api::session) fn not_found(message: &'static [u8]) -> ZrSt
     ZrStatus::new(ZrStatusCode::NotFound, ZrByteSlice::from_static(message))
 }
 
-pub(in crate::dynamic_api::session) fn error_status(_message: impl Into<String>) -> ZrStatus {
+pub(in crate::dynamic_api::session) fn error_status(message: impl Into<String>) -> ZrStatus {
+    let message = message.into();
+    if message.is_empty() {
+        return ZrStatus::new(
+            ZrStatusCode::Error,
+            ZrByteSlice::from_static(b"runtime dynamic API error"),
+        );
+    }
+    let bytes: &'static [u8] = Box::leak(message.into_bytes().into_boxed_slice());
     ZrStatus::new(
         ZrStatusCode::Error,
-        ZrByteSlice::from_static(b"runtime dynamic API error"),
+        ZrByteSlice {
+            data: bytes.as_ptr(),
+            len: bytes.len(),
+        },
     )
 }

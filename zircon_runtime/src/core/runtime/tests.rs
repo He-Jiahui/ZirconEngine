@@ -6,3 +6,4 @@ mod plugin;
 mod registration;
 mod registry_name;
 mod resolution;
+mod weak;

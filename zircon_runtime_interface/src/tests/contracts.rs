@@ -94,10 +94,10 @@ use crate::{
     ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
     ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
     ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
-    ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1,
-    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
+    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
@@ -188,6 +188,7 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
     };
     let frame = UiSurfaceFrame {
         tree_id: UiTreeId::new("ui.surface"),
+        window_state: Default::default(),
         arranged_tree,
         render_extract: UiRenderExtract {
             tree_id: UiTreeId::new("ui.surface"),
@@ -835,6 +836,15 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
         2.0,
         -3.0,
     );
+    let mouse_wheel_delta_at = ZrRuntimeEventV1::mouse_wheel_delta_at(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+        24.0,
+        36.0,
+        2.0,
+        -3.0,
+    );
     let ime_enabled = ZrRuntimeEventV1::ime_enabled(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         ZrRuntimeViewportHandle::new(2),
@@ -1022,6 +1032,23 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
     assert_eq!(mouse_wheel_delta.x, 2.0);
     assert_eq!(mouse_wheel_delta.y, -3.0);
     assert_eq!(mouse_wheel_delta.delta, -3.0);
+    assert_eq!(
+        mouse_wheel_delta_at.kind,
+        ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1
+    );
+    assert_eq!(
+        mouse_wheel_delta_at.state,
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1
+    );
+    assert_eq!(mouse_wheel_delta_at.x, 24.0);
+    assert_eq!(mouse_wheel_delta_at.y, 36.0);
+    assert_eq!(mouse_wheel_delta_at.delta, -3.0);
+    assert_eq!(
+        mouse_wheel_delta_at.button,
+        ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1
+    );
+    assert_eq!(f32::from_bits(mouse_wheel_delta_at.key_code), 2.0);
+    assert_eq!(f32::from_bits(mouse_wheel_delta_at.scan_code), -3.0);
     assert_eq!(ime_enabled.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
     assert_eq!(ime_enabled.state, ZR_RUNTIME_IME_STATE_ENABLED_V1);
     assert_eq!(ime_preedit.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);

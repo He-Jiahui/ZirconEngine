@@ -33,6 +33,7 @@ pub(super) fn build_runtime_frame(
     ViewportRenderFrame::from_extract(extract, context.size())
         .with_output_target(context.output_target())
         .with_ui(ui)
+        .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
         .with_previous_motion_vector_object_history(
             context.previous_motion_vector_object_history().cloned(),
@@ -362,12 +363,11 @@ mod tests {
             "tests/runtime-frame/output-target",
         ));
         let previous_object_transform = Transform::from_translation(Vec3::new(4.0, 5.0, 6.0));
-        let previous_object_history =
-            ViewportMotionVectorObjectHistory::from_meshes(&[test_mesh(
-                42,
-                Mobility::Dynamic,
-                previous_object_transform,
-            )]);
+        let previous_object_history = ViewportMotionVectorObjectHistory::from_meshes(&[test_mesh(
+            42,
+            Mobility::Dynamic,
+            previous_object_transform,
+        )]);
         let context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
             UVec2::new(640, 480),
@@ -375,6 +375,7 @@ mod tests {
             0,
             None,
             empty_pipeline(),
+            RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             Some(previous_camera.clone()),
             Some(previous_object_history.clone()),
@@ -530,20 +531,20 @@ mod tests {
         }
     }
 
-    fn test_mesh(
-        node_id: u64,
-        mobility: Mobility,
-        transform: Transform,
-    ) -> RenderMeshSnapshot {
+    fn test_mesh(node_id: u64, mobility: Mobility, transform: Transform) -> RenderMeshSnapshot {
         RenderMeshSnapshot {
             node_id,
+            stable_instance_key: node_id << 16,
+            transform_revision: 0,
             transform,
             model: ResourceHandle::new(ResourceId::from_stable_label("tests/model")),
             mesh: None,
             material: ResourceHandle::new(ResourceId::from_stable_label("tests/material")),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility,
+            static_state: Default::default(),
             render_layer_mask: 1,
         }
     }

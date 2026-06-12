@@ -28,6 +28,9 @@ use crate::{runtime::WgpuRenderFramework, SceneRenderer};
 
 use super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 
+const GPU_SCENE_TEST_WGSL: &str =
+    include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     let root = unique_temp_project_root("graphics_project");
@@ -80,6 +83,87 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
         .any(|pixel| { pixel[3] == 255 && (pixel[0] > 200 || pixel[1] > 200 || pixel[2] > 200) }));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn example_vampire_scene_renders_visible_mesh_pixels() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .join("examples")
+        .join("vampire");
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let mut snapshot = world.to_render_snapshot();
+    snapshot.preview.skybox_enabled = false;
+    snapshot.preview.fallback_skybox = FallbackSkyboxKind::None;
+    snapshot.overlays = RenderOverlayExtract {
+        display_mode: DisplayMode::Shaded,
+        ..RenderOverlayExtract::default()
+    };
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
+    let background: [u8; 4] = frame.rgba[..4].try_into().unwrap();
+    let visible_pixels = frame
+        .rgba
+        .chunks_exact(4)
+        .filter(|pixel| **pixel != background)
+        .count();
+
+    assert!(
+        visible_pixels > 256,
+        "expected vampire example meshes to draw visible pixels, found {visible_pixels}"
+    );
+}
+
+#[test]
+#[ignore = "manual screenshot export for the vampire example"]
+fn export_example_vampire_scene_png() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .join("examples")
+        .join("vampire");
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+        settings: ViewportRenderSettings::default(),
+        active_camera_override: None,
+        camera: None,
+        viewport_size: Some(UVec2::new(1280, 720)),
+        virtual_geometry_debug: None,
+    });
+    snapshot.preview.skybox_enabled = false;
+    snapshot.preview.fallback_skybox = FallbackSkyboxKind::None;
+    snapshot.overlays = RenderOverlayExtract {
+        display_mode: DisplayMode::Shaded,
+        ..RenderOverlayExtract::default()
+    };
+
+    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let frame = renderer.render(snapshot, UVec2::new(1280, 720)).unwrap();
+    let output_dir = root.join("screenshots");
+    fs::create_dir_all(&output_dir).unwrap();
+    let output = output_dir.join("vampire-runtime-offscreen.png");
+    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba)
+        .expect("rendered frame should match output image dimensions")
+        .save_with_format(&output, ImageFormat::Png)
+        .expect("write vampire screenshot");
 }
 
 #[test]
@@ -287,13 +371,17 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
         build_snapshot(
             vec![RenderMeshSnapshot {
                 node_id: 1,
+                stable_instance_key: 1 << 16,
+                transform_revision: 0,
                 transform: fullscreen_quad_transform(),
                 model,
                 mesh: None,
                 material: green_material,
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
+                static_state: Default::default(),
                 render_layer_mask: default_render_layer_mask(),
             }],
             Vec::new(),
@@ -308,13 +396,17 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
         build_snapshot(
             vec![RenderMeshSnapshot {
                 node_id: 1,
+                stable_instance_key: 1 << 16,
+                transform_revision: 0,
                 transform: fullscreen_quad_transform(),
                 model,
                 mesh: None,
                 material: black_material,
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
+                static_state: Default::default(),
                 render_layer_mask: default_render_layer_mask(),
             }],
             Vec::new(),
@@ -341,13 +433,17 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
         build_snapshot(
             vec![RenderMeshSnapshot {
                 node_id: 1,
+                stable_instance_key: 1 << 16,
+                transform_revision: 0,
                 transform: fullscreen_quad_transform(),
                 model,
                 mesh: None,
                 material: black_material,
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
+                static_state: Default::default(),
                 render_layer_mask: default_render_layer_mask(),
             }],
             Vec::new(),
@@ -408,24 +504,32 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         vec![
             RenderMeshSnapshot {
                 node_id: 1,
+                stable_instance_key: 1 << 16,
+                transform_revision: 0,
                 transform: fullscreen_quad_transform(),
                 model,
                 mesh: None,
                 material,
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
+                static_state: Default::default(),
                 render_layer_mask: default_render_layer_mask(),
             },
             RenderMeshSnapshot {
                 node_id: 2,
+                stable_instance_key: 2 << 16,
+                transform_revision: 0,
                 transform: offset_quad_transform(),
                 model,
                 mesh: None,
                 material,
+                mesh_lod: None,
                 morph_weights: Vec::new(),
                 tint: Vec4::ONE,
                 mobility: Mobility::Dynamic,
+                static_state: Default::default(),
                 render_layer_mask: default_render_layer_mask(),
             },
         ],
@@ -524,13 +628,17 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     let snapshot = build_snapshot(
         vec![RenderMeshSnapshot {
             node_id: 1,
+            stable_instance_key: 1 << 16,
+            transform_revision: 0,
             transform: fullscreen_quad_transform(),
             model,
             mesh: None,
             material,
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         }],
         lights,
@@ -655,13 +763,17 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
     let snapshot = build_snapshot(
         vec![RenderMeshSnapshot {
             node_id: 1,
+            stable_instance_key: 1 << 16,
+            transform_revision: 0,
             transform: fullscreen_quad_transform(),
             model,
             mesh: None,
             material,
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: default_render_layer_mask(),
         }],
         Vec::new(),
@@ -783,23 +895,28 @@ fn write_flat_green_wgsl(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
-    fs::write(
-        path,
-        r#"
+    let shader_body = r#"
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     light_dir: vec4<f32>,
     light_color: vec4<f32>,
 };
-struct ModelUniform {
-    model: mat4x4<f32>,
-    tint: vec4<f32>,
-    shadow_params: vec4<f32>,
+
+struct MaterialPropertyUniform {
+    data0: vec4<f32>,
+    data1: vec4<f32>,
+    data2: vec4<f32>,
+    data3: vec4<f32>,
+    data4: vec4<f32>,
+    data5: vec4<f32>,
+    data6: vec4<f32>,
+    data7: vec4<f32>,
 };
+
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(1) @binding(0) var<uniform> model_data: ModelUniform;
 @group(2) @binding(0) var albedo_tex: texture_2d<f32>;
 @group(2) @binding(1) var albedo_sampler: sampler;
+@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -810,25 +927,26 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
+    @location(1) tint: vec4<f32>,
 };
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
+fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {
     var output: VertexOutput;
-    let world = model_data.model * vec4<f32>(input.position, 1.0);
+    let world = zr_world_from_local(instance_index) * vec4<f32>(input.position, 1.0);
     output.clip_position = scene.view_proj * world;
     output.uv = input.uv;
+    output.tint = zr_gpu_scene_tint(instance_index);
     return output;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let alpha = textureSample(albedo_tex, albedo_sampler, input.uv).a;
-    return vec4<f32>(0.05, 0.9, 0.2, alpha);
+    return vec4<f32>(0.05, 0.9, 0.2, alpha) * input.tint;
 }
-"#,
-    )
-    .unwrap();
+"#;
+    fs::write(path, format!("{GPU_SCENE_TEST_WGSL}\n{shader_body}")).unwrap();
 }
 
 fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
@@ -838,22 +956,31 @@ fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
     fs::write(
         path,
         format!(
-            r#"
+            "{GPU_SCENE_TEST_WGSL}\n{}",
+            format!(
+                r#"
 struct SceneUniform {{
     view_proj: mat4x4<f32>,
     light_dir: vec4<f32>,
     light_color: vec4<f32>,
     ambient_color: vec4<f32>,
 }};
-struct ModelUniform {{
-    model: mat4x4<f32>,
-    tint: vec4<f32>,
-    shadow_params: vec4<f32>,
+
+struct MaterialPropertyUniform {{
+    data0: vec4<f32>,
+    data1: vec4<f32>,
+    data2: vec4<f32>,
+    data3: vec4<f32>,
+    data4: vec4<f32>,
+    data5: vec4<f32>,
+    data6: vec4<f32>,
+    data7: vec4<f32>,
 }};
+
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(1) @binding(0) var<uniform> model_data: ModelUniform;
 @group(2) @binding(0) var albedo_tex: texture_2d<f32>;
 @group(2) @binding(1) var albedo_sampler: sampler;
+@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
 
 struct VertexInput {{
     @location(0) position: vec3<f32>,
@@ -864,24 +991,27 @@ struct VertexInput {{
 struct VertexOutput {{
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
+    @location(1) tint: vec4<f32>,
 }};
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {{
+fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {{
     var output: VertexOutput;
-    let world = model_data.model * vec4<f32>(input.position, 1.0);
+    let world = zr_world_from_local(instance_index) * vec4<f32>(input.position, 1.0);
     output.clip_position = scene.view_proj * world;
     output.uv = input.uv;
+    output.tint = zr_gpu_scene_tint(instance_index);
     return output;
 }}
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
     let alpha = textureSample(albedo_tex, albedo_sampler, input.uv).a;
-    return vec4<f32>({:.6}, {:.6}, {:.6}, alpha) * model_data.tint;
+    return vec4<f32>({:.6}, {:.6}, {:.6}, alpha) * input.tint;
 }}
 "#,
-            color[0], color[1], color[2]
+                color[0], color[1], color[2]
+            )
         ),
     )
     .unwrap();
@@ -1015,6 +1145,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    post_process_settings: None,
                     ..SceneCameraAsset::default()
                 }),
                 mesh: None,
@@ -1023,6 +1154,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -1034,6 +1166,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
             SceneEntityAsset {
                 entity: 2,
@@ -1052,14 +1185,20 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                     model: asset_reference("res://models/triangle.obj"),
                     mesh: None,
                     material: asset_reference(material_uri),
+                    render_queue: 0,
+                    material_queue: 0,
+                    order_in_layer: 0,
+                    depth_bias: 0.0,
                     morph_weights: Vec::new(),
                     primitives: Vec::new(),
+                    lods: Vec::new(),
                 }),
                 ambient_light: None,
                 directional_light: None,
                 point_light: None,
                 rect_light: None,
                 spot_light: None,
+                post_process_volume: None,
                 rigid_body: None,
                 collider: None,
                 joint: None,
@@ -1071,6 +1210,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 terrain: None,
                 tilemap: None,
                 prefab_instance: None,
+                script_bindings: Vec::new(),
             },
         ],
     };

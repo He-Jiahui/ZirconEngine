@@ -22,8 +22,9 @@ pub use editor_recent_sync::{
     EditorRecentProjectSession,
 };
 pub use metadata::{
-    metadata_for_path, metadata_for_path_mut, project_filesystem_path_key, project_metadata_key,
-    project_paths_match, prune_empty_metadata, ProjectMetadata, ProjectMetadataMap,
+    metadata_for_path, metadata_for_path_mut, normalize_project_root, project_filesystem_path_key,
+    project_metadata_key, project_paths_match, prune_empty_metadata, ProjectMetadata,
+    ProjectMetadataMap,
 };
 pub use package::{package_project, ProjectPackageReport, ProjectPackageRequest};
 pub use recent_project::{now_unix_ms, RecentProject, RECENT_PROJECT_LIMIT};

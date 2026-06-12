@@ -59,18 +59,17 @@ impl RemovedComponentEvents {
     where
         T: 'static,
     {
-        self.events
-            .get(&TypeId::of::<T>())
-            .map(Vec::as_slice)
-            .unwrap_or(&[])
+        let Some(events) = self.events.get(&TypeId::of::<T>()) else {
+            return &[];
+        };
+        events.as_slice()
     }
 
     pub fn registered_type_names(&self) -> Vec<&str> {
-        let mut names = self
-            .type_names
-            .values()
-            .map(String::as_str)
-            .collect::<Vec<_>>();
+        let mut names = Vec::with_capacity(self.type_names.len());
+        for name in self.type_names.values() {
+            names.push(name.as_str());
+        }
         names.sort_unstable();
         names
     }
@@ -99,7 +98,12 @@ impl<T> RemovedComponentReader<T> {
         let all = events.events::<T>();
         let start = self.cursor.min(all.len());
         self.cursor = all.len();
-        all[start..].iter().map(|event| event.entity()).collect()
+        let unread = &all[start..];
+        let mut entities = Vec::with_capacity(unread.len());
+        for event in unread {
+            entities.push(event.entity());
+        }
+        entities
     }
 
     pub fn len(&self, events: &RemovedComponentEvents) -> usize

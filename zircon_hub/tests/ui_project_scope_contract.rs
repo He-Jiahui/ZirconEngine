@@ -162,10 +162,10 @@ fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
             "text.pair(\"Available\", \"可用\")",
             "text.pair(\"Missing\", \"缺失\")",
             "fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction>",
-            "\"build-project\"",
-            "\"install-device\"",
-            "\"package-project\"",
-            "\"open-editor\"",
+            "HubActionId::BuildProject.as_str()",
+            "HubActionId::InstallDevice.as_str()",
+            "HubActionId::PackageProject.as_str()",
+            "HubActionId::OpenEditor.as_str()",
             "use display::{",
             "relative_time_uses_compact_labels",
         ],
@@ -182,8 +182,8 @@ fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
             "coverId: string;",
             "export interface HubProjectDetail",
             "pinned: boolean;",
-            "engineId?: string | null;",
-            "templateId?: string | null;",
+            "engineId: string | null;",
+            "templateId: string | null;",
             "templateLabel: string;",
             "exists: boolean;",
             "status: string;",
@@ -200,6 +200,7 @@ fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
     let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
 
     assert_contains_all(
         "ProjectCard.tsx",
@@ -253,10 +254,25 @@ fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
             "title: text.template, detail: project.templateLabel",
             "meta: project.pinned ? text.pinned : undefined",
             "title: text.platform, detail: project.platform",
-            "detail={project.exists ? text.ready : text.pathUnavailable}",
-            "MetricCard label={text.status} value={project.status}",
+            "<ProjectMetricsGrid project={project} boundEngine={boundEngine} text={text} />",
             "HubList items={detailRows}",
             "HubTreeView nodes={projectTree}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
+        &[
+            "import type { HubProjectsText, HubProjectDetail, HubSourceEngineSummary } from \"../../types/hub\";",
+            "project: HubProjectDetail;",
+            "boundEngine?: HubSourceEngineSummary;",
+            "text: HubProjectsText;",
+            "MetricCard label={text.status} value={project.status}",
+            "detail={project.exists ? text.ready : text.pathUnavailable}",
+            "value={project.engineVersion}",
+            "detail={boundEngine?.status ?? text.projectBinding}",
+            "value={project.pinned ? text.pinned : text.unpinned}",
+            "detail={project.templateLabel}",
         ],
     );
     assert_not_contains_any(
@@ -274,6 +290,7 @@ fn project_cards_and_detail_pages_render_project_scope_dtos_passively() {
 fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
     let quick_actions = read_crate_file("web/src/components/data/QuickActions.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
     let editor = read_crate_file("web/src/pages/EditorPage.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
@@ -312,6 +329,18 @@ fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
             "const quickActionProjectTarget = quickActionProjectTargetPayload(project);",
             "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
             "onClick={() => void onAction(HUB_ACTION.openEditor, undefined, projectTarget)}",
+            "<ProjectDetailSidebar",
+            "projectTarget={projectTarget}",
+            "quickActionProjectTarget={quickActionProjectTarget}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &detail_sidebar,
+        &[
+            "projectTarget?: ProjectTargetPayload;",
+            "quickActionProjectTarget?: ProjectTargetPayload;",
+            "QuickActions actions={quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
             "onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}",
             "onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}",
             "onClick={() => void onAction(project.pinned ? HUB_ACTION.unpinProject : HUB_ACTION.pinProject, undefined, projectTarget)}",
@@ -369,16 +398,16 @@ fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
         &[
             "HubAction::BuildProject { target_id, payload } =>",
             "payload.as_ref(),",
-            "\"build-project\",",
+            "HubActionId::BuildProject,",
             "self.build_selected_project_engine()?",
             "HubAction::PackageProject { target_id, payload } =>",
-            "\"package-project\",",
+            "HubActionId::PackageProject,",
             "self.package_recent_project()?",
             "HubAction::InstallDevice { target_id, payload } =>",
-            "\"install-device\",",
+            "HubActionId::InstallDevice,",
             "self.install_recent_project_to_device()?",
             "HubAction::OpenEditor { target_id, payload } =>",
-            "\"open-editor\",",
+            "HubActionId::OpenEditor,",
             "self.open_selected_project_or_editor()?",
         ],
     );
@@ -404,8 +433,8 @@ fn quick_actions_and_workspace_pages_pass_scope_targets_to_runtime() {
             "pub(super) fn build_selected_project_engine(&mut self) -> Result<(), HubError>",
             "selected_or_latest_recent_project_with_engine_for_action",
             "fn require_project_bound_engine(&self, project: &RecentProject) -> Result<(), HubError>",
-            "Project has no bound Source Engine",
-            "Project bound Source Engine is unavailable",
+            "ProjectMessageId::NoBoundSourceEngine",
+            "ProjectMessageId::BoundSourceEngineUnavailable",
         ],
     );
     assert_contains_all(
@@ -442,6 +471,8 @@ fn project_scope_documentation_records_react_mui_contract_cutover() {
             "src/tauri_app/runtime_state/build_actions.rs",
             "src/tauri_app/runtime_state/project_delivery_actions.rs",
             "web/src/components/data/ProjectCard.tsx",
+            "web/src/components/data/ProjectDetailSidebar.tsx",
+            "web/src/components/data/ProjectMetricsGrid.tsx",
             "web/src/components/data/QuickActions.tsx",
             "web/src/pages/ProjectDetailPage.tsx",
         ],
@@ -481,6 +512,8 @@ fn project_scope_contract_is_cut_over_to_react_sources() {
             "src/tauri_app/runtime_state/build_actions.rs",
             "src/tauri_app/runtime_state/project_delivery_actions.rs",
             "web/src/components/data/ProjectCard.tsx",
+            "web/src/components/data/ProjectDetailSidebar.tsx",
+            "web/src/components/data/ProjectMetricsGrid.tsx",
             "web/src/components/data/QuickActions.tsx",
             "web/src/pages/ProjectDetailPage.tsx",
         ],

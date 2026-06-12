@@ -10,6 +10,9 @@ pub struct CoreWeak {
 
 impl CoreWeak {
     pub fn upgrade(&self) -> Option<CoreHandle> {
-        self.inner.upgrade().map(|inner| CoreHandle { inner })
+        let Some(inner) = self.inner.upgrade() else {
+            return None;
+        };
+        Some(CoreHandle { inner })
     }
 }

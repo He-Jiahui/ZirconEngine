@@ -101,6 +101,7 @@ fn option_rows(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupOption> {
     let focused = option_id_set(metadata.attributes.get("focused_options"));
     let hovered = option_id_set(metadata.attributes.get("hovered_options"));
     let pressed = option_id_set(metadata.attributes.get("pressed_options"));
+    let loading = option_id_set(metadata.attributes.get("loading_options"));
 
     metadata
         .attributes
@@ -112,6 +113,7 @@ fn option_rows(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupOption> {
                 .filter_map(|value| {
                     option_row(
                         value, &selected, &disabled, &special, &focused, &hovered, &pressed,
+                        &loading,
                     )
                 })
                 .collect()
@@ -127,6 +129,7 @@ fn option_row(
     focused: &BTreeSet<String>,
     hovered: &BTreeSet<String>,
     pressed: &BTreeSet<String>,
+    loading: &BTreeSet<String>,
 ) -> Option<RuntimePopupOption> {
     let mut option = RuntimePopupOption::from_value(value)?;
     if selected.contains(&option.id) || selected.contains(&option.label) {
@@ -146,6 +149,9 @@ fn option_row(
     }
     if pressed.contains(&option.id) || pressed.contains(&option.label) {
         option.pressed = true;
+    }
+    if loading.contains(&option.id) || loading.contains(&option.label) {
+        option.loading = true;
     }
     Some(option)
 }
@@ -207,6 +213,7 @@ struct RuntimePopupOption {
     focused: bool,
     hovered: bool,
     pressed: bool,
+    loading: bool,
 }
 
 impl RuntimePopupOption {
@@ -217,6 +224,7 @@ impl RuntimePopupOption {
             self.focused,
             self.pressed,
             self.disabled,
+            self.loading,
         )
     }
 
@@ -249,6 +257,7 @@ impl RuntimePopupOption {
                     focused: table_bool(table.get("focused")),
                     hovered: table_bool(table.get("hovered")),
                     pressed: table_bool(table.get("pressed")),
+                    loading: table_bool(table.get("loading")),
                 })
             }
             _ => None,
@@ -271,6 +280,7 @@ impl RuntimePopupOption {
             focused: has_flag(flags, "focused"),
             hovered: has_flag(flags, "hovered"),
             pressed: has_flag(flags, "pressed"),
+            loading: has_flag(flags, "loading"),
         }
     }
 }

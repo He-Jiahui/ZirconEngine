@@ -61,6 +61,7 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
+  - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - docs/zircon_runtime_interface/runtime_api.md
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
@@ -170,6 +171,7 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
+  - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - docs/zircon_runtime_interface/runtime_api.md
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
@@ -225,6 +227,7 @@ tests:
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
+  - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - docs/zircon_runtime_interface/runtime_api.md
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
@@ -391,6 +394,63 @@ The runtime scene/project serializer must not contain editor authoring state: se
 
 The structural audit now includes a `scene_project_serialization_boundary` section over the runtime world, dynamic scene, project I/O, and scene-asset files. `zircon_runtime/src/scene/tests/component_structure.rs` mirrors that source guard, while `zircon_runtime/src/scene/tests/world_basics.rs` checks the project roundtrip JSON for forbidden authoring-state keys.
 
+## Runtime 10 ABI Inventory
+
+Runtime 10 treats the dynamic runtime API table and the native/plugin host tables as one ABI governance family, while leaving native plugin behavior ownership in the plugin lifecycle plan. The current inventory source is `zircon_runtime_interface/src/runtime_api/api_table.rs` plus `zircon_runtime_interface/src/plugin_api.rs`.
+
+### Function Table Families
+
+| Table | Version | Field count | Owner source | Producer | Consumer |
+|---|---:|---:|---|---|---|
+| `ZrHostApiV1` | 1 | 4 | `runtime_api/api_table.rs` | host app/editor loader | `zircon_runtime_get_api_v1` |
+| `ZrRuntimeApiV1` | 1 | 13 | `runtime_api/api_table.rs` | `zircon_runtime::dynamic_api::exports` | host app/editor loader |
+| `ZrHostApiV3` | 3 | 6 | `plugin_api.rs` | runtime native host adapter | v3 native runtime plugins |
+| `ZrHostEcsApiV1` | 1 | 3 | `plugin_api.rs` | embedded in `ZrHostApiV3` | v3 native runtime plugins |
+| `ZrHostAssetApiV1` | 1 | 1 | `plugin_api.rs` | embedded in `ZrHostApiV3` | v3 native runtime plugins |
+| `ZrHostEventApiV1` | 1 | 2 | `plugin_api.rs` | embedded in `ZrHostApiV3` | v3 native runtime plugins |
+| `ZrHostDiagnosticsApiV1` | 1 | 2 | `plugin_api.rs` | embedded in `ZrHostApiV3` | v3 native runtime plugins |
+| `ZrPluginStateSnapshotApiV1` | 1 | 4 | `plugin_api.rs` | plugin entry report | runtime native live host |
+| `ZrPluginApiV1` | 1 | 4 | `plugin_api.rs` | plugin entry report | runtime native live host |
+
+The permanent guard is `zircon_runtime_interface/src/tests/abi_safety_contracts.rs`: `function_table_structs_are_all_repr_c` requires the 9 listed `Zr*Api*` function-table structs to stay in the inventory and to keep local `#[repr(C)]` attributes. `function_table_field_counts_match_runtime_10_inventory` locks the table field-count matrix above, and `runtime_api_session_operation_surface_matches_inventory` locks the `ZrRuntimeApiV1` session operation field order below. `repr_c_guard_fails_on_missing_local_attribute` is the representative negative self-check. The same source pair currently contains 14 `#[repr(C)]` records overall; the guard intentionally locks function-table shape while leaving non-table DTO layout tests to their owner modules.
+
+### Cross-Boundary DTO Domains
+
+| Domain | Owner files | Transport form | Governance |
+|---|---|---|---|
+| Handles, status, buffers, version | `handles.rs`, `status.rs`, `buffer.rs`, `version.rs` | raw `#[repr(C)]` values and borrowed/owned byte buffers | layout and boundary tests; no runtime/editor dependency imports |
+| Dynamic runtime function table and requests | `runtime_api/{api_table,requests,events,viewport,constants}.rs` | `#[repr(C)]` values plus optional function pointers | `runtime_api_boundary`, `abi_safety_contracts`, and focused event/frame/viewport tests |
+| Runtime host requests and profiling | `runtime_api/host_requests.rs`, `profiling.rs` | serde payloads carried through `ZrOwnedByteBuffer` or `ZrByteSlice` | serde roundtrip tests and profile-control dynamic API tests |
+| Native/plugin host tables and plugin reports | `plugin_api.rs`, `plugin_events.rs`, `plugin_diagnostics.rs`, `manifest.rs` | `#[repr(C)]` tables/DTOs plus byte-slice payloads | `plugin_api_contracts` for layout and `abi_safety_contracts` for function-table inventory |
+| Reflect and resource contracts | `reflect/**`, `resource/**` | serde DTOs, stable IDs, and handles | interface boundary tests; no OS/GPU/runtime object imports |
+| UI contracts | `ui/**` | serde DTOs and interface-owned Rust contracts | UI contract tests; Runtime 10 M2 will add duplicate-definition drift governance after Runtime 09 inventory |
+
+`interface_public_signatures_stay_free_of_dynamic_object_exports` scans public signature lines in production interface sources for `Box<dyn`, `Rc<`, `Arc<dyn`, and literal `impl Trait`. `public_signature_guard_fails_on_dynamic_object_export` is the representative negative self-check. Constructor helpers that use concrete generic shorthand such as `impl Into<String>` are not raw ABI exports and remain governed by their owner tests; the guard targets object/dynamic-carrier leakage across the interface boundary.
+
+### Runtime Session Operation Surface
+
+`ZrRuntimeApiV1` exposes 10 handle-taking session operations plus `create_session`. Session validation lives in `zircon_runtime::dynamic_api::session` and is intentionally reached only after ABI/version/viewport/payload preflight checks.
+
+| Function-table field | Runtime function | Preflight before session lookup | Failure-path guard |
+|---|---|---|---|
+| `create_session` | `create_session` | output pointer, ABI version, profile, project root bytes | create-session lifecycle tests |
+| `destroy_session` | `destroy_session` | handle validity | `session_destroy_reports_explicit_not_found_after_first_destroy`, invalid-handle test |
+| `handle_event` | `handle_event` | event ABI version | invalid/destroyed handle guard |
+| `capture_frame` | `capture_frame` | request ABI version, viewport | invalid/destroyed handle guard with non-null output |
+| `capture_accessibility_tree` | `capture_accessibility_tree` | request ABI version, viewport, null-output fast path | invalid/destroyed handle guard with non-null output |
+| `bind_viewport_surface` | `bind_viewport_surface` | request ABI, target ABI, viewport, native surface descriptor | invalid/destroyed handle guard with valid Win32 descriptor |
+| `unbind_viewport_surface` | `unbind_viewport_surface` | viewport | invalid/destroyed handle guard |
+| `present_viewport` | `present_viewport` | request ABI version, viewport | invalid/destroyed handle guard |
+| `profile_control` | `profile_control` | null-output fast path, non-empty valid JSON request | invalid/destroyed handle guard with snapshot request |
+| `tick_frame` | `tick_frame` | none beyond handle validation | existing unknown-handle test plus invalid/destroyed handle guard |
+| `drain_host_requests` | `drain_host_requests` | null-output fast path | invalid/destroyed handle guard with non-null output |
+
+### Version Strategy
+
+The rule is deliberately conservative: any function-table field addition, removal, reorder, type change, or meaning change creates a new table version. Runtime does not rely on silent tail-field extension under the same version, even though `size_bytes` records layout size. `size_bytes` remains a diagnostic/validation field for explicit negotiation, not permission to mutate an existing version in place.
+
+`ZIRCON_RUNTIME_ABI_VERSION_V1` governs the dynamic runtime C ABI DTO family. Plugin host tables carry explicit table versions (`ZrHostApiV3` with v1 domain sub-tables today) and should bump the narrowest affected table when a domain changes. Serde payload domains may evolve through their own schema/version fields when the outer ABI carrier is unchanged; changing the carrier itself still follows the table/DTO bump rule.
+
 ## Structural Audit
 
 The repository-local structural audit is the current evidence source:
@@ -442,6 +502,7 @@ Converged or mostly converged:
 - large production-file hotspots and ownership classes are now rendered through the folder-backed `large_file_ownership` audit owner. The same owner now reports `large_file_ownership_gate` with M1 gate status `migration-debt-present`, threshold 1000, 33 hotspots, 5 migration-debt owner groups, and zero unclassified hotspots. Current owner classes remain `editor-retained-host`, `editor-ui`, `runtime-framework-render`, `runtime-other`, and `support-hub`.
 - M1/M2/M3/M4/M5 structural audit owners for module inventory, app static dependency fan-out, plugin runtime gaps, stale standalone-crate doc references, runtime root surface, runtime scene editor-named surface, generated-code behavior, hard-cutover migration-smell classification, non-network `server` naming M1 gate classification, scene/project serialization, native plugin M4 public-surface classification, and large-file ownership are folder-backed under `runtime_structure_audits/`; the main audit script remains an orchestration boundary.
 - `zircon_runtime_interface::runtime_api` is folder-backed by ABI owner; `runtime_api_boundary` now reports 6/6 owner modules present, `runtime_api.rs` at 12/20 non-empty facade lines, no missing declarations or re-exports, no direct ABI declarations in the facade, and no owner file above 700 lines.
+- `zircon_runtime_interface::tests::abi_safety_contracts` guards the runtime/plugin function-table inventory: 9 current `Zr*Api*` structs must keep local `#[repr(C)]` attributes, their documented field counts must stay in sync with the Runtime 10 matrix, the `ZrRuntimeApiV1` session operation surface must keep its documented order, and public interface signature lines remain free of dynamic object carriers (`Box<dyn`, `Rc<`, `Arc<dyn`, and literal `impl Trait`).
 - `zircon_runtime::scene::ecs::query::QueryState` is folder-backed by query owner; `ecs_query_state_boundary` now owns both audit data and Markdown rendering, reports the old `query_state.rs` absent, all 6 owner modules present, root state/cache ownership at 123/180 non-empty lines, no oversized owner module, no boundary risk, and audit `runtime-other` large-file count reduced from 11 to 10.
 
 Still needs refactor:

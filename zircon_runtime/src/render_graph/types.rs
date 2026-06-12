@@ -3,20 +3,62 @@ use crate::rhi::{BufferDesc, TextureDesc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPassId(pub(crate) usize);
 
+/// Stable logical texture handle allocated by `RenderGraphBuilder`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct TransientTexture(pub(crate) usize);
+pub struct RgTextureHandle(pub(crate) usize);
 
+impl RgTextureHandle {
+    pub(crate) const fn from_index(index: usize) -> Self {
+        Self(index)
+    }
+
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+
+/// Stable logical buffer handle allocated by `RenderGraphBuilder`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct TransientBuffer(pub(crate) usize);
+pub struct RgBufferHandle(pub(crate) usize);
+
+impl RgBufferHandle {
+    pub(crate) const fn from_index(index: usize) -> Self {
+        Self(index)
+    }
+
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ExternalResource(pub(crate) usize);
 
+impl ExternalResource {
+    pub(crate) const fn from_index(index: usize) -> Self {
+        Self(index)
+    }
+
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RenderGraphResource {
-    TransientTexture(TransientTexture),
-    TransientBuffer(TransientBuffer),
+    TransientTexture(RgTextureHandle),
+    TransientBuffer(RgBufferHandle),
     External(ExternalResource),
+}
+
+impl RenderGraphResource {
+    pub const fn kind(self) -> RenderGraphResourceKind {
+        match self {
+            Self::TransientTexture(_) => RenderGraphResourceKind::TransientTexture,
+            Self::TransientBuffer(_) => RenderGraphResourceKind::TransientBuffer,
+            Self::External(_) => RenderGraphResourceKind::External,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -35,6 +77,7 @@ pub enum RenderGraphResourceDesc {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphResourceLifetime {
+    pub resource: RenderGraphResource,
     pub name: String,
     pub kind: RenderGraphResourceKind,
     pub desc: RenderGraphResourceDesc,
@@ -99,6 +142,16 @@ impl RenderGraphAttachmentOps {
     }
 }
 
+/// Immutable declaration row for a graph resource, kept even if all uses are culled.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderGraphResourceDeclaration {
+    pub resource: RenderGraphResource,
+    pub name: String,
+    pub kind: RenderGraphResourceKind,
+    pub desc: RenderGraphResourceDesc,
+    pub imported: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphPassResourceAccess {
     pub name: String,
@@ -111,6 +164,7 @@ pub struct RenderGraphPassResourceAccess {
 pub enum RenderGraphComputeDispatchExtent {
     Viewport,
     ClusterGrid,
+    HzbFurthest,
     Fixed([u32; 3]),
 }
 
@@ -149,6 +203,14 @@ impl RenderGraphComputeWorkload {
             pipeline_label,
             workgroup_size,
             RenderGraphComputeDispatchExtent::ClusterGrid,
+        )
+    }
+
+    pub fn hzb_furthest(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::HzbFurthest,
         )
     }
 

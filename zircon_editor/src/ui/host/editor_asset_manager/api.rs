@@ -1,4 +1,5 @@
-use zircon_runtime::core::{ChannelReceiver, CoreError};
+use zircon_runtime::core::framework::channel::ChannelReceiver;
+use zircon_runtime::core::CoreError;
 
 use super::{EditorAssetCatalogSnapshotRecord, EditorAssetChangeRecord, EditorAssetDetailsRecord};
 

@@ -45,7 +45,8 @@ pub use mesh::{
     MeshIndexFormat, MeshIndices, MeshMorphTargetAsset, MeshMorphTargetAttributeSummary,
     MeshSkinAsset, MeshValidationError, ZMeshDocument, MESH_ATTRIBUTE_COLOR,
     MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, ZMESH_DOCUMENT_VERSION,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
+    ZMESH_DOCUMENT_VERSION,
 };
 pub use model::{
     ModelAsset, ModelAssetManagementRecord, ModelAssetManagementRecordSet,
@@ -65,13 +66,18 @@ pub use scene::{
     SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneAssetManagementRecord,
     SceneAssetManagementRecordSet, SceneAssetManagementRecordSetSummary, SceneAssetOverview,
-    SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset, SceneColliderShapeAsset,
-    SceneDirectionalLightAsset, SceneEntityAsset, SceneEntityManagementRecord,
-    SceneEntityManagementRecordSet, SceneEntityManagementRecordSetSummary, SceneEntityOverview,
-    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset,
-    SceneMobilityAsset, ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset,
-    SceneRigidBodyTypeAsset, SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset,
-    SceneViewportRectAsset, TransformAsset,
+    SceneBloomSettingsAsset, SceneCameraAsset, SceneCameraTargetAsset,
+    SceneChromaticAberrationSettingsAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneColorGradingSettingsAsset, SceneDirectionalLightAsset, SceneDitherSettingsAsset,
+    SceneEntityAsset, SceneEntityManagementRecord, SceneEntityManagementRecordSet,
+    SceneEntityManagementRecordSetSummary, SceneEntityOverview, SceneFilmGrainSettingsAsset,
+    SceneFogSettingsAsset, SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset,
+    SceneMeshLodLevelAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset,
+    ScenePointLightAsset, ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset,
+    ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset, SceneRectLightAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
+    SceneTerrainAsset, SceneTileMapAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
+    SceneViewportRectAsset, SceneVignetteSettingsAsset, TransformAsset,
 };
 pub use shader::{
     ShaderAsset, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
@@ -95,6 +101,8 @@ pub use texture::{
     TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 pub use ui::{
-    ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset,
-    UiV2AssetDocumentError, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiIconAsset,
+    UiIconAssetDocumentError, UiIconSource, UiIconSourceKind, UiLayoutAsset, UiStyleAsset,
+    UiThemeAsset, UiThemeAssetDocumentError, UiV2AssetDocumentError, UiV2ComponentAsset,
+    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };

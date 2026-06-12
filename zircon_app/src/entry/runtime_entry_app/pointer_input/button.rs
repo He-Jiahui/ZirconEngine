@@ -16,6 +16,7 @@ impl RuntimeEntryApp {
         button: ButtonSource,
         position: PhysicalPosition<f64>,
     ) {
+        self.last_pointer_position = Some(position);
         if let Some((pointer_id, phase)) = touch_button_phase(&button, state) {
             let event = ZrRuntimeEventV1::touch(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,

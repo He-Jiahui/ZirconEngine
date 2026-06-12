@@ -7,6 +7,11 @@ pub mod prelude;
 mod runtime_presenter;
 
 pub use entry::{
+    bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
+    bootstrap_export_runtime_with_report, discover_export_root, ExportRuntimeBootstrapConfig,
+    ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider,
+};
+pub use entry::{
     first_party_runtime_plugin_registrations_for_config,
     first_party_runtime_plugin_registrations_for_manifest,
     first_party_runtime_plugin_registrations_for_runtime_profile,

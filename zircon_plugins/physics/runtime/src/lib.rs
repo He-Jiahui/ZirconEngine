@@ -1,11 +1,12 @@
 pub const PLUGIN_ID: &str = "physics";
+pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "physics.runtime";
 pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 
 mod backend;
 mod manager;
 mod module;
 mod query_contact;
-mod scene_hook;
+mod runtime_system;
 mod trigger;
 
 pub use backend::JOLT_ENABLED;
@@ -16,7 +17,9 @@ pub use module::{
     module_descriptor, PhysicsDriver, PhysicsModule, DEFAULT_PHYSICS_MANAGER_NAME,
     PHYSICS_DRIVER_NAME, PHYSICS_MODULE_NAME,
 };
-pub use scene_hook::{scene_hook_registration, PhysicsSceneRuntimeHook};
+pub use runtime_system::{
+    register_runtime_system, PhysicsRuntimeSystem, PHYSICS_STEP_SYSTEM, PHYSICS_SYSTEM_SET,
+};
 pub use zircon_runtime::core::manager::PHYSICS_MANAGER_NAME;
 
 #[derive(Clone, Debug)]
@@ -41,8 +44,9 @@ impl zircon_runtime::plugin::RuntimePlugin for PhysicsRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
         registry.register_module(module_descriptor())?;
-        registry.register_scene_hook(scene_hook_registration())
+        register_runtime_system(registry, owner)
     }
 }
 
@@ -95,6 +99,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         "runtime.capability.physics.skeletal_joints",
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .with_system_sets([PHYSICS_SYSTEM_SET])
+    .with_system_anchors([PHYSICS_STEP_SYSTEM])
 }
 
 pub fn runtime_plugin() -> PhysicsRuntimePlugin {
@@ -141,6 +147,22 @@ mod tests {
             .modules()
             .iter()
             .any(|module| module.name == PHYSICS_MODULE_NAME));
+        assert!(report
+            .extensions
+            .plugin_runtime_systems()
+            .any(|(owner, system)| {
+                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                    && system.id == PHYSICS_STEP_SYSTEM
+                    && system.stage == zircon_runtime::scene::SystemStage::FixedUpdate
+            }));
+        assert_eq!(
+            report.package_manifest.modules[0].system_sets,
+            vec![PHYSICS_SYSTEM_SET.to_string()]
+        );
+        assert_eq!(
+            report.package_manifest.modules[0].system_anchors,
+            vec![PHYSICS_STEP_SYSTEM.to_string()]
+        );
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![

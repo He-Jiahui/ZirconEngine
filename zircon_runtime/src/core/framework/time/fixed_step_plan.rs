@@ -23,4 +23,11 @@ impl FixedStepPlan {
             remaining_overstep,
         }
     }
+
+    pub fn overstep_fraction(&self) -> f32 {
+        if self.timestep.is_zero() {
+            return 0.0;
+        }
+        (self.remaining_overstep.as_secs_f64() / self.timestep.as_secs_f64()).clamp(0.0, 1.0) as f32
+    }
 }

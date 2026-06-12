@@ -1,11 +1,7 @@
-pub(super) fn raw_value<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
-    line.strip_prefix(prefix)
-}
+mod bracketed;
+mod quoted;
+mod raw;
 
-pub(super) fn quoted_value<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
-    raw_value(line, prefix).and_then(|value| value.strip_suffix('"'))
-}
-
-pub(super) fn bracketed_value<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
-    raw_value(line, prefix).and_then(|value| value.strip_suffix(']'))
-}
+pub(super) use bracketed::bracketed_value;
+pub(super) use quoted::quoted_value;
+pub(super) use raw::raw_value;

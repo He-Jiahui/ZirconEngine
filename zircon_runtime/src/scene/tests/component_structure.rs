@@ -1,3 +1,5 @@
+use super::authoring_boundary::{assert_text_excludes_authoring_tokens, SOURCE_AUTHORING_TOKENS};
+
 #[test]
 fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutover() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -83,6 +85,64 @@ fn world_property_access_moves_into_folder_backed_subtree() {
 }
 
 #[test]
+fn component_registry_rust_type_reverse_lookup_uses_descriptor_source() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let registry_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component_registry.rs")).unwrap();
+    let component_id_body = registry_source
+        .split("pub fn component_id<T>")
+        .nth(1)
+        .and_then(|text| text.split("pub fn dynamic_component_id").next())
+        .expect("component_id body should exist");
+    let rust_type_lookup_body = registry_source
+        .split("pub(crate) fn rust_type_for_id")
+        .nth(1)
+        .and_then(|text| text.split("pub fn descriptors").next())
+        .expect("rust_type_for_id body should exist");
+
+    assert!(registry_source.contains("RustType { type_id: TypeId }"));
+    assert!(component_id_body.contains("let type_id = TypeId::of::<T>();"));
+    assert!(component_id_body.contains("self.rust_ids_by_type_id.get(&type_id).copied()"));
+    assert!(component_id_body.contains("ComponentDescriptorSource::RustType { type_id }"));
+    assert!(component_id_body.contains("self.rust_ids_by_type_id.insert(type_id, id);"));
+    assert!(rust_type_lookup_body.contains("let descriptor = self.descriptor(id)?;"));
+    assert!(rust_type_lookup_body.contains("match &descriptor.source"));
+    assert!(rust_type_lookup_body.contains("Some((*type_id, descriptor.type_name.as_str()))"));
+    assert!(!registry_source.contains("pub enum ComponentKey"));
+    assert!(!registry_source.contains("ids_by_key"));
+    assert!(!rust_type_lookup_body.contains("self.rust_ids_by_type_id.iter().find_map"));
+    assert!(!rust_type_lookup_body.contains("self.descriptors[id.index()].type_name.clone()"));
+}
+
+#[test]
+fn component_registry_dynamic_lookup_uses_borrowed_type_id_map() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let registry_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component_registry.rs")).unwrap();
+    let dynamic_id_body = registry_source
+        .split("pub fn dynamic_component_id")
+        .nth(1)
+        .and_then(|text| text.split("pub fn registered_component_id").next())
+        .expect("dynamic_component_id body should exist");
+    let registered_dynamic_body = registry_source
+        .split("pub fn registered_dynamic_component_id")
+        .nth(1)
+        .and_then(|text| text.split("pub fn descriptor").next())
+        .expect("registered_dynamic_component_id body should exist");
+
+    assert!(registry_source.contains("dynamic_ids_by_type_id: HashMap<String, ComponentId>"));
+    assert!(dynamic_id_body.contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()"));
+    assert!(dynamic_id_body.contains("self.dynamic_ids_by_type_id"));
+    assert!(dynamic_id_body.contains(".insert(component_type_id.to_string(), id);"));
+    assert!(registered_dynamic_body
+        .contains("self.dynamic_ids_by_type_id.get(component_type_id).copied()"));
+    assert!(!registry_source.contains("pub enum ComponentKey"));
+    assert!(!registry_source.contains("ids_by_key"));
+    assert!(!registered_dynamic_body.contains("ComponentKey::Dynamic"));
+    assert!(!registered_dynamic_body.contains("component_type_id.to_string()"));
+}
+
+#[test]
 fn scene_render_extract_does_not_use_snapshot_adapter_for_frame_extract() {
     let render_extract = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -145,37 +205,11 @@ fn scene_project_serialization_sources_do_not_store_editor_authoring_state() {
         let path = manifest_root.join(relative);
         let source = std::fs::read_to_string(&path).unwrap();
 
-        for forbidden in [
-            "selected",
-            "selection",
-            "selected_entity",
-            "selected_node",
-            "set_selected",
-            "SceneViewportSettings",
-            "SceneViewportTool",
-            "TransformSpace",
-            "GridMode",
-            "ViewOrientation",
-            "RenderOverlayExtract",
-            "SelectionHighlightExtract",
-            "SelectionAnchorExtract",
-            "GridOverlayExtract",
-            "HandleOverlayExtract",
-            "SceneGizmoOverlayExtract",
-            "SceneGizmoKind",
-            "scene_gizmos",
-            "selection_anchors",
-            "active_camera_override",
-            "camera_override",
-            "preview_lighting",
-            "preview_skybox",
-            "display_mode",
-        ] {
-            assert!(
-                !source.contains(forbidden),
-                "runtime scene project serialization source {relative} must not store editor authoring state token {forbidden}"
-            );
-        }
+        assert_text_excludes_authoring_tokens(
+            &format!("runtime scene project serialization source {relative}"),
+            &source,
+            SOURCE_AUTHORING_TOKENS,
+        );
     }
 }
 
@@ -302,15 +336,40 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
     let storage_source =
         std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
             .unwrap();
+    let remove_entity_start = storage_source
+        .find("pub fn remove_entity")
+        .expect("component storage remove_entity body should exist");
+    let remove_entity_end = storage_source[remove_entity_start..]
+        .find("\n    pub(crate) fn component_ids_for_entity")
+        .map(|offset| remove_entity_start + offset)
+        .expect("component storage remove_entity body should end before component_ids_for_entity");
+    let remove_entity_body = &storage_source[remove_entity_start..remove_entity_end];
+
+    let component_ids_start = storage_source
+        .find("pub(crate) fn component_ids_for_entity")
+        .expect("component storage component_ids_for_entity body should exist");
+    let component_ids_end = storage_source[component_ids_start..]
+        .find("\n    fn component_storage_count")
+        .map(|offset| component_ids_start + offset)
+        .expect("component storage component_ids_for_entity body should end before helper methods");
+    let component_ids_body = &storage_source[component_ids_start..component_ids_end];
 
     assert!(storage_source.contains("fn component_storage_count(&self) -> usize"));
     assert!(storage_source.contains("self.table_components.len() + self.sparse_components.len()"));
-    assert!(storage_source
+    assert!(remove_entity_body
         .contains("let mut removed = Vec::with_capacity(self.component_storage_count());"));
-    assert!(storage_source
+    assert!(component_ids_body
         .contains("let mut component_ids = Vec::with_capacity(self.component_storage_count());"));
+    assert!(remove_entity_body.contains("sort_component_ids_if_needed(&mut removed);"));
+    assert!(component_ids_body.contains("sort_component_ids_if_needed(&mut component_ids);"));
+    assert!(storage_source
+        .contains("fn sort_component_ids_if_needed(component_ids: &mut [ComponentId])"));
+    assert!(storage_source.contains("if component_ids.len() > 1"));
+    assert!(storage_source.contains("component_ids.sort_unstable();"));
     assert!(!storage_source.contains("let mut removed = Vec::new();"));
     assert!(!storage_source.contains("let mut component_ids = Vec::new();"));
+    assert!(!remove_entity_body.contains("removed.sort_unstable();"));
+    assert!(!component_ids_body.contains("component_ids.sort_unstable();"));
 }
 
 #[test]

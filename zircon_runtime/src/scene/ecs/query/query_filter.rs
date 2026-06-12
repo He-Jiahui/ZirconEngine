@@ -85,9 +85,10 @@ where
     }
 
     fn matches(world: &World, entity: EntityId, ticks: ChangeTickWindow) -> bool {
-        world
-            .component_change_ticks::<T>(entity)
-            .is_some_and(|component_ticks| component_ticks.is_added(ticks))
+        let Some(component_ticks) = world.component_change_ticks::<T>(entity) else {
+            return false;
+        };
+        component_ticks.is_added(ticks)
     }
 
     fn matches_component_locations(
@@ -96,8 +97,11 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> bool {
-        component_ticks_at_location::<T>(world, component_locations)
-            .is_some_and(|component_ticks| component_ticks.is_added(ticks))
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        component_ticks.is_added(ticks)
     }
 }
 
@@ -115,9 +119,10 @@ where
     }
 
     fn matches(world: &World, entity: EntityId, ticks: ChangeTickWindow) -> bool {
-        world
-            .component_change_ticks::<T>(entity)
-            .is_some_and(|component_ticks| component_ticks.is_changed(ticks))
+        let Some(component_ticks) = world.component_change_ticks::<T>(entity) else {
+            return false;
+        };
+        component_ticks.is_changed(ticks)
     }
 
     fn matches_component_locations(
@@ -126,8 +131,11 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> bool {
-        component_ticks_at_location::<T>(world, component_locations)
-            .is_some_and(|component_ticks| component_ticks.is_changed(ticks))
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        component_ticks.is_changed(ticks)
     }
 }
 
@@ -205,7 +213,6 @@ where
         .binary_search_by_key(&component_id, |location| location.component_id)
         .ok()?;
     let location = component_locations.get(index)?;
-    world
-        .component_ref_with_ticks_at_location::<T>(*location)
-        .map(|(_, ticks)| ticks)
+    let (_, ticks) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+    Some(ticks)
 }

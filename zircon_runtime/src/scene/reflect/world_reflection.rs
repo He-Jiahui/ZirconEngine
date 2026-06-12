@@ -19,18 +19,20 @@ impl WorldReflection {
         let filter = request.filter;
         let registrations = if let Some(type_path) = filter.type_path.as_deref() {
             let registration = world.type_registry().runtime_registration(type_path)?;
+            let mut registrations = Vec::with_capacity(1);
             if schema_filter_matches(&registration.registration, &filter) {
-                vec![registration.registration.clone()]
-            } else {
-                Vec::new()
+                registrations.push(registration.registration.clone());
             }
+            registrations
         } else {
-            world
-                .type_registry()
-                .iter()
-                .filter(|registration| schema_filter_matches(&registration.registration, &filter))
-                .map(|registration| registration.registration.clone())
-                .collect()
+            let registry_entries = world.type_registry().iter();
+            let mut registrations = Vec::with_capacity(registry_entries.size_hint().0);
+            for registration in registry_entries {
+                if schema_filter_matches(&registration.registration, &filter) {
+                    registrations.push(registration.registration.clone());
+                }
+            }
+            registrations
         };
 
         Ok(ReflectSchemaResponse::new(registrations))
@@ -53,7 +55,7 @@ impl WorldReflection {
                 adapter.read_fields(world, *entity)?
             }
             ReflectObjectAddress::Resource { type_path } => {
-                let adapter = resource_adapter(world, type_path)?;
+                let adapter = resource_adapter_ref(world, type_path)?;
                 adapter.read_fields(world)?
             }
         };
@@ -77,11 +79,11 @@ impl WorldReflection {
     ) -> Result<ReflectWriteResponse, ReflectError> {
         let changed = match &request.address {
             ReflectObjectAddress::Component { entity, type_path } => {
-                let adapter = component_adapter(world, type_path)?;
+                let adapter = component_adapter_for_write(world, type_path)?;
                 adapter.write_field(world, *entity, &request.field_name, request.value)?
             }
             ReflectObjectAddress::Resource { type_path } => {
-                let adapter = resource_adapter(world, type_path)?;
+                let adapter = resource_adapter_for_write(world, type_path)?;
                 adapter.write_field(world, &request.field_name, request.value)?
             }
         };
@@ -163,7 +165,10 @@ fn schema_filter_matches(
     true
 }
 
-fn component_adapter(world: &World, type_path: &str) -> Result<ReflectComponent, ReflectError> {
+fn component_adapter<'a>(
+    world: &'a World,
+    type_path: &str,
+) -> Result<&'a ReflectComponent, ReflectError> {
     let registration = world.type_registry().runtime_registration(type_path)?;
     if !registration.registration.is_component {
         return Err(ReflectError::AddressKindMismatch {
@@ -178,15 +183,26 @@ fn component_adapter(world: &World, type_path: &str) -> Result<ReflectComponent,
         });
     }
 
-    registration
-        .component
-        .clone()
-        .ok_or_else(|| ReflectError::NoComponentAdapter {
+    let Some(adapter) = registration.component.as_ref() else {
+        return Err(ReflectError::NoComponentAdapter {
             type_path: registration.registration.type_path.type_path.clone(),
-        })
+        });
+    };
+
+    Ok(adapter)
 }
 
-fn resource_adapter(world: &World, type_path: &str) -> Result<ReflectResource, ReflectError> {
+fn component_adapter_for_write(
+    world: &World,
+    type_path: &str,
+) -> Result<ReflectComponent, ReflectError> {
+    component_adapter(world, type_path).cloned()
+}
+
+fn resource_adapter_ref<'a>(
+    world: &'a World,
+    type_path: &str,
+) -> Result<&'a ReflectResource, ReflectError> {
     let registration = world.type_registry().runtime_registration(type_path)?;
     if !registration.registration.is_resource {
         return Err(ReflectError::AddressKindMismatch {
@@ -201,11 +217,20 @@ fn resource_adapter(world: &World, type_path: &str) -> Result<ReflectResource, R
         });
     }
 
-    registration
-        .resource
-        .ok_or_else(|| ReflectError::NoResourceAdapter {
+    let Some(adapter) = registration.resource.as_ref() else {
+        return Err(ReflectError::NoResourceAdapter {
             type_path: registration.registration.type_path.type_path.clone(),
-        })
+        });
+    };
+
+    Ok(adapter)
+}
+
+fn resource_adapter_for_write(
+    world: &World,
+    type_path: &str,
+) -> Result<ReflectResource, ReflectError> {
+    resource_adapter_ref(world, type_path).copied()
 }
 
 fn read_reflected_field(
@@ -219,7 +244,7 @@ fn read_reflected_field(
             adapter.read_field(world, *entity, field_name)
         }
         ReflectObjectAddress::Resource { type_path } => {
-            let adapter = resource_adapter(world, type_path)?;
+            let adapter = resource_adapter_ref(world, type_path)?;
             adapter.read_field(world, field_name)
         }
     }

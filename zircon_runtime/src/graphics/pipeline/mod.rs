@@ -7,7 +7,8 @@ pub use declarations::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
     RenderPipelineCompileOptions, RenderPipelineCompileReport, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset, RendererFeatureAssetReferences,
-    RendererFeatureContractDiagnostic, RendererFeatureDocument, RendererFeatureSource,
+    RendererFeatureContractDiagnostic, RendererFeatureContractDiagnosticSeverity,
+    RendererFeatureDocument, RendererFeatureReferenceListKind, RendererFeatureSource,
     RENDERER_DATA_DOCUMENT_VERSION,
 };
 pub use render_pipeline_asset::RenderPipelineAssetContext;

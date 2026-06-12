@@ -1,15 +1,15 @@
 use std::path::{Path, PathBuf};
 
 use crate::error::HubError;
-use crate::process::{pick_folder, FolderPickerRequest};
+use crate::process::FolderPickerRequest;
 use crate::projects::{
-    create_project, merge_recent_projects, metadata_for_path_mut, project_metadata_key,
-    project_paths_match, prune_empty_metadata, recycle_delete_project, validate_project_root,
+    create_project, merge_recent_projects, metadata_for_path_mut, normalize_project_root,
+    project_metadata_key, project_paths_match, prune_empty_metadata, validate_project_root,
     CreateProjectRequest, ProjectTemplate, ProjectValidation, RecentProject,
 };
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, HubPage, ProjectSubpage, ProjectViewMode,
-    TaskOperationKind, TaskStatus,
+    EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+    HubPage, ProjectMessageId, ProjectSubpage, ProjectViewMode, TaskOperationKind, TaskStatus,
 };
 use crate::tauri_app::action_request::{
     CreateProjectActionPayload, ImportProjectActionPayload, ProjectTargetActionPayload,
@@ -17,6 +17,10 @@ use crate::tauri_app::action_request::{
 use crate::tauri_app::view_model::HubTextBundle;
 
 use super::{recent_project_display_name, HubRuntimeSession};
+
+#[cfg(test)]
+const CREATE_KEPT_FOLDER_RECOVERY: &str =
+    "The project folder was kept on disk; use Import Project to add it to Hub";
 
 impl HubRuntimeSession {
     pub(super) fn create_project_from_payload(
@@ -30,8 +34,13 @@ impl HubRuntimeSession {
                 self.record_lifecycle_failure(
                     HubActionKind::CreateProject,
                     payload.name.clone(),
-                    format!("Project template is coming soon: {}", payload.template),
-                    "Choose the Renderable Empty template for v1 local project creation",
+                    HubMessage::with_params(
+                        HubMessageId::Project(ProjectMessageId::TemplateComingSoon),
+                        [payload.template],
+                    ),
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::ChooseRenderableTemplate,
+                    )),
                     None,
                 )?;
                 return Ok(());
@@ -40,11 +49,14 @@ impl HubRuntimeSession {
         let engine_id = match self.resolve_project_engine_id(payload.engine_id) {
             Ok(engine_id) => engine_id,
             Err(error) => {
+                let (detail, _) = error.into_status_messages();
                 self.record_lifecycle_failure(
                     HubActionKind::CreateProject,
                     payload.name.clone(),
-                    error.to_string(),
-                    "Register or select a Source Engine before creating the project",
+                    detail,
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::RegisterEngineBeforeCreate,
+                    )),
                     None,
                 )?;
                 return Ok(());
@@ -54,11 +66,22 @@ impl HubRuntimeSession {
         let report = match create_project(&request) {
             Ok(report) => report,
             Err(error) => {
+                let detail = error.to_string();
+                let detail_message = create_project_error_message(&detail);
+                let recovery = if detail == "Target directory must be empty" {
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::ExistingFolderUseImport,
+                    ))
+                } else {
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::ChooseEmptyTargetFolder,
+                    ))
+                };
                 self.record_lifecycle_failure(
                     HubActionKind::CreateProject,
                     payload.name.clone(),
-                    error.to_string(),
-                    "Choose an empty target folder and retry project creation",
+                    detail_message,
+                    recovery,
                     None,
                 )?;
                 return Ok(());
@@ -66,27 +89,48 @@ impl HubRuntimeSession {
         };
 
         let project_root = report.project_root.clone();
-        self.remember_lifecycle_project(
+        if let Err(error) = self.remember_lifecycle_project(
             payload.name.clone(),
             project_root.clone(),
             engine_id,
             Some(template.id().to_string()),
-        )?;
+        ) {
+            return self.record_create_project_kept_folder_failure(
+                payload.name,
+                &project_root,
+                error,
+            );
+        }
         self.push_lifecycle_record(
             HubActionKind::CreateProject,
             HubActionStatus::Success,
             payload.name.clone(),
-            format!("Created {}", project_root.to_string_lossy()),
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::CreatedPath),
+                [project_root.to_string_lossy().into_owned()],
+            ),
             None,
             Some(project_root.clone()),
         );
         self.task_status = TaskStatus::success(
             "Project created",
-            project_root.to_string_lossy().into_owned(),
+            HubMessage::legacy(project_root.to_string_lossy().into_owned()),
         )
         .with_operation(TaskOperationKind::Project, payload.name);
         self.new_project_name.clear();
-        self.persist_with_last_project(Some(&project_root))
+        if let Err(error) = self.persist(Some(&project_root)) {
+            self.config.action_history.retain(|record| {
+                record.status != HubActionStatus::Success
+                    || record.action != HubActionKind::CreateProject
+                    || record.output_dir.as_deref() != Some(project_root.as_path())
+            });
+            return self.record_create_project_kept_folder_failure(
+                request.project_name,
+                &project_root,
+                error,
+            );
+        }
+        Ok(())
     }
 
     pub(super) fn import_project_from_action(
@@ -101,17 +145,20 @@ impl HubRuntimeSession {
 
         if project_root.is_none() {
             let text = HubTextBundle::new(self.config.settings.language);
-            project_root = match pick_folder(&FolderPickerRequest::new(
+            project_root = match (self.folder_picker)(&FolderPickerRequest::new(
                 import_project_picker_title(text),
                 Some(self.config.settings.default_project_dir.clone()),
             )) {
                 Ok(path) => path,
                 Err(error) => {
+                    let detail = HubMessage::legacy(error.to_string());
                     self.record_lifecycle_failure(
                         HubActionKind::ImportProject,
                         "Import Project".to_string(),
-                        error.to_string(),
-                        "Choose a folder containing zircon-project.toml",
+                        detail,
+                        HubMessage::new(HubMessageId::Project(
+                            ProjectMessageId::ChooseFolderWithManifest,
+                        )),
                         None,
                     )?;
                     return Ok(());
@@ -122,19 +169,24 @@ impl HubRuntimeSession {
         let Some(project_root) = project_root else {
             self.task_status = TaskStatus::warning(
                 "Import cancelled",
-                "No project folder was selected",
-                "Run Import Project again and choose a Zircon project folder",
+                HubMessage::new(HubMessageId::Project(
+                    ProjectMessageId::NoProjectFolderSelected,
+                )),
+                HubMessage::new(HubMessageId::Project(ProjectMessageId::RunImportAgain)),
             )
             .with_operation(TaskOperationKind::Project, "Import Project");
             return Ok(());
         };
 
+        let project_root = normalize_project_root(&project_root);
         if let Some(error) = project_validation_error(&project_root) {
             self.record_lifecycle_failure(
                 HubActionKind::ImportProject,
                 project_root.to_string_lossy().into_owned(),
                 error,
-                "Choose a folder containing zircon-project.toml",
+                HubMessage::new(HubMessageId::Project(
+                    ProjectMessageId::ChooseFolderWithManifest,
+                )),
                 Some(project_root),
             )?;
             return Ok(());
@@ -144,17 +196,24 @@ impl HubRuntimeSession {
             match self.resolve_project_engine_id(payload.and_then(|payload| payload.engine_id)) {
                 Ok(engine_id) => engine_id,
                 Err(error) => {
+                    let (detail, _) = error.into_status_messages();
                     self.record_lifecycle_failure(
                         HubActionKind::ImportProject,
                         project_root.to_string_lossy().into_owned(),
-                        error.to_string(),
-                        "Register or select a Source Engine before importing the project",
+                        detail,
+                        HubMessage::new(HubMessageId::Project(
+                            ProjectMessageId::RegisterEngineBeforeImport,
+                        )),
                         Some(project_root),
                     )?;
                     return Ok(());
                 }
             };
-        let display_name = project_display_name_from_path(&project_root);
+        let (display_name, project_root) =
+            match self.find_recent_project_by_filesystem_key(&project_root) {
+                Some(existing) => (recent_project_display_name(&existing), existing.path),
+                None => (project_display_name_from_path(&project_root), project_root),
+            };
         self.remember_lifecycle_project(
             display_name.clone(),
             project_root.clone(),
@@ -165,16 +224,19 @@ impl HubRuntimeSession {
             HubActionKind::ImportProject,
             HubActionStatus::Success,
             display_name.clone(),
-            format!("Imported {}", project_root.to_string_lossy()),
+            HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::ImportedPath),
+                [project_root.to_string_lossy().into_owned()],
+            ),
             None,
             Some(project_root.clone()),
         );
         self.task_status = TaskStatus::success(
             "Project imported",
-            project_root.to_string_lossy().into_owned(),
+            HubMessage::legacy(project_root.to_string_lossy().into_owned()),
         )
         .with_operation(TaskOperationKind::Project, display_name);
-        self.persist_with_last_project(Some(&project_root))
+        self.persist(Some(&project_root))
     }
 
     pub(super) fn set_project_pinned(
@@ -193,13 +255,13 @@ impl HubRuntimeSession {
             } else {
                 "Project unpinned"
             },
-            recent_project_display_name(&project),
+            HubMessage::legacy(recent_project_display_name(&project)),
         )
         .with_operation(
             TaskOperationKind::Project,
             recent_project_display_name(&project),
         );
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     pub(super) fn remove_project_from_hub(
@@ -214,16 +276,16 @@ impl HubRuntimeSession {
             HubActionKind::RemoveProject,
             HubActionStatus::Success,
             display_name.clone(),
-            "Removed project from Hub recent list".to_string(),
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::RemovedFromHub)),
             None,
             Some(project.path.clone()),
         );
         self.task_status = TaskStatus::success(
             "Project removed from Hub",
-            "Project files were left on disk",
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::FilesLeftOnDisk)),
         )
         .with_operation(TaskOperationKind::Project, display_name);
-        self.persist_with_last_project(None)
+        self.persist(None)
     }
 
     pub(super) fn request_project_delete(
@@ -235,14 +297,18 @@ impl HubRuntimeSession {
         self.pending_delete_project_path = Some(project.path.clone());
         self.task_status = TaskStatus::warning(
             "Delete requested",
-            "Confirm delete to move the project to the Windows Recycle Bin",
-            "Cancel delete to leave the project unchanged",
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::ConfirmDeleteRecycleBin,
+            )),
+            HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::CancelDeleteUnchanged,
+            )),
         )
         .with_operation(
             TaskOperationKind::Project,
             recent_project_display_name(&project),
         );
-        self.persist_hub_config()
+        self.persist(None)
     }
 
     pub(super) fn cancel_project_delete(
@@ -262,9 +328,12 @@ impl HubRuntimeSession {
                 )
             };
         self.pending_delete_project_path = None;
-        self.task_status = TaskStatus::success("Delete cancelled", "Project was left unchanged")
-            .with_operation(TaskOperationKind::Project, operation_target);
-        self.persist_hub_config()
+        self.task_status = TaskStatus::success(
+            "Delete cancelled",
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectUnchanged)),
+        )
+        .with_operation(TaskOperationKind::Project, operation_target);
+        self.persist(None)
     }
 
     pub(super) fn confirm_project_delete(
@@ -274,29 +343,38 @@ impl HubRuntimeSession {
     ) -> Result<(), HubError> {
         let project = self.resolve_pending_delete_project(target_id, payload)?;
         let display_name = recent_project_display_name(&project);
-        match recycle_delete_project(project.path.clone()) {
+        match (self.recycle_delete)(project.path.clone()) {
             Ok(()) => {
                 self.drop_project_from_hub(&project.path)?;
                 self.push_lifecycle_record(
                     HubActionKind::DeleteProject,
                     HubActionStatus::Success,
                     display_name.clone(),
-                    "Moved project to Windows Recycle Bin".to_string(),
+                    HubMessage::new(HubMessageId::Project(ProjectMessageId::MovedToRecycleBin)),
                     None,
                     Some(project.path.clone()),
                 );
-                self.task_status =
-                    TaskStatus::success("Project deleted", "Moved project to Windows Recycle Bin")
-                        .with_operation(TaskOperationKind::Project, display_name);
-                self.persist_with_last_project(None)
+                self.task_status = TaskStatus::success(
+                    "Project deleted",
+                    HubMessage::new(HubMessageId::Project(ProjectMessageId::MovedToRecycleBin)),
+                )
+                .with_operation(TaskOperationKind::Project, display_name);
+                self.persist(None)
             }
             Err(error) => {
                 self.pending_delete_project_path = Some(project.path.clone());
+                let recovery = if cfg!(target_os = "windows") {
+                    HubMessage::new(HubMessageId::Project(
+                        ProjectMessageId::DeletionFailureRecovery,
+                    ))
+                } else {
+                    HubMessage::new(HubMessageId::Project(ProjectMessageId::RecycleUnsupported))
+                };
                 self.record_lifecycle_failure(
                     HubActionKind::DeleteProject,
                     display_name,
-                    error.to_string(),
-                    "The project remains in Hub; fix the filesystem issue or cancel delete",
+                    HubMessage::legacy(error.to_string()),
+                    recovery,
                     Some(project.path),
                 )
             }
@@ -356,9 +434,13 @@ impl HubRuntimeSession {
         {
             Ok(Some(engine_id))
         } else {
-            Err(HubError::message(format!(
-                "Unknown Source Engine: {engine_id}"
-            )))
+            Err(HubError::status(
+                HubMessage::with_params(
+                    HubMessageId::Engine(EngineMessageId::UnknownSourceEngine),
+                    [engine_id],
+                ),
+                None,
+            ))
         }
     }
 
@@ -465,8 +547,8 @@ impl HubRuntimeSession {
         &mut self,
         action: HubActionKind,
         target: String,
-        detail: String,
-        recovery: &str,
+        detail: HubMessage,
+        recovery: HubMessage,
         output_dir: Option<PathBuf>,
     ) -> Result<(), HubError> {
         self.push_lifecycle_record(
@@ -474,13 +556,42 @@ impl HubRuntimeSession {
             HubActionStatus::Failed,
             target.clone(),
             detail.clone(),
-            Some(recovery.to_string()),
+            Some(recovery.clone()),
             output_dir,
         );
         self.task_status =
             TaskStatus::error(format!("{} failed", action.label()), detail, recovery)
                 .with_operation(TaskOperationKind::Project, target);
-        self.persist_hub_config()
+        self.persist(None)
+    }
+
+    fn record_create_project_kept_folder_failure(
+        &mut self,
+        target: String,
+        project_root: &Path,
+        error: HubError,
+    ) -> Result<(), HubError> {
+        let detail = HubMessage::with_params(
+            HubMessageId::Project(ProjectMessageId::FolderCreatedButRecordFailed),
+            [
+                project_root.to_string_lossy().into_owned(),
+                error.to_string(),
+            ],
+        );
+        let recovery =
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::KeptFolderUseImport));
+        self.push_lifecycle_record(
+            HubActionKind::CreateProject,
+            HubActionStatus::Failed,
+            target.clone(),
+            detail.clone(),
+            Some(recovery.clone()),
+            Some(project_root.to_path_buf()),
+        );
+        self.task_status = TaskStatus::error("Create Project failed", detail, recovery)
+            .with_operation(TaskOperationKind::Project, target);
+        let _ = self.persist_unchecked(None);
+        Ok(())
     }
 
     fn push_lifecycle_record(
@@ -488,8 +599,8 @@ impl HubRuntimeSession {
         action: HubActionKind,
         status: HubActionStatus,
         target: String,
-        detail: String,
-        recovery: Option<String>,
+        detail: HubMessage,
+        recovery: Option<HubMessage>,
         output_dir: Option<PathBuf>,
     ) {
         crate::state::push_action_record(
@@ -514,17 +625,39 @@ fn import_project_picker_title(text: HubTextBundle) -> &'static str {
     text.pair("Import Zircon Project", "导入 Zircon 项目")
 }
 
-fn project_validation_error(project_root: &Path) -> Option<String> {
+fn project_validation_error(project_root: &Path) -> Option<HubMessage> {
     match validate_project_root(project_root) {
         ProjectValidation::Valid => None,
-        ProjectValidation::MissingRoot => Some(format!(
-            "Project folder does not exist: {}",
-            project_root.to_string_lossy()
+        ProjectValidation::MissingRoot => Some(HubMessage::with_params(
+            HubMessageId::Project(ProjectMessageId::FolderDoesNotExist),
+            [project_root.to_string_lossy().into_owned()],
         )),
-        ProjectValidation::MissingManifest => Some(format!(
-            "zircon-project.toml was not found in {}",
-            project_root.to_string_lossy()
+        ProjectValidation::MissingManifest => Some(HubMessage::with_params(
+            HubMessageId::Project(ProjectMessageId::ManifestNotFound),
+            [project_root.to_string_lossy().into_owned()],
         )),
+        ProjectValidation::InvalidManifest => Some(HubMessage::with_params(
+            HubMessageId::Project(ProjectMessageId::ManifestParseFailed),
+            [project_root.to_string_lossy().into_owned()],
+        )),
+    }
+}
+
+fn create_project_error_message(detail: &str) -> HubMessage {
+    match detail {
+        "Project root is required" => {
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectRootRequired))
+        }
+        "Target path already exists as a file" => {
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::TargetPathIsFile))
+        }
+        "Target directory must be empty" => HubMessage::new(HubMessageId::Project(
+            ProjectMessageId::TargetDirectoryMustBeEmpty,
+        )),
+        "Project path is required" => {
+            HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectPathRequired))
+        }
+        _ => HubMessage::legacy(detail.to_string()),
     }
 }
 
@@ -542,13 +675,15 @@ mod tests {
 
     use crate::{
         engines::{source_engine_id, SourceEngineInstall},
-        projects::{metadata_for_path, project_metadata_key},
+        error::HubError,
+        projects::{metadata_for_path, project_metadata_key, RecentProject},
         settings::{HubConfig, HubLanguage},
         state::{HubActionKind, HubActionStatus},
         tauri_app::view_model::HubTextBundle,
     };
 
     use super::super::{HubActionRequest, HubRuntimeSession};
+    use super::CREATE_KEPT_FOLDER_RECOVERY;
 
     #[test]
     fn create_project_action_scaffolds_project_and_selects_detail() {
@@ -657,6 +792,101 @@ mod tests {
     }
 
     #[test]
+    fn create_project_non_empty_target_recovery_points_to_import() {
+        let temp = temp_test_dir("zircon-hub-create-project-non-empty-recovery");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let target = temp.join("projects").join("Game");
+        fs::create_dir_all(&target).unwrap();
+        fs::write(target.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+        let mut session = session_with_source(&temp, &source);
+        let engine_id = source_engine_id(&source);
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "create-project".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "name": "Game",
+                    "location": temp.join("projects").to_string_lossy(),
+                    "template": "renderable-empty",
+                    "engineId": engine_id,
+                })),
+            })
+            .expect("non-empty create target should be recoverable");
+
+        assert_eq!(session.task_status.label, "Create Project failed");
+        assert_eq!(session.task_status.detail, "Target directory must be empty");
+        assert_eq!(
+            session
+                .task_status
+                .recovery
+                .as_ref()
+                .map(|message| message.render(HubLanguage::English))
+                .as_deref(),
+            Some("If the folder already contains a project, use Import Project; otherwise choose an empty target folder")
+        );
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn create_project_recording_failure_keeps_folder_and_points_recovery_to_import() {
+        let temp = temp_test_dir("zircon-hub-create-project-record-failure");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let mut session = session_with_source(&temp, &source);
+        let blocked_parent = temp.join("blocked-config-parent");
+        fs::write(&blocked_parent, "not a directory").unwrap();
+        session.config_path = blocked_parent.join("hub.toml");
+        let engine_id = source_engine_id(&source);
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "create-project".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({
+                    "name": "Game",
+                    "location": temp.join("projects").to_string_lossy(),
+                    "template": "renderable-empty",
+                    "engineId": engine_id,
+                })),
+            })
+            .expect("recording failure should remain a recoverable Hub state");
+
+        let project = temp.join("projects").join("Game");
+        assert!(project.join("zircon-project.toml").is_file());
+        assert_eq!(session.task_status.label, "Create Project failed");
+        assert!(session
+            .task_status
+            .detail
+            .contains("Project folder was created at"));
+        assert_eq!(
+            session
+                .task_status
+                .recovery
+                .as_ref()
+                .map(|message| message.render(HubLanguage::English))
+                .as_deref(),
+            Some(CREATE_KEPT_FOLDER_RECOVERY)
+        );
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
+        );
+        assert_eq!(
+            session.config.action_history[0].output_dir.as_deref(),
+            Some(project.as_path())
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
     fn import_project_action_validates_manifest_and_records_recent_project() {
         let temp = temp_test_dir("zircon-hub-import-project-action");
         let source = temp.join("ZirconEngine");
@@ -744,6 +974,123 @@ mod tests {
         assert_eq!(
             view_model.task_summary.recovery.as_deref(),
             Some("选择包含 zircon-project.toml 的文件夹")
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn import_project_duplicate_path_selects_existing_entry_without_new_row() {
+        let temp = temp_test_dir("zircon-hub-import-project-duplicate");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let project = temp.join("Imported");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("zircon-project.toml"), "name = \"Imported\"\n").unwrap();
+        let mut session = session_with_source(&temp, &source);
+        session.config.recent_projects = vec![RecentProject::new("Existing Imported", &project, 1)];
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "import-project".to_string(),
+                target_id: None,
+                payload: Some(serde_json::json!({ "path": project.join(".") })),
+            })
+            .expect("duplicate import should select the existing project entry");
+
+        assert_eq!(session.config.recent_projects.len(), 1);
+        assert_eq!(
+            session.config.recent_projects[0].display_name,
+            "Existing Imported"
+        );
+        assert_eq!(
+            session.selected_project_path.as_deref(),
+            Some(project.as_path())
+        );
+        assert_eq!(
+            session.task_status.target.as_deref(),
+            Some("Existing Imported")
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn import_project_invalid_manifest_is_recoverable_failure() {
+        let temp = temp_test_dir("zircon-hub-import-project-broken-manifest");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let project = temp.join("Imported");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("zircon-project.toml"), "name = \"Imported\n").unwrap();
+        let mut session = session_with_source(&temp, &source);
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "import-project".to_string(),
+                target_id: Some(project.to_string_lossy().into_owned()),
+                payload: None,
+            })
+            .expect("invalid manifest should be a recoverable Hub error");
+
+        assert_eq!(session.task_status.label, "Import Project failed");
+        assert!(session
+            .task_status
+            .detail
+            .contains("zircon-project.toml could not be parsed"));
+        assert!(session.config.recent_projects.is_empty());
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
+        );
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn import_project_picker_cancel_keeps_state_without_history() {
+        let temp = temp_test_dir("zircon-hub-import-picker-cancel");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let mut session = session_with_source(&temp, &source);
+        session.folder_picker = |_| Ok(None);
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "import-project".to_string(),
+                target_id: None,
+                payload: None,
+            })
+            .expect("picker cancel should refresh state without error");
+
+        assert_eq!(session.task_status.label, "Import cancelled");
+        assert!(session.config.action_history.is_empty());
+        assert!(session.config.recent_projects.is_empty());
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn import_project_picker_error_records_failed_history() {
+        let temp = temp_test_dir("zircon-hub-import-picker-error");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let mut session = session_with_source(&temp, &source);
+        session.folder_picker = |_| Err(HubError::message("picker boom"));
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "import-project".to_string(),
+                target_id: None,
+                payload: None,
+            })
+            .expect("picker error should be recorded as a recoverable failure");
+
+        assert_eq!(session.task_status.label, "Import Project failed");
+        assert_eq!(session.task_status.detail, "picker boom");
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
         );
 
         fs::remove_dir_all(temp).unwrap();
@@ -848,10 +1195,8 @@ mod tests {
                 action_id: "pin-project".to_string(),
                 target_id: Some(fallback.to_string_lossy().into_owned()),
                 payload: Some(serde_json::json!({
-                    "project": {
-                        "projectId": fallback,
-                        "projectPath": target
-                    }
+                    "projectId": fallback,
+                    "projectPath": target
                 })),
             })
             .expect("project management actions should accept typed project targets");
@@ -894,10 +1239,8 @@ mod tests {
                 action_id: "cancel-delete".to_string(),
                 target_id: Some(target.to_string_lossy().into_owned()),
                 payload: Some(serde_json::json!({
-                    "project": {
-                        "projectId": "fallback",
-                        "projectPath": fallback
-                    }
+                    "projectId": "fallback",
+                    "projectPath": fallback
                 })),
             })
             .expect_err(
@@ -913,16 +1256,101 @@ mod tests {
                 action_id: "cancel-delete".to_string(),
                 target_id: Some(fallback.to_string_lossy().into_owned()),
                 payload: Some(serde_json::json!({
-                    "project": {
-                        "projectId": "target",
-                        "projectPath": target
-                    }
+                    "projectId": "target",
+                    "projectPath": target
                 })),
             })
             .expect("cancel-delete should accept the pending project typed target");
 
         assert!(session.pending_delete_project_path.is_none());
         assert_eq!(session.task_status.label, "Delete cancelled");
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn confirm_delete_failure_keeps_pending_state_with_recovery() {
+        let temp = temp_test_dir("zircon-hub-project-confirm-delete-failure");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let project = temp.join("Game");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+        let mut session = session_with_source(&temp, &source);
+        session.config.recent_projects = vec![RecentProject::new("Game", &project, 1)];
+        session.selected_project_path = Some(project.clone());
+        session.recycle_delete = |_| {
+            Err(HubError::message(
+                "Recycle Bin deletion failed with status 1",
+            ))
+        };
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "request-delete".to_string(),
+                target_id: Some(project.to_string_lossy().into_owned()),
+                payload: None,
+            })
+            .unwrap();
+        session
+            .apply_action(HubActionRequest {
+                action_id: "confirm-delete".to_string(),
+                target_id: Some(project.to_string_lossy().into_owned()),
+                payload: None,
+            })
+            .expect("delete failure should be recorded as recoverable state");
+
+        assert_eq!(
+            session.pending_delete_project_path.as_deref(),
+            Some(project.as_path())
+        );
+        assert_eq!(session.config.recent_projects.len(), 1);
+        assert_eq!(session.task_status.label, "Delete Project failed");
+        assert_eq!(
+            session.config.action_history[0].status,
+            HubActionStatus::Failed
+        );
+        assert!(session.config.action_history[0].recovery.is_some());
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn confirm_delete_success_with_injected_recycler_drops_project_only_from_hub() {
+        let temp = temp_test_dir("zircon-hub-project-confirm-delete-success");
+        let source = temp.join("ZirconEngine");
+        fs::create_dir_all(&source).unwrap();
+        let project = temp.join("Game");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join("zircon-project.toml"), "name = \"Game\"\n").unwrap();
+        let mut session = session_with_source(&temp, &source);
+        session.config.recent_projects = vec![RecentProject::new("Game", &project, 1)];
+        session.selected_project_path = Some(project.clone());
+        session.recycle_delete = |_| Ok(());
+
+        session
+            .apply_action(HubActionRequest {
+                action_id: "request-delete".to_string(),
+                target_id: Some(project.to_string_lossy().into_owned()),
+                payload: None,
+            })
+            .unwrap();
+        session
+            .apply_action(HubActionRequest {
+                action_id: "confirm-delete".to_string(),
+                target_id: Some(project.to_string_lossy().into_owned()),
+                payload: None,
+            })
+            .expect("injected recycler success should remove the project from Hub");
+
+        assert!(session.pending_delete_project_path.is_none());
+        assert!(session.config.recent_projects.is_empty());
+        assert!(session.selected_project_path.is_none());
+        assert_eq!(session.task_status.label, "Project deleted");
+        assert!(
+            project.join("zircon-project.toml").is_file(),
+            "injected recycler must not delete files during the unit test"
+        );
 
         fs::remove_dir_all(temp).unwrap();
     }

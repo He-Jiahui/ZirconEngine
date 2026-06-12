@@ -1,5 +1,7 @@
 use crate::asset::{
-    AssetManagementFamilyStatusIndex, AssetManagementFamilySummary, AssetManagementOverview,
+    AssetManagementFamilyIssueBucket, AssetManagementFamilyIssueIndex,
+    AssetManagementFamilyIssueView, AssetManagementFamilyStatus, AssetManagementFamilyStatusIndex,
+    AssetManagementFamilyStatusView, AssetManagementFamilySummary, AssetManagementOverview,
     AssetManagementRecordSets, MaterialAssetManagementRecord, MaterialAssetManagementRecordSet,
     MeshAssetManagementRecord, MeshAssetManagementRecordSet, MeshValidationError,
     ModelAssetManagementRecord, ModelAssetManagementRecordSet, SceneAssetManagementRecord,
@@ -190,5 +192,25 @@ impl ProjectAssetManager {
 
     pub fn asset_management_family_status_index(&self) -> AssetManagementFamilyStatusIndex {
         self.asset_management_record_sets().family_status_index
+    }
+
+    pub fn asset_management_family_status_view(
+        &self,
+        status: AssetManagementFamilyStatus,
+    ) -> AssetManagementFamilyStatusView {
+        self.asset_management_record_sets()
+            .family_status_view(status)
+    }
+
+    pub fn asset_management_family_issue_index(&self) -> AssetManagementFamilyIssueIndex {
+        self.asset_management_record_sets().family_issue_index
+    }
+
+    pub fn asset_management_family_issue_view(
+        &self,
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> AssetManagementFamilyIssueView {
+        self.asset_management_record_sets()
+            .family_issue_view(bucket)
     }
 }

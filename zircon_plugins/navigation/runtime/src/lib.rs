@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::{
-    ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
-};
+use zircon_runtime::core::manager::NavigationManagerHandle;
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name};
 
 mod component_json;
@@ -18,7 +18,7 @@ pub use manager::{count_navigation_components, default_agent_type, DefaultNaviga
 
 pub const PLUGIN_ID: &str = "navigation";
 pub const NAVIGATION_MODULE_NAME: &str = "NavigationModule";
-pub const NAVIGATION_MANAGER_NAME: &str = "NavigationModule.Manager.NavigationManager";
+pub use zircon_runtime::core::manager::NAVIGATION_MANAGER_NAME;
 pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.runtime";
 
 pub fn module_descriptor() -> ModuleDescriptor {
@@ -34,7 +34,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Lazy,
         Vec::new(),
-        factory(|_| Ok(Arc::new(DefaultNavigationManager::new()) as ServiceObject)),
+        factory(|_| {
+            Ok(Arc::new(NavigationManagerHandle::new(Arc::new(
+                DefaultNavigationManager::new(),
+            ))) as ServiceObject)
+        }),
     ))
 }
 

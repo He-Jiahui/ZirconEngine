@@ -4,7 +4,7 @@ mod diagnostics;
 mod ecs_projection;
 mod focus;
 mod frame_hit_test;
-mod input;
+pub(crate) mod input;
 mod interaction_gate;
 mod node_pool;
 mod popup_stack;
@@ -17,8 +17,8 @@ mod timeline;
 
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
-    arranged_bubble_route, arranged_effective_input_policy, arranged_focus_path, build_arranged_tree,
-    is_arranged_child_hit_path_visible, is_arranged_render_visible,
+    arranged_bubble_route, arranged_effective_input_policy, arranged_focus_path,
+    build_arranged_tree, is_arranged_child_hit_path_visible, is_arranged_render_visible,
 };
 pub use component_state::UiSurfaceComponentStateStore;
 pub use diagnostics::{

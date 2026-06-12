@@ -1,11 +1,11 @@
-use std::fmt;
+use std::{cmp::Ordering, fmt};
 
 use serde::{Deserialize, Serialize};
 
 use super::{
-    BoxedSceneSystem, InternalSceneSystem, IntoSceneSystem, SceneSystem, SceneSystemDescriptor,
-    SceneSystemMetadata, ScheduleConflictGraph, ScheduleConflictNode, ScheduleError, SystemParam,
-    SystemStage,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, InternalSceneSystem, IntoSceneSystem,
+    RuntimeSceneSystem, SceneSystem, SceneSystemDescriptor, SceneSystemMetadata,
+    ScheduleConflictGraph, ScheduleConflictNode, ScheduleError, SystemParam, SystemStage,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -14,6 +14,8 @@ pub struct SceneSystemRegistry {
     systems: Vec<SceneSystemDescriptor>,
     #[serde(skip, default)]
     native_systems: Vec<BoxedSceneSystem>,
+    #[serde(skip, default)]
+    runtime_systems: Vec<BoxedRuntimeSceneSystem>,
 }
 
 impl SceneSystemRegistry {
@@ -21,6 +23,7 @@ impl SceneSystemRegistry {
         Self {
             systems: Vec::new(),
             native_systems: Vec::new(),
+            runtime_systems: Vec::new(),
         }
     }
 
@@ -40,8 +43,7 @@ impl SceneSystemRegistry {
     ) -> Result<(), ScheduleError> {
         validate_system_descriptor(&descriptor)?;
         self.ensure_unique_system_id(&descriptor.id)?;
-        self.systems.push(descriptor);
-        sort_systems(&mut self.systems);
+        insert_system_sorted(&mut self.systems, descriptor);
         Ok(())
     }
 
@@ -62,14 +64,36 @@ impl SceneSystemRegistry {
         validate_system_id(&id)?;
         self.ensure_unique_system_id(&id)?;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order);
-        let system = system
-            .into_scene_system(metadata, world)
-            .map_err(|source| ScheduleError::SystemParam {
-                system_id: id,
-                source,
-            })?;
-        self.native_systems.push(system);
-        sort_native_systems(&mut self.native_systems);
+        let system = match system.into_scene_system(metadata, world) {
+            Ok(system) => system,
+            Err(source) => {
+                return Err(ScheduleError::SystemParam {
+                    system_id: id,
+                    source,
+                });
+            }
+        };
+        insert_native_system_sorted(&mut self.native_systems, system);
+        Ok(())
+    }
+
+    pub(crate) fn register_boxed_native_system(
+        &mut self,
+        system: BoxedSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        validate_system_id(system.id())?;
+        self.ensure_unique_system_id(system.id())?;
+        insert_native_system_sorted(&mut self.native_systems, system);
+        Ok(())
+    }
+
+    pub(crate) fn register_boxed_runtime_system(
+        &mut self,
+        system: BoxedRuntimeSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        validate_system_id(system.id())?;
+        self.ensure_unique_system_id(system.id())?;
+        insert_runtime_system_sorted(&mut self.runtime_systems, system);
         Ok(())
     }
 
@@ -81,19 +105,22 @@ impl SceneSystemRegistry {
         &self,
         stage: SystemStage,
     ) -> impl Iterator<Item = &SceneSystemDescriptor> {
-        self.systems
-            .iter()
-            .filter(move |system| system.stage == stage)
+        SystemsForStage::new(&self.systems, stage)
     }
 
     pub fn native_systems_for_stage(
         &self,
         stage: SystemStage,
     ) -> impl Iterator<Item = &dyn SceneSystem> {
-        self.native_systems
-            .iter()
-            .map(|system| system.as_ref())
-            .filter(move |system| system.stage() == stage)
+        NativeSystemsForStage::new(&self.native_systems, stage)
+    }
+
+    pub(crate) fn native_systems(&self) -> &[BoxedSceneSystem] {
+        &self.native_systems
+    }
+
+    pub(crate) fn runtime_systems(&self) -> &[BoxedRuntimeSceneSystem] {
+        &self.runtime_systems
     }
 
     #[cfg(test)]
@@ -122,7 +149,8 @@ impl SceneSystemRegistry {
     pub(crate) fn native_system_steps_by_stage(
         &self,
     ) -> [Vec<super::ScheduledSceneStep>; SystemStage::COUNT] {
-        let native_step_counts = native_step_counts_by_stage(&self.native_systems);
+        let native_step_counts =
+            native_step_counts_by_stage(&self.native_systems, &self.runtime_systems);
         let mut by_stage = native_step_groups_with_capacity(&native_step_counts);
         for system in &self.native_systems {
             let steps = &mut by_stage[system.stage().rank()];
@@ -139,6 +167,14 @@ impl SceneSystemRegistry {
                 ));
             }
         }
+        for system in &self.runtime_systems {
+            let steps = &mut by_stage[system.stage().rank()];
+            steps.push(super::ScheduledSceneStep::runtime(
+                system.id(),
+                system.stage(),
+                system.order(),
+            ));
+        }
         by_stage
     }
 
@@ -146,38 +182,104 @@ impl SceneSystemRegistry {
         &self,
         stage: SystemStage,
     ) -> ScheduleConflictGraph {
-        ScheduleConflictGraph::from_nodes(
-            self.native_systems
-                .iter()
-                .filter(|system| system.stage() == stage)
-                .flat_map(|system| {
-                    let system_node = ScheduleConflictNode::new(
-                        system.id(),
-                        system.stage(),
-                        system.access().clone(),
-                    );
-                    let barrier_node = system.has_deferred_commands().then(|| {
-                        ScheduleConflictNode::barrier(
-                            apply_deferred_node_id(system.id()),
-                            system.stage(),
-                        )
-                    });
-                    std::iter::once(system_node).chain(barrier_node)
-                }),
-        )
+        let node_count = native_conflict_graph_node_count_for_stage(
+            &self.native_systems,
+            &self.runtime_systems,
+            stage,
+        );
+        let mut nodes = Vec::with_capacity(node_count);
+        for system in &self.native_systems {
+            if system.stage() != stage {
+                continue;
+            }
+
+            nodes.push(ScheduleConflictNode::new(
+                system.id(),
+                system.stage(),
+                system.access().clone(),
+            ));
+            if system.has_deferred_commands() {
+                nodes.push(ScheduleConflictNode::barrier(
+                    apply_deferred_node_id(system.id()),
+                    system.stage(),
+                ));
+            }
+        }
+        for system in &self.runtime_systems {
+            if system.stage() != stage {
+                continue;
+            }
+
+            nodes.push(ScheduleConflictNode::new(
+                system.id(),
+                system.stage(),
+                system.access().clone(),
+            ));
+        }
+        ScheduleConflictGraph::from_node_vec(nodes)
     }
 
     pub(crate) fn take_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
-        let index = self
-            .native_systems
-            .iter()
-            .position(|system| system.id() == id)?;
-        Some(self.native_systems.remove(index))
+        let mut index = 0_usize;
+        while index < self.native_systems.len() {
+            if self.native_systems[index].id() == id {
+                return Some(self.native_systems.remove(index));
+            }
+            index += 1;
+        }
+        None
+    }
+
+    pub(crate) fn remove_system(&mut self, id: &str) -> Option<SceneSystemDescriptor> {
+        let mut index = 0_usize;
+        while index < self.systems.len() {
+            if self.systems[index].id == id {
+                return Some(self.systems.remove(index));
+            }
+            index += 1;
+        }
+        None
+    }
+
+    pub(crate) fn remove_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
+        let mut index = 0_usize;
+        while index < self.native_systems.len() {
+            if self.native_systems[index].id() == id {
+                return Some(self.native_systems.remove(index));
+            }
+            index += 1;
+        }
+        None
+    }
+
+    pub(crate) fn take_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
+        let mut index = 0_usize;
+        while index < self.runtime_systems.len() {
+            if self.runtime_systems[index].id() == id {
+                return Some(self.runtime_systems.remove(index));
+            }
+            index += 1;
+        }
+        None
+    }
+
+    pub(crate) fn remove_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
+        let mut index = 0_usize;
+        while index < self.runtime_systems.len() {
+            if self.runtime_systems[index].id() == id {
+                return Some(self.runtime_systems.remove(index));
+            }
+            index += 1;
+        }
+        None
     }
 
     pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem) {
-        self.native_systems.push(system);
-        sort_native_systems(&mut self.native_systems);
+        insert_native_system_sorted(&mut self.native_systems, system);
+    }
+
+    pub(crate) fn restore_runtime_system(&mut self, system: BoxedRuntimeSceneSystem) {
+        insert_runtime_system_sorted(&mut self.runtime_systems, system);
     }
 
     pub fn into_systems(self) -> Vec<SceneSystemDescriptor> {
@@ -185,8 +287,9 @@ impl SceneSystemRegistry {
     }
 
     fn ensure_unique_system_id(&self, id: &str) -> Result<(), ScheduleError> {
-        if self.systems.iter().any(|system| system.id == id)
-            || self.native_systems.iter().any(|system| system.id() == id)
+        if registered_system_id_exists(&self.systems, id)
+            || registered_native_system_id_exists(&self.native_systems, id)
+            || registered_runtime_system_id_exists(&self.runtime_systems, id)
         {
             return Err(ScheduleError::DuplicateSystem(id.to_string()));
         }
@@ -199,6 +302,7 @@ impl Clone for SceneSystemRegistry {
         Self {
             systems: self.systems.clone(),
             native_systems: Vec::new(),
+            runtime_systems: Vec::new(),
         }
     }
 }
@@ -223,6 +327,60 @@ impl Eq for SceneSystemRegistry {}
 impl Default for SceneSystemRegistry {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+struct SystemsForStage<'registry> {
+    systems: std::slice::Iter<'registry, SceneSystemDescriptor>,
+    stage: SystemStage,
+}
+
+impl<'registry> SystemsForStage<'registry> {
+    fn new(systems: &'registry [SceneSystemDescriptor], stage: SystemStage) -> Self {
+        Self {
+            systems: systems.iter(),
+            stage,
+        }
+    }
+}
+
+impl<'registry> Iterator for SystemsForStage<'registry> {
+    type Item = &'registry SceneSystemDescriptor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for system in self.systems.by_ref() {
+            if system.stage == self.stage {
+                return Some(system);
+            }
+        }
+        None
+    }
+}
+
+struct NativeSystemsForStage<'registry> {
+    systems: std::slice::Iter<'registry, BoxedSceneSystem>,
+    stage: SystemStage,
+}
+
+impl<'registry> NativeSystemsForStage<'registry> {
+    fn new(systems: &'registry [BoxedSceneSystem], stage: SystemStage) -> Self {
+        Self {
+            systems: systems.iter(),
+            stage,
+        }
+    }
+}
+
+impl<'registry> Iterator for NativeSystemsForStage<'registry> {
+    type Item = &'registry dyn SceneSystem;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for system in self.systems.by_ref() {
+            if system.stage() == self.stage {
+                return Some(system.as_ref());
+            }
+        }
+        None
     }
 }
 
@@ -272,35 +430,131 @@ fn validate_system_id(id: &str) -> Result<(), ScheduleError> {
     Ok(())
 }
 
-fn sort_systems(systems: &mut [SceneSystemDescriptor]) {
-    systems.sort_by(|left, right| {
-        left.stage
-            .rank()
-            .cmp(&right.stage.rank())
-            .then(left.order.cmp(&right.order))
-            .then(left.id.as_str().cmp(right.id.as_str()))
-    });
+fn registered_system_id_exists(systems: &[SceneSystemDescriptor], id: &str) -> bool {
+    for system in systems {
+        if system.id == id {
+            return true;
+        }
+    }
+    false
 }
 
-fn sort_native_systems(systems: &mut [BoxedSceneSystem]) {
-    systems.sort_by(|left, right| {
-        left.stage()
-            .rank()
-            .cmp(&right.stage().rank())
-            .then(left.order().cmp(&right.order()))
-            .then(left.id().cmp(right.id()))
-    });
+fn registered_native_system_id_exists(systems: &[BoxedSceneSystem], id: &str) -> bool {
+    for system in systems {
+        if system.id() == id {
+            return true;
+        }
+    }
+    false
+}
+
+fn registered_runtime_system_id_exists(systems: &[BoxedRuntimeSceneSystem], id: &str) -> bool {
+    for system in systems {
+        if system.id() == id {
+            return true;
+        }
+    }
+    false
+}
+
+fn insert_system_sorted(
+    systems: &mut Vec<SceneSystemDescriptor>,
+    descriptor: SceneSystemDescriptor,
+) {
+    let insert_index = match systems
+        .binary_search_by(|existing| compare_system_descriptors(existing, &descriptor))
+    {
+        Ok(index) | Err(index) => index,
+    };
+    systems.insert(insert_index, descriptor);
+}
+
+fn compare_system_descriptors(
+    left: &SceneSystemDescriptor,
+    right: &SceneSystemDescriptor,
+) -> Ordering {
+    left.stage
+        .rank()
+        .cmp(&right.stage.rank())
+        .then(left.order.cmp(&right.order))
+        .then(left.id.as_str().cmp(right.id.as_str()))
+}
+
+fn insert_native_system_sorted(systems: &mut Vec<BoxedSceneSystem>, system: BoxedSceneSystem) {
+    let insert_index = match systems
+        .binary_search_by(|existing| compare_native_systems(existing.as_ref(), system.as_ref()))
+    {
+        Ok(index) | Err(index) => index,
+    };
+    systems.insert(insert_index, system);
+}
+
+fn compare_native_systems(left: &dyn SceneSystem, right: &dyn SceneSystem) -> Ordering {
+    left.stage()
+        .rank()
+        .cmp(&right.stage().rank())
+        .then(left.order().cmp(&right.order()))
+        .then(left.id().cmp(right.id()))
+}
+
+fn insert_runtime_system_sorted(
+    systems: &mut Vec<BoxedRuntimeSceneSystem>,
+    system: BoxedRuntimeSceneSystem,
+) {
+    let insert_index = match systems
+        .binary_search_by(|existing| compare_runtime_systems(existing.as_ref(), system.as_ref()))
+    {
+        Ok(index) | Err(index) => index,
+    };
+    systems.insert(insert_index, system);
+}
+
+fn compare_runtime_systems(
+    left: &dyn RuntimeSceneSystem,
+    right: &dyn RuntimeSceneSystem,
+) -> Ordering {
+    left.stage()
+        .rank()
+        .cmp(&right.stage().rank())
+        .then(left.order().cmp(&right.order()))
+        .then(left.id().cmp(right.id()))
 }
 
 fn apply_deferred_node_id(system_id: &str) -> String {
     format!("apply_deferred:{system_id}")
 }
 
-fn native_step_counts_by_stage(systems: &[BoxedSceneSystem]) -> [usize; SystemStage::COUNT] {
+fn native_conflict_graph_node_count_for_stage(
+    systems: &[BoxedSceneSystem],
+    runtime_systems: &[BoxedRuntimeSceneSystem],
+    stage: SystemStage,
+) -> usize {
+    let mut count = 0_usize;
+    for system in systems {
+        if system.stage() != stage {
+            continue;
+        }
+        count += if system.has_deferred_commands() { 2 } else { 1 };
+    }
+    for system in runtime_systems {
+        if system.stage() == stage {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn native_step_counts_by_stage(
+    systems: &[BoxedSceneSystem],
+    runtime_systems: &[BoxedRuntimeSceneSystem],
+) -> [usize; SystemStage::COUNT] {
     let mut counts = [0_usize; SystemStage::COUNT];
     for system in systems {
         let step_count = if system.has_deferred_commands() { 2 } else { 1 };
         counts[system.stage().rank()] += step_count;
+    }
+    for system in runtime_systems {
+        counts[system.stage().rank()] += 1;
     }
     counts
 }

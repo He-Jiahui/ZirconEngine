@@ -152,14 +152,6 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     };
     let anti_alias_report =
         requested_anti_alias.resolve(viewport_state.capabilities(), history_available);
-    let compiled_pipeline = compile_submission_pipeline_with_options(
-        &viewport_state,
-        extract,
-        &viewport_state
-            .compile_options()
-            .clone()
-            .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count()),
-    )?;
     let post_process_stack =
         PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
             &effective_bloom,
@@ -169,6 +161,15 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             history_available,
             &anti_alias_report.effective_settings(),
         );
+    let compiled_pipeline = compile_submission_pipeline_with_options(
+        &viewport_state,
+        extract,
+        &viewport_state
+            .compile_options()
+            .clone()
+            .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
+            .with_post_process_stack(post_process_stack.clone()),
+    )?;
     let post_process_graph = post_process_stack.validated_graph();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
@@ -190,6 +191,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.viewport_generation(),
         viewport_state.take_quality_profile(),
         compiled_pipeline,
+        viewport_state.capabilities().clone(),
         visibility_context,
         viewport_state.previous_motion_vector_camera().cloned(),
         viewport_state

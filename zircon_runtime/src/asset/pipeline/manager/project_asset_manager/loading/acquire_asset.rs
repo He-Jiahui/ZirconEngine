@@ -10,8 +10,9 @@ use super::super::ProjectAssetManager;
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
     AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, MeshAsset, ModelAsset,
-    PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiLayoutAsset,
-    UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiIconAsset,
+    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -46,6 +47,13 @@ impl ProjectAssetManager {
         id: AssetId,
     ) -> Result<ResourceLease<TextureAsset>, CoreError> {
         self.acquire_typed(id, ResourceHandle::<TextureMarker>::new(id), "texture")
+    }
+
+    pub fn acquire_ui_icon_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceLease<UiIconAsset>, CoreError> {
+        self.acquire_typed(id, ResourceHandle::<TextureMarker>::new(id), "ui icon")
     }
 
     pub fn acquire_shader_asset(
@@ -141,6 +149,13 @@ impl ProjectAssetManager {
         id: AssetId,
     ) -> Result<ResourceLease<UiStyleAsset>, CoreError> {
         self.acquire_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui style")
+    }
+
+    pub fn acquire_ui_theme_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceLease<UiThemeAsset>, CoreError> {
+        self.acquire_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui theme")
     }
 
     pub fn acquire_ui_v2_view_asset(

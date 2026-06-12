@@ -16,10 +16,19 @@ related_code:
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/constants.rs
+  - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
+  - zircon_app/src/entry/runtime_entry_app/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/motion.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/button.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/wheel.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/pointer.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/mod.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
@@ -42,10 +51,19 @@ implementation_files:
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/constants.rs
+  - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
+  - zircon_app/src/entry/runtime_entry_app/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/motion.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/button.rs
+  - zircon_app/src/entry/runtime_entry_app/pointer_input/wheel.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/pointer.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/mod.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/host.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs
@@ -73,6 +91,7 @@ tests:
   - zircon_runtime/src/input/tests/input_manager.rs
   - zircon_runtime/src/input/tests/boundary.rs
   - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/tests/prelude.rs
   - zircon_app/src/entry/runtime_library/tests.rs
@@ -146,7 +165,7 @@ M3 wires the runtime preview host through the existing `ZrRuntimeEventV1` ABI in
 - `WindowEvent::PointerButton` remains a mouse button for mouse-like sources, but touch button press/release becomes ABI touch started/ended.
 - `WindowEvent::PointerLeft` for touch becomes ABI touch cancelled so runtime state can clear active touches when the platform cancels tracking without a release.
 - `WindowEvent::KeyboardInput` becomes ABI keyboard pressed/released with a deterministic physical key code and optional text payload.
-- `WindowEvent::MouseWheel` becomes ABI mouse-wheel data with x/y deltas and a Line/Pixel unit. This mirrors Bevy's `dev/bevy/crates/bevy_winit/src/state.rs` mapping of winit `MouseScrollDelta::LineDelta(x, y)` and `PixelDelta(p)` into `bevy_input::mouse::MouseWheel`.
+- `WindowEvent::MouseWheel` becomes ABI mouse-wheel data with x/y deltas and a Line/Pixel unit. When the preview host has a retained pointer position it emits `mouse_wheel_delta_at(...)` so UI-facing adapters can route by cursor point, and falls back to `mouse_wheel_delta(...)` when no point is known. This mirrors Bevy's `dev/bevy/crates/bevy_winit/src/state.rs` mapping of winit `MouseScrollDelta::LineDelta(x, y)` and `PixelDelta(p)` into `bevy_input::mouse::MouseWheel`.
 - `WindowEvent::Ime` becomes ABI IME enabled/disabled/preedit/commit/delete-surrounding events. This follows Bevy's `bevy_winit` path, which forwards winit IME events into `bevy_window::Ime` messages instead of folding composition into keyboard input. Zircon keeps winit `DeleteSurrounding` as a neutral runtime event even though Bevy's checked-in window event enum does not currently expose that variant.
 - `WindowEvent::Focused(false)` becomes ABI lifecycle background, which the runtime uses to clear keyboard state.
 - `DeviceEvent::PointerMotion` becomes ABI raw mouse motion. This mirrors Bevy's `bevy_winit` path, where winit device motion is forwarded as `bevy_input::mouse::MouseMotion` instead of being treated as cursor position. Bevy's checked-in source still names the winit variant `DeviceEvent::MouseMotion`; Zircon's current winit 0.31 beta dependency exposes the same raw delta as `PointerMotion`.
@@ -163,7 +182,7 @@ M3 wires the runtime preview host through the existing `ZrRuntimeEventV1` ABI in
 - Outgoing gamepad rumble requests are drained through the same optional host-request API as `ZrRuntimeHostRequestV1::GamepadRumble`. On desktop `gamepad-gilrs`, the native preview host now maps requests to gilrs force-feedback effects (`Strong`/`Weak`) and tracks active effect lifetimes so `Stop` requests, gamepad disconnects, and app shutdown clear playback handles deterministically. Missing gamepads, disconnected pads, unsupported force-feedback capability, and gilrs force-feedback channel failures are reported as host warnings; the ABI and runtime queue contract remain unchanged.
 - Background, suspended, and low-memory lifecycle states submit `InputEvent::KeyboardFocusLost`.
 - Mouse-motion ABI events submit `InputEvent::MouseMotion`, which is accumulated into `InputFrameSnapshot::mouse_motion_accumulator` and reset by `begin_frame()`. This follows Bevy's split between raw `MouseMotion` events and frame-local `AccumulatedMouseMotion`.
-- Mouse-wheel ABI events with a Line/Pixel unit submit `InputEvent::MouseWheel`; legacy unit-less ABI events still submit `WheelScrolled` so older hosts keep working. The dynamic session validates wheel x/y values as finite before appending precise current-frame wheel state.
+- Mouse-wheel ABI events with a Line/Pixel unit submit `InputEvent::MouseWheel`; legacy unit-less ABI events still submit `WheelScrolled` so older hosts keep working. Coordinate-present wheel events decode their real x/y deltas from `key_code`/`scan_code` bits and ignore `x`/`y` for input-state reduction because those fields carry the cursor point for UI hit routing. The dynamic session validates wheel x/y values as finite before appending precise current-frame wheel state.
 
 ## Raw Mouse Motion
 
@@ -175,7 +194,7 @@ This is intentionally separate from `WindowEvent::PointerMoved`: pointer movemen
 
 M14 adds Bevy-style wheel unit fidelity. Bevy defines `MouseScrollUnit`, `MouseWheel { unit, x, y }`, and `AccumulatedMouseScroll { unit, delta }` in `dev/bevy/crates/bevy_input/src/mouse.rs`, then forwards winit `LineDelta(x, y)` and `PixelDelta(p)` without dropping the horizontal axis in `dev/bevy/crates/bevy_winit/src/state.rs`.
 
-Zircon mirrors that in the runtime input contract with `MouseScrollUnit` and `MouseWheelEvent`. The ABI keeps `ZrRuntimeEventV1::mouse_wheel(delta)` as a vertical line-scroll compatibility constructor, and adds `mouse_wheel_delta(unit, x, y)` for full-fidelity host input. `zircon_app` now uses the full-fidelity constructor for both line and pixel scroll paths. Runtime systems that still read `InputSnapshot::wheel_accumulator` get the same scalar view, while systems that read `InputFrameSnapshot` can inspect raw x/y deltas and the last frame unit.
+Zircon mirrors that in the runtime input contract with `MouseScrollUnit` and `MouseWheelEvent`. The ABI keeps `ZrRuntimeEventV1::mouse_wheel(delta)` as vertical line compatibility, keeps `mouse_wheel_delta(unit, x, y)` as delta-only host input, and adds `mouse_wheel_delta_at(unit, point_x, point_y, delta_x, delta_y)` for Slate-style UI hit routing. `zircon_app` caches the last pointer position from pointer move/button events, uses `mouse_wheel_delta_at(...)` when known, and falls back to delta-only otherwise. Runtime input-state reduction recognizes the coordinate-present flag and decodes delta from `key_code`/`scan_code` bits so dynamic preview scroll/camera behavior continues using real wheel delta, not cursor coords. Runtime systems that still read `InputSnapshot::wheel_accumulator` get the same scalar view, while systems that read `InputFrameSnapshot` can inspect raw x/y deltas and the last frame unit.
 
 ## Cursor Boundary
 

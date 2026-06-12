@@ -13,6 +13,8 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
@@ -32,6 +34,9 @@ implementation_files:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
@@ -42,6 +47,8 @@ implementation_files:
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
 plan_sources:
+  - docs/plans/zircon_runtime/render/index.md
+  - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - .codex/plans/Zircon SRPRHI 渲染管线补全计划.md
   - user: 2026-06-02 PLEASE IMPLEMENT THIS PLAN - ZirconEngine WGPU 渲染主链闭环计划
 tests:
@@ -53,6 +60,10 @@ tests:
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_records_storage_writes_without_attachment_ops
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_rejects_transient_attachment_load_without_producer
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_rejects_read_after_discarded_transient_attachment_store
+  - zircon_runtime/src/render_graph/tests/resources.rs::graph_culls_unused_resource_writer_but_keeps_external_output_chain
+  - zircon_runtime/src/render_graph/tests/ordering.rs::compile_exposes_inferred_resource_dependencies_on_compiled_passes
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs::metadata_context_resolves_pass_resource_handles
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::resource_registry_validates_declaration_kind_before_name_lookup
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::compile_options_fallback_async_compute_passes_to_graphics_queue
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::pipeline_compile_rejects_storage_write_mode_on_read_access
   - zircon_runtime/src/render_graph/tests/resources.rs::graph_preserves_compute_workload_metadata
@@ -63,6 +74,11 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_rejects_compute_workload_on_non_compute_queue
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_audits_planned_compute_workloads_against_dispatches
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_aliases_compatible_transient_texture_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_keeps_incompatible_texture_slot_resources_separate
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_aliases_transient_buffer_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_reuses_entries_across_frames
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_evicts_stale_entries_after_keep_frames
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - cargo test -p zircon_runtime --lib --locked render_graph --jobs 1 --message-format short --color never
@@ -78,11 +94,17 @@ doc_type: module-detail
 
 # RenderGraph Builder
 
-`RenderGraphBuilder` is the runtime frame-graph authoring surface used by SRP compilation and renderer execution. It owns transient texture and buffer handles, imported external targets, pass dependencies, pass resource accesses, attachment load/store operations, culling decisions, queue lane assignment, and resource lifetime metadata.
+`RenderGraphBuilder` is the runtime frame-graph authoring surface used by SRP compilation and renderer execution. It owns graph texture and buffer handles, imported external targets, pass dependencies, pass resource accesses, attachment load/store operations, culling decisions, queue lane assignment, resource declaration rows, and resource lifetime metadata.
 
 ## Resource Ownership
 
-Every graph resource name is now unique within a compiled frame graph. Duplicate names across transient textures, transient buffers, and external imports are rejected before pass ordering is derived. This keeps RenderDoc labels, lifetime spans, transient aliasing, and future history slot names unambiguous.
+Every graph resource name is unique within a compiled frame graph. Duplicate names across graph textures, graph buffers, and external imports are rejected before pass ordering is derived. This keeps RenderDoc labels, lifetime spans, transient aliasing, and future history slot names unambiguous.
+
+The RG-M1 handle table uses `RgTextureHandle`, `RgBufferHandle`, `ExternalResource`, and the sum type `RenderGraphResource`. `RenderGraphBuilder::create_texture(...)` and `create_buffer(...)` allocate stable logical handles before any physical WGPU resource exists, while `import_external_resource(...)` registers imported roots. `CompiledRenderGraph::resource_declarations()` preserves every declared resource row, including resources whose only writers were later culled, and `RenderGraphResourceLifetime.resource` carries the same logical handle for every live resource interval. `CompiledRenderGraph::resource_declaration(...)`, `resource_declaration_by_name(...)`, `resource_lifetime(...)`, and `resource_lifetime_by_name(...)` are the narrow lookup surface for resolver work: declarations answer "was this graph resource authored?", while lifetimes answer "did it survive culling and need execution-time backing?". This follows the Unreal RDG split between logical handles and later pooled resource resolution without exposing WGPU objects through the graph API.
+
+Compiled pass resource access rows remain the current execution bridge: they preserve stable resource names, resource kind, access mode, and attachment ops so existing executors can continue querying execution-record counters by name. `RenderPassResourceResolver` is now attached to real `RenderPassExecutionContext` instances during staged execution; it binds the compiled graph plus current pass id so executors can resolve pass-declared `RenderGraphResource` handles back to declaration rows and live lifetimes. `RenderPassExecutionContext::attachment_ops_for_write(...)`, `reads_texture(...)`, and `reads_transient_texture(...)` now prefer that resolver when present and fall back to the stored pass-resource rows only for manually built metadata contexts. `RenderGraphExecutionResources::require_texture_view_for_declaration(...)` and `require_buffer_for_declaration(...)` consume declaration rows and validate texture/buffer kind before name lookup. Product postprocess resource checks now ask the resolver for pass-scoped read declarations before requiring texture views.
+
+The WGPU execution resource table still exposes logical names to executors, but it now keeps a separate logical-name to physical-backing map. This allows compatible non-overlapping transient textures and buffers from `CompiledRenderGraph::transient_allocation_plan()` to share one owned WGPU backing while preserving the existing name-based executor API. Texture sharing is stricter than the neutral graph byte plan: WGPU backings are shared only when dimensions, mip levels, array depth, sample count, format, dimension, and residency match; usage is unioned. Incompatible texture descriptors fall back to one texture per logical resource, so the graph can reserve one abstract slot without binding an unsafe WGPU view at execution time.
 
 External resources remain imported roots. Reads from external resources do not require an in-graph producer, while transient reads still require an ordered producer. Writes to external resources keep the output chain live even when culling is enabled.
 
@@ -117,9 +139,9 @@ Sparse texture resources use the ordinary `TextureDesc` shape plus `TextureResid
 
 Transient allocation planning keeps sparse reservations out of the dense transient texture aliasing pool. `CompiledRenderGraphTransientAllocationPlan.texture_slot_count` still counts only dense transient texture slots, while `sparse_texture_slot_count` records the number of sparse transient reservations that a later residency manager must own explicitly. That keeps virtual texture resources visible to graph validation and diagnostics without pretending they can alias with ordinary render targets or scratch textures.
 
-The allocation plan is now byte-aware. Each dense transient allocation records its descriptor-derived `size_bytes`; each texture or buffer slot records the maximum byte requirement of all non-overlapping resources assigned to that slot; and the plan exposes `dense_texture_bytes_reserved`, `dense_buffer_bytes_reserved`, and `total_dense_bytes_reserved()`. Sparse reservations remain excluded from dense slots but still contribute to `sparse_texture_virtual_bytes`, giving residency planning a virtual footprint without claiming dense backing memory. The size estimate uses the same RHI-neutral `BufferDesc.size_bytes` and `TextureDesc::checked_storage_size_bytes()` inputs as the headless WGPU transient allocator stats, so later RenderGraph/RHI pooling work can compare planned alias pressure against live backend pressure without exposing concrete WGPU resources.
+The allocation plan is byte-aware. Each dense transient allocation records its descriptor-derived `size_bytes`; each texture or buffer slot records the maximum byte requirement of all non-overlapping resources assigned to that slot; and the plan exposes `dense_texture_bytes_reserved`, `dense_buffer_bytes_reserved`, and `total_dense_bytes_reserved()`. Sparse reservations remain excluded from dense slots but still contribute to `sparse_texture_virtual_bytes`, giving residency planning a virtual footprint without claiming dense backing memory. The size estimate uses the same RHI-neutral `BufferDesc.size_bytes` and `TextureDesc::checked_storage_size_bytes()` inputs as the headless WGPU transient allocator stats.
 
-`update_base_stats(...)` copies those byte totals into `RenderStats` as `last_graph_transient_texture_bytes_reserved`, `last_graph_transient_buffer_bytes_reserved`, `last_graph_transient_dense_bytes_reserved`, and `last_graph_sparse_texture_virtual_bytes`. Runtime diagnostics mirror them with `bytes` units under `render.graph.transient_texture_bytes_reserved`, `render.graph.transient_buffer_bytes_reserved`, `render.graph.transient_dense_bytes_reserved`, and `render.graph.sparse_texture_virtual_bytes`. These rows are graph planning evidence only; they do not imply that WGPU allocated a sparse object or a concrete transient pool yet.
+`update_base_stats(...)` copies those byte totals into `RenderStats` as `last_graph_transient_texture_bytes_reserved`, `last_graph_transient_buffer_bytes_reserved`, `last_graph_transient_dense_bytes_reserved`, and `last_graph_sparse_texture_virtual_bytes`. Runtime diagnostics mirror them with `bytes` units under `render.graph.transient_texture_bytes_reserved`, `render.graph.transient_buffer_bytes_reserved`, `render.graph.transient_dense_bytes_reserved`, and `render.graph.sparse_texture_virtual_bytes`. These rows remain graph planning evidence; the execution resource report is the WGPU-side evidence for how many physical owned textures, external views, and buffers were actually materialized after descriptor compatibility checks.
 
 ## Compute Workload Metadata
 
@@ -142,3 +164,7 @@ The 2026-06-03 M8 workload-audit slice reused `E:\cargo-targets\zircon-render-ma
 The 2026-06-04 byte-aware transient allocation slice extended `CompiledRenderGraphTransientAllocationPlan` with per-resource byte size, per-slot reserved byte size, dense texture/buffer byte totals, and sparse virtual texture bytes. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. Focused `cargo test -p zircon_runtime --lib render_graph::tests::resources::graph_transient_allocation_plan_reports_slot_reserved_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` initially timed out while the Windows lib-test binary was compiling and linking; after the compile lane drained and produced `zircon_runtime-b34ee8d8fc52f1fd.exe`, the warmed rerun passed 1 test, 0 failed, 2680 filtered, with existing warnings only.
 
 The follow-up diagnostics bridge preserves those planned byte totals through `RenderStats` and `DiagnosticStore` without exposing backend allocations. Focused validation target: `cargo test -p zircon_runtime --lib render_framework_stats_report_transient_allocation_bytes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture`.
+
+The 2026-06-12 WGPU materialization slice consumes the neutral transient allocation plan inside `RenderGraphExecutionResources`: compatible dense texture slots share one WGPU texture backing, incompatible texture slots fall back to per-logical-resource textures, and buffer slots share one WGPU buffer backing with max size and unioned usage. `SceneRendererCore` now owns `TransientResourcePool`, so submitted frame resources are released into descriptor-keyed texture/buffer pools and reused on later frames. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed with existing warnings only. Focused lib-test commands were blocked before running the filtered tests by unrelated compile errors in `zircon_runtime/src/ui/tests/runtime_input_manager.rs` and `zircon_runtime/src/ui/tests/style_mapping.rs`; an earlier materialization attempt was also blocked by dirty `zircon_runtime/src/scene/tests/ecs_schedule.rs` test source.
+
+The same slice now exposes `RenderGraphTransientPoolReport` through `RenderGraphExecutionResourceReport`, and runtime diagnostics mirror pool allocation behavior under `render.graph.execution.transient_pool.*`. Those diagnostics report texture/buffer creation, reuse, retained pool entries, and stale-entry eviction separately from the execution resource counts, keeping graph planning bytes, physical WGPU resources, and cross-frame reuse evidence distinct.

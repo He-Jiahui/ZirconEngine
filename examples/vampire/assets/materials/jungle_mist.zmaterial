@@ -1,0 +1,16 @@
+version = 1
+name = "Jungle Mist Light"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000143"
+url = "res://shaders/vampire_effect"
+
+[overrides]
+base_color = [0.14, 0.42, 0.28, 1.0]
+metallic = 0.0
+roughness = 0.58
+emissive = [0.006, 0.035, 0.018]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

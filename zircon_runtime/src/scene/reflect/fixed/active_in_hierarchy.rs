@@ -56,10 +56,13 @@ fn read_field(
     field_name: &str,
 ) -> Result<ReflectedValue, ReflectError> {
     match field_name {
-        "value" => world
-            .active_in_hierarchy(entity)
-            .map(ReflectedValue::Bool)
-            .ok_or_else(|| shared::missing_component(entity, TYPE_PATH)),
+        "value" => {
+            let Some(value) = world.active_in_hierarchy(entity) else {
+                return Err(shared::missing_component(entity, TYPE_PATH));
+            };
+
+            Ok(ReflectedValue::Bool(value))
+        }
         _ => Err(shared::unknown_field(TYPE_PATH, field_name)),
     }
 }

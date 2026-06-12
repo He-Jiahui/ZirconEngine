@@ -39,6 +39,11 @@ fn manager_module_uses_core_framework_contracts() {
 
     assert!(mod_source.contains("crate::core::framework"));
     assert!(resolver_source.contains("crate::core::framework"));
+    assert!(
+        resolver_source.contains("let holder = core.resolve_manager::<$holder>($service_name)?;")
+    );
+    assert!(resolver_source.contains("Ok(holder.shared())"));
     assert!(!mod_source.contains("zircon_framework"));
     assert!(!resolver_source.contains("zircon_framework"));
+    assert!(!resolver_source.contains(".map(|holder| holder.shared())"));
 }

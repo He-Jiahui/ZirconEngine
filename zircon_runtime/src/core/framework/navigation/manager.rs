@@ -40,5 +40,15 @@ pub trait NavigationManager: Send + Sync {
         dt_seconds: Real,
     ) -> Result<NavAgentTickReport, NavigationError>;
 
+    fn tick_world_agent(
+        &self,
+        world: &mut World,
+        entity: u64,
+        dt_seconds: Real,
+    ) -> Result<NavAgentTickReport, NavigationError> {
+        let _ = entity;
+        self.tick_world_agents(world, dt_seconds)
+    }
+
     fn stats(&self) -> NavigationRuntimeStats;
 }

@@ -1,9 +1,21 @@
 //! Stable convenience imports for runtime-facing Zircon applications and modules.
 
+pub use crate::builtin::{
+    default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
+    runtime_core_modules, runtime_modules_for_runtime_profile,
+    runtime_modules_for_runtime_profile_with_plugin_registration_reports,
+    runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
+    runtime_modules_for_target_with_plugin_and_feature_registration_reports,
+    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
+    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
+};
 pub use crate::core::diagnostics::{
     DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,
     DiagnosticStoreSnapshot, HotspotReport, ProfileCaptureConfig, ProfileCounterSnapshot,
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
+};
+pub use crate::core::framework::state::{
+    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
 pub use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual};
 pub use crate::core::framework::window::{
@@ -12,15 +24,12 @@ pub use crate::core::framework::window::{
     WindowResolution, WindowVideoMode, WindowVideoModeSelection, DEFAULT_WINDOW_TITLE,
     PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
-pub use crate::core::modules::{
+pub use crate::core::runtime::modules::{
     DiagnosticsCoreModule, FrameCountModule, LogDiagnosticsModule, LogModule, TasksModule,
     TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_DIAGNOSTICS_MODULE_NAME,
     LOG_MODULE_NAME, TASKS_MODULE_NAME, TIME_MODULE_NAME,
 };
-pub use crate::core::state::{
-    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
-};
-pub use crate::core::tasks::{
+pub use crate::core::runtime::tasks::{
     TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
     TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools,
 };
@@ -74,13 +83,4 @@ pub use crate::plugin::{
     EditorCoreProfile, PluginMaturity, RuntimeCoreProfile, RuntimePluginAvailabilityEntry,
     RuntimePluginAvailabilityReport, RuntimeProfileDescriptor, RuntimeProfileId,
     RuntimeProfilePluginSelection,
-};
-pub use crate::{
-    default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
-    runtime_core_modules, runtime_modules_for_runtime_profile,
-    runtime_modules_for_runtime_profile_with_plugin_registration_reports,
-    runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
-    runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
-    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
 };

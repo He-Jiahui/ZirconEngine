@@ -1,6 +1,8 @@
 use std::fmt;
 
-use crate::scene::ecs::{SceneSystemMetadata, SystemParamAccess, SystemStage};
+use crate::scene::ecs::{
+    SceneSystemMetadata, SystemOrderingConstraint, SystemParamAccess, SystemSetId, SystemStage,
+};
 use crate::scene::World;
 
 pub type BoxedSceneSystem = Box<dyn SceneSystem>;
@@ -20,6 +22,14 @@ pub trait SceneSystem: Send + 'static {
 
     fn order(&self) -> i32 {
         self.metadata().order()
+    }
+
+    fn sets(&self) -> &[SystemSetId] {
+        self.metadata().sets()
+    }
+
+    fn constraints(&self) -> &[SystemOrderingConstraint] {
+        self.metadata().constraints()
     }
 
     fn has_deferred_commands(&self) -> bool {

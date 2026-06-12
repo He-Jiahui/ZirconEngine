@@ -68,10 +68,13 @@ pub fn reflected_from_json(value: serde_json::Value) -> ReflectedValue {
 
 pub fn json_from_reflected(value: ReflectedValue) -> Result<serde_json::Value, ReflectError> {
     ensure_finite_reflected_value(&value, "serde_json::Value")?;
-    serde_json::to_value(&value).map_err(|_| ReflectError::UnsupportedConversion {
-        source: format!("ReflectedValue::{}", value.type_name()),
-        target: "serde_json::Value".to_string(),
-    })
+    match serde_json::to_value(&value) {
+        Ok(value) => Ok(value),
+        Err(_) => Err(ReflectError::UnsupportedConversion {
+            source: reflected_value_type_source(value.type_name()),
+            target: "serde_json::Value".to_string(),
+        }),
+    }
 }
 
 fn unsupported_reflected_to_scene<T>(source: &str) -> Result<T, ReflectError> {
@@ -79,6 +82,14 @@ fn unsupported_reflected_to_scene<T>(source: &str) -> Result<T, ReflectError> {
         source: source.to_string(),
         target: "ScenePropertyValue".to_string(),
     })
+}
+
+fn reflected_value_type_source(type_name: &str) -> String {
+    const PREFIX: &str = "ReflectedValue::";
+    let mut source = String::with_capacity(PREFIX.len() + type_name.len());
+    source.push_str(PREFIX);
+    source.push_str(type_name);
+    source
 }
 
 fn ensure_finite_reflected_value(
@@ -95,12 +106,18 @@ fn ensure_finite_reflected_value(
         ReflectedValue::Quaternion(value) => {
             ensure_finite_vector(value, "ReflectedValue::Quaternion", target)
         }
-        ReflectedValue::List(values) => values
-            .iter()
-            .try_for_each(|value| ensure_finite_reflected_value(value, target)),
-        ReflectedValue::Map(values) => values
-            .values()
-            .try_for_each(|value| ensure_finite_reflected_value(value, target)),
+        ReflectedValue::List(values) => {
+            for value in values {
+                ensure_finite_reflected_value(value, target)?;
+            }
+            Ok(())
+        }
+        ReflectedValue::Map(values) => {
+            for value in values.values() {
+                ensure_finite_reflected_value(value, target)?;
+            }
+            Ok(())
+        }
         ReflectedValue::Null
         | ReflectedValue::Bool(_)
         | ReflectedValue::Integer(_)
@@ -118,13 +135,14 @@ fn ensure_finite_scalar(
     source: &'static str,
     target: &'static str,
 ) -> Result<(), ReflectError> {
-    value
-        .is_finite()
-        .then_some(())
-        .ok_or_else(|| ReflectError::UnsupportedConversion {
-            source: source.to_string(),
-            target: target.to_string(),
-        })
+    if value.is_finite() {
+        return Ok(());
+    }
+
+    Err(ReflectError::UnsupportedConversion {
+        source: source.to_string(),
+        target: target.to_string(),
+    })
 }
 
 fn ensure_finite_vector(
@@ -132,12 +150,14 @@ fn ensure_finite_vector(
     source: &'static str,
     target: &'static str,
 ) -> Result<(), ReflectError> {
-    values
-        .iter()
-        .all(|value| value.is_finite())
-        .then_some(())
-        .ok_or_else(|| ReflectError::UnsupportedConversion {
-            source: source.to_string(),
-            target: target.to_string(),
-        })
+    for value in values {
+        if !value.is_finite() {
+            return Err(ReflectError::UnsupportedConversion {
+                source: source.to_string(),
+                target: target.to_string(),
+            });
+        }
+    }
+
+    Ok(())
 }

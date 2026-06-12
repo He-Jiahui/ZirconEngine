@@ -1,20 +1,16 @@
 pub const PLUGIN_ID: &str = "animation";
-pub const ANIMATION_PLAYBACK_CONFIG_KEY: &str = "animation.playback_settings";
+pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "animation.runtime";
+mod runtime_system;
 
-mod clip_event;
-mod manager;
-mod module;
-mod scene_hook;
-mod sequence;
-
-pub use clip_event::{sample_clip_events, AnimationClipEvent};
-pub use manager::DefaultAnimationManager;
-pub use module::{
-    module_descriptor, AnimationDriver, AnimationModule, ANIMATION_DRIVER_NAME,
-    ANIMATION_MODULE_NAME, DEFAULT_ANIMATION_MANAGER_NAME,
+pub use runtime_system::{
+    register_runtime_system, AnimationRuntimeSystem, ANIMATION_EVALUATE_SYSTEM,
+    ANIMATION_SYSTEM_SET,
 };
-pub use scene_hook::{scene_hook_registration, AnimationSceneRuntimeHook};
-pub use sequence::apply_sequence_to_world;
+pub use zircon_runtime::animation::{
+    apply_sequence_to_world, module_descriptor, sample_clip_events, AnimationClipEvent,
+    AnimationDriver, AnimationModule, DefaultAnimationManager, ANIMATION_DRIVER_NAME,
+    ANIMATION_MODULE_NAME, ANIMATION_PLAYBACK_CONFIG_KEY, DEFAULT_ANIMATION_MANAGER_NAME,
+};
 pub use zircon_runtime::core::framework::animation::AnimationSequenceApplyReport;
 pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;
 
@@ -40,8 +36,9 @@ impl zircon_runtime::plugin::RuntimePlugin for AnimationRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
         registry.register_module(module_descriptor())?;
-        registry.register_scene_hook(scene_hook_registration())
+        register_runtime_system(registry, owner)
     }
 }
 
@@ -72,6 +69,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         "runtime.feature.animation.timeline_event_track",
         zircon_runtime::plugin::CapabilityStatus::Partial,
     ))
+    .with_system_sets([ANIMATION_SYSTEM_SET])
+    .with_system_anchors([ANIMATION_EVALUATE_SYSTEM])
 }
 
 pub fn runtime_plugin() -> AnimationRuntimePlugin {
@@ -113,6 +112,22 @@ mod tests {
             .modules()
             .iter()
             .any(|module| module.name == ANIMATION_MODULE_NAME));
+        assert!(report
+            .extensions
+            .plugin_runtime_systems()
+            .any(|(owner, system)| {
+                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                    && system.id == ANIMATION_EVALUATE_SYSTEM
+                    && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
+            }));
+        assert_eq!(
+            report.package_manifest.modules[0].system_sets,
+            vec![ANIMATION_SYSTEM_SET.to_string()]
+        );
+        assert_eq!(
+            report.package_manifest.modules[0].system_anchors,
+            vec![ANIMATION_EVALUATE_SYSTEM.to_string()]
+        );
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![

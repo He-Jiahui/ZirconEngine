@@ -1,6 +1,7 @@
 use crate::scene::ecs::{
-    Bundle, ChangeTickWindow, Command, CommandQueue, Component, FnCommand, Resource, SystemParam,
-    SystemParamAccess, SystemParamError,
+    Bundle, ChangeTickWindow, Command, CommandQueue, Component, DeferredCommandError,
+    DeferredCommandOperation, FnCommand, Resource, SystemParam, SystemParamAccess,
+    SystemParamError,
 };
 use crate::scene::{EntityId, World};
 
@@ -43,7 +44,13 @@ impl<'world> Commands<'world> {
     {
         let entity = self.queue_reserved_entity();
         self.queue_fn(move |world| {
-            let _ = world.spawn_at(entity, bundle);
+            if let Err(error) = world.spawn_at(entity, bundle) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Spawn,
+                    entity,
+                    error,
+                ));
+            }
         });
         self.entity(entity)
     }
@@ -64,7 +71,13 @@ impl<'world> Commands<'world> {
 
     pub fn despawn(&mut self, entity: EntityId) {
         self.queue_fn(move |world| {
-            let _ = world.remove_entity(entity);
+            if !world.remove_entity(entity) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Despawn,
+                    entity,
+                    format!("cannot despawn missing entity {entity}"),
+                ));
+            }
         });
     }
 
@@ -73,7 +86,13 @@ impl<'world> Commands<'world> {
         T: Component,
     {
         self.queue_fn(move |world| {
-            let _ = world.insert(entity, component);
+            if let Err(error) = world.insert(entity, component) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Insert,
+                    entity,
+                    error,
+                ));
+            }
         });
     }
 
@@ -82,7 +101,13 @@ impl<'world> Commands<'world> {
         B: Bundle,
     {
         self.queue_fn(move |world| {
-            let _ = world.insert_bundle(entity, bundle);
+            if let Err(error) = world.insert_bundle(entity, bundle) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::InsertBundle,
+                    entity,
+                    error,
+                ));
+            }
         });
     }
 
@@ -91,7 +116,13 @@ impl<'world> Commands<'world> {
         T: Component,
     {
         self.queue_fn(move |world| {
-            let _ = world.remove::<T>(entity);
+            if let Err(error) = world.remove::<T>(entity) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Remove,
+                    entity,
+                    error,
+                ));
+            }
         });
     }
 
@@ -135,7 +166,13 @@ impl EntityCommands<'_> {
     {
         let entity = self.entity;
         self.commands.queue_fn(move |world| {
-            let _ = world.insert_bundle(entity, bundle);
+            if let Err(error) = world.insert_bundle(entity, bundle) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::InsertBundle,
+                    entity,
+                    error,
+                ));
+            }
         });
         self
     }
@@ -146,7 +183,13 @@ impl EntityCommands<'_> {
     {
         let entity = self.entity;
         self.commands.queue_fn(move |world| {
-            let _ = world.remove::<T>(entity);
+            if let Err(error) = world.remove::<T>(entity) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Remove,
+                    entity,
+                    error,
+                ));
+            }
         });
         self
     }
@@ -154,7 +197,13 @@ impl EntityCommands<'_> {
     pub fn despawn(&mut self) -> &mut Self {
         let entity = self.entity;
         self.commands.queue_fn(move |world| {
-            let _ = world.remove_entity(entity);
+            if !world.remove_entity(entity) {
+                world.record_deferred_command_error(DeferredCommandError::new(
+                    DeferredCommandOperation::Despawn,
+                    entity,
+                    format!("cannot despawn missing entity {entity}"),
+                ));
+            }
         });
         self
     }

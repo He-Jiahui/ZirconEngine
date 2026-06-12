@@ -30,9 +30,28 @@ pub struct ScheduleConflictEdge {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScheduleParallelBatch {
     stage: SystemStage,
-    system_ids: Vec<String>,
-    node_indices: Vec<usize>,
+    systems: ScheduleParallelBatchSystems,
     has_barrier: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ScheduleParallelBatchSystems {
+    Single {
+        system_id: String,
+        node_index: usize,
+    },
+    Pair {
+        system_ids: [String; 2],
+        node_indices: [usize; 2],
+    },
+    Triple {
+        system_ids: [String; 3],
+        node_indices: [usize; 3],
+    },
+    Multiple {
+        system_ids: Vec<String>,
+        node_indices: Vec<usize>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,12 +62,34 @@ pub enum ScheduleConflictNodeKind {
 
 impl ScheduleConflictGraph {
     pub fn from_nodes(nodes: impl IntoIterator<Item = ScheduleConflictNode>) -> Self {
-        let nodes = nodes.into_iter().collect::<Vec<_>>();
-        let mut edges = Vec::new();
-        let node_indices_by_system_id = node_indices_by_system_id(&nodes);
-        let mut conflict_edge_indices_by_node = vec![Vec::<usize>::new(); nodes.len()];
-        let mut conflict_node_adjacency = vec![Vec::<usize>::new(); nodes.len()];
-        let node_indices_by_stage = node_indices_by_stage(&nodes);
+        let node_iter = nodes.into_iter();
+        let (lower_bound, _) = node_iter.size_hint();
+        let mut nodes = Vec::with_capacity(lower_bound);
+        for node in node_iter {
+            nodes.push(node);
+        }
+        Self::from_node_vec(nodes)
+    }
+
+    pub(crate) fn from_node_vec(nodes: Vec<ScheduleConflictNode>) -> Self {
+        let graph_inputs = schedule_conflict_graph_inputs(&nodes);
+        if nodes.len() <= 1 {
+            let conflict_edge_indices_by_node = empty_node_index_lists(nodes.len());
+            let conflict_node_adjacency = empty_node_index_lists(nodes.len());
+            return Self {
+                nodes,
+                edges: Vec::new(),
+                node_indices_by_system_id: graph_inputs.node_indices_by_system_id,
+                conflict_edge_indices_by_node,
+                conflict_node_adjacency,
+            };
+        }
+
+        let mut conflict_edge_indices_by_node = empty_node_index_lists(nodes.len());
+        let mut conflict_node_adjacency = empty_node_index_lists(nodes.len());
+        let node_indices_by_stage = node_indices_by_stage(&nodes, &graph_inputs);
+        let edge_upper_bound = same_stage_non_barrier_conflict_pair_upper_bound(&graph_inputs);
+        let mut edges = Vec::with_capacity(edge_upper_bound);
         let mut next_stage_positions = [0_usize; SystemStage::COUNT];
 
         for left_index in 0..nodes.len() {
@@ -93,7 +134,7 @@ impl ScheduleConflictGraph {
         Self {
             nodes,
             edges,
-            node_indices_by_system_id,
+            node_indices_by_system_id: graph_inputs.node_indices_by_system_id,
             conflict_edge_indices_by_node,
             conflict_node_adjacency,
         }
@@ -112,27 +153,25 @@ impl ScheduleConflictGraph {
     }
 
     pub fn systems_conflict(&self, left_system_id: &str, right_system_id: &str) -> bool {
-        self.node_indices_by_system_id
-            .get(left_system_id)
-            .zip(self.node_indices_by_system_id.get(right_system_id))
-            .is_some_and(|(left_index, right_index)| {
-                self.node_indices_conflict(*left_index, *right_index)
-            })
+        let Some(left_index) = self.node_indices_by_system_id.get(left_system_id) else {
+            return false;
+        };
+        let Some(right_index) = self.node_indices_by_system_id.get(right_system_id) else {
+            return false;
+        };
+
+        self.node_indices_conflict(*left_index, *right_index)
     }
 
     pub fn conflicts_for<'graph>(
         &'graph self,
         system_id: &'graph str,
     ) -> impl Iterator<Item = &'graph ScheduleConflictEdge> + 'graph {
-        let edges = &self.edges;
-        self.node_indices_by_system_id
-            .get(system_id)
-            .into_iter()
-            .flat_map(move |node_index| {
-                self.conflict_edge_indices_by_node[*node_index]
-                    .iter()
-                    .map(move |index| &edges[*index])
-            })
+        let edge_indices = match self.node_indices_by_system_id.get(system_id) {
+            Some(node_index) => self.conflict_edge_indices_by_node[*node_index].as_slice(),
+            None => &[],
+        };
+        ScheduleConflictEdges::new(self, edge_indices)
     }
 
     pub fn conservative_parallel_batches(&self) -> Vec<ScheduleParallelBatch> {
@@ -143,71 +182,138 @@ impl ScheduleConflictGraph {
                 // Barriers are ordering boundaries, not data-access systems. They occupy
                 // their own batch so future parallel runners never overlap sync work with
                 // producer or consumer systems.
-                batches.push(ScheduleParallelBatch {
-                    stage: node.stage,
-                    system_ids: vec![node.system_id.clone()],
-                    node_indices: vec![node_index],
-                    has_barrier: true,
-                });
+                batches.push(ScheduleParallelBatch::single(
+                    node.stage,
+                    node.system_id.clone(),
+                    node_index,
+                    true,
+                ));
                 continue;
             }
 
-            if batches.last().is_some_and(|batch| {
-                batch.stage == node.stage
+            if let Some(batch) = batches.last_mut() {
+                let can_extend_last_batch = batch.stage == node.stage
                     && !batch.has_barrier
-                    && !self.node_indices_conflict_with_any(&batch.node_indices, node_index)
-            }) {
-                let batch = batches
-                    .last_mut()
-                    .expect("last batch must exist after is_some_and");
-                batch.system_ids.push(node.system_id.clone());
-                batch.node_indices.push(node_index);
-            } else {
-                batches.push(ScheduleParallelBatch {
-                    stage: node.stage,
-                    system_ids: vec![node.system_id.clone()],
-                    node_indices: vec![node_index],
-                    has_barrier: false,
-                });
+                    && !self.node_indices_conflict_with_any(batch.node_indices(), node_index);
+                if can_extend_last_batch {
+                    batch.push_system(node.system_id.clone(), node_index);
+                    continue;
+                }
             }
+
+            batches.push(ScheduleParallelBatch::single(
+                node.stage,
+                node.system_id.clone(),
+                node_index,
+                false,
+            ));
         }
 
         batches
     }
 
     fn node_indices_conflict(&self, left_index: usize, right_index: usize) -> bool {
-        self.conflict_node_adjacency
-            .get(left_index)
-            .is_some_and(|neighbors| neighbors.binary_search(&right_index).is_ok())
+        let Some(neighbors) = self.conflict_node_adjacency.get(left_index) else {
+            return false;
+        };
+
+        neighbors.binary_search(&right_index).is_ok()
     }
 
     fn node_indices_conflict_with_any(&self, node_indices: &[usize], right_index: usize) -> bool {
-        self.conflict_node_adjacency
-            .get(right_index)
-            .is_some_and(|neighbors| sorted_slices_intersect(node_indices, neighbors))
+        let Some(neighbors) = self.conflict_node_adjacency.get(right_index) else {
+            return false;
+        };
+
+        sorted_slices_intersect(node_indices, neighbors)
     }
 }
 
-fn node_indices_by_system_id(nodes: &[ScheduleConflictNode]) -> HashMap<String, usize> {
+struct ScheduleConflictEdges<'graph> {
+    graph: &'graph ScheduleConflictGraph,
+    edge_indices: &'graph [usize],
+    next_index: usize,
+}
+
+impl<'graph> ScheduleConflictEdges<'graph> {
+    fn new(graph: &'graph ScheduleConflictGraph, edge_indices: &'graph [usize]) -> Self {
+        Self {
+            graph,
+            edge_indices,
+            next_index: 0,
+        }
+    }
+}
+
+impl<'graph> Iterator for ScheduleConflictEdges<'graph> {
+    type Item = &'graph ScheduleConflictEdge;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next_index == self.edge_indices.len() {
+            return None;
+        }
+        let edge_index = self.edge_indices[self.next_index];
+        self.next_index += 1;
+        Some(&self.graph.edges[edge_index])
+    }
+}
+
+struct ScheduleConflictGraphInputs {
+    node_indices_by_system_id: HashMap<String, usize>,
+    node_counts_by_stage: [usize; SystemStage::COUNT],
+    non_barrier_node_counts_by_stage: [usize; SystemStage::COUNT],
+}
+
+fn schedule_conflict_graph_inputs(nodes: &[ScheduleConflictNode]) -> ScheduleConflictGraphInputs {
     let mut node_indices_by_system_id = HashMap::with_capacity(nodes.len());
+    let mut node_counts_by_stage = [0_usize; SystemStage::COUNT];
+    let mut non_barrier_node_counts_by_stage = [0_usize; SystemStage::COUNT];
     for (index, node) in nodes.iter().enumerate() {
         node_indices_by_system_id.insert(node.system_id.clone(), index);
+        let stage_index = node.stage.rank();
+        node_counts_by_stage[stage_index] += 1;
+        if !node.is_barrier() {
+            non_barrier_node_counts_by_stage[stage_index] += 1;
+        }
     }
-    node_indices_by_system_id
+    ScheduleConflictGraphInputs {
+        node_indices_by_system_id,
+        node_counts_by_stage,
+        non_barrier_node_counts_by_stage,
+    }
 }
 
-fn node_indices_by_stage(nodes: &[ScheduleConflictNode]) -> [Vec<usize>; SystemStage::COUNT] {
-    let mut node_counts_by_stage = [0_usize; SystemStage::COUNT];
-    for node in nodes {
-        node_counts_by_stage[node.stage.rank()] += 1;
-    }
+fn empty_node_index_lists(node_count: usize) -> Vec<Vec<usize>> {
+    let mut lists = Vec::with_capacity(node_count);
+    lists.resize_with(node_count, Vec::new);
+    lists
+}
 
-    let mut node_indices_by_stage =
-        std::array::from_fn(|stage_index| Vec::with_capacity(node_counts_by_stage[stage_index]));
+fn node_indices_by_stage(
+    nodes: &[ScheduleConflictNode],
+    graph_inputs: &ScheduleConflictGraphInputs,
+) -> [Vec<usize>; SystemStage::COUNT] {
+    let mut node_indices_by_stage = std::array::from_fn(|stage_index| {
+        Vec::with_capacity(graph_inputs.node_counts_by_stage[stage_index])
+    });
     for (index, node) in nodes.iter().enumerate() {
         node_indices_by_stage[node.stage.rank()].push(index);
     }
     node_indices_by_stage
+}
+
+fn same_stage_non_barrier_conflict_pair_upper_bound(
+    graph_inputs: &ScheduleConflictGraphInputs,
+) -> usize {
+    let mut edge_upper_bound = 0;
+    for node_count in graph_inputs.non_barrier_node_counts_by_stage {
+        edge_upper_bound += conflict_pair_count(node_count);
+    }
+    edge_upper_bound
+}
+
+fn conflict_pair_count(node_count: usize) -> usize {
+    node_count.saturating_mul(node_count.saturating_sub(1)) / 2
 }
 
 fn record_conflict_pair(
@@ -228,8 +334,9 @@ fn record_conflict_pair(
 fn sorted_slices_intersect(left: &[usize], right: &[usize]) -> bool {
     let mut left_index = 0;
     let mut right_index = 0;
-    while let (Some(left_value), Some(right_value)) = (left.get(left_index), right.get(right_index))
-    {
+    while left_index < left.len() && right_index < right.len() {
+        let left_value = left[left_index];
+        let right_value = right[right_index];
         if left_value == right_value {
             return true;
         }
@@ -305,12 +412,95 @@ impl ScheduleConflictEdge {
 }
 
 impl ScheduleParallelBatch {
+    fn single(stage: SystemStage, system_id: String, node_index: usize, has_barrier: bool) -> Self {
+        Self {
+            stage,
+            systems: ScheduleParallelBatchSystems::Single {
+                system_id,
+                node_index,
+            },
+            has_barrier,
+        }
+    }
+
+    fn push_system(&mut self, system_id: String, node_index: usize) {
+        let promoted = match &mut self.systems {
+            ScheduleParallelBatchSystems::Single {
+                system_id: first_system_id,
+                node_index: first_node_index,
+            } => Some(ScheduleParallelBatchSystems::Pair {
+                system_ids: [std::mem::take(first_system_id), system_id],
+                node_indices: [*first_node_index, node_index],
+            }),
+            ScheduleParallelBatchSystems::Pair {
+                system_ids,
+                node_indices,
+            } => Some(ScheduleParallelBatchSystems::Triple {
+                system_ids: [
+                    std::mem::take(&mut system_ids[0]),
+                    std::mem::take(&mut system_ids[1]),
+                    system_id,
+                ],
+                node_indices: [node_indices[0], node_indices[1], node_index],
+            }),
+            ScheduleParallelBatchSystems::Triple {
+                system_ids,
+                node_indices,
+            } => {
+                let mut promoted_system_ids = Vec::with_capacity(4);
+                promoted_system_ids.push(std::mem::take(&mut system_ids[0]));
+                promoted_system_ids.push(std::mem::take(&mut system_ids[1]));
+                promoted_system_ids.push(std::mem::take(&mut system_ids[2]));
+                promoted_system_ids.push(system_id);
+
+                let mut promoted_node_indices = Vec::with_capacity(4);
+                promoted_node_indices.extend_from_slice(node_indices);
+                promoted_node_indices.push(node_index);
+
+                Some(ScheduleParallelBatchSystems::Multiple {
+                    system_ids: promoted_system_ids,
+                    node_indices: promoted_node_indices,
+                })
+            }
+            ScheduleParallelBatchSystems::Multiple {
+                system_ids,
+                node_indices,
+            } => {
+                system_ids.push(system_id);
+                node_indices.push(node_index);
+                None
+            }
+        };
+
+        if let Some(systems) = promoted {
+            self.systems = systems;
+        }
+    }
+
+    fn node_indices(&self) -> &[usize] {
+        match &self.systems {
+            ScheduleParallelBatchSystems::Single { node_index, .. } => {
+                std::slice::from_ref(node_index)
+            }
+            ScheduleParallelBatchSystems::Pair { node_indices, .. } => node_indices.as_slice(),
+            ScheduleParallelBatchSystems::Triple { node_indices, .. } => node_indices.as_slice(),
+            ScheduleParallelBatchSystems::Multiple { node_indices, .. } => node_indices,
+        }
+    }
+
     pub fn stage(&self) -> SystemStage {
         self.stage
     }
 
     pub fn system_ids(&self) -> &[String] {
-        &self.system_ids
+        match &self.systems {
+            ScheduleParallelBatchSystems::Single { system_id, .. } => {
+                std::slice::from_ref(system_id)
+            }
+            ScheduleParallelBatchSystems::Pair { system_ids, .. } => system_ids.as_slice(),
+            ScheduleParallelBatchSystems::Triple { system_ids, .. } => system_ids.as_slice(),
+            ScheduleParallelBatchSystems::Multiple { system_ids, .. } => system_ids,
+        }
     }
 
     pub fn has_barrier(&self) -> bool {

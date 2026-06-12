@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::error::HubError;
+use crate::state::{DeliveryMessageId, HubMessage, HubMessageId};
 
-use super::local_paths::reject_inside_root;
+use super::local_paths::{cleanup_dir_on_error, create_owned_dir, reject_inside_root};
 use super::now_unix_ms;
 
 const PACKAGE_ROOT_DIR: &str = "packages";
@@ -54,26 +55,53 @@ impl ProjectPackageRequest {
 
 pub fn package_project(request: &ProjectPackageRequest) -> Result<ProjectPackageReport, HubError> {
     if request.project_root.as_os_str().is_empty() || !request.project_root.is_dir() {
-        return Err(HubError::message(
-            "Project root is not available for packaging",
+        return Err(HubError::status(
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::ProjectRootUnavailable,
+            )),
+            None,
         ));
     }
     if request.output_root.as_os_str().is_empty() {
-        return Err(HubError::message("Package output root is required"));
+        return Err(HubError::status(
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::PackageOutputRootRequired,
+            )),
+            None,
+        ));
     }
 
     reject_output_inside_project(&request.project_root, &request.output_root)?;
     fs::create_dir_all(&request.output_root)?;
 
     let package_dir = unique_package_dir(request);
+    fs::create_dir_all(
+        package_dir
+            .parent()
+            .expect("package directory should have a parent"),
+    )?;
+    create_owned_dir(&package_dir, || {
+        HubMessage::with_params(
+            HubMessageId::Delivery(DeliveryMessageId::PackageDirectoryAlreadyExists),
+            [package_dir.to_string_lossy().into_owned()],
+        )
+    })?;
+
+    cleanup_dir_on_error(&package_dir, fill_package_dir(request, &package_dir))
+}
+
+fn fill_package_dir(
+    request: &ProjectPackageRequest,
+    package_dir: &Path,
+) -> Result<ProjectPackageReport, HubError> {
     let project_dir = package_dir.join(PACKAGE_PROJECT_DIR);
-    fs::create_dir_all(&project_dir)?;
+    fs::create_dir(&project_dir)?;
     let files_copied = copy_project_tree(&request.project_root, &project_dir)?;
     let manifest_path = package_dir.join(PACKAGE_MANIFEST_FILE);
     write_package_manifest(request, &manifest_path, files_copied)?;
 
     Ok(ProjectPackageReport {
-        package_dir,
+        package_dir: package_dir.to_path_buf(),
         manifest_path,
         files_copied,
     })
@@ -83,7 +111,9 @@ fn reject_output_inside_project(project_root: &Path, output_root: &Path) -> Resu
     reject_inside_root(
         project_root,
         output_root,
-        "Package output root must be outside the project directory",
+        HubMessage::new(HubMessageId::Delivery(
+            DeliveryMessageId::PackageOutputOutsideProject,
+        )),
     )
 }
 
@@ -236,6 +266,35 @@ mod tests {
         );
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn package_project_rejects_preexisting_unique_package_dir_without_deleting_it() {
+        let root = temp_dir("package-source-existing-output");
+        let output = temp_dir("package-existing-output");
+        fs::write(root.join("zircon-project.toml"), "name = \"Demo\"").unwrap();
+        let request = ProjectPackageRequest {
+            project_name: "Demo Project".to_string(),
+            project_root: root.clone(),
+            output_root: output.clone(),
+            created_unix_ms: 42,
+        };
+        let package_dir = output.join(PACKAGE_ROOT_DIR).join("demo-project-42");
+        fs::create_dir_all(&package_dir).unwrap();
+        fs::write(package_dir.join("keep.txt"), "keep").unwrap();
+
+        let error = package_project(&request).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("Package directory already exists: "));
+        assert_eq!(
+            fs::read_to_string(package_dir.join("keep.txt")).unwrap(),
+            "keep"
+        );
+
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(output).unwrap();
     }
 
     fn temp_dir(label: &str) -> PathBuf {

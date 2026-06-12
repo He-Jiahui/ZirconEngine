@@ -1,10 +1,11 @@
 use crate::ui::{
     event_ui::{UiNodeId, UiTreeId},
     layout::{
-        Anchor, Pivot, Position, UiAlignment, UiAlignment2D, UiCanvasSlotPlacement,
-        UiFlowDirection, UiFrame, UiGeometry, UiLayoutMetrics, UiLayoutTransform,
-        UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiPixelSnapping, UiPoint,
-        UiRenderTransform, UiSize, UiSlot, UiSlotKind,
+        Anchor, Pivot, Position, UiAlignment, UiAlignment2D, UiCanvasSlotPlacement, UiDimension,
+        UiFlowDirection, UiFrame, UiGeometry, UiLayoutDebugPacket, UiLayoutDisplay,
+        UiLayoutMetrics, UiLayoutStyle, UiLayoutStyleSourceKind, UiLayoutStyleSourceRef,
+        UiLayoutTransform, UiLinearSlotSizeRule, UiLinearSlotSizing, UiMargin, UiPixelSnapping,
+        UiPoint, UiRenderTransform, UiSize, UiSlot, UiSlotKind,
     },
     tree::UiTree,
 };
@@ -125,6 +126,43 @@ fn ui_layout_geometry_slot_and_metrics_contracts_construct() {
     assert_eq!(sparse_linear_sizing.shrink_value, 1.0);
     assert_eq!(sparse_linear_sizing.min, 0.0);
     assert_eq!(sparse_linear_sizing.max, -1.0);
+}
+
+#[test]
+fn ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults() {
+    let sparse_style: UiLayoutStyle =
+        serde_json::from_str(r#"{"display":"grid","gap":{"column":{"px":12.0}}}"#).unwrap();
+
+    assert_eq!(sparse_style.display, UiLayoutDisplay::Grid);
+    assert_eq!(sparse_style.gap.column, UiDimension::Px(12.0));
+    assert_eq!(sparse_style.gap.row, UiDimension::Px(0.0));
+    assert_eq!(sparse_style.flex_shrink, 1.0);
+    assert!(sparse_style.grid_template_columns.is_empty());
+
+    let packet = UiLayoutDebugPacket {
+        frame_index: 5,
+        nodes: vec![crate::ui::layout::UiLayoutDebugNode {
+            node_id: UiNodeId::new(42),
+            geometry: UiFrame::new(1.0, 2.0, 3.0, 4.0),
+            style_sources: vec![UiLayoutStyleSourceRef {
+                source: UiLayoutStyleSourceKind::Class,
+                id: "toolbar.primary".to_string(),
+            }],
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    let round_trip: UiLayoutDebugPacket =
+        serde_json::from_str(&serde_json::to_string(&packet).unwrap()).unwrap();
+
+    assert_eq!(round_trip.frame_index, 5);
+    assert_eq!(round_trip.nodes.len(), 1);
+    assert_eq!(round_trip.nodes[0].node_id, UiNodeId::new(42));
+    assert_eq!(
+        round_trip.nodes[0].style_sources[0].source,
+        UiLayoutStyleSourceKind::Class
+    );
 }
 
 #[test]

@@ -42,19 +42,20 @@ impl EntityRegistry {
     }
 
     pub fn despawn(&mut self, stable_id: EntityId) -> Result<DespawnedEntity, EntityRegistryError> {
-        let internal = self
-            .stable_to_internal
-            .remove(&stable_id)
-            .ok_or(EntityRegistryError::MissingStableId(stable_id))?;
-        let slot = self
-            .slots
-            .get_mut(internal.index() as usize)
-            .ok_or(EntityRegistryError::InvalidInternalEntity(internal))?;
+        let Some(internal) = self.stable_to_internal.remove(&stable_id) else {
+            return Err(EntityRegistryError::MissingStableId(stable_id));
+        };
+        let Some(slot) = self.slots.get_mut(internal.index() as usize) else {
+            return Err(EntityRegistryError::InvalidInternalEntity(internal));
+        };
         if slot.generation != internal.generation() || slot.stable_id != Some(stable_id) {
             return Err(EntityRegistryError::InvalidInternalEntity(internal));
         }
 
-        let location = slot.location.take().unwrap_or_default();
+        let location = match slot.location.take() {
+            Some(location) => location,
+            None => EntityLocation::default(),
+        };
         slot.stable_id = None;
         slot.generation = next_generation(slot.generation);
         self.free_slots.push(internal.index());
@@ -87,13 +88,12 @@ impl EntityRegistry {
         stable_id: EntityId,
         location: EntityLocation,
     ) -> Result<(), EntityRegistryError> {
-        let internal = self
-            .internal_for_stable(stable_id)
-            .ok_or(EntityRegistryError::MissingStableId(stable_id))?;
-        let slot = self
-            .slots
-            .get_mut(internal.index() as usize)
-            .ok_or(EntityRegistryError::InvalidInternalEntity(internal))?;
+        let Some(internal) = self.internal_for_stable(stable_id) else {
+            return Err(EntityRegistryError::MissingStableId(stable_id));
+        };
+        let Some(slot) = self.slots.get_mut(internal.index() as usize) else {
+            return Err(EntityRegistryError::InvalidInternalEntity(internal));
+        };
         if slot.generation != internal.generation() || slot.stable_id != Some(stable_id) {
             return Err(EntityRegistryError::InvalidInternalEntity(internal));
         }
@@ -114,27 +114,28 @@ impl EntityRegistry {
     }
 
     pub fn location_for_stable(&self, stable_id: EntityId) -> Option<StableEntityLocation> {
-        self.internal_for_stable(stable_id)
-            .and_then(|internal| self.location_for_internal(internal).ok())
+        let Some(internal) = self.internal_for_stable(stable_id) else {
+            return None;
+        };
+        self.location_for_internal(internal).ok()
     }
 
     pub fn location_for_internal(
         &self,
         internal: InternalEntity,
     ) -> Result<StableEntityLocation, EntityRegistryError> {
-        let slot = self
-            .slots
-            .get(internal.index() as usize)
-            .ok_or(EntityRegistryError::InvalidInternalEntity(internal))?;
+        let Some(slot) = self.slots.get(internal.index() as usize) else {
+            return Err(EntityRegistryError::InvalidInternalEntity(internal));
+        };
         if slot.generation != internal.generation() {
             return Err(EntityRegistryError::InvalidInternalEntity(internal));
         }
-        let stable_id = slot
-            .stable_id
-            .ok_or(EntityRegistryError::InvalidInternalEntity(internal))?;
-        let location = slot
-            .location
-            .ok_or(EntityRegistryError::InvalidInternalEntity(internal))?;
+        let Some(stable_id) = slot.stable_id else {
+            return Err(EntityRegistryError::InvalidInternalEntity(internal));
+        };
+        let Some(location) = slot.location else {
+            return Err(EntityRegistryError::InvalidInternalEntity(internal));
+        };
         Ok(StableEntityLocation {
             stable_id,
             internal,
@@ -181,5 +182,8 @@ impl Default for EntitySlot {
 }
 
 fn next_generation(generation: u32) -> u32 {
-    generation.checked_add(1).unwrap_or(FIRST_GENERATION)
+    match generation.checked_add(1) {
+        Some(next_generation) => next_generation,
+        None => FIRST_GENERATION,
+    }
 }

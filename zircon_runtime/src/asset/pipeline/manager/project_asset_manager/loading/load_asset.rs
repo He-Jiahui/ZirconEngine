@@ -14,8 +14,8 @@ use crate::asset::{
     AnimationStateMachineAsset, AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
     MeshAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
     PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
-    TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset,
-    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
+    TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset,
+    UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -100,6 +100,10 @@ impl ProjectAssetManager {
         self.load_typed(id, ResourceHandle::<TextureMarker>::new(id), "texture")
     }
 
+    pub fn load_ui_icon_asset(&self, id: AssetId) -> Result<UiIconAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<TextureMarker>::new(id), "ui icon")
+    }
+
     pub fn load_shader_asset(&self, id: AssetId) -> Result<ShaderAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<ShaderMarker>::new(id), "shader")
     }
@@ -178,6 +182,10 @@ impl ProjectAssetManager {
 
     pub fn load_ui_style_asset(&self, id: AssetId) -> Result<UiStyleAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui style")
+    }
+
+    pub fn load_ui_theme_asset(&self, id: AssetId) -> Result<UiThemeAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui theme")
     }
 
     pub fn load_ui_v2_view_asset(&self, id: AssetId) -> Result<UiV2ViewAsset, CoreError> {

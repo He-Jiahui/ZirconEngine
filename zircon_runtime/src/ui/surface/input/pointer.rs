@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiComponentEventReport, UiDispatchAppliedEffect, UiInputDispatchResult, UiInputEvent,
-        UiPointerInputEvent,
+        UiInputEventMetadata, UiPointerEvent, UiPointerInputEvent,
     },
     surface::UiPointerEventKind,
     tree::UiTreeError,
@@ -22,6 +22,9 @@ pub(super) fn dispatch_pointer_input(
     pointer: UiPointerInputEvent,
 ) -> Result<UiInputDispatchResult, UiTreeError> {
     let metadata = pointer.metadata.clone();
+    record_cursor_position_before_pointer_dispatch(surface, &metadata, &pointer.event);
+    let clear_cursor_point_after_dispatch =
+        should_clear_cursor_position_after_pointer_dispatch(&metadata, &pointer.event);
     let pointer_for_text = pointer.clone();
     let legacy = dispatch_pointer_event_for_metadata(
         surface,
@@ -100,10 +103,42 @@ pub(super) fn dispatch_pointer_input(
     {
         merge_pointer_text_result(&mut result, text_result);
     }
+    if clear_cursor_point_after_dispatch {
+        surface.input.clear_last_cursor_point();
+    }
     let event = result.event.clone();
     annotate_pointer_route_trace(surface, &legacy.route, &event, &mut result);
     annotate_result_route_steps(&mut result);
     Ok(result)
+}
+
+fn record_cursor_position_before_pointer_dispatch(
+    surface: &mut UiSurface,
+    metadata: &UiInputEventMetadata,
+    event: &UiPointerEvent,
+) {
+    if metadata.pointer_source.is_touch_like() {
+        return;
+    }
+
+    if matches!(
+        event.kind,
+        UiPointerEventKind::Move
+            | UiPointerEventKind::Down
+            | UiPointerEventKind::Up
+            | UiPointerEventKind::Scroll
+    ) {
+        surface
+            .input
+            .record_pointer_position(metadata.pointer_source, event.point);
+    }
+}
+
+fn should_clear_cursor_position_after_pointer_dispatch(
+    metadata: &UiInputEventMetadata,
+    event: &UiPointerEvent,
+) -> bool {
+    !metadata.pointer_source.is_touch_like() && matches!(event.kind, UiPointerEventKind::Cancel)
 }
 
 fn dispatch_pointer_event_for_metadata(

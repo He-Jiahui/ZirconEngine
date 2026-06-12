@@ -450,6 +450,30 @@ fn runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is
         .any(|descriptor| descriptor.name == "NavigationModule"));
 }
 
+#[cfg(all(
+    feature = "first-party-zr-vm-language-runtime-plugin",
+    feature = "plugin-ui"
+))]
+#[test]
+fn runtime_profile_bootstrap_can_link_zr_vm_language_when_provider_feature_is_enabled() {
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
+        .with_optional_runtime_plugins([RuntimePluginId::ZrVmLanguage]);
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+
+    assert!(registrations
+        .iter()
+        .any(|registration| registration.package_manifest.id == "zr_vm_language"));
+
+    let entry =
+        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)
+            .expect("ZrVM provider feature should contribute the first-party runtime module");
+
+    assert!(entry
+        .module_descriptors()
+        .iter()
+        .any(|descriptor| descriptor.name == "ZrVmLanguageModule"));
+}
+
 #[test]
 fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contributes_module() {
     let config = EntryConfig::new(EntryProfile::Runtime)

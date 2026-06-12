@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchReply, UiInputDispatchResult,
-        UiInputEvent, UiNavigationInputEvent,
+        UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchPhase, UiDispatchReply,
+        UiInputDispatchResult, UiInputEvent, UiNavigationInputEvent,
     },
     focus::UiFocusedInputKind,
     tree::UiTreeError,
@@ -31,6 +31,16 @@ pub(super) fn dispatch_navigation_input(
             target,
             reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Navigation,
         });
+    }
+    if legacy.handled_by.is_some() || legacy.focus_changed_to.is_some() {
+        reply = reply.in_phase(UiDispatchPhase::Target);
+        if let Some(handler) = legacy
+            .handled_by
+            .or(legacy.route.target)
+            .or(legacy.focus_changed_to)
+        {
+            reply = reply.from_handler(handler);
+        }
     }
     let mut result = UiInputDispatchResult::new(event, reply.clone());
     result.diagnostics.routed = legacy.route.target.is_some() || legacy.route.fallback_to_root;

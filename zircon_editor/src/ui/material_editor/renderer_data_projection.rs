@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use zircon_runtime::asset::AssetReference;
 use zircon_runtime::core::framework::render::{
@@ -6,7 +6,7 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::graphics::{
     RenderPassStage, RendererAsset, RendererFeatureAsset, RendererFeatureContractDiagnostic,
-    RendererFeatureSource,
+    RendererFeatureContractDiagnosticSeverity, RendererFeatureSource,
 };
 
 /// Read-only editor projection for runtime-owned SRP RendererData state.
@@ -37,7 +37,10 @@ pub struct RendererDataFeatureRow {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RendererDataDiagnosticRow {
     pub feature: String,
+    pub material_reference: Option<AssetReference>,
+    pub shader_references: Vec<AssetReference>,
     pub source: Option<RenderMaterialDiagnosticSource>,
+    pub severity: RendererFeatureContractDiagnosticSeverity,
     pub path: String,
     pub message: String,
 }
@@ -61,6 +64,77 @@ impl RendererDataEditorProjection {
             features,
             diagnostics,
         }
+    }
+
+    pub fn diagnostics_by_feature(&self) -> BTreeMap<&str, Vec<&RendererDataDiagnosticRow>> {
+        let mut diagnostics = BTreeMap::new();
+        for diagnostic in &self.diagnostics {
+            diagnostics
+                .entry(diagnostic.feature.as_str())
+                .or_insert_with(Vec::new)
+                .push(diagnostic);
+        }
+        diagnostics
+    }
+
+    pub fn diagnostics_by_source(
+        &self,
+    ) -> BTreeMap<RenderMaterialDiagnosticSource, Vec<&RendererDataDiagnosticRow>> {
+        let mut diagnostics = BTreeMap::new();
+        for diagnostic in &self.diagnostics {
+            let Some(source) = diagnostic.source else {
+                continue;
+            };
+            diagnostics
+                .entry(source)
+                .or_insert_with(Vec::new)
+                .push(diagnostic);
+        }
+        diagnostics
+    }
+
+    pub fn diagnostics_by_severity(
+        &self,
+    ) -> BTreeMap<RendererFeatureContractDiagnosticSeverity, Vec<&RendererDataDiagnosticRow>> {
+        let mut diagnostics = BTreeMap::new();
+        for diagnostic in &self.diagnostics {
+            diagnostics
+                .entry(diagnostic.severity)
+                .or_insert_with(Vec::new)
+                .push(diagnostic);
+        }
+        diagnostics
+    }
+
+    pub fn diagnostics_by_material(
+        &self,
+    ) -> HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> {
+        let mut diagnostics = HashMap::new();
+        for diagnostic in &self.diagnostics {
+            let Some(material) = diagnostic.material_reference.as_ref() else {
+                continue;
+            };
+            diagnostics
+                .entry(material.clone())
+                .or_insert_with(Vec::new)
+                .push(diagnostic);
+        }
+        diagnostics
+    }
+
+    pub fn diagnostics_by_shader(
+        &self,
+    ) -> HashMap<AssetReference, Vec<&RendererDataDiagnosticRow>> {
+        let mut diagnostics = HashMap::new();
+        for diagnostic in &self.diagnostics {
+            for shader in &diagnostic.shader_references {
+                diagnostics
+                    .entry(shader.clone())
+                    .or_insert_with(Vec::new)
+                    .push(diagnostic);
+            }
+        }
+        diagnostics
     }
 }
 
@@ -94,11 +168,14 @@ fn diagnostic_counts_by_feature(
 }
 
 fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDataDiagnosticRow {
-    match diagnostic {
+    let row = match diagnostic {
         RendererFeatureContractDiagnostic::ShaderMissing { feature, reference } => {
             RendererDataDiagnosticRow {
                 feature: feature.clone(),
-                source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: format!("features.{feature}.shader"),
                 message: format!("shader `{}` could not be resolved", reference.locator),
             }
@@ -106,18 +183,41 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
         RendererFeatureContractDiagnostic::MaterialMissing { feature, reference } => {
             RendererDataDiagnosticRow {
                 feature: feature.clone(),
-                source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: format!("features.{feature}.material"),
                 message: format!("material `{}` could not be resolved", reference.locator),
             }
         }
+        RendererFeatureContractDiagnostic::MaterialShaderMissing {
+            feature,
+            material,
+            shader,
+        } => RendererDataDiagnosticRow {
+            feature: feature.clone(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: format!("features.{feature}.material.shader"),
+            message: format!(
+                "material `{}` shader `{}` could not be resolved",
+                material.locator, shader.locator
+            ),
+        },
         RendererFeatureContractDiagnostic::MaterialShaderMismatch {
             feature,
             feature_shader,
             material_shader,
+            ..
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
-            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.material.shader"),
             message: format!(
                 "material shader `{}` does not match feature shader `{}`",
@@ -130,7 +230,10 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
             entry_point,
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
-            source: Some(RenderMaterialDiagnosticSource::ShaderSchema),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.required_entry_points.{entry_point}"),
             message: format!(
                 "shader `{}` is missing entry point `{entry_point}`",
@@ -143,7 +246,10 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
             property,
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
-            source: Some(RenderMaterialDiagnosticSource::ShaderSchema),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.expected_properties.{property}"),
             message: format!(
                 "shader `{}` is missing material property `{property}`",
@@ -156,14 +262,17 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
             slot,
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
-            source: Some(RenderMaterialDiagnosticSource::TextureSlot),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.expected_texture_slots.{slot}"),
             message: format!(
                 "shader `{}` is missing texture slot `{slot}`",
                 shader.locator
             ),
         },
-        RendererFeatureContractDiagnostic::MaterialValidation { feature, error } => {
+        RendererFeatureContractDiagnostic::MaterialValidation { feature, error, .. } => {
             material_validation_diagnostic_row(feature, error)
         }
         RendererFeatureContractDiagnostic::MaterialDiagnostic {
@@ -172,7 +281,10 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
             diagnostic,
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
+            material_reference: None,
+            shader_references: Vec::new(),
             source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.material.validation_diagnostics"),
             message: format!("material `{}` validation: {diagnostic}", material.locator),
         },
@@ -182,13 +294,31 @@ fn diagnostic_row(diagnostic: &RendererFeatureContractDiagnostic) -> RendererDat
             diagnostic,
         } => RendererDataDiagnosticRow {
             feature: feature.clone(),
-            source: diagnostic
-                .starts_with("wgsl_capture ")
-                .then_some(RenderMaterialDiagnosticSource::WgslCapture),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("features.{feature}.shader.validation_diagnostics"),
             message: format!("shader `{}` validation: {diagnostic}", shader.locator),
         },
-    }
+    };
+
+    with_diagnostic_ownership(row, diagnostic)
+}
+
+fn with_diagnostic_ownership(
+    mut row: RendererDataDiagnosticRow,
+    diagnostic: &RendererFeatureContractDiagnostic,
+) -> RendererDataDiagnosticRow {
+    row.material_reference = diagnostic.material_reference().cloned();
+    row.shader_references = diagnostic
+        .shader_references()
+        .into_iter()
+        .cloned()
+        .collect();
+    row.source = diagnostic.source();
+    row.severity = diagnostic.severity();
+    row
 }
 
 fn material_validation_diagnostic_row(
@@ -198,28 +328,40 @@ fn material_validation_diagnostic_row(
     match error {
         RenderMaterialValidationError::InvalidMaskCutoff { cutoff } => RendererDataDiagnosticRow {
             feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
             source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: "overrides.alpha_mode.cutoff".to_string(),
             message: format!("alpha mask cutoff {cutoff} must be finite and within 0.0..=1.0"),
         },
         RenderMaterialValidationError::UnresolvedMaterialReference { material } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: "material".to_string(),
                 message: format!("material `{material}` could not be resolved"),
             }
         }
         RenderMaterialValidationError::MissingRuntimeShaderSource => RendererDataDiagnosticRow {
             feature: feature.to_string(),
-            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: "shader".to_string(),
             message: "shader has no runtime WGSL source".to_string(),
         },
         RenderMaterialValidationError::UnresolvedShaderReference { reference } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: "shader".to_string(),
                 message: format!("shader `{}` could not be resolved", reference.locator),
             }
@@ -227,7 +369,10 @@ fn material_validation_diagnostic_row(
         RenderMaterialValidationError::UnresolvedTextureReference { slot, reference } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: format!("textures.{slot}"),
                 message: format!("texture `{}` could not be resolved", reference.locator),
             }
@@ -238,7 +383,10 @@ fn material_validation_diagnostic_row(
             reason,
         } => RendererDataDiagnosticRow {
             feature: feature.to_string(),
-            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: format!("textures.{slot}"),
             message: format!(
                 "texture `{}` is not upload-ready: {reason}",
@@ -248,71 +396,93 @@ fn material_validation_diagnostic_row(
         RenderMaterialValidationError::InvalidLightingModel { path, value } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
+                material_reference: None,
+                shader_references: Vec::new(),
                 source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!("lighting model `{value}` is not supported"),
             }
         }
-        RenderMaterialValidationError::UnknownPropertyOverride { source, path, name } => {
+        RenderMaterialValidationError::UnknownPropertyOverride { path, name, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(*source),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!("property override `{name}` is not declared by the shader"),
             }
         }
         RenderMaterialValidationError::PropertyOverrideTypeMismatch {
-            source,
             path,
             name,
             expected,
+            ..
         } => RendererDataDiagnosticRow {
             feature: feature.to_string(),
-            source: Some(*source),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: path.clone(),
             message: format!("property override `{name}` must match shader type `{expected}`"),
         },
-        RenderMaterialValidationError::MissingRequiredProperty { source, path, name } => {
+        RenderMaterialValidationError::MissingRequiredProperty { path, name, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(*source),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!("required shader property `{name}` needs a material override"),
             }
         }
-        RenderMaterialValidationError::MissingRequiredTextureSlot { source, path, slot } => {
+        RenderMaterialValidationError::MissingRequiredTextureSlot { path, slot, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(*source),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!(
                     "required texture slot `{slot}` needs a material texture reference"
                 ),
             }
         }
-        RenderMaterialValidationError::UnknownTextureSlot { source, path, slot } => {
+        RenderMaterialValidationError::UnknownTextureSlot { path, slot, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(*source),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!("texture slot `{slot}` is not declared by the shader"),
             }
         }
-        RenderMaterialValidationError::MissingWgslCapture { source, path, name } => {
+        RenderMaterialValidationError::MissingWgslCapture { path, name, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),
-                source: Some(*source),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
                 path: path.clone(),
                 message: format!("shader WGSL does not appear to capture `{name}`"),
             }
         }
         RenderMaterialValidationError::ShaderReadinessDiagnostic {
-            source,
-            path,
-            diagnostic,
+            path, diagnostic, ..
         } => RendererDataDiagnosticRow {
             feature: feature.to_string(),
-            source: Some(*source),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
             path: path.clone(),
             message: diagnostic.clone(),
         },

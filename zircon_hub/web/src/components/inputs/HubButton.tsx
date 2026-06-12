@@ -10,7 +10,7 @@ export interface HubButtonProps extends Omit<ButtonProps, "variant"> {
 
 const toneStyles: Record<HubButtonTone, SxProps<Theme>> = {
   primary: {
-    color: "#eefefe",
+    color: hubTokens.colors.textOnAccent,
     backgroundColor: hubTokens.colors.accentDim,
     borderColor: "rgba(45, 212, 207, 0.48)",
     "&:hover": {
@@ -23,7 +23,7 @@ const toneStyles: Record<HubButtonTone, SxProps<Theme>> = {
     backgroundColor: "rgba(32,32,32,0.82)",
     borderColor: hubTokens.colors.lineStrong,
     "&:hover": {
-      backgroundColor: "#292929",
+      backgroundColor: hubTokens.colors.panelHover,
       borderColor: "rgba(255,255,255,0.22)",
     },
   },
@@ -37,7 +37,7 @@ const toneStyles: Record<HubButtonTone, SxProps<Theme>> = {
     },
   },
   danger: {
-    color: "#ffd8d5",
+    color: hubTokens.colors.dangerText,
     backgroundColor: "rgba(120,25,25,0.54)",
     borderColor: "rgba(245,111,102,0.48)",
     "&:hover": {

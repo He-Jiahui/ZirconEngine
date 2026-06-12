@@ -1,0 +1,16 @@
+version = 1
+name = "Forest Grass Billboard"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000142"
+url = "res://shaders/vampire_forest"
+
+[overrides]
+base_color = [0.08, 0.50, 0.13, 0.94]
+metallic = 0.0
+roughness = 0.96
+emissive = [0.0, 0.025, 0.004]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

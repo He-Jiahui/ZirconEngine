@@ -6,8 +6,8 @@ use crate::{
 
 use super::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
-    PluginPackageManifest,
+    PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest, PluginOptionManifest,
+    PluginPackageKind, PluginPackageManifest,
 };
 
 impl PluginModuleManifest {
@@ -18,6 +18,8 @@ impl PluginModuleManifest {
             crate_name: crate_name.into(),
             target_modes: Vec::new(),
             capabilities: Vec::new(),
+            system_sets: Vec::new(),
+            system_anchors: Vec::new(),
         }
     }
 
@@ -28,6 +30,8 @@ impl PluginModuleManifest {
             crate_name: crate_name.into(),
             target_modes: vec![RuntimeTargetMode::EditorHost],
             capabilities: Vec::new(),
+            system_sets: Vec::new(),
+            system_anchors: Vec::new(),
         }
     }
 
@@ -38,6 +42,8 @@ impl PluginModuleManifest {
             crate_name: crate_name.into(),
             target_modes: Vec::new(),
             capabilities: Vec::new(),
+            system_sets: Vec::new(),
+            system_anchors: Vec::new(),
         }
     }
 
@@ -48,6 +54,8 @@ impl PluginModuleManifest {
             crate_name: crate_name.into(),
             target_modes: Vec::new(),
             capabilities: Vec::new(),
+            system_sets: Vec::new(),
+            system_anchors: Vec::new(),
         }
     }
 
@@ -65,6 +73,24 @@ impl PluginModuleManifest {
         S: Into<String>,
     {
         self.capabilities = capabilities.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_system_sets<I, S>(mut self, system_sets: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.system_sets = system_sets.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_system_anchors<I, S>(mut self, system_anchors: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.system_anchors = system_anchors.into_iter().map(Into::into).collect();
         self
     }
 }
@@ -92,6 +118,7 @@ impl PluginPackageManifest {
             content_roots: Vec::new(),
             modules: Vec::new(),
             dependencies: Vec::new(),
+            provides_interfaces: Vec::new(),
             options: Vec::new(),
             event_catalogs: Vec::new(),
             components: Vec::new(),
@@ -238,6 +265,17 @@ impl PluginPackageManifest {
 
     pub fn with_dependency(mut self, dependency: PluginDependencyManifest) -> Self {
         self.dependencies.push(dependency);
+        self
+    }
+
+    pub fn with_provided_interface(mut self, interface: PluginInterfaceManifest) -> Self {
+        self.provides_interfaces.push(interface);
+        self
+    }
+
+    pub fn with_provided_interface_id(mut self, interface_id: impl Into<String>) -> Self {
+        self.provides_interfaces
+            .push(PluginInterfaceManifest::new(interface_id));
         self
     }
 

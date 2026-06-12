@@ -55,8 +55,7 @@ impl HubConfig {
                 fs::create_dir_all(parent)?;
             }
         }
-        fs::write(path, toml::to_string_pretty(self)?)?;
-        Ok(())
+        write_atomic(path, toml::to_string_pretty(self)?.as_bytes())
     }
 
     /// Repairs persisted Hub-owned registries after loading or importing data.
@@ -72,6 +71,39 @@ impl HubConfig {
             repair_active_engine(&self.engines, &mut self.active_engine_id);
         self.runtime.normalize();
         report
+    }
+}
+
+fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), HubError> {
+    let tmp_path = path.with_extension(format!(
+        "{}tmp",
+        path.extension()
+            .and_then(|extension| extension.to_str())
+            .map(|extension| format!("{extension}."))
+            .unwrap_or_default()
+    ));
+    fs::write(&tmp_path, bytes)?;
+    replace_file(&tmp_path, path)
+}
+
+fn replace_file(tmp_path: &Path, target_path: &Path) -> Result<(), HubError> {
+    match fs::rename(tmp_path, target_path) {
+        Ok(()) => Ok(()),
+        Err(first_error) if target_path.exists() => {
+            match fs::remove_file(target_path).and_then(|()| fs::rename(tmp_path, target_path)) {
+                Ok(()) => Ok(()),
+                Err(second_error) => {
+                    let _ = fs::remove_file(tmp_path);
+                    Err(HubError::message(format!(
+                        "Failed to replace Hub config: {first_error}; retry failed: {second_error}"
+                    )))
+                }
+            }
+        }
+        Err(error) => {
+            let _ = fs::remove_file(tmp_path);
+            Err(error.into())
+        }
     }
 }
 
@@ -351,6 +383,7 @@ fn repair_active_engine(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::HubMessage;
 
     #[test]
     fn hub_config_round_trips_settings_and_engines() {
@@ -393,8 +426,8 @@ mod tests {
             action: crate::state::HubActionKind::OpenEditor,
             status: crate::state::HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: "pid 42".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::legacy("pid 42"),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: Some(42),
             command_line: vec!["zircon_editor".to_string(), "--project".to_string()],
@@ -439,6 +472,95 @@ mod tests {
             Some("local")
         );
         assert_eq!(decoded.action_history[0].process_id, Some(42));
+    }
+
+    #[test]
+    fn loads_legacy_string_action_history_alongside_structured_messages() {
+        let text = r#"
+[[action_history]]
+finished_unix_ms = 2
+action = "create-project"
+status = "success"
+target = "Game"
+detail = { id = "project.created-path", params = ["E:/Projects/Game"] }
+log_excerpt = ""
+command_line = []
+
+[[action_history]]
+finished_unix_ms = 1
+action = "open-output"
+status = "failed"
+target = "Old Output"
+detail = "legacy detail"
+log_excerpt = "legacy log"
+recovery = "legacy recovery"
+command_line = []
+"#;
+
+        let config: HubConfig = toml::from_str(text).unwrap();
+
+        assert_eq!(
+            config.action_history[0].detail,
+            HubMessage::with_params(
+                crate::state::HubMessageId::Project(crate::state::ProjectMessageId::CreatedPath),
+                ["E:/Projects/Game"]
+            )
+        );
+        assert_eq!(
+            config.action_history[0].detail.render(HubLanguage::Chinese),
+            "已创建 E:/Projects/Game"
+        );
+        assert_eq!(
+            config.action_history[1].detail,
+            HubMessage::legacy("legacy detail")
+        );
+        assert_eq!(
+            config.action_history[1].recovery.as_ref(),
+            Some(&HubMessage::legacy("legacy recovery"))
+        );
+    }
+
+    #[test]
+    fn save_replaces_existing_config_atomically_without_leaving_tmp_file() {
+        let temp = temp_test_dir("zircon-hub-config-atomic-replace");
+        let path = temp.join("hub.toml");
+        let mut first = HubConfig::default();
+        first.settings.jobs = 1;
+        first.save(&path).unwrap();
+
+        let mut second = HubConfig::default();
+        second.settings.jobs = 7;
+        second.settings.language = HubLanguage::English;
+        second.save(&path).unwrap();
+
+        let loaded = HubConfig::load(&path).unwrap();
+        assert_eq!(loaded.settings.jobs, 7);
+        assert_eq!(loaded.settings.language, HubLanguage::English);
+        assert!(!path.with_extension("toml.tmp").exists());
+
+        fs::remove_dir_all(temp).unwrap();
+    }
+
+    #[test]
+    fn save_keeps_previous_config_when_tmp_write_is_blocked() {
+        let temp = temp_test_dir("zircon-hub-config-tmp-blocked");
+        let path = temp.join("hub.toml");
+        let mut first = HubConfig::default();
+        first.settings.jobs = 2;
+        first.save(&path).unwrap();
+        let original_text = fs::read_to_string(&path).unwrap();
+        fs::create_dir(path.with_extension("toml.tmp")).unwrap();
+
+        let mut second = HubConfig::default();
+        second.settings.jobs = 9;
+        let error = second
+            .save(&path)
+            .expect_err("tmp path directory should block atomic save");
+
+        assert!(error.to_string().contains("I/O error"));
+        assert_eq!(fs::read_to_string(&path).unwrap(), original_text);
+
+        fs::remove_dir_all(temp).unwrap();
     }
 
     #[test]
@@ -543,8 +665,8 @@ mod tests {
                 action: crate::state::HubActionKind::OpenEditor,
                 status: crate::state::HubActionStatus::Success,
                 target: format!("Project {index}"),
-                detail: String::new(),
-                log_excerpt: String::new(),
+                detail: HubMessage::empty(),
+                log_excerpt: HubMessage::empty(),
                 recovery: None,
                 process_id: None,
                 command_line: Vec::new(),
@@ -595,5 +717,16 @@ mod tests {
             Some("renderable-empty")
         );
         assert_eq!(config.active_engine_id.as_deref(), Some("local"));
+    }
+
+    fn temp_test_dir(prefix: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "{prefix}-{}-{}",
+            std::process::id(),
+            crate::projects::now_unix_ms()
+        ));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).unwrap();
+        path
     }
 }

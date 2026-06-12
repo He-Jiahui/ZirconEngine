@@ -53,8 +53,8 @@ impl TypeRegistry {
             return Err(ReflectError::DuplicateTypePath { type_path });
         }
 
-        let short_type_path = registration.registration.type_path.short_type_path.clone();
-        self.update_short_path_lookup(&type_path, &short_type_path);
+        let short_type_path = registration.registration.type_path.short_type_path.as_str();
+        self.update_short_path_lookup(&type_path, short_type_path);
         self.registrations.insert(type_path, registration);
         Ok(())
     }
@@ -79,19 +79,33 @@ impl TypeRegistry {
     }
 
     pub fn registration(&self, type_path: &str) -> Result<&ReflectTypeRegistration, ReflectError> {
-        self.runtime_registration(type_path)
-            .map(|registration| &registration.registration)
+        Ok(&self.runtime_registration(type_path)?.registration)
     }
 
     pub fn runtime_registration(
         &self,
         type_path: &str,
     ) -> Result<&RuntimeTypeRegistration, ReflectError> {
-        let resolved = self.resolve(type_path)?;
-        Ok(self
-            .registrations
-            .get(resolved)
-            .expect("resolved reflected type path must exist in registry"))
+        if let Some(registration) = self.registrations.get(type_path) {
+            return Ok(registration);
+        }
+
+        if let Some(resolved) = self.short_paths.get(type_path) {
+            return Ok(self
+                .registrations
+                .get(resolved)
+                .expect("short-path reflected type lookup must point at a registered type"));
+        }
+
+        if self.ambiguous_short_paths.contains(type_path) {
+            return Err(ReflectError::AmbiguousShortTypePath {
+                short_type_path: type_path.to_string(),
+            });
+        }
+
+        Err(ReflectError::UnknownType {
+            type_path: type_path.to_string(),
+        })
     }
 
     pub fn resolve(&self, type_path: &str) -> Result<&str, ReflectError> {
@@ -119,7 +133,7 @@ impl TypeRegistry {
     }
 
     pub fn contains(&self, type_path: &str) -> bool {
-        self.resolve(type_path).is_ok()
+        self.registrations.contains_key(type_path) || self.short_paths.contains_key(type_path)
     }
 
     pub fn contains_type_path(&self, type_path: &str) -> bool {

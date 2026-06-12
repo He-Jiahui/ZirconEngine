@@ -1,5 +1,5 @@
 use super::{
-    CorePipelineKind, RenderPhase, RenderPhaseItem, RenderPhaseMeshSource,
+    CorePipelineKind, RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueueSummary,
     RenderPhaseSortComponents,
 };
 use crate::core::framework::render::RenderMaterialAlphaMode;
@@ -13,29 +13,16 @@ pub struct RenderPhaseQueue {
 
 impl RenderPhaseQueue {
     pub fn new(mut items: Vec<RenderPhaseItem>) -> Self {
-        items.sort_by_key(|item| (item.phase_order(), item.sort_key, item.entity));
+        items.sort_by_key(RenderPhaseItem::ordering_key);
         Self { items }
     }
 
     pub fn items_for_phase(&self, phase: RenderPhase) -> impl Iterator<Item = &RenderPhaseItem> {
         self.items.iter().filter(move |item| item.phase == phase)
     }
-}
 
-impl RenderPhaseItem {
-    fn phase_order(self) -> u8 {
-        match self.phase {
-            RenderPhase::Prepass => 0,
-            RenderPhase::Shadow => 1,
-            RenderPhase::Opaque2d | RenderPhase::Opaque3d => 2,
-            RenderPhase::AlphaMask2d | RenderPhase::AlphaMask3d => 3,
-            RenderPhase::Deferred => 4,
-            RenderPhase::Transparent2d | RenderPhase::Transparent3d => 5,
-            RenderPhase::PostProcess => 6,
-            RenderPhase::Ui => 7,
-            RenderPhase::Overlay => 8,
-            RenderPhase::Debug => 9,
-        }
+    pub fn summary(&self) -> RenderPhaseQueueSummary {
+        RenderPhaseQueueSummary::from_sorted_items(&self.items)
     }
 }
 

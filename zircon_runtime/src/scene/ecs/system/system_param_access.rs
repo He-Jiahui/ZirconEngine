@@ -12,10 +12,12 @@ pub struct SystemParamAccess {
     message_reads: Vec<TypeId>,
     message_writes: Vec<TypeId>,
     has_deferred_commands: bool,
+    conservative_world_access: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SystemParamConflictKind {
+    World,
     Component(ComponentId),
     Resource(ResourceId),
     Event(TypeId),
@@ -64,6 +66,10 @@ impl SystemParamAccess {
         self.has_deferred_commands = true;
     }
 
+    pub fn add_conservative_world_access(&mut self) {
+        self.conservative_world_access = true;
+    }
+
     pub fn add_event_read<T>(&mut self) -> Result<(), SystemParamError>
     where
         T: 'static,
@@ -90,6 +96,7 @@ impl SystemParamAccess {
                 type_name: std::any::type_name::<T>(),
             });
         }
+        insert_type_id(&mut self.event_reads, type_id);
         insert_type_id(&mut self.event_writes, type_id);
         Ok(())
     }
@@ -120,6 +127,7 @@ impl SystemParamAccess {
                 type_name: std::any::type_name::<T>(),
             });
         }
+        insert_type_id(&mut self.message_reads, type_id);
         insert_type_id(&mut self.message_writes, type_id);
         Ok(())
     }
@@ -144,6 +152,7 @@ impl SystemParamAccess {
             insert_type_id(&mut self.message_writes, type_id);
         }
         self.has_deferred_commands |= other.has_deferred_commands;
+        self.conservative_world_access |= other.conservative_world_access;
         self.component_access
             .merge_param_set_unchecked(&other.component_access);
     }
@@ -156,9 +165,16 @@ impl SystemParamAccess {
         self.has_deferred_commands
     }
 
+    pub fn has_conservative_world_access(&self) -> bool {
+        self.conservative_world_access
+    }
+
     pub fn conflicts_with(&self, other: &Self) -> bool {
-        self.component_access
-            .conflicts_with(&other.component_access)
+        self.conservative_world_access
+            || other.conservative_world_access
+            || self
+                .component_access
+                .conflicts_with(&other.component_access)
             || resource_access_conflicts(
                 &self.resource_reads,
                 &self.resource_writes,
@@ -180,13 +196,16 @@ impl SystemParamAccess {
     }
 
     pub fn conflict_kinds_with(&self, other: &Self) -> Vec<SystemParamConflictKind> {
-        let mut conflicts = Vec::new();
+        let mut conflicts = Vec::with_capacity(system_param_conflict_upper_bound(self, other));
+        if self.conservative_world_access || other.conservative_world_access {
+            push_conflict(&mut conflicts, SystemParamConflictKind::World);
+        }
 
         for component_id in self
             .component_access
             .conflicting_components_with(&other.component_access)
         {
-            insert_conflict(
+            push_conflict(
                 &mut conflicts,
                 SystemParamConflictKind::Component(component_id),
             );
@@ -220,20 +239,55 @@ impl SystemParamAccess {
     }
 }
 
+fn system_param_conflict_upper_bound(left: &SystemParamAccess, right: &SystemParamAccess) -> usize {
+    usize::from(left.conservative_world_access || right.conservative_world_access)
+        + query_access_conflict_upper_bound(&left.component_access, &right.component_access)
+        + access_conflict_upper_bound(
+            &left.resource_reads,
+            &left.resource_writes,
+            &right.resource_reads,
+            &right.resource_writes,
+        )
+        + access_conflict_upper_bound(
+            &left.event_reads,
+            &left.event_writes,
+            &right.event_reads,
+            &right.event_writes,
+        )
+        + access_conflict_upper_bound(
+            &left.message_reads,
+            &left.message_writes,
+            &right.message_reads,
+            &right.message_writes,
+        )
+}
+
+fn query_access_conflict_upper_bound(left: &QueryAccess, right: &QueryAccess) -> usize {
+    access_conflict_upper_bound(left.reads(), left.writes(), right.reads(), right.writes())
+}
+
+fn access_conflict_upper_bound<T>(
+    left_reads: &[T],
+    left_writes: &[T],
+    right_reads: &[T],
+    right_writes: &[T],
+) -> usize {
+    left_writes.len().min(right_reads.len())
+        + read_only_access_count(left_reads, left_writes).min(right_writes.len())
+}
+
+fn read_only_access_count<T>(left_reads: &[T], left_writes: &[T]) -> usize {
+    left_reads.len().saturating_sub(left_writes.len())
+}
+
 fn resource_access_conflicts(
     left_reads: &[ResourceId],
     left_writes: &[ResourceId],
     right_reads: &[ResourceId],
     right_writes: &[ResourceId],
 ) -> bool {
-    resource_intersects(left_writes, right_reads)
-        || resource_intersects(left_reads, right_writes)
-        || resource_intersects(left_writes, right_writes)
-}
-
-fn resource_intersects(left: &[ResourceId], right: &[ResourceId]) -> bool {
-    left.iter()
-        .any(|resource_id| contains_id(right, *resource_id))
+    access_slices_intersect(left_writes, right_reads)
+        || read_only_access_intersects(left_reads, left_writes, right_writes)
 }
 
 fn type_access_conflicts(
@@ -242,13 +296,55 @@ fn type_access_conflicts(
     right_reads: &[TypeId],
     right_writes: &[TypeId],
 ) -> bool {
-    type_intersects(left_writes, right_reads)
-        || type_intersects(left_reads, right_writes)
-        || type_intersects(left_writes, right_writes)
+    access_slices_intersect(left_writes, right_reads)
+        || read_only_access_intersects(left_reads, left_writes, right_writes)
 }
 
-fn type_intersects(left: &[TypeId], right: &[TypeId]) -> bool {
-    left.iter().any(|type_id| contains_type_id(right, *type_id))
+fn access_slices_intersect<T>(left: &[T], right: &[T]) -> bool
+where
+    T: Ord,
+{
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while left_index < left.len() && right_index < right.len() {
+        let left_value = &left[left_index];
+        let right_value = &right[right_index];
+        if left_value == right_value {
+            return true;
+        }
+        if left_value < right_value {
+            left_index += 1;
+        } else {
+            right_index += 1;
+        }
+    }
+    false
+}
+
+fn read_only_access_intersects<T>(reads: &[T], writes: &[T], right: &[T]) -> bool
+where
+    T: Copy + Ord,
+{
+    let mut read_index = 0;
+    let mut write_index = 0;
+    let mut right_index = 0;
+    while read_index < reads.len() && right_index < right.len() {
+        let read_value = reads[read_index];
+        let right_value = right[right_index];
+        if read_access_is_written(read_value, writes, &mut write_index) {
+            read_index += 1;
+            continue;
+        }
+        if read_value == right_value {
+            return true;
+        }
+        if read_value < right_value {
+            read_index += 1;
+        } else {
+            right_index += 1;
+        }
+    }
+    false
 }
 
 fn push_resource_conflicts(
@@ -258,21 +354,21 @@ fn push_resource_conflicts(
     right_reads: &[ResourceId],
     right_writes: &[ResourceId],
 ) {
-    push_resource_intersections(conflicts, left_writes, right_reads);
-    push_resource_intersections(conflicts, left_reads, right_writes);
-    push_resource_intersections(conflicts, left_writes, right_writes);
-}
-
-fn push_resource_intersections(
-    conflicts: &mut Vec<SystemParamConflictKind>,
-    left: &[ResourceId],
-    right: &[ResourceId],
-) {
-    for resource_id in left {
-        if contains_id(right, *resource_id) {
-            insert_conflict(conflicts, SystemParamConflictKind::Resource(*resource_id));
-        }
-    }
+    push_access_intersections(
+        conflicts,
+        SystemParamConflictKind::Resource,
+        left_writes,
+        right_reads,
+    );
+    // Writes are mirrored into reads, so the first pass already covers write/write
+    // conflicts. The second pass scans only read-only IDs against right writes.
+    push_read_only_access_intersections(
+        conflicts,
+        SystemParamConflictKind::Resource,
+        left_reads,
+        left_writes,
+        right_writes,
+    );
 }
 
 fn push_type_conflicts(
@@ -283,31 +379,95 @@ fn push_type_conflicts(
     right_reads: &[TypeId],
     right_writes: &[TypeId],
 ) {
-    push_type_intersections(conflicts, conflict_kind, left_writes, right_reads);
-    push_type_intersections(conflicts, conflict_kind, left_reads, right_writes);
-    push_type_intersections(conflicts, conflict_kind, left_writes, right_writes);
+    push_access_intersections(conflicts, conflict_kind, left_writes, right_reads);
+    // Writes are mirrored into reads, so the first pass already covers write/write
+    // conflicts. The second pass scans only read-only IDs against right writes.
+    push_read_only_access_intersections(
+        conflicts,
+        conflict_kind,
+        left_reads,
+        left_writes,
+        right_writes,
+    );
 }
 
-fn push_type_intersections(
+fn push_access_intersections<T>(
     conflicts: &mut Vec<SystemParamConflictKind>,
-    conflict_kind: fn(TypeId) -> SystemParamConflictKind,
-    left: &[TypeId],
-    right: &[TypeId],
-) {
-    for type_id in left {
-        if contains_type_id(right, *type_id) {
-            insert_conflict(conflicts, conflict_kind(*type_id));
+    conflict_kind: fn(T) -> SystemParamConflictKind,
+    left: &[T],
+    right: &[T],
+) where
+    T: Copy + Ord,
+{
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while left_index < left.len() && right_index < right.len() {
+        let left_value = left[left_index];
+        let right_value = right[right_index];
+        if left_value == right_value {
+            push_conflict(conflicts, conflict_kind(left_value));
+            left_index += 1;
+            right_index += 1;
+        } else if left_value < right_value {
+            left_index += 1;
+        } else {
+            right_index += 1;
         }
     }
 }
 
-fn insert_conflict(
+fn push_read_only_access_intersections<T>(
     conflicts: &mut Vec<SystemParamConflictKind>,
-    conflict: SystemParamConflictKind,
-) {
-    if !conflicts.contains(&conflict) {
-        conflicts.push(conflict);
+    conflict_kind: fn(T) -> SystemParamConflictKind,
+    reads: &[T],
+    writes: &[T],
+    right: &[T],
+) where
+    T: Copy + Ord,
+{
+    let mut read_index = 0;
+    let mut write_index = 0;
+    let mut right_index = 0;
+    while read_index < reads.len() && right_index < right.len() {
+        let read_value = reads[read_index];
+        let right_value = right[right_index];
+        if read_access_is_written(read_value, writes, &mut write_index) {
+            read_index += 1;
+            continue;
+        }
+        if read_value == right_value {
+            push_conflict(conflicts, conflict_kind(read_value));
+            read_index += 1;
+            right_index += 1;
+        } else if read_value < right_value {
+            read_index += 1;
+        } else {
+            right_index += 1;
+        }
     }
+}
+
+fn read_access_is_written<T>(access_id: T, writes: &[T], write_index: &mut usize) -> bool
+where
+    T: Copy + Ord,
+{
+    while *write_index < writes.len() {
+        let write_value = writes[*write_index];
+        if write_value < access_id {
+            *write_index += 1;
+            continue;
+        }
+        if write_value == access_id {
+            *write_index += 1;
+            return true;
+        }
+        return false;
+    }
+    false
+}
+
+fn push_conflict(conflicts: &mut Vec<SystemParamConflictKind>, conflict: SystemParamConflictKind) {
+    conflicts.push(conflict);
 }
 
 fn insert_id(ids: &mut Vec<ResourceId>, resource_id: ResourceId) {

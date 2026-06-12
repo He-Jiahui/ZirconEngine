@@ -1,12 +1,11 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
-    import_font_asset, import_material, import_mesh, import_model, import_physics_material,
-    import_scene, import_shader, import_shader_package, import_ui_zui_asset,
+    import_font_asset, import_gltf, import_material, import_mesh, import_model,
+    import_physics_material, import_scene, import_shader, import_shader_package, import_texture,
+    import_ui_icon_asset, import_ui_theme_asset, import_ui_zui_asset,
 };
 #[cfg(test)]
-use super::{
-    import_gltf, import_obj, import_sound, import_texture, import_ui_asset, import_ui_v2_asset,
-};
+use super::{import_obj, import_sound, import_ui_asset, import_ui_v2_asset};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -66,6 +65,11 @@ impl AssetImporter {
             descriptor("zircon.builtin.data.json", AssetKind::Data, 1)
                 .with_source_extensions(["json"]),
             import_data_asset::import_json_data,
+        )?;
+        self.register_function(
+            descriptor("zircon.builtin.data.text", AssetKind::Data, 1)
+                .with_source_extensions(["txt"]),
+            import_data_asset::import_text_data,
         )?;
         self.register_optional(
             descriptor("zircon.optional.data.yaml", AssetKind::Data, 1)
@@ -171,6 +175,16 @@ impl AssetImporter {
                 .with_full_suffixes([".zui"]),
             import_ui_zui_asset::import_ui_zui_asset,
         )?;
+        self.register_function(
+            descriptor("zircon.builtin.ui_theme.toml", AssetKind::UiStyle, 1)
+                .with_full_suffixes([".theme.toml"]),
+            import_ui_theme_asset::import_ui_theme_asset,
+        )?;
+        self.register_function(
+            descriptor("zircon.builtin.ui_icon.toml", AssetKind::Texture, 1)
+                .with_full_suffixes([".icon.toml"]),
+            import_ui_icon_asset::import_ui_icon_asset,
+        )?;
 
         self.register_function(
             descriptor(
@@ -218,6 +232,15 @@ impl AssetImporter {
             import_animation_asset::import_animation_asset,
         )?;
 
+        self.register_function(
+            descriptor("zircon.builtin.texture.image", AssetKind::Texture, 1)
+                .with_priority(10)
+                .with_source_extensions([
+                    "png", "jpg", "jpeg", "bmp", "tga", "tiff", "tif", "gif", "webp", "hdr", "exr",
+                    "qoi", "pnm", "pbm", "pgm", "ppm",
+                ]),
+            import_texture::import_texture,
+        )?;
         self.register_optional(
             plugin_required_descriptor(
                 "zircon.plugin_required.texture.image",
@@ -295,8 +318,9 @@ impl AssetImporter {
                 .with_required_capabilities(["runtime.asset.importer.model.obj"]),
             "obj model importer plugin is not installed",
         )?;
-        self.register_optional(
-            plugin_required_descriptor("zircon.plugin_required.model.gltf", AssetKind::Model, 1)
+        self.register_function(
+            descriptor("zircon.builtin.model.gltf", AssetKind::Model, 2)
+                .with_priority(10)
                 .with_source_extensions(["gltf", "glb"])
                 .with_additional_output_kinds([
                     AssetKind::Mesh,
@@ -304,6 +328,22 @@ impl AssetImporter {
                     AssetKind::Material,
                     AssetKind::Texture,
                     AssetKind::Data,
+                    AssetKind::AnimationSkeleton,
+                    AssetKind::AnimationClip,
+                ]),
+            import_gltf::import_gltf,
+        )?;
+        self.register_optional(
+            plugin_required_descriptor("zircon.plugin_required.model.gltf", AssetKind::Model, 2)
+                .with_source_extensions(["gltf", "glb"])
+                .with_additional_output_kinds([
+                    AssetKind::Mesh,
+                    AssetKind::Scene,
+                    AssetKind::Material,
+                    AssetKind::Texture,
+                    AssetKind::Data,
+                    AssetKind::AnimationSkeleton,
+                    AssetKind::AnimationClip,
                 ])
                 .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
             "glTF model importer plugin is not installed",
@@ -435,16 +475,23 @@ impl AssetImporter {
                 import_obj::import_obj,
             ),
             FunctionAssetImporter::new(
-                plugin_fixture_descriptor("gltf_importer.gltf", "gltf_importer", AssetKind::Model)
-                    .with_source_extensions(["gltf", "glb"])
-                    .with_additional_output_kinds([
-                        AssetKind::Mesh,
-                        AssetKind::Scene,
-                        AssetKind::Material,
-                        AssetKind::Texture,
-                        AssetKind::Data,
-                    ])
-                    .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
+                plugin_fixture_descriptor_versioned(
+                    "gltf_importer.gltf",
+                    "gltf_importer",
+                    AssetKind::Model,
+                    2,
+                )
+                .with_source_extensions(["gltf", "glb"])
+                .with_additional_output_kinds([
+                    AssetKind::Mesh,
+                    AssetKind::Scene,
+                    AssetKind::Material,
+                    AssetKind::Texture,
+                    AssetKind::Data,
+                    AssetKind::AnimationSkeleton,
+                    AssetKind::AnimationClip,
+                ])
+                .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
                 import_gltf::import_gltf,
             ),
             FunctionAssetImporter::new(
@@ -501,5 +548,15 @@ fn plugin_fixture_descriptor(
     plugin_id: impl Into<String>,
     output_kind: AssetKind,
 ) -> AssetImporterDescriptor {
-    AssetImporterDescriptor::new(id, plugin_id, output_kind, 1).with_priority(120)
+    plugin_fixture_descriptor_versioned(id, plugin_id, output_kind, 1)
+}
+
+#[cfg(test)]
+fn plugin_fixture_descriptor_versioned(
+    id: impl Into<String>,
+    plugin_id: impl Into<String>,
+    output_kind: AssetKind,
+    importer_version: u32,
+) -> AssetImporterDescriptor {
+    AssetImporterDescriptor::new(id, plugin_id, output_kind, importer_version).with_priority(120)
 }

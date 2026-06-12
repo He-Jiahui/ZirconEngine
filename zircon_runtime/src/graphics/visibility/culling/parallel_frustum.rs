@@ -1,0 +1,94 @@
+use rayon::prelude::*;
+
+use crate::core::framework::render::ViewportCameraSnapshot;
+use crate::core::framework::scene::EntityId;
+use crate::graphics::visibility::VisibilityBounds;
+
+use super::is_mesh_visible::is_bounds_visible;
+
+const PARALLEL_FRUSTUM_MIN_MESHES: usize = 64;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct MeshFrustumCandidate {
+    pub(crate) entity: EntityId,
+    pub(crate) bounds: VisibilityBounds,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct MeshFrustumVisibility {
+    pub(crate) entity: EntityId,
+    pub(crate) visible: bool,
+}
+
+pub(crate) fn mesh_frustum_visibility(
+    candidates: &[MeshFrustumCandidate],
+    camera: &ViewportCameraSnapshot,
+) -> Vec<MeshFrustumVisibility> {
+    if candidates.len() < PARALLEL_FRUSTUM_MIN_MESHES {
+        return serial_mesh_frustum_visibility(candidates, camera);
+    }
+
+    candidates
+        .par_iter()
+        .map(|candidate| MeshFrustumVisibility {
+            entity: candidate.entity,
+            visible: is_bounds_visible(candidate.bounds, camera),
+        })
+        .collect()
+}
+
+pub(crate) fn serial_mesh_frustum_visibility(
+    candidates: &[MeshFrustumCandidate],
+    camera: &ViewportCameraSnapshot,
+) -> Vec<MeshFrustumVisibility> {
+    candidates
+        .iter()
+        .map(|candidate| MeshFrustumVisibility {
+            entity: candidate.entity,
+            visible: is_bounds_visible(candidate.bounds, camera),
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::math::Vec3;
+    use crate::graphics::visibility::VisibilityBounds;
+
+    use super::{mesh_frustum_visibility, serial_mesh_frustum_visibility, MeshFrustumCandidate};
+
+    #[test]
+    fn parallel_frustum_visibility_matches_serial_order_and_results() {
+        let camera = crate::core::framework::render::ViewportCameraSnapshot::default();
+        let candidates = (0..96)
+            .map(|index| {
+                let z = if index % 3 == 0 { 5.0 } else { -5.0 };
+                candidate_at(index + 1, Vec3::new(index as f32 * 0.01, 0.0, z))
+            })
+            .collect::<Vec<_>>();
+
+        let serial = serial_mesh_frustum_visibility(&candidates, &camera);
+        let parallel = mesh_frustum_visibility(&candidates, &camera);
+
+        assert_eq!(parallel, serial);
+        assert!(parallel.iter().any(|entry| entry.visible));
+        assert!(parallel.iter().any(|entry| !entry.visible));
+        assert_eq!(
+            parallel
+                .iter()
+                .map(|entry| entry.entity)
+                .collect::<Vec<_>>(),
+            (1..=96).collect::<Vec<_>>()
+        );
+    }
+
+    fn candidate_at(entity: u64, center: Vec3) -> MeshFrustumCandidate {
+        MeshFrustumCandidate {
+            entity,
+            bounds: VisibilityBounds {
+                center,
+                radius: 0.5,
+            },
+        }
+    }
+}

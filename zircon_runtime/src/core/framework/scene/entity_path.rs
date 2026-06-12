@@ -72,22 +72,10 @@ impl ComponentPropertyPath {
                 "component path must include a component name",
             ));
         }
-        if property_segments.is_empty() {
-            return Err(PathParseError::new(
-                "component path must include at least one property segment",
-            ));
-        }
-        if property_segments
-            .iter()
-            .any(|segment| segment.trim().is_empty())
-        {
-            return Err(PathParseError::new(
-                "component property segments must not be empty or whitespace",
-            ));
-        }
+        let property_len = validated_property_segments_len(&property_segments)?;
 
         Ok(Self {
-            raw: format!("{}.{}", component, property_segments.join(".")),
+            raw: component_property_path_raw(&component, &property_segments, property_len),
             component,
             property_segments,
         })
@@ -117,6 +105,40 @@ impl ComponentPropertyPath {
     pub fn as_str(&self) -> &str {
         &self.raw
     }
+}
+
+fn validated_property_segments_len(property_segments: &[String]) -> Result<usize, PathParseError> {
+    if property_segments.is_empty() {
+        return Err(PathParseError::new(
+            "component path must include at least one property segment",
+        ));
+    }
+
+    let mut property_len = 0;
+    for segment in property_segments {
+        if segment.trim().is_empty() {
+            return Err(PathParseError::new(
+                "component property segments must not be empty or whitespace",
+            ));
+        }
+        property_len += segment.len();
+    }
+
+    Ok(property_len)
+}
+
+fn component_property_path_raw(
+    component: &str,
+    property_segments: &[String],
+    property_len: usize,
+) -> String {
+    let mut raw = String::with_capacity(component.len() + property_len + property_segments.len());
+    raw.push_str(component);
+    for segment in property_segments {
+        raw.push('.');
+        raw.push_str(segment);
+    }
+    raw
 }
 
 impl fmt::Display for ComponentPropertyPath {

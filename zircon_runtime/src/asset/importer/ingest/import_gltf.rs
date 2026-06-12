@@ -1,7 +1,7 @@
+use super::gltf_animation_subassets::add_gltf_animation_and_skin_subassets;
 use super::gltf_labeled_subassets::{
-    add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
-    add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
-    gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
+    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
+    add_gltf_texture_subassets, gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
 };
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -59,6 +59,22 @@ pub(crate) fn import_gltf(
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default();
+            let texcoords1 = reader
+                .read_tex_coords(1)
+                .map(|set| {
+                    set.into_f32()
+                        .flat_map(|uv| uv.into_iter())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let tangents = reader
+                .read_tangents()
+                .map(|set| set.collect::<Vec<_>>())
+                .unwrap_or_default();
+            let colors = reader
+                .read_colors(0)
+                .map(|set| set.into_rgba_f32().collect::<Vec<_>>())
+                .unwrap_or_default();
             let joint_indices = reader
                 .read_joints(0)
                 .map(|set| set.into_u16().collect::<Vec<_>>())
@@ -79,6 +95,9 @@ pub(crate) fn import_gltf(
                 &positions,
                 &normals,
                 &texcoords,
+                &texcoords1,
+                &tangents,
+                &colors,
                 &indices,
                 &joint_indices,
                 &joint_weights,
@@ -113,12 +132,7 @@ pub(crate) fn import_gltf(
     outcome = add_gltf_material_subassets(outcome, &context.uri, &document);
     outcome = add_gltf_mesh_subassets(outcome, &context.uri, &meshes);
     outcome = add_gltf_scene_subassets(outcome, &context.uri, &document);
-    outcome = add_gltf_animation_placeholders_and_skin_subassets(
-        outcome,
-        &context.uri,
-        &document,
-        &buffers,
-    )?;
+    outcome = add_gltf_animation_and_skin_subassets(outcome, &context.uri, &document, &buffers)?;
     Ok(outcome)
 }
 

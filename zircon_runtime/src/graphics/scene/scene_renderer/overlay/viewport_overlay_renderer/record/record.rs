@@ -1,6 +1,7 @@
 use super::super::super::PreparedOverlayBuffers;
 use super::super::viewport_overlay_renderer::ViewportOverlayRenderer;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshSceneDataBindHandle;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
@@ -13,6 +14,7 @@ impl ViewportOverlayRenderer {
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         mesh_draws: &[super::super::super::super::mesh::MeshDraw],
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'_>>,
         mesh_pipelines: &mut super::super::super::super::mesh::MeshPipelineCache,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
@@ -25,6 +27,7 @@ impl ViewportOverlayRenderer {
             depth_view,
             scene_bind_group,
             mesh_draws,
+            gpu_scene_bind_group,
             mesh_pipelines,
             streamer,
             frame,

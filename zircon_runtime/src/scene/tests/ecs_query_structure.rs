@@ -8,6 +8,7 @@ const EXPECTED_QUERY_STATE_MODULES: &[&str] = &[
     "mutable",
     "read_only",
     "read_only_cached",
+    "stats",
     "system_param",
 ];
 const QUERY_STATE_ROOT_NON_EMPTY_LINE_BUDGET: usize = 180;
@@ -118,6 +119,21 @@ fn query_state_stays_folder_backed_by_query_owner() {
     assert!(
         root_text.contains("pub(crate) fn cached_entity_location("),
         "query_state/mod.rs must own shared cache-slot resolution for cached query owners"
+    );
+    assert!(
+        root_text.contains("cache_hits: u64")
+            && root_text.contains("cache_misses: u64")
+            && root_text.contains("last_candidate_entity_count: usize")
+            && root_text.contains("last_matched_entity_count: usize"),
+        "QueryState must keep Runtime 07 cache telemetry counters beside the cache owner"
+    );
+    let stats_text = read_source(&owner_root.join("stats.rs"));
+    assert!(
+        stats_text.contains("pub struct QueryStateCacheStats")
+            && stats_text.contains("pub fn cache_stats(&self) -> QueryStateCacheStats")
+            && stats_text.contains("cache_hits: self.cache_hits")
+            && stats_text.contains("candidate_entity_count: self.last_candidate_entity_count"),
+        "query_state/stats.rs must expose the Runtime 07 cache telemetry snapshot without moving cache ownership"
     );
     assert!(
         root_text.contains("cached_component_locations: Vec<ComponentStorageLocation>")
@@ -590,6 +606,13 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
     let data_text = read_source(&query_root.join("query_data.rs"));
     let filter_text = read_source(&query_root.join("query_filter.rs"));
     let cached_iter_text = read_source(&query_root.join("cached_query_iter.rs"));
+    let world_query_text = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("query.rs"),
+    );
 
     assert!(
         access_text.contains("insert_id(&mut self.reads, component_id);")
@@ -615,6 +638,103 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
         state_text.contains("self.access.reads(),")
             && state_text.contains("&mut component_locations"),
         "QueryState cache rebuilds must fill a reusable component-location scratch Vec from access.reads()"
+    );
+    assert!(
+        state_text.contains("let matched_archetypes = world.matching_query_archetypes(&self.access);")
+            && state_text.contains(
+                "let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);",
+            )
+            && state_text.contains(
+                "world.visit_entity_locations_matching_archetypes(&matched_archetypes, |location| {",
+            )
+            && !state_text.contains("entity_locations_matching_query_archetypes")
+            && !state_text.contains("candidate_locations"),
+        "QueryState cache rebuilds must visit matching world locations directly instead of receiving a temporary candidate-location Vec"
+    );
+    let world_archetype_lookup = world_query_text
+        .split("pub(crate) fn matching_query_archetypes")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(crate) fn matching_query_archetype_entity_count")
+                .next()
+        })
+        .expect("read world query archetype lookup");
+    assert!(
+        world_archetype_lookup.contains(".matching_archetypes(access.with(), access.without())"),
+        "World query cache rebuilds must keep matched-archetype lookup owned by the world query layer"
+    );
+    let world_candidate_count = world_query_text
+        .split("pub(crate) fn matching_query_archetype_entity_count")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(crate) fn visit_entity_locations_matching_archetypes")
+                .next()
+        })
+        .expect("read world query archetype candidate count");
+    assert!(
+        world_candidate_count.contains("let mut count = 0;")
+            && world_candidate_count.contains("for archetype in archetypes")
+            && world_candidate_count.contains("self.archetype_index.entities(*archetype)")
+            && world_candidate_count.contains("count += entities.len();")
+            && world_candidate_count.contains("count"),
+        "World query cache candidate count must derive an exact reserve bound from matched archetype entity lists"
+    );
+    let world_candidate_visit = world_query_text
+        .split("pub(crate) fn visit_entity_locations_matching_archetypes")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(crate) fn component_storage_locations_for_internal")
+                .next()
+        })
+        .expect("read world query archetype candidate visitor");
+    assert!(
+        world_candidate_visit.contains("if archetypes.is_empty()")
+            && world_candidate_visit.contains("return;")
+            && world_candidate_visit.contains("for entity in self.entities.iter().copied()")
+            && world_candidate_visit.contains("self.internal_entity_location(entity)")
+            && world_candidate_visit.contains(".binary_search(&location.location.archetype_id)")
+            && world_candidate_visit.contains("visitor(location);")
+            && !world_candidate_visit.contains("Vec::with_capacity")
+            && !world_candidate_visit.contains("locations.push")
+            && !world_candidate_visit.contains("return (archetypes, Vec::new())")
+            && !world_candidate_visit.contains(".filter_map(")
+            && !world_candidate_visit.contains(".collect()"),
+        "World query cache candidate visitor must preserve stable entity-order traversal without constructing a temporary candidate-location Vec"
+    );
+    let world_component_locations = world_query_text
+        .split("pub(crate) fn component_storage_locations_for_internal")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(crate) fn component_ref_with_ticks_at_location")
+                .next()
+        })
+        .expect("read world query component-location scratch fill");
+    assert!(
+        world_component_locations.contains("output.clear();")
+            && world_component_locations.contains("let component_count = component_ids.len();")
+            && world_component_locations.contains("if component_count == 0")
+            && world_component_locations.contains("output.reserve(component_count);")
+            && world_component_locations.contains("for component_id in component_ids")
+            && world_component_locations
+                .contains("self.component_storage.location(*component_id, internal)")
+            && world_component_locations.contains("output.push(location);")
+            && !world_component_locations.contains(".filter_map(")
+            && !world_component_locations.contains("output.extend("),
+        "World component-location scratch fill must clear, reserve from access-read count, and push storage locations directly without iterator filter_map/extend growth"
+    );
+    assert!(
+        state_text.contains("let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);")
+            && state_text.contains("let component_count = self.access.reads().len();")
+            && state_text.contains("self.cached_entities.reserve(candidate_count);")
+            && state_text.contains("self.cached_entity_indices.reserve(candidate_count);")
+            && state_text.contains("self.cached_locations.reserve(candidate_count);")
+            && state_text.contains(
+                "self.cached_component_location_offsets\n            .reserve(candidate_count);",
+            )
+            && state_text.contains(
+                "self.cached_component_locations\n            .reserve(candidate_count.saturating_mul(component_count));",
+            ),
+        "QueryState cache rebuilds must reserve candidate-sized entity/location caches before repopulating them"
     );
     assert!(
         !state_text.contains("cached_component_ids"),
@@ -648,6 +768,81 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
 }
 
 #[test]
+fn archetype_index_matching_reuses_sorted_component_index_without_per_query_resort() {
+    let signature_text = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("ecs")
+            .join("archetype_signature.rs"),
+    );
+    let archetype_text = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("ecs")
+            .join("archetype_index.rs"),
+    );
+    let matching_archetypes = archetype_text
+        .split("pub fn matching_archetypes(")
+        .nth(1)
+        .and_then(|text| text.split("fn add_entity_to").next())
+        .expect("read matching_archetypes implementation");
+    let signature_indexer = archetype_text
+        .split("fn index_signature_components(")
+        .nth(1)
+        .and_then(|text| text.split("impl Default for ArchetypeIndex").next())
+        .expect("read index_signature_components implementation");
+
+    assert!(
+        signature_indexer.contains("insert_archetype_id(ids, id);"),
+        "ArchetypeIndex must centralize sorted per-component index insertion"
+    );
+    assert!(
+        archetype_text
+            .contains("fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId)")
+            && archetype_text.contains("if let Err(index) = ids.binary_search(&id)")
+            && archetype_text.contains("ids.insert(index, id);"),
+        "per-component archetype index lists must stay sorted and unique as they are built"
+    );
+    assert!(
+        !signature_indexer.contains("ids.contains(&id)")
+            && !signature_indexer.contains("ids.sort_unstable();"),
+        "signature indexing must not use linear contains plus full-list sort after each insertion"
+    );
+    assert!(
+        !matching_archetypes.contains("candidates.sort_unstable();")
+            && !matching_archetypes.contains("candidates.dedup();"),
+        "matching_archetypes must rely on sorted unique index ownership instead of resorting each query"
+    );
+    assert!(
+        matching_archetypes.contains("all_archetype_ids(&self.records)")
+            && !matching_archetypes
+                .contains("self.records.iter().map(ArchetypeRecord::id).collect()"),
+        "matching_archetypes must size the all-archetype fallback instead of relying on collect growth"
+    );
+    assert!(
+        matching_archetypes.contains("candidates.retain(|id|"),
+        "matching_archetypes should filter the already-sorted candidate list in place"
+    );
+    assert!(
+        archetype_text
+            .contains("fn all_archetype_ids(records: &[ArchetypeRecord]) -> Vec<ArchetypeId>")
+            && archetype_text.contains("let mut ids = Vec::with_capacity(records.len());")
+            && archetype_text.contains("for record in records")
+            && archetype_text.contains("ids.push(record.id());"),
+        "all-archetype query fallback must use exact-capacity Vec construction"
+    );
+    assert!(
+        signature_text.contains("fn normalize_components(mut components: Vec<ComponentId>)")
+            && signature_text.contains("if components.len() > 1")
+            && signature_text.contains("components.sort_unstable();")
+            && signature_text.contains("components.dedup();"),
+        "ArchetypeSignature normalization must skip sort/dedup for trivial component lists while preserving normalized multi-component signatures"
+    );
+}
+
+#[test]
 fn cached_combinations_trust_query_state_data_membership() {
     let query_root = manifest_dir()
         .join("src")
@@ -666,6 +861,11 @@ fn cached_combinations_trust_query_state_data_membership() {
         .nth(1)
         .and_then(|text| text.split("fn fetch_current").next())
         .expect("read cached combination constructor");
+    let owned_read_constructor = read_combo_text
+        .split("pub(crate) fn new(")
+        .nth(1)
+        .and_then(|text| text.split("pub(crate) fn new_from_cached_entities").next())
+        .expect("read owned read-only combination constructor");
     let cached_mut_constructor = mut_combo_text
         .split("pub(crate) fn new_from_cached_entities")
         .nth(1)
@@ -725,6 +925,49 @@ fn cached_combinations_trust_query_state_data_membership() {
         "read-only cached combinations must fetch from the borrowed cache slot"
     );
     assert!(
+        owned_read_constructor.contains("entities: &[EntityId]")
+            && owned_read_constructor.contains("if K > entities.len()")
+            && owned_read_constructor.contains("return Self::empty(world, ticks);")
+            && owned_read_constructor.contains("let candidate_count =")
+            && owned_read_constructor
+                .contains("read_only_combination_candidate_count::<D, F>(world, entities, ticks)")
+            && owned_read_constructor.contains("if candidate_count < K")
+            && owned_read_constructor
+                .contains("let mut matched_entities = Vec::with_capacity(candidate_count);")
+            && owned_read_constructor.contains("for entity in entities.iter().copied()")
+            && owned_read_constructor
+                .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
+            && owned_read_constructor.contains("matched_entities.push(entity)")
+            && !owned_read_constructor.contains(".collect::<Vec<_>>()")
+            && !owned_read_constructor.contains("filter(|entity|"),
+        "uncached read-only combinations must skip impossible group sizes, then count candidates first and push into an exact-capacity Vec"
+    );
+    assert!(
+        read_combo_text.contains("fn empty(world: &'world World, ticks: ChangeTickWindow) -> Self")
+            && read_combo_text.contains("candidates: QueryCombinationCandidates::Owned(Vec::new())")
+            && read_combo_text.contains("remaining: 0"),
+        "read-only combinations must share an explicit empty iterator constructor for impossible group sizes"
+    );
+    let combination_count = read_combo_text
+        .split("pub(crate) fn combination_count(")
+        .nth(1)
+        .expect("read combination count helper");
+    assert!(
+        combination_count.contains("let mut count = 1_usize;")
+            && combination_count.contains("while denominator <= group_size")
+            && combination_count.contains("count.checked_mul(numerator)")
+            && combination_count.contains("return usize::MAX;")
+            && !combination_count.contains(".zip(numerator)")
+            && !combination_count.contains(".try_fold("),
+        "combination count must use an explicit checked loop instead of iterator setup on every constructor path"
+    );
+    assert!(
+        cached_read_constructor.contains("if K > entities.len()")
+            && cached_read_constructor.contains("return Self::empty(world, ticks);")
+            && cached_read_constructor.contains("if cache_indices.len() < K"),
+        "cached read-only combinations must avoid building or enumerating impossible group sizes"
+    );
+    assert!(
         mut_combo_text.contains("struct QueryCombinationMutCandidates<'state>")
             && mut_combo_text.contains("cache_indices: Vec<usize>")
             && mut_combo_text.contains("entities: &'state [EntityId]"),
@@ -738,11 +981,22 @@ fn cached_combinations_trust_query_state_data_membership() {
     );
     assert!(
         cached_mut_constructor
-            .contains("let mut cache_indices = Vec::with_capacity(entities.len());")
+            .contains("if K > entities.len()")
+            && cached_mut_constructor.contains("return Self::empty(world, ticks);")
+            && cached_mut_constructor.contains("let mut cache_indices = Vec::with_capacity(entities.len());")
             && cached_mut_constructor.contains("cache_indices.push(index)")
+            && cached_mut_constructor.contains("if cache_indices.len() < K")
             && !cached_mut_constructor.contains("then_some(entity)")
             && !cached_mut_constructor.contains(".collect::<Vec<_>>()"),
-        "mutable cached combinations must not copy matched entities into a temporary Vec"
+        "mutable cached combinations must skip impossible group sizes and not copy matched entities into a temporary Vec"
+    );
+    assert!(
+        mut_combo_text
+            .contains("fn empty(world: &'world mut World, ticks: ChangeTickWindow) -> Self")
+            && mut_combo_text.contains("entities: &[]")
+            && mut_combo_text.contains("cache_indices: Vec::new()")
+            && mut_combo_text.contains("remaining: 0"),
+        "mutable combinations must share an explicit empty iterator constructor for impossible group sizes"
     );
     assert!(
         mut_combo_text.contains("self.candidates.entity(self.indices[index])")
@@ -750,9 +1004,8 @@ fn cached_combinations_trust_query_state_data_membership() {
         "mutable cached combinations must enumerate combinations over the compact cache-slot candidate list"
     );
     assert!(
-        read_only_text.contains(
-            "QueryCombinationIter::new(world, world.entity_ids_for_query().iter().copied(), ticks)"
-        ),
+        read_only_text
+            .contains("QueryCombinationIter::new(world, world.entity_ids_for_query(), ticks)"),
         "uncached read-only combinations must keep full world-entity query validation"
     );
     assert!(
@@ -784,10 +1037,16 @@ fn query_access_conflicts_with_uses_allocation_free_boolean_path() {
     );
     assert!(
         query_access_text.contains("!self.has_disjoint_filter(other)")
-            && query_access_text.contains("intersects(&self.writes, &other.reads)")
-            && query_access_text.contains("intersects(&self.reads, &other.writes)")
-            && query_access_text.contains("intersects(&self.writes, &other.writes)"),
-        "QueryAccess::conflicts_with must check read/write intersections directly"
+            && query_access_text
+                .contains("sorted_component_slices_intersect(&self.writes, &other.reads)")
+            && query_access_text
+                .contains("sorted_component_slices_intersect(&self.reads, &other.writes)"),
+        "QueryAccess::conflicts_with must check sorted read/write intersections directly"
+    );
+    assert!(
+        !query_access_text
+            .contains("sorted_component_slices_intersect(&self.writes, &other.writes)"),
+        "QueryAccess::conflicts_with must not repeat write/write checks already covered by write-implies-read"
     );
     assert!(
         !query_access_text.contains("!self.conflicting_components_with(other).is_empty()"),

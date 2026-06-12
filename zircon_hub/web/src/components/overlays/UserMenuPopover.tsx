@@ -13,22 +13,23 @@ export interface UserMenuPopoverProps {
   userName: string;
   initials: string;
   text: HubShellText;
+  signOutDetail: string;
   onClose: () => void;
   onAction: (actionId: string) => void;
 }
 
-export function UserMenuPopover({ anchorEl, open, userName, initials, text, onClose, onAction }: UserMenuPopoverProps) {
+export function UserMenuPopover({ anchorEl, open, userName, initials, text, signOutDetail, onClose, onAction }: UserMenuPopoverProps) {
   const menuItems = [
     { id: "account", label: text.userAccount, detail: text.userAccountDetail, Icon: AccountCircleOutlinedIcon },
     { id: "preferences", label: text.preferences, detail: text.preferencesDetail, Icon: SettingsOutlinedIcon },
     { id: "documentation", label: text.documentation, detail: text.documentationDetail, Icon: AutoStoriesOutlinedIcon },
-    { id: "sign-out", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true },
+    { id: "sign-out", label: text.signOut, detail: signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true },
   ];
 
   return (
     <HubPopover anchorEl={anchorEl} open={open} width={284} align="right" onClose={onClose}>
       <Box sx={{ display: "grid", gridTemplateColumns: "42px minmax(0, 1fr)", alignItems: "center", gap: 1.1, px: 1, py: 0.8 }}>
-        <Avatar sx={{ width: 38, height: 38, bgcolor: "#4b4f52", fontSize: 14 }}>{initials}</Avatar>
+        <Avatar sx={{ width: 38, height: 38, bgcolor: hubTokens.colors.avatar, fontSize: 14 }}>{initials}</Avatar>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="body2" noWrap sx={{ fontWeight: 700 }}>
             {userName}

@@ -3,6 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiComponentState;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::style::{
+    UiPainterFamily, UiPainterResolvedState, UiPainterState, UiPainterStyleSelector, UiRgbaColor,
+    UiStyleColor,
+};
 use zircon_runtime_interface::ui::template::{
     UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorToken,
 };
@@ -21,7 +25,16 @@ impl UiV2StyleResolver {
         arena: &UiV2NodeArena,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
         let rules = collect_rules(document)?;
-        Self::resolve_with_rules(document, arena, &rules, true)
+        Self::resolve_with_rules(document, arena, &rules, true, None)
+    }
+
+    pub fn resolve_with_theme(
+        document: &UiV2AssetDocument,
+        arena: &UiV2NodeArena,
+        theme: &crate::ui::theme::UiThemeRegistry,
+    ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
+        let rules = collect_rules(document)?;
+        Self::resolve_with_rules(document, arena, &rules, true, Some(theme))
     }
 
     pub(crate) fn resolve_static(
@@ -32,7 +45,19 @@ impl UiV2StyleResolver {
             .into_iter()
             .filter(|rule| !rule.uses_pseudo_state())
             .collect::<Vec<_>>();
-        Self::resolve_with_rules(document, arena, &rules, false)
+        Self::resolve_with_rules(document, arena, &rules, false, None)
+    }
+
+    pub(crate) fn resolve_static_with_theme(
+        document: &UiV2AssetDocument,
+        arena: &UiV2NodeArena,
+        theme: &crate::ui::theme::UiThemeRegistry,
+    ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
+        let rules = collect_rules(document)?
+            .into_iter()
+            .filter(|rule| !rule.uses_pseudo_state())
+            .collect::<Vec<_>>();
+        Self::resolve_with_rules(document, arena, &rules, false, Some(theme))
     }
 
     fn resolve_with_rules(
@@ -40,6 +65,7 @@ impl UiV2StyleResolver {
         arena: &UiV2NodeArena,
         rules: &[ResolvedRule],
         include_inline_style: bool,
+        theme: Option<&crate::ui::theme::UiThemeRegistry>,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
         let mut resolved = UiV2ResolvedStyleSheet::default();
         let Some(root) = arena.root else {
@@ -60,14 +86,14 @@ impl UiV2StyleResolver {
                 let mut node_style = UiV2ResolvedStyle::default();
                 for rule in rules {
                     if rule.selector.matches_path(&path) {
-                        node_style.merge_block(&rule.set);
+                        merge_block_with_token_sources(&mut node_style, &rule.set, document);
                     }
                 }
                 if include_inline_style {
-                    node_style.merge_block(&node.style);
+                    merge_block_with_token_sources(&mut node_style, &node.style, document);
                 }
-                resolve_value_map(&mut node_style.self_values, &document.tokens, 0);
-                resolve_value_map(&mut node_style.slot, &document.tokens, 0);
+                resolve_value_map(&mut node_style.self_values, &document.tokens, theme, 0);
+                resolve_value_map(&mut node_style.slot, &document.tokens, theme, 0);
                 let _ = resolved.nodes.insert(node.source_id.clone(), node_style);
                 frame.entered = true;
             }
@@ -94,22 +120,39 @@ pub(crate) struct UiV2RuntimeStyleIndex {
     rules: Vec<ResolvedRule>,
     base_attributes: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_overrides: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
+    base_style_tokens: BTreeMap<UiNodeId, BTreeMap<String, String>>,
 }
 
 impl UiV2RuntimeStyleIndex {
     pub(crate) fn from_document(document: &UiV2AssetDocument) -> Result<Self, UiV2AssetError> {
+        Self::from_document_with_optional_theme(document, None)
+    }
+
+    pub(crate) fn from_document_with_theme(
+        document: &UiV2AssetDocument,
+        theme: &crate::ui::theme::UiThemeRegistry,
+    ) -> Result<Self, UiV2AssetError> {
+        Self::from_document_with_optional_theme(document, Some(theme))
+    }
+
+    fn from_document_with_optional_theme(
+        document: &UiV2AssetDocument,
+        theme: Option<&crate::ui::theme::UiThemeRegistry>,
+    ) -> Result<Self, UiV2AssetError> {
         let mut rules = collect_rules(document)?
             .into_iter()
             .filter(ResolvedRule::uses_pseudo_state)
             .collect::<Vec<_>>();
         for rule in &mut rules {
-            resolve_value_map(&mut rule.set.self_values, &document.tokens, 0);
-            resolve_value_map(&mut rule.set.slot, &document.tokens, 0);
+            rule.style_tokens = style_token_sources_for_block(&rule.set, document);
+            resolve_value_map(&mut rule.set.self_values, &document.tokens, theme, 0);
+            resolve_value_map(&mut rule.set.slot, &document.tokens, theme, 0);
         }
         Ok(Self {
             rules,
             base_attributes: BTreeMap::new(),
             base_style_overrides: BTreeMap::new(),
+            base_style_tokens: BTreeMap::new(),
         })
     }
 
@@ -120,6 +163,7 @@ impl UiV2RuntimeStyleIndex {
     pub(crate) fn capture_baseline_from_tree(&mut self, tree: &UiTree) {
         self.base_attributes.clear();
         self.base_style_overrides.clear();
+        self.base_style_tokens.clear();
         for (node_id, node) in &tree.nodes {
             let Some(metadata) = node.template_metadata.as_ref() else {
                 continue;
@@ -130,6 +174,9 @@ impl UiV2RuntimeStyleIndex {
             let _ = self
                 .base_style_overrides
                 .insert(*node_id, metadata.style_overrides.clone());
+            let _ = self
+                .base_style_tokens
+                .insert(*node_id, metadata.style_tokens.clone());
         }
     }
 
@@ -144,6 +191,9 @@ impl UiV2RuntimeStyleIndex {
         };
         if attributes.get(&property) == Some(&value) {
             return false;
+        }
+        if let Some(tokens) = self.base_style_tokens.get_mut(&node_id) {
+            remove_style_token_sources(tokens, &property);
         }
         attributes.insert(property, value);
         true
@@ -219,7 +269,7 @@ impl UiV2RuntimeStyleIndex {
         let mut node_style = UiV2ResolvedStyle::default();
         for rule in &self.rules {
             if rule.selector.matches_path(path) {
-                node_style.merge_block(&rule.set);
+                merge_runtime_rule(&mut node_style, rule);
             }
         }
 
@@ -246,6 +296,17 @@ impl UiV2RuntimeStyleIndex {
                 let _ = next_style_overrides.insert(key.clone(), value);
             }
         }
+        let mut next_style_tokens = self
+            .base_style_tokens
+            .get(&node_id)
+            .cloned()
+            .unwrap_or_default();
+        for key in node_style.self_values.keys() {
+            remove_style_token_sources(&mut next_style_tokens, key);
+        }
+        for (key, source) in &node_style.style_tokens {
+            let _ = next_style_tokens.insert(key.clone(), source.clone());
+        }
 
         let node = tree
             .nodes
@@ -256,6 +317,7 @@ impl UiV2RuntimeStyleIndex {
         };
         if metadata.attributes == next_attributes
             && metadata.style_overrides == next_style_overrides
+            && metadata.style_tokens == next_style_tokens
         {
             return Ok(0);
         }
@@ -263,11 +325,136 @@ impl UiV2RuntimeStyleIndex {
         let dirty = dirty_for_runtime_style_delta(&metadata.attributes, &next_attributes);
         metadata.attributes = next_attributes;
         metadata.style_overrides = next_style_overrides;
+        metadata.style_tokens = next_style_tokens;
         if mark_dirty {
             merge_dirty_flags_into(&mut node.dirty, dirty);
         }
         Ok(1)
     }
+}
+
+fn merge_block_with_token_sources(
+    style: &mut UiV2ResolvedStyle,
+    block: &UiV2StyleDeclarationBlock,
+    document: &UiV2AssetDocument,
+) {
+    merge_value_map_with_token_sources(
+        &mut style.self_values,
+        &mut style.style_tokens,
+        None,
+        &block.self_values,
+        document,
+    );
+    merge_value_map_with_token_sources(
+        &mut style.slot,
+        &mut style.style_tokens,
+        Some("slot"),
+        &block.slot,
+        document,
+    );
+}
+
+fn style_token_sources_for_block(
+    block: &UiV2StyleDeclarationBlock,
+    document: &UiV2AssetDocument,
+) -> BTreeMap<String, String> {
+    let mut tokens = BTreeMap::new();
+    collect_value_map_token_sources(None, &block.self_values, &mut tokens, document);
+    collect_value_map_token_sources(Some("slot"), &block.slot, &mut tokens, document);
+    tokens
+}
+
+fn merge_runtime_rule(style: &mut UiV2ResolvedStyle, rule: &ResolvedRule) {
+    for (key, value) in &rule.set.self_values {
+        remove_style_token_sources(&mut style.style_tokens, key);
+        let _ = style.self_values.insert(key.clone(), value.clone());
+    }
+    for (key, value) in &rule.set.slot {
+        let path = style_token_path(Some("slot"), key);
+        remove_style_token_sources(&mut style.style_tokens, &path);
+        let _ = style.slot.insert(key.clone(), value.clone());
+    }
+    for (key, source) in &rule.style_tokens {
+        let _ = style.style_tokens.insert(key.clone(), source.clone());
+    }
+}
+
+fn merge_value_map_with_token_sources(
+    target: &mut BTreeMap<String, Value>,
+    style_tokens: &mut BTreeMap<String, String>,
+    prefix: Option<&str>,
+    values: &BTreeMap<String, Value>,
+    document: &UiV2AssetDocument,
+) {
+    for (key, value) in values {
+        let path = style_token_path(prefix, key);
+        remove_style_token_sources(style_tokens, &path);
+        collect_value_token_sources(&path, value, style_tokens, document);
+        let _ = target.insert(key.clone(), value.clone());
+    }
+}
+
+fn collect_value_map_token_sources(
+    prefix: Option<&str>,
+    values: &BTreeMap<String, Value>,
+    style_tokens: &mut BTreeMap<String, String>,
+    document: &UiV2AssetDocument,
+) {
+    for (key, value) in values {
+        let path = style_token_path(prefix, key);
+        collect_value_token_sources(&path, value, style_tokens, document);
+    }
+}
+
+fn collect_value_token_sources(
+    path: &str,
+    value: &Value,
+    style_tokens: &mut BTreeMap<String, String>,
+    document: &UiV2AssetDocument,
+) {
+    match value {
+        Value::String(raw) => {
+            if let Some(source) = resolved_token_source(raw, document, 0) {
+                let _ = style_tokens.insert(path.to_string(), source);
+            }
+        }
+        Value::Array(values) => {
+            for (index, value) in values.iter().enumerate() {
+                collect_value_token_sources(
+                    &format!("{path}[{index}]"),
+                    value,
+                    style_tokens,
+                    document,
+                );
+            }
+        }
+        Value::Table(values) => {
+            for (key, value) in values {
+                collect_value_token_sources(
+                    &format!("{path}.{key}"),
+                    value,
+                    style_tokens,
+                    document,
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+fn style_token_path(prefix: Option<&str>, key: &str) -> String {
+    if let Some(prefix) = prefix {
+        format!("{prefix}.{key}")
+    } else {
+        key.to_string()
+    }
+}
+
+fn remove_style_token_sources(style_tokens: &mut BTreeMap<String, String>, path: &str) {
+    let nested = format!("{path}.");
+    let indexed = format!("{path}[");
+    style_tokens
+        .retain(|key, _| key != path && !key.starts_with(&nested) && !key.starts_with(&indexed));
 }
 
 fn collect_rules(document: &UiV2AssetDocument) -> Result<Vec<ResolvedRule>, UiV2AssetError> {
@@ -285,6 +472,7 @@ fn collect_rules(document: &UiV2AssetDocument) -> Result<Vec<ResolvedRule>, UiV2
                 order,
                 selector,
                 set: rule.set.clone(),
+                style_tokens: BTreeMap::new(),
             });
             order += 1;
         }
@@ -296,36 +484,117 @@ fn collect_rules(document: &UiV2AssetDocument) -> Result<Vec<ResolvedRule>, UiV2
 fn resolve_value_map(
     values: &mut BTreeMap<String, Value>,
     tokens: &BTreeMap<String, Value>,
+    theme: Option<&crate::ui::theme::UiThemeRegistry>,
     depth: usize,
 ) {
     for value in values.values_mut() {
-        resolve_value(value, tokens, depth);
+        resolve_value(value, tokens, theme, depth);
     }
 }
 
-fn resolve_value(value: &mut Value, tokens: &BTreeMap<String, Value>, depth: usize) {
+fn resolve_value(
+    value: &mut Value,
+    tokens: &BTreeMap<String, Value>,
+    theme: Option<&crate::ui::theme::UiThemeRegistry>,
+    depth: usize,
+) {
     if depth >= 8 {
         return;
     }
     match value {
         Value::String(raw) => {
+            if let Some(theme_value) = theme.and_then(|theme| theme_value(raw, theme)) {
+                *value = theme_value;
+                return;
+            }
             if let Some(replacement) = token_name(raw).and_then(|token| tokens.get(token).cloned())
             {
                 *value = replacement;
-                resolve_value(value, tokens, depth + 1);
+                resolve_value(value, tokens, theme, depth + 1);
             }
         }
         Value::Array(values) => {
             for value in values {
-                resolve_value(value, tokens, depth + 1);
+                resolve_value(value, tokens, theme, depth + 1);
             }
         }
         Value::Table(table) => {
             for (_, value) in table.iter_mut() {
-                resolve_value(value, tokens, depth + 1);
+                resolve_value(value, tokens, theme, depth + 1);
             }
         }
         _ => {}
+    }
+}
+
+fn theme_value(raw: &str, theme: &crate::ui::theme::UiThemeRegistry) -> Option<Value> {
+    let role = theme_role(raw)?;
+    let color = theme.resolve_role(role)?;
+    style_color_value(&color)
+}
+
+fn resolved_token_source(raw: &str, document: &UiV2AssetDocument, depth: usize) -> Option<String> {
+    if depth >= 8 {
+        return None;
+    }
+    if let Some(theme_source) = theme_role(raw) {
+        return Some(theme_source_name(theme_source));
+    }
+    let token = token_name(raw)?;
+    let token_source = format!("token.{token}");
+    let nested_source = document.tokens.get(token).and_then(|value| {
+        value
+            .as_str()
+            .and_then(|raw| resolved_token_source(raw, document, depth + 1))
+    });
+    Some(
+        nested_source
+            .map(|nested| format!("{token_source} -> {nested}"))
+            .unwrap_or(token_source),
+    )
+}
+
+fn theme_role(raw: &str) -> Option<&str> {
+    let unwrapped = raw
+        .strip_prefix("var(")
+        .and_then(|value| value.strip_suffix(')'))
+        .unwrap_or(raw);
+    let role = unwrapped.strip_prefix('$').unwrap_or(unwrapped);
+    (role.starts_with("theme.") || role.starts_with("theme:") || role.starts_with("palette."))
+        .then_some(role)
+}
+
+fn theme_source_name(role: &str) -> String {
+    let normalized = role
+        .strip_prefix('$')
+        .unwrap_or(role)
+        .strip_prefix("theme:")
+        .map(|role| format!("theme.{role}"))
+        .unwrap_or_else(|| {
+            if role.starts_with("theme.") {
+                role.to_string()
+            } else {
+                format!("theme.{role}")
+            }
+        });
+    normalized
+}
+
+fn style_color_value(color: &UiStyleColor) -> Option<Value> {
+    match color {
+        UiStyleColor::Rgba(color) => Some(Value::String(rgba_hex(*color))),
+        UiStyleColor::Transparent => Some(Value::String("transparent".to_string())),
+        UiStyleColor::Inherit => Some(Value::String("inherit".to_string())),
+        UiStyleColor::Role(_) => None,
+    }
+}
+
+fn rgba_hex(color: UiRgbaColor) -> String {
+    let [red, green, blue, alpha] = color.to_u8();
+    if alpha == 255 {
+        format!("#{red:02x}{green:02x}{blue:02x}")
+    } else {
+        format!("#{red:02x}{green:02x}{blue:02x}{alpha:02x}")
     }
 }
 
@@ -346,6 +615,7 @@ struct ResolvedRule {
     specificity: usize,
     order: usize,
     set: UiV2StyleDeclarationBlock,
+    style_tokens: BTreeMap<String, String>,
 }
 
 impl ResolvedRule {
@@ -459,6 +729,7 @@ fn collect_pseudo_states(node: &zircon_runtime_interface::ui::v2::UiV2ArenaNode)
     let mut states = Vec::new();
     collect_true_state_names(&node.props, &mut states);
     collect_true_state_names(&node.state, &mut states);
+    append_resolved_painter_state(&node.component, &mut states);
     states.sort();
     states.dedup();
     states
@@ -469,6 +740,11 @@ fn collect_runtime_pseudo_states(
     component_state: Option<&UiComponentState>,
 ) -> Vec<String> {
     let mut states = Vec::new();
+    let component = node
+        .template_metadata
+        .as_ref()
+        .map(|metadata| metadata.component.as_str())
+        .unwrap_or_default();
     if let Some(metadata) = node.template_metadata.as_ref() {
         collect_true_runtime_state_names(&metadata.attributes, &mut states);
     }
@@ -497,9 +773,110 @@ fn collect_runtime_pseudo_states(
     collect_bool_state("pressed", node.state_flags.pressed, &mut states);
     collect_bool_state("checked", node.state_flags.checked, &mut states);
     collect_bool_state("disabled", !node.state_flags.enabled, &mut states);
+    append_resolved_painter_state(component, &mut states);
     states.sort();
     states.dedup();
     states
+}
+
+fn append_resolved_painter_state(component: &str, states: &mut Vec<String>) {
+    let state = painter_state_from_selector_states(states);
+    let family = painter_family_for_component(component);
+    let resolved = UiPainterStyleSelector::resolved_state_for_family(state, family);
+    append_resolved_state_aliases(resolved, states);
+}
+
+fn painter_state_from_selector_states(states: &[String]) -> UiPainterState {
+    UiPainterState {
+        hovered: has_selector_state(states, &["hover", "hovered"]),
+        pressed: has_selector_state(states, &["active", "press", "pressed"]),
+        focused: has_selector_state(
+            states,
+            &["focus", "focused", "focus-visible", "focus_visible"],
+        ),
+        disabled: has_selector_state(states, &["disabled"]),
+        checked: has_selector_state(states, &["checked"]),
+        selected: has_selector_state(states, &["selected"]),
+        open: has_selector_state(states, &["open", "popup-open", "popup_open"]),
+        dragging: has_selector_state(states, &["dragging"]),
+        drop_hovered: has_selector_state(
+            states,
+            &["drop-hovered", "drop_hovered", "active_drag_target"],
+        ),
+        loading: has_selector_state(states, &["loading"]),
+    }
+}
+
+fn has_selector_state(states: &[String], names: &[&str]) -> bool {
+    states
+        .iter()
+        .any(|state| names.iter().any(|name| state == name))
+}
+
+fn painter_family_for_component(component: &str) -> UiPainterFamily {
+    match component {
+        "Button" | "MaterialButton" | "WorkbenchButton" => UiPainterFamily::Button,
+        "IconButton" => UiPainterFamily::IconButton,
+        "Toggle" | "Switch" => UiPainterFamily::Toggle,
+        "Checkbox" | "CheckboxField" => UiPainterFamily::Checkbox,
+        "Radio" | "RadioField" => UiPainterFamily::Radio,
+        "Slider" | "RangeField" => UiPainterFamily::Slider,
+        "Dropdown" | "ComboBox" | "EnumField" | "FlagsField" | "SearchSelect" => {
+            UiPainterFamily::Dropdown
+        }
+        "PopupRow" | "MenuItem" | "OptionRow" => UiPainterFamily::PopupRow,
+        "Alert" | "MessageBox" => UiPainterFamily::Alert,
+        "Tooltip" => UiPainterFamily::Tooltip,
+        "TextField" | "InputField" | "NumberField" | "ColorField" | "VectorField" => {
+            UiPainterFamily::TextField
+        }
+        "ListRow" | "ListItem" | "PropertyRow" => UiPainterFamily::ListRow,
+        "TreeRow" => UiPainterFamily::TreeRow,
+        "TableRow" => UiPainterFamily::TableRow,
+        "Tab" => UiPainterFamily::Tab,
+        "Toast" | "Snackbar" => UiPainterFamily::Toast,
+        "Chrome" | "WindowChrome" | "WindowFrame" | "DockHeader" | "StatusBar" | "ActivityRail" => {
+            UiPainterFamily::Chrome
+        }
+        _ => UiPainterFamily::Generic,
+    }
+}
+
+fn append_resolved_state_aliases(resolved: UiPainterResolvedState, states: &mut Vec<String>) {
+    match resolved {
+        UiPainterResolvedState::Normal => append_state(states, "resolved-normal"),
+        UiPainterResolvedState::Hovered => {
+            append_state(states, "resolved-hovered");
+            append_state(states, "resolved-hover");
+        }
+        UiPainterResolvedState::Pressed => {
+            append_state(states, "resolved-pressed");
+            append_state(states, "resolved-active");
+        }
+        UiPainterResolvedState::Focused => {
+            append_state(states, "resolved-focused");
+            append_state(states, "resolved-focus");
+        }
+        UiPainterResolvedState::Disabled => append_state(states, "resolved-disabled"),
+        UiPainterResolvedState::Checked => append_state(states, "resolved-checked"),
+        UiPainterResolvedState::Selected => append_state(states, "resolved-selected"),
+        UiPainterResolvedState::Open => {
+            append_state(states, "resolved-open");
+            append_state(states, "resolved-popup-open");
+        }
+        UiPainterResolvedState::Dragging => append_state(states, "resolved-dragging"),
+        UiPainterResolvedState::DropHovered => {
+            append_state(states, "resolved-drop-hovered");
+            append_state(states, "resolved-drop_hovered");
+        }
+        UiPainterResolvedState::Loading => append_state(states, "resolved-loading"),
+    }
+}
+
+fn append_state(states: &mut Vec<String>, state: &str) {
+    if !states.iter().any(|value| value == state) {
+        states.push(state.to_string());
+    }
 }
 
 fn collect_true_state_names(values: &BTreeMap<String, Value>, states: &mut Vec<String>) {

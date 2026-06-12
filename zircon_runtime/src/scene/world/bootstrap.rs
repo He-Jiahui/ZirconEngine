@@ -61,6 +61,7 @@ impl World {
             messages: Default::default(),
             observers: Default::default(),
             command_queue: Default::default(),
+            deferred_command_errors: Vec::new(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
@@ -86,11 +87,11 @@ impl World {
     pub fn spawn_node(&mut self, kind: NodeKind) -> EntityId {
         let id = self.next_id;
         self.next_id += 1;
-        let default_name = default_name(&kind, self.ordinal_for(kind.clone()));
+        let default_name = default_name(&kind, self.ordinal_for(kind));
         self.register_stable_entity(id)
             .expect("spawned scene entity must have a unique stable id");
         self.entities.push(id);
-        self.kinds.insert(id, kind.clone());
+        self.kinds.insert(id, kind);
         self.names.insert(id, Name(default_name));
         self.hierarchy.insert(id, Hierarchy::default());
         self.active_self.insert(id, ActiveSelf::default());
@@ -101,6 +102,9 @@ impl World {
         self.mobility.insert(id, Mobility::default());
 
         match kind {
+            NodeKind::Empty => {
+                self.local_transforms.insert(id, LocalTransform::default());
+            }
             NodeKind::Camera => {
                 self.local_transforms.insert(
                     id,
@@ -184,6 +188,7 @@ impl World {
 
 fn default_name(kind: &NodeKind, ordinal: usize) -> String {
     match kind {
+        NodeKind::Empty => format!("Empty {ordinal}"),
         NodeKind::Camera => format!("Camera {ordinal}"),
         NodeKind::Cube => format!("Cube {ordinal}"),
         NodeKind::Mesh => format!("Mesh {ordinal}"),

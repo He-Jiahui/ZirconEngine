@@ -60,6 +60,7 @@ fn overlay_barrel_exports_dialog_menu_popover_and_business_popups() {
             "export * from \"./HubDialog\";",
             "export * from \"./HubMenu\";",
             "export * from \"./HubPopover\";",
+            "export * from \"./CreateProjectDialog\";",
             "export * from \"./SourceEnginePopover\";",
             "export * from \"./UserMenuPopover\";",
         ],
@@ -184,13 +185,14 @@ fn user_menu_popover_composes_profile_header_menu_actions_and_close() {
             "userName: string;",
             "initials: string;",
             "text: HubShellText;",
+            "signOutDetail: string;",
             "onClose: () => void;",
             "onAction: (actionId: string) => void;",
             "const menuItems = [",
             "{ id: \"account\", label: text.userAccount",
             "{ id: \"preferences\", label: text.preferences",
             "{ id: \"documentation\", label: text.documentation",
-            "{ id: \"sign-out\", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
+            "{ id: \"sign-out\", label: text.signOut, detail: signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
             "<HubPopover anchorEl={anchorEl} open={open} width={284} align=\"right\" onClose={onClose}>",
             "{text.workspaceProfile}",
             "const isDisabled = Boolean(disabled);",
@@ -208,6 +210,7 @@ fn user_menu_popover_composes_profile_header_menu_actions_and_close() {
 fn shell_and_project_pages_consume_shared_overlay_components() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let create_project = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
 
     assert_contains_all(
         "TopBar.tsx",
@@ -230,17 +233,27 @@ fn shell_and_project_pages_consume_shared_overlay_components() {
             "open={Boolean(userAnchor)}",
             "onAction={handleUserAction}",
             "text={state.ui.shell}",
+            "signOutDetail={signOutDetail}",
         ],
     );
     assert_contains_all(
         "ProjectsDashboard.tsx",
         &dashboard,
         &[
-            "import { HubDialog } from \"../components/overlays\";",
-            "<HubDialog",
+            "import { CreateProjectDialog, HubMenu, type HubMenuItem } from \"../components/overlays\";",
+            "<CreateProjectDialog",
             "open={state.projectSubpage === \"new-project\"}",
-            "title={text.newProjectDialog}",
             "onClose={() => void onAction(HUB_ACTION.viewAllProjects)}",
+            "onCreate={(payload) => void onAction(HUB_ACTION.createProject, undefined, payload)}",
+        ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_project,
+        &[
+            "import { HubDialog } from \"./HubDialog\";",
+            "<HubDialog",
+            "title={text.newProjectDialog}",
             "actions={",
             "HubTextField label={text.projectName}",
             "HubTextField label={text.location}",
@@ -265,6 +278,7 @@ fn overlay_primitives_documentation_records_react_mui_contract_cutover() {
             "web/src/components/overlays/HubDialog.tsx",
             "web/src/components/overlays/HubMenu.tsx",
             "web/src/components/overlays/HubPopover.tsx",
+            "web/src/components/overlays/CreateProjectDialog.tsx",
             "web/src/components/overlays/SourceEnginePopover.tsx",
             "web/src/components/overlays/UserMenuPopover.tsx",
             "web/src/components/shell/TopBar.tsx",
@@ -277,7 +291,7 @@ fn overlay_primitives_documentation_records_react_mui_contract_cutover() {
         &[
             "`ui_overlay_primitives_contract.rs`",
             "React/MUI overlay primitives",
-            "Dialog, Menu, Popover, SourceEnginePopover, and UserMenuPopover",
+            "Dialog, Menu, Popover, CreateProjectDialog, SourceEnginePopover, and UserMenuPopover",
             "TopBar and ProjectsDashboard consume shared overlay wrappers",
         ],
     );
@@ -301,6 +315,7 @@ fn overlay_primitives_contract_is_cut_over_to_react_sources() {
             "web/src/components/overlays/HubDialog.tsx",
             "web/src/components/overlays/HubMenu.tsx",
             "web/src/components/overlays/HubPopover.tsx",
+            "web/src/components/overlays/CreateProjectDialog.tsx",
             "web/src/components/overlays/SourceEnginePopover.tsx",
             "web/src/components/overlays/UserMenuPopover.tsx",
             "web/src/components/shell/TopBar.tsx",

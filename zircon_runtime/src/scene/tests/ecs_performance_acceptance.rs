@@ -96,6 +96,45 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
 }
 
 #[test]
+fn query_state_cache_stats_record_reuse_and_rebuild_counts() {
+    let mut world = World::empty();
+    spawn_health_entities(&mut world, ENTITY_COUNT);
+
+    type HealthQuery = QueryState<(EntityId, &'static Health)>;
+    let mut system = SystemState::<HealthQuery>::new(&mut world).unwrap();
+    let initial = system.state().cache_stats();
+    assert_eq!(initial.cache_hits, 0);
+    assert_eq!(initial.cache_misses, 1);
+    assert_eq!(initial.cache_rebuilds, 1);
+    assert_eq!(initial.candidate_entity_count, ENTITY_COUNT);
+    assert_eq!(initial.matched_entity_count, ENTITY_COUNT);
+    assert_eq!(initial.cached_entity_count, ENTITY_COUNT);
+
+    for _ in 0..REPEATED_QUERY_RUNS {
+        let count = system.run(&mut world, |query| query.count());
+        assert_eq!(count, ENTITY_COUNT);
+    }
+    let reused = system.state().cache_stats();
+    assert_eq!(reused.cache_hits, REPEATED_QUERY_RUNS as u64);
+    assert_eq!(reused.cache_misses, 1);
+    assert_eq!(reused.cache_rebuilds, 1);
+    assert_eq!(reused.cached_revision, initial.cached_revision);
+
+    world
+        .spawn((Name("Perf stats structural insert".to_string()), Health(7)))
+        .unwrap();
+    let after_spawn_count = system.run(&mut world, |query| query.count());
+    assert_eq!(after_spawn_count, ENTITY_COUNT + 1);
+    let rebuilt = system.state().cache_stats();
+    assert_eq!(rebuilt.cache_hits, REPEATED_QUERY_RUNS as u64);
+    assert_eq!(rebuilt.cache_misses, 2);
+    assert_eq!(rebuilt.cache_rebuilds, 2);
+    assert_eq!(rebuilt.candidate_entity_count, ENTITY_COUNT + 1);
+    assert_eq!(rebuilt.matched_entity_count, ENTITY_COUNT + 1);
+    assert!(rebuilt.cached_revision > reused.cached_revision);
+}
+
+#[test]
 fn changed_filter_hot_path_matches_only_mutated_entities_without_cache_rebuild() {
     let mut world = World::empty();
     let entities = spawn_health_entities(&mut world, ENTITY_COUNT);

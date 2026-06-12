@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
@@ -28,6 +29,7 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
@@ -50,9 +52,13 @@ plan_sources:
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/plan.md
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
+  - user: 2026-06-10 vampire screen-space HUD, buff particles, shader lighting, and no model health bars
+  - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
+  - user: 2026-06-11 vampire runtime point light illumination
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
@@ -61,7 +67,10 @@ tests:
   - tests/acceptance/ecs-to-render-chain.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/validation-evidence.md
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::scene_uniform_packs_authored_point_lights
   - .github/workflows/ci.yml
+  - cargo test -p zircon_runtime --lib render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app: passed 2026-06-10
+  - cargo test -p zircon_runtime --lib render_frame_extract_collects_world_hud_health_bars_as_scene_particles --message-format short --color never: passed 2026-06-11
 doc_type: module-detail
 ---
 
@@ -93,13 +102,17 @@ The prepared path is:
 
 The phase inputs now expose the full render-order surface needed by the WGPU main chain: render queue, material queue, depth, depth bias, order in layer, UI z-index, and entity tie-breaker. Current scene components still populate only the stable defaults plus material alpha/depth/z-order, but the DTO and queue builder contract are ready for material cache, sprite atlas, UI graph, and renderer-specific ordering data without adding a second sorting path.
 
+`World::collect_render_particles(...)` is the scene-owned bridge from gameplay-authored dynamic components into `ParticleExtract`. Runtime scripts and fallback project gameplay write transient JSON to `render.particle_sprites` or `gameplay.particle_sprites`; extraction parses those sprite records, filters inactive entities and camera-layer mismatches, records emitter bounds, sorts sprite billboards from the selected camera position, and adds emitters to `VisibilityInput` as dynamic renderables. This keeps attack VFX data in the same frame DTO as meshes, sprites, lights, and post-process state instead of spawning temporary mesh entities for every effect.
+
+The same extraction owner now also accepts world-space HUD bar payloads through `render.world_hud_bars` or `gameplay.world_hud_bars`. Vampire gameplay writes compact health bar records for the player and spawned enemies; render extraction converts each bar into a small set of camera-facing particle pips anchored above the entity. This keeps health presentation in the frame DTO and avoids attaching temporary child meshes to every actor. The focused regression `render_frame_extract_collects_world_hud_health_bars_as_scene_particles` covers parsing, camera-layer visibility, and particle extraction for these HUD bars.
+
 Scene-backed frame extracts also attach camera scheduling metadata to `RenderViewExtract`: the selected scene camera entity and the `RenderCameraOrderReport` produced from all active scene cameras. This mirrors Bevy's render-app `SortedCameras` resource while preserving Zircon's current single-effective-camera frame shape. Explicit `SceneViewportExtractRequest::camera` snapshots do not attach scene camera metadata, because their provenance is outside the scene world.
 
 Inactive entities are filtered by `ActiveInHierarchy`. Because `RenderExtractPrepare` runs before the rows are collected, parent active-state propagation, parent reorders, and world transform propagation are current when the renderer sees the prepared extract. Read-only clone-based helpers can also produce a fresh packet or frame extract, but they do not clear dirty bits on the original world.
 
 `PostProcessSettingsComponent` and `PostProcessVolumeComponent` are the runtime scene authoring hooks for post-process extraction. Both are fixed components stored on `World`, skipped by world serialization, and removed with their owning entity. Prepared extraction uses `PostProcessSettingsComponent` only from the selected scene camera entity to seed base bloom, color-grading, and effect-stack settings; explicit `SceneViewportExtractRequest::camera` snapshots keep default base settings because their provenance is outside the scene world. Prepared extraction then reads active volume components whose entities are active in hierarchy and intersect the effective camera `RenderLayerSet`, converts the entity `RenderLayerMask` into the neutral volume layer mask, and writes the deterministic stack into `PostProcessExtract.volume_stack`. Global volumes enter with full `weight`; local volumes now derive `local_blend` from the selected camera position, the volume entity transform, `ColliderComponent` shape, and `PostProcessVolumeComponent.blend_distance`. Box, sphere, and capsule colliders produce distance-to-surface influence, volumes with no collider produce no local influence, and volumes outside the blend band are excluded before submit sees the stack. The submit path still calls `PostProcessExtract::resolved_settings_for_layers(...)`, so scene extraction computes only spatial influence and does not pre-resolve or double-blend settings. This slice does not add asset/project schema serialization, editor authoring UI, trigger volumes, or authoring/runtime persistence for volume components.
 
-M3 now fills the non-snapshot frame sections with explicit defaults. `PostProcessExtract` carries preview/display mode plus selected scene-camera base bloom/color-grading/effect-stack settings and any scene-authored post-process volume stack. `GeometryExtract` carries the request's virtual-geometry debug override and an empty VG sideband. `LightingExtract` carries an empty disabled Hybrid GI sideband. `VisibilityInput` is derived from the same sorted mesh rows so renderable, static, dynamic, and layer-mask inputs are aligned with geometry. The renderer submit path treats an empty VG sideband as no authored VG payload, preserving automatic provider extraction for advanced profiles while still making the scene-produced frame shape canonical. Render submit statistics also split extracted lights into ready/degraded slots: authored ambient entries and the first directional slot are visible as basic-renderer-ready, while extra directional lights plus point, spot, and rect lights remain explicit degraded slots until their concrete PBR/clustered/area-light shader paths land.
+M3 now fills the non-snapshot frame sections with explicit defaults. `PostProcessExtract` carries preview/display mode plus selected scene-camera base bloom/color-grading/effect-stack settings and any scene-authored post-process volume stack. `GeometryExtract` carries the request's virtual-geometry debug override and an empty VG sideband. `LightingExtract` carries an empty disabled Hybrid GI sideband. `VisibilityInput` is derived from the same sorted mesh rows so renderable, static, dynamic, and layer-mask inputs are aligned with geometry. The renderer submit path treats an empty VG sideband as no authored VG payload, preserving automatic provider extraction for advanced profiles while still making the scene-produced frame shape canonical. Render submit statistics also split extracted lights into ready/degraded slots: authored ambient entries, the first directional slot, and the first fixed scene-uniform point-light slots are visible as basic-renderer-ready, while extra directional lights, point lights beyond the fixed uniform cap, spot lights, and rect lights remain explicit degraded slots until their concrete clustered/Forward+/cone/area-light shader paths land.
 
 ## Validation Scope
 
@@ -124,7 +137,9 @@ The focused M1/M2 tests verify that:
 - M4A prepared render-frame extraction queues alpha-mask and transparent meshes from `MeshRenderer` alpha hints instead of treating production world meshes as all opaque.
 - M5 light authoring projects scene-authored `AmbientLight` and `RectLight` into both legacy viewport packets and canonical `LightingExtract`; authored ambient now reaches the basic scene uniform, while rect light snapshots preserve explicit renderer-degraded diagnostics for the unimplemented area-light shading path. The same ambient/rect fields now round-trip through `SceneAsset` before extraction.
 - the scene uniform regression `scene_uniform_uses_authored_ambient_light_when_lighting_is_enabled` verifies that active authored ambient entries are accumulated into `SceneUniform::ambient_color` instead of the previous fixed preview ambient fallback.
-- the submit-stat regression `light_status_counts_split_ready_and_degraded_slots` verifies that light diagnostics distinguish currently rendered ambient and single-directional slots from extra directional, point, spot, and rect-light slots that are extracted but still degraded in the renderer.
+- the submit-stat regression `light_status_counts_split_ready_and_degraded_slots` verifies that light diagnostics distinguish currently rendered ambient, single-directional, and fixed point-light uniform slots from extra directional, over-cap point, spot, and rect-light slots that are extracted but still degraded in the renderer.
+- the dynamic particle regression `render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers` verifies that only active, camera-layer-visible emitters are collected, that parsed sprite fields and bounds survive into `ParticleExtract`, and that the emitter also appears in the visibility input used by the renderer.
+- the world HUD bar regression `render_frame_extract_collects_world_hud_health_bars_as_scene_particles` verifies that health bar payloads authored through `render.world_hud_bars` are projected into camera-facing particle pips for frame extraction.
 - a structural guard rejects reintroducing `RenderFrameExtract::from_snapshot(...)` inside `zircon_runtime/src/scene/render_extract/mod.rs`.
 
 Fresh focused M2 validation passed on 2026-05-08. The focused render-extract regression passed with `1 passed; 0 failed; 1061 filtered out`, the broader `scene::tests` filter passed with `45 passed; 0 failed; 1018 filtered out`, and the renderer-facing `graphics::tests` filter passed with `107 passed; 0 failed; 956 filtered out`.

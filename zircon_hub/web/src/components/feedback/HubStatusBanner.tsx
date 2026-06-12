@@ -1,4 +1,5 @@
 import { Alert, Box, LinearProgress, Typography } from "@mui/material";
+import { hubTokens } from "../../theme/tokens";
 import type { HubTaskSummary } from "../../types/hub";
 
 export interface HubStatusBannerProps {
@@ -19,7 +20,9 @@ export function HubStatusBanner({ task }: HubStatusBannerProps) {
           </Typography>
         </Box>
         <Typography variant="body2">{task.detail}</Typography>
-        {shouldShowProgress ? <LinearProgress variant="determinate" value={task.progressPercent} sx={{ height: 5, borderRadius: 999 }} /> : null}
+        {shouldShowProgress ? (
+          <LinearProgress variant="determinate" value={task.progressPercent} sx={{ height: 5, borderRadius: hubTokens.radius.pill }} />
+        ) : null}
         {task.recovery ? (
           <Typography variant="caption" color="text.secondary">
             {task.recovery}

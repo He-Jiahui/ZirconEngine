@@ -27,11 +27,13 @@ pub(super) fn expect_segment(
     expected: &[&str],
     property_path: &ComponentPropertyPath,
 ) -> Result<(), String> {
-    if expected.iter().any(|candidate| *candidate == actual) {
-        Ok(())
-    } else {
-        Err(format!("unknown property `{property_path}`"))
+    for candidate in expected {
+        if *candidate == actual {
+            return Ok(());
+        }
     }
+
+    Err(format!("unknown property `{property_path}`"))
 }
 
 pub(super) fn unknown_property_error(
@@ -49,21 +51,49 @@ pub(super) fn missing_component_error(
     ))
 }
 
-pub(super) fn property_type_error(
+pub(super) fn property_type_error<T>(
     property_path: &ComponentPropertyPath,
     expected: &str,
-) -> Result<bool, String> {
+) -> Result<T, String> {
     Err(format!(
         "property `{property_path}` expected value of type {expected}"
     ))
 }
 
 pub(super) fn normalized_identifier(value: &str) -> String {
-    value
-        .chars()
-        .filter(|ch| ch.is_ascii_alphanumeric())
-        .map(|ch| ch.to_ascii_lowercase())
-        .collect()
+    let mut normalized = String::with_capacity(value.len());
+    for character in value.chars() {
+        if character.is_ascii_alphanumeric() {
+            normalized.push(character.to_ascii_lowercase());
+        }
+    }
+    normalized
+}
+
+pub(super) fn normalized_identifier_matches(value: &str, target: &str) -> bool {
+    let mut value_chars = value.chars();
+    let mut target_chars = target.chars();
+
+    loop {
+        match (
+            next_normalized_identifier_char(&mut value_chars),
+            next_normalized_identifier_char(&mut target_chars),
+        ) {
+            (Some(value), Some(target)) if value == target => {}
+            (None, None) => return true,
+            _ => return false,
+        }
+    }
+}
+
+fn next_normalized_identifier_char(characters: &mut impl Iterator<Item = char>) -> Option<char> {
+    for character in characters {
+        if character.is_ascii_alphanumeric() {
+            return Some(character.to_ascii_lowercase());
+        }
+    }
+
+    None
 }
 
 pub(super) fn axis_index(
@@ -150,6 +180,23 @@ pub(super) fn expect_u32(
     }
 }
 
+pub(super) fn expect_i32(
+    value: ScenePropertyValue,
+    property_path: &ComponentPropertyPath,
+) -> Result<i32, String> {
+    match value {
+        ScenePropertyValue::Integer(value) => match i32::try_from(value) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(format!("property `{property_path}` expected i32 integer")),
+        },
+        ScenePropertyValue::Unsigned(value) => match i32::try_from(value) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(format!("property `{property_path}` expected i32 integer")),
+        },
+        _ => property_type_error(property_path, "integer"),
+    }
+}
+
 pub(super) fn expect_vec3(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
@@ -199,12 +246,12 @@ pub(super) fn validate_quat_array(
     property_path: &ComponentPropertyPath,
 ) -> Result<(), String> {
     validate_finite_array(&value, property_path, "quaternion")?;
-    if value
-        .iter()
-        .map(|component| component * component)
-        .sum::<Real>()
-        <= Real::EPSILON
-    {
+    let mut length_squared = 0.0;
+    for component in value {
+        length_squared += component * component;
+    }
+
+    if length_squared <= Real::EPSILON {
         return Err(format!(
             "property `{property_path}` rejects zero-length quaternion"
         ));
@@ -228,13 +275,15 @@ fn validate_finite_array(
     property_path: &ComponentPropertyPath,
     expected: &str,
 ) -> Result<(), String> {
-    if value.iter().all(|component| component.is_finite()) {
-        Ok(())
-    } else {
-        Err(format!(
-            "property `{property_path}` expected finite {expected}"
-        ))
+    for component in value {
+        if !component.is_finite() {
+            return Err(format!(
+                "property `{property_path}` expected finite {expected}"
+            ));
+        }
     }
+
+    Ok(())
 }
 
 pub(super) fn expect_resource_id(
@@ -244,8 +293,12 @@ pub(super) fn expect_resource_id(
     let ScenePropertyValue::Resource(value) = value else {
         return Err(format!("property `{property_path}` expected resource id"));
     };
-    ResourceId::from_str(&value)
-        .map_err(|error| format!("property `{property_path}` has invalid resource id: {error}"))
+    match ResourceId::from_str(&value) {
+        Ok(resource_id) => Ok(resource_id),
+        Err(error) => Err(format!(
+            "property `{property_path}` has invalid resource id: {error}"
+        )),
+    }
 }
 
 pub(super) fn expect_animation_parameter(
@@ -261,41 +314,59 @@ pub(super) fn expect_animation_parameter(
 }
 
 pub(super) fn parse_mobility(value: &str) -> Result<Mobility, String> {
-    match normalized_identifier(value).as_str() {
-        "dynamic" => Ok(Mobility::Dynamic),
-        "static" => Ok(Mobility::Static),
-        _ => Err(format!("unsupported mobility `{value}`")),
+    if normalized_identifier_matches(value, "dynamic") {
+        Ok(Mobility::Dynamic)
+    } else if normalized_identifier_matches(value, "static") {
+        Ok(Mobility::Static)
+    } else {
+        Err(format!("unsupported mobility `{value}`"))
     }
 }
 
 pub(super) fn parse_rigid_body_type(value: &str) -> Result<RigidBodyType, String> {
-    match normalized_identifier(value).as_str() {
-        "dynamic" => Ok(RigidBodyType::Dynamic),
-        "static" => Ok(RigidBodyType::Static),
-        "kinematic" => Ok(RigidBodyType::Kinematic),
-        _ => Err(format!("unsupported rigid body type `{value}`")),
+    if normalized_identifier_matches(value, "dynamic") {
+        Ok(RigidBodyType::Dynamic)
+    } else if normalized_identifier_matches(value, "static") {
+        Ok(RigidBodyType::Static)
+    } else if normalized_identifier_matches(value, "kinematic") {
+        Ok(RigidBodyType::Kinematic)
+    } else {
+        Err(format!("unsupported rigid body type `{value}`"))
     }
 }
 
 pub(super) fn parse_joint_kind(value: &str) -> Result<JointKind, String> {
-    match normalized_identifier(value).as_str() {
-        "fixed" => Ok(JointKind::Fixed),
-        "distance" => Ok(JointKind::Distance),
-        "hinge" => Ok(JointKind::Hinge),
-        "slider" => Ok(JointKind::Slider),
-        "conetwist" => Ok(JointKind::ConeTwist),
-        "generic6dof" | "d6" | "sixdof" => Ok(JointKind::Generic6Dof),
-        _ => Err(format!("unsupported joint kind `{value}`")),
+    if normalized_identifier_matches(value, "fixed") {
+        Ok(JointKind::Fixed)
+    } else if normalized_identifier_matches(value, "distance") {
+        Ok(JointKind::Distance)
+    } else if normalized_identifier_matches(value, "hinge") {
+        Ok(JointKind::Hinge)
+    } else if normalized_identifier_matches(value, "slider") {
+        Ok(JointKind::Slider)
+    } else if normalized_identifier_matches(value, "conetwist") {
+        Ok(JointKind::ConeTwist)
+    } else if normalized_identifier_matches(value, "generic6dof")
+        || normalized_identifier_matches(value, "d6")
+        || normalized_identifier_matches(value, "sixdof")
+    {
+        Ok(JointKind::Generic6Dof)
+    } else {
+        Err(format!("unsupported joint kind `{value}`"))
     }
 }
 
 pub(super) fn parse_combine_rule(value: &str) -> Result<PhysicsCombineRule, String> {
-    match normalized_identifier(value).as_str() {
-        "average" => Ok(PhysicsCombineRule::Average),
-        "minimum" => Ok(PhysicsCombineRule::Minimum),
-        "maximum" => Ok(PhysicsCombineRule::Maximum),
-        "multiply" => Ok(PhysicsCombineRule::Multiply),
-        _ => Err(format!("unsupported combine rule `{value}`")),
+    if normalized_identifier_matches(value, "average") {
+        Ok(PhysicsCombineRule::Average)
+    } else if normalized_identifier_matches(value, "minimum") {
+        Ok(PhysicsCombineRule::Minimum)
+    } else if normalized_identifier_matches(value, "maximum") {
+        Ok(PhysicsCombineRule::Maximum)
+    } else if normalized_identifier_matches(value, "multiply") {
+        Ok(PhysicsCombineRule::Multiply)
+    } else {
+        Err(format!("unsupported combine rule `{value}`"))
     }
 }
 

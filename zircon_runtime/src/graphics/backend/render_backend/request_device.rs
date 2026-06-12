@@ -8,6 +8,9 @@ pub(super) fn request_device(
 ) -> Result<(wgpu::Device, wgpu::Queue), GraphicsError> {
     let mut requested_features = wgpu::Features::empty();
     let adapter_features = adapter.features();
+    if adapter_features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT) {
+        requested_features |= wgpu::Features::MULTI_DRAW_INDIRECT_COUNT;
+    }
     if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
         requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
     }

@@ -160,8 +160,11 @@ impl DropdownRenderState {
         }
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn open(self) -> bool {
@@ -311,7 +314,7 @@ fn dropdown_label(metadata: &UiTemplateNodeMetadata) -> Option<String> {
 }
 
 fn surface_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         SURFACE_DISABLED
     } else if state.open() {
         color_attribute(metadata, "open_background_color").unwrap_or(SURFACE_OPEN)
@@ -325,7 +328,7 @@ fn surface_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRende
 }
 
 fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         BORDER_DISABLED
     } else if state.open() || state.hot() || state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_FOCUS)
@@ -335,7 +338,7 @@ fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRender
 }
 
 fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "label_color").unwrap_or(LABEL_TEXT)
@@ -343,7 +346,7 @@ fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderS
 }
 
 fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TEXT)
@@ -351,7 +354,11 @@ fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderSt
 }
 
 fn icon_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
-    color_attribute(metadata, "icon_color").unwrap_or_else(|| text_color(metadata, state))
+    if state.unavailable() {
+        TEXT_DISABLED
+    } else {
+        color_attribute(metadata, "icon_color").unwrap_or_else(|| text_color(metadata, state))
+    }
 }
 
 fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {

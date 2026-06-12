@@ -1,29 +1,57 @@
 use std::sync::Arc;
 
 use crate::asset::ModelPrimitiveAsset;
+use crate::core::framework::render::{RenderMeshLodSelection, RenderMeshStaticState};
 use crate::core::framework::scene::EntityId;
 use crate::core::framework::scene::Mobility;
 use crate::core::math::Vec4;
-use crate::graphics::scene::resources::GpuMaterialUniformResource;
+use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource};
+use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MaterialTextureSet;
 use bytemuck::{Pod, Zeroable};
 
+use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
+
 pub(super) enum PendingMeshGeometry {
-    Prepared(Arc<crate::graphics::scene::resources::GpuMeshResource>),
+    Prepared(Arc<GpuMeshResource>),
     Dynamic(ModelPrimitiveAsset),
+}
+
+#[derive(Clone)]
+pub(super) enum PendingSkinnedGpuSource {
+    Prepared(Arc<GpuMeshResource>),
+    CpuMorphed(ModelPrimitiveAsset),
+}
+
+impl PendingSkinnedGpuSource {
+    pub(super) fn uses_cpu_morphed_source(&self) -> bool {
+        matches!(self, Self::CpuMorphed(_))
+    }
 }
 
 pub(super) struct PendingMeshDraw {
     pub(super) mesh: PendingMeshGeometry,
+    pub(super) source_entity: EntityId,
+    pub(super) source_draw_ordinal: u32,
+    pub(super) transform_revision: u64,
     pub(super) mobility: Mobility,
-    pub(super) texture: Arc<crate::graphics::scene::resources::GpuTextureResource>,
+    pub(super) static_state: RenderMeshStaticState,
+    pub(super) material_textures: MaterialTextureSet,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
+    pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: crate::graphics::scene::resources::PipelineKey,
+    pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) cast_shadows: bool,
     pub(super) receive_shadows: bool,
     pub(super) model_matrix: [[f32; 4]; 4],
     pub(super) previous_model_matrix: [[f32; 4]; 4],
     pub(super) has_previous_motion_vector_transform: bool,
     pub(super) draw_tint: Vec4,
+    pub(super) skinned: bool,
+    pub(super) skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    pub(super) previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
+    // Holds the original prepared mesh for the guarded shader-skinning path.
+    // CPU-skinned dynamic fallback draws leave this empty to avoid double skinning.
+    pub(super) skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     pub(super) first_index: u32,
     pub(super) draw_index_count: u32,
     pub(super) indirect_draw_ref: Option<VirtualGeometryIndirectDrawRef>,

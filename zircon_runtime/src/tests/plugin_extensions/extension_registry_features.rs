@@ -243,12 +243,13 @@ fn runtime_module_load_reports_blocked_optional_features_as_warnings() {
         )],
     };
 
-    let report = crate::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
-        RuntimeTargetMode::ClientRuntime,
-        Some(&manifest),
-        [&sound_registration],
-        [&feature_registration],
-    );
+    let report =
+        crate::builtin::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+            RuntimeTargetMode::ClientRuntime,
+            Some(&manifest),
+            [&sound_registration],
+            [&feature_registration],
+        );
 
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     assert!(report
@@ -287,12 +288,13 @@ fn runtime_module_load_reports_blocked_required_features_as_errors() {
         )],
     };
 
-    let report = crate::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
-        RuntimeTargetMode::ClientRuntime,
-        Some(&manifest),
-        [&sound_registration],
-        [&feature_registration],
-    );
+    let report =
+        crate::builtin::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
+            RuntimeTargetMode::ClientRuntime,
+            Some(&manifest),
+            [&sound_registration],
+            [&feature_registration],
+        );
 
     assert!(report.warnings.is_empty(), "{:?}", report.warnings);
     assert!(report.errors.iter().any(|error| {

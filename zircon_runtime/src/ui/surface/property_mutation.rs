@@ -8,11 +8,9 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
 };
 
-use crate::ui::{
-    binding::{
-        component_state_value_update, reflected_property_update,
-        reflected_property_update_with_source_kind,
-    },
+use crate::ui::binding::{
+    component_state_value_update, reflected_property_update,
+    reflected_property_update_with_source_kind,
 };
 
 #[derive(Clone, Debug, PartialEq)]

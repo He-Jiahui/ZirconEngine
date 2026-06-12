@@ -154,5 +154,6 @@ fn scope<'a, const N: usize>(values: [(&'a str, &'a str); N]) -> Arc<StyleSheetS
             .map(|(key, value)| (key.to_string(), Value::String(value.to_string())))
             .collect(),
         slot: BTreeMap::new(),
+        style_tokens: BTreeMap::new(),
     }))
 }

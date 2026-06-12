@@ -2,16 +2,20 @@ use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport,
     FrameHistoryInvalidationReason, PostProcessPassGraph, PostProcessStackDescriptor,
     RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderReport,
-    RenderCameraTargetResolutionReport, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
-    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
-    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
-    RenderSpotLightSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
-    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPayloadSource, SolariRuntimeReport, ViewportCameraSnapshot,
+    RenderCameraTargetResolutionReport, RenderCapabilitySummary, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderHybridGiPayloadSource,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderPostProcessEffectStackSettings, RenderRectLightSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, SolariRuntimeReport,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
-use crate::graphics::{ViewportMotionVectorObjectHistory, ViewportRenderOutputTarget};
+use crate::graphics::{
+    ViewVisibilityContext, ViewportMotionVectorObjectHistory, ViewportRenderOutputTarget,
+    VisibilityViewKey,
+};
 
 use crate::{
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
@@ -36,6 +40,7 @@ pub(super) struct FrameSubmissionContext {
     viewport_generation: u64,
     quality_profile: Option<String>,
     compiled_pipeline: CompiledRenderPipeline,
+    capabilities: RenderCapabilitySummary,
     visibility_context: VisibilityContext,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
@@ -84,6 +89,7 @@ impl FrameSubmissionContext {
         viewport_generation: u64,
         quality_profile: Option<String>,
         compiled_pipeline: CompiledRenderPipeline,
+        capabilities: RenderCapabilitySummary,
         visibility_context: VisibilityContext,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
         previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
@@ -165,6 +171,7 @@ impl FrameSubmissionContext {
             viewport_generation,
             quality_profile,
             compiled_pipeline,
+            capabilities,
             visibility_context,
             previous_motion_vector_camera,
             previous_motion_vector_object_history,
@@ -228,8 +235,19 @@ impl FrameSubmissionContext {
         &self.compiled_pipeline
     }
 
+    pub(super) fn capabilities(&self) -> &RenderCapabilitySummary {
+        &self.capabilities
+    }
+
     pub(super) fn visibility_context(&self) -> &VisibilityContext {
         &self.visibility_context
+    }
+
+    pub(super) fn view_visibility(
+        &self,
+        key: &VisibilityViewKey,
+    ) -> Option<&ViewVisibilityContext> {
+        self.visibility_context.frame_visibility.view(key)
     }
 
     pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
@@ -477,6 +495,25 @@ mod tests {
     }
 
     #[test]
+    fn frame_submission_context_exposes_view_visibility_by_key() {
+        let context = context_with_advanced_plan(AdvancedProfileRuntimePlan::from_profile_bundle(
+            &RenderProfileBundle::advanced_render(),
+            &advanced_capabilities(),
+            &AdvancedProviderAvailability::new(),
+        ));
+
+        assert!(context
+            .view_visibility(&VisibilityViewKey::MainCamera)
+            .is_some());
+        assert!(context
+            .view_visibility(&VisibilityViewKey::ShadowCascade {
+                light: 99,
+                cascade: 0,
+            })
+            .is_none());
+    }
+
+    #[test]
     fn virtual_geometry_payload_source_clears_when_plan_degrades_feature() {
         let context = context_with_advanced_plan_and_virtual_geometry(
             AdvancedProfileRuntimePlan::from_profile_bundle(
@@ -606,6 +643,7 @@ mod tests {
             0,
             None,
             empty_pipeline(),
+            RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             None,
             None,

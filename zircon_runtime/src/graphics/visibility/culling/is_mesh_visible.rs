@@ -1,13 +1,10 @@
-use crate::core::framework::render::{ProjectionMode, RenderMeshSnapshot, ViewportCameraSnapshot};
+use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
 use crate::core::math::view_matrix;
 
-use super::{
-    mesh_bounds::mesh_bounds, orthographic_visible::orthographic_visible,
-    perspective_visible::perspective_visible,
-};
+use super::{orthographic_visible::orthographic_visible, perspective_visible::perspective_visible};
+use crate::graphics::visibility::VisibilityBounds;
 
-pub(crate) fn is_mesh_visible(mesh: &RenderMeshSnapshot, camera: &ViewportCameraSnapshot) -> bool {
-    let bounds = mesh_bounds(mesh);
+pub(crate) fn is_bounds_visible(bounds: VisibilityBounds, camera: &ViewportCameraSnapshot) -> bool {
     let world_center = bounds.center;
     let world_radius = bounds.radius;
     let view_position = view_matrix(camera.transform).transform_point3(world_center);

@@ -1,0 +1,478 @@
+---
+related_code:
+  - zircon_runtime/src/core/framework/render/light/snapshots.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
+  - zircon_plugins/rendering/plugin.toml
+  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironment.cpp
+  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentCapture.cpp
+  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentDiffuseIrradiance.cpp
+  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/DrawSkyboxPass.cs
+  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeReferenceVolume.cs
+plan_sources:
+  - .codex/plans/Rendering 插件选项补齐计划.md
+  - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
+---
+
+# 计划 11:环境光照(skybox / 反射探针 / 烘焙 / 雾)
+
+## 目标
+
+补齐场景级环境光照资产链,与 HGI 动态 GI 形成"烘焙基线 + 动态增强"的两档结构:
+
+1. skybox/cubemap:天空盒材质域(程序化渐变 + cubemap 两种)、preview-sky 收编、IBL 预滤波(specular mip 链 + irradiance SH)。
+2. 反射探针:box/sphere 影响域、烘焙捕获、box projection 校正、探针混合与 fallback 到 skybox;接入既有 rendering.reflection_probes 插件 feature。
+3. 光照烘焙:lightmap(2U 通道、烘焙图集)与 light probe(SH L2)采样路径定稿;烘焙器本体走离线工具/插件,runtime 只定消费契约;接入 rendering.baked_lighting feature。
+4. 解析雾:线性/指数/指数平方 + 高度雾,场景级设置(可被 Volume 覆写,计划 07 协同);与后处理屏幕空间雾区分:解析雾在前向着色/deferred 合成中计算。
+5. ambient:平坦色 / 三段渐变 / SH 环境光三模式。
+
+## 现状与差距
+
+- 有 preview-sky executor(预览天空),但无正式 skybox 材质域、无 IBL 预滤波链;cubemap 资产格式未定。
+- reflection_probes/baked_lighting 插件 feature 是描述符与合成占位,无捕获/烘焙数据链与采样 ABI。
+- 无解析雾;ambient 只有单色。
+
+## 参考代码
+
+| 文件 | 应重点阅读 |
+|------|-----------|
+| `dev/Graphics/.../Runtime/Passes/DrawSkyboxPass.cs` | skybox 作为 opaque 末尾 pass 的插入位置(early-z 受益)与深度处理 |
+| `dev/UnrealEngine/.../Renderer/Private/ReflectionEnvironmentCapture.cpp` | 探针捕获:cubemap 渲染 → mip 预滤波(GGX 重要性采样)→ diffuse irradiance 提取 |
+| `dev/UnrealEngine/.../Renderer/Private/ReflectionEnvironment.cpp` | 探针混合与按距离/影响域排序合成;skybox fallback |
+| `dev/Graphics/.../core/Runtime/Lighting/ProbeVolume/ProbeReferenceVolume.cs` | probe volume 的索引与插值组织(远期 probe GI 参考,本计划只取 SH 采样 ABI) |
+
+次参考:`dev/bevy/crates/bevy_pbr`(environment map light 的 wgsl 采样与 binding 组织)。
+
+## 目标架构
+
+归属:契约(skybox 设置、探针/lightmap 采样 ABI、雾参数)进 `core/framework/render/`;捕获/预滤波 pass 在 `scene_renderer/` 新增 `environment/`;烘焙器与高级合成留在 rendering 插件。
+
+核心设计:
+
+- `SkyboxSettings`:模式(Procedural | Cubemap)、材质引用、强度/旋转;skybox pass 插在 opaque 之后 transparent 之前(深度 = far,early-z 剔除);preview-sky executor 收编为 Procedural 模式实现,删除独立路径。
+- IBL 预滤波:cubemap 导入或捕获后离线/加载期生成 specular mip 链(GGX)与 irradiance SH9;`GpuEnvironmentMap` 资源含两者。
+- `ReflectionProbeData`:影响域(box/sphere)、box projection 参数、烘焙 cubemap 引用、优先级;着色端按"对象位置选 ≤2 探针加权 + skybox fallback";探针数据进 GpuScene 风格 buffer(计划 03 模式)。
+- lightmap 消费:静态对象 UV2 + 图集页索引(`RendererCommon.is_static` 前提);light probe SH 按 tetrahedral/网格插值留接口,V1 均匀网格。
+- `FogSettings`:模式/颜色/密度/起止距离 + 高度雾(基准高度/衰减);WGSL include 同时服务 forward 与 deferred 合成;Volume 可覆写(计划 07 的 volume 组件之一)。
+
+## 里程碑
+
+### EL-M1 skybox 与 IBL
+
+实施切片:
+1. `SkyboxSettings` 契约 + skybox pass(两模式);preview-sky 收编。
+2. cubemap 资产导入与预滤波(mip 链 + SH);PBR 环境项接 `GpuEnvironmentMap`(替代当前隐式 ambient)。
+
+测试阶段:
+- `cargo check -p zircon_runtime --lib --locked`;`cargo test -p zircon_runtime environment --locked` + `render_product` 回归
+- 验收证据:金属球在 cubemap 天空下反射正确(抓帧);粗糙度扫描条带对应 mip 链。
+
+### EL-M2 反射探针
+
+实施切片:
+1. `ReflectionProbeData` 契约与探针 buffer;着色端双探针混合 + box projection。
+2. 捕获 pass(编辑器触发,渲染 6 面 + 预滤波)走 rendering 插件;探针资产持久化。
+
+测试阶段:
+- `cargo test -p zircon_runtime environment --locked` 与插件 workspace 测试
+- 验收证据:室内/室外两探针交界处反射平滑过渡;feature 关闭时回落 skybox。
+
+### EL-M3 lightmap 与 light probe 消费
+
+实施切片:
+1. lightmap 采样 ABI(UV2/图集/编码格式定稿)与 shader 变体 flag(计划 08);probe SH 网格插值。
+2. 烘焙器输入输出契约定稿(烘焙实现归 baked_lighting 插件后续计划)。
+
+测试阶段:
+- `cargo test -p zircon_runtime environment --locked`(外部烘焙夹具数据渲染对拍)
+- 验收证据:夹具 lightmap 场景静态光影正确;动态物从 probe 取间接光。
+
+### EL-M4 解析雾与 ambient 模式
+
+实施切片:
+1. `FogSettings` 三模式 + 高度雾;forward/deferred 双路径 include;Volume 覆写组件。
+2. ambient 三模式(色/渐变/SH)。
+
+测试阶段:
+- `cargo test -p zircon_runtime environment --locked`(雾衰减曲线 readback 断言)
+- 验收证据:距离/高度雾抓帧;deferred 与 forward 雾产物一致。
+
+## 工程落地细化
+
+本章节为计划 11 的实施权威(index.md §8.7)。bind group 槽位、storage buffer std430 基线、WGSL `zr_` include 约定、RenderQueueValue 数值段、测试命名直接引用 index.md §8,不再重述。契约类型全部落在 `zircon_runtime::core::framework::render`(facade 固定,无 wgpu);所有 pass 经 RenderGraph 节点 + executor id 接入,无旁路提交;只消费 `RenderFrameExtract`;烘焙器本体经 rendering 插件;一律硬切换,不留兼容路径。
+
+跨计划契约名原样消费:01 `RgTextureHandle`/`TransientResourcePool`;05 `GpuLightData` 与 `zr_light_grid.wgsl`(probe 数据不进 light grid,走本计划独立 buffer,cluster 化留后续与 05 协调);07 `VolumeComponentDescriptor`/`VolumeEvaluator`(`FogSettings` 注册为 Volume 可覆写组件);13 `TextureMetadata`/`CubemapAsset`(本计划只消费,不定义 cubemap 资产格式);16 `ComputePassDescriptor`(IBL 预滤波与 SH 投影 compute 经它声明)。
+
+### 模块与文件落点
+
+新增文件:
+
+| 路径 | 内容 |
+|------|------|
+| `zircon_runtime/src/core/framework/render/environment/mod.rs` | 模块声明与 curated re-export(薄) |
+| `zircon_runtime/src/core/framework/render/environment/skybox.rs` | `SkyboxSettings` / `SkyboxMode` / `ProceduralSkyParams` / `CubemapSkyParams` / `IblBakeKey` |
+| `zircon_runtime/src/core/framework/render/environment/reflection_probe.rs` | `ReflectionProbeData` / `ProbeInfluenceShape` / `ProbeBakeTiming` |
+| `zircon_runtime/src/core/framework/render/environment/fog.rs` | `FogSettings` / `FogMode` / `HeightFogParams` |
+| `zircon_runtime/src/core/framework/render/environment/ambient.rs` | `AmbientMode` / `ShL2Rgb`(SH9 系数容器) |
+| `zircon_runtime/src/core/framework/render/environment/lightmap.rs` | `LightmapConsumeContract` / `LightmapInstanceSlot` / `LightProbeGridData` / `LightmapBakeRequest` / `LightmapBakeOutput`(DTO,序列化跨插件边界) |
+| `zircon_runtime/src/core/framework/render/environment/extract.rs` | `EnvironmentExtract`(进 `RenderFrameExtract` 的环境快照) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs` | 实现侧模块声明(薄) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/skybox_executor.rs` | skybox pass executor(Procedural / Cubemap 两 pipeline) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/gpu_environment_map.rs` | `GpuEnvironmentMap`(specular mip 链 cube 纹理 + SH9 buffer + bake key 缓存) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_prefilter.rs` | 预滤波/SH 投影 compute pass 构建(经 `ComputePassDescriptor`) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer.rs` | `GpuReflectionProbe` 上传、cube array 槽位分配器 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs` | lightmap atlas / probe grid GPU 资源绑定 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl` | 程序化天空(吸收 `overlay/shaders/sky.wgsl` 渐变逻辑,深度 = far) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_cubemap.wgsl` | cubemap 天空(rotation/intensity/tint 采样期生效) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_prefilter.wgsl` | GGX 重要性采样 specular mip 烘焙 compute |
+| `zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl` | SH9 投影 compute(workgroup 归约) |
+| `zircon_runtime/src/graphics/shader/includes/zr_fog.wgsl` | 解析雾函数 include(若计划 08 已定 include 目录则随其落点,内容不变) |
+| `zircon_runtime/src/graphics/shader/includes/zr_environment.wgsl` | probe 混合 + box projection + SH 求值 + env specular 采样 include |
+| `zircon_runtime/src/graphics/tests/render_product_environment.rs` | 环境光照产物对拍测试 |
+
+修改文件:
+
+| 路径 | 改动 |
+|------|------|
+| `zircon_runtime/src/core/framework/render/mod.rs` | 声明 `environment` 模块,re-export 契约类型 |
+| `zircon_runtime/src/core/framework/render/frame_extract.rs` | `RenderFrameExtract` 增加 `environment: EnvironmentExtract` 字段 |
+| `zircon_runtime/src/core/framework/render/scene_extract.rs` | `PreviewEnvironmentExtract` 的 `skybox_enabled`/`fallback_skybox` 字段删除,改引 `EnvironmentExtract` |
+| `zircon_runtime/src/core/framework/render/camera.rs` | 删除 `FallbackSkyboxKind`;`ViewportRenderSettings::preview_skybox` 改为映射 `SkyboxSettings` 启停 |
+| `zircon_runtime/src/core/framework/render/light/snapshots.rs` | `RenderReflectionProbeSnapshot` 删除(被 `ReflectionProbeData` 取代);`RenderBakedLightingExtract` 扩展为 lightmap/probe grid 引用 |
+| `zircon_runtime/src/scene/world/render.rs` | extract 端填充 `EnvironmentExtract`;删除 `FallbackSkyboxKind::ProceduralGradient` 映射(L911–915) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs` | 注册 `skybox`/`ibl_prefilter`/`ibl_irradiance_sh` executor;删除 `preview_sky_scene_color_executor`/`preview_sky_final_color_executor` 注册 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs` | 删除 `record_preview_sky_to_resources`/`with_preview_sky_renderer`;新增 environment 资源访问 |
+| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs`、`deferred_geometry.rs` | preview-sky pass 声明改为 skybox pass 节点(opaque 后、transparent 前) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs` | `authored_ambient_color` 改读 resolved ambient SH band0;删除 preview lighting 的硬编码 ambient 常量分支 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl` | shading 末尾接 `zr_apply_fog`;环境项接 `zr_environment.wgsl` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl` | 合成末尾同上(与 forward 同一 include,产物一致) |
+| `zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs` | cube / cube array 维度支持(消费计划 13 `CubemapAsset` 上传产物) |
+| `zircon_plugins/rendering/plugin.toml` 及 `rendering.reflection_probes.*`、`rendering.baked_lighting.*` crate | 探针捕获调度(渲染 6 面 + 调 runtime 预滤波)、烘焙器接口实现 |
+
+preview-sky 硬切换删除清单(EL-M1 切片 1 同一变更内完成,详见"帧时序与集成点"):`graph_execution/preview_sky_executor.rs`、`overlay/passes/preview_sky_pass.rs`、`overlay/viewport_overlay_renderer/record/scene_content/record_preview_sky.rs`、`overlay/shaders/sky.wgsl`、`overlay/passes/pass_order.rs` 的 `"PreviewSkyPass"` 项、`overlay/viewport_overlay_renderer/construct/new.rs` 的 `preview_sky` 字段。
+
+### 核心类型与接口
+
+契约层(`core/framework/render/environment/`,纯数据可序列化,无 wgpu):
+
+```rust
+// skybox.rs
+pub enum SkyboxMode {
+    Procedural(ProceduralSkyParams),
+    Cubemap(CubemapSkyParams),
+}
+
+pub struct ProceduralSkyParams {
+    pub zenith_color: Vec3,
+    pub horizon_color: Vec3,
+    pub ground_color: Vec3,
+    pub horizon_falloff: Real,     // 渐变指数,默认 1.0
+    pub sun_disk_enabled: bool,
+    pub sun_disk_size_degrees: Real,
+    pub sun_disk_intensity: Real,
+}
+
+pub struct CubemapSkyParams {
+    pub cubemap: AssetId,          // 计划 13 CubemapAsset 引用
+    pub tint: Vec3,
+}
+
+pub struct SkyboxSettings {
+    pub mode: SkyboxMode,
+    pub intensity: Real,           // 采样期乘子,不进 bake key
+    pub rotation_y_degrees: Real,  // 采样期旋转方向向量,不进 bake key
+    pub ibl_enabled: bool,         // 关闭时环境项退回 ambient 模式
+}
+
+/// 重烘判定键:mode 判别值 + Procedural 参数 hash 或 cubemap 内容版本 + 质量档。
+/// intensity / rotation 显式排除(采样期生效)。
+pub struct IblBakeKey(pub u64);
+
+// reflection_probe.rs
+pub enum ProbeInfluenceShape {
+    Box { half_extents: Vec3, blend_distance: Real },
+    Sphere { radius: Real, blend_distance: Real },
+}
+
+pub enum ProbeBakeTiming { EditorManual, RuntimeManual }  // V1 无自动重烘
+
+pub struct ReflectionProbeData {
+    pub probe_id: u64,                       // 稳定 id(对齐 05 light id 机制)
+    pub position: Vec3,
+    pub rotation: Quat,
+    pub shape: ProbeInfluenceShape,
+    pub box_projection: bool,
+    pub projection_half_extents: Vec3,       // 投影盒可与影响域不同
+    pub baked_cubemap: Option<AssetId>,      // 预滤波后的 CubemapAsset;None = 未烘焙,着色端跳过
+    pub intensity: Real,
+    pub priority: i32,                       // 同权重并列时高优先
+    pub layer_mask: RenderLayerSet,          // 计划 09 同一 mask
+    pub bake_timing: ProbeBakeTiming,
+}
+
+// fog.rs
+pub enum FogMode {
+    None,
+    Linear { start: Real, end: Real },
+    Exponential { density: Real },
+    ExponentialSquared { density: Real },
+}
+
+pub struct HeightFogParams {
+    pub enabled: bool,
+    pub base_height: Real,    // 世界 Y,低于此高度雾全强
+    pub falloff: Real,        // 高度衰减系数(1/m)
+    pub max_opacity: Real,    // [0,1],雾不透明度上限
+}
+
+pub struct FogSettings {
+    pub mode: FogMode,
+    pub color: Vec3,
+    pub height: HeightFogParams,
+    pub affects_skybox: bool,
+}
+
+// ambient.rs
+pub struct ShL2Rgb(pub [Vec3; 9]);   // 9×RGB f32,band 顺序 L00,L1-1,L10,L11,L2-2,L2-1,L20,L21,L22
+
+pub enum AmbientMode {
+    Flat { color: Vec3, intensity: Real },                       // 收编 RenderAmbientLightSnapshot
+    Gradient { sky: Vec3, equator: Vec3, ground: Vec3, intensity: Real },
+    SkyboxSh,                                                    // 消费 GpuEnvironmentMap 的 SH9
+}
+
+// lightmap.rs
+pub struct LightmapInstanceSlot {
+    pub atlas_page: u32,           // Texture2DArrayAsset 切片索引(计划 13)
+    pub uv_rect: Vec4,             // scale.xy + offset.xy,UV2 → atlas 页变换
+}
+
+pub struct LightmapConsumeContract {
+    pub atlas: AssetId,            // RGBA16F Texture2DArrayAsset
+    pub slots: Vec<(u64, LightmapInstanceSlot)>,   // renderer 稳定 id → slot
+}
+
+pub struct LightProbeGridData {    // V1 均匀网格,接口不锁死插值结构
+    pub bounds_min: Vec3,
+    pub cell_size: Vec3,
+    pub dims: [u32; 3],
+    pub sh: Vec<ShL2Rgb>,          // dims.x*y*z 个
+}
+
+// extract.rs —— 进 RenderFrameExtract,extract 仅由 runtime 生成
+pub struct EnvironmentExtract {
+    pub skybox: Option<SkyboxSettings>,
+    pub fog: FogSettings,                       // 已经 VolumeEvaluator 解析后的最终值(计划 07)
+    pub ambient: AmbientMode,
+    pub probes: Vec<ReflectionProbeData>,
+    pub baked_lighting: Option<LightmapConsumeContract>,
+    pub probe_grid: Option<LightProbeGridData>,
+}
+```
+
+归属裁决:`FogSettings` 同时注册为计划 07 的 Volume 组件(`VolumeComponentDescriptor` schema 见下表);Volume 求值发生在 extract 之前,`EnvironmentExtract.fog` 已是解析后终值,渲染侧不再做 volume 插值。烘焙器(lightmap/probe 捕获)实现归 `rendering.baked_lighting` / `rendering.reflection_probes` 插件,跨边界只走 `LightmapBakeRequest`/`LightmapBakeOutput` 序列化 DTO(`zircon_runtime_interface` ABI 规则:不传 trait 对象/wgpu 对象)。
+
+`FogSettings` Volume 可覆写字段表(mode 取最高权重 volume 的判别值,不插值;其余 lerp):
+
+| 字段 | 插值 | 默认 |
+|------|------|------|
+| `color` | lerp | (0.5, 0.6, 0.7) |
+| `Linear.start` / `Linear.end` | lerp | 30 / 300 |
+| `Exponential.density` / `ExponentialSquared.density` | lerp | 0.01 |
+| `height.base_height` / `height.falloff` / `height.max_opacity` | lerp | 0 / 0.1 / 1.0 |
+| `mode` / `affects_skybox` / `height.enabled` | 权重最高者 | None / true / false |
+
+### GPU 数据布局与 WGSL 约定
+
+binding 编号:环境段固定占用 `group1`(pass 级)的 `@binding(16..23)` 区段,与计划 05 light grid/shadow 的低位段错开;material(`group2`)、instance(`group3`)不变。
+
+| group/binding | 资源 | 类型 |
+|---|---|---|
+| 1/16 | `zr_env_probes` | `var<storage, read> array<GpuReflectionProbe>` |
+| 1/17 | `zr_env_probe_header` | uniform(`probe_count: u32` + pad) |
+| 1/18 | `zr_env_probe_cubemaps` | `texture_cube_array<f32>`(预滤波 mip 链) |
+| 1/19 | `zr_env_sky_specular` | `texture_cube<f32>`(skybox 预滤波 mip 链,fallback 源) |
+| 1/20 | `zr_env_sampler` | `sampler`(linear,clamp) |
+| 1/21 | `zr_env_sh` | `var<storage, read> array<vec4<f32>, 9>`(active ambient SH9) |
+| 1/22 | `zr_fog_uniform` | uniform `ZrFogParams` |
+| 1/23 | 预留(probe SH grid buffer,EL-M3) | storage |
+
+`GpuReflectionProbe`(std430,96 bytes,offset 注释):
+
+```wgsl
+struct GpuReflectionProbe {
+    position_blend: vec4<f32>,  // 0:  xyz=position, w=blend_distance
+    box_min: vec4<f32>,         // 16: xyz=influence min(世界轴对齐前的本地),w=f32(priority)
+    box_max: vec4<f32>,         // 32: xyz=influence max, w=shape(0=box, 1=sphere)
+    proj_params: vec4<f32>,     // 48: xyz=projection_half_extents, w=box_projection(0/1)
+    rotation: vec4<f32>,        // 64: 单位四元数(世界→probe 本地)
+    misc: vec4<f32>,            // 80: x=intensity, y=mip_count, z=array_slice, w=bitcast(layer_mask)
+};                              // total 96
+```
+
+SH9 存储:9×`vec4<f32>`(RGB + pad)= 144 bytes,storage buffer;CPU 侧 `ShL2Rgb` 与之一一对应,投影 compute 输出后异步 readback 回写资产持久化(探针/天空共用同一布局)。
+
+`zr_fog.wgsl`(URP `unity_FogParams` 打包思路,见精读笔记):
+
+```wgsl
+struct ZrFogParams {
+    color: vec4<f32>,          // rgb=fog color, a=affects_skybox(0/1)
+    params: vec4<f32>,         // mode 打包:Linear: z=-1/(end-start), w=end/(end-start)
+                               //           Exp/Exp2: x=density/ln(2)(exp2 域)
+    height_params: vec4<f32>,  // x=base_height, y=falloff, z=max_opacity, w=enabled
+    mode: vec4<u32>,           // x=FogMode 判别值(0/1/2/3)
+};
+
+// 返回"剩余透过率"(1=无雾,0=全雾),与 URP fogIntensity 同语义
+fn zr_fog_factor(view_distance: f32, world_height: f32, fog: ZrFogParams) -> f32;
+fn zr_apply_fog(color: vec3<f32>, view_distance: f32, world_pos: vec3<f32>,
+                fog: ZrFogParams) -> vec3<f32>;   // mix(fog.color.rgb, color, factor)
+```
+
+公式定稿:Linear `f = saturate(d * params.z + params.w)`;Exp `f = saturate(exp2(-density_ln2 * d))`;Exp2 `f = saturate(exp2(-(density_ln2 * d)^2))`;height fog 乘项 `h = mix(1.0, saturate(exp(-(world_height - base_height) * falloff)), height.enabled)`,合成 `f_final = max(1 - (1 - f * (1 - h * (1 - f))), 1 - max_opacity)` 简化实现为:`opacity = (1 - f) * h_weight`,`opacity = min(opacity, max_opacity)`,`return 1 - opacity`(单测对拍闭式)。
+
+box projection(`zr_environment.wgsl`,UE `GetLookupVectorForBoxCapture` 的 AABB 求交式):
+
+```wgsl
+fn zr_box_project(reflect_dir: vec3<f32>, world_pos: vec3<f32>,
+                  probe: GpuReflectionProbe) -> vec3<f32> {
+    let p = zr_quat_rotate_inv(probe.rotation, world_pos - probe.position_blend.xyz);
+    let d = zr_quat_rotate_inv(probe.rotation, reflect_dir);
+    let inv_d = 1.0 / d;
+    let t1 = (-probe.proj_params.xyz - p) * inv_d;   // 三个 min 面交点
+    let t2 = ( probe.proj_params.xyz - p) * inv_d;   // 三个 max 面交点
+    let t_far = max(t1, t2);
+    let t = min(t_far.x, min(t_far.y, t_far.z));     // 最近的"最远面"
+    let hit = world_pos + t * reflect_dir;
+    return hit - probe.position_blend.xyz;           // 修正后的采样向量
+}
+```
+
+≤2 探针混合权重(URP `CalculateProbeWeight` 式边缘权重 + 排序截断):每像素全量扫 probe buffer(V1 上限 64,extract 端按 layer/距离裁到该数),单 probe 权重 `w = saturate(min_axis((p_edge_dist) / blend_distance))`(box 取三轴边距最小值,sphere 取 `(radius - dist) / blend_distance`);取权重最大两个(权重并列比 priority),`w1 = min(w1, 1 - w0)`,skybox fallback 权重 `w_sky = 1 - w0 - w1`;三项各按自身校正向量采 `mip = zr_env_mip_from_roughness(roughness)` 后线性加权。roughness→mip 采用 UE 对数映射(常数 `ZR_IBL_ROUGHEST_MIP = 1.0`、`ZR_IBL_MIP_SCALE = 1.2`):`mip = max_mip - 1 - (ZR_IBL_ROUGHEST_MIP - ZR_IBL_MIP_SCALE * log2(max(roughness, 0.001)))`;烘焙端按逆映射给每 mip 的 roughness,保证 mip 数无关的粗糙度一致性。
+
+IBL 预滤波样本数档位表(`ibl_prefilter.wgsl` 特化常量):
+
+| 档位 | mip0 | 中段 mip | 末两级 mip | 用途 |
+|------|------|---------|-----------|------|
+| Fast | 直拷 | 32 | 64 | 编辑器拖参数实时迭代 |
+| Normal | 直拷 | 64 | 128 | 默认导入/捕获 |
+| High | 直拷 | 128 | 256 | 显式高质量重烘 |
+
+cubemap 基准 128×128×6,mip 数 = `log2(128)+1 = 8`(UE `GetNumMips = CeilLogTwo(CaptureSize)+1` 同式);SH9 投影 compute 按面分 workgroup 归约(立体角加权),输出 9×vec4 storage。
+
+### 帧时序与集成点
+
+帧内顺序(全部经 graph 节点声明,executor id 注册在 `render_pass_executor_registry.rs`):
+
+1. **prepare 阶段**:`gpu_environment_map.rs` 比对 `IblBakeKey`,脏则经 `ComputePassDescriptor` 入队 `env.ibl_prefilter`(逐 mip 一 dispatch)+ `env.ibl_irradiance_sh` 两个 compute 节点;Procedural 模式先跑 `env.sky_capture`(渐变烘成 cubemap mip0)再预滤波。重烘当帧完成(128³ 成本低);probe 捕获(6 面渲染)只由编辑器/运行期手动触发,经 `rendering.reflection_probes` 插件 feature 的 capture 调度复用同一预滤波节点。
+2. **skybox pass**:节点声明 `SCENE_COLOR` write + `SCENE_DEPTH` read(depth test `LessEqual`,depth write off,全屏三角形顶点深度置 far)——插在 opaque 之后、transparent 之前(URP `DrawSkyboxPass` 同位,享受 early-z);Procedural/Cubemap 各一 pipeline,按 `SkyboxMode` 选。`EnvironmentExtract.skybox == None` 时 compiled graph 不含该节点(约束 4)。
+3. **shading 中的环境项**:forward(`fallback_mesh.wgsl` 与计划 08 模板)与 deferred lighting 合成共用 `zr_environment.wgsl`:specular = probe 混合 + skybox fallback;diffuse ambient = `zr_env_sh` 求值(三模式统一为 SH9:Flat 只写 band0 = color×intensity;Gradient 用解析投影闭式写 L0+L1;SkyboxSh 直接用预滤波产物 SH)。shader 内无 ambient 模式分支。
+4. **雾**:`zr_apply_fog` 在 forward shading 输出前、deferred lighting 合成输出前各调用一次(同一 include 保证产物一致);skybox pass 按 `affects_skybox` 在自身输出端调用(view_distance 取 z_far)。**与计划 07 边界**:本计划的解析雾/高度雾发生在 shading/lighting pass 内,不新增 post pass;07 的屏幕空间雾(散射/体积感,SSR 槽位附近)是独立 post 节点,消费同一 `FogSettings.color` 但有独立强度参数,两者共存时由 07 的 volume stack 管理开关,本计划不做屏幕空间合成。
+
+preview-sky 硬切换(EL-M1 切片 1,同一变更):删除"模块与文件落点"清单所列 6 个文件/条目,并同步删除 `render_pass_execution_context/gpu.rs` 的 `record_preview_sky_to_resources`/`with_preview_sky_renderer`、`camera.rs` 的 `FallbackSkyboxKind`、`scene/world/render.rs` 的映射分支与 `scene_extract.rs` 的 `skybox_enabled`/`fallback_skybox` 字段;`ViewportRenderSettings::preview_skybox = true` 改为 extract 出默认 `SkyboxSettings { mode: Procedural(默认渐变), .. }`,编辑器预览行为不变。受影响测试(`graphics/tests/pipeline_compile.rs`、`scene_overlay.rs`、`scene/tests/render_extract.rs` 等)同变更内改断言,不留旧符号。
+
+GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 instance 数据扩展位;`RendererCommon.is_static` 为 lightmap 采样前提,shader 变体 flag(`LIGHTMAP_ON` 等价物)走计划 08 permutation。
+
+### 实施切片细化
+
+**EL-M1 / 切片 1 —— SkyboxSettings 契约 + skybox pass + preview-sky 收编**
+- 触碰:新增 `environment/skybox.rs`、`environment/extract.rs`、`skybox_executor.rs`、两个 skybox wgsl;修改 `mod.rs`、`frame_extract.rs`、`scene_extract.rs`、`camera.rs`、`scene/world/render.rs`、executor registry、`feature_descriptors/{mesh,deferred_geometry}.rs`;删除 preview-sky 清单全部文件。
+- 要点:pass 位置与深度策略按"帧时序"§2;Procedural 渐变公式从 `sky.wgsl` 平移并参数化(zenith/horizon/ground)。
+- 完成判据:`cargo check -p zircon_runtime --lib --locked` 过;仓库内 `preview_sky` 零命中(`grep -r preview_sky zircon_runtime/src` 为空);编辑器视口天空渲染行为与改前一致。
+
+**EL-M1 / 切片 2 —— IBL 预滤波 + GpuEnvironmentMap 接 PBR 环境项**
+- 触碰:新增 `gpu_environment_map.rs`、`ibl_prefilter.rs`、`ibl_prefilter.wgsl`、`ibl_irradiance_sh.wgsl`、`zr_environment.wgsl`;修改 `gpu_texture/mod.rs`(cube 维度)、`fallback_mesh.wgsl`、`deferred_lighting.wgsl`、`scene_uniform/from_frame.rs`。
+- 要点:bake key 判定与档位表;roughness→mip 常数定稿;环境 specular/diffuse 替代现有隐式 ambient 常量。依赖计划 13 TX-M3 的 `CubemapAsset` 导入(联调用例共享)。
+- 完成判据:粗糙度 0→1 扫描条带对应 mip 链(抓帧);`render_env_*` M1 测试组绿。
+
+**EL-M2 / 切片 1 —— ReflectionProbeData 契约 + probe buffer + 着色混合**
+- 触碰:新增 `environment/reflection_probe.rs`、`probe_buffer.rs`;修改 `light/snapshots.rs`(删 `RenderReflectionProbeSnapshot`)、`extract.rs`、`zr_environment.wgsl`(混合 + box projection)、binding 16–18 接线。
+- 要点:96-byte 布局与 offset 断言;≤2 混合 + fallback 权重法;cube array 槽位分配器(2 的幂槽,LRU 驱逐)。
+- 完成判据:CPU 参考实现与 WGSL 权重/投影对拍;`render_probe_*` M2 单测绿。
+
+**EL-M2 / 切片 2 —— 捕获 pass 经 rendering 插件 + 探针资产持久化**
+- 触碰:`zircon_plugins/rendering` 的 reflection_probes runtime/editor crate、`plugin.toml`;runtime 侧暴露捕获请求入口(序列化 DTO)与预滤波节点复用。
+- 要点:编辑器触发渲染 6 面(临时 RT 经 `TransientResourcePool`)→ 预滤波 → 写 `CubemapAsset`;feature 关闭时 graph 无捕获节点且着色回落 skybox。
+- 完成判据:插件 workspace 测试绿;两探针交界过渡平滑(产物对拍);关 feature 后 graph dump 无 probe pass。
+
+**EL-M3 / 切片 1 —— lightmap 采样 ABI + probe grid 插值**
+- 触碰:新增 `environment/lightmap.rs`、`lightmap_binding.rs`;GPUScene instance 扩展(协调计划 03);shader 变体 flag(协调计划 08);binding 23 probe grid buffer。
+- 要点:UV2 = 顶点第二 UV 通道,`uv_rect` 变换定稿;atlas 用 RGBA16F `Texture2DArrayAsset`(encoding 结论见下);probe grid GPU 端 trilinear(对象用 instance 世界位置采样,避免逐实例 CPU 上传)。
+- 完成判据:外部烘焙夹具数据渲染对拍;`render_env_lightmap_*` 测试绿。
+- encoding 结论:**RGBA16F(half)**。理由:wgpu 各后端对 `rgba16float` 过滤采样全覆盖、无 RGBM 解码乘加与低亮度 banding、HDR 余量足;RGBM8 仅作未来移动档可选项,不进 V1;BC6H 压缩留给 importer 插件后续转码,消费 ABI 不变。
+
+**EL-M3 / 切片 2 —— 烘焙器输入输出契约定稿**
+- 触碰:`environment/lightmap.rs` 的 `LightmapBakeRequest { scene_snapshot, atlas_budget, texel_density }` / `LightmapBakeOutput { atlas_pages, slots, probe_grid }` DTO;`rendering.baked_lighting` 插件 manifest 声明烘焙 capability。
+- 要点:runtime 不含烘焙实现;DTO 序列化 round-trip 测试;atlas 分配(skyline/shelf 二选一,插件内实现,runtime 只认 `uv_rect`)。
+- 完成判据:DTO round-trip + 契约静态断言绿;夹具 `LightmapBakeOutput` 喂给 runtime 渲染正确。
+
+**EL-M4 / 切片 1 —— FogSettings + zr_fog.wgsl + Volume 覆写**
+- 触碰:新增 `environment/fog.rs`、`zr_fog.wgsl`;修改两条 shading 路径 wgsl、skybox wgsl、binding 22;向计划 07 注册 fog 的 `VolumeComponentDescriptor` schema(覆写字段表见上)。
+- 要点:三模式 + 高度雾公式定稿(见 GPU 约定节);extract 携带解析后终值。
+- 完成判据:`render_fog_*` 闭式对拍绿;forward/deferred 雾产物一致(对拍);相机进雾 volume 时参数平滑过渡(07 的求值测试覆盖,本计划只消费)。
+
+**EL-M4 / 切片 2 —— ambient 三模式**
+- 触碰:`environment/ambient.rs`、`scene_uniform/from_frame.rs`、`zr_environment.wgsl` SH 求值、extract 端 `RenderAmbientLightSnapshot` → `AmbientMode::Flat` 收编。
+- 要点:三模式统一 SH9 表示(Flat=band0、Gradient=解析 L0+L1 投影、SkyboxSh=预滤波产物);shader 单路径。
+- 完成判据:三模式切换产物差异符合预期(对拍);`render_env_ambient_*` 绿。
+
+### 测试与验收清单
+
+单元测试(随实现文件就近放 `#[cfg(test)]`,模块过滤词 `environment`):
+
+| 测试函数 | 断言 | 位置 |
+|---|---|---|
+| `render_env_bake_key_ignores_intensity_and_rotation` | 仅 intensity/rotation 变化时 `IblBakeKey` 不变;渐变参数/cubemap 版本变化时改变 | `environment/skybox.rs` |
+| `render_env_mip_from_roughness_roundtrip` | 烘焙端逆映射与采样端映射互逆(8 mip 全档,误差 < 1e-4) | `ibl_prefilter.rs` |
+| `render_env_sh9_constant_color_projects_to_band0_only` | 常色 cubemap 投影后 L1/L2 系数 ≈ 0,band0 = 颜色×归一化常数 | `ibl_prefilter.rs`(CPU 参考)|
+| `render_env_ambient_gradient_sh_matches_analytic` | Gradient 闭式投影与数值积分对拍 | `environment/ambient.rs` |
+| `render_env_extract_skybox_none_removes_graph_node` | `skybox: None` 时 compiled graph 无 skybox 节点 | `graphics/tests/pipeline_compile.rs` |
+| `render_probe_gpu_layout_is_96_bytes_with_documented_offsets` | `size_of::<GpuReflectionProbe>() == 96` + 各字段 offset 静态断言 | `probe_buffer.rs` |
+| `render_probe_weight_box_edge_matches_blend_distance` | 边缘内 blend_distance 处权重线性 0→1,中心饱和 1 | `probe_buffer.rs`(CPU 参考)|
+| `render_probe_two_probe_blend_weights_sum_to_one_with_sky_fallback` | w0+w1+w_sky == 1;无探针时 w_sky == 1 | `probe_buffer.rs` |
+| `render_probe_box_projection_axis_ray_hits_face_center` | 盒心沿 +X 反射,校正向量命中 +X 面中心(CPU 复刻 WGSL 公式) | `probe_buffer.rs` |
+| `render_probe_slot_allocator_evicts_lru_on_pressure` | cube array 槽位满时按 LRU 驱逐且老句柄失效 | `probe_buffer.rs` |
+| `render_env_lightmap_uv_rect_transform_roundtrip` | UV2 经 `uv_rect` 变换落在页内,逆变换还原 | `environment/lightmap.rs` |
+| `render_env_lightmap_bake_dto_serde_roundtrip` | `LightmapBakeRequest`/`Output` 序列化 round-trip 等值 | `environment/lightmap.rs` |
+| `render_env_probe_grid_trilinear_center_equals_cell_average` | 网格中心插值 = 8 邻 cell 均值 | `environment/lightmap.rs` |
+| `render_fog_linear_factor_matches_closed_form` | 与 `(end-d)/(end-start)` 闭式逐点对拍(start/end/边界外) | `environment/fog.rs` |
+| `render_fog_exp2_monotonic_and_clamped` | 距离单调递减、[0,1] 夹紧 | `environment/fog.rs` |
+| `render_fog_height_max_opacity_clamps` | 深谷远距下不透明度 ≤ max_opacity | `environment/fog.rs` |
+| `render_fog_volume_schema_fields_match_contract` | 注册到 07 的 schema 字段集与覆写字段表一致 | `environment/fog.rs` |
+
+产物对拍(`zircon_runtime/src/graphics/tests/render_product_environment.rs`,配合 `ZR_RENDERDOC_CAPTURE_NEXT=1` 人工抓帧):
+
+| 场景 | 断言 |
+|---|---|
+| `render_product_environment_skybox_procedural_after_opaque` | skybox 像素只出现在深度 == far 区域(early-z 生效);与旧 preview-sky 基线图容差内一致 |
+| `render_product_environment_cubemap_roughness_ladder` | 金属球粗糙度阶梯反射模糊单调,相邻档位 SSIM 阈值 |
+| `render_product_probe_blend_boundary_smooth` | 两探针交界采样带无突变(逐行梯度上限断言) |
+| `render_product_probe_feature_off_falls_back_to_skybox` | 关 `rendering.reflection_probes` feature 后产物 == 纯 skybox 基线 |
+| `render_product_fog_forward_deferred_consistent` | 同场景两管线雾产物逐像素容差内一致 |
+| `render_product_environment_lightmap_fixture` | 烘焙夹具场景与参考图对拍;动态物 ambient 来自 probe grid |
+
+里程碑命令:切片期 `cargo check -p zircon_runtime --lib --locked`;测试阶段 `cargo test -p zircon_runtime environment --locked`、`cargo test -p zircon_runtime render_product_environment --locked`;插件接缝 `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_reflection_probes_runtime --locked`(crate 名见 `zircon_plugins/rendering/plugin.toml`)。
+
+### 参考实现精读笔记
+
+**UE `ReflectionEnvironmentShared.ush` — `GetLookupVectorForBoxCapture`**:把反射射线变换到盒本地空间(`RelativeWorldToBox`,盒归一到 ±1),`InvRayDir` 倒数后分别求与三对 min/max 面的交点 `FirstPlaneIntersections`/`SecondPlaneIntersections`,`max` 取每轴远交点、`min` 取三轴最近者得 `Intersection`,交点减捕获位置即校正向量;另用 `ComputeDistanceFromBoxToPoint` 对收缩过渡带(`BoxScales.w`)的盒求距,`DistanceAlpha = 1 - smoothstep(0, 0.7*transition, dist)` 做影响淡出。Zircon 对应:`zr_box_project` 直接采用该 AABB 求交式(本地空间用四元数逆旋转代替矩阵,省 64B/probe);淡出权重不用 smoothstep,改用 URP 的边距/blend_distance 线性式(更便宜,且与 sphere 形状权重公式统一)。
+
+**UE `ReflectionEnvironmentShared.ush` — `ComputeReflectionCaptureMipFromRoughness`**:`LevelFrom1x1 = ROUGHEST_MIP - MIP_SCALE * log2(max(Roughness, 0.001))`,`mip = CubemapMaxMip - 1 - LevelFrom1x1`;注释明确该映射使"某一 mip 永远对应同一 roughness,与 mip 总数无关"。Zircon 对应:常数取 1.0/1.2 原样采用,作为采样与烘焙的共同真理;取舍:不用 bevy 风格的线性 `mip = r * (N-1)`,因为换分辨率重烘后旧材质观感会漂移。
+
+**UE `ReflectionEnvironmentComposite.ush` — `CompositeReflectionCapturesAndSkylightTWS`**:按排序后的捕获列表累加权重直到饱和,盒/球分别走 `GetLookupVectorForBoxCapture`/`GetLookupVectorForSphereCapture`,剩余 alpha 给天空光。Zircon 对应:同思路但截断在 2 探针(URP 量级),省去 UE 的逐 tile 捕获列表;`misc.w` 层掩码过滤对齐其 capture 裁剪职责。
+
+**UE `ReflectionEnvironmentCapture.cpp`**:`FCubeDownsamplePS` 逐 mip 降采样 → `FCubeFilterPS`(GGX 滤波)逐 mip 执行;`FilterReflectionEnvironment` 末尾调 `ComputeDiffuseIrradiance` 输出 `FSHVectorRGB3`(SH9);mip 数 `FMath::CeilLogTwo(CaptureSize) + 1`。Zircon 对应:同"先降采样后滤波"的两段式,但用 compute(经 `ComputePassDescriptor`)替代像素 pass,SH 投影同样在预滤波后一次性产出;取舍:不做 UE 的实时捕获(`ReflectionEnvironmentRealTimeCapture.cpp`)路径,V1 只有手动烘焙。
+
+**URP `ReflectionProbeManager.cs` — `UpdateGpuData`**:CPU 侧维护 `m_BoxMin`/`m_BoxMax` 两个 `Vector4[]`,`boxMax.w = probe.blendDistance`、`boxMin.w = probe.importance`,经 `SetGlobalVectorArray` 上传;探针 cubemap 打进一张 2D atlas(空间不足时增长并告警)。Zircon 对应:字段打包思路一致(`position_blend.w`/`box_min.w`);存储取舍:用 `texture_cube_array` + 槽位分配器替代 2D atlas——wgpu 有原生 cube array 采样,免去 atlas 的 octahedral/面排布与接缝处理,代价是所有探针同分辨率(V1 接受,128³ 固定)。
+
+**URP `GlobalIllumination.hlsl` — `CalculateProbeWeight` / `CalculateIrradianceFromReflectionProbes`**:权重 = `saturate(min_axis(min(p - boxMin, boxMax - p) / blendDistance))`;混合循环在 `totalWeight < 0.99` 内累加并 `weight = min(weight, 1 - totalWeight)`,盒投影走 `BoxProjectedCubemapDirection`。Zircon 对应:权重公式与 `1-total` 截断原样采用,循环截断改为显式 top-2(确定性强、便于 CPU 对拍),skybox fallback 吃剩余权重。
+
+**URP `ShaderVariablesFunctions.hlsl` — `ComputeFogFactorZ0ToFar` / `ComputeFogIntensity` / `MixFogColor`** 与 `UnityInput.hlsl` 的 `unity_FogParams`:linear 把 `(end-z)/(end-start)` 预打包为 `z*params.z + params.w`;exp/exp2 在顶点端只算 `density*z`,像素端 `saturate(exp2(-x))` / `saturate(exp2(-x*x))`(exp2 域避免 `exp`);`MixFogColor = lerp(fogColor, fragColor, fogFactor)`。Zircon 对应:`ZrFogParams.params` 打包与 exp2 域计算原样采用;取舍:不拆顶点/像素两段(`zr_fog_factor` 全在像素端,现代 GPU 上差异可忽略且 deferred 合成本就无顶点插值),height fog 为 URP 所无、按 UE 高度雾思路以解析指数衰减乘项补充。
+
+**URP `DrawSkyboxPass.cs`**:skybox 作为独立 `ScriptableRenderPass` 在 opaque 之后以 `RendererList` 提交(`Render` 接收 colorTarget + depthTarget 做深度测试)。Zircon 对应:skybox executor 同位插入(opaque 后 transparent 前),深度策略(far + LessEqual + no write)在 pipeline 状态固化,graph 声明 `SCENE_DEPTH` 只读。
+
+## 风险与回退
+
+- 与 HGI 的职责边界:本计划是烘焙/静态基线,HGI 开启时其 GI 输出叠加/替换烘焙间接光的策略由 HGI 计划 M2 定,这里只保证采样 ABI 兼容两来源。
+- 预滤波成本:导入期/捕获期执行,运行时零成本;编辑器内迭代时降采样快速档。
+- tetrahedral probe 插值复杂:V1 均匀网格,接口不锁死插值结构。

@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::{CoreError, ModuleDescriptor};
-use zircon_runtime::engine_module::EngineModule;
-use zircon_runtime::{
-    plugin::RuntimePluginAvailabilityReport, plugin::RuntimePluginCatalog,
-    plugin::RuntimePluginFeatureRegistrationReport,
-};
-use zircon_runtime::{
-    plugin::RuntimePluginRegistrationReport,
+use zircon_runtime::builtin::{
     runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
     runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
     runtime_modules_for_target_with_plugin_registration_reports,
+};
+use zircon_runtime::core::{CoreError, ModuleDescriptor};
+use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::plugin::{
+    RuntimePluginAvailabilityReport, RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
 };
 
 use super::{entry_profile::EntryProfile, EntryConfig};

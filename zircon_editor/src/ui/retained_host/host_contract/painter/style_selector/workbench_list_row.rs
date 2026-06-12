@@ -34,7 +34,7 @@ fn list_row_background(
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_list_row_state(state) {
         None
     } else if marked {
         declared_background_color(node).or(Some(PALETTE.surface_selected))
@@ -79,7 +79,7 @@ fn list_row_text_color(
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_list_row_state(state) {
         PALETTE.text_disabled
     } else if let Some(color) = declared_color(node.value_color) {
         color
@@ -95,7 +95,7 @@ fn list_row_adornment_color(
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_list_row_state(state) {
         PALETTE.text_disabled
     } else if let Some(color) = declared_color(node.icon_color) {
         color
@@ -112,4 +112,39 @@ fn declared_background_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
 
 fn declared_color(color: crate::ui::retained_host::primitives::Color) -> Option<[u8; 4]> {
     (color.a > 0).then_some([color.r, color.g, color.b, color.a])
+}
+
+fn is_unavailable_list_row_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::primitives::Color;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn list_row_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.selected = true;
+        node.checked = true;
+        node.button_style.loading = true;
+        node.value_color = Color::from_rgb_u8(53, 199, 208);
+        node.icon_color = Color::from_rgb_u8(122, 230, 240);
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(13, 65, 73, 255)));
+
+        let style = select_workbench_list_row_style(&node);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.background, None);
+        assert_eq!(style.border, None);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.adornment, PALETTE.text_disabled);
+    }
 }

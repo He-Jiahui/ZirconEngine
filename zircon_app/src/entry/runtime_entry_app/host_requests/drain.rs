@@ -1,4 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::diagnostic_log::write_error;
 
 use super::super::RuntimeEntryApp;
 use super::routing::apply_runtime_host_request;
@@ -10,7 +11,11 @@ impl RuntimeEntryApp {
     ) -> bool {
         let requests = match self.session.drain_host_requests() {
             Ok(requests) => requests,
-            Err(_) => {
+            Err(error) => {
+                write_error(
+                    "runtime_host_request",
+                    format!("runtime_host_request_drain_failed error={error}"),
+                );
                 event_loop.exit();
                 return false;
             }

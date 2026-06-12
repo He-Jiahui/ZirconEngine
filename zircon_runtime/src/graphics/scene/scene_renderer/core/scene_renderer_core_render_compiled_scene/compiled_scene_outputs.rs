@@ -72,6 +72,8 @@ mod tests {
             early_z_draw_count: 2,
             shadow_caster_draw_count: 2,
             alpha_mask_shadow_caster_draw_count: 1,
+            skinned_draw_count: 1,
+            skinned_palette_upload_count: 1,
             gpu_instancing_candidate_group_count: 1,
             gpu_instancing_candidate_draw_count: 2,
             ..PreparedMeshQueueStats::default()
@@ -94,7 +96,9 @@ mod tests {
         let stats = PreparedSpriteQueueStats {
             draw_batch_count: 2,
             sprite_count: 3,
-            vertex_count: 18,
+            image_slice_count: 5,
+            expanded_image_slice_count: 2,
+            vertex_count: 30,
             opaque_draw_batch_count: 1,
             transparent_draw_batch_count: 1,
             ..PreparedSpriteQueueStats::default()

@@ -37,6 +37,7 @@ mod stable_entity_location;
 mod storage;
 mod storage_type;
 mod system;
+mod system_set;
 mod system_stage;
 
 pub use archetype_id::ArchetypeId;
@@ -44,17 +45,18 @@ pub use archetype_index::{ArchetypeIndex, ArchetypeMove, ArchetypeRecord};
 pub use archetype_signature::ArchetypeSignature;
 pub use bundle::Bundle;
 pub use change_detection::{ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref};
-pub use commands::{Command, CommandQueue, Commands, CommandsParam, EntityCommands, FnCommand};
+pub use commands::{
+    Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
+    DeferredCommandReport, EntityCommands, FnCommand,
+};
 pub use component::Component;
 pub use component_id::ComponentId;
-pub use component_registry::{
-    ComponentDescriptor, ComponentDescriptorSource, ComponentKey, ComponentRegistry,
-};
+pub use component_registry::{ComponentDescriptor, ComponentDescriptorSource, ComponentRegistry};
 pub use despawned_entity::DespawnedEntity;
 pub use entity_location::EntityLocation;
 pub use entity_registry::EntityRegistry;
 pub use entity_registry_error::EntityRegistryError;
-pub use events::{EventCursor, EventReadIter, EventStore, Events};
+pub use events::{Event, EventCursor, EventReadIter, EventStore, Events};
 pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
@@ -65,14 +67,15 @@ pub use query::{
     QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
     QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
     QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
-    QueryMutIter, QuerySingleError, QueryState, UniqueEntityArray, With, Without,
+    QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
+    Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
 pub use resource_id::ResourceId;
 pub use resource_registry::{ResourceDescriptor, ResourceRegistry};
 pub use resource_store::ResourceStore;
-pub use scene_system_descriptor::SceneSystemDescriptor;
+pub use scene_system_descriptor::{SceneSystemDescriptor, SystemOrderingConstraint, SystemRef};
 pub use scene_system_registry::SceneSystemRegistry;
 pub use schedule::Schedule;
 pub use schedule_conflict_graph::{
@@ -81,7 +84,9 @@ pub use schedule_conflict_graph::{
 };
 pub use schedule_error::ScheduleError;
 pub use schedule_parallel_executor::{
-    ScheduleParallelExecutor, ScheduleParallelExecutorError, ScheduleParallelTaskRegistry,
+    ScheduleParallelExecutionReport, ScheduleParallelExecutor, ScheduleParallelExecutorError,
+    ScheduleParallelTaskRegistry, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
+    SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
 };
 pub use stable_entity_location::StableEntityLocation;
 pub use storage::{
@@ -89,13 +94,15 @@ pub use storage::{
 };
 pub use storage_type::StorageType;
 pub use system::{
-    BoxedSceneSystem, EventReader, EventReaderParam, EventWriter, EventWriterParam,
-    FunctionSceneSystem, IntoSceneSystem, Local, LocalParam, MessageReader, MessageReaderParam,
-    MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam, Query,
-    RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam, SceneSystem,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, EventReader, EventReaderParam, EventWriter,
+    EventWriterParam, FunctionRuntimeSceneSystem, FunctionSceneSystem, IntoSceneSystem, Local,
+    LocalParam, MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet,
+    ParamSetItem, ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut,
+    ResMutParam, ResParam, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem,
     SceneSystemMetadata, SystemParam, SystemParamAccess, SystemParamConflictKind, SystemParamError,
     SystemState,
 };
+pub use system_set::{SystemSetId, SystemSetRegistry};
 pub use system_stage::SystemStage;
 
 pub(crate) use query::single_from_iter;

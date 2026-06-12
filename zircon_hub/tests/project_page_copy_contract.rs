@@ -54,6 +54,13 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
     let navigation = read_crate_file("src/state/navigation.rs");
     let display = read_crate_file("src/tauri_app/view_model/display.rs");
     let localized = read_crate_file("src/tauri_app/view_model/localized.rs");
+    let project_messages = read_crate_file("src/state/hub_message/project.rs");
+    let engine_messages = read_crate_file("src/state/hub_message/engine.rs");
+    let delivery_messages = read_crate_file("src/state/hub_message/delivery.rs");
+    let process_messages = read_crate_file("src/state/hub_message/process.rs");
+    let settings_messages = read_crate_file("src/state/hub_message/settings.rs");
+    let learn_messages = read_crate_file("src/state/hub_message/learn.rs");
+    let shell_messages = read_crate_file("src/state/hub_message/shell.rs");
     let action_history = read_crate_file("src/tauri_app/view_model/action_history.rs");
     let project_templates = read_crate_file("src/tauri_app/view_model/project_templates.rs");
     let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
@@ -114,74 +121,94 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "pub(crate) fn operation_target(self, target: &str) -> String",
             "\"Output Folder\" => \"输出文件夹\"",
             "\"Hub settings\" => \"Hub 设置\"",
-            "pub(crate) fn status_detail(self, detail: &str) -> String",
-            "detail.strip_prefix(\"Project template is coming soon: \")",
-            "return format!(\"项目模板尚未开放：{template}\")",
-            "detail.strip_prefix(\"Project folder does not exist: \")",
-            "return format!(\"项目文件夹不存在：{path}\")",
-            "detail.strip_prefix(\"zircon-project.toml was not found in \")",
-            "return format!(\"未在 {path} 找到 zircon-project.toml\")",
-            "detail.strip_prefix(\"Project root is not valid: \")",
-            "return format!(\"项目根目录无效：{path}\")",
-            "detail.strip_prefix(\"Project has no bound Source Engine: \")",
-            "return format!(\"项目未绑定源码引擎：{project}\")",
-            "detail.strip_prefix(\"Project bound Source Engine is unavailable: \")",
-            "return format!(\"项目绑定的源码引擎不可用：{binding}\")",
-            "detail.strip_prefix(\"Unknown Source Engine: \")",
-            "return format!(\"未知源码引擎：{engine_id}\")",
-            "detail.strip_prefix(\"Created \")",
-            "return format!(\"已创建 {path}\")",
-            "detail.strip_prefix(\"Imported \")",
-            "return format!(\"已导入 {path}\")",
-            "detail.strip_prefix(\"Output folder does not exist: \")",
-            "return format!(\"输出文件夹不存在：{path}\")",
-            "detail.strip_prefix(\"Resource file does not exist: \")",
-            "return format!(\"资源文件不存在：{path}\")",
-            "detail.strip_prefix(\"Opened \")",
-            "return format!(\"已打开 {path}\")",
-            "\"Open Output target is required\" => \"需要打开输出目标\"",
-            "detail.strip_prefix(\"Editor executable is not available: \")",
-            "return format!(\"编辑器可执行文件不可用：{path}\")",
-            "detail.strip_prefix(\"Started process \")",
-            "return format!(\"已启动进程 {process_id}\")",
-            "detail.strip_prefix(\"Opening \")",
-            "return format!(\"正在打开 {target}（进程 {process_id}）\")",
-            "detail.strip_prefix(\"Process \")",
-            "return format!(\"进程 {process_id}\")",
-            "\"Source checkout directory is missing\" => \"源码检出目录缺失\"",
-            "\"Source checkout is missing Cargo.toml\" => \"源码检出缺少 Cargo.toml\"",
-            "\"Source checkout is missing tools/zircon_build.py\"",
-            "\"Staged editor/runtime payload\" => \"已暂存编辑器/运行时载荷\"",
-            ".strip_prefix(\"Showing \")",
-            ".and_then(localize_project_filter)",
-            "return format!(\"显示{filter}\")",
-            "detail.strip_prefix(\"Sorting by \")",
-            "return format!(\"按{}排序\", localize_project_sort(sort))",
-            "localize_delivery_log_excerpt(detail)",
-            "Some(format!(\"{action} {target} 到 {path}（{count} 个文件）\"))",
-            "localize_file_count_suffix(detail)",
-            "Some(format!(\"{prefix}（{count} 个文件）\"))",
-            "detail.strip_prefix(\"Device install already exists: \")",
-            "return format!(\"设备安装已存在：{path}\")",
-            "\"Project root is not available for packaging\" => \"项目根目录不可用于打包\"",
-            "\"Package output root is required\" => \"需要包输出根目录\"",
-            "\"Package output root must be outside the project directory\"",
-            "\"Package directory is not available\" => \"包目录不可用\"",
-            "\"Device install directory is required\" => \"需要设备安装目录\"",
-            "\"Device install directory must be outside the package directory\"",
-            "\"Hub is ready\" => \"Hub 已就绪\"",
-            "\"Showing all recent projects\" => \"显示全部最近项目\"",
-            "\"Check the action target and try again\" => \"检查操作目标后重试\"",
+            "pub(crate) fn render_message(self, message: &HubMessage) -> String",
+            "message.render(self.language)",
+        ],
+    );
+    assert_contains_all(
+        "project.rs",
+        &project_messages,
+        &[
+            "TemplateComingSoon",
+            "项目模板尚未开放：{0}",
+            "未在 {0} 找到 zircon-project.toml",
+            "项目目录已创建于 {0}，但 Hub 记录失败：{1}",
+            "项目未绑定源码引擎：{0}",
+            "已创建 {0}",
+            "已导入 {0}",
+            "显示{0}",
+            "按{0}排序",
+        ],
+    );
+    assert_contains_all(
+        "engine.rs",
+        &engine_messages,
+        &[
+            "UnknownSourceEngine",
+            "未知源码引擎：{0}",
+            "源码检出目录缺失",
+            "已暂存编辑器/运行时载荷",
+        ],
+    );
+    assert_contains_all(
+        "delivery.rs",
+        &delivery_messages,
+        &[
+            "FileCountDetail",
+            "{0} -> {1}（{2} 个文件）",
+            "已打包 {0} 到 {1}（{2} 个文件）",
+            "输出文件夹不存在：{0}",
+            "包目录已存在：{0}",
+            "设备安装已存在：{0}",
+        ],
+    );
+    assert_contains_all(
+        "process.rs",
+        &process_messages,
+        &[
+            "OpeningTargetProcess",
+            "编辑器可执行文件不可用：{0}",
+            "已启动进程 {0}",
+            "正在打开 {0}（进程 {1}）",
+        ],
+    );
+    assert_contains_all(
+        "settings.rs",
+        &settings_messages,
+        &[
+            "UnknownLanguage",
+            "未知 Hub 语言：{0}",
+            "检查设置值后重新保存",
+            "草稿已恢复为内置默认值",
+        ],
+    );
+    assert_contains_all(
+        "learn.rs",
+        &learn_messages,
+        &[
+            "ResourceFileDoesNotExist",
+            "资源文件不存在：{0}",
+            "需要打开资源目标",
+        ],
+    );
+    assert_contains_all(
+        "shell.rs",
+        &shell_messages,
+        &[
+            "OpenedPath",
+            "Hub 已就绪",
+            "已打开 {0}",
+            "检查操作目标后重试",
         ],
     );
     assert_contains_all(
         "action_history.rs",
         &action_history,
         &[
-            "let detail = text.status_detail(&record.detail);",
-            "let log_excerpt = text.status_detail(&record.log_excerpt);",
+            "let detail = text.render_message(&record.detail);",
+            "let log_excerpt = text.render_message(&record.log_excerpt);",
             "let detail_rows = action_history_detail_rows(",
-            ".map(|recovery| text.status_detail(recovery))",
+            ".map(|recovery| text.render_message(recovery))",
             "fn action_history_row_localizes_log_excerpt()",
         ],
     );
@@ -276,10 +303,10 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
         &task_status,
         &[
             "label: \"Ready\".to_string()",
-            "detail: \"Hub is ready\".to_string()",
-            "TaskStatus::success(\"Project selected\", \"Game\")",
+            "detail: HubMessage::new(HubMessageId::Shell(ShellMessageId::HubReady))",
+            "pub recovery: Option<HubMessage>",
+            "TaskStatus::success(\"Project selected\", HubMessage::legacy(\"Game\"))",
             "operation_summary",
-            "detail_with_recovery",
         ],
     );
 }
@@ -288,6 +315,8 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
 fn projects_dashboard_and_browser_copy_match_the_reference_surface() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
+    let toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
+    let create_dialog = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
 
     assert_contains_all(
         "ProjectsDashboard.tsx",
@@ -296,22 +325,36 @@ fn projects_dashboard_and_browser_copy_match_the_reference_surface() {
             "const text = state.ui.projects;",
             "const actionText = state.ui.actions;",
             "<Typography variant=\"h4\">{text.title}</Typography>",
-            "placeholder={text.searchPlaceholder}",
-            "{ value: \"all\", label: text.filterAll }",
-            "{ value: \"last-modified\", label: text.sortLastModified }",
-            "{ value: \"grid\", label: text.gridView",
-            "{ value: \"list\", label: text.listView",
+            "<ProjectsToolbar",
             "title={text.noProjectsFound}",
             "detail={text.searchFiltersEmpty}",
             "title={text.recentProjects}",
             "{actionText.viewAllProjects}",
             "<HubPanel title={text.quickActions}>",
+            "<CreateProjectDialog",
+        ],
+    );
+    assert_contains_all(
+        "ProjectsToolbar.tsx",
+        &toolbar,
+        &[
+            "placeholder={text.searchPlaceholder}",
+            "{ value: \"all\", label: text.filterAll }",
+            "{ value: \"last-modified\", label: text.sortLastModified }",
+            "{ value: \"grid\", label: text.gridView",
+            "{ value: \"list\", label: text.listView",
+        ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_dialog,
+        &[
             "title={text.newProjectDialog}",
             "label={text.projectName}",
-            "state.projectTemplates.map((projectTemplate) =>",
+            "templates.map((projectTemplate) =>",
             "label: projectTemplate.optionLabel",
             "placeholder={text.sourceEngine}",
-            "options={state.sourceEngines.map((engine) => ({",
+            "options={sourceEngines.map((engine) => ({",
             "engineId: engineId || null",
         ],
     );
@@ -350,6 +393,8 @@ fn projects_dashboard_and_browser_copy_match_the_reference_surface() {
 #[test]
 fn project_detail_copy_targets_selected_project_and_actions() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
+    let sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
 
     assert_contains_all(
         "ProjectDetailPage.tsx",
@@ -361,6 +406,20 @@ fn project_detail_copy_targets_selected_project_and_actions() {
             "{actionText.browser}",
             "{actionText.openEditor}",
             "EmptyStateBlock title={text.noProjectSelected} detail={text.chooseProjectFromBrowser}",
+            "<ProjectMetricsGrid",
+            "<ProjectDetailSidebar",
+            "{ value: \"overview\", label: text.overview }",
+            "{ value: \"files\", label: text.files }",
+            "{ value: \"actions\", label: text.actions }",
+            "HubPanel title={text.projectOverview}",
+            "HubPanel title={text.projectTree}",
+            "HubPanel title={text.projectActions}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
+        &[
             "MetricCard label={text.status}",
             "text.pathUnavailable",
             "MetricCard label={text.engine}",
@@ -368,12 +427,12 @@ fn project_detail_copy_targets_selected_project_and_actions() {
             "MetricCard label={text.lastModified}",
             "MetricCard label={text.projectPin}",
             "detail={project.templateLabel}",
-            "{ value: \"overview\", label: text.overview }",
-            "{ value: \"files\", label: text.files }",
-            "{ value: \"actions\", label: text.actions }",
-            "HubPanel title={text.projectOverview}",
-            "HubPanel title={text.projectTree}",
-            "HubPanel title={text.projectActions}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &sidebar,
+        &[
             "HubPanel title={text.quickActions}",
             "HubPanel title={text.sourceEngines}",
             "HubPanel title={text.package}",
@@ -401,6 +460,7 @@ fn workspace_copy_stays_local_selected_project_and_component_focused() {
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
     let team = read_crate_file("web/src/pages/TeamPage.tsx");
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
 
     assert_contains_all(
         "BuildsPage.tsx",
@@ -508,11 +568,22 @@ fn workspace_copy_stays_local_selected_project_and_component_focused() {
         &[
             "<Typography variant=\"h4\">{settingsText.heading}</Typography>",
             "{settingsText.saveButton}",
+            "{settingsText.discardButton}",
+            "{settingsText.restoreDefaultsButton}",
+            "void onAction(HUB_ACTION.discardSettingsDraft)",
+            "void onAction(HUB_ACTION.restoreDefaultSettings)",
             "MetricCard label={settingsText.sourceEnginesPanel}",
             "MetricCard label={labels.buildProfile}",
             "MetricCard label={labels.language}",
             "MetricCard label={settingsText.configurationHealthPanel}",
             "HubTabs value={tab} onChange={setTab} options={settingsText.tabs}",
+            "<SettingsSection",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "options={settingsText.buildProfileOptions}",
             "options={settingsText.languageOptions}",
             "HubPanel title={settingsText.buildDefaultsPanel}",
@@ -525,6 +596,7 @@ fn workspace_copy_stays_local_selected_project_and_component_focused() {
 #[test]
 fn settings_page_displays_localized_option_labels_without_changing_stable_payload_values() {
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     let settings_options = read_crate_file("web/src/settings/options.ts");
 
     assert_contains_all(
@@ -538,13 +610,19 @@ fn settings_page_displays_localized_option_labels_without_changing_stable_payloa
             "MetricCard label={labels.buildProfile} value={buildProfileLabel} detail={draftJobsLabel}",
             "MetricCard label={labels.language} value={languageLabel}",
             "detail: languageLabel",
+            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "HubSwitch checked={draft.buildProfile === \"release\"} label={labels.releaseBuild} detail={buildProfileLabel}",
             "HubCheckbox checked={draft.language === \"Chinese\"} label={labels.localizedUi} detail={languageLabel}",
             "value={draft.buildProfile}",
             "onChange={(value) => updateDraft(\"buildProfile\", value)}",
             "value={draft.language}",
             "onChange={(value) => updateDraft(\"language\", value)}",
-            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
         ],
     );
     assert_contains_all(
@@ -563,6 +641,18 @@ fn settings_page_displays_localized_option_labels_without_changing_stable_payloa
     assert_not_contains_any(
         "SettingsPage.tsx",
         &settings,
+        &[
+            "MetricCard label={labels.buildProfile} value={draft.buildProfile}",
+            "MetricCard label={labels.language} value={draft.language}",
+            "detail={`${draft.jobs}`}",
+            "detail: draft.language",
+            "detail={draft.buildProfile}",
+            "detail={draft.language}",
+        ],
+    );
+    assert_not_contains_any(
+        "SettingsSection.tsx",
+        &settings_section,
         &[
             "MetricCard label={labels.buildProfile} value={draft.buildProfile}",
             "MetricCard label={labels.language} value={draft.language}",
@@ -592,9 +682,17 @@ fn workspace_pages_display_localized_saved_settings_option_labels() {
             "pub jobs_label: String",
             "pub build_profile_detail: String",
             "pub build_workflow_detail: String",
+            "option(\"Chinese\", \"中文\")",
+            "option(\"English\", \"English\")",
             "fn job_count_label(jobs: u16, language: HubLanguage) -> String",
+            "settings_language_options_keep_native_names_across_ui_languages",
             "settings_summary_projects_saved_option_labels_for_react_consumers",
         ],
+    );
+    assert_not_contains_any(
+        "settings_dto.rs",
+        &settings_dto,
+        &["option(\"Chinese\", text.pair(\"Chinese\", \"中文\"))"],
     );
     assert_contains_all(
         "hub.ts",

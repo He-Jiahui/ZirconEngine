@@ -6,38 +6,36 @@ use zircon_runtime::{
     plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::RuntimePluginCatalog,
     RuntimeTargetMode,
 };
+use zircon_runtime_interface::RegistrationDiagnosticSeverity;
 
 use crate::core::editor_plugin::{EditorPluginCatalog, EditorPluginDescriptor};
 
 #[test]
-fn builtin_editor_catalog_entries_have_matching_plugin_manifests_and_workspace_members() {
+fn builtin_editor_catalog_entries_are_derived_from_plugin_manifests() {
     let plugins_root = plugins_workspace_root();
-    let workspace_members = plugin_workspace_members(&plugins_root);
 
     for descriptor in EditorPluginDescriptor::builtin_catalog() {
         let manifest = read_plugin_manifest(&plugins_root, &descriptor.package_id);
         assert_eq!(manifest.id, descriptor.package_id);
-        assert!(
-            workspace_members.contains(&format!("{}/editor", descriptor.package_id)),
-            "editor catalog entry `{}` is missing its zircon_plugins workspace editor member",
-            descriptor.package_id
-        );
-        assert!(
-            manifest.modules.iter().any(|module| {
-                module.kind == PluginModuleKind::Editor
-                    && module.crate_name == descriptor.crate_name
-            }),
+        assert_eq!(manifest.display_name, descriptor.display_name);
+        assert_eq!(manifest.category, descriptor.category);
+        let editor_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.kind == PluginModuleKind::Editor)
+            .expect("catalog entry should come from an editor module");
+        assert_eq!(
+            editor_module.crate_name, descriptor.crate_name,
             "editor catalog entry `{}` is missing matching editor module crate `{}` in plugin.toml",
-            descriptor.package_id,
-            descriptor.crate_name
+            descriptor.package_id, descriptor.crate_name
         );
+        assert_eq!(editor_module.capabilities, descriptor.capabilities);
     }
 }
 
 #[test]
-fn editor_workspace_plugin_manifests_are_present_in_builtin_catalog() {
+fn editor_module_plugin_manifests_are_present_in_builtin_catalog() {
     let plugins_root = plugins_workspace_root();
-    let workspace_members = plugin_workspace_members(&plugins_root);
     let catalog_ids = EditorPluginDescriptor::builtin_catalog()
         .into_iter()
         .map(|descriptor| descriptor.package_id)
@@ -47,13 +45,11 @@ fn editor_workspace_plugin_manifests_are_present_in_builtin_catalog() {
         let manifest_source = fs::read_to_string(&manifest_path).expect("plugin manifest source");
         let manifest: PluginPackageManifest =
             toml::from_str(&manifest_source).expect("plugin manifest should parse");
-        let has_workspace_editor_member =
-            workspace_members.contains(&format!("{}/editor", manifest.id));
         let declares_editor_module = manifest
             .modules
             .iter()
             .any(|module| module.kind == PluginModuleKind::Editor);
-        if has_workspace_editor_member && declares_editor_module {
+        if declares_editor_module {
             assert!(
                 catalog_ids.contains(&manifest.id),
                 "editor plugin `{}` is missing from EditorPluginDescriptor::builtin_catalog()",
@@ -157,30 +153,40 @@ fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_ma
     }
 }
 
+#[test]
+fn editor_plugin_catalog_reports_missing_capabilities_as_structured_diagnostics() {
+    let catalog = EditorPluginCatalog::from_descriptors(
+        [
+            EditorPluginDescriptor::new("weather", "Weather", "zircon_plugin_weather_editor")
+                .with_capability("editor.extension.weather_authoring"),
+        ],
+        [],
+    );
+
+    let missing = catalog.validate_capabilities(Vec::<String>::new());
+
+    assert!(!missing.is_success());
+    assert_eq!(missing.diagnostics.len(), 1);
+    assert_eq!(
+        missing.diagnostics[0].severity,
+        RegistrationDiagnosticSeverity::Error
+    );
+    assert_eq!(missing.diagnostics[0].code, "editor.capability.missing");
+    assert_eq!(missing.diagnostics[0].plugin_id, "weather");
+    assert!(missing.diagnostics[0]
+        .message
+        .contains("editor.extension.weather_authoring"));
+
+    let enabled = catalog.validate_capabilities(["editor.extension.weather_authoring"]);
+    assert!(enabled.is_success());
+    assert!(enabled.diagnostics.is_empty());
+}
+
 fn plugins_workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("editor crate should have a repository parent")
         .join("zircon_plugins")
-}
-
-fn plugin_workspace_members(plugins_root: &Path) -> BTreeSet<String> {
-    let manifest = fs::read_to_string(plugins_root.join("Cargo.toml"))
-        .expect("zircon_plugins workspace manifest");
-    let manifest: toml::Value = toml::from_str(&manifest).expect("workspace manifest should parse");
-    manifest
-        .get("workspace")
-        .and_then(|workspace| workspace.get("members"))
-        .and_then(toml::Value::as_array)
-        .expect("workspace members should be an array")
-        .iter()
-        .map(|member| {
-            member
-                .as_str()
-                .expect("workspace member should be a string")
-                .replace('\\', "/")
-        })
-        .collect()
 }
 
 fn plugin_manifest_paths(plugins_root: &Path) -> Vec<PathBuf> {

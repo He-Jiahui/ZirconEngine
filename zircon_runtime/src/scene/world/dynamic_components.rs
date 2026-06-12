@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use serde_json::{Map, Number, Value};
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
@@ -20,24 +22,27 @@ impl World {
         descriptor: ComponentTypeDescriptor,
     ) -> Result<(), String> {
         let registration =
-            crate::scene::reflect::registration_from_component_descriptor(&descriptor)
-                .map_err(|error| error.to_string())?;
+            match crate::scene::reflect::registration_from_component_descriptor(&descriptor) {
+                Ok(registration) => registration,
+                Err(error) => return Err(error.to_string()),
+            };
         if self.type_registry.contains(&descriptor.type_id) {
             return Err(ReflectError::DuplicateTypePath {
                 type_path: descriptor.type_id.clone(),
             }
             .to_string());
         }
-        self.component_types.register(descriptor.clone())?;
-        self.type_registry
-            .register(RuntimeTypeRegistration {
-                registration,
-                component: Some(
-                    crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor),
-                ),
-                resource: None,
-            })
-            .map_err(|error| error.to_string())
+        let component =
+            crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);
+        self.component_types.register(descriptor)?;
+        match self.type_registry.register(RuntimeTypeRegistration {
+            registration,
+            component: Some(component),
+            resource: None,
+        }) {
+            Ok(()) => Ok(()),
+            Err(error) => Err(error.to_string()),
+        }
     }
 
     pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
@@ -45,7 +50,12 @@ impl World {
     }
 
     pub fn component_type_descriptors(&self) -> Vec<&ComponentTypeDescriptor> {
-        self.component_types.descriptors().collect()
+        let descriptors = self.component_types.descriptors();
+        let mut result = Vec::with_capacity(descriptors.size_hint().0);
+        for descriptor in descriptors {
+            result.push(descriptor);
+        }
+        result
     }
 
     pub fn set_dynamic_component(
@@ -71,25 +81,24 @@ impl World {
     }
 
     pub fn dynamic_component(&self, entity: EntityId, component_id: &str) -> Option<&Value> {
-        self.dynamic_components
-            .get(&entity)
-            .and_then(|components| components.get(component_id))
+        let components = self.dynamic_components.get(&entity)?;
+        components.get(component_id)
     }
 
     pub fn dynamic_components_for_entity(&self, entity: EntityId) -> Vec<DynamicComponentInstance> {
         let Some(components) = self.dynamic_components.get(&entity) else {
             return Vec::new();
         };
-        let mut components = components
-            .iter()
-            .map(|(component_id, value)| DynamicComponentInstance {
+        let mut instances = Vec::with_capacity(components.len());
+        for (component_id, value) in components {
+            instances.push(DynamicComponentInstance {
                 component_id: component_id.clone(),
                 value: value.clone(),
                 descriptor: self.component_types.descriptor(component_id).cloned(),
-            })
-            .collect::<Vec<_>>();
-        components.sort_by(|left, right| left.component_id.cmp(&right.component_id));
-        components
+            });
+        }
+        instances.sort_by(|left, right| left.component_id.cmp(&right.component_id));
+        instances
     }
 
     pub fn remove_dynamic_component(
@@ -116,20 +125,38 @@ impl World {
     }
 
     pub fn dynamic_component_count_for_plugin(&self, plugin_id: &str) -> usize {
-        self.dynamic_component_refs_for_plugin(plugin_id).count()
+        let mut count = 0_usize;
+        for components in self.dynamic_components.values() {
+            for component_id in components.keys() {
+                if dynamic_component_belongs_to_plugin(component_id, plugin_id) {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 
     pub fn ensure_plugin_components_can_unload(&self, plugin_id: &str) -> Result<(), String> {
-        let active_components = self
-            .dynamic_component_refs_for_plugin(plugin_id)
-            .map(|(entity, component_id)| format!("{component_id} on entity {entity}"))
-            .collect::<Vec<_>>();
-        if active_components.is_empty() {
+        let mut active_components = String::new();
+        let mut has_active_components = false;
+        for (entity, components) in &self.dynamic_components {
+            for component_id in components.keys() {
+                if !dynamic_component_belongs_to_plugin(component_id, plugin_id) {
+                    continue;
+                }
+                if has_active_components {
+                    active_components.push_str(", ");
+                }
+                has_active_components = true;
+                let _ = write!(&mut active_components, "{component_id} on entity {entity}");
+            }
+        }
+        if !has_active_components {
             return Ok(());
         }
         Err(format!(
             "plugin `{plugin_id}` cannot unload while dynamic components are active: {}",
-            active_components.join(", ")
+            active_components
         ))
     }
 
@@ -139,8 +166,9 @@ impl World {
         property_path: &ComponentPropertyPath,
     ) -> Option<ScenePropertyValue> {
         let (component_id, property) = split_dynamic_property_path(property_path)?;
-        let value = self.dynamic_component(entity, &component_id)?;
-        json_property(value, &property).and_then(scene_value_from_json)
+        let value = self.dynamic_component(entity, component_id)?;
+        let value = json_property(value, property)?;
+        scene_value_from_json(value)
     }
 
     pub(crate) fn set_dynamic_component_property(
@@ -152,10 +180,11 @@ impl World {
         if !self.contains_entity(entity) {
             return Err(format!("cannot update missing entity {entity}"));
         }
-        let (component_id, property) = split_dynamic_property_path(property_path)
-            .ok_or_else(|| format!("unknown property `{property_path}`"))?;
-        self.validate_dynamic_component_type(&component_id)?;
-        self.validate_dynamic_component_property_write(&component_id, &property)?;
+        let Some((component_id, property)) = split_dynamic_property_path(property_path) else {
+            return Err(format!("unknown property `{property_path}`"));
+        };
+        self.validate_dynamic_component_type(component_id)?;
+        self.validate_dynamic_component_property_write(component_id, property)?;
         let Some(json_value) = json_from_scene_value(value) else {
             return Err(format!(
                 "property `{property_path}` cannot be written to a dynamic component"
@@ -163,35 +192,19 @@ impl World {
         };
         let components = self.dynamic_components.entry(entity).or_default();
         let component = components
-            .entry(component_id.clone())
+            .entry(component_id.to_string())
             .or_insert_with(|| Value::Object(Map::new()));
         let Some(object) = component.as_object_mut() else {
             return Err(format!(
                 "dynamic component `{component_id}` is not an object"
             ));
         };
-        if object.get(&property) == Some(&json_value) {
+        if object.get(property) == Some(&json_value) {
             return Ok(false);
         }
-        object.insert(property, json_value);
-        self.insert_dynamic_component_presence(entity, &component_id)?;
+        object.insert(property.to_string(), json_value);
+        self.insert_dynamic_component_presence(entity, component_id)?;
         Ok(true)
-    }
-
-    fn dynamic_component_refs_for_plugin<'a>(
-        &'a self,
-        plugin_id: &'a str,
-    ) -> impl Iterator<Item = (EntityId, &'a str)> + 'a {
-        let prefix = format!("{plugin_id}.");
-        self.dynamic_components
-            .iter()
-            .flat_map(move |(entity, components)| {
-                let prefix = prefix.clone();
-                components
-                    .keys()
-                    .filter(move |component_id| component_id.starts_with(&prefix))
-                    .map(move |component_id| (*entity, component_id.as_str()))
-            })
     }
 
     fn validate_dynamic_component_type(&self, component_id: &str) -> Result<(), String> {
@@ -214,11 +227,14 @@ impl World {
         if descriptor.properties.is_empty() {
             return Ok(());
         }
-        let Some(property_descriptor) = descriptor
-            .properties
-            .iter()
-            .find(|descriptor| descriptor.name == property)
-        else {
+        let mut property_descriptor = None;
+        for descriptor in &descriptor.properties {
+            if descriptor.name == property {
+                property_descriptor = Some(descriptor);
+                break;
+            }
+        }
+        let Some(property_descriptor) = property_descriptor else {
             return Err(format!(
                 "dynamic component type `{component_id}` does not declare property `{property}`"
             ));
@@ -232,9 +248,15 @@ impl World {
     }
 }
 
-fn split_dynamic_property_path(property_path: &ComponentPropertyPath) -> Option<(String, String)> {
-    let (component_id, property) = property_path.as_str().rsplit_once('.')?;
-    Some((component_id.to_string(), property.to_string()))
+fn split_dynamic_property_path(property_path: &ComponentPropertyPath) -> Option<(&str, &str)> {
+    property_path.as_str().rsplit_once('.')
+}
+
+fn dynamic_component_belongs_to_plugin(component_id: &str, plugin_id: &str) -> bool {
+    let Some(suffix) = component_id.strip_prefix(plugin_id) else {
+        return false;
+    };
+    suffix.starts_with('.')
 }
 
 fn json_property<'a>(value: &'a Value, property: &str) -> Option<&'a Value> {
@@ -244,15 +266,18 @@ fn json_property<'a>(value: &'a Value, property: &str) -> Option<&'a Value> {
 fn scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {
     match value {
         Value::Bool(value) => Some(ScenePropertyValue::Bool(*value)),
-        Value::Number(value) => value
-            .as_i64()
-            .map(ScenePropertyValue::Integer)
-            .or_else(|| value.as_u64().map(ScenePropertyValue::Unsigned))
-            .or_else(|| {
-                value
-                    .as_f64()
-                    .map(|value| ScenePropertyValue::Scalar(value as _))
-            }),
+        Value::Number(value) => {
+            if let Some(value) = value.as_i64() {
+                return Some(ScenePropertyValue::Integer(value));
+            }
+            if let Some(value) = value.as_u64() {
+                return Some(ScenePropertyValue::Unsigned(value));
+            }
+            match value.as_f64() {
+                Some(value) => Some(ScenePropertyValue::Scalar(value as _)),
+                None => None,
+            }
+        }
         Value::String(value) => Some(ScenePropertyValue::String(value.clone())),
         Value::Array(values) => scene_vector_from_json(values),
         Value::Object(object) => scene_object_from_json(object),
@@ -265,11 +290,10 @@ fn json_from_scene_value(value: ScenePropertyValue) -> Option<Value> {
         ScenePropertyValue::Bool(value) => Some(Value::Bool(value)),
         ScenePropertyValue::Integer(value) => Some(Value::Number(value.into())),
         ScenePropertyValue::Unsigned(value) => Some(Value::Number(value.into())),
-        ScenePropertyValue::Scalar(value) => value
-            .to_string()
-            .parse::<serde_json::Number>()
-            .ok()
-            .map(Value::Number),
+        ScenePropertyValue::Scalar(value) => match finite_json_number(value) {
+            Some(number) => Some(Value::Number(number)),
+            None => None,
+        },
         ScenePropertyValue::String(value) | ScenePropertyValue::Enum(value) => {
             Some(Value::String(value))
         }
@@ -277,61 +301,83 @@ fn json_from_scene_value(value: ScenePropertyValue) -> Option<Value> {
         ScenePropertyValue::Vec3(value) => vector_to_json(value),
         ScenePropertyValue::Vec4(value) => vector_to_json(value),
         ScenePropertyValue::Entity(value) => {
-            let entity = value
-                .map(|entity| Value::Number(Number::from(entity)))
-                .unwrap_or(Value::Null);
-            Some(Value::Object(Map::from_iter([(
-                "entity".to_string(),
-                entity,
-            )])))
+            let entity = match value {
+                Some(entity) => Value::Number(Number::from(entity)),
+                None => Value::Null,
+            };
+            Some(single_property_object("entity", entity))
         }
-        ScenePropertyValue::Resource(value) => Some(Value::Object(Map::from_iter([(
-            "resource".to_string(),
-            Value::String(value),
-        )]))),
+        ScenePropertyValue::Resource(value) => {
+            Some(single_property_object("resource", Value::String(value)))
+        }
         ScenePropertyValue::Quaternion(_) | ScenePropertyValue::AnimationParameter(_) => None,
     }
 }
 
 fn scene_vector_from_json(values: &[Value]) -> Option<ScenePropertyValue> {
-    let values = values
-        .iter()
-        .map(|value| value.as_f64().map(|value| value as _))
-        .collect::<Option<Vec<_>>>()?;
-    match values.as_slice() {
-        [x, y] => Some(ScenePropertyValue::Vec2([*x, *y])),
-        [x, y, z] => Some(ScenePropertyValue::Vec3([*x, *y, *z])),
-        [x, y, z, w] => Some(ScenePropertyValue::Vec4([*x, *y, *z, *w])),
+    match values {
+        [x, y] => Some(ScenePropertyValue::Vec2([
+            json_number_as_f32(x)?,
+            json_number_as_f32(y)?,
+        ])),
+        [x, y, z] => Some(ScenePropertyValue::Vec3([
+            json_number_as_f32(x)?,
+            json_number_as_f32(y)?,
+            json_number_as_f32(z)?,
+        ])),
+        [x, y, z, w] => Some(ScenePropertyValue::Vec4([
+            json_number_as_f32(x)?,
+            json_number_as_f32(y)?,
+            json_number_as_f32(z)?,
+            json_number_as_f32(w)?,
+        ])),
         _ => None,
     }
 }
 
+fn json_number_as_f32(value: &Value) -> Option<f32> {
+    match value.as_f64() {
+        Some(value) => Some(value as _),
+        None => None,
+    }
+}
+
 fn scene_object_from_json(object: &Map<String, Value>) -> Option<ScenePropertyValue> {
-    if let Some(value) = object.get("resource").and_then(Value::as_str) {
-        return Some(ScenePropertyValue::Resource(value.to_string()));
+    if let Some(value) = object.get("resource") {
+        if let Some(value) = value.as_str() {
+            return Some(ScenePropertyValue::Resource(value.to_string()));
+        }
     }
     if let Some(value) = object.get("entity") {
         return match value {
             Value::Null => Some(ScenePropertyValue::Entity(None)),
-            Value::Number(number) => number
-                .as_u64()
-                .map(|entity| ScenePropertyValue::Entity(Some(entity))),
+            Value::Number(number) => match number.as_u64() {
+                Some(entity) => Some(ScenePropertyValue::Entity(Some(entity))),
+                None => None,
+            },
             _ => None,
         };
     }
     None
 }
 
+fn single_property_object(key: &str, value: Value) -> Value {
+    let mut object = Map::with_capacity(1);
+    object.insert(key.to_string(), value);
+    Value::Object(object)
+}
+
 fn vector_to_json<const N: usize>(values: [f32; N]) -> Option<Value> {
-    values
-        .into_iter()
-        .map(|value| {
-            value
-                .is_finite()
-                .then(|| Number::from_f64(value as f64))
-                .flatten()
-                .map(Value::Number)
-        })
-        .collect::<Option<Vec<_>>>()
-        .map(Value::Array)
+    let mut array = Vec::with_capacity(N);
+    for value in values {
+        array.push(Value::Number(finite_json_number(value)?));
+    }
+    Some(Value::Array(array))
+}
+
+fn finite_json_number(value: f32) -> Option<Number> {
+    value
+        .is_finite()
+        .then(|| Number::from_f64(value as f64))
+        .flatten()
 }

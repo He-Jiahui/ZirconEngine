@@ -1,3 +1,4 @@
+use zircon_runtime::core::framework::script::ScriptHostValue;
 use zircon_runtime::script::{
     VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmStateBlob,
 };
@@ -5,6 +6,7 @@ use zr_vm_rust_binding as zrvm;
 
 use super::errors::{is_optional_export_missing, map_zr_error};
 use super::lock::acquire_zr_vm_lock;
+use super::values::{from_zr_return_value_for_export, to_zr_value};
 use super::ZrVmRegistration;
 
 pub(super) struct ZrVmPluginInstance {
@@ -37,18 +39,28 @@ impl ZrVmPluginInstance {
 
     fn call_optional_export(
         &mut self,
+        module_name: &str,
         export_name: &str,
         arguments: &[zrvm::Value],
     ) -> Result<Option<zrvm::Value>, VmError> {
         let _keep_runtime_alive = &self.runtime;
         match self
             .session
-            .call_module_export(&self.entry_module, export_name, arguments)
+            .call_module_export(module_name, export_name, arguments)
         {
             Ok(value) => Ok(Some(value)),
             Err(error) if is_optional_export_missing(&error) => Ok(None),
             Err(error) => Err(map_zr_error(error)),
         }
+    }
+
+    fn call_entry_lifecycle_export(
+        &mut self,
+        export_name: &str,
+        arguments: &[zrvm::Value],
+    ) -> Result<Option<zrvm::Value>, VmError> {
+        let entry_module = self.entry_module.clone();
+        self.call_optional_export(&entry_module, export_name, arguments)
     }
 }
 
@@ -59,17 +71,19 @@ impl VmPluginInstance for ZrVmPluginInstance {
 
     fn activate(&mut self, _host: &VmPluginHostContext) -> Result<(), VmError> {
         let _guard = acquire_zr_vm_lock();
-        self.call_optional_export("activate", &[]).map(|_| ())
+        self.call_entry_lifecycle_export("activate", &[])
+            .map(|_| ())
     }
 
     fn deactivate(&mut self) -> Result<(), VmError> {
         let _guard = acquire_zr_vm_lock();
-        self.call_optional_export("deactivate", &[]).map(|_| ())
+        self.call_entry_lifecycle_export("deactivate", &[])
+            .map(|_| ())
     }
 
     fn save_state(&mut self) -> Result<VmStateBlob, VmError> {
         let _guard = acquire_zr_vm_lock();
-        let value = match self.call_optional_export("saveState", &[])? {
+        let value = match self.call_entry_lifecycle_export("saveState", &[])? {
             Some(value) => value,
             None => return Ok(VmStateBlob::default()),
         };
@@ -90,7 +104,29 @@ impl VmPluginInstance for ZrVmPluginInstance {
             VmError::Operation(format!("zr_vm restoreState requires UTF-8 state: {error}"))
         })?;
         let argument = zrvm::Value::new_string(&state).map_err(map_zr_error)?;
-        self.call_optional_export("restoreState", &[argument])
+        self.call_entry_lifecycle_export("restoreState", &[argument])
             .map(|_| ())
+    }
+
+    fn call_export(
+        &mut self,
+        module_name: &str,
+        export_name: &str,
+        arguments: &[ScriptHostValue],
+    ) -> Result<Option<ScriptHostValue>, VmError> {
+        let _guard = acquire_zr_vm_lock();
+        let export_label = format!("{module_name}.{export_name}");
+        let arguments = arguments
+            .iter()
+            .cloned()
+            .map(to_zr_value)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(map_zr_error)?;
+        let Some(value) = self.call_optional_export(module_name, export_name, &arguments)? else {
+            return Ok(None);
+        };
+        from_zr_return_value_for_export(&value, &export_label)
+            .map(Some)
+            .map_err(map_zr_error)
     }
 }

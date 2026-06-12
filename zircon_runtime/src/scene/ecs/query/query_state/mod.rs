@@ -3,6 +3,7 @@ mod helpers;
 mod mutable;
 mod read_only;
 mod read_only_cached;
+mod stats;
 mod system_param;
 
 use std::marker::PhantomData;
@@ -27,7 +28,11 @@ pub struct QueryState<D, F = ()> {
     cached_component_locations: Vec<ComponentStorageLocation>,
     cached_component_location_offsets: Vec<usize>,
     cached_revision: u64,
+    cache_hits: u64,
+    cache_misses: u64,
     cache_rebuilds: u64,
+    last_candidate_entity_count: usize,
+    last_matched_entity_count: usize,
     _marker: PhantomData<fn() -> (D, F)>,
 }
 
@@ -54,7 +59,11 @@ where
             cached_component_locations: Vec::new(),
             cached_component_location_offsets: Vec::new(),
             cached_revision: u64::MAX,
+            cache_hits: 0,
+            cache_misses: 0,
             cache_rebuilds: 0,
+            last_candidate_entity_count: 0,
+            last_matched_entity_count: 0,
             _marker: PhantomData,
         };
         state.update_cache(world);
@@ -72,6 +81,7 @@ where
     pub fn update_cache(&mut self, world: &World) {
         let revision = world.query_cache_revision();
         if self.cached_revision == revision {
+            self.cache_hits = self.cache_hits.saturating_add(1);
             return;
         }
         self.cached_entities.clear();
@@ -80,12 +90,19 @@ where
         self.cached_component_locations.clear();
         self.cached_component_location_offsets.clear();
         self.cached_component_location_offsets.push(0);
-        let (matched_archetypes, candidate_locations) =
-            world.entity_locations_matching_query_archetypes(&self.access);
-        self.cached_archetypes = matched_archetypes;
+        let matched_archetypes = world.matching_query_archetypes(&self.access);
+        let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);
         self.cached_archetype_generation = world.archetype_generation();
-        let mut component_locations = Vec::with_capacity(self.access.reads().len());
-        for location in candidate_locations {
+        let component_count = self.access.reads().len();
+        self.cached_entities.reserve(candidate_count);
+        self.cached_entity_indices.reserve(candidate_count);
+        self.cached_locations.reserve(candidate_count);
+        self.cached_component_location_offsets
+            .reserve(candidate_count);
+        self.cached_component_locations
+            .reserve(candidate_count.saturating_mul(component_count));
+        let mut component_locations = Vec::with_capacity(component_count);
+        world.visit_entity_locations_matching_archetypes(&matched_archetypes, |location| {
             world.component_storage_locations_for_internal(
                 location.internal,
                 self.access.reads(),
@@ -102,11 +119,15 @@ where
                 self.cached_component_location_offsets
                     .push(self.cached_component_locations.len());
             }
-        }
+        });
+        self.cached_archetypes = matched_archetypes;
         self.cached_entity_indices
             .sort_unstable_by_key(|(entity, _)| *entity);
         self.cached_revision = revision;
+        self.cache_misses = self.cache_misses.saturating_add(1);
         self.cache_rebuilds = self.cache_rebuilds.saturating_add(1);
+        self.last_candidate_entity_count = candidate_count;
+        self.last_matched_entity_count = self.cached_entities.len();
     }
 
     pub fn cached_archetype_count(&self) -> usize {
@@ -167,3 +188,5 @@ where
         self.cache_rebuilds
     }
 }
+
+pub use stats::QueryStateCacheStats;

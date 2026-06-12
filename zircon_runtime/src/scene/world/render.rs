@@ -1,21 +1,25 @@
 use crate::core::framework::render::{
-    default_viewport_aspect_ratio, sort_render_cameras, DebugOverlayExtract, FallbackSkyboxKind,
-    GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
+    default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
+    sort_render_cameras, DebugOverlayExtract, FallbackSkyboxKind, GeometryExtract,
+    GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
     PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot, RenderCameraOrderInput,
     RenderCameraOrderReport, RenderDirectionalLightSnapshot, RenderFrameExtract,
-    RenderHybridGiExtract, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderPointLightSnapshot, RenderPostProcessVolumeStack, RenderRectLightSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
-    RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
-    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
-    VisibilityInput, VisibilityRenderableInput,
+    RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderPostProcessVolumeStack, RenderRectLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot, RenderViewExtract,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot, VisibilityInput,
+    VisibilityRenderableInput,
 };
+use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, Vec3, Vec4};
 
 use super::World;
 use crate::scene::components::{
     default_render_layer_mask, ColliderComponent, ColliderShape, MeshRenderer,
-    PostProcessSettingsComponent, Sprite2dComponent,
+    MeshRendererLodLevel, MeshRendererPrimitiveBinding, PostProcessSettingsComponent,
+    Sprite2dComponent,
 };
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
@@ -67,11 +71,17 @@ impl World {
         }
 
         let camera_layers = camera.render_layers.clone();
+        let camera_position = camera.transform.translation;
         let mut meshes = self
             .mesh_renderers
             .iter()
             .flat_map(|(entity, mesh)| {
-                self.render_mesh_snapshots_for_camera(*entity, mesh, &camera_layers)
+                self.render_mesh_snapshots_for_camera(
+                    *entity,
+                    mesh,
+                    &camera_layers,
+                    camera_position,
+                )
             })
             .collect::<Vec<_>>();
         meshes.sort_by_key(|mesh| mesh.node_id);
@@ -114,14 +124,19 @@ impl World {
         if !view.camera.is_active {
             return inactive_camera_frame_extract(world, view, request);
         }
-        let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs(&camera_layers);
+        let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs(
+            &camera_layers,
+            view.camera.transform.translation,
+        );
         let sprites = self.collect_render_sprites(&camera_layers);
+        let particles =
+            self.collect_render_particles(&camera_layers, view.camera.transform.translation);
         let ambient_lights = self.collect_ambient_lights(&camera_layers);
         let directional_lights = self.collect_directional_lights(&camera_layers);
         let point_lights = self.collect_point_lights(&camera_layers);
         let rect_lights = self.collect_rect_lights(&camera_layers);
         let spot_lights = self.collect_spot_lights(&camera_layers);
-        let visibility = build_visibility_input(&meshes, &sprites);
+        let visibility = build_visibility_input(&meshes, &sprites, &particles);
 
         let post_process_settings = scene_camera_entity
             .and_then(|entity| self.post_process_settings.get(&entity))
@@ -169,7 +184,7 @@ impl World {
                 },
             },
             sprites: SpriteExtract::from_sprites(core_pipeline, sprites),
-            particles: ParticleExtract::default(),
+            particles,
             visibility,
         }
     }
@@ -177,32 +192,54 @@ impl World {
     fn collect_render_meshes_and_phase_inputs(
         &self,
         camera_layers: &RenderLayerSet,
+        camera_position: Vec3,
     ) -> (Vec<RenderMeshSnapshot>, Vec<GeometryPhaseInput>) {
         let mut mesh_entries = self
             .mesh_renderers
             .iter()
             .flat_map(|(entity, mesh)| {
-                self.render_mesh_snapshots_for_camera(*entity, mesh, camera_layers)
+                self.render_mesh_snapshots_for_camera(*entity, mesh, camera_layers, camera_position)
                     .into_iter()
-                    .map(|snapshot| (snapshot, mesh.material_alpha_mode))
+                    .map(|snapshot| {
+                        (
+                            snapshot,
+                            mesh.material_alpha_mode,
+                            mesh.render_queue,
+                            mesh.material_queue,
+                            mesh.order_in_layer,
+                            mesh.depth_bias,
+                        )
+                    })
             })
             .collect::<Vec<_>>();
-        mesh_entries.sort_by_key(|(mesh, _)| mesh.node_id);
+        mesh_entries.sort_by_key(|(mesh, ..)| mesh.node_id);
 
         let meshes = mesh_entries
             .iter()
-            .map(|(mesh, _)| (*mesh).clone())
+            .map(|(mesh, ..)| (*mesh).clone())
             .collect::<Vec<_>>();
         let phase_inputs = mesh_entries
             .iter()
             .enumerate()
-            .map(|(mesh_index, (mesh, material_alpha_mode))| {
+            .map(|(mesh_index, entry)| {
+                let (
+                    mesh,
+                    material_alpha_mode,
+                    render_queue,
+                    material_queue,
+                    order_in_layer,
+                    depth_bias,
+                ) = entry;
                 GeometryPhaseInput::new(
                     mesh.node_id,
                     mesh_index,
                     *material_alpha_mode,
                     mesh.transform.translation.z,
                 )
+                .with_render_queue(*render_queue)
+                .with_material_queue(*material_queue)
+                .with_order_in_layer(*order_in_layer)
+                .with_depth_bias(*depth_bias)
             })
             .collect::<Vec<_>>();
 
@@ -214,6 +251,7 @@ impl World {
         entity: crate::scene::EntityId,
         mesh: &MeshRenderer,
         camera_layers: &RenderLayerSet,
+        camera_position: Vec3,
     ) -> Vec<RenderMeshSnapshot> {
         if self.active_in_hierarchy(entity) != Some(true) {
             return Vec::new();
@@ -227,19 +265,30 @@ impl World {
 
         let transform = self.world_transform(entity).unwrap_or_default();
         let mobility = self.mobility(entity).unwrap_or_default();
-        if !mesh.primitives.is_empty() {
-            return mesh
+        let static_state =
+            RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
+        let source = mesh_render_source_for_camera(mesh, transform, camera_position);
+        if !source.primitives.is_empty() {
+            return source
                 .primitives
                 .iter()
-                .map(|primitive| RenderMeshSnapshot {
+                .enumerate()
+                .map(|(primitive_ordinal, primitive)| RenderMeshSnapshot {
                     node_id: entity,
+                    stable_instance_key: render_mesh_stable_instance_key(
+                        entity,
+                        primitive_ordinal as u32,
+                    ),
+                    transform_revision: render_mesh_transform_revision(&transform),
                     transform,
-                    model: mesh.model,
+                    model: source.model,
                     mesh: Some(primitive.mesh),
                     material: primitive.material,
+                    mesh_lod: source.mesh_lod,
                     morph_weights: mesh.morph_weights.clone(),
                     tint: mesh.tint,
                     mobility,
+                    static_state,
                     render_layer_mask,
                 })
                 .collect();
@@ -247,13 +296,17 @@ impl World {
 
         vec![RenderMeshSnapshot {
             node_id: entity,
+            stable_instance_key: render_mesh_stable_instance_key(entity, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
             transform,
-            model: mesh.model,
-            mesh: mesh.mesh,
-            material: mesh.material,
+            model: source.model,
+            mesh: source.mesh,
+            material: source.material,
+            mesh_lod: source.mesh_lod,
             morph_weights: mesh.morph_weights.clone(),
             tint: mesh.tint,
             mobility,
+            static_state,
             render_layer_mask,
         }]
     }
@@ -297,6 +350,7 @@ impl World {
             flip_y: sprite.flip_y,
             anchor: sprite.anchor,
             custom_size: sprite.custom_size,
+            image_mode: sprite.image_mode,
             color: sprite.color,
             z_order: sprite.z_order,
             render_layer_mask,
@@ -434,7 +488,7 @@ impl World {
         spot_lights
     }
 
-    fn entity_intersects_camera_layers(
+    pub(super) fn entity_intersects_camera_layers(
         &self,
         entity: crate::scene::EntityId,
         camera_layers: &RenderLayerSet,
@@ -599,6 +653,66 @@ impl World {
     }
 }
 
+struct MeshRenderSource<'a> {
+    model: crate::core::resource::ResourceHandle<crate::core::resource::ModelMarker>,
+    mesh: Option<crate::core::resource::ResourceHandle<crate::core::resource::MeshMarker>>,
+    material: crate::core::resource::ResourceHandle<crate::core::resource::MaterialMarker>,
+    mesh_lod: Option<RenderMeshLodSelection>,
+    primitives: &'a [MeshRendererPrimitiveBinding],
+}
+
+fn mesh_render_source_for_camera<'a>(
+    mesh: &'a MeshRenderer,
+    transform: Transform,
+    camera_position: Vec3,
+) -> MeshRenderSource<'a> {
+    if let Some((lod_index, lod)) = mesh_lod_for_camera(mesh, transform, camera_position) {
+        return MeshRenderSource {
+            model: lod.model,
+            mesh: lod.mesh,
+            material: lod.material,
+            mesh_lod: Some(RenderMeshLodSelection::new(
+                lod_index.min(u32::MAX as usize) as u32,
+                lod.min_distance,
+            )),
+            primitives: &lod.primitives,
+        };
+    }
+
+    MeshRenderSource {
+        model: mesh.model,
+        mesh: mesh.mesh,
+        material: mesh.material,
+        mesh_lod: None,
+        primitives: &mesh.primitives,
+    }
+}
+
+fn mesh_lod_for_camera<'a>(
+    mesh: &'a MeshRenderer,
+    transform: Transform,
+    camera_position: Vec3,
+) -> Option<(usize, &'a MeshRendererLodLevel)> {
+    let distance = (transform.translation - camera_position).length();
+    if !distance.is_finite() {
+        return None;
+    }
+
+    let mut choice = None;
+    let mut choice_min_distance = 0.0;
+    for (index, lod) in mesh.lods.iter().enumerate() {
+        let min_distance = lod.min_distance;
+        if !min_distance.is_finite() || min_distance <= 0.0 || distance < min_distance {
+            continue;
+        }
+        if choice.is_none() || min_distance >= choice_min_distance {
+            choice = Some((index, lod));
+            choice_min_distance = min_distance;
+        }
+    }
+    choice
+}
+
 fn local_volume_influence(
     camera_position: Vec3,
     world_transform: Transform,
@@ -730,6 +844,7 @@ fn inactive_camera_frame_extract(
 fn build_visibility_input(
     meshes: &[RenderMeshSnapshot],
     sprites: &[RenderSpriteSnapshot],
+    particles: &ParticleExtract,
 ) -> VisibilityInput {
     let mut renderables = meshes
         .iter()
@@ -743,6 +858,16 @@ fn build_visibility_input(
             mobility: crate::scene::components::Mobility::Dynamic,
             render_layer_mask: sprite.render_layer_mask,
         }))
+        .chain(
+            particles
+                .emitters
+                .iter()
+                .map(|entity| VisibilityRenderableInput {
+                    entity: *entity,
+                    mobility: crate::scene::components::Mobility::Dynamic,
+                    render_layer_mask: default_render_layer_mask(),
+                }),
+        )
         .collect::<Vec<_>>();
     renderables.sort_by_key(|entry| entry.entity);
     let renderable_entities = renderables

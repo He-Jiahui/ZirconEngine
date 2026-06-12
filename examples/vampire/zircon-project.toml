@@ -1,0 +1,66 @@
+name = "Zircon Vampire Roguelite"
+format_version = 1
+default_scene = "res://scenes/main.scene.toml"
+library_version = 3
+
+[plugins]
+
+[[plugins.selections]]
+id = "ai"
+enabled = true
+required = false
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_ai_runtime"
+
+[[plugins.selections]]
+id = "rendering"
+enabled = true
+required = true
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_rendering_runtime"
+
+[[plugins.selections]]
+id = "texture"
+enabled = true
+required = false
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_texture_runtime"
+
+[[plugins.selections]]
+id = "animation"
+enabled = true
+required = false
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_animation_runtime"
+
+[[plugins.selections]]
+id = "gltf_importer"
+enabled = true
+required = true
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_gltf_importer_runtime"
+
+[[plugins.selections]]
+id = "navigation"
+enabled = true
+required = true
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_navigation_runtime"
+
+[[plugins.selections]]
+id = "zr_vm_language"
+enabled = true
+required = true
+target_modes = ["client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_zr_vm_language_runtime"
+
+[scripts]
+package_roots = ["scripts"]
+startup_packages = ["vampire_game"]

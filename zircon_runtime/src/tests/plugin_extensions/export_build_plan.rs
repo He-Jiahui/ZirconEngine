@@ -35,12 +35,19 @@ fn source_template_generates_linked_external_runtime_plugin_registration_calls()
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
     let main_source = generated_file(&plan, "src/main.rs");
 
+    assert!(plugin_source.contains(
+        "pub fn runtime_plugin_registration_providers() -> Vec<ExportRuntimePluginRegistrationProvider>"
+    ));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_sound_runtime::plugin_registration)"
+    ));
+    assert!(!plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
     assert!(plugin_source
-        .contains("pub fn runtime_plugin_registrations() -> Vec<RuntimePluginRegistrationReport>"));
-    assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
-    assert!(main_source
-        .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
-    assert!(main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
+        .contains("pub fn export_runtime_bootstrap_config() -> ExportRuntimeBootstrapConfig"));
+    assert!(main_source.contains("zircon_app::bootstrap_export_runtime"));
+    assert!(main_source.contains("zircon_plugins::export_runtime_bootstrap_config()"));
+    assert!(!main_source.contains("EntryRunner::"));
+    assert!(!main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
     assert!(plan
         .runtime_plugin_availability
         .linked
@@ -124,7 +131,9 @@ fn source_template_links_physics_as_external_runtime_plugin() {
         vec!["zircon_plugin_physics_runtime".to_string()]
     );
     assert!(plugin_source.contains("id: \"physics\".to_string()"));
-    assert!(plugin_source.contains("zircon_plugin_physics_runtime::plugin_registration()"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_physics_runtime::plugin_registration)"
+    ));
     assert!(cargo_manifest.contains("zircon_plugin_physics_runtime"));
 }
 
@@ -276,9 +285,15 @@ fn source_template_links_runtime_backed_authoring_and_excludes_editor_only_autho
         .any(|crate_name| crate_name.contains("material_editor")
             || crate_name.contains("timeline_sequence")
             || crate_name.contains("animation_graph")));
-    assert!(plugin_source.contains("zircon_plugin_terrain_runtime::plugin_registration()"));
-    assert!(plugin_source.contains("zircon_plugin_tilemap_2d_runtime::plugin_registration()"));
-    assert!(plugin_source.contains("zircon_plugin_prefab_tools_runtime::plugin_registration()"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_terrain_runtime::plugin_registration)"
+    ));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_tilemap_2d_runtime::plugin_registration)"
+    ));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_prefab_tools_runtime::plugin_registration)"
+    ));
     assert!(!plugin_source.contains("zircon_plugin_material_editor_editor::plugin_registration()"));
     assert!(
         !plugin_source.contains("zircon_plugin_timeline_sequence_editor::plugin_registration()")
@@ -334,7 +349,9 @@ fn source_template_preserves_builtin_catalog_target_modes_after_manifest_complet
     assert!(plugin_source.contains(
         "target_modes: vec![RuntimeTargetMode::ClientRuntime, RuntimeTargetMode::EditorHost]"
     ));
-    assert!(plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_virtual_geometry_runtime::plugin_registration)"
+    ));
 }
 
 #[test]
@@ -371,7 +388,9 @@ fn source_template_completes_builtin_catalog_selection_before_projection() {
     ));
     assert!(plugin_source
         .contains("runtime_crate: Some(\"zircon_plugin_virtual_geometry_runtime\".to_string())"));
-    assert!(plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_virtual_geometry_runtime::plugin_registration)"
+    ));
     assert!(cargo_manifest.contains("zircon_plugin_virtual_geometry_runtime"));
 }
 
@@ -415,10 +434,10 @@ fn source_template_links_rendering_default_owner_features() {
         assert!(cargo_manifest.contains(crate_name), "{cargo_manifest}");
     }
     for call in [
-        "zircon_plugin_rendering_post_process_runtime::plugin_feature_registration()",
-        "zircon_plugin_rendering_ssao_runtime::plugin_feature_registration()",
-        "zircon_plugin_rendering_reflection_probes_runtime::plugin_feature_registration()",
-        "zircon_plugin_rendering_baked_lighting_runtime::plugin_feature_registration()",
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_rendering_post_process_runtime::plugin_feature_registration)",
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_rendering_ssao_runtime::plugin_feature_registration)",
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_rendering_reflection_probes_runtime::plugin_feature_registration)",
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_rendering_baked_lighting_runtime::plugin_feature_registration)",
     ] {
         assert!(plugin_source.contains(call), "{plugin_source}");
     }
@@ -432,7 +451,7 @@ fn source_template_links_rendering_default_owner_features() {
             .linked_runtime_crates
             .contains(&opt_in_crate.to_string()));
         assert!(!cargo_manifest.contains(opt_in_crate));
-        assert!(!plugin_source.contains(&format!("{opt_in_crate}::plugin_feature_registration()")));
+        assert!(!plugin_source.contains(&format!("{opt_in_crate}::plugin_feature_registration")));
     }
     assert!(availability_contains(
         &plan.runtime_plugin_availability.linked,
@@ -477,8 +496,12 @@ fn library_embed_links_advanced_runtime_render_plugins() {
     assert!(plan
         .linked_runtime_crates
         .contains(&"zircon_plugin_hybrid_gi_runtime".to_string()));
-    assert!(plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()"));
-    assert!(plugin_source.contains("zircon_plugin_hybrid_gi_runtime::plugin_registration()"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_virtual_geometry_runtime::plugin_registration)"
+    ));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_hybrid_gi_runtime::plugin_registration)"
+    ));
 }
 
 #[test]
@@ -512,18 +535,18 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
     let main_source = generated_file(&plan, "src/main.rs");
     let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
 
-    assert!(
-        main_source.contains("NativePluginLoader.load_runtime_from_load_manifest(export_root()?)")
-    );
     assert!(main_source
-        .contains("registrations.extend(native_report.runtime_plugin_registration_reports())"));
-    assert!(main_source.contains(
-        "feature_registrations.extend(native_report.runtime_plugin_feature_registration_reports())"
+        .contains("zircon_app::bootstrap_export_runtime_with_native_plugins_from_export_root"));
+    assert!(main_source.contains("zircon_app::discover_export_root()?"));
+    assert!(main_source.contains("zircon_plugins::export_runtime_bootstrap_config()"));
+    assert!(!main_source.contains("NativePluginLoader"));
+    assert!(!main_source.contains("load_runtime_from_load_manifest"));
+    assert!(!main_source.contains("registrations.extend"));
+    assert!(!main_source.contains("feature_registrations.extend"));
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginRegistrationProvider::new(zircon_plugin_sound_runtime::plugin_registration)"
     ));
-    assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
-    assert!(
-        !plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()")
-    );
+    assert!(!plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration"));
 }
 
 fn generated_file<'a>(plan: &'a ExportBuildPlan, path: &str) -> &'a str {

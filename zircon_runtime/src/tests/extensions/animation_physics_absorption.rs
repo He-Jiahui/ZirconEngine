@@ -20,8 +20,8 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let physics_plugin_manager =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/manager.rs"))
             .unwrap_or_default();
-    let physics_plugin_hook =
-        std::fs::read_to_string(physics_plugin_root.join("runtime/src/scene_hook.rs"))
+    let physics_plugin_runtime_system =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/runtime_system.rs"))
             .unwrap_or_default();
     let framework_physics_manager =
         std::fs::read_to_string(runtime_root.join("src/core/framework/physics/manager.rs"))
@@ -51,9 +51,10 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
             && physics_plugin_module.contains("module_descriptor")
             && physics_plugin_manager.contains("impl PhysicsManager for DefaultPhysicsManager")
             && physics_plugin_manager.contains("tick_scene_world")
-            && physics_plugin_hook.contains("PhysicsSceneRuntimeHook")
-            && physics_plugin_lib.contains("register_scene_hook(scene_hook_registration())"),
-        "physics plugin should own module wiring, manager behavior, and scene hook registration"
+            && physics_plugin_runtime_system.contains("PhysicsRuntimeSystem")
+            && physics_plugin_runtime_system.contains("PHYSICS_STEP_SYSTEM")
+            && physics_plugin_lib.contains("register_runtime_system(registry, owner)"),
+        "physics plugin should own module wiring, manager behavior, and runtime system registration"
     );
     assert!(
         !runtime_manifest.contains("zircon_physics"),
@@ -116,8 +117,8 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
     let animation_plugin_sequence =
         std::fs::read_to_string(animation_plugin_root.join("runtime/src/sequence.rs"))
             .unwrap_or_default();
-    let animation_plugin_hook =
-        std::fs::read_to_string(animation_plugin_root.join("runtime/src/scene_hook.rs"))
+    let animation_plugin_runtime_system =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/runtime_system.rs"))
             .unwrap_or_default();
     let framework_animation_manager =
         std::fs::read_to_string(runtime_root.join("src/core/framework/animation/manager.rs"))
@@ -148,9 +149,10 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
             && animation_plugin_manager.contains("impl AnimationManager for DefaultAnimationManager")
             && animation_plugin_manager.contains("apply_sequence_to_world")
             && animation_plugin_sequence.contains("apply_sequence_to_world")
-            && animation_plugin_hook.contains("AnimationSceneRuntimeHook")
-            && animation_plugin_lib.contains("register_scene_hook(scene_hook_registration())"),
-        "animation plugin should own module wiring, manager behavior, sequence application, and scene hook registration"
+            && animation_plugin_runtime_system.contains("AnimationRuntimeSystem")
+            && animation_plugin_runtime_system.contains("ANIMATION_EVALUATE_SYSTEM")
+            && animation_plugin_lib.contains("register_runtime_system(registry, owner)"),
+        "animation plugin should own module wiring, manager behavior, sequence application, and runtime system registration"
     );
     assert!(
         !runtime_manifest.contains("zircon_animation"),

@@ -78,12 +78,13 @@ fn write_field(
             ))
         }
     };
-    world
-        .set_parent_checked(entity, parent)
-        .map_err(|error| ReflectError::UnsupportedConversion {
+    match world.set_parent_checked(entity, parent) {
+        Ok(changed) => Ok(changed),
+        Err(error) => Err(ReflectError::UnsupportedConversion {
             source: error,
-            target: format!("{TYPE_PATH}.{field_name}"),
-        })
+            target: shared::field_target(TYPE_PATH, field_name),
+        }),
+    }
 }
 
 fn remove(world: &mut World, entity: EntityId, _type_path: &str) -> Result<bool, ReflectError> {

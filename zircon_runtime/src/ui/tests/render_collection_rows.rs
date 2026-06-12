@@ -162,6 +162,152 @@ icon = "folder"
     );
 }
 
+#[test]
+fn render_extract_loading_collection_rows_use_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.collection_rows.loading"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 420.0, 160.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(10),
+        "ListRow",
+        UiFrame::new(12.0, 16.0, 200.0, 28.0),
+        r##"
+label = "Loading List"
+selected = true
+checked = true
+hovered = true
+focused = true
+pressed = true
+loading = true
+background_color = "#0d4149"
+foreground_color = "#35c7d0"
+icon_color = "#7ae6f0"
+focus_border_color = "#ff00ff"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(11),
+        "TreeRow",
+        UiFrame::new(12.0, 54.0, 260.0, 24.0),
+        r##"
+label = "Loading Tree"
+selected = true
+checked = true
+expanded = true
+hovered = true
+focused = true
+pressed = true
+loading = true
+icon = "folder"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(12),
+        "TableRow",
+        UiFrame::new(12.0, 88.0, 300.0, 28.0),
+        r##"
+cells = ["Loading Asset", "Mesh", "12 KB", "Now"]
+selected = true
+hovered = true
+focused = true
+pressed = true
+loading = true
+background_color = "#0d4149"
+foreground_color = "#35c7d0"
+value_color = "#aab5ba"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(10) && command.kind == UiRenderCommandKind::Quad
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(10)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Loading List")
+            && command.style.painter_family == UiPainterFamily::ListRow
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(10)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("diamond".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(10)
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("check".to_string()))
+    }));
+
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(11) && command.kind == UiRenderCommandKind::Quad
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(11)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Loading Tree")
+            && command.style.painter_family == UiPainterFamily::TreeRow
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(11)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(12)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::TableRow
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.is_none()
+            && command.style.border_width == 0.0
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(12)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.background_color.as_deref() == Some("#0d4149")
+    }));
+    assert_eq!(
+        commands
+            .iter()
+            .filter(|command| {
+                command.node_id == UiNodeId::new(12)
+                    && command.kind == UiRenderCommandKind::Text
+                    && command.style.painter_state == UiPainterResolvedState::Loading
+                    && command.style.foreground_color.as_deref() == Some("#59656c")
+            })
+            .count(),
+        4
+    );
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(12)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref()
+                == Some(&UiVisualAssetRef::Icon("more-horizontal".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,

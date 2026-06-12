@@ -9,8 +9,7 @@ pub struct ComponentTypeRegistry {
 
 impl ComponentTypeRegistry {
     pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> Result<(), String> {
-        let expected_prefix = format!("{}.", descriptor.plugin_id);
-        if !descriptor.type_id.starts_with(&expected_prefix) {
+        if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id) {
             return Err(format!(
                 "component type {} must be prefixed by plugin id {}",
                 descriptor.type_id, descriptor.plugin_id
@@ -42,4 +41,11 @@ impl ComponentTypeRegistry {
     pub fn contains(&self, type_id: &str) -> bool {
         self.descriptors.contains_key(type_id)
     }
+}
+
+fn component_type_belongs_to_plugin(type_id: &str, plugin_id: &str) -> bool {
+    let Some(suffix) = type_id.strip_prefix(plugin_id) else {
+        return false;
+    };
+    suffix.starts_with('.')
 }

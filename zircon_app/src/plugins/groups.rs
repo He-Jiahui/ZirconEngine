@@ -22,10 +22,10 @@ impl PluginGroup for MinimalPlugins {
             "MinimalPlugins",
             [
                 Arc::new(zircon_runtime::foundation::FoundationModule) as Arc<dyn EngineModule>,
-                Arc::new(zircon_runtime::core::modules::TasksModule),
-                Arc::new(zircon_runtime::core::modules::TimeModule),
-                Arc::new(zircon_runtime::core::modules::FrameCountModule),
-                Arc::new(zircon_runtime::core::modules::DiagnosticsCoreModule),
+                Arc::new(zircon_runtime::core::runtime::modules::TasksModule),
+                Arc::new(zircon_runtime::core::runtime::modules::TimeModule),
+                Arc::new(zircon_runtime::core::runtime::modules::FrameCountModule),
+                Arc::new(zircon_runtime::core::runtime::modules::DiagnosticsCoreModule),
             ],
         )
     }
@@ -40,8 +40,8 @@ impl PluginGroup for DefaultPlugins {
 impl PluginGroup for DevPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
         default_modules("DevPlugins", true)?.add_after(
-            zircon_runtime::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
-            Arc::new(zircon_runtime::core::modules::LogDiagnosticsModule),
+            zircon_runtime::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+            Arc::new(zircon_runtime::core::runtime::modules::LogDiagnosticsModule),
         )
     }
 }
@@ -58,11 +58,11 @@ fn default_modules(
 ) -> Result<PluginGroupBuilder, PluginGroupError> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(zircon_runtime::foundation::FoundationModule),
-        Arc::new(zircon_runtime::core::modules::LogModule),
-        Arc::new(zircon_runtime::core::modules::TasksModule),
-        Arc::new(zircon_runtime::core::modules::TimeModule),
-        Arc::new(zircon_runtime::core::modules::FrameCountModule),
-        Arc::new(zircon_runtime::core::modules::DiagnosticsCoreModule),
+        Arc::new(zircon_runtime::core::runtime::modules::LogModule),
+        Arc::new(zircon_runtime::core::runtime::modules::TasksModule),
+        Arc::new(zircon_runtime::core::runtime::modules::TimeModule),
+        Arc::new(zircon_runtime::core::runtime::modules::FrameCountModule),
+        Arc::new(zircon_runtime::core::runtime::modules::DiagnosticsCoreModule),
         Arc::new(zircon_runtime::platform::PlatformModule),
         Arc::new(zircon_runtime::input::InputModule),
         Arc::new(zircon_runtime::asset::AssetModule::default()),

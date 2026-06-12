@@ -170,6 +170,24 @@ enabled = true
 quality_gate = "MeshLod"
 
 [[features]]
+name = "SkinnedMesh"
+source = "SkinnedMesh"
+enabled = true
+quality_gate = "SkinnedMesh"
+
+[[features]]
+name = "ReflectionProbes"
+source = "ReflectionProbes"
+enabled = true
+quality_gate = "ReflectionProbes"
+
+[[features]]
+name = "BakedLighting"
+source = "BakedLighting"
+enabled = true
+quality_gate = "BakedLighting"
+
+[[features]]
 name = "SparseTexture"
 source = "SparseTexture"
 enabled = true
@@ -284,6 +302,9 @@ quality_gate = "ColorSpace"
 
     let expected = [
         BuiltinRenderFeature::MeshLod,
+        BuiltinRenderFeature::SkinnedMesh,
+        BuiltinRenderFeature::ReflectionProbes,
+        BuiltinRenderFeature::BakedLighting,
         BuiltinRenderFeature::SparseTexture,
         BuiltinRenderFeature::Particle,
         BuiltinRenderFeature::Terrain,
@@ -308,6 +329,110 @@ quality_gate = "ColorSpace"
     for (feature, expected) in renderer.features.iter().zip(expected) {
         assert!(feature.is_builtin(expected));
         assert_eq!(feature.quality_gate, Some(expected));
+    }
+}
+
+#[test]
+fn renderer_data_document_uses_builtin_feature_authoring_name_contract() {
+    let mut document = String::from(
+        r#"
+version = 1
+name = "all-builtin-feature-names"
+stages = ["PostProcess"]
+"#,
+    );
+    for feature in BuiltinRenderFeature::ALL {
+        let name = feature.authoring_name();
+        document.push_str(&format!(
+            r#"
+[[features]]
+name = "{name}"
+source = "{name}"
+enabled = true
+quality_gate = "{name}"
+"#
+        ));
+    }
+
+    let renderer = RendererDataDocument::from_toml_str(&document)
+        .unwrap()
+        .to_renderer_asset()
+        .unwrap();
+
+    assert_eq!(renderer.features.len(), BuiltinRenderFeature::ALL.len());
+    for (asset, expected) in renderer
+        .features
+        .iter()
+        .zip(BuiltinRenderFeature::ALL.iter().copied())
+    {
+        assert!(
+            asset.is_builtin(expected),
+            "{} should parse through the central BuiltinRenderFeature authoring-name contract",
+            expected.authoring_name()
+        );
+        assert_eq!(asset.quality_gate, Some(expected));
+    }
+}
+
+#[test]
+fn renderer_data_document_uses_render_pass_stage_authoring_name_contract() {
+    let stages = RenderPassStage::RENDERER_DATA_AUTHORING_STAGES
+        .iter()
+        .map(|stage| format!("\"{}\"", stage.authoring_name()))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let document = format!(
+        r#"
+version = 1
+name = "all-renderer-data-stages"
+stages = [{stages}]
+
+[[features]]
+name = "Mesh"
+source = "Mesh"
+enabled = true
+"#
+    );
+
+    let renderer = RendererDataDocument::from_toml_str(&document)
+        .unwrap()
+        .to_renderer_asset()
+        .unwrap();
+
+    assert_eq!(
+        renderer.stages,
+        RenderPassStage::RENDERER_DATA_AUTHORING_STAGES.to_vec()
+    );
+}
+
+#[test]
+fn renderer_data_document_rejects_legacy_aggregate_stage_names() {
+    for stage in [RenderPassStage::Opaque, RenderPassStage::Transparent] {
+        let name = stage.authoring_name();
+        let document = format!(
+            r#"
+version = 1
+name = "legacy-stage"
+stages = ["{name}"]
+
+[[features]]
+name = "Mesh"
+source = "Mesh"
+enabled = true
+"#
+        );
+
+        let error = RendererDataDocument::from_toml_str(&document)
+            .unwrap()
+            .to_renderer_asset()
+            .unwrap_err();
+
+        assert_eq!(
+            error,
+            RendererDataDocumentError::UnknownRenderPassStage {
+                value: name.to_string()
+            }
+        );
     }
 }
 
@@ -554,7 +679,7 @@ fn asset_aware_compile_reports_material_contract_diagnostics() {
     let context = InMemoryRenderPipelineAssetContext::default()
         .with_shader(feature_shader.clone(), shader_contract())
         .with_material(
-            material,
+            material.clone(),
             material_with_contract_gaps(material_shader.clone()),
         );
 
@@ -576,32 +701,34 @@ fn asset_aware_compile_reports_material_contract_diagnostics() {
         diagnostic,
         RendererFeatureContractDiagnostic::MaterialShaderMismatch {
             feature,
+            material: diagnostic_material,
             feature_shader: diagnostic_feature_shader,
             material_shader: diagnostic_material_shader,
         } if feature == "mesh"
+            && diagnostic_material == &material
             && diagnostic_feature_shader == &feature_shader
             && diagnostic_material_shader == &material_shader
     )));
-    assert_material_validation(&report.diagnostics, |error| {
+    assert_material_validation(&report.diagnostics, &material, |error| {
         matches!(
             error,
             RenderMaterialValidationError::UnknownPropertyOverride { name, .. } if name == "unknown_scalar"
         )
     });
-    assert_material_validation(&report.diagnostics, |error| {
+    assert_material_validation(&report.diagnostics, &material, |error| {
         matches!(
             error,
             RenderMaterialValidationError::PropertyOverrideTypeMismatch { name, expected, .. }
                 if name == "base_color" && expected == "vec4"
         )
     });
-    assert_material_validation(&report.diagnostics, |error| {
+    assert_material_validation(&report.diagnostics, &material, |error| {
         matches!(
             error,
             RenderMaterialValidationError::MissingRequiredProperty { name, .. } if name == "emissive_power"
         )
     });
-    assert_material_validation(&report.diagnostics, |error| {
+    assert_material_validation(&report.diagnostics, &material, |error| {
         matches!(
             error,
             RenderMaterialValidationError::UnknownTextureSlot { slot, .. } if slot == "unknown_slot"
@@ -635,7 +762,7 @@ fn asset_aware_compile_reports_material_local_validation_diagnostics() {
         )
         .unwrap();
 
-    assert_material_validation(&report.diagnostics, |error| {
+    assert_material_validation(&report.diagnostics, &material_reference, |error| {
         matches!(
             error,
             RenderMaterialValidationError::InvalidMaskCutoff { cutoff } if *cutoff == 2.0
@@ -835,11 +962,17 @@ url = "res://textures/extra.png"
 
 fn assert_material_validation(
     diagnostics: &[RendererFeatureContractDiagnostic],
+    expected_material: &AssetReference,
     predicate: impl Fn(&RenderMaterialValidationError) -> bool,
 ) {
     assert!(diagnostics.iter().any(|diagnostic| matches!(
         diagnostic,
-        RendererFeatureContractDiagnostic::MaterialValidation { feature, error }
-            if feature == "mesh" && predicate(error)
+        RendererFeatureContractDiagnostic::MaterialValidation {
+            feature,
+            material,
+            error,
+            ..
+        }
+            if feature == "mesh" && material == expected_material && predicate(error)
     )));
 }

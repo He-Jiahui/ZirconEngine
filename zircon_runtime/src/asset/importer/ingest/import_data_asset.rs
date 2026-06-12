@@ -37,3 +37,18 @@ pub(crate) fn import_json_data(
         }),
     ))
 }
+
+pub(crate) fn import_text_data(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let text = context.source_text()?;
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format: DataAssetFormat::Text,
+            text,
+            canonical_json: serde_json::Value::Null,
+        }),
+    ))
+}

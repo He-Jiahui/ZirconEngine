@@ -1,8 +1,8 @@
 use crate::ui::{
     dispatch::{
-        UiDispatchDisposition, UiDispatchEffect, UiDispatchPhase, UiDispatchReply,
-        UiDispatchReplyStep, UiDispatchReplyStepTrace, UiFocusEffectReason,
-        UiRedrawRequestReason,
+        UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchPhase,
+        UiDispatchReply, UiDispatchReplyStep, UiDispatchReplyStepTrace, UiFocusEffectReason,
+        UiRedrawRequestReason, UiTransientDismissalReason, UiTransientDismissalTarget,
     },
     event_ui::UiNodeId,
     tree::UiDirtyFlags,
@@ -95,4 +95,31 @@ fn dispatch_reply_merge_drops_unhandled_step_effects_and_keeps_passthrough_effec
         .remove("ignored_effect_count");
     let legacy_step: UiDispatchReplyStepTrace = serde_json::from_value(legacy_step).unwrap();
     assert_eq!(legacy_step.ignored_effect_count, 0);
+}
+
+#[test]
+fn dispatch_reply_transient_dismissal_effect_roundtrips_with_host_request_kind() {
+    let reply = UiDispatchReply::handled().with_effect(UiDispatchEffect::DismissTransientUi {
+        target: UiTransientDismissalTarget::All,
+        reason: UiTransientDismissalReason::WindowAction,
+    });
+
+    let reply_round_trip: UiDispatchReply =
+        serde_json::from_value(serde_json::to_value(&reply).unwrap()).unwrap();
+    assert_eq!(reply_round_trip, reply);
+    assert!(matches!(
+        reply_round_trip.effects[0],
+        UiDispatchEffect::DismissTransientUi {
+            target: UiTransientDismissalTarget::All,
+            reason: UiTransientDismissalReason::WindowAction,
+        }
+    ));
+
+    let host_request = UiDispatchHostRequestKind::DismissTransientUi {
+        target: UiTransientDismissalTarget::PopupStack,
+        reason: UiTransientDismissalReason::OutsideInteraction,
+    };
+    let host_request_round_trip: UiDispatchHostRequestKind =
+        serde_json::from_value(serde_json::to_value(&host_request).unwrap()).unwrap();
+    assert_eq!(host_request_round_trip, host_request);
 }

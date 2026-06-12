@@ -21,6 +21,7 @@ use zircon_runtime_interface::ui::{
         UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind,
         UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiTextInputEvent,
         UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiTransientDismissalReason, UiTransientDismissalTarget,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusedInputKind,
@@ -967,7 +968,7 @@ fn unified_text_and_ime_dispatch_report_focus_route_steps_and_focused_input_log(
         ime.diagnostics.route_steps[2].disposition,
         UiDispatchDisposition::Handled
     );
-    assert_eq!(ime.diagnostics.route_steps[2].effect_count, 0);
+    assert_eq!(ime.diagnostics.route_steps[2].effect_count, 1);
     assert!(ime.diagnostics.route_steps[2].stopped);
     assert_eq!(editable_attr_string(&surface, "value"), "Hi!?");
     assert!(ime.component_events.iter().any(|event| {

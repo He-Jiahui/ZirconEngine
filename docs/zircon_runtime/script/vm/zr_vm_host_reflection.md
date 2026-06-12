@@ -17,6 +17,10 @@ related_code:
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
+  - zircon_runtime/src/script/vm/runtime_context.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
@@ -24,6 +28,10 @@ related_code:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_runtime/src/dynamic_api/session/tests.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
@@ -35,6 +43,15 @@ related_code:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
+  - examples/vampire/scripts/vampire_game/plugin.toml
+  - examples/vampire/scripts/vampire_game/main.zr
+  - examples/vampire/assets/scenes/main.scene.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
+  - examples/vampire/assets/navigation/main.navmesh.toml
+  - examples/vampire/assets/animation/vampire_idle.graph.zranim
+  - examples/vampire/assets/animation/vampire_move.graph.zranim
+  - examples/vampire/assets/animation/vampire_attack.graph.zranim
+  - examples/vampire/assets/animation/vampire_locomotion.state_machine.zranim
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -57,6 +74,10 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
+  - zircon_runtime/src/script/vm/runtime_context.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
@@ -64,6 +85,10 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
+  - zircon_runtime/src/script/vm/backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
+  - zircon_runtime/src/dynamic_api/session/tests.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/hot_reload.rs
@@ -75,6 +100,15 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
+  - examples/vampire/scripts/vampire_game/plugin.toml
+  - examples/vampire/scripts/vampire_game/main.zr
+  - examples/vampire/assets/scenes/main.scene.toml
+  - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
+  - examples/vampire/assets/navigation/main.navmesh.toml
+  - examples/vampire/assets/animation/vampire_idle.graph.zranim
+  - examples/vampire/assets/animation/vampire_move.graph.zranim
+  - examples/vampire/assets/animation/vampire_attack.graph.zranim
+  - examples/vampire/assets/animation/vampire_locomotion.state_machine.zranim
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
@@ -85,11 +119,15 @@ plan_sources:
   - user: 2026-05-18 modular reflection content/generated reflection interface documentation
   - user: 2026-05-20 continue ZrVM host reflection follow-up with macro modularity
   - user: 2026-05-21 continue ZrVM lane 1 real backend hardening
+  - .codex/plans/Zircon Runtime 独立 3D 游戏能力与 Vampire 示例计划.md
   - docs/superpowers/specs/2026-05-20-zrvm-reflection-macro-modularity-design.md
   - docs/superpowers/plans/2026-05-20-zrvm-reflection-macro-modularity.md
   - docs/superpowers/plans/2026-05-18-zrvm-host-reflection-docs.md
   - docs/superpowers/specs/2026-05-21-zrvm-real-backend-hardening-design.md
   - docs/superpowers/plans/2026-05-21-zrvm-real-backend-hardening.md
+  - user: 2026-06-10 vampire roguelite animation state-machine follow-up
+  - user: 2026-06-10 vampire graphical HUD, terrain-backed jungle, screen-space health HUD, and buff particles
+  - user: 2026-06-12 remove runtime Vampire fallback backend
 tests:
   - zircon_runtime/src/script/vm/tests.rs
   - "cargo test -p zircon_runtime script::vm: passed 2026-05-15"
@@ -144,6 +182,25 @@ tests:
   - "cargo test -p zircon_runtime hot_reload_policy --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
   - "cargo test -p zircon_runtime discovery_parses_vm_management_policy_from_manifest --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
   - "cargo test -p zircon_runtime default_management_policy_preserves_state_and_defers_gc_to_backend --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-vm-management-policy --message-format short --color never -- --nocapture --test-threads=1: attempted 2026-06-04; timed out during compilation while other workspace/render Cargo and rustc processes were active"
+  - "cargo test -p zircon_runtime --lib vm_plugin_manager_calls_exports_by_loaded_package_name --message-format short --color never -- --test-threads=1 --nocapture with CARGO_TARGET_DIR=E:\\cargo-targets\\zircon-vampire-runtime: passed 2026-06-09"
+  - "cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never -- --test-threads=1 --nocapture with CARGO_TARGET_DIR=E:\\cargo-targets\\zircon-vampire-runtime: passed 2026-06-09"
+  - "cargo check -p zircon_runtime --lib: passed 2026-06-09"
+  - "cargo test -p zircon_runtime --lib gameplay_pose_exports_update_entity_transform -- --nocapture: passed 2026-06-09 after vampire pose host additions"
+  - "cargo test -p zircon_runtime --lib vampire_project_session --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10; 4 project-session tests passed, covering WASD, Blood Bolt damage, nav chase, HUD text, and dynamic enemy spawning"
+  - "CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app cargo test -p zircon_runtime --lib vampire_project_session --locked --message-format short -- --nocapture --test-threads=1: passed 2026-06-10; 10 project-session tests passed, including WASD movement, Blood Bolt damage, HUD/capture, pickups, choices, boss spawn, enemy chase, dynamic spawn, and animation state-machine parameter writes"
+  - "cargo test -p zircon_runtime --lib vampire_project_session_w_key_moves_player_before_input_clear --locked --message-format short -- --nocapture --test-threads=1: passed 2026-06-10; verifies W input moves the player, writes moving=true, and makes vampire body node transforms change through the animation state-machine hook"
+  - "cargo test -p zircon_runtime --lib vampire_project_session_ --locked --message-format short -- --nocapture --test-threads=1: passed 2026-06-10; 10 project-session tests passed with the built-in animation module/hook path"
+  - "ZR_VAMPIRE_CAPTURE_PNG=E:\\Git\\ZirconEngine\\examples\\vampire\\screenshots\\vampire-runtime-frame.png ZR_VAMPIRE_CAPTURE_WIDTH=1280 ZR_VAMPIRE_CAPTURE_HEIGHT=720 ZR_VAMPIRE_CAPTURE_TICKS=60 CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_hud_panel --locked --message-format short -- --nocapture --test-threads=1: passed 2026-06-10; exported a non-empty runtime frame PNG"
+  - "CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app cargo build -p zircon_app --bin zircon_runtime --locked --message-format short: passed 2026-06-10; existing warnings only"
+  - "D:\\cargo-targets\\zircon-vampire-app\\debug\\zircon_runtime.exe --project E:\\Git\\ZirconEngine\\examples\\vampire: launched 2026-06-10 and remained running after an 8 second startup check; no stderr/stdout and no runtime-session creation error"
+  - "cargo check -p zircon_runtime --lib --locked --message-format short with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10 after switching vampire health presentation to screen-space HUD; existing zircon_runtime warnings only"
+  - "cargo test -p zircon_runtime --lib vampire_project_session_ --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10; 10 project-session tests passed after graphical HUD update"
+  - "ZR_VAMPIRE_CAPTURE_PNG=E:\\Git\\ZirconEngine\\examples\\vampire\\screenshots\\vampire-runtime-frame.png ZR_VAMPIRE_CAPTURE_WIDTH=1280 ZR_VAMPIRE_CAPTURE_HEIGHT=720 ZR_VAMPIRE_CAPTURE_TICKS=60 cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_hud_panel --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10; exported final PNG with graphical HUD"
+  - "cargo test -p zircon_runtime --lib gameplay_host_current_hp_and_particle_sprites_use_dynamic_components --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10; validates gameplay.current_hp and gameplay.set_particle_sprites dynamic component behavior"
+  - "cargo test -p zircon_runtime --lib vampire_project_session_buffed_attack_particles_use_buff_palette --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-vampire-app: passed 2026-06-10; validates combined attack/haste/shield particle style and palette"
+  - "rustfmt --edition 2021 --check zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs: passed 2026-06-12 after removing runtime project fallback backend"
+  - "git diff --check -- zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs docs/zircon_runtime/script/vm/zr_vm_host_reflection.md docs/zircon_runtime/dynamic_api/session.md: passed 2026-06-12 with LF-to-CRLF warnings only"
+  - "cargo test -p zircon_runtime --lib discovery_rejects_zr_vm_project_fallback_backend --locked --jobs 1 --target-dir E:\\cargo-targets\\zircon-runtime-no-fallback-0612 --message-format short -- --nocapture --test-threads=1: timed out after 604s on 2026-06-12 during Windows test-target compilation; orphaned cargo/rustc processes were stopped and no Cargo pass is claimed"
 doc_type: module-detail
 ---
 
@@ -157,6 +214,28 @@ The VM host surface is split into two layers:
 VM code never receives Rust object pointers. Host objects are represented as `HostHandle` values, and framework-level values carry those handles as `u64` so the neutral contract does not depend on the VM subsystem.
 
 `zircon_runtime_reflection_macros` is the convenience layer for Rust-authored host libraries. `ZirconScriptType`, `zircon_host_function`, and `zircon_host_module` emit the same neutral descriptors as handwritten registrations. Function parameters now derive their exported type names from `ScriptHostFromValue::script_host_type_ref`, so Rust `f64` exports as the VM-facing `float` type instead of leaking a Rust-only spelling into ZrVM native module metadata.
+
+## Gameplay Host Surface
+
+`builtin_host_modules.rs` now registers `zr.zircon.gameplay` beside foundation, asset, scene, render, and math host modules. The gameplay module is intentionally narrow and script-frame scoped: `runtime_context.rs` stores the current `CoreWeak`, `LevelSystem`, entity id, and delta time while a scene script export is running, and host functions reject calls when that context is absent.
+
+The implemented capabilities are:
+
+- `gameplay.input`: `key_pressed(key)` reads the current input snapshot.
+- `gameplay.entity`: entity id, world position, translate/set-position, face-direction yaw, scale updates, position following, camera follow, dynamic component JSON helpers, simple entity find/spawn/despawn helpers, nearest script-property targeting, script-HP damage resolution, current script HP lookup, and dynamic particle-sprite authoring.
+- `gameplay.navigation`: next-point query and `nav_move_towards_entity`, which asks the navigation manager for a path and falls back to direct steering if no loaded navmesh is available.
+
+`scene_hook.rs` contributes fixed-update and update hooks under plugin-prefixed ids `zr_vm_language.script.scene.fixed_update` and `zr_vm_language.script.scene.update`. It reads the `script.bindings` dynamic component imported from `SceneAsset.script_bindings`, calls `onStart(entity, dt)` once per binding on the first update, then calls `onFixedUpdate(entity, dt)` or `onUpdate(entity, dt)` as the scene tick runs. Bindings can opt out of a phase with `fixed_update = false` or `update = false`; when no binding is active for a phase, the hook returns before resolving the VM manager. Export calls go through `VmPluginManager::call_package_export`, so script-bound scene entities can target packages by manifest name rather than a transient slot index.
+
+The `examples/vampire/scripts/vampire_game` package demonstrates this surface. `main.zr` moves the player with WASD through `gameplay.key_pressed` and `gameplay.translate`, updates a third-person camera with `gameplay.camera_follow`, lets enemies chase the player with `gameplay.nav_move_towards_entity`, and runs Blood Bolt auto-targeting through `gameplay.nearest_by_script_property` plus `gameplay.damage_entity`. The example also uses `gameplay.face_direction`, `gameplay.set_scale`, `gameplay.follow_position`, `gameplay.current_hp`, and `gameplay.set_particle_sprites` for visible action-state feedback: moving and attacking actors face their target direction, pose scale changes distinguish idle/run/attack states, the HUD displays real player HP from script bindings, attacks emit buff-colored particle sprites, and the player blood-aura point light follows the player entity.
+
+## Project Backend Boundary
+
+`VmPluginManager::with_plugin_context_and_host_exports` registers the `builtin` backend family for mock/unavailable testing paths and the real `zr_vm` backend family for project packages. Project script manifests that carry a `[zr_vm]` section must use `backend = "zr_vm:project"`; `zr_vm_fallback:project` and other project fallback selectors are intentionally rejected during package discovery.
+
+The runtime VM subsystem must not contain example-specific Rust gameplay fallbacks. The `examples/vampire` package is expected to run through its authored ZR script plus the generic `zr.zircon.gameplay` host API surface. Any Vampire-specific behavior belongs in the example project assets/scripts or in external first-party plugin code, not in `zircon_runtime/src/script/vm/backend`.
+
+The vampire player scene now binds `vampire_locomotion.state_machine.zranim`, which switches between idle, move, and melee attack graph assets that reference imported Kenney glTF animation clips. The authored script updates movement and attack parameters through generic gameplay host calls, so the animation manager can evaluate the state machine alongside normal transform/action-state feedback. Kenney's graveyard character GLBs are node-transform animation packs rather than skinned meshes; the runtime animation hook maps sampled pose bones back onto descendant scene nodes by name while the skinned-mesh raster path remains a separate renderer concern.
 
 ## Type Reflection Model
 

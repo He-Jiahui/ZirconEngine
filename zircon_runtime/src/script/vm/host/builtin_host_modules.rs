@@ -8,6 +8,7 @@ use crate::core::framework::script::{
 
 use super::super::{CapabilitySet, HostHandle, VmError};
 use super::{HostExportFunction, HostExportRegistry, HostRegistry};
+use crate::script::register_gameplay_host_module;
 
 const FOUNDATION_MODULE: &str = "zr.zircon.foundation";
 const ASSET_MODULE: &str = "zr.zircon.asset";
@@ -35,6 +36,9 @@ pub fn register_builtin_host_modules(
     }
     if exports.module(MATH_MODULE).is_none() {
         handles.push(math::register_math_host_module(exports)?);
+    }
+    if let Some(handle) = register_gameplay_host_module(exports)? {
+        handles.push(handle);
     }
     Ok(handles)
 }
@@ -344,4 +348,7 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
         .with("scene.query")
         .with("scene.handle")
         .with("render.query")
+        .with("gameplay.input")
+        .with("gameplay.entity")
+        .with("gameplay.navigation")
 }

@@ -32,8 +32,7 @@ fn load_preset_menu_action_without_suffix_falls_back_to_current_name() {
 
     let harness = EventRuntimeHarness::new("zircon_retained_callback_load_preset");
     dispatch_menu_action(&harness.runtime, "workbench.layout.preset.save.current").unwrap();
-    let effects =
-        dispatch_menu_action(&harness.runtime, "workbench.layout.preset.load.").unwrap();
+    let effects = dispatch_menu_action(&harness.runtime, "workbench.layout.preset.load.").unwrap();
 
     let journal = harness.runtime.journal();
     assert_eq!(

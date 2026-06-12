@@ -1,0 +1,18 @@
+name = "vampire_game"
+version = "0.1.0"
+entry = "main"
+backend = "zr_vm:project"
+
+[capabilities]
+capabilities = [
+  "foundation.log",
+  "foundation.time",
+  "gameplay.input",
+  "gameplay.entity",
+  "gameplay.navigation",
+]
+
+[zr_vm]
+project = "plugin.zrp"
+entry_module = "main"
+execution_mode = "interp"

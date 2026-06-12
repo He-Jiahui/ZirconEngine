@@ -95,9 +95,8 @@ where
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
         let location = component_location::<T>(world, component_locations)?;
-        world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value)
+        let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+        Some(value)
     }
 }
 
@@ -143,9 +142,8 @@ where
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
         let location = component_location::<T>(world, component_locations)?;
-        world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value)
+        let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
+        Some(value)
     }
 }
 
@@ -343,10 +341,10 @@ where
         let Some(location) = component_location::<T>(world, component_locations) else {
             return Some(None);
         };
-        let value = world
-            .component_ref_with_ticks_at_location::<T>(*location)
-            .map(|(value, _)| value);
-        Some(value)
+        let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location) else {
+            return Some(None);
+        };
+        Some(Some(value))
     }
 }
 

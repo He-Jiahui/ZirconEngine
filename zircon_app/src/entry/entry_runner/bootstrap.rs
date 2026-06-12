@@ -332,6 +332,20 @@ impl EntryRunner {
         config: EntryConfig,
         export_root: impl AsRef<Path>,
     ) -> Result<NativePluginRuntimeBootstrap, CoreError> {
+        Self::bootstrap_with_runtime_plugin_and_feature_registrations_and_native_plugins_from_export_root(
+            config,
+            std::iter::empty::<RuntimePluginRegistrationReport>(),
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+            export_root,
+        )
+    }
+
+    pub fn bootstrap_with_runtime_plugin_and_feature_registrations_and_native_plugins_from_export_root(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+        export_root: impl AsRef<Path>,
+    ) -> Result<NativePluginRuntimeBootstrap, CoreError> {
         let native_plugin_host = NativePluginLiveHost::default();
         let native_report = native_plugin_host
             .load_runtime_plugins_from_export_root(export_root)
@@ -341,12 +355,20 @@ impl EntryRunner {
         for diagnostic in &native_report.diagnostics {
             eprintln!("[zircon_app] native plugin warning: {diagnostic}");
         }
-        let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
-            &config,
-            native_report.runtime_plugin_registration_reports.clone(),
+        let mut runtime_plugin_registration_reports = registrations.into_iter().collect::<Vec<_>>();
+        runtime_plugin_registration_reports
+            .extend(native_report.runtime_plugin_registration_reports.clone());
+        let mut runtime_plugin_feature_registration_reports =
+            feature_registrations.into_iter().collect::<Vec<_>>();
+        runtime_plugin_feature_registration_reports.extend(
             native_report
                 .runtime_plugin_feature_registration_reports
                 .clone(),
+        );
+        let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+            &config,
+            runtime_plugin_registration_reports,
+            runtime_plugin_feature_registration_reports,
         )?;
         let module_selection_report = entry.module_selection_report();
         let core = entry.bootstrap()?;

@@ -52,12 +52,12 @@ fn action_history_row(
     let text = HubTextBundle::new(language);
     let finished = relative_time(now_ms, record.finished_unix_ms, language);
     let output_dir = record.output_dir.as_deref().map(path_text_en);
-    let detail = text.status_detail(&record.detail);
-    let log_excerpt = text.status_detail(&record.log_excerpt);
+    let detail = text.render_message(&record.detail);
+    let log_excerpt = text.render_message(&record.log_excerpt);
     let recovery = record
         .recovery
-        .as_deref()
-        .map(|recovery| text.status_detail(recovery));
+        .as_ref()
+        .map(|recovery| text.render_message(recovery));
     let detail_rows = action_history_detail_rows(
         text,
         &record.target,
@@ -157,18 +157,25 @@ fn action_status_tone(status: HubActionStatus) -> &'static str {
 #[cfg(test)]
 mod tests {
     use crate::settings::HubLanguage;
-    use crate::state::{HubActionKind, HubActionRecord, HubActionStatus};
+    use crate::state::{
+        EngineMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+        ProjectMessageId, ShellMessageId,
+    };
 
     #[test]
-    fn action_history_row_localizes_action_status_detail_and_recovery() {
+    fn action_history_row_localizes_action_status_message_and_recovery() {
         let record = HubActionRecord {
             finished_unix_ms: 1,
             action: HubActionKind::PackageProject,
             status: HubActionStatus::Failed,
             target: "Game".to_string(),
-            detail: "No recent project is available to package".to_string(),
-            log_excerpt: String::new(),
-            recovery: Some("Select an available project before packaging".to_string()),
+            detail: HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::NoRecentProjectToPackage,
+            )),
+            log_excerpt: HubMessage::empty(),
+            recovery: Some(HubMessage::new(HubMessageId::Project(
+                ProjectMessageId::SelectProjectBeforePackaging,
+            ))),
             process_id: None,
             command_line: Vec::new(),
             output_dir: None,
@@ -195,8 +202,11 @@ mod tests {
             action: HubActionKind::CreateProject,
             status: HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: "Created C:\\Projects\\Game".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::CreatedPath),
+                ["C:\\Projects\\Game"],
+            ),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: None,
             command_line: Vec::new(),
@@ -207,8 +217,11 @@ mod tests {
             action: HubActionKind::ImportProject,
             status: HubActionStatus::Success,
             target: "Imported".to_string(),
-            detail: "Imported C:\\Projects\\Imported".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::ImportedPath),
+                ["C:\\Projects\\Imported"],
+            ),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: None,
             command_line: Vec::new(),
@@ -223,14 +236,39 @@ mod tests {
     }
 
     #[test]
+    fn action_history_row_renders_persisted_message_in_current_language() {
+        let record = HubActionRecord {
+            finished_unix_ms: 1,
+            action: HubActionKind::CreateProject,
+            status: HubActionStatus::Success,
+            target: "Game".to_string(),
+            detail: HubMessage::with_params(
+                HubMessageId::Project(ProjectMessageId::CreatedPath),
+                ["C:\\Projects\\Game"],
+            ),
+            log_excerpt: HubMessage::empty(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: None,
+        };
+
+        let english_item = super::action_history_row(&record, 2, HubLanguage::English);
+        let chinese_item = super::action_history_row(&record, 2, HubLanguage::Chinese);
+
+        assert_eq!(english_item.detail, "Created C:\\Projects\\Game");
+        assert_eq!(chinese_item.detail, "已创建 C:\\Projects\\Game");
+    }
+
+    #[test]
     fn action_history_row_localizes_log_excerpt() {
         let record = HubActionRecord {
             finished_unix_ms: 1,
             action: HubActionKind::RemoveProject,
             status: HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: "Removed project from Hub recent list".to_string(),
-            log_excerpt: "Removed project from Hub recent list".to_string(),
+            detail: HubMessage::new(HubMessageId::Project(ProjectMessageId::RemovedFromHub)),
+            log_excerpt: HubMessage::new(HubMessageId::Project(ProjectMessageId::RemovedFromHub)),
             recovery: None,
             process_id: None,
             command_line: Vec::new(),
@@ -252,8 +290,11 @@ mod tests {
             action: HubActionKind::OpenOutput,
             status: HubActionStatus::Success,
             target: "C:\\Packages\\Game".to_string(),
-            detail: "Opened C:\\Packages\\Game".to_string(),
-            log_excerpt: String::new(),
+            detail: HubMessage::with_params(
+                HubMessageId::Shell(ShellMessageId::OpenedPath),
+                ["C:\\Packages\\Game"],
+            ),
+            log_excerpt: HubMessage::empty(),
             recovery: None,
             process_id: Some(42),
             command_line: Vec::new(),
@@ -273,8 +314,12 @@ mod tests {
             action: HubActionKind::BuildEditorRuntime,
             status: HubActionStatus::Success,
             target: "Game".to_string(),
-            detail: "Staged editor/runtime payload".to_string(),
-            log_excerpt: "Staged editor/runtime payload".to_string(),
+            detail: HubMessage::new(HubMessageId::Engine(
+                EngineMessageId::StagedEditorRuntimePayload,
+            )),
+            log_excerpt: HubMessage::new(HubMessageId::Engine(
+                EngineMessageId::StagedEditorRuntimePayload,
+            )),
             recovery: None,
             process_id: None,
             command_line: vec![

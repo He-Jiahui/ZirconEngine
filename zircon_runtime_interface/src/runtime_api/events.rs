@@ -142,6 +142,27 @@ impl ZrRuntimeEventV1 {
         }
     }
 
+    pub fn mouse_wheel_delta_at(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        unit: u32,
+        point_x: f32,
+        point_y: f32,
+        delta_x: f32,
+        delta_y: f32,
+    ) -> Self {
+        Self {
+            x: point_x,
+            y: point_y,
+            delta: delta_y,
+            button: ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
+            state: unit,
+            key_code: delta_x.to_bits(),
+            scan_code: delta_y.to_bits(),
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, viewport)
+        }
+    }
+
     pub const fn cursor_entered(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
         Self::new(
             abi_version,

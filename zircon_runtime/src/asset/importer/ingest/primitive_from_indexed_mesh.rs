@@ -1,20 +1,18 @@
-#[cfg(test)]
 use crate::core::math::{Vec2, Vec3};
 
-#[cfg(test)]
 use super::generate_normals::generate_normals;
-use crate::asset::assets::ModelAsset;
-#[cfg(test)]
-use crate::asset::assets::ModelPrimitiveAsset;
-use crate::asset::{cook_virtual_geometry_from_mesh, VirtualGeometryCookConfig};
-#[cfg(test)]
-use crate::asset::{AssetImportError, MeshVertex};
+use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
+use crate::asset::{
+    cook_virtual_geometry_from_mesh, AssetImportError, MeshVertex, VirtualGeometryCookConfig,
+};
 
-#[cfg(test)]
 pub(super) fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],
     texcoords: &[f32],
+    texcoords1: &[f32],
+    tangents: &[[f32; 4]],
+    colors: &[[f32; 4]],
     indices: &[u32],
     joint_indices: &[[u16; 4]],
     joint_weights: &[[f32; 4]],
@@ -53,6 +51,13 @@ pub(super) fn primitive_from_indexed_mesh(
             } else {
                 Vec2::ZERO
             };
+            let uv1 = if texcoords1.len() >= (index + 1) * 2 {
+                Vec2::new(texcoords1[index * 2], texcoords1[index * 2 + 1])
+            } else {
+                Vec2::ZERO
+            };
+            let tangent = tangents.get(index).copied().unwrap_or([1.0, 0.0, 0.0, 1.0]);
+            let color = colors.get(index).copied().unwrap_or([1.0, 1.0, 1.0, 1.0]);
             MeshVertex::new(
                 position,
                 if normal.length_squared() <= f32::EPSILON {
@@ -62,6 +67,9 @@ pub(super) fn primitive_from_indexed_mesh(
                 },
                 uv,
             )
+            .with_uv1(uv1)
+            .with_tangent(tangent)
+            .with_color(color)
             .with_skinning(
                 joint_indices.get(index).copied().unwrap_or([0, 0, 0, 0]),
                 joint_weights

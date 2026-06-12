@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{ServiceKind, StartupMode};
+use crate::core::CoreError;
+use crate::core::{ServiceKind, StartupMode};
 
 use super::super::super::descriptors::{
     DependencySpec, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,

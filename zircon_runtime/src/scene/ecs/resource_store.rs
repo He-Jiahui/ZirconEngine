@@ -26,38 +26,37 @@ impl ResourceStore {
         tick: ChangeTick,
     ) -> Option<T> {
         let type_id = TypeId::of::<T>();
-        let ticks = self
-            .resources
-            .get(&type_id)
-            .map(|stored| {
-                let mut ticks = stored.ticks;
-                ticks.set_changed(tick);
-                ticks
-            })
-            .unwrap_or_else(|| ComponentTicks::new(tick));
-        self.resources
-            .insert(
-                type_id,
-                StoredResource {
-                    value: Box::new(resource),
-                    type_name: type_name::<T>(),
-                    ticks,
-                },
-            )
-            .and_then(|stored| stored.value.downcast::<T>().ok())
-            .map(|boxed| *boxed)
+        let ticks = if let Some(stored) = self.resources.get(&type_id) {
+            let mut ticks = stored.ticks;
+            ticks.set_changed(tick);
+            ticks
+        } else {
+            ComponentTicks::new(tick)
+        };
+        let Some(stored) = self.resources.insert(
+            type_id,
+            StoredResource {
+                value: Box::new(resource),
+                type_name: type_name::<T>(),
+                ticks,
+            },
+        ) else {
+            return None;
+        };
+        let Ok(boxed) = stored.value.downcast::<T>() else {
+            return None;
+        };
+        Some(*boxed)
     }
 
     pub fn get<T: 'static + Send + Sync>(&self) -> Option<&T> {
-        self.resources
-            .get(&TypeId::of::<T>())
-            .and_then(|stored| stored.value.downcast_ref::<T>())
+        let stored = self.resources.get(&TypeId::of::<T>())?;
+        stored.value.downcast_ref::<T>()
     }
 
     pub fn get_mut<T: 'static + Send + Sync>(&mut self) -> Option<&mut T> {
-        self.resources
-            .get_mut(&TypeId::of::<T>())
-            .and_then(|stored| stored.value.downcast_mut::<T>())
+        let stored = self.resources.get_mut(&TypeId::of::<T>())?;
+        stored.value.downcast_mut::<T>()
     }
 
     pub fn get_mut_at_tick_with_ticks<T: 'static + Send + Sync>(
@@ -67,14 +66,18 @@ impl ResourceStore {
         let stored = self.resources.get_mut(&TypeId::of::<T>())?;
         stored.ticks.set_changed(tick);
         let ticks = stored.ticks;
-        stored.value.downcast_mut::<T>().map(|value| (value, ticks))
+        let Some(value) = stored.value.downcast_mut::<T>() else {
+            return None;
+        };
+        Some((value, ticks))
     }
 
     pub fn remove<T: 'static + Send + Sync>(&mut self) -> Option<T> {
-        self.resources
-            .remove(&TypeId::of::<T>())
-            .and_then(|stored| stored.value.downcast::<T>().ok())
-            .map(|boxed| *boxed)
+        let stored = self.resources.remove(&TypeId::of::<T>())?;
+        let Ok(boxed) = stored.value.downcast::<T>() else {
+            return None;
+        };
+        Some(*boxed)
     }
 
     pub fn contains<T: 'static + Send + Sync>(&self) -> bool {
@@ -82,9 +85,8 @@ impl ResourceStore {
     }
 
     pub fn ticks<T: 'static + Send + Sync>(&self) -> Option<ComponentTicks> {
-        self.resources
-            .get(&TypeId::of::<T>())
-            .map(|stored| stored.ticks)
+        let stored = self.resources.get(&TypeId::of::<T>())?;
+        Some(stored.ticks)
     }
 
     pub fn len(&self) -> usize {
@@ -100,11 +102,10 @@ impl ResourceStore {
     }
 
     pub fn type_names(&self) -> Vec<&'static str> {
-        let mut names = self
-            .resources
-            .values()
-            .map(|stored| stored.type_name)
-            .collect::<Vec<_>>();
+        let mut names = Vec::with_capacity(self.resources.len());
+        for stored in self.resources.values() {
+            names.push(stored.type_name);
+        }
         names.sort_unstable();
         names
     }

@@ -1,12 +1,22 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_phase.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_ordering_key.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
@@ -39,9 +49,12 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -70,7 +83,14 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_ordering_key.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
 plan_sources:
   - user: 2026-06-02 implement ZirconEngine WGPU render main-chain closure plan
@@ -79,6 +99,16 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_uses_unified_queue_layer_depth_order
   - zircon_runtime/src/core/framework/tests.rs::geometry_phase_inputs_feed_unified_sort_components_into_queue
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_queue_order_exposes_submission_phase_precedence
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_item_ordering_key_matches_queue_sort_tuple
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::render_phase_queue_summary_reports_phase_counts_and_ordering_bounds
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::geometry_extract_phase_queue_summary_reports_sorted_bounds
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::sprite_extract_phase_queue_summary_reports_core2d_phase_counts
+  - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::render_frame_phase_queue_summary_merges_geometry_and_sprite_counts
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_explains_depth_and_queue_order
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_reports_first_ordering_difference
+  - zircon_runtime/src/core/framework/tests.rs::geometry_extract_builds_static_mesh_batches_by_resource_key
+  - zircon_runtime/src/asset/tests/project/example_vampire.rs::vampire_example_scene_extracts_playable_third_person_meshes
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_honors_material_queue_and_ui_z_index
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_carries_scene_camera_order_report_for_scene_camera
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_render_frame_extract_has_no_scene_camera_order_report
@@ -107,6 +137,7 @@ tests:
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
+  - cargo test -p zircon_runtime --lib runtime_session_menu --locked --jobs 1 --target-dir D:\cargo-targets\zircon-vampire-menu-0611 --message-format short --color never -- --nocapture --test-threads=1: initially failed 2026-06-11 on `phase_queue_summary.rs` type inference; fixed by explicitly typing the phase-order span vector before rerun
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
   - zircon_runtime/src/core/framework/render/capture.rs::tests::texture_capture_report_distinguishes_direct_import_and_conversion_sources
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
@@ -164,9 +195,43 @@ During WGPU submit the report is copied into `FrameSubmissionContext` and projec
 
 ## Sort Key Contract
 
+`RenderPhase::queue_order()` is the public cross-phase submission precedence used before a phase-local sort key is compared. The order is prepass, shadow, opaque 2D/3D, alpha-mask 2D/3D, deferred, transparent 2D/3D, post-process, UI, overlay, then debug. Matching 2D/3D geometry phase orders are intentional: the product pipeline chooses the concrete pass while the queue contract keeps phase precedence stable for diagnostics and renderer tooling. `RenderPhase::diagnostic_name()` exposes stable kebab-case labels such as `opaque-3d`, `transparent-2d`, and `post-process` for logs, editor displays, and RenderDoc/export labels without requiring each consumer to mirror the phase enum.
+
+`RenderPhaseItem::ordering_key()` returns `RenderPhaseQueueOrderingKey`, the exact tuple consumed by `RenderPhaseQueue`: phase order, packed phase-local sort key, then entity id. The key also exposes `raw_sort_key()` for labels and diagnostics, but its `Ord`/`Eq` implementation stays identical to the queue tuple so editor ordering views cannot drift from submission order.
+
+`RenderPhaseQueue::summary()` returns `RenderPhaseQueueSummary` for an already-built queue. It records total item count, named `RenderPhaseQueueSummaryPhaseCount` rows in `RENDER_PHASES_BY_QUEUE_ORDER`, phase-order spans, and the first and last `RenderPhaseQueueOrderingKey` values. Each phase-count row carries phase, owned `diagnostic_name`, phase order, and item count, with `phase_count_row_for_phase(...)` as the direct lookup helper, while each span records the phases represented by that shared order bucket, its owned joined `diagnostic_name`, the sorted queue index range, and first/last ordering keys. `span_for_phase(...)` maps a concrete phase such as `Opaque3d` back to its shared phase-order bucket, and `span_for_queue_index(...)` maps a sorted queue item index back to the bucket range that contains it. `active_phase_counts()` and `active_phase_order_spans()` stream only rows whose queue counts are nonzero for compact diagnostics, while the stored vectors preserve zero-count rows for stable table layouts. `RenderPhaseQueueSummaryPhaseCount::diagnostic_name()` returns a borrowed view of the stored phase label, while `RenderPhaseQueueSummaryPhaseOrderSpan::diagnostic_name()` returns a borrowed view of the stored shared-bucket label, such as `opaque-2d+opaque-3d` or `transparent-2d+transparent-3d`. Serialized diagnostics can therefore display both per-phase rows and bucket groups without rescanning or resorting queue items. The queue summary and its child rows derive `Serialize`/`Deserialize`, and the serialized payload carries those owned `diagnostic_name` fields directly. `GeometryExtract::phase_queue_summary()` and `SpriteExtract::phase_queue_summary()` expose the same reporting view directly from frame DTOs by deriving it from the current sorted `phase_queue`; they do not cache a second copy of queue state.
+
+`RenderFrameExtract::phase_queue_summary()` returns `RenderFramePhaseQueueSummary`, whose DTOs and lookup helpers live in `frame_phase_queue_summary.rs` so `frame_extract.rs` remains focused on frame extraction data and adapters. The frame summary carries the mesh and sprite summaries side by side plus total, per-phase, and per-phase-order bucket counts across both queues. The frame summary preserves the full child queue bounds through geometry and sprite first/last ordering keys, so diagnostics can inspect the top-level mesh and sprite ordering ranges before drilling into individual buckets. Its `phase_counts` table is ordered by `RENDER_PHASES_BY_QUEUE_ORDER`; each `RenderFramePhaseQueueSummaryPhaseCount` row records the phase, owned `diagnostic_name`, phase order, geometry count, sprite count, and combined total, with `phase_count_row_for_phase(...)` as the direct lookup helper and a borrowed `diagnostic_name()` label accessor. Its `phase_order_spans` table records one `RenderFramePhaseQueueSummaryPhaseOrderSpan` per shared phase-order bucket, including the represented phases plus an owned joined `diagnostic_name`, geometry, sprite, and total counts, and the span exposes the same borrowed stored `diagnostic_name()` label as the child queue summary. `active_phase_counts()` and `active_phase_order_spans()` provide compact nonzero frame rows for editor panels, runtime logs, and future RenderDoc label exporters without losing the stable full-table vectors. Each frame bucket also preserves the child queue evidence for that bucket: mesh and sprite start index, exclusive end index, first ordering key, and last ordering key. `phase_order_span_for_phase_order(...)`, `phase_order_span_for_phase(...)`, `phase_order_span_for_geometry_queue_index(...)`, and `phase_order_span_for_sprite_queue_index(...)` let diagnostics jump directly to buckets such as opaque 2D/3D or transparent 2D/3D without recomputing bucket membership or rescanning child queues. The frame summary and its child rows derive `Serialize`/`Deserialize`, matching the child `RenderPhaseQueueSummary` payloads so runtime diagnostics, editor panels, and future RenderDoc label exporters can persist exactly the same bucket evidence they inspect in memory. This is intentionally a reporting view over the sorted queues, not a second grouping or ordering path.
+
 `RenderPhaseSortKey` now exposes `RenderPhaseSortComponents` as the shared ordering input for 3D, 2D, UI, overlay, and debug draw records. The packed order is render queue, material queue, order in layer, UI z-index, depth or reverse depth for transparent phases, then entity tie-breaker.
 
+`RenderPhaseSortKey::breakdown(...)` returns `RenderPhaseSortKeyBreakdown`, a read-only diagnostic view of the same inputs and derived depth keys used by the packed sorter. It records the phase, queue fields, raw depth, depth bias, effective depth, finite-depth quantized key, transparent back-to-front reversal, entity tie-breaker, the low 16-bit packed entity tie-breaker key, and raw packed sort key. Each packed lane also exposes its derived `*_sort_key` value, so diagnostics can show both the authored value and the actual saturated or biased value that participates in the packed key. This gives editor panels, runtime diagnostics, and future RenderDoc labels an explainable render-order contract without adding a second sorting path.
+
+`RenderPhaseSortKeyBreakdown::first_difference(...)` returns `RenderPhaseSortDecision`, whose `field` identifies the first lane that differs using the same order as `RenderPhaseQueue`: phase order, packed render queue, packed material queue, packed order in layer, packed UI z-index, packed ordered depth, packed entity tie-breaker key, then the full entity tie-breaker used after raw key equality. The decision reports `left_value`, `right_value`, and `left_before_right` for diagnostics while computing the direction from the actual packed lane values, so saturated queue fields do not create false explanations.
+
 `GeometryPhaseInput`, `SpritePhaseExtractInput`, `MeshPhaseInput`, and `SpritePhaseInput` carry the same queue fields with defaulting constructors. Meshes use depth plus entity tie-breaker by default; sprites map `z_order` to order in layer and can now add material queue, render queue, depth bias, and UI z-index without changing the queue builder contract.
+
+## Static Mesh Batch Extract
+
+`GeometryExtract` carries `static_batches` alongside the mesh vector and phase
+queue. The batch list is derived automatically by
+`GeometryExtract::from_meshes(...)` and
+`GeometryExtract::from_meshes_and_phase_inputs(...)`: only meshes whose
+`mobility` is `Mobility::Static` are eligible, and they are grouped by source
+model, optional mesh primitive handle, material handle, and render-layer mask.
+Groups with one instance are omitted so downstream renderers can treat the list
+as actual batch candidates rather than a mirror of every static mesh.
+
+`StaticMeshBatchExtract` records the resource key, the source `mesh_indices`,
+and the entity ids in deterministic mesh-vector order. It is still neutral
+frame data: it does not store renderer buffers, WGPU bind groups, or draw
+commands. The immediate consumer is diagnostics and acceptance testing, while a
+later renderer pass can use the same DTO to emit instanced/static draw calls
+without recomputing scene ownership from `World`.
+
+The vampire example relies on this path for its authored billboard grass:
+six `Static Grass Batch ...` entities share the same grass model/material and
+are expected to collapse into one runtime static batch in the frame extract.
 
 ## Design And Rationale
 

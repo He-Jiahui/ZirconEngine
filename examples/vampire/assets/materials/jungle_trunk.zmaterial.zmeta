@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "f82ca89f-0c93-4490-afd7-d8cc45536afd"
+url = "res://materials/jungle_trunk.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/78da369f-1019-32dd-6b83-f82a1cb36a83.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689622
+source_hash = "209c5296ba90be53"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = ["res://shaders/vampire_forest"]
+
+[import_settings]
+
+[[entries]]
+uuid = "f82ca89f-0c93-4490-afd7-d8cc45536afd"
+url = "res://materials/jungle_trunk.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/78da369f-1019-32dd-6b83-f82a1cb36a83.zasset"
+dependencies = ["res://shaders/vampire_forest"]

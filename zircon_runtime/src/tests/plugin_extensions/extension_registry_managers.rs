@@ -1,4 +1,5 @@
-use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode};
+use crate::core::runtime::ServiceObject;
+use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use crate::engine_module::{factory, qualified_name};
 use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,

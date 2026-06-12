@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "4a931d65-fbef-4c36-ad6e-9db0e05498b6"
+url = "res://models/kenney_graveyard/grave.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/a9819005-36d9-072e-8d71-b906731d6ed1.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "22235d8367f4d3e7"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/grave.glb#Texture0",
+    "res://models/kenney_graveyard/grave.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/grave.glb#Material0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave.glb#Node0",
+    "res://models/kenney_graveyard/grave.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "4a931d65-fbef-4c36-ad6e-9db0e05498b6"
+url = "res://models/kenney_graveyard/grave.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/a9819005-36d9-072e-8d71-b906731d6ed1.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave.glb#Texture0",
+    "res://models/kenney_graveyard/grave.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/grave.glb#Material0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave.glb#Node0",
+    "res://models/kenney_graveyard/grave.glb#Scene0",
+]
+
+[[entries]]
+uuid = "4dc4055f-5acf-428d-aa07-8276f0839944"
+url = "res://models/kenney_graveyard/grave.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/578f30ad-f264-bd98-e87e-e0cee9493322.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "3e44bb8d-520f-4e7a-aec7-1d49d219c48c"
+url = "res://models/kenney_graveyard/grave.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/5b3821df-be53-7fc3-7e77-9653c64c88a1.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "563668ed-8995-4a10-812b-a621e184867d"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/5090da99-3c9e-e631-b5fb-6c0618c76779.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/grave.glb#Texture0",
+]
+
+[[entries]]
+uuid = "2345aa80-4e7d-4b41-8bed-8c3143ce70f8"
+url = "res://models/kenney_graveyard/grave.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/f14b2ac6-a917-d0a3-a2e9-31be9382c333.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave.glb#Material0",
+]
+
+[[entries]]
+uuid = "5ede93d0-7ab3-4557-a5c2-a670a65d6987"
+url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/b0fc9705-9283-53e1-361d-2ffd5eba010f.zasset"
+dependencies = ["res://models/kenney_graveyard/grave.glb#Material0"]
+
+[[entries]]
+uuid = "cd9f533d-e7bd-45f9-8744-aa56c418d0ef"
+url = "res://models/kenney_graveyard/grave.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/3d3a4322-031e-1011-339c-1ec537ad2ce7.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave.glb#Node0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave.glb#Material0",
+]
+
+[[entries]]
+uuid = "0dd394b9-e467-4786-96e7-4e4ac9e93ffb"
+url = "res://models/kenney_graveyard/grave.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/0631c687-1d2c-330f-af11-fc7bd8ae780d.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/grave.glb#Node0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0",
+    "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/grave.glb#Material0",
+]

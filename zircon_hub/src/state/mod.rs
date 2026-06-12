@@ -1,4 +1,5 @@
 mod action_history;
+mod hub_message;
 mod hub_snapshot;
 mod navigation;
 mod project_view;
@@ -7,6 +8,10 @@ mod task_status;
 
 pub use action_history::{
     push_action_record, HubActionKind, HubActionRecord, HubActionStatus, ACTION_HISTORY_LIMIT,
+};
+pub use hub_message::{
+    BuildMessageId, DeliveryMessageId, EngineMessageId, HubMessage, HubMessageId, LearnMessageId,
+    ProcessMessageId, ProjectMessageId, SettingsMessageId, ShellMessageId,
 };
 pub use hub_snapshot::HubSnapshot;
 pub use navigation::HubPage;

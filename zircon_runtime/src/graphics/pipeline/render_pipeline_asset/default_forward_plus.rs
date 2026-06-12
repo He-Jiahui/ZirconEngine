@@ -40,6 +40,7 @@ impl RenderPipelineAsset {
                 features: vec![
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Shadows),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Hzb),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ClusteredLighting),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),

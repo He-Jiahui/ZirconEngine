@@ -1,4 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::diagnostic_log::write_error;
 
 use super::RuntimeEntryApp;
 
@@ -7,7 +8,11 @@ impl RuntimeEntryApp {
         self.apply_event_loop_policy(event_loop);
         #[cfg(feature = "gamepad-gilrs")]
         self.poll_gamepads(event_loop);
-        if self.session.tick_frame().is_err() {
+        if let Err(error) = self.session.tick_frame() {
+            write_error(
+                "runtime_frame_loop",
+                format!("runtime_tick_frame_failed error={error}"),
+            );
             event_loop.exit();
             return;
         }

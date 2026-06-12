@@ -9,6 +9,10 @@ use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::ecs::Resource;
 use crate::scene::{DynamicScene, NodeKind, ReflectResource, ScenePatch, World};
 
+use super::authoring_boundary::{
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+};
+
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
 const FRAME_COUNTER_TYPE_PATH: &str = "zircon_runtime::scene::tests::dynamic_scene::FrameCounter";
 
@@ -50,6 +54,11 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
     .expect("dynamic scene should serialize");
     assert!(encoded.contains("\"format_version\":1"));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
+    assert_text_excludes_authoring_tokens(
+        "dynamic scene JSON",
+        &encoded,
+        SERIALIZED_AUTHORING_TOKENS,
+    );
     let scene: DynamicScene =
         serde_json::from_str(&encoded).expect("dynamic scene should deserialize");
 
@@ -151,6 +160,11 @@ fn versioned_json_migrates_legacy_world_project_documents() {
     let encoded = scene
         .to_versioned_json_pretty()
         .expect("dynamic scene should write versioned JSON");
+    assert_text_excludes_authoring_tokens(
+        "versioned dynamic scene JSON",
+        &encoded,
+        SERIALIZED_AUTHORING_TOKENS,
+    );
     let decoded =
         DynamicScene::from_versioned_json(&encoded).expect("dynamic scene JSON should reload");
     assert_eq!(decoded, scene);

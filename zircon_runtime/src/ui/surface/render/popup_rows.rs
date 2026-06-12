@@ -112,7 +112,7 @@ pub(super) fn push_popup_row_surface(
     state: PopupRowPaintState,
     opacity: f32,
 ) {
-    if state.disabled {
+    if state.unavailable() {
         return;
     }
     let background = if state.selected {
@@ -219,7 +219,6 @@ pub(super) fn push_popup_row_label(
 #[derive(Clone, Copy, Debug)]
 pub(super) struct PopupRowPaintState {
     selected: bool,
-    disabled: bool,
     command_state: PopupCommandPaintState,
 }
 
@@ -230,6 +229,7 @@ impl PopupRowPaintState {
         focused: bool,
         pressed: bool,
         disabled: bool,
+        loading: bool,
     ) -> Self {
         let family = UiPainterFamily::PopupRow;
         let painter_state = UiPainterState {
@@ -237,13 +237,13 @@ impl PopupRowPaintState {
             pressed,
             focused,
             disabled,
+            loading,
             checked: selected,
             selected,
             ..UiPainterState::normal()
         };
         Self {
             selected,
-            disabled,
             command_state: PopupCommandPaintState {
                 family,
                 visual_state: painter_state.resolved_state_for_family(family),
@@ -252,7 +252,7 @@ impl PopupRowPaintState {
     }
 
     pub(super) fn text_color(self, danger: bool) -> &'static str {
-        if self.disabled {
+        if self.unavailable() {
             POPUP_MUTED_TEXT
         } else if danger {
             POPUP_DANGER_TEXT
@@ -261,6 +261,13 @@ impl PopupRowPaintState {
         } else {
             POPUP_TEXT
         }
+    }
+
+    fn unavailable(self) -> bool {
+        matches!(
+            self.command_state.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn hot(self) -> bool {

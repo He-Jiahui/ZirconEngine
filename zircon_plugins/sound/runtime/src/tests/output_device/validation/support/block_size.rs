@@ -1,0 +1,12 @@
+use super::super::super::super::*;
+use super::descriptor::software_test_descriptor;
+
+pub(super) fn invalid_block_size_descriptor() -> SoundOutputDeviceDescriptor {
+    software_test_descriptor(
+        "sound.output.bad",
+        "Bad Output",
+        SoundChannelLayout::stereo(),
+        2,
+        0,
+    )
+}

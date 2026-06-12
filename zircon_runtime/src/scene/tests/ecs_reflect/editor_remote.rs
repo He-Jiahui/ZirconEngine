@@ -135,6 +135,83 @@ fn remote_style_schema_read_request_response_serializes_without_runtime_handles(
 }
 
 #[test]
+fn schema_list_projection_pre_sizes_registration_output() {
+    let source = include_str!("../../reflect/world_reflection.rs");
+    let list_reflect_types = source
+        .split("pub fn list_reflect_types")
+        .nth(1)
+        .and_then(|text| text.split("pub fn reflect_schema").next())
+        .expect("read WorldReflection list_reflect_types body");
+
+    assert!(
+        list_reflect_types.contains("let mut registrations = Vec::with_capacity(1);")
+            && list_reflect_types.contains("registrations.push(registration.registration.clone());")
+            && list_reflect_types.contains("let registry_entries = world.type_registry().iter();")
+            && list_reflect_types
+                .contains("Vec::with_capacity(registry_entries.size_hint().0)")
+            && list_reflect_types.contains("for registration in registry_entries")
+            && list_reflect_types.contains(
+                "if schema_filter_matches(&registration.registration, &filter)"
+            )
+            && !list_reflect_types.contains("vec![registration.registration.clone()]")
+            && !list_reflect_types.contains(".collect()"),
+        "WorldReflection schema listing must pre-size focused and registry-wide registration output instead of collecting from a filter/map chain"
+    );
+}
+
+#[test]
+fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
+    let source = include_str!("../../reflect/world_reflection.rs");
+    let adapter_lookup = source
+        .split("fn component_adapter<'a>")
+        .nth(1)
+        .and_then(|text| text.split("fn resource_adapter_ref").next())
+        .expect("read WorldReflection component adapter lookup helpers");
+    let resource_lookup = source
+        .split("fn resource_adapter_ref<'a>")
+        .nth(1)
+        .and_then(|text| text.split("fn resource_adapter_for_write").next())
+        .expect("read WorldReflection resource adapter lookup helper");
+    let reflect_fields = source
+        .split("pub fn reflect_fields")
+        .nth(1)
+        .and_then(|text| text.split("pub fn reflect_read").next())
+        .expect("read WorldReflection reflect_fields body");
+    let read_reflected_field = source
+        .split("fn read_reflected_field")
+        .nth(1)
+        .expect("read WorldReflection read helper body");
+    let reflect_write = source
+        .split("pub fn reflect_write")
+        .nth(1)
+        .and_then(|text| text.split("impl World").next())
+        .expect("read WorldReflection reflect_write body");
+
+    assert!(
+        adapter_lookup.contains("Result<&'a ReflectComponent, ReflectError>")
+            && adapter_lookup
+                .contains("let Some(adapter) = registration.component.as_ref() else")
+            && adapter_lookup.contains("return Err(ReflectError::NoComponentAdapter")
+            && adapter_lookup.contains("Ok(adapter)")
+            && adapter_lookup.contains("fn component_adapter_for_write(")
+            && adapter_lookup.contains("component_adapter(world, type_path).cloned()")
+            && resource_lookup.contains("let Some(adapter) = registration.resource.as_ref() else")
+            && resource_lookup.contains("return Err(ReflectError::NoResourceAdapter")
+            && resource_lookup.contains("Ok(adapter)")
+            && source.contains("fn resource_adapter_for_write(")
+            && source.contains("resource_adapter_ref(world, type_path).copied()")
+            && reflect_fields.contains("let adapter = component_adapter(world, type_path)?;")
+            && read_reflected_field.contains("let adapter = component_adapter(world, type_path)?;")
+            && reflect_write.contains("let adapter = component_adapter_for_write(world, type_path)?;")
+            && reflect_write.contains("let adapter = resource_adapter_for_write(world, type_path)?;")
+            && !adapter_lookup.contains(".component\n        .clone()")
+            && !adapter_lookup.contains(".ok_or_else(|| ReflectError::NoComponentAdapter")
+            && !resource_lookup.contains(".ok_or_else(|| ReflectError::NoResourceAdapter"),
+        "WorldReflection must borrow component/resource adapters through direct success-path branches and reserve component adapter cloning for write paths that need to release the immutable registry borrow"
+    );
+}
+
+#[test]
 fn remote_style_write_request_serializes_and_mutates_through_facade() {
     let mut world = world_with_cloud_layer_descriptor();
     let entity = world.spawn_node(NodeKind::Mesh);

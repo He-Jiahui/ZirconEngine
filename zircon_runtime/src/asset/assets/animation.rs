@@ -68,6 +68,7 @@ impl TryFrom<AnimationAssetReferenceBinary> for AssetReference {
 pub enum AnimationInterpolationAsset {
     Step,
     Hermite,
+    Linear,
 }
 
 #[derive(Clone, Debug, PartialEq)]

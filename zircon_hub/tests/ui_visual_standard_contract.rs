@@ -105,6 +105,60 @@ fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
     }
 }
 
+fn collect_files_with_extension(root: &Path, extension: &str, files: &mut Vec<PathBuf>) {
+    for entry in fs::read_dir(root).unwrap_or_else(|error| {
+        panic!(
+            "failed to scan visual-standard source directory {}: {error}",
+            root.display()
+        );
+    }) {
+        let path = entry
+            .unwrap_or_else(|error| panic!("failed to read visual-standard source entry: {error}"))
+            .path();
+        if path.is_dir() {
+            collect_files_with_extension(&path, extension, files);
+        } else if path.extension().and_then(|value| value.to_str()) == Some(extension) {
+            files.push(path);
+        }
+    }
+}
+
+fn contains_hex_color_literal(line: &str) -> bool {
+    line.as_bytes()
+        .windows(4)
+        .any(|window| window[0] == b'#' && window[1..].iter().all(u8::is_ascii_hexdigit))
+}
+
+#[test]
+fn component_and_page_styles_do_not_bypass_visual_tokens() {
+    let mut files = Vec::new();
+    collect_files_with_extension(&crate_dir().join("web/src/components"), "tsx", &mut files);
+    collect_files_with_extension(&crate_dir().join("web/src/pages"), "tsx", &mut files);
+
+    for file in files {
+        let source = normalize_newlines(fs::read_to_string(&file).unwrap_or_else(|error| {
+            panic!(
+                "failed to read visual-standard source file {}: {error}",
+                file.display()
+            );
+        }));
+        for (index, line) in source.lines().enumerate() {
+            assert!(
+                !contains_hex_color_literal(line),
+                "{}:{} must use hubTokens instead of component-local hex colors: {line}",
+                file.display(),
+                index + 1
+            );
+            assert!(
+                !line.contains("borderRadius: 999"),
+                "{}:{} must use hubTokens.radius.pill instead of component-local pill radius",
+                file.display(),
+                index + 1
+            );
+        }
+    }
+}
+
 #[test]
 fn react_tokens_global_css_and_mui_theme_define_reference_visual_standard() {
     let tokens = read_crate_file("web/src/theme/tokens.ts");
@@ -125,20 +179,30 @@ fn react_tokens_global_css_and_mui_theme_define_reference_visual_standard() {
             "compact: 7",
             "panel: 8",
             "card: 8",
+            "pill: 999",
             "background: \"#111212\"",
             "chrome: \"#151515\"",
             "panel: \"#202020\"",
             "panelLow: \"#1c1c1c\"",
+            "panelHover: \"#292929\"",
             "line: \"rgba(255,255,255,0.10)\"",
             "lineStrong: \"rgba(255,255,255,0.16)\"",
             "text: \"#eeeeee\"",
+            "textOnAccent: \"#eefefe\"",
+            "textOnPrimary: \"#071515\"",
             "textSoft: \"#b9b9b9\"",
             "textMuted: \"#8d8d8d\"",
+            "dangerText: \"#ffd8d5\"",
             "accent: \"#21d5cf\"",
             "accentDim: \"rgba(20, 121, 119, 0.72)\"",
             "success: \"#77d77a\"",
             "warning: \"#ffc24d\"",
             "error: \"#ef655e\"",
+            "avatar: \"#4b4f52\"",
+            "coverBackdrop: \"#141414\"",
+            "tooltip: \"#242424\"",
+            "gradients:",
+            "window:",
             "panel: \"inset 0 0 0 1px rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.28)\"",
             "accent: \"0 0 14px rgba(33,213,207,0.2)\"",
             "as const",
@@ -219,8 +283,7 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
             "height: \"100vh\"",
             "overflow: \"hidden\"",
             "color: hubTokens.colors.text",
-            "radial-gradient(circle at 30% 18%, rgba(38,86,82,0.13), transparent 30%)",
-            "linear-gradient(180deg, #161616 0%, #111111 100%)",
+            "background: hubTokens.gradients.window",
             "border: `1px solid ${hubTokens.colors.lineStrong}`",
             "borderRadius: \"10px\"",
             "height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`",
@@ -232,7 +295,7 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
         &topbar,
         &[
             "height: hubTokens.window.topBarHeight",
-            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "gridTemplateColumns: \"222px minmax(0, 1fr) auto\"",
             "borderBottom: `1px solid ${hubTokens.colors.line}`",
             "backgroundColor: \"rgba(17,17,17,0.96)\"",
             "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
@@ -241,7 +304,7 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
             "border: `1px solid ${engineAnchor ? \"rgba(45,212,207,0.48)\" : hubTokens.colors.lineStrong}`",
             "backgroundColor: engineAnchor ? \"rgba(18,82,80,0.38)\"",
             "state.taskStatus.map((status) =>",
-            "Avatar sx={{ width: 36, height: 36, bgcolor: \"#4b4f52\", fontSize: 14 }}",
+            "Avatar sx={{ width: 36, height: 36, bgcolor: hubTokens.colors.avatar, fontSize: 14 }}",
             "SourceEnginePopover",
             "UserMenuPopover",
         ],
@@ -257,7 +320,8 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
             "borderRadius: `${hubTokens.radius.panel}px`",
             "backgroundColor: selected ? \"rgba(15,99,96,0.56)\" : \"transparent\"",
             "backgroundColor: \"rgba(32,32,32,0.62)\"",
-            "backgroundColor: hubTokens.colors.success",
+            "const statusColor = activeEngine ? hubTokens.colors.success : hubTokens.colors.warning;",
+            "backgroundColor: statusColor",
             "{text.checkForUpdates}",
             "{text.checkForUpdatesDetail}",
             "disabled",
@@ -313,7 +377,7 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
         &[
             "HubPopover anchorEl={anchorEl} open={open} width={284} align=\"right\"",
             "gridTemplateColumns: \"42px minmax(0, 1fr)\"",
-            "Avatar sx={{ width: 38, height: 38, bgcolor: \"#4b4f52\", fontSize: 14 }}",
+            "Avatar sx={{ width: 38, height: 38, bgcolor: hubTokens.colors.avatar, fontSize: 14 }}",
             "borderColor: hubTokens.colors.line",
             "color: isDisabled ? hubTokens.colors.textMuted : danger ? hubTokens.colors.error : hubTokens.colors.text",
             "backgroundColor: isDisabled ? \"transparent\" : danger ? \"rgba(105,31,29,0.24)\" : \"rgba(255,255,255,0.055)\"",
@@ -344,10 +408,13 @@ fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
         &button,
         &[
             "export type HubButtonTone = \"primary\" | \"secondary\" | \"tertiary\" | \"danger\";",
+            "color: hubTokens.colors.textOnAccent",
             "backgroundColor: hubTokens.colors.accentDim",
             "borderColor: \"rgba(45, 212, 207, 0.48)\"",
             "backgroundColor: \"rgba(32,32,32,0.82)\"",
+            "backgroundColor: hubTokens.colors.panelHover",
             "color: hubTokens.colors.accent",
+            "color: hubTokens.colors.dangerText",
             "backgroundColor: \"rgba(120,25,25,0.54)\"",
             "variant=\"contained\"",
             "border: \"1px solid\"",
@@ -361,9 +428,10 @@ fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
             "Tooltip title={tooltip ?? label}",
             "width: 50",
             "height: 42",
-            "color: selected ? \"#eefefe\" : hubTokens.colors.textSoft",
+            "color: selected ? hubTokens.colors.textOnAccent : hubTokens.colors.textSoft",
             "backgroundColor: selected ? \"rgba(9,94,91,0.56)\"",
             "border: `1px solid ${selected ? \"rgba(45,212,207,0.48)\" : hubTokens.colors.lineStrong}`",
+            "hubTokens.colors.panelHover",
             "\"&.Mui-disabled\"",
         ],
         "HubIconButton",
@@ -436,7 +504,7 @@ fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
         &[
             "width: thumb ? 30 : \"100%\"",
             "height: thumb ? 30 : \"100%\"",
-            "backgroundColor: \"#141414\"",
+            "backgroundColor: hubTokens.colors.coverBackdrop",
             "objectFit: \"cover\"",
             "filter: \"saturate(0.98) contrast(0.98) brightness(0.98)\"",
             "linear-gradient(90deg, rgba(255,255,255,0.035)",
@@ -523,11 +591,11 @@ fn pages_keep_reference_responsive_density_and_state_surfaces() {
                 "height: \"100%\"",
                 "px: `${hubTokens.window.pagePaddingX}px`",
                 "py: `${hubTokens.window.pagePaddingY}px`",
-                "gridTemplateColumns: \"minmax(260px, 307px) 1fr auto auto auto\"",
-                "gridTemplateColumns: \"repeat(4, minmax(220px, 296px))\"",
+                "ProjectsToolbar",
+                "ProjectCardRail",
                 "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
                 "EmptyStateBlock",
-                "HubDialog",
+                "CreateProjectDialog",
             ][..],
         ),
         (
@@ -543,10 +611,9 @@ fn pages_keep_reference_responsive_density_and_state_surfaces() {
         (
             "ProjectDetailPage",
             &[
-                "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+                "ProjectMetricsGrid",
                 "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
                 "ProjectCover",
-                "MetricCard",
                 "StatusBadge",
                 "EmptyStateBlock title={text.noProjectSelected}",
             ][..],
@@ -556,10 +623,8 @@ fn pages_keep_reference_responsive_density_and_state_surfaces() {
             &[
                 "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
                 "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.42fr)\"",
-                "LinearProgress",
-                "StatusBadge label={draftSettings.health.label} tone={draftSettings.health.tone}",
-                "HubComboBox",
-                "HubTreeView",
+                "MetricCard",
+                "SettingsSection",
             ][..],
         ),
         (
@@ -611,6 +676,39 @@ fn pages_keep_reference_responsive_density_and_state_surfaces() {
             "{page} must keep responsive visual constraints"
         );
     }
+
+    assert_contains_all(
+        &read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx"),
+        &[
+            "gridTemplateColumns: \"minmax(260px, 307px) 1fr auto auto auto\"",
+            "gridTemplateColumns: \"minmax(240px, 1fr) auto auto\"",
+            "gridTemplateColumns: \"1fr\"",
+        ],
+        "ProjectsToolbar",
+    );
+    assert_contains_all(
+        &read_crate_file("web/src/components/data/ProjectCardRail.tsx"),
+        &["gridTemplateColumns: \"repeat(auto-fill, minmax(clamp(220px, 22vw, 296px), 1fr))\""],
+        "ProjectCardRail",
+    );
+    assert_contains_all(
+        &read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx"),
+        &[
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+            "MetricCard",
+        ],
+        "ProjectMetricsGrid",
+    );
+    assert_contains_all(
+        &read_crate_file("web/src/components/data/SettingsSection.tsx"),
+        &[
+            "LinearProgress",
+            "StatusBadge label={draftSettings.health.label} tone={draftSettings.health.tone}",
+            "HubComboBox",
+            "HubTreeView",
+        ],
+        "SettingsSection",
+    );
 }
 
 #[test]

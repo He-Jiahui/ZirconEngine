@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     FrameHistoryHandle, PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus,
-    RenderCaptureReport, RenderCaptureSource,
+    RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource,
 };
 
 use crate::graphics::backend::ViewportSurface;
@@ -24,12 +24,14 @@ impl SceneRenderer {
         &mut self,
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
         history_handle: Option<FrameHistoryHandle>,
         previous_history_available: bool,
     ) -> Result<ViewportFrame, GraphicsError> {
         let generation = self.render_frame_with_pipeline_to_target(
             frame,
             pipeline,
+            capabilities,
             history_handle,
             previous_history_available,
         )?;
@@ -60,6 +62,7 @@ impl SceneRenderer {
         &mut self,
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
         history_handle: Option<FrameHistoryHandle>,
         previous_history_available: bool,
         surface: &mut ViewportSurface,
@@ -67,6 +70,7 @@ impl SceneRenderer {
         let generation = self.render_frame_with_pipeline_to_target(
             frame,
             pipeline,
+            capabilities,
             history_handle,
             previous_history_available,
         )?;
@@ -83,6 +87,7 @@ impl SceneRenderer {
         &mut self,
         frame: &ViewportRenderFrame,
         pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
         history_handle: Option<FrameHistoryHandle>,
         previous_history_available: bool,
     ) -> Result<u64, GraphicsError> {
@@ -96,6 +101,7 @@ impl SceneRenderer {
         )?;
 
         let size = viewport_size(frame);
+        let render_size = frame.extract.view.effective_render_size();
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
         let screen_space_reflection_history_enabled = runtime_features.history_resolve_enabled
@@ -106,6 +112,8 @@ impl SceneRenderer {
                 .screen_space_reflection
                 .is_enabled()
             && pipeline_writes_screen_space_reflection_history(pipeline);
+        let hzb_history_enabled =
+            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -115,8 +123,10 @@ impl SceneRenderer {
                 history_handle,
                 previous_history_available,
                 size,
+                render_size,
                 runtime_features,
                 screen_space_reflection_history_enabled,
+                hzb_history_enabled,
             );
             let target = self.target.as_mut().expect("offscreen target");
             self.core.render_compiled_scene(
@@ -126,6 +136,7 @@ impl SceneRenderer {
                 frame,
                 target,
                 pipeline,
+                capabilities,
                 &self.render_pass_executors,
                 runtime_features,
                 history_textures,
@@ -183,6 +194,13 @@ fn output_target_capture_resource(
 }
 
 fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipeline) -> bool {
+    pipeline_writes_resource(
+        pipeline,
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+    )
+}
+
+fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &str) -> bool {
     pipeline
         .graph
         .passes()
@@ -190,7 +208,7 @@ fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipe
         .filter(|pass| !pass.culled)
         .flat_map(|pass| pass.resources.iter())
         .any(|resource| {
-            resource.name == PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
+            resource.name == resource_name
                 && resource.access == RenderGraphResourceAccessKind::Write
         })
 }

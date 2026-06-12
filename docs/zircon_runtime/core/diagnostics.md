@@ -1,23 +1,23 @@
 ---
 related_code:
-  - zircon_runtime/src/core/diagnostics/mod.rs
-  - zircon_runtime/src/core/diagnostics/store.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/devtools.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/capability.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/history.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/graph.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/anti_alias.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/virtual_geometry.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/hybrid_gi.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/advanced_provider.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/solari.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/core/diagnostics/snapshot.rs
-  - zircon_runtime/src/core/diagnostics/render.rs
-  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -48,22 +48,22 @@ related_code:
   - zircon_runtime/src/core/runtime/state/runtime_inner.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
 implementation_files:
-  - zircon_runtime/src/core/diagnostics/store.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/devtools.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/capability.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/history.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/graph.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/anti_alias.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/virtual_geometry.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/hybrid_gi.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/advanced_provider.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/solari.rs
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/core/diagnostics/render.rs
-  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/devtools.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -110,9 +110,10 @@ tests:
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::history_copy_report_counts_copied_slots_from_slot_flags
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_conversion_writeback_marker
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_readiness
-  - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_conversion_writeback_marker
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_readiness
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_gpu_scene_upload_stats
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
   - zircon_runtime/src/core/framework/render/capture.rs::tests::texture_capture_report_distinguishes_direct_import_and_conversion_sources
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::graph_execution_coverage_report_preserves_neutral_counts
@@ -148,7 +149,7 @@ doc_type: module-detail
 
 # Core Runtime Diagnostics
 
-`zircon_runtime::core::diagnostics` provides the read-only diagnostic snapshot surface for runtime tooling. The store contracts already existed as plain data structures; the current Bevy-parity slice makes `CoreRuntime` own one `DiagnosticStore` so frame and system metrics can accumulate in the same runtime instance that owns lifecycle, time, task pools, and services.
+`zircon_runtime::core::diagnostics` remains the curated public facade for the read-only diagnostic snapshot surface. The physical owner is now `zircon_runtime::core::runtime::diagnostics`, because the store, devtools projection, profiling controls, and render-stat projection are runtime observability behavior. The store contracts already existed as plain data structures; the current Bevy-parity slice makes `CoreRuntime` own one `DiagnosticStore` so frame and system metrics can accumulate in the same runtime instance that owns lifecycle, time, task pools, and services.
 
 ## Reference Evidence
 
@@ -170,7 +171,7 @@ The diagnostics store is not a global singleton. This keeps tests, runtime previ
 
 ## Render Diagnostics Bridge
 
-M10.8 keeps render diagnostics on the same runtime-owned snapshot boundary. Bevy's `RenderDiagnosticsPlugin` records CPU/GPU pass elapsed time, pipeline statistics, and buffer-backed scalar diagnostics, then syncs finished rows into `DiagnosticsStore`. Zircon is not at that parity level yet: `RuntimeRenderDiagnostics` currently wraps a queried `RenderStats` snapshot, and `collect_runtime_diagnostics(...)` records submit/product counters into the store. The capability rows use `render.capability.*` bool/count paths for queue class count, surface/offscreen support, async queues, cache/storage/readback/indirect support, raytracing/resource-indexing capabilities, anti-alias feature support, max MSAA samples, VG/HGI backend gates, and the M8 `render.capability.neural_compute_supported` / `render.capability.sparse_texture_supported` slots. History rows use `render.history.*` paths for current/previous handle presence, previous-frame usability, aggregate invalidation, target/render dimensions (`target_width`, `target_height`, `render_width`, `render_height`), and one-hot invalidation reasons including `render_size_changed`; history-copy rows use `render.history.copy.*` for requested copy count, actual copied count, history target presence, history-copy debug marker emission, target extent, and slot-level copied booleans. Camera scheduling rows use `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` from the submitted `RenderViewExtract.scene_camera_order_report`; frames without that report produce zeroes instead of inventing renderer-private camera state. Camera target-resolution rows use `render.camera.target.*` bool/count paths for target family, primary viewport dimensions, resolved target dimensions, effective view dimensions, and dynamic-resolution-scaled render dimensions. Camera target graph-import rows use `render.camera.target.graph_import.*` for one-hot not-requested, pending, direct-import-ready, direct-imported, conversion-writeback-required, or blocked status plus direct-import, conversion-writeback, blocked, width, and height counts from `RenderStats.last_camera_target_graph_import`; readiness rows keep direct-import count at zero, while executed sRGB texture target imports publish `direct_imported` plus a nonzero direct-import count. Camera target-writeback rows use `render.camera.target.writeback.*` for one-hot skipped, pending, ready, skipped-direct-import, copied, converted, or blocked status plus copy/convert counts, texture-writeback debug marker emission, conversion debug marker emission, and target extent from `RenderStats.last_camera_target_writeback`; the skipped-direct-import row proves graph execution wrote the prepared target directly and no output-target copy/conversion was submitted. Capture-source rows use `render.capture.*` for one-hot none, framework-offscreen, texture direct graph import, texture conversion writeback, or texture copy writeback status plus output width and height from `RenderStats.last_capture_report`. These rows are execution/count evidence, not direct access to prepared WGPU texture handles. The render graph rows now include the legacy `render.last_graph_executed_pass_count` plus stable `render.graph.*` count paths for planned pass count, culled passes, queue fallbacks, resource lifetimes, sparse texture reservation lifetimes, planned resource accesses, planned dependencies, dense transient texture slots, sparse texture reservation slots, transient buffer slots, executed passes, executed resource accesses, executed dependencies, execution resource binding counts, execution coverage counts, and stage-summary counts under `render.graph.execution.*`, pass-level debug marker coverage, concrete compute dispatch count, aggregate compute dispatch group volume, compute storage-write resource count, and executed family counts for AA, VG, HGI, particles, transparent, and async-compute passes. The same graph bridge records `bytes` rows for dense transient texture/buffer reservations, total dense transient reservation pressure, and sparse virtual texture reservation footprint. Post-process graph rows use `render.post_process.graph.*` for node count, skipped node count, executed node count, and final composite presence; effect-stack rows remain under `render.post_process.effect_stack.*`; LUT renderer readiness rows now use `render.post_process.lut.request_count`, `ready_count`, and `fallback_count`. Motion-vector rows expose camera readiness, dynamic-object history match/miss counts, and mesh draw-level previous/missing transform eligibility under `render.post_process.motion_vector.*` and `render.mesh.queue.*`. Advanced-slot rows now mirror AA fallback state under `render.anti_alias.*`, GPU particle counters under `render.particle.gpu.*`, VG counters/source/debug/readback rows under `render.virtual_geometry.*`, HGI probe/cache/scene/voxel rows under `render.hybrid_gi.*`, provider availability/report rows under `render.advanced_provider.*`, and Solari requested/status/degradation rows under `render.solari.*`.
+M10.8 keeps render diagnostics on the same runtime-owned snapshot boundary. Bevy's `RenderDiagnosticsPlugin` records CPU/GPU pass elapsed time, pipeline statistics, and buffer-backed scalar diagnostics, then syncs finished rows into `DiagnosticsStore`. Zircon is not at that parity level yet: `RuntimeRenderDiagnostics` currently wraps a queried `RenderStats` snapshot, and `collect_runtime_diagnostics(...)` records submit/product counters into the store. The capability rows use `render.capability.*` bool/count paths for queue class count, surface/offscreen support, async queues, cache/storage/readback/indirect support, raytracing/resource-indexing capabilities, anti-alias feature support, max MSAA samples, VG/HGI backend gates, and the M8 `render.capability.neural_compute_supported` / `render.capability.sparse_texture_supported` slots. History rows use `render.history.*` paths for current/previous handle presence, previous-frame usability, aggregate invalidation, target/render dimensions (`target_width`, `target_height`, `render_width`, `render_height`), and one-hot invalidation reasons including `render_size_changed`; history-copy rows use `render.history.copy.*` for requested copy count, actual copied count, history target presence, history-copy debug marker emission, target extent, and slot-level copied booleans. Camera scheduling rows use `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` from the submitted `RenderViewExtract.scene_camera_order_report`; frames without that report produce zeroes instead of inventing renderer-private camera state. Camera target-resolution rows use `render.camera.target.*` bool/count paths for target family, primary viewport dimensions, resolved target dimensions, effective view dimensions, and dynamic-resolution-scaled render dimensions. Camera target graph-import rows use `render.camera.target.graph_import.*` for one-hot not-requested, pending, direct-import-ready, direct-imported, conversion-writeback-required, or blocked status plus direct-import, conversion-writeback, blocked, width, and height counts from `RenderStats.last_camera_target_graph_import`; readiness rows keep direct-import count at zero, while executed sRGB texture target imports publish `direct_imported` plus a nonzero direct-import count. Camera target-writeback rows use `render.camera.target.writeback.*` for one-hot skipped, pending, ready, skipped-direct-import, copied, converted, or blocked status plus copy/convert counts, texture-writeback debug marker emission, conversion debug marker emission, and target extent from `RenderStats.last_camera_target_writeback`; the skipped-direct-import row proves graph execution wrote the prepared target directly and no output-target copy/conversion was submitted. Capture-source rows use `render.capture.*` for one-hot none, framework-offscreen, texture direct graph import, texture conversion writeback, or texture copy writeback status plus output width and height from `RenderStats.last_capture_report`. These rows are execution/count evidence, not direct access to prepared WGPU texture handles. The render graph rows now include the legacy `render.last_graph_executed_pass_count` plus stable `render.graph.*` count paths for planned pass count, culled passes, queue fallbacks, resource lifetimes, sparse texture reservation lifetimes, planned resource accesses, planned dependencies, dense transient texture slots, sparse texture reservation slots, transient buffer slots, executed passes, executed resource accesses, executed dependencies, execution resource binding counts, execution coverage counts, and stage-summary counts under `render.graph.execution.*`, pass-level debug marker coverage, concrete compute dispatch count, aggregate compute dispatch group volume, compute storage-write resource count, and executed family counts for AA, VG, HGI, particles, transparent, and async-compute passes. The same graph bridge records `bytes` rows for dense transient texture/buffer reservations, total dense transient reservation pressure, and sparse virtual texture reservation footprint. Post-process graph rows use `render.post_process.graph.*` for node count, skipped node count, executed node count, and final composite presence; effect-stack rows remain under `render.post_process.effect_stack.*`; LUT renderer readiness rows now use `render.post_process.lut.request_count`, `ready_count`, and `fallback_count`. Motion-vector rows expose camera readiness, dynamic-object history match/miss counts, and mesh draw-level previous/missing transform eligibility under `render.post_process.motion_vector.*` and `render.mesh.queue.*`. GPUScene rows expose primitive/instance counts, dirty entry count, uploaded bytes, direct queue-write upload policy, allocator free spans, and primitive/instance upload range counts under `render.gpu_scene.*`; mesh queue indirect planning rows expose `render.mesh.queue.indirect_batch_count`, `indirect_batched_draw_count`, `indirect_fallback_draw_count`, and `indirect_args_count` as submit-side batch telemetry rather than GPU timing. Advanced-slot rows now mirror AA fallback state under `render.anti_alias.*`, GPU particle counters under `render.particle.gpu.*`, VG counters/source/debug/readback rows under `render.virtual_geometry.*`, HGI probe/cache/scene/voxel rows under `render.hybrid_gi.*`, provider availability/report rows under `render.advanced_provider.*`, and Solari requested/status/degradation rows under `render.solari.*`.
 
 That narrower bridge is still the correct consumer boundary. Runtime diagnostics panels, diagnostic log schedules, overlays, and editor tooling should consume `RuntimeDiagnosticsSnapshot` or `DiagnosticStoreSnapshot` instead of querying renderer-private state. The same bridge also mirrors material, light, mesh queue, sprite, UI, post-process effect-stack, and LUT texture fallback readiness rows. Mesh queue rows include shadow-caster and alpha-mask shadow-caster queue counts as submit-level preparation diagnostics; they do not claim pass timing or shadow-map GPU execution totals. Promotion beyond the current bridge still requires adding stable diagnostic paths for pass-level CPU timing, backend-gated GPU timing, pipeline/cache status, present/capture failures, render-asset residency, and mesh allocator memory. Profiling artifacts can support this evidence, but they do not replace store-backed diagnostics.
 
@@ -209,9 +210,23 @@ Each nonzero time advance records:
 
 `zircon_runtime/src/diagnostic_log/diagnostics.rs` verifies stable formatting for current, smoothed, min, and max diagnostic values. `zircon_runtime/src/tests/prelude.rs` continues to verify the public diagnostic store, snapshot, and diagnostic-log formatting helpers through the stable runtime prelude.
 
+2026-06-12 runtime 02 M2.2 owner migration evidence:
+
+- `diagnostics/` moved from the `core` root to `core/runtime/diagnostics/`.
+- `core/mod.rs` keeps `pub use runtime::diagnostics;` as the curated public facade, while `core/runtime/mod.rs` declares `pub mod diagnostics;`.
+- `runtime_absorption::root_entries::core_root_reexports_runtime_diagnostics_without_root_directory` guards that the retired root directory is absent and the runtime owner exists.
+- `runtime_absorption::root_entries::core_module_tree_matches_decided_spine_shape` guards that `core/` contains only `framework`, `manager`, `math`, `resource`, `runtime`, and `mod.rs`.
+- Scoped verification passed with `rustfmt --edition 2021 --check`, the standalone `root_entries.rs` harness, and `zircon_runtime` / `zircon_app` core-min `cargo check`.
+
 2026-06-06 render-main-chain object motion-vector diagnostics evidence:
 
 - `zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs::runtime_diagnostics_reports_motion_vector_object_history_and_mesh_draw_eligibility` verifies that `collect_runtime_diagnostics(...)` mirrors camera motion-vector readiness, dynamic object-history previous/current/matched/missing counts, and mesh draw-level previous/missing motion-vector transform eligibility into stable diagnostic rows. Focused Cargo execution was deferred while other `cargo`/`rustc` processes were active in the checkout; this slice relies on scoped formatting and source-contract checks until the render-main-chain testing stage can run.
+
+2026-06-12 GPUScene upload diagnostics evidence:
+
+- `cargo test -p zircon_runtime --lib render_product_diagnostics_record_gpu_scene_upload_stats --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture`: PASS, proving GPUScene primitive/instance counts, dirty entry count, uploaded bytes, direct queue-write upload path, allocator free spans, and upload range counts project from `RenderStats` into `DiagnosticStore`.
+- `render_product_diagnostics_record_mesh_indirect_batch_stats` now covers the four `render.mesh.queue.indirect_*` rows in source, and the GS-M4 replay slice adds source tests for phase-local WGPU indirect args buffers plus `multi_draw_indexed_indirect` replay. Fresh filtered `cargo test -p zircon_runtime --lib render_gpu_scene_indirect_batcher --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain` attempts after the GS-M4 batch-planning slice timed out while compiling the lib-test binary after 120 seconds and 300 seconds; `cargo test -p zircon_runtime --lib mesh_indirect_draw_execution_uses_wgpu_indirect_args_buffer --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` also timed out after 304 seconds after the replay slice. These diagnostics/replay source tests still need a completed lib-test run.
+- `zircon_runtime/src/tests/runtime_diagnostics/support.rs` now registers the fake render diagnostics module as `crate::graphics::GRAPHICS_MODULE_NAME`, matching the canonical owner encoded in `GraphicsModule.Manager.RenderFramework`. The full `runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins` aggregation rerun is pending because the current lib-test target is blocked by active plugin-session compile errors in `extension_registry_bridge.rs` and `runtime_extension_registry.rs`, not by GPUScene diagnostics code.
 
 2026-06-05 M5 runtime service dependency-name shape evidence:
 

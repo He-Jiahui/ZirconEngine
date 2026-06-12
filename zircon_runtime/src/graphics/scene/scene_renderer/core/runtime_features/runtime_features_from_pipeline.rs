@@ -23,14 +23,14 @@ pub(crate) fn runtime_features_from_pipeline(
             .iter()
             .any(|enabled| enabled.builtin_feature().is_none() && enabled.feature_name() == name)
     };
-    let render_feature_enabled = |feature, plugin_name: &str| {
+    let builtin_or_plugin_feature_enabled = |feature, plugin_name: &str| {
         feature_enabled(feature) || plugin_feature_enabled(plugin_name)
     };
 
     SceneRuntimeFeatureFlags {
         deferred_lighting_enabled: feature_enabled(BuiltinRenderFeature::DeferredLighting)
             && feature_enabled(BuiltinRenderFeature::DeferredGeometry),
-        ssao_enabled: render_feature_enabled(
+        ssao_enabled: builtin_or_plugin_feature_enabled(
             BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
             "screen_space_ambient_occlusion",
         ),
@@ -42,19 +42,10 @@ pub(crate) fn runtime_features_from_pipeline(
         bloom_enabled: feature_enabled(BuiltinRenderFeature::Bloom),
         color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
         anti_alias_enabled: feature_enabled(BuiltinRenderFeature::AntiAlias),
-        reflection_probes_enabled: render_feature_enabled(
-            BuiltinRenderFeature::ReflectionProbes,
-            "reflection_probes",
-        ),
-        baked_lighting_enabled: render_feature_enabled(
-            BuiltinRenderFeature::BakedLighting,
-            "baked_lighting",
-        ),
+        reflection_probes_enabled: plugin_feature_enabled("reflection_probes"),
+        baked_lighting_enabled: plugin_feature_enabled("baked_lighting"),
         sprite_rendering_enabled: feature_enabled(BuiltinRenderFeature::Sprite),
-        particle_rendering_enabled: render_feature_enabled(
-            BuiltinRenderFeature::Particle,
-            "particle",
-        ),
+        particle_rendering_enabled: plugin_feature_enabled("particle"),
         virtual_geometry_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::VirtualGeometry,
         ),
@@ -69,9 +60,9 @@ mod tests {
     use crate::render_graph::QueueLane;
     use crate::scene::world::World;
     use crate::{
-        FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
-        RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
-        RenderPipelineCompileOptions, RendererFeatureAsset,
+        BuiltinRenderFeature, FrameHistoryBinding, FrameHistorySlot,
+        RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
+        RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
     };
 
     use super::runtime_features_from_pipeline;
@@ -232,6 +223,51 @@ mod tests {
         assert!(
             plugin_flags.particle_rendering_enabled,
             "particle rendering should be enabled only when the particle plugin contributes its render feature"
+        );
+    }
+
+    #[test]
+    fn descriptor_only_builtin_tokens_do_not_enable_pluginized_runtime_flags() {
+        let mut pipeline = RenderPipelineAsset::default_forward_plus();
+        for feature in [
+            BuiltinRenderFeature::ReflectionProbes,
+            BuiltinRenderFeature::BakedLighting,
+            BuiltinRenderFeature::Particle,
+        ] {
+            pipeline
+                .renderer
+                .features
+                .push(RendererFeatureAsset::builtin(feature));
+        }
+        let compiled = pipeline
+            .compile_with_options(
+                &test_extract(),
+                &RenderPipelineCompileOptions::default()
+                    .with_feature_enabled(BuiltinRenderFeature::ReflectionProbes)
+                    .with_feature_enabled(BuiltinRenderFeature::BakedLighting)
+                    .with_feature_enabled(BuiltinRenderFeature::Particle),
+            )
+            .unwrap();
+        let flags = runtime_features_from_pipeline(&compiled);
+
+        assert!(compiled
+            .enabled_features
+            .iter()
+            .any(|feature| feature.is_builtin(BuiltinRenderFeature::ReflectionProbes)));
+        assert!(compiled
+            .required_extract_sections
+            .contains(&"reflection_probes".to_string()));
+        assert!(
+            !flags.reflection_probes_enabled,
+            "descriptor-only built-in reflection probes should not enable executable runtime state"
+        );
+        assert!(
+            !flags.baked_lighting_enabled,
+            "descriptor-only built-in baked lighting should not enable executable runtime state"
+        );
+        assert!(
+            !flags.particle_rendering_enabled,
+            "descriptor-only built-in particles should not enable executable runtime state"
         );
     }
 

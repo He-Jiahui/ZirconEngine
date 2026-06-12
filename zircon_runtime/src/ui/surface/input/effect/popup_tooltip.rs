@@ -1,5 +1,7 @@
 use zircon_runtime_interface::ui::{
-    dispatch::{UiDispatchEffect, UiPopupEffectKind, UiTooltipEffectKind},
+    dispatch::{
+        UiDispatchEffect, UiPopupEffectKind, UiTooltipEffectKind, UiTransientDismissalTarget,
+    },
     event_ui::UiNodeId,
 };
 
@@ -22,6 +24,9 @@ pub(super) fn apply_popup_tooltip_effect(
             tooltip_id,
             owner,
         } => apply_tooltip_effect(surface, *kind, tooltip_id, *owner),
+        UiDispatchEffect::DismissTransientUi { target, .. } => {
+            apply_transient_dismissal_effect(surface, *target)
+        }
         _ => Err("expected popup or tooltip effect".to_string()),
     }
 }
@@ -53,6 +58,13 @@ fn apply_popup_effect(
         }
     }
     Ok(route_owner)
+}
+
+fn apply_transient_dismissal_effect(
+    surface: &mut UiSurface,
+    target: UiTransientDismissalTarget,
+) -> Result<Option<UiNodeId>, String> {
+    Ok(surface.input.dismiss_transient_ui(target))
 }
 
 fn apply_tooltip_effect(

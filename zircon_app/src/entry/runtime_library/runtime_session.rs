@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::slice;
 
 #[cfg(feature = "target-editor-host")]
@@ -25,16 +26,35 @@ impl RuntimeSession {
         runtime: LoadedRuntime,
         profile: &'static [u8],
     ) -> Result<Self, RuntimeLibraryError> {
+        Self::create_with_profile_and_project(runtime, profile, None)
+    }
+
+    pub(crate) fn create_with_profile_and_project(
+        runtime: LoadedRuntime,
+        profile: &'static [u8],
+        project_root: Option<&Path>,
+    ) -> Result<Self, RuntimeLibraryError> {
         let create_session = runtime
             .create_session()
             .ok_or_else(|| RuntimeLibraryError::new("runtime API missing create_session"))?;
         let mut handle = ZrRuntimeSessionHandle::invalid();
+        let project_root = project_root
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let project_manifest = if project_root.is_empty() {
+            ZrByteSlice::empty()
+        } else {
+            ZrByteSlice {
+                data: project_root.as_ptr(),
+                len: project_root.len(),
+            }
+        };
         let status = unsafe {
             create_session(
                 ZrRuntimeSessionConfigV1 {
                     abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
                     profile: ZrByteSlice::from_static(profile),
-                    project_manifest: ZrByteSlice::empty(),
+                    project_manifest,
                 },
                 &mut handle,
             )

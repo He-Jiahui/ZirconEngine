@@ -40,6 +40,10 @@ impl SceneScheduleRunner {
                     ScheduledSceneStepRef::Native { id, .. } => {
                         level.with_world_mut(|world| world.run_native_scene_system(id));
                     }
+                    ScheduledSceneStepRef::Runtime { id, .. } => {
+                        level.run_runtime_scene_system(core, id, delta_seconds)?;
+                        level.with_world_mut(|world| world.apply_deferred());
+                    }
                     ScheduledSceneStepRef::ApplyDeferred { .. } => {
                         level.with_world_mut(|world| world.apply_deferred());
                     }

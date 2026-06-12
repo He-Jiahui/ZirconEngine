@@ -23,6 +23,8 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_pipeline_cache: caps.supports_pipeline_cache,
         supports_storage_buffers: caps.supports_storage_buffers,
         supports_indirect_draw: caps.supports_indirect_draw,
+        supports_multi_draw_indirect: caps.supports_multi_draw_indirect,
+        supports_indirect_first_instance: caps.supports_indirect_first_instance,
         supports_buffer_readback: caps.supports_buffer_readback,
         acceleration_structures_supported: caps.acceleration_structures.supported,
         inline_ray_query: caps.acceleration_structures.inline_ray_query,

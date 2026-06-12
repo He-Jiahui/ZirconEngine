@@ -54,9 +54,9 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_sta
     let state = painter_state_for_node(node).resolved_state_for_family(UiPainterFamily::Generic);
 
     WorkbenchStatusSignalStyle {
-        icon_fill: status_signal_icon_fill(node, kind),
+        icon_fill: status_signal_icon_fill(node, kind, state),
         text: status_signal_text_color(node, kind, state),
-        mark: declared_color(node.icon_color).unwrap_or(WORKBENCH_STATUS_MARK_ON_LIGHT),
+        mark: status_signal_mark_color(node, state),
         state,
     }
 }
@@ -90,7 +90,11 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_sta
 fn status_signal_icon_fill(
     node: &TemplatePaneNodeData,
     kind: WorkbenchStatusSignalKind,
+    state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    if is_unavailable_status_state(state) {
+        return PALETTE.text_disabled;
+    }
     if let Some(color) = declared_color(node.label_color) {
         return color;
     }
@@ -102,15 +106,20 @@ fn status_signal_icon_fill(
     }
 }
 
+fn status_signal_mark_color(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
+    if is_unavailable_status_state(state) {
+        PALETTE.text_disabled
+    } else {
+        declared_color(node.icon_color).unwrap_or(WORKBENCH_STATUS_MARK_ON_LIGHT)
+    }
+}
+
 fn status_signal_text_color(
     node: &TemplatePaneNodeData,
     kind: WorkbenchStatusSignalKind,
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
-    if matches!(
-        state,
-        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
-    ) {
+    if is_unavailable_status_state(state) {
         return PALETTE.text_disabled;
     }
     if let Some(color) = declared_color(node.value_color) {
@@ -161,10 +170,7 @@ fn status_chip_border(state: UiPainterResolvedState) -> [u8; 4] {
 }
 
 fn status_chip_text_color(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if matches!(
-        state,
-        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
-    ) {
+    if is_unavailable_status_state(state) {
         PALETTE.text_disabled
     } else {
         declared_color(node.value_color).unwrap_or(PALETTE.text_muted)
@@ -224,4 +230,47 @@ fn status_icon_glyph_color(state: UiPainterResolvedState) -> [u8; 4] {
 
 fn declared_color(color: Color) -> Option<[u8; 4]> {
     (color.a > 0).then_some([color.r, color.g, color.b, color.a])
+}
+
+fn is_unavailable_status_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_signal_unavailable_states_mute_icon_text_and_mark() {
+        let mut disabled = TemplatePaneNodeData::default();
+        disabled.disabled = true;
+        disabled.hovered = true;
+        disabled.label_color = Color::from_rgb_u8(242, 195, 86);
+        disabled.value_color = Color::from_rgb_u8(135, 146, 153);
+        disabled.icon_color = Color::from_rgb_u8(17, 24, 26);
+
+        let disabled_style =
+            select_workbench_status_signal_style(&disabled, WorkbenchStatusSignalKind::Warning);
+        assert_eq!(disabled_style.state, UiPainterResolvedState::Disabled);
+        assert_eq!(disabled_style.icon_fill, PALETTE.text_disabled);
+        assert_eq!(disabled_style.text, PALETTE.text_disabled);
+        assert_eq!(disabled_style.mark, PALETTE.text_disabled);
+
+        let mut loading = TemplatePaneNodeData::default();
+        loading.hovered = true;
+        loading.button_style.loading = true;
+        loading.label_color = Color::from_rgb_u8(88, 184, 102);
+        loading.value_color = Color::from_rgb_u8(143, 154, 160);
+        loading.icon_color = Color::from_rgb_u8(8, 18, 18);
+
+        let loading_style =
+            select_workbench_status_signal_style(&loading, WorkbenchStatusSignalKind::Success);
+        assert_eq!(loading_style.state, UiPainterResolvedState::Loading);
+        assert_eq!(loading_style.icon_fill, PALETTE.text_disabled);
+        assert_eq!(loading_style.text, PALETTE.text_disabled);
+        assert_eq!(loading_style.mark, PALETTE.text_disabled);
+    }
 }

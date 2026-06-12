@@ -74,6 +74,7 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/structure.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
@@ -127,7 +128,11 @@ Short-path ambiguity is tracked separately from full registrations:
 - Later registrations with the same short path keep the short path ambiguous.
 - `TypeRegistry::clear` removes registrations, unambiguous short-path lookups, and ambiguity state.
 
-Duplicate full type paths are rejected with `ReflectError::DuplicateTypePath` before mutating registry state. `contains_type_path` is the strict full-path membership check intended for duplicate preflight. `contains` is resolve-capable and returns true for either a registered full path or an unambiguous short path; ambiguous short paths return false because `resolve` reports an error for them.
+Registration keeps the full type path owned for the `registrations` key and borrows `registration.type_path.short_type_path.as_str()` while maintaining the short-path lookup table before moving the runtime registration into storage. That preserves the same ambiguity rules without cloning the short path for every registration.
+
+Duplicate full type paths are rejected with `ReflectError::DuplicateTypePath` before mutating registry state. `contains_type_path` is the strict full-path membership check intended for duplicate preflight. `contains` returns true for either a registered full path or an unambiguous short path by checking the full-path and short-path maps directly; ambiguous short paths return false because ambiguity removes them from the unambiguous short-path map. This keeps boolean membership checks from constructing `ReflectError` payloads on unknown or ambiguous input.
+
+`runtime_registration` also follows the direct lookup shape for adapter and schema callers. It checks the full registration map first and returns the borrowed `RuntimeTypeRegistration` immediately on full-path hits. Short-path hits use the unambiguous short-path map once and then fetch the target registration. `registration` wraps that path with a direct reflected-registration field borrow. Only misses and ambiguous short paths construct `ReflectError` payloads. `resolve` remains available when callers need the registry-owned canonical full path string rather than the registration itself.
 
 ## World Lifecycle
 
@@ -167,7 +172,7 @@ The reflection module root now also wires `conversion.rs`, which owns conversion
 
 `scene_value_from_reflected` maps the supported scalar, vector, enum, entity, and resource variants back into `ScenePropertyValue`. `Null`, `List`, `Map`, and `Json` are intentionally rejected because they do not have a stable scene property representation in M8.3.
 
-Non-finite float values are rejected before converting `ReflectedValue::Scalar`, `Vec2`, `Vec3`, `Vec4`, or `Quaternion` to `ScenePropertyValue`. The same finite check runs before serializing any reflected value to JSON, including nested values inside `List` and `Map`.
+Non-finite float values are rejected before converting `ReflectedValue::Scalar`, `Vec2`, `Vec3`, `Vec4`, or `Quaternion` to `ScenePropertyValue`. The same finite check runs before serializing any reflected value to JSON, including nested values inside `List` and `Map`. The nested validation path uses direct loops for `List`, `Map`, and vector lanes, and scalar validation returns through a direct finite branch before constructing the structured conversion error. Successful DTO serialization therefore avoids iterator-adapter or error-closure setup on every finite check. The final serde JSON projection also uses a direct `match` on `serde_json::to_value(...)`; its rare error branch builds the `ReflectedValue::<kind>` source string through a pre-sized helper instead of a closure and format macro.
 
 `json_from_reflected` currently preserves the tagged reflection DTO shape by using serde after finite validation. For example, `ReflectedValue::Vec3([1.0, 2.0, 3.0])` serializes as `{"kind":"Vec3","value":[1.0,2.0,3.0]}`, and `ReflectedValue::Entity(Some(7))` serializes as `{"kind":"Entity","value":7}`. This deterministic shape is documented in `scene::tests::ecs_reflect` so later editor or remote callers can rely on the DTO contract instead of ad hoc JSON inference.
 
@@ -187,13 +192,13 @@ The forwarding methods keep the public adapter call shape unchanged for callers 
 
 `WorldReflection` now exposes schema and value DTO routing:
 
-- `list_reflect_types` iterates `TypeRegistry` deterministically and applies `ReflectSchemaFilter`.
+- `list_reflect_types` iterates `TypeRegistry` deterministically, applies `ReflectSchemaFilter`, and pre-sizes the schema response vector for focused and registry-wide requests.
 - `reflect_schema` resolves a full or unambiguous short type path and clones the neutral `ReflectTypeRegistration`.
 - `reflect_fields` routes `ReflectObjectAddress::Component` to a component adapter and `ReflectObjectAddress::Resource` to a resource adapter.
 - `reflect_read` routes through the matching adapter `read_field` and wraps the normalized value in `ReflectReadResponse`.
 - `reflect_write` routes through the matching adapter `write_field`, then reads the same field back so callers receive the normalized current value in `ReflectWriteResponse`.
 
-`World` exposes public wrappers with the same facade names: `list_reflect_types`, `reflect_schema`, `reflect_fields`, `reflect_read`, and `reflect_write`. These wrappers keep callers anchored on `World` as the runtime scene authority while centralizing routing rules in `WorldReflection`.
+`World` exposes public wrappers with the same facade names: `list_reflect_types`, `reflect_schema`, `reflect_fields`, `reflect_read`, and `reflect_write`. These wrappers keep callers anchored on `World` as the runtime scene authority while centralizing routing rules in `WorldReflection`. Component and resource adapter lookup use direct success-path branches to borrow adapters for read and field-list routes. Component writes still clone only after lookup so the registry borrow ends before mutable world access.
 
 Schema filter behavior is exact:
 
@@ -294,6 +299,18 @@ Every fixed adapter returns structured errors consistently:
 
 `WorldReflection::reflect_write` still reads the field back after the adapter write succeeds, so callers receive the normalized `ReflectWriteResponse.field` value after fixed component mutation.
 
+## M5 Fixed Shared Helper Direct Branch Pass
+
+The M5 performance pass keeps the fixed adapter error model unchanged while tightening the shared helper path in `reflect/fixed/shared.rs`. Entity presence, immutable component access, mutable component access, and component-existence probes now use direct success and error branches. Missing entities still return `ReflectError::MissingEntity`, and existing entities without the requested fixed component still return `ReflectError::MissingComponent`.
+
+The same shared helper pass removes adapter projection from the narrow integer conversion, fixed-vector validation, and removal paths. `expect_i32` now matches the `i32::try_from` result directly before constructing the out-of-range `TypeMismatch`. `expect_vec2`, `expect_vec3`, and `expect_vec4` call fixed-size finite predicates that index their arrays directly instead of routing every successful vector write through iterator `all` adapters. `remove_component` matches `World::remove` directly while preserving the previous successful removal, absent component, and defensive lower-layer error outcomes.
+
+Static coverage for this M5 slice lives in `zircon_runtime/src/scene/tests/ecs_reflect/structure.rs`. The guards check that fixed shared helpers keep direct branches and reject the previous `.then_some(...).ok_or(...)`, `.ok_or_else(...)`, `.map_err(...)`, and `.iter().all(...)` projections. Cargo execution remains deferred to the M5 milestone testing stage; this slice relies on rustfmt, focused source guards, documentation guards, whitespace/conflict scans, and the runtime structure audit during implementation.
+
+The adjacent simple fixed adapters also keep their public behavior while removing closure adapters from the narrow read/write paths. `ActiveInHierarchy.value` now converts the derived active state through a direct `let Some(value) = ... else` branch before returning `ReflectedValue::Bool(value)`. `ActiveSelf.value`, `Name.value`, and `RenderLayerMask.mask` now match `World::insert(...)` directly and map the defensive error branch to the same fixed-component `MissingComponent` error as before. The structure guard rejects the previous `.map(ReflectedValue::Bool).ok_or_else(...)` and `.map_err(...)` forms in those adapters.
+
+Hierarchy and mobility fixed writes now use the same direct-branch shape for world-level conversion errors. `Hierarchy.parent` matches `World::set_parent_checked(...)`, and `Mobility.kind` matches `World::set_mobility(...)`; each success branch returns the existing changed flag, and each error branch constructs `ReflectError::UnsupportedConversion` with the same `type_path.field_name` target. The target string is built by `shared::field_target(...)`, which pre-sizes the buffer from the type path, separator, and field name instead of using a format macro inside every error branch.
+
 ## M8.4 Validation
 
 M8.4 implementation adds focused coverage in `zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs` for builtin registration, fixed field reads and writes, dirty-state preservation for active and transform writes, read-only rotation behavior, render-layer `u32` bounds, rigid-body selected fields, unknown fields, missing components, and missing entities.
@@ -318,10 +335,10 @@ M8.5 adds `reflect/dynamic_component.rs`, which projects plugin-facing `Componen
 
 Descriptor projection is deterministic:
 
-- The full reflected type path is `descriptor.type_id`; the short type path is the last dot segment such as `CloudLayer` for `weather.Component.CloudLayer`.
+- The full reflected type path is `descriptor.type_id`; the short type path is the last dot segment such as `CloudLayer` for `weather.Component.CloudLayer`, selected through a direct split branch with the unsplit type path as the fallback.
 - The reflected type kind is `ReflectTypeKind::Json` with JSON serialization.
 - The registration is a component, plugin-owned, serializable, editor-visible, remote-visible, and carries `plugin_id = Some(descriptor.plugin_id.clone())` both at the registration and nested type-path levels.
-- Each `ComponentPropertyDescriptor` becomes one `ReflectFieldInfo` in descriptor order. `name` and `display_name` use the property name, `value_type_path` uses `value_type`, and `editable` uses the descriptor editability flag.
+- Each `ComponentPropertyDescriptor` becomes one `ReflectFieldInfo` in descriptor order. `name` and constructor-default `display_name` use the property name, `value_type_path` uses `value_type`, and `editable` uses the descriptor editability flag.
 - Empty dynamic field names or value-type paths return `ReflectError::InvalidRegistration` before either registry is mutated.
 
 `World::register_component_type` now creates the reflected registration and checks the reflection registry before mutating the plugin descriptor registry. The mutation sequence is: project `ReflectTypeRegistration`, reject a duplicate reflected path through `TypeRegistry::contains`, register the cloned `ComponentTypeDescriptor`, then insert a `RuntimeTypeRegistration` carrying the dynamic component adapter. Invalid reflection metadata or duplicate reflection paths leave both registries unchanged; descriptor registry errors still occur before reflection insertion, so reflection state is not partially updated.
@@ -329,8 +346,8 @@ Descriptor projection is deterministic:
 Dynamic component adapters route through existing world JSON helpers rather than replacing them:
 
 - `contains` is true only when the entity exists and `World::dynamic_component(entity, type_path)` is present.
-- `read_field` validates the reflected field metadata, builds `ComponentPropertyPath::parse(&format!("{type_path}.{field_name}"))`, calls `World::dynamic_component_property`, and converts the resulting `ScenePropertyValue` into `ReflectedValue`.
-- `read_fields` iterates reflected field metadata in schema order and reads only declared fields.
+- `read_field` validates the reflected field metadata, builds `ComponentPropertyPath::new(type_path, [field_name])` through the pre-sized constructor path, calls `World::dynamic_component_property`, and converts the resulting `ScenePropertyValue` into `ReflectedValue`. The helper path uses direct success branches for component presence, declared-field lookup, JSON object field presence, and property-value retrieval, so valid reads do not route through closure-based `Option` error conversion.
+- `read_fields` iterates reflected field metadata in schema order, pre-sizes the returned field-value vector from the reflected schema field count, and reads only declared fields.
 - `write_field` validates reflected editability, requires the dynamic component instance to exist, converts `ReflectedValue` into `ScenePropertyValue`, and calls `World::set_dynamic_component_property`.
 - Missing entities, missing dynamic component instances, undeclared fields, read-only fields, and unsupported value conversions return structured `ReflectError` variants.
 

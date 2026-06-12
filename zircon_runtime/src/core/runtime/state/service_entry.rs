@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::super::descriptors::{PluginFactory, RegistryName, ServiceFactory};
-use crate::core::lifecycle::{LifecycleState, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::{LifecycleState, StartupMode};
 
 #[derive(Clone)]
 pub(crate) enum ServiceEntryFactory {

@@ -103,7 +103,8 @@ impl UiWidgetBehavior {
             "RangeField" | "Slider" => Self::Range,
             "Scrollbar" | "ScrollBar" | "ScrollBarTrack" => Self::Scrollbar,
             "ScrollbarThumb" | "ScrollThumb" | "ScrollBarThumb" => Self::ScrollbarThumb,
-            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" => Self::TextInput,
+            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
+            | "SearchField" => Self::TextInput,
             "MenuItem" => Self::MenuItem,
             _ => Self::Passive,
         }

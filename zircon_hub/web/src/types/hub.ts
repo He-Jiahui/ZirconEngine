@@ -11,9 +11,11 @@ export interface HubTaskSummary {
   detail: string;
   tone: StatusTone;
   running: boolean;
-  recovery?: string | null;
+  recovery: string | null;
   operation: string;
   progressPercent: number;
+  taskId: number;
+  queued: number;
 }
 
 export interface HubProjectSummary {
@@ -33,6 +35,7 @@ export interface HubRecentProject {
   modified: string;
   location: string;
   coverId: string;
+  pinned: boolean;
 }
 
 export interface HubProjectDetail {
@@ -44,8 +47,8 @@ export interface HubProjectDetail {
   platform: string;
   coverId: string;
   pinned: boolean;
-  engineId?: string | null;
-  templateId?: string | null;
+  engineId: string | null;
+  templateId: string | null;
   templateLabel: string;
   exists: boolean;
   status: string;
@@ -60,7 +63,7 @@ export interface HubProjectTemplate {
   description: string;
   enabled: boolean;
   status: string;
-  disabledReason?: string | null;
+  disabledReason: string | null;
 }
 
 export interface HubQuickAction {
@@ -76,7 +79,7 @@ export interface HubSourceBuildHistoryItem {
   status: string;
   statusTone: StatusTone;
   profile: string;
-  jobs?: number | null;
+  jobs: number | null;
   detail: string;
   secondaryDetail: string;
   logExcerpt: string;
@@ -177,10 +180,10 @@ export interface HubActionHistoryItem {
   detail: string;
   logExcerpt: string;
   finished: string;
-  recovery?: string | null;
-  processId?: number | null;
+  recovery: string | null;
+  processId: number | null;
   commandLine: string[];
-  outputDir?: string | null;
+  outputDir: string | null;
   detailRows: HubActionHistoryDetailRow[];
 }
 
@@ -230,6 +233,8 @@ export interface HubSettingsText {
   heading: string;
   projectsButton: string;
   saveButton: string;
+  discardButton: string;
+  restoreDefaultsButton: string;
   buildDefaultsPanel: string;
   configurationPathsPanel: string;
   sourceEnginesPanel: string;
@@ -290,7 +295,7 @@ export interface HubShellText {
   documentation: string;
   documentationDetail: string;
   signOut: string;
-  signOutDetail: string;
+  demoModeBadge: string;
   liveUpdatesUnavailable: string;
   liveUpdatesUnavailableDetail: string;
   actionFailed: string;
@@ -305,7 +310,6 @@ export interface HubShellText {
   collapse: string;
   expand: string;
   notifications: string;
-  notificationsDetail: string;
   help: string;
   settings: string;
   minimize: string;
@@ -621,8 +625,12 @@ export const HUB_ACTION = {
   openProjectDetail: "open-project-detail",
   viewAllProjects: "view-all-projects",
   newProject: "new-project",
+  updateNewProjectDraft: "update-new-project-draft",
   selectEngine: "select-engine",
+  updateSettingsDraft: "update-settings-draft",
   saveSettings: "save-settings",
+  discardSettingsDraft: "discard-settings-draft",
+  restoreDefaultSettings: "restore-default-settings",
   browseSettingsFolder: "browse-settings-folder",
   createProject: "create-project",
   importProject: "import-project",
@@ -652,7 +660,14 @@ export interface CreateProjectPayload {
   name: string;
   location: string;
   template: string;
-  engineId?: string | null;
+  engineId: string | null;
+}
+
+export interface NewProjectDraftPayload {
+  name: string;
+  location: string;
+  template: string;
+  engineId: string | null;
 }
 
 export interface SearchProjectsPayload {
@@ -662,7 +677,7 @@ export interface SearchProjectsPayload {
 export interface ImportProjectPayload {
   path?: string;
   folder?: string;
-  engineId?: string | null;
+  engineId?: string;
 }
 
 export interface ProjectTargetPayload {
@@ -671,6 +686,10 @@ export interface ProjectTargetPayload {
 }
 
 export interface SaveSettingsPayload {
+  settings: Partial<HubSettingsSummary>;
+}
+
+export interface UpdateSettingsDraftPayload {
   settings: Partial<HubSettingsSummary>;
 }
 
@@ -692,6 +711,7 @@ export interface OpenOutputFolderPayload {
 
 export interface HubActionPayloadById {
   [HUB_ACTION.searchProjects]: SearchProjectsPayload;
+  [HUB_ACTION.updateNewProjectDraft]: NewProjectDraftPayload;
   [HUB_ACTION.createProject]: CreateProjectPayload;
   [HUB_ACTION.importProject]: ImportProjectPayload;
   [HUB_ACTION.pinProject]: ProjectTargetPayload;
@@ -704,6 +724,7 @@ export interface HubActionPayloadById {
   [HUB_ACTION.packageProject]: ProjectTargetPayload;
   [HUB_ACTION.installDevice]: ProjectTargetPayload;
   [HUB_ACTION.openEditor]: ProjectTargetPayload;
+  [HUB_ACTION.updateSettingsDraft]: UpdateSettingsDraftPayload;
   [HUB_ACTION.saveSettings]: SaveSettingsPayload;
   [HUB_ACTION.browseSettingsFolder]: BrowseSettingsFolderPayload;
   [HUB_ACTION.openResource]: OpenResourcePayload;
@@ -724,6 +745,7 @@ export interface HubShellState {
   productName: string;
   engineVersion: string;
   activePage: string;
+  demoMode?: boolean;
   pageTitle: string;
   pageSubtitle: string;
   projectFilter: string;
@@ -732,14 +754,14 @@ export interface HubShellState {
   projectSubpage: string;
   projectTemplates: HubProjectTemplate[];
   searchQuery: string;
-  selectedProjectId?: string | null;
-  activeSourceEngineId?: string | null;
+  selectedProjectId: string | null;
+  activeSourceEngineId: string | null;
   taskSummary: HubTaskSummary;
   taskStatus: HubStatusPill[];
   projects: HubProjectSummary[];
   browserProjects: HubRecentProject[];
   recentProjects: HubRecentProject[];
-  selectedProject?: HubProjectDetail | null;
+  selectedProject: HubProjectDetail | null;
   quickActions: HubQuickAction[];
   sourceEngines: HubSourceEngineSummary[];
   assets: HubAssetItem[];
@@ -749,6 +771,6 @@ export interface HubShellState {
   actionHistory: HubActionHistoryItem[];
   comingSoon: HubComingSoonEntry[];
   settings: HubSettingsSummary;
-  settingsDraft?: HubSettingsSummary | null;
+  settingsDraft: HubSettingsSummary | null;
   ui: HubUiText;
 }

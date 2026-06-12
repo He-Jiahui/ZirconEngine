@@ -41,6 +41,22 @@ pub(super) fn from_zr_value_for_function(
     }
 }
 
+pub(super) fn from_zr_return_value_for_export(
+    value: &zrvm::Value,
+    export_label: &str,
+) -> Result<ScriptHostValue, zrvm::Error> {
+    match value.kind() {
+        zrvm::ValueKind::Null => Ok(ScriptHostValue::Null),
+        zrvm::ValueKind::Bool => Ok(ScriptHostValue::Bool(value.as_bool()?)),
+        zrvm::ValueKind::Int => Ok(ScriptHostValue::Int(value.as_int()?)),
+        zrvm::ValueKind::Float => Ok(ScriptHostValue::Float(value.as_float()?)),
+        zrvm::ValueKind::String => Ok(ScriptHostValue::String(value.as_string()?)),
+        other => Err(zr_error(format!(
+            "unsupported zr_vm return value kind {other:?} for export {export_label}"
+        ))),
+    }
+}
+
 pub(super) fn to_zr_value_for_function(
     value: ScriptHostValue,
     function_label: &str,

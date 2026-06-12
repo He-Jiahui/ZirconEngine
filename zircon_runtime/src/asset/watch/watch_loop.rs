@@ -5,16 +5,54 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::{
-    asset_change::AssetChange, asset_watcher::AssetWatcher, map_notify_event::map_notify_event,
+    asset_change::AssetChange, asset_watch_error::AssetWatchError, asset_watcher::AssetWatcher,
+    asset_watcher::AssetWatcherOptions, map_notify_event::map_notify_event,
 };
-
-const WATCH_DEBOUNCE: Duration = Duration::from_millis(120);
 
 pub(super) fn watch_loop(
     assets_root: PathBuf,
+    options: AssetWatcherOptions,
     stop_rx: Receiver<()>,
     event_rx: Receiver<notify::Result<Event>>,
     on_changes: Arc<dyn Fn(Vec<AssetChange>) + Send + Sync>,
+    on_error: Arc<dyn Fn(AssetWatchError) + Send + Sync>,
+) {
+    watch_loop_inner(
+        assets_root,
+        options.debounce,
+        stop_rx,
+        event_rx,
+        on_changes,
+        on_error,
+    );
+}
+
+#[cfg(test)]
+pub(crate) fn watch_loop_for_test(
+    assets_root: PathBuf,
+    debounce: Duration,
+    stop_rx: Receiver<()>,
+    event_rx: Receiver<notify::Result<Event>>,
+    on_changes: Arc<dyn Fn(Vec<AssetChange>) + Send + Sync>,
+    on_error: Arc<dyn Fn(AssetWatchError) + Send + Sync>,
+) {
+    watch_loop_inner(
+        assets_root,
+        debounce,
+        stop_rx,
+        event_rx,
+        on_changes,
+        on_error,
+    );
+}
+
+fn watch_loop_inner(
+    assets_root: PathBuf,
+    debounce: Duration,
+    stop_rx: Receiver<()>,
+    event_rx: Receiver<notify::Result<Event>>,
+    on_changes: Arc<dyn Fn(Vec<AssetChange>) + Send + Sync>,
+    on_error: Arc<dyn Fn(AssetWatchError) + Send + Sync>,
 ) {
     loop {
         select! {
@@ -30,10 +68,10 @@ pub(super) fn watch_loop(
                             recv(stop_rx) -> _ => return,
                             recv(event_rx) -> next => match next {
                                 Ok(Ok(event)) => pending.extend(map_notify_event(&assets_root, event)),
-                                Ok(Err(_)) => {}
+                                Ok(Err(error)) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error)),
                                 Err(_) => return,
                             },
-                            recv(after(WATCH_DEBOUNCE)) -> _ => break,
+                            recv(after(debounce)) -> _ => break,
                         }
                     }
                     let folded = AssetWatcher::fold_events(&pending);
@@ -41,7 +79,7 @@ pub(super) fn watch_loop(
                         on_changes(folded);
                     }
                 }
-                Ok(Err(_)) => {}
+                Ok(Err(error)) => on_error(AssetWatchError::from_notify_error(assets_root.clone(), error)),
                 Err(_) => break,
             }
         }

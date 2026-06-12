@@ -215,7 +215,7 @@ fn routed_step(
     disposition: UiDispatchDisposition,
     effect_count: usize,
 ) -> UiDispatchReplyStepTrace {
-    if should_stop_at(node_id, terminal, terminal_phase, phase, disposition) {
+    if is_terminal_at(node_id, terminal, terminal_phase, phase) {
         terminal_step(phase, node_id, terminal, disposition, effect_count)
     } else {
         passthrough_step(phase, Some(node_id))
@@ -276,10 +276,18 @@ fn should_stop_at(
     phase: UiDispatchPhase,
     disposition: UiDispatchDisposition,
 ) -> bool {
-    Some(node_id) == terminal
-        && terminal_phase.is_none_or(|terminal_phase| terminal_phase == phase)
+    is_terminal_at(node_id, terminal, terminal_phase, phase)
         && matches!(
             disposition,
             UiDispatchDisposition::Handled | UiDispatchDisposition::Blocked
         )
+}
+
+fn is_terminal_at(
+    node_id: UiNodeId,
+    terminal: Option<UiNodeId>,
+    terminal_phase: Option<UiDispatchPhase>,
+    phase: UiDispatchPhase,
+) -> bool {
+    Some(node_id) == terminal && terminal_phase.unwrap_or(UiDispatchPhase::Target) == phase
 }

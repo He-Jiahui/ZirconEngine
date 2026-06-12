@@ -49,23 +49,28 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_dro
 
 fn dropdown_surface(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
     let color = match state {
-        UiPainterResolvedState::Disabled => WORKBENCH_DROPDOWN_DISABLED_SURFACE,
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open => WORKBENCH_DROPDOWN_OPEN_SURFACE,
         UiPainterResolvedState::Hovered
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered => WORKBENCH_DROPDOWN_HOVER_SURFACE,
-        UiPainterResolvedState::Loading
-        | UiPainterResolvedState::Checked
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
+            WORKBENCH_DROPDOWN_DISABLED_SURFACE
+        }
+        UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Normal => WORKBENCH_DROPDOWN_SURFACE,
     };
-    declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
+    if is_unavailable_dropdown_state(state) {
+        color
+    } else {
+        declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
+    }
 }
 
 fn dropdown_border(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    let color = if state == UiPainterResolvedState::Disabled {
+    let color = if is_unavailable_dropdown_state(state) {
         PALETTE.border_disabled
     } else if matches!(node.validation_level.as_str(), "error" | "danger") {
         PALETTE.error
@@ -85,7 +90,11 @@ fn dropdown_border(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -
             | UiPainterResolvedState::Normal => WORKBENCH_DROPDOWN_BORDER,
         }
     };
-    declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
+    if is_unavailable_dropdown_state(state) {
+        color
+    } else {
+        declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
+    }
 }
 
 fn dropdown_text(
@@ -93,7 +102,7 @@ fn dropdown_text(
     state: UiPainterResolvedState,
     label_is_placeholder: bool,
 ) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_dropdown_state(state) {
         PALETTE.text_disabled
     } else if let Some(color) = declared_color(node.value_color) {
         color
@@ -105,7 +114,7 @@ fn dropdown_text(
 }
 
 fn dropdown_chevron(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if state == UiPainterResolvedState::Disabled {
+    if is_unavailable_dropdown_state(state) {
         PALETTE.text_disabled
     } else if let Some(color) = declared_color(node.icon_color) {
         color
@@ -125,6 +134,13 @@ fn declared_color(color: Color) -> Option<[u8; 4]> {
     (color.a > 0).then_some([color.r, color.g, color.b, color.a])
 }
 
+fn is_unavailable_dropdown_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
+}
+
 fn declared_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {
     resolved_style_color(color).filter(|color| color[3] > 0)
 }
@@ -133,6 +149,9 @@ fn apply_visual_brightness(
     style: WorkbenchDropdownStyle,
     brightness: f32,
 ) -> WorkbenchDropdownStyle {
+    if is_unavailable_dropdown_state(style.state) {
+        return style;
+    }
     if !brightness.is_finite() || brightness <= 0.0 || (brightness - 1.0).abs() < 0.001 {
         return style;
     }
@@ -157,4 +176,35 @@ fn scaled_color(color: [u8; 4], brightness: f32) -> [u8; 4] {
 
 fn scaled_channel(value: u8, brightness: f32) -> u8 {
     (f32::from(value) * brightness).round().clamp(0.0, 255.0) as u8
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn dropdown_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.popup_open = true;
+        node.selected = true;
+        node.validation_level = "danger".into();
+        node.button_style.loading = true;
+        node.label_brightness = 1.8;
+        node.value_color = Color::from_rgb_u8(205, 216, 221);
+        node.icon_color = Color::from_rgb_u8(128, 234, 255);
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(15, 101, 116, 255)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(239, 112, 102, 255)));
+
+        let style = select_workbench_dropdown_style(&node, false);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.surface, WORKBENCH_DROPDOWN_DISABLED_SURFACE);
+        assert_eq!(style.border, PALETTE.border_disabled);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.chevron, PALETTE.text_disabled);
+    }
 }

@@ -22,6 +22,7 @@ use zircon_runtime_interface::ui::v2::{
 
 use crate::ui::layout::compute_virtual_list_window;
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
+use crate::ui::theme::UiThemeRegistry;
 use crate::ui::v2::{
     UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreFileCache,
     UiV2StyleResolver, UiV2SurfaceBuilder, UiZuiAssetLoader,
@@ -456,6 +457,113 @@ fn ui_v2_style_specificity_and_pseudo_state_are_resolved() {
 }
 
 #[test]
+fn ui_v2_style_resolver_can_resolve_theme_tokens_when_registry_is_supplied() {
+    let mut document = v2_document("asset://ui/tests/theme_style.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("ThemeButton".to_string()),
+            classes: vec!["primary".to_string()],
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "theme_material".to_string(),
+        rules: vec![style_rule(
+            "Button.primary",
+            [
+                ("background", "$theme.palette.accent"),
+                ("foreground", "var(theme.palette.text.primary)"),
+            ],
+        )],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let unresolved = UiV2StyleResolver::resolve(&document, &compiled.arena).unwrap();
+    assert_eq!(
+        unresolved.nodes["root"].self_values["background"].as_str(),
+        Some("$theme.palette.accent")
+    );
+
+    let resolved = UiV2StyleResolver::resolve_with_theme(
+        &document,
+        &compiled.arena,
+        &UiThemeRegistry::default(),
+    )
+    .unwrap();
+    let root = &resolved.nodes["root"];
+
+    assert_eq!(root.self_values["background"].as_str(), Some("#3cc7d6"));
+    assert_eq!(root.self_values["foreground"].as_str(), Some("#e8ecee"));
+    assert_eq!(
+        root.style_tokens.get("background").map(String::as_str),
+        Some("theme.palette.accent")
+    );
+    assert_eq!(
+        root.style_tokens.get("foreground").map(String::as_str),
+        Some("theme.palette.text.primary")
+    );
+}
+
+#[test]
+fn ui_v2_surface_builder_resolves_theme_tokens_for_static_and_runtime_rules() {
+    let mut document = v2_document("asset://ui/tests/theme_surface.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("ThemeSurfaceButton".to_string()),
+            classes: vec!["primary".to_string()],
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "theme_surface_material".to_string(),
+        rules: vec![
+            style_rule(
+                "Button.primary",
+                [("background", "$theme.palette.surface.1")],
+            ),
+            style_rule(
+                "Button.primary:hover",
+                [("background", "$theme.palette.accent")],
+            ),
+        ],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document_with_theme(
+        UiTreeId::new("runtime.ui.v2.theme_surface"),
+        &document,
+        &compiled,
+        &UiThemeRegistry::default(),
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "ThemeSurfaceButton");
+
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#171a1d")
+    );
+    assert_eq!(
+        runtime_style_token(&surface, node_id, "background"),
+        Some("theme.palette.surface.1")
+    );
+
+    assert!(surface.component_states.set_hovered(node_id, true));
+    surface.mark_component_state_render_dirty(node_id).unwrap();
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#3cc7d6")
+    );
+    assert_eq!(
+        runtime_style_token(&surface, node_id, "background"),
+        Some("theme.palette.accent")
+    );
+}
+
+#[test]
 fn ui_v2_surface_runtime_pseudo_state_restyles_from_retained_component_state() {
     let mut document = v2_document("asset://ui/tests/runtime_style.v2.ui", "root");
     document.nodes.insert(
@@ -556,6 +664,116 @@ fn ui_v2_surface_runtime_pseudo_state_restyles_from_retained_component_state() {
         Some("#101010")
     );
     assert_eq!(runtime_attr(&surface, node_id, "outline"), Some("#404040"));
+}
+
+#[test]
+fn ui_v2_resolved_pseudo_state_uses_painter_selector_priority() {
+    let mut document = v2_document("asset://ui/tests/resolved_runtime_style.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("ResolvedRuntimeButton".to_string()),
+            classes: vec!["material".to_string()],
+            state: BTreeMap::from([
+                ("hovered".to_string(), Value::Boolean(true)),
+                ("pressed".to_string(), Value::Boolean(true)),
+            ]),
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "runtime_resolved_material".to_string(),
+        rules: vec![
+            style_rule("Button.material", [("background", "#101010")]),
+            style_rule(
+                "Button.material:resolved-pressed",
+                [("background", "#303030")],
+            ),
+            style_rule(
+                "Button.material:resolved-hovered",
+                [("background", "#202020")],
+            ),
+        ],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let resolved = UiV2StyleResolver::resolve(&document, &compiled.arena).unwrap();
+
+    assert_eq!(
+        resolved.nodes["root"].self_values["background"].as_str(),
+        Some("#303030")
+    );
+}
+
+#[test]
+fn ui_v2_surface_runtime_resolved_pseudo_state_restyles_from_component_state_priority() {
+    let mut document = v2_document(
+        "asset://ui/tests/resolved_runtime_style_component.v2.ui",
+        "root",
+    );
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("ResolvedRuntimeButton".to_string()),
+            classes: vec!["material".to_string()],
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "runtime_resolved_material".to_string(),
+        rules: vec![
+            style_rule("Button.material", [("background", "#101010")]),
+            style_rule(
+                "Button.material:resolved-pressed",
+                [("background", "#303030")],
+            ),
+            style_rule(
+                "Button.material:resolved-hovered",
+                [("background", "#202020")],
+            ),
+            style_rule(
+                "Button.material:resolved-disabled",
+                [("background", "#707070")],
+            ),
+        ],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.resolved_runtime_style"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "ResolvedRuntimeButton");
+
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#101010")
+    );
+
+    assert!(surface.component_states.set_hovered(node_id, true));
+    surface.mark_component_state_render_dirty(node_id).unwrap();
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#202020")
+    );
+
+    assert!(surface.component_states.set_pressed(node_id, true));
+    surface.mark_component_state_render_dirty(node_id).unwrap();
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#303030")
+    );
+
+    assert!(surface.component_states.set_disabled(node_id, true));
+    surface.mark_component_state_render_dirty(node_id).unwrap();
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#707070")
+    );
 }
 
 #[test]
@@ -1722,13 +1940,66 @@ fn material_demo_window_compiles_and_resolves_material_dark_states() {
 }
 
 #[test]
+fn editor_base_theme_tokens_drive_workbench_chrome_assets() {
+    let activity_surface = editor_v2_theme_surface(
+        "workbench_activity_rail.v2.ui.toml",
+        "runtime.ui.v2.editor_base_activity_rail",
+    );
+    let activity_root = node_id_by_control_id(&activity_surface, "ActivityRailRoot");
+
+    assert_eq!(
+        runtime_color_attr(&activity_surface, activity_root, "background"),
+        Some("#1b1f23")
+    );
+    assert_eq!(
+        runtime_style_token(&activity_surface, activity_root, "background.color"),
+        Some("token.panel_bg -> theme.palette.surface.2")
+    );
+    assert_eq!(
+        runtime_color_attr(&activity_surface, activity_root, "border"),
+        Some("#394147")
+    );
+    assert_eq!(
+        runtime_style_token(&activity_surface, activity_root, "border.color"),
+        Some("token.border -> theme.palette.separator")
+    );
+
+    let status_surface = editor_v2_theme_surface(
+        "workbench_status_bar.v2.ui.toml",
+        "runtime.ui.v2.editor_base_status_bar",
+    );
+    let status_root = node_id_by_control_id(&status_surface, "WorkbenchStatusBarRoot");
+
+    assert_eq!(
+        runtime_color_attr(&status_surface, status_root, "background"),
+        Some("#252b31")
+    );
+    assert_eq!(
+        runtime_style_token(&status_surface, status_root, "background.color"),
+        Some("token.surface_hover -> theme.palette.surface.3")
+    );
+    assert_eq!(
+        runtime_color_attr(&status_surface, status_root, "foreground"),
+        Some("#e8ecee")
+    );
+    assert_eq!(
+        runtime_style_token(&status_surface, status_root, "foreground.color"),
+        Some("token.text -> theme.palette.text.primary")
+    );
+}
+
+#[test]
 fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
     let mut surface = welcome_material_surface("runtime.ui.v2.editor_material_state");
     let button_id = node_id_by_control_id(&surface, "WelcomeStartupDemoButton");
 
     assert_eq!(
         runtime_color_attr(&surface, button_id, "background"),
-        Some("#202830")
+        Some("#1b1f23")
+    );
+    assert_eq!(
+        runtime_style_token(&surface, button_id, "background.color"),
+        Some("token.material_surface -> theme.palette.surface.2")
     );
 
     assert!(surface.component_states.set_hovered(button_id, true));
@@ -1737,11 +2008,15 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
         .unwrap();
     assert_eq!(
         runtime_color_attr(&surface, button_id, "background"),
-        Some("#2f4650")
+        Some("#252b31")
     );
     assert_eq!(
         runtime_color_attr(&surface, button_id, "foreground"),
-        Some("#e6f1f4")
+        Some("#e8ecee")
+    );
+    assert_eq!(
+        runtime_style_token(&surface, button_id, "background.color"),
+        Some("token.material_surface_hover -> theme.palette.surface.3")
     );
 
     assert!(surface.component_states.set_pressed(button_id, true));
@@ -1759,7 +2034,11 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
         .unwrap();
     assert_eq!(
         runtime_color_attr(&surface, button_id, "border"),
-        Some("#80eaff")
+        Some("#3cc7d6")
+    );
+    assert_eq!(
+        runtime_style_token(&surface, button_id, "border.color"),
+        Some("token.material_focus_ring -> theme.palette.accent")
     );
 }
 
@@ -1774,7 +2053,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
 
     assert_eq!(
         render_command_background(&surface, button_id),
-        Some("#202830")
+        Some("#1b1f23")
     );
 
     surface
@@ -1789,7 +2068,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
     assert!(!hover_report.arranged_rebuilt);
     assert_eq!(
         render_command_background(&surface, button_id),
-        Some("#2f4650")
+        Some("#252b31")
     );
 
     surface
@@ -1806,7 +2085,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
         render_command_background(&surface, button_id),
         Some("#103c4a")
     );
-    assert_eq!(render_command_border(&surface, button_id), Some("#80eaff"));
+    assert_eq!(render_command_border(&surface, button_id), Some("#3cc7d6"));
 }
 
 #[test]
@@ -2439,6 +2718,146 @@ material_color = "#abcdef"
 }
 
 #[test]
+fn ui_v2_file_cache_uses_persistent_cache_across_cache_instances() {
+    let temp_dir = v2_cache_temp_dir("persistent_cache_roundtrip");
+    let assets_root = temp_dir.join("assets");
+    let cache_root = temp_dir.join("cache");
+    let layout_path = assets_root.join("ui/editor/layout.v2.ui.toml");
+    let style_path = assets_root.join("ui/theme/persistent.v2.ui.toml");
+    std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(style_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &layout_path,
+        r##"
+[asset]
+kind = "view"
+id = "ui.editor.persistent_layout"
+version = 2
+
+[imports]
+styles = ["res://ui/theme/persistent.v2.ui.toml"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+control_id = "PersistentRoot"
+classes = ["persistent-root"]
+props = { text = "Persistent" }
+"##,
+    )
+    .unwrap();
+    std::fs::write(
+        &style_path,
+        r##"
+[asset]
+kind = "style"
+id = "ui.theme.persistent"
+version = 2
+
+[[stylesheets]]
+id = "persistent"
+
+[[stylesheets.rules]]
+selector = ".persistent-root"
+set = { self = { foreground_color = "#123456" } }
+"##,
+    )
+    .unwrap();
+
+    let mut first_cache = UiV2PrototypeStoreFileCache::with_persistent_cache(cache_root.clone());
+    let first = first_cache.load_store(vec![layout_path.clone()]).unwrap();
+    let mut second_cache = UiV2PrototypeStoreFileCache::with_persistent_cache(cache_root);
+    let second = second_cache.load_store(vec![layout_path]).unwrap();
+
+    assert!(!first.cache_hit);
+    assert!(!first.persistent_cache_hit);
+    assert!(second.cache_hit);
+    assert!(second.persistent_cache_hit);
+    assert_eq!(second.root_asset_id, "ui.editor.persistent_layout");
+    assert!(second
+        .store
+        .get("res://ui/theme/persistent.v2.ui.toml")
+        .is_some());
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.persistent_cache"),
+        second.root_document.as_ref(),
+        second.compiled.as_ref(),
+    )
+    .unwrap();
+    let root = surface.tree.nodes.values().next().unwrap();
+    assert_eq!(
+        root.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.attributes.get("foreground_color"))
+            .and_then(Value::as_str),
+        Some("#123456")
+    );
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn ui_v2_file_cache_rebuilds_when_persistent_cache_dependency_changes() {
+    let temp_dir = v2_cache_temp_dir("persistent_cache_invalidates");
+    let assets_root = temp_dir.join("assets");
+    let cache_root = temp_dir.join("cache");
+    let layout_path = assets_root.join("ui/editor/layout.v2.ui.toml");
+    let style_path = assets_root.join("ui/theme/persistent.v2.ui.toml");
+    std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(style_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &layout_path,
+        r##"
+[asset]
+kind = "view"
+id = "ui.editor.persistent_layout"
+version = 2
+
+[imports]
+styles = ["res://ui/theme/persistent.v2.ui.toml"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+control_id = "PersistentRoot"
+classes = ["persistent-root"]
+props = { text = "Persistent" }
+"##,
+    )
+    .unwrap();
+    std::fs::write(&style_path, persistent_cache_style("#123456")).unwrap();
+
+    let mut first_cache = UiV2PrototypeStoreFileCache::with_persistent_cache(cache_root.clone());
+    first_cache.load_store(vec![layout_path.clone()]).unwrap();
+    std::fs::write(&style_path, persistent_cache_style("#654321")).unwrap();
+    let mut second_cache = UiV2PrototypeStoreFileCache::with_persistent_cache(cache_root);
+    let second = second_cache.load_store(vec![layout_path]).unwrap();
+
+    assert!(!second.cache_hit);
+    assert!(!second.persistent_cache_hit);
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.persistent_cache_invalidates"),
+        second.root_document.as_ref(),
+        second.compiled.as_ref(),
+    )
+    .unwrap();
+    let root = surface.tree.nodes.values().next().unwrap();
+    assert_eq!(
+        root.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.attributes.get("foreground_color"))
+            .and_then(Value::as_str),
+        Some("#654321")
+    );
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
 fn ui_v2_file_cache_resolves_builtin_asset_id_widget_imports() {
     let temp_dir = v2_cache_temp_dir("asset_id_widget_imports");
     let assets_root = temp_dir.join("assets");
@@ -2503,6 +2922,90 @@ control_id = "ActivityDrawerWindowRoot"
         .expect("expanded root");
     assert_eq!(root.component, "VerticalGroup");
     assert_eq!(root.control_id.as_deref(), Some("WorkbenchWindow"));
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn ui_v2_file_cache_resolves_res_imports_from_package_root_when_source_has_assets_folder() {
+    let temp_dir = v2_cache_temp_dir("nested_assets_resource_imports");
+    let assets_root = temp_dir.join("assets");
+    let window_path = assets_root.join("ui/editor/windows/workbench_window.v2.ui.toml");
+    let workspace_path =
+        assets_root.join("ui/editor/components/workbench/modules/core/assets/workspace.zui");
+    let primitive_path =
+        assets_root.join("ui/editor/components/workbench/primitives/inputs/button.zui");
+    std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(workspace_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(primitive_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &window_path,
+        r##"
+[asset]
+kind = "view"
+id = "editor.window.workbench"
+version = 2
+
+[imports]
+widgets = ["res://ui/editor/components/workbench/modules/core/assets/workspace.zui#Workspace"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Workspace"
+"##,
+    )
+    .unwrap();
+    std::fs::write(
+        &workspace_path,
+        r##"
+[asset]
+kind = "component"
+id = "editor.workbench.assets_workspace"
+version = 2
+
+[imports]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
+
+[components.Workspace]
+root = "root"
+
+[nodes.root]
+component = "WorkbenchButton"
+control_id = "WorkspaceRoot"
+"##,
+    )
+    .unwrap();
+    std::fs::write(
+        &primitive_path,
+        r##"
+[asset]
+kind = "component"
+id = "editor.workbench.button"
+version = 2
+
+[components.WorkbenchButton]
+root = "root"
+
+[nodes.root]
+component = "Button"
+control_id = "ButtonRoot"
+"##,
+    )
+    .unwrap();
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+
+    let outcome = cache.load_store(vec![window_path]).unwrap();
+
+    assert!(outcome
+        .store
+        .get("res://ui/editor/components/workbench/modules/core/assets/workspace.zui")
+        .is_some());
+    assert!(outcome
+        .store
+        .get("res://ui/editor/components/workbench/primitives/inputs/button.zui")
+        .is_some());
 
     let _ = std::fs::remove_dir_all(temp_dir);
 }
@@ -2661,6 +3164,24 @@ fn v2_cache_temp_dir(test_name: &str) -> std::path::PathBuf {
     dir
 }
 
+fn persistent_cache_style(color: &str) -> String {
+    format!(
+        r##"
+[asset]
+kind = "style"
+id = "ui.theme.persistent"
+version = 2
+
+[[stylesheets]]
+id = "persistent"
+
+[[stylesheets.rules]]
+selector = ".persistent-root"
+set = {{ self = {{ foreground_color = "{color}" }} }}
+"##
+    )
+}
+
 fn fixed_size_layout(width: f64, height: f64) -> BTreeMap<String, Value> {
     BTreeMap::from([
         (
@@ -2717,6 +3238,22 @@ fn runtime_color_attr<'a>(
         .or_else(|| value.as_table()?.get("color")?.as_str())
 }
 
+fn runtime_style_token<'a>(
+    surface: &'a crate::ui::surface::UiSurface,
+    node_id: UiNodeId,
+    key: &str,
+) -> Option<&'a str> {
+    surface
+        .tree
+        .nodes
+        .get(&node_id)?
+        .template_metadata
+        .as_ref()?
+        .style_tokens
+        .get(key)
+        .map(String::as_str)
+}
+
 fn assert_range_value(surface: &crate::ui::surface::UiSurface, node_id: UiNodeId, expected: f64) {
     let value = surface
         .tree
@@ -2752,14 +3289,20 @@ fn node_id_by_control_id(surface: &crate::ui::surface::UiSurface, control_id: &s
 }
 
 fn welcome_material_surface(tree_id: &str) -> UiSurface {
-    let welcome_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../zircon_editor/assets/ui/editor/welcome.v2.ui.toml");
+    editor_v2_theme_surface("welcome.v2.ui.toml", tree_id)
+}
+
+fn editor_v2_theme_surface(asset_file_name: &str, tree_id: &str) -> UiSurface {
+    let asset_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../zircon_editor/assets/ui/editor")
+        .join(asset_file_name);
     let mut cache = UiV2PrototypeStoreFileCache::new();
-    let outcome = cache.load_store(vec![welcome_path]).unwrap();
-    UiV2SurfaceBuilder::build_surface_from_compiled_document(
+    let outcome = cache.load_store(vec![asset_path]).unwrap();
+    UiV2SurfaceBuilder::build_surface_from_compiled_document_with_theme(
         UiTreeId::new(tree_id),
         outcome.root_document.as_ref(),
         outcome.compiled.as_ref(),
+        &UiThemeRegistry::default(),
     )
     .unwrap()
 }

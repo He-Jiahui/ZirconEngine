@@ -68,7 +68,7 @@ fn topbar_owns_brand_engine_status_user_and_window_control_regions() {
             "onAction: HubActionHandler;",
             "component=\"header\"",
             "height: hubTokens.window.topBarHeight",
-            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "gridTemplateColumns: \"222px minmax(0, 1fr) auto\"",
             "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
             "src={brandMark}",
             "{state.productName}",
@@ -106,7 +106,9 @@ fn topbar_routes_engine_user_settings_and_help_regions_through_shared_actions() 
             "void onAction(HUB_ACTION.showPage, \"learn\")",
             "if (actionId === \"account\")",
             "void onAction(HUB_ACTION.showPage, \"team\")",
-            "HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled",
+            "const notificationDetail = comingSoonDetail(state, \"notification-center\");",
+            "const signOutDetail = comingSoonDetail(state, \"sign-out\");",
+            "HubIconButton label={state.ui.shell.notifications} tooltip={notificationDetail} disabled",
             "HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, \"learn\")}",
             "HubIconButton label={state.ui.shell.settings} onClick={() => void onAction(HUB_ACTION.showPage, \"settings\")}",
             "\"&.Mui-disabled\"",
@@ -187,13 +189,10 @@ fn brand_asset_and_fallback_header_state_stay_centralized() {
             "export const brandMark = brandMarkAsset;",
             "productName: \"Zircon Hub\"",
             "engineVersion: \"Zircon Engine 1.8.2\"",
-            "taskStatus: [",
-            "{ id: \"running\", label: \"运行中\", tone: \"running\" }",
-            "{ id: \"success\", label: \"成功\", tone: \"success\" }",
-            "{ id: \"warning\", label: \"警告\", tone: \"warning\" }",
-            "{ id: \"error\", label: \"错误\", tone: \"error\" }",
-            "activeSourceEngineId: \"zircon-engine-1-8-2\"",
-            "notificationsDetail: \"通知中心敬请期待；本地 v1 不启用通知服务。\"",
+            "taskStatus: []",
+            "activeSourceEngineId: null",
+            "id: \"notification-center\"",
+            "detail: \"桌面通知为预留能力；v1 在 Hub 窗口内显示本地任务反馈。\"",
         ],
     );
     assert_contains_all(
@@ -202,7 +201,7 @@ fn brand_asset_and_fallback_header_state_stay_centralized() {
         &[
             "productName: string;",
             "engineVersion: string;",
-            "activeSourceEngineId?: string | null;",
+            "activeSourceEngineId: string | null;",
             "taskStatus: HubStatusPill[];",
             "sourceEngines: HubSourceEngineSummary[];",
             "settings: HubSettingsSummary;",
@@ -219,14 +218,15 @@ fn brand_asset_and_fallback_header_state_stay_centralized() {
 fn user_menu_keeps_local_v1_sign_out_reserved_and_disabled() {
     let user_menu = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
-    let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
+    let coming_soon = read_crate_file("src/tauri_app/view_model/coming_soon.rs");
     let fallback_data = read_crate_file("web/src/data/hubData.ts");
 
     assert_contains_all(
         "UserMenuPopover.tsx",
         &user_menu,
         &[
-            "{ id: \"sign-out\", label: text.signOut, detail: text.signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
+            "signOutDetail: string;",
+            "{ id: \"sign-out\", label: text.signOut, detail: signOutDetail, Icon: LogoutOutlinedIcon, danger: true, disabled: true }",
             "menuItems.map(({ id, label, detail, Icon, danger, disabled }) => {",
             "const isDisabled = Boolean(disabled);",
             "disabled={isDisabled}",
@@ -240,21 +240,41 @@ fn user_menu_keeps_local_v1_sign_out_reserved_and_disabled() {
             "cursor: \"not-allowed\"",
         ],
     );
-    assert_not_contains_any("TopBar.tsx", &topbar, &["if (actionId === \"sign-out\")"]);
     assert_contains_all(
-        "ui_text.rs",
-        &ui_text,
+        "TopBar.tsx",
+        &topbar,
         &[
-            "Remote account service is not enabled in local v1.",
-            "本地 v1 不启用远程账号服务。",
-            "Notification center is coming soon; local v1 does not enable a notification service.",
-            "通知中心敬请期待；本地 v1 不启用通知服务。",
+            "const signOutDetail = comingSoonDetail(state, \"sign-out\");",
+            "signOutDetail={signOutDetail}",
+        ],
+    );
+    assert_not_contains_any(
+        "TopBar.tsx",
+        &topbar,
+        &[
+            "if (actionId === \"sign-out\")",
+            "state.ui.shell.signOutDetail",
+        ],
+    );
+    assert_contains_all(
+        "coming_soon.rs",
+        &coming_soon,
+        &[
+            "\"notification-center\"",
+            "Desktop notifications are reserved; v1 shows local task feedback in the Hub window.",
+            "桌面通知为预留能力；v1 在 Hub 窗口内显示本地任务反馈。",
+            "\"sign-out\"",
+            "Remote accounts are disabled for the local-only Hub.",
+            "本地版 Hub 不启用远程账号。",
         ],
     );
     assert_contains_all(
         "hubData.ts",
         &fallback_data,
-        &["signOutDetail: \"本地 v1 不启用远程账号服务。\""],
+        &[
+            "id: \"sign-out\"",
+            "detail: \"本地版 Hub 不启用远程账号。\"",
+        ],
     );
 }
 

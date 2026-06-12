@@ -4,11 +4,17 @@ use std::path::Path;
 use crate::asset::assets::{
     ImportedAsset, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
-    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneCameraTargetAsset,
-    SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
-    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset,
-    SceneMobilityAsset, ScenePointLightAsset, SceneRectLightAsset, SceneRigidBodyAsset,
-    SceneRigidBodyTypeAsset, SceneSpotLightAsset, SceneViewportRectAsset, TransformAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset,
+    SceneCameraTargetAsset, SceneChromaticAberrationSettingsAsset, SceneColliderAsset,
+    SceneColliderShapeAsset, SceneColorGradingSettingsAsset, SceneDirectionalLightAsset,
+    SceneDitherSettingsAsset, SceneEntityAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
+    SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMeshLodLevelAsset,
+    SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, ScenePointLightAsset,
+    ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
+    ScenePostProcessVolumeProfileAsset, SceneRectLightAsset, SceneRigidBodyAsset,
+    SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
+    SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneViewportRectAsset,
+    SceneVignetteSettingsAsset, TransformAsset,
 };
 use crate::asset::importer::AssetImportError;
 use crate::asset::project::ProjectManager;
@@ -22,13 +28,19 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::World;
-use crate::core::framework::render::{RenderCameraTarget, RenderViewportRect};
+use crate::core::framework::render::{
+    RenderBloomSettings, RenderCameraTarget, RenderChromaticAberrationSettings,
+    RenderColorGradingSettings, RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
+    RenderTonemapSettings, RenderViewportRect, RenderVignetteSettings,
+};
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, ColliderShape,
-    JointComponent, JointKind, MeshRendererPrimitiveBinding, Mobility, NodeKind, PointLight,
-    RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
+    JointComponent, JointKind, MeshRendererLodLevel, MeshRendererPrimitiveBinding, Mobility,
+    NodeKind, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
+    RigidBodyComponent, RigidBodyType, SpotLight,
 };
 use crate::scene::ecs::Schedule;
 
@@ -37,6 +49,7 @@ const BUILTIN_CUBE: &str = "builtin://cube";
 const BUILTIN_DEFAULT_MATERIAL: &str = "builtin://material/default";
 const BUILTIN_MISSING_MODEL: &str = "builtin://missing-model";
 const BUILTIN_MISSING_MATERIAL: &str = "builtin://missing-material";
+const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
 
 #[derive(Debug, Error)]
 pub enum SceneProjectError {
@@ -88,6 +101,8 @@ impl World {
                 NodeKind::RectLight
             } else if entity.spot_light.is_some() {
                 NodeKind::SpotLight
+            } else if entity.post_process_volume.is_some() {
+                NodeKind::Empty
             } else if entity
                 .mesh
                 .as_ref()
@@ -96,8 +111,10 @@ impl World {
                 NodeKind::Cube
             } else if entity.mesh.is_some() {
                 NodeKind::Mesh
+            } else if !entity.script_bindings.is_empty() {
+                NodeKind::Empty
             } else {
-                continue;
+                NodeKind::Empty
             };
 
             let mesh = entity.mesh.as_ref().map(|mesh| {
@@ -109,6 +126,10 @@ impl World {
                     .mesh
                     .as_ref()
                     .map(|reference| handle_for_reference::<MeshMarker>(project, reference));
+                renderer.render_queue = mesh.render_queue;
+                renderer.material_queue = mesh.material_queue;
+                renderer.order_in_layer = mesh.order_in_layer;
+                renderer.depth_bias = mesh.depth_bias;
                 renderer.morph_weights = mesh.morph_weights.clone();
                 renderer.primitives = mesh
                     .primitives
@@ -119,6 +140,29 @@ impl World {
                             project,
                             &primitive.material,
                         ),
+                    })
+                    .collect();
+                renderer.lods = mesh
+                    .lods
+                    .iter()
+                    .map(|lod| MeshRendererLodLevel {
+                        min_distance: lod.min_distance,
+                        model: model_handle_for_reference(project, &lod.model),
+                        mesh: lod.mesh.as_ref().map(|reference| {
+                            handle_for_reference::<MeshMarker>(project, reference)
+                        }),
+                        material: material_handle_for_reference(project, &lod.material),
+                        primitives: lod
+                            .primitives
+                            .iter()
+                            .map(|primitive| MeshRendererPrimitiveBinding {
+                                mesh: handle_for_reference::<MeshMarker>(project, &primitive.mesh),
+                                material: handle_for_reference::<MaterialMarker>(
+                                    project,
+                                    &primitive.material,
+                                ),
+                            })
+                            .collect(),
                     })
                     .collect();
                 renderer
@@ -303,6 +347,40 @@ impl World {
                         }),
                 })
                 .map_err(SceneProjectError::SceneAsset)?;
+            if let Some(camera_post_process) = entity
+                .camera
+                .as_ref()
+                .and_then(|camera| camera.post_process_settings)
+            {
+                world
+                    .insert(
+                        entity.entity,
+                        post_process_settings_from_asset(camera_post_process),
+                    )
+                    .map_err(SceneProjectError::SceneAsset)?;
+            }
+            if let Some(post_process_volume) = entity.post_process_volume {
+                world
+                    .insert(
+                        entity.entity,
+                        post_process_volume_from_asset(post_process_volume),
+                    )
+                    .map_err(SceneProjectError::SceneAsset)?;
+            }
+            if !entity.script_bindings.is_empty() {
+                world
+                    .set_dynamic_component(
+                        entity.entity,
+                        SCRIPT_BINDINGS_COMPONENT,
+                        serde_json::to_value(&entity.script_bindings).map_err(|error| {
+                            SceneProjectError::SceneAsset(format!(
+                                "failed to encode script bindings for entity {}: {error}",
+                                entity.entity
+                            ))
+                        })?,
+                    )
+                    .map_err(SceneProjectError::SceneAsset)?;
+            }
         }
 
         world.normalize_after_load();
@@ -329,6 +407,10 @@ impl World {
                                 .map(|mesh| reference_for_mesh_handle(project, mesh))
                                 .transpose()?,
                             material: reference_for_material_handle(project, mesh.material)?,
+                            render_queue: mesh.render_queue,
+                            material_queue: mesh.material_queue,
+                            order_in_layer: mesh.order_in_layer,
+                            depth_bias: mesh.depth_bias,
                             morph_weights: mesh.morph_weights,
                             primitives: mesh
                                 .primitives
@@ -348,9 +430,65 @@ impl World {
                                     )
                                 })
                                 .collect::<Result<Vec<_>, _>>()?,
+                            lods: mesh
+                                .lods
+                                .into_iter()
+                                .map(|lod| {
+                                    Ok::<SceneMeshLodLevelAsset, SceneProjectError>(
+                                        SceneMeshLodLevelAsset {
+                                            min_distance: lod.min_distance,
+                                            model: reference_for_model_handle(project, lod.model)?,
+                                            mesh: lod
+                                                .mesh
+                                                .map(|mesh| {
+                                                    reference_for_mesh_handle(project, mesh)
+                                                })
+                                                .transpose()?,
+                                            material: reference_for_material_handle(
+                                                project,
+                                                lod.material,
+                                            )?,
+                                            primitives: lod
+                                                .primitives
+                                                .into_iter()
+                                                .map(|primitive| {
+                                                    Ok::<
+                                                        SceneMeshPrimitiveBindingAsset,
+                                                        SceneProjectError,
+                                                    >(
+                                                        SceneMeshPrimitiveBindingAsset {
+                                                            mesh: reference_for_mesh_handle(
+                                                                project,
+                                                                primitive.mesh,
+                                                            )?,
+                                                            material:
+                                                                reference_for_material_handle(
+                                                                    project,
+                                                                    primitive.material,
+                                                                )?,
+                                                        },
+                                                    )
+                                                })
+                                                .collect::<Result<Vec<_>, _>>()?,
+                                        },
+                                    )
+                                })
+                                .collect::<Result<Vec<_>, _>>()?,
                         })
                     })
                     .transpose()?;
+
+                let script_bindings = script_bindings_for_record(self, record.id)?;
+                let post_process_settings = self
+                    .post_process_settings
+                    .get(&record.id)
+                    .cloned()
+                    .map(post_process_settings_to_asset);
+                let post_process_volume = self
+                    .post_process_volumes
+                    .get(&record.id)
+                    .cloned()
+                    .map(post_process_volume_to_asset);
 
                 Ok(SceneEntityAsset {
                     entity: record.id,
@@ -369,7 +507,7 @@ impl World {
                     },
                     camera: record
                         .camera
-                        .map(|camera| camera_to_asset(project, camera))
+                        .map(|camera| camera_to_asset(project, camera, post_process_settings))
                         .transpose()?,
                     mesh,
                     ambient_light: record.ambient_light.map(|light| SceneAmbientLightAsset {
@@ -403,6 +541,7 @@ impl World {
                         inner_angle_radians: light.inner_angle_radians,
                         outer_angle_radians: light.outer_angle_radians,
                     }),
+                    post_process_volume,
                     rigid_body: record.rigid_body.map(|rigid_body| SceneRigidBodyAsset {
                         body_type: match rigid_body.body_type {
                             RigidBodyType::Static => SceneRigidBodyTypeAsset::Static,
@@ -547,6 +686,7 @@ impl World {
                     terrain: None,
                     tilemap: None,
                     prefab_instance: None,
+                    script_bindings,
                 })
             })
             .collect::<Result<Vec<_>, SceneProjectError>>()?;
@@ -603,7 +743,7 @@ impl World {
                         NodeKind::Mesh
                     }
                 } else {
-                    continue;
+                    NodeKind::Empty
                 };
                 self.kinds.insert(*entity, kind);
             }
@@ -677,6 +817,23 @@ fn handle_for_reference<T: ResourceMarker>(
         .asset_id_for_reference(reference.uuid, locator)
         .map(ResourceHandle::new)
         .unwrap_or_else(|| ResourceHandle::new(ResourceId::from_locator(locator)))
+}
+
+fn script_bindings_for_record(
+    world: &World,
+    entity: u64,
+) -> Result<Vec<SceneScriptBindingAsset>, SceneProjectError> {
+    let Some(components) = world.dynamic_components.get(&entity) else {
+        return Ok(Vec::new());
+    };
+    let Some(value) = components.get(SCRIPT_BINDINGS_COMPONENT) else {
+        return Ok(Vec::new());
+    };
+    serde_json::from_value(value.clone()).map_err(|error| {
+        SceneProjectError::SceneAsset(format!(
+            "failed to decode script bindings for entity {entity}: {error}"
+        ))
+    })
 }
 
 fn reference_for_model_handle(
@@ -773,6 +930,7 @@ fn viewport_rect_to_asset(viewport: RenderViewportRect) -> SceneViewportRectAsse
 fn camera_to_asset(
     project: &ProjectManager,
     camera: CameraComponent,
+    post_process_settings: Option<ScenePostProcessSettingsAsset>,
 ) -> Result<SceneCameraAsset, SceneProjectError> {
     Ok(SceneCameraAsset {
         projection_mode: camera.projection_mode,
@@ -788,7 +946,249 @@ fn camera_to_asset(
         exposure_ev100: camera.exposure_ev100,
         clear_color: camera.clear_color,
         msaa_samples: camera.msaa_samples,
+        post_process_settings,
     })
+}
+
+fn post_process_settings_from_asset(
+    settings: ScenePostProcessSettingsAsset,
+) -> PostProcessSettingsComponent {
+    PostProcessSettingsComponent::from_parts(
+        bloom_from_asset(settings.bloom),
+        color_grading_from_asset(settings.color_grading),
+        effect_stack_from_asset(settings.effect_stack),
+    )
+}
+
+fn post_process_settings_to_asset(
+    settings: PostProcessSettingsComponent,
+) -> ScenePostProcessSettingsAsset {
+    ScenePostProcessSettingsAsset {
+        bloom: bloom_to_asset(settings.bloom),
+        color_grading: color_grading_to_asset(settings.color_grading),
+        effect_stack: effect_stack_to_asset(settings.effect_stack),
+    }
+}
+
+fn post_process_volume_from_asset(
+    volume: ScenePostProcessVolumeAsset,
+) -> PostProcessVolumeComponent {
+    PostProcessVolumeComponent {
+        active: volume.active,
+        is_global: volume.is_global,
+        priority: volume.priority,
+        weight: volume.weight,
+        blend_distance: volume.blend_distance,
+        profile: volume_profile_from_asset(volume.profile),
+    }
+}
+
+fn post_process_volume_to_asset(volume: PostProcessVolumeComponent) -> ScenePostProcessVolumeAsset {
+    ScenePostProcessVolumeAsset {
+        active: volume.active,
+        is_global: volume.is_global,
+        priority: volume.priority,
+        weight: volume.weight,
+        blend_distance: volume.blend_distance,
+        profile: volume_profile_to_asset(volume.profile),
+    }
+}
+
+fn volume_profile_from_asset(
+    profile: ScenePostProcessVolumeProfileAsset,
+) -> RenderPostProcessVolumeProfile {
+    RenderPostProcessVolumeProfile {
+        bloom: profile.bloom.map(bloom_from_asset),
+        color_grading: profile.color_grading.map(color_grading_from_asset),
+        effect_stack: profile.effect_stack.map(effect_stack_from_asset),
+    }
+}
+
+fn volume_profile_to_asset(
+    profile: RenderPostProcessVolumeProfile,
+) -> ScenePostProcessVolumeProfileAsset {
+    ScenePostProcessVolumeProfileAsset {
+        bloom: profile.bloom.map(bloom_to_asset),
+        color_grading: profile.color_grading.map(color_grading_to_asset),
+        effect_stack: profile.effect_stack.map(effect_stack_to_asset),
+    }
+}
+
+fn bloom_from_asset(settings: SceneBloomSettingsAsset) -> RenderBloomSettings {
+    RenderBloomSettings {
+        threshold: settings.threshold,
+        intensity: settings.intensity,
+        radius: settings.radius,
+    }
+}
+
+fn bloom_to_asset(settings: RenderBloomSettings) -> SceneBloomSettingsAsset {
+    SceneBloomSettingsAsset {
+        threshold: settings.threshold,
+        intensity: settings.intensity,
+        radius: settings.radius,
+    }
+}
+
+fn color_grading_from_asset(
+    settings: SceneColorGradingSettingsAsset,
+) -> RenderColorGradingSettings {
+    RenderColorGradingSettings {
+        exposure: settings.exposure,
+        contrast: settings.contrast,
+        saturation: settings.saturation,
+        gamma: settings.gamma,
+        tint: crate::core::math::Vec3::from_array(settings.tint),
+    }
+}
+
+fn color_grading_to_asset(settings: RenderColorGradingSettings) -> SceneColorGradingSettingsAsset {
+    SceneColorGradingSettingsAsset {
+        exposure: settings.exposure,
+        contrast: settings.contrast,
+        saturation: settings.saturation,
+        gamma: settings.gamma,
+        tint: settings.tint.to_array(),
+    }
+}
+
+fn effect_stack_from_asset(
+    settings: ScenePostProcessEffectStackAsset,
+) -> RenderPostProcessEffectStackSettings {
+    RenderPostProcessEffectStackSettings {
+        tonemap: tonemap_from_asset(settings.tonemap),
+        vignette: vignette_from_asset(settings.vignette),
+        grain: grain_from_asset(settings.grain),
+        dither: dither_from_asset(settings.dither),
+        chromatic_aberration: chromatic_aberration_from_asset(settings.chromatic_aberration),
+        fog: fog_from_asset(settings.fog),
+        ..RenderPostProcessEffectStackSettings::default()
+    }
+}
+
+fn effect_stack_to_asset(
+    settings: RenderPostProcessEffectStackSettings,
+) -> ScenePostProcessEffectStackAsset {
+    ScenePostProcessEffectStackAsset {
+        tonemap: tonemap_to_asset(settings.tonemap),
+        vignette: vignette_to_asset(settings.vignette),
+        grain: grain_to_asset(settings.grain),
+        dither: dither_to_asset(settings.dither),
+        chromatic_aberration: chromatic_aberration_to_asset(settings.chromatic_aberration),
+        fog: fog_to_asset(settings.fog),
+    }
+}
+
+fn tonemap_from_asset(settings: SceneTonemapSettingsAsset) -> RenderTonemapSettings {
+    RenderTonemapSettings {
+        operator: tonemap_operator_from_asset(settings.operator),
+        exposure_bias: settings.exposure_bias,
+        white_point: settings.white_point,
+    }
+}
+
+fn tonemap_to_asset(settings: RenderTonemapSettings) -> SceneTonemapSettingsAsset {
+    SceneTonemapSettingsAsset {
+        operator: tonemap_operator_to_asset(settings.operator),
+        exposure_bias: settings.exposure_bias,
+        white_point: settings.white_point,
+    }
+}
+
+fn tonemap_operator_from_asset(operator: SceneTonemapOperatorAsset) -> RenderTonemapOperator {
+    match operator {
+        SceneTonemapOperatorAsset::None => RenderTonemapOperator::None,
+        SceneTonemapOperatorAsset::Reinhard => RenderTonemapOperator::Reinhard,
+        SceneTonemapOperatorAsset::Aces => RenderTonemapOperator::Aces,
+        SceneTonemapOperatorAsset::Filmic => RenderTonemapOperator::Filmic,
+    }
+}
+
+fn tonemap_operator_to_asset(operator: RenderTonemapOperator) -> SceneTonemapOperatorAsset {
+    match operator {
+        RenderTonemapOperator::None => SceneTonemapOperatorAsset::None,
+        RenderTonemapOperator::Reinhard => SceneTonemapOperatorAsset::Reinhard,
+        RenderTonemapOperator::Aces => SceneTonemapOperatorAsset::Aces,
+        RenderTonemapOperator::Filmic => SceneTonemapOperatorAsset::Filmic,
+    }
+}
+
+fn vignette_from_asset(settings: SceneVignetteSettingsAsset) -> RenderVignetteSettings {
+    RenderVignetteSettings {
+        intensity: settings.intensity,
+        smoothness: settings.smoothness,
+        roundness: settings.roundness,
+    }
+}
+
+fn vignette_to_asset(settings: RenderVignetteSettings) -> SceneVignetteSettingsAsset {
+    SceneVignetteSettingsAsset {
+        intensity: settings.intensity,
+        smoothness: settings.smoothness,
+        roundness: settings.roundness,
+    }
+}
+
+fn grain_from_asset(settings: SceneFilmGrainSettingsAsset) -> RenderFilmGrainSettings {
+    RenderFilmGrainSettings {
+        intensity: settings.intensity,
+        response: settings.response,
+    }
+}
+
+fn grain_to_asset(settings: RenderFilmGrainSettings) -> SceneFilmGrainSettingsAsset {
+    SceneFilmGrainSettingsAsset {
+        intensity: settings.intensity,
+        response: settings.response,
+    }
+}
+
+fn dither_from_asset(settings: SceneDitherSettingsAsset) -> RenderDitherSettings {
+    RenderDitherSettings {
+        intensity: settings.intensity,
+        scale: settings.scale,
+    }
+}
+
+fn dither_to_asset(settings: RenderDitherSettings) -> SceneDitherSettingsAsset {
+    SceneDitherSettingsAsset {
+        intensity: settings.intensity,
+        scale: settings.scale,
+    }
+}
+
+fn chromatic_aberration_from_asset(
+    settings: SceneChromaticAberrationSettingsAsset,
+) -> RenderChromaticAberrationSettings {
+    RenderChromaticAberrationSettings {
+        intensity: settings.intensity,
+        sample_spread: settings.sample_spread,
+    }
+}
+
+fn chromatic_aberration_to_asset(
+    settings: RenderChromaticAberrationSettings,
+) -> SceneChromaticAberrationSettingsAsset {
+    SceneChromaticAberrationSettingsAsset {
+        intensity: settings.intensity,
+        sample_spread: settings.sample_spread,
+    }
+}
+
+fn fog_from_asset(settings: SceneFogSettingsAsset) -> RenderFogSettings {
+    RenderFogSettings {
+        density: settings.density,
+        height_falloff: settings.height_falloff,
+        color: crate::core::math::Vec3::from_array(settings.color),
+    }
+}
+
+fn fog_to_asset(settings: RenderFogSettings) -> SceneFogSettingsAsset {
+    SceneFogSettingsAsset {
+        density: settings.density,
+        height_falloff: settings.height_falloff,
+        color: settings.color.to_array(),
+    }
 }
 
 fn collider_shape_from_asset(shape: SceneColliderShapeAsset) -> ColliderShape {

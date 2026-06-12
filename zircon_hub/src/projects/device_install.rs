@@ -2,8 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::error::HubError;
+use crate::state::{DeliveryMessageId, HubMessage, HubMessageId};
 
-use super::local_paths::reject_inside_root;
+use super::local_paths::{cleanup_dir_on_error, create_owned_dir, reject_inside_root};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInstallRequest {
@@ -30,10 +31,20 @@ pub fn install_package_to_device(
     request: &DeviceInstallRequest,
 ) -> Result<DeviceInstallReport, HubError> {
     if request.package_dir.as_os_str().is_empty() || !request.package_dir.is_dir() {
-        return Err(HubError::message("Package directory is not available"));
+        return Err(HubError::status(
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::PackageDirectoryUnavailable,
+            )),
+            None,
+        ));
     }
     if request.device_root.as_os_str().is_empty() {
-        return Err(HubError::message("Device install directory is required"));
+        return Err(HubError::status(
+            HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::DeviceInstallRequired,
+            )),
+            None,
+        ));
     }
 
     reject_device_inside_package(&request.package_dir, &request.device_root)?;
@@ -42,26 +53,29 @@ pub fn install_package_to_device(
     let install_dir = request
         .device_root
         .join(package_install_name(&request.package_dir));
-    if install_dir.exists() {
-        return Err(HubError::message(format!(
-            "Device install already exists: {}",
-            install_dir.to_string_lossy()
-        )));
-    }
-    fs::create_dir_all(&install_dir)?;
-    let files_copied = copy_directory_tree(&request.package_dir, &install_dir)?;
+    create_owned_dir(&install_dir, || {
+        HubMessage::with_params(
+            HubMessageId::Delivery(DeliveryMessageId::DeviceInstallAlreadyExists),
+            [install_dir.to_string_lossy().into_owned()],
+        )
+    })?;
+    let result = copy_directory_tree(&request.package_dir, &install_dir).map(|files_copied| {
+        DeviceInstallReport {
+            install_dir: install_dir.clone(),
+            files_copied,
+        }
+    });
 
-    Ok(DeviceInstallReport {
-        install_dir,
-        files_copied,
-    })
+    cleanup_dir_on_error(&install_dir, result)
 }
 
 fn reject_device_inside_package(package_dir: &Path, device_root: &Path) -> Result<(), HubError> {
     reject_inside_root(
         package_dir,
         device_root,
-        "Device install directory must be outside the package directory",
+        HubMessage::new(HubMessageId::Delivery(
+            DeliveryMessageId::DeviceInstallOutsidePackage,
+        )),
     )
 }
 
@@ -153,6 +167,30 @@ mod tests {
         );
 
         fs::remove_dir_all(package).unwrap();
+    }
+
+    #[test]
+    fn install_package_to_device_rejects_existing_install_dir_without_modifying_it() {
+        let package = temp_dir("device-package-existing-install");
+        let device = temp_dir("device-root-existing-install");
+        fs::write(package.join("zircon-package.toml"), "files_copied = 1").unwrap();
+        let install_dir = device.join(package.file_name().unwrap());
+        fs::create_dir_all(&install_dir).unwrap();
+        fs::write(install_dir.join("keep.txt"), "keep").unwrap();
+
+        let error =
+            install_package_to_device(&DeviceInstallRequest::new(&package, &device)).unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("Device install already exists: "));
+        assert_eq!(
+            fs::read_to_string(install_dir.join("keep.txt")).unwrap(),
+            "keep"
+        );
+
+        fs::remove_dir_all(package).unwrap();
+        fs::remove_dir_all(device).unwrap();
     }
 
     fn temp_dir(label: &str) -> PathBuf {

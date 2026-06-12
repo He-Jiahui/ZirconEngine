@@ -27,6 +27,9 @@ zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 [dev-dependencies]
 crossbeam-channel.workspace = true
 
+[build-dependencies]
+toml.workspace = true
+
 [features]
 default = []
 integration-contracts = []

@@ -5,7 +5,7 @@ use crate::core::framework::scene::EntityId;
 use crate::core::math::{Transform, Vec2, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
 
-use super::{RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteRect};
+use super::{RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteImageMode, RenderSpriteRect};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderSpriteSnapshot {
@@ -19,6 +19,8 @@ pub struct RenderSpriteSnapshot {
     pub flip_y: bool,
     pub anchor: RenderSpriteAnchor,
     pub custom_size: Option<Vec2>,
+    #[serde(default)]
+    pub image_mode: RenderSpriteImageMode,
     pub color: Vec4,
     pub z_order: i32,
     pub render_layer_mask: u32,

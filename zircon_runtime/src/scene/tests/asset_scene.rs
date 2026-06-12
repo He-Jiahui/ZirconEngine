@@ -2,7 +2,8 @@ use std::fs;
 
 use crate::asset::{
     AssetReference, AssetUri, SceneAsset, SceneCameraTargetAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TransformAsset,
+    SceneMeshInstanceAsset, SceneMeshLodLevelAsset, SceneMeshPrimitiveBindingAsset,
+    SceneMobilityAsset, SceneScriptBindingAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
@@ -17,6 +18,9 @@ use crate::scene::components::{
 use crate::scene::components::NodeKind;
 use crate::scene::world::World;
 
+use super::authoring_boundary::{
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+};
 use super::support::{
     create_test_project, project_animation_clip_handle, project_animation_graph_handle,
     project_animation_sequence_handle, project_animation_skeleton_handle,
@@ -55,6 +59,7 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
     assert!(mesh.primitives.is_empty());
 
     let saved = world.to_scene_asset(&project).unwrap();
+    assert_scene_asset_excludes_authoring_tokens("scene asset JSON", &saved);
     let saved_mesh = saved
         .entities
         .iter()
@@ -137,10 +142,21 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
                 model: asset_reference("res://models/triangle.obj"),
                 mesh: None,
                 material: asset_reference("res://materials/grid.zmaterial"),
+                render_queue: 2_450,
+                material_queue: -12,
+                order_in_layer: 12,
+                depth_bias: -0.5,
                 morph_weights: vec![0.25, 1.0],
                 primitives: vec![SceneMeshPrimitiveBindingAsset {
                     mesh: asset_reference("res://meshes/triangle.zmesh"),
                     material: asset_reference("res://materials/grid.zmaterial"),
+                }],
+                lods: vec![SceneMeshLodLevelAsset {
+                    min_distance: 18.0,
+                    model: asset_reference("res://models/triangle.obj"),
+                    mesh: Some(asset_reference("res://meshes/triangle.zmesh")),
+                    material: asset_reference("res://materials/grid.zmaterial"),
+                    primitives: Vec::new(),
                 }],
             }),
             ambient_light: None,
@@ -148,6 +164,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
             point_light: None,
             rect_light: None,
             spot_light: None,
+            post_process_volume: None,
             rigid_body: None,
             collider: None,
             joint: None,
@@ -159,6 +176,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            script_bindings: Vec::new(),
         }],
     };
 
@@ -169,6 +187,10 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
         .find(|node| matches!(node.kind, NodeKind::Mesh))
         .unwrap();
     let mesh = mesh_node.mesh.as_ref().unwrap();
+    assert_eq!(mesh.render_queue, 2_450);
+    assert_eq!(mesh.material_queue, -12);
+    assert_eq!(mesh.order_in_layer, 12);
+    assert_eq!(mesh.depth_bias, -0.5);
     assert_eq!(mesh.morph_weights, vec![0.25, 1.0]);
     assert_eq!(mesh.primitives.len(), 1);
     assert_eq!(
@@ -177,6 +199,20 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
     );
     assert_eq!(
         mesh.primitives[0].material,
+        project_material_handle(&project, "res://materials/grid.zmaterial")
+    );
+    assert_eq!(mesh.lods.len(), 1);
+    assert_eq!(mesh.lods[0].min_distance, 18.0);
+    assert_eq!(
+        mesh.lods[0].model,
+        project_model_handle(&project, "res://models/triangle.obj")
+    );
+    assert_eq!(
+        mesh.lods[0].mesh,
+        Some(project_mesh_handle(&project, "res://meshes/triangle.zmesh"))
+    );
+    assert_eq!(
+        mesh.lods[0].material,
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
 
@@ -193,6 +229,10 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
 
     let saved = world.to_scene_asset(&project).unwrap();
     let saved_mesh = saved.entities[0].mesh.as_ref().unwrap();
+    assert_eq!(saved_mesh.render_queue, 2_450);
+    assert_eq!(saved_mesh.material_queue, -12);
+    assert_eq!(saved_mesh.order_in_layer, 12);
+    assert_eq!(saved_mesh.depth_bias, -0.5);
     assert_eq!(saved_mesh.morph_weights, vec![0.25, 1.0]);
     let saved_binding = &saved_mesh.primitives[0];
     assert_eq!(
@@ -203,6 +243,169 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
         saved_binding.material.to_string(),
         "res://materials/grid.zmaterial"
     );
+    let saved_lod = &saved_mesh.lods[0];
+    assert_eq!(saved_lod.min_distance, 18.0);
+    assert_eq!(saved_lod.model.to_string(), "res://models/triangle.obj");
+    assert_eq!(
+        saved_lod.mesh.as_ref().map(ToString::to_string),
+        Some("res://meshes/triangle.zmesh".to_string())
+    );
+    assert_eq!(
+        saved_lod.material.to_string(),
+        "res://materials/grid.zmaterial"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_keep_script_only_entities_as_empty_nodes() {
+    let root = unique_temp_project_root("scene_script_bindings");
+    let project = create_test_project(&root);
+    let scene = SceneAsset {
+        entities: vec![SceneEntityAsset {
+            entity: 90,
+            name: "Player".to_string(),
+            parent: None,
+            transform: TransformAsset::default(),
+            active: true,
+            render_layer_mask: 0x0000_0001,
+            mobility: SceneMobilityAsset::Dynamic,
+            camera: None,
+            mesh: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            post_process_volume: None,
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+            terrain: None,
+            tilemap: None,
+            prefab_instance: None,
+            script_bindings: vec![SceneScriptBindingAsset {
+                package: "vampire_game".to_string(),
+                module: "player".to_string(),
+                enabled: true,
+                update: true,
+                fixed_update: false,
+                properties: std::collections::BTreeMap::new(),
+            }],
+        }],
+    };
+
+    let world = World::from_scene_asset(&project, &scene).unwrap();
+    let player = world
+        .nodes()
+        .iter()
+        .find(|node| node.name == "Player")
+        .unwrap();
+
+    assert!(matches!(player.kind, NodeKind::Empty));
+    assert!(world.dynamic_component(90, "script.bindings").is_some());
+    assert_eq!(world.to_scene_asset(&project).unwrap(), scene);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_keep_transform_only_hierarchy_nodes() {
+    let root = unique_temp_project_root("scene_empty_hierarchy");
+    let project = create_test_project(&root);
+    let scene = SceneAsset {
+        entities: vec![
+            SceneEntityAsset {
+                entity: 10,
+                name: "ActorRoot".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: None,
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+            SceneEntityAsset {
+                entity: 11,
+                name: "ActorMesh".to_string(),
+                parent: Some(10),
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: None,
+                mesh: Some(SceneMeshInstanceAsset {
+                    model: asset_reference("res://models/triangle.obj"),
+                    mesh: Some(asset_reference("res://meshes/triangle.zmesh")),
+                    material: asset_reference("res://materials/grid.zmaterial"),
+                    render_queue: 0,
+                    material_queue: 0,
+                    order_in_layer: 0,
+                    depth_bias: 0.0,
+                    morph_weights: Vec::new(),
+                    primitives: Vec::new(),
+                    lods: Vec::new(),
+                }),
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+        ],
+    };
+
+    let world = World::from_scene_asset(&project, &scene).unwrap();
+    let root_node = world.find_node(10).expect("transform-only root node");
+    assert!(matches!(root_node.kind, NodeKind::Empty));
+    assert_eq!(world.parent_of(11), Some(10));
+    let saved = world.to_scene_asset(&project).unwrap();
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 10 && entity.mesh.is_none()));
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 11 && entity.parent == Some(10)));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -484,4 +687,9 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
 
 fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+fn assert_scene_asset_excludes_authoring_tokens(label: &str, scene: &SceneAsset) {
+    let serialized = serde_json::to_string(scene).expect("scene asset should serialize");
+    assert_text_excludes_authoring_tokens(label, &serialized, SERIALIZED_AUTHORING_TOKENS);
 }

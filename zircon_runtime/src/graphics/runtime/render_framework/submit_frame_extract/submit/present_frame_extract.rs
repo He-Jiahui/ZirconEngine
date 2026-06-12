@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
 };
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::super::graphics_debugger_capture::{
     begin_graphics_debugger_capture, fail_pending_graphics_debugger_capture,
@@ -27,11 +28,20 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
     viewport: RenderViewportHandle,
     extract: RenderFrameExtract,
 ) -> Result<(), RenderFrameworkError> {
+    present_frame_extract_with_ui(framework, viewport, extract, None)
+}
+
+pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with_ui(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+    ui: Option<UiRenderExtract>,
+) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "present_frame_extract");
     let _operation_guard = framework.lock_operation();
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
-        match build_frame_submission_context(framework, viewport, &extract, None) {
+        match build_frame_submission_context(framework, viewport, &extract, ui.as_ref()) {
             Ok(context) => context,
             Err(error) => {
                 fail_pending_capture_after_preflight_error(framework, viewport, &error);
@@ -66,7 +76,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = build_runtime_frame(extract, None, &context, &prepared);
+    let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
     state.last_virtual_geometry_debug_snapshot =
         runtime_frame.virtual_geometry_debug_snapshot.clone();
 
@@ -99,6 +109,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
             renderer.present_frame_with_pipeline(
                 &runtime_frame,
                 context.compiled_pipeline(),
+                context.capabilities(),
                 resolved_history.current_history_handle(),
                 resolved_history.previous_history_available(),
                 surface_lease.value_mut(),

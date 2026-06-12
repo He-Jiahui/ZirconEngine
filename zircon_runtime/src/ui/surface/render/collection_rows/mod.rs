@@ -25,6 +25,12 @@ pub(super) fn collection_row_suppresses_owner_image(
     metadata.is_some_and(|metadata| collection_row_kind(metadata).is_some())
 }
 
+pub(super) fn collection_row_suppresses_owner_surface(
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> bool {
+    metadata.is_some_and(|metadata| collection_row_kind(metadata).is_some())
+}
+
 pub(super) fn collection_row_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,

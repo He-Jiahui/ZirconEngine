@@ -1,7 +1,6 @@
 mod asset_importer;
-#[cfg(test)]
 mod generate_normals;
-#[cfg(test)]
+mod gltf_animation_subassets;
 mod gltf_labeled_subassets;
 mod import_animation_asset;
 mod import_authoring_asset;
@@ -9,7 +8,6 @@ mod import_cube_lut;
 mod import_data_asset;
 mod import_font_asset;
 mod import_from_source;
-#[cfg(test)]
 mod import_gltf;
 mod import_material;
 mod import_mesh;
@@ -22,10 +20,11 @@ mod import_shader;
 mod import_shader_package;
 #[cfg(test)]
 mod import_sound;
-#[cfg(test)]
 mod import_texture;
 #[cfg(test)]
 mod import_ui_asset;
+mod import_ui_icon_asset;
+mod import_ui_theme_asset;
 #[cfg(test)]
 mod import_ui_v2_asset;
 mod import_ui_zui_asset;

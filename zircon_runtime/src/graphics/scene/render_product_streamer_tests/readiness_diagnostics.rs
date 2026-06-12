@@ -365,6 +365,8 @@ fn render_product_streamer_reports_shader_material_contract_diagnostics() {
         MaterialTextureSlotValue {
             reference: None,
             fallback: Some("white".to_string()),
+            transform: None,
+            uv_channel: 0,
         },
     );
     material.texture_slots.insert(
@@ -372,6 +374,8 @@ fn render_product_streamer_reports_shader_material_contract_diagnostics() {
         MaterialTextureSlotValue {
             reference: None,
             fallback: Some("black".to_string()),
+            transform: None,
+            uv_channel: 0,
         },
     );
     asset_manager

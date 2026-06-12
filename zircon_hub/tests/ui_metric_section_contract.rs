@@ -89,10 +89,20 @@ fn metric_card_owns_shared_card_tone_icon_and_text_layout() {
 #[test]
 fn project_detail_uses_four_metric_cards_then_collapses_responsively() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
 
     assert_contains_all(
         "ProjectDetailPage.tsx",
         &detail,
+        &[
+            "ProjectMetricsGrid",
+            "project={project}",
+            "boundEngine={boundEngine}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
         &[
             "MetricCard",
             "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",

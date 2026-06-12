@@ -27,7 +27,7 @@ impl World {
         self.register_stable_entity(entity)
             .expect("reserved scene entity must have a unique stable id");
         self.entities.push(entity);
-        self.kinds.insert(entity, NodeKind::Mesh);
+        self.kinds.insert(entity, NodeKind::Empty);
         self.refresh_stable_entity_locations();
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
@@ -74,42 +74,50 @@ impl World {
     }
 
     pub fn contains_component_id(&self, entity: EntityId, component_id: ComponentId) -> bool {
-        self.internal_entity(entity)
-            .is_some_and(|internal| self.component_storage.contains(component_id, internal))
+        let Some(internal) = self.internal_entity(entity) else {
+            return false;
+        };
+
+        self.component_storage.contains(component_id, internal)
     }
 
     pub fn contains_component<T>(&self, entity: EntityId) -> bool
     where
         T: Component,
     {
-        self.registered_component_id::<T>()
-            .is_some_and(|component_id| self.contains_component_id(entity, component_id))
+        let Some(component_id) = self.registered_component_id::<T>() else {
+            return false;
+        };
+
+        self.contains_component_id(entity, component_id)
     }
 
     pub fn is_component_added<T>(&self, entity: EntityId) -> bool
     where
         T: Component,
     {
-        self.component_change_ticks::<T>(entity)
-            .is_some_and(|ticks| {
-                ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
-                    self.last_change_tick(),
-                    self.read_change_tick(),
-                ))
-            })
+        let Some(ticks) = self.component_change_ticks::<T>(entity) else {
+            return false;
+        };
+
+        ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
+            self.last_change_tick(),
+            self.read_change_tick(),
+        ))
     }
 
     pub fn is_component_changed<T>(&self, entity: EntityId) -> bool
     where
         T: Component,
     {
-        self.component_change_ticks::<T>(entity)
-            .is_some_and(|ticks| {
-                ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
-                    self.last_change_tick(),
-                    self.read_change_tick(),
-                ))
-            })
+        let Some(ticks) = self.component_change_ticks::<T>(entity) else {
+            return false;
+        };
+
+        ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
+            self.last_change_tick(),
+            self.read_change_tick(),
+        ))
     }
 
     pub fn insert<T>(&mut self, entity: EntityId, component: T) -> Result<Option<T>, String>
@@ -129,10 +137,16 @@ impl World {
         let internal = self
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
-        let old = self
-            .component_storage
-            .insert_at_tick(component_id, T::STORAGE_TYPE, internal, component, tick)
-            .map_err(|error| error.to_string())?;
+        let old = match self.component_storage.insert_at_tick(
+            component_id,
+            T::STORAGE_TYPE,
+            internal,
+            component,
+            tick,
+        ) {
+            Ok(old) => old,
+            Err(error) => return Err(error.to_string()),
+        };
 
         self.mark_component_mutation::<T>();
         if !was_present {
@@ -191,22 +205,23 @@ impl World {
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
         if self.is_fixed_component_type::<T>() {
-            if component_id
-                .is_some_and(|component_id| self.contains_component_id(entity, component_id))
-            {
-                self.trigger_component_lifecycle(
-                    LifecycleEventKind::Remove,
-                    entity,
-                    component_id.expect("checked component id must be present"),
-                );
+            if let Some(component_id) = component_id {
+                if self.contains_component_id(entity, component_id) {
+                    self.trigger_component_lifecycle(
+                        LifecycleEventKind::Remove,
+                        entity,
+                        component_id,
+                    );
+                }
             }
             let removed = self.remove_fixed_component_value::<T>(entity);
             let mut removed_from_storage = false;
             if let Some(component_id) = component_id {
                 removed_from_storage = self.component_storage.contains(component_id, internal);
-                self.component_storage
-                    .remove::<T>(component_id, internal)
-                    .map_err(|error| error.to_string())?;
+                match self.component_storage.remove::<T>(component_id, internal) {
+                    Ok(_) => {}
+                    Err(error) => return Err(error.to_string()),
+                }
             }
             if removed.is_some() {
                 self.record_removed_component::<T>(entity);
@@ -224,11 +239,11 @@ impl World {
         if self.contains_component_id(entity, component_id) {
             self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, component_id);
         }
-        let removed = self
-            .component_storage
-            .remove::<T>(component_id, internal)
-            .map_err(|error| error.to_string())?
-            .map(|ComponentRemoveResult { value, .. }| value);
+        let removed = match self.component_storage.remove::<T>(component_id, internal) {
+            Ok(Some(ComponentRemoveResult { value, .. })) => Some(value),
+            Ok(None) => None,
+            Err(error) => return Err(error.to_string()),
+        };
         if removed.is_some() {
             self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>();
@@ -263,24 +278,28 @@ impl World {
     where
         T: Resource,
     {
-        self.resource_change_ticks::<T>().is_some_and(|ticks| {
-            ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
-                self.last_change_tick(),
-                self.read_change_tick(),
-            ))
-        })
+        let Some(ticks) = self.resource_change_ticks::<T>() else {
+            return false;
+        };
+
+        ticks.is_added(crate::scene::ecs::ChangeTickWindow::new(
+            self.last_change_tick(),
+            self.read_change_tick(),
+        ))
     }
 
     pub fn is_resource_changed<T>(&self) -> bool
     where
         T: Resource,
     {
-        self.resource_change_ticks::<T>().is_some_and(|ticks| {
-            ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
-                self.last_change_tick(),
-                self.read_change_tick(),
-            ))
-        })
+        let Some(ticks) = self.resource_change_ticks::<T>() else {
+            return false;
+        };
+
+        ticks.is_changed(crate::scene::ecs::ChangeTickWindow::new(
+            self.last_change_tick(),
+            self.read_change_tick(),
+        ))
     }
 
     pub fn insert_resource<T>(&mut self, resource: T) -> Option<T>
@@ -296,12 +315,14 @@ impl World {
     where
         T: Resource,
     {
-        self.get_resource::<T>().unwrap_or_else(|| {
+        let Some(resource) = self.get_resource::<T>() else {
             panic!(
                 "requested missing scene resource {}",
                 std::any::type_name::<T>()
-            )
-        })
+            );
+        };
+
+        resource
     }
 
     pub fn get_resource<T>(&self) -> Option<&T>
@@ -315,20 +336,25 @@ impl World {
     where
         T: Resource,
     {
-        self.get_resource_mut::<T>().unwrap_or_else(|| {
+        let Some(resource) = self.get_resource_mut::<T>() else {
             panic!(
                 "requested missing scene resource {}",
                 std::any::type_name::<T>()
-            )
-        })
+            );
+        };
+
+        resource
     }
 
     pub fn get_resource_mut<T>(&mut self) -> Option<&mut T>
     where
         T: Resource,
     {
-        self.resource_mut_with_ticks::<T>()
-            .map(|(resource, _ticks)| resource)
+        let Some((resource, _ticks)) = self.resource_mut_with_ticks::<T>() else {
+            return None;
+        };
+
+        Some(resource)
     }
 
     pub fn remove_resource<T>(&mut self) -> Option<T>
@@ -369,16 +395,16 @@ impl World {
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
         let tick = self.mutation_change_tick();
-        let old = self
-            .component_storage
-            .insert_at_tick(
-                component_id,
-                crate::scene::ecs::StorageType::SparseSet,
-                internal,
-                DynamicComponentPresence,
-                tick,
-            )
-            .map_err(|error| error.to_string())?;
+        let old = match self.component_storage.insert_at_tick(
+            component_id,
+            crate::scene::ecs::StorageType::SparseSet,
+            internal,
+            DynamicComponentPresence,
+            tick,
+        ) {
+            Ok(old) => old,
+            Err(error) => return Err(error.to_string()),
+        };
         if old.is_none() {
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
@@ -400,10 +426,13 @@ impl World {
         let Some(internal) = self.internal_entity(entity) else {
             return Ok(());
         };
-        let removed = self
+        let removed = match self
             .component_storage
             .remove::<DynamicComponentPresence>(component_id, internal)
-            .map_err(|error| error.to_string())?;
+        {
+            Ok(removed) => removed,
+            Err(error) => return Err(error.to_string()),
+        };
         if removed.is_some() {
             self.refresh_entity_archetype(entity);
             self.bump_query_cache_revision();
@@ -415,16 +444,35 @@ impl World {
         self.component_registry = Default::default();
         self.component_storage = Default::default();
         self.archetype_index = Default::default();
-        for entity in self.entities.clone() {
+        let mut dynamic_component_type_ids = Vec::new();
+        for entity_index in 0..self.entities.len() {
+            let entity = self.entities[entity_index];
             self.rebuild_fixed_component_presence_for_entity(entity);
-            if let Some(components) = self.dynamic_components.get(&entity).cloned() {
-                for component_type_id in components.keys() {
-                    let _ = self.insert_dynamic_component_presence(entity, component_type_id);
-                }
+            self.dynamic_component_type_ids_for_presence_rebuild(
+                entity,
+                &mut dynamic_component_type_ids,
+            );
+            for component_type_id in &dynamic_component_type_ids {
+                let _ = self.insert_dynamic_component_presence(entity, component_type_id);
             }
         }
         self.rebuild_archetype_index();
         self.mark_derived_state_dirty();
+    }
+
+    fn dynamic_component_type_ids_for_presence_rebuild(
+        &self,
+        entity: EntityId,
+        output: &mut Vec<String>,
+    ) {
+        output.clear();
+        let Some(components) = self.dynamic_components.get(&entity) else {
+            return;
+        };
+        output.reserve(components.len());
+        for component_type_id in components.keys() {
+            output.push(component_type_id.clone());
+        }
     }
 
     fn mark_component_mutation<T>(&mut self)

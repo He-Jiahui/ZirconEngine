@@ -72,7 +72,41 @@ fn keyboard_button_name(key_code: u32) -> Option<&'static str> {
         16 => Some("Shift"),
         17 => Some("Control"),
         18 => Some("Alt"),
+        48 => Some("0"),
+        49 => Some("1"),
+        50 => Some("2"),
+        51 => Some("3"),
+        52 => Some("4"),
+        53 => Some("5"),
+        54 => Some("6"),
+        55 => Some("7"),
+        56 => Some("8"),
+        57 => Some("9"),
+        65 => Some("A"),
+        68 => Some("D"),
+        83 => Some("S"),
+        87 => Some("W"),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::keyboard_logical_key;
+
+    #[test]
+    fn keyboard_logical_key_maps_wasd_runtime_key_codes_for_gameplay_scripts() {
+        assert_eq!(keyboard_logical_key(87, None), Some("W".to_string()));
+        assert_eq!(keyboard_logical_key(65, None), Some("A".to_string()));
+        assert_eq!(keyboard_logical_key(83, None), Some("S".to_string()));
+        assert_eq!(keyboard_logical_key(68, None), Some("D".to_string()));
+    }
+
+    #[test]
+    fn keyboard_logical_key_maps_digit_runtime_key_codes_for_choice_inputs() {
+        assert_eq!(keyboard_logical_key(49, None), Some("1".to_string()));
+        assert_eq!(keyboard_logical_key(50, None), Some("2".to_string()));
+        assert_eq!(keyboard_logical_key(51, None), Some("3".to_string()));
     }
 }
 

@@ -1,4 +1,5 @@
 use super::scene_renderer_advanced_plugin_resources::SceneRendererAdvancedPluginResources;
+use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{build_mesh_draws, BuiltMeshDraws};
 use crate::graphics::types::ViewportRenderFrame;
@@ -7,8 +8,10 @@ impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn build_mesh_draws(
         &self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
-        model_layout: &wgpu::BindGroupLayout,
+        material_texture_layout: &wgpu::BindGroupLayout,
+        gpu_scene: &mut GpuScene,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         virtual_geometry_enabled: bool,
@@ -16,8 +19,10 @@ impl SceneRendererAdvancedPluginResources {
         let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
         build_mesh_draws(
             device,
+            queue,
             encoder,
-            model_layout,
+            material_texture_layout,
+            gpu_scene,
             streamer,
             frame,
             virtual_geometry_enabled,

@@ -25,6 +25,8 @@ TARGETS = ("hub", "editor", "runtime", "plugins")
 MODES = ("debug", "release")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
 ENGINE_DIR_NAME = "ZirconEngine"
+HUB_TAURI_BUNDLE_TARGET = "nsis"
+HUB_INSTALLERS_DIR_NAME = "installers"
 PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"
 ENGINE_ASSET_ROOTS = (
     Path("zircon_editor") / "assets",
@@ -32,6 +34,10 @@ ENGINE_ASSET_ROOTS = (
 )
 UI_ASSET_SUFFIX = ".ui.toml"
 UI_V2_ASSET_SUFFIX = ".v2.ui.toml"
+UI_COMPILED_ARTIFACT_CACHE_ENV = "ZIRCON_UI_COMPILED_ARTIFACT_CACHE"
+UI_COMPILED_ARTIFACT_CACHE_ROOT = Path(".zircon") / "ui" / "compiled_artifacts"
+UI_COMPILED_ARTIFACT_STAGE_ROOT = Path("ui") / "compiled_artifacts"
+UI_COMPILED_ARTIFACT_SUFFIXES = (".zuiart", ".zuicache")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -475,21 +481,101 @@ def build(config: BuildConfig) -> None:
 
 def build_hub(config: BuildConfig) -> None:
     target_dir = config.targets_root / "hub"
-    run_cargo(
-        config,
-        [
-            "build",
-            "-p",
-            "zircon_hub",
-            "--bin",
-            "zircon_hub",
-            "--target-dir",
-            str(target_dir),
-        ],
+    run_tauri_build(config, target_dir)
+    stage_hub_tauri_outputs(config, target_dir)
+
+
+def tauri_cli_path(config: BuildConfig) -> Path:
+    cli_path = (
+        config.repo_root
+        / "zircon_hub"
+        / "node_modules"
+        / "@tauri-apps"
+        / "cli"
+        / "tauri.js"
     )
+    if not cli_path.exists():
+        raise SystemExit(
+            "Tauri CLI is missing. Run npm install in zircon_hub before "
+            f"building the Hub bundle: {cli_path}"
+        )
+    return cli_path
+
+
+def run_tauri_build(config: BuildConfig, target_dir: Path) -> None:
+    command = [
+        "node",
+        str(tauri_cli_path(config)),
+        "build",
+        "--runner",
+        config.cargo,
+        "--bundles",
+        HUB_TAURI_BUNDLE_TARGET,
+        "--ci",
+        "--no-sign",
+    ]
+    if config.mode == "debug":
+        command.append("--debug")
+
+    runner_args: list[str] = []
+    if config.locked:
+        runner_args.append("--locked")
+    if config.jobs:
+        runner_args.extend(["--jobs", config.jobs])
+    if runner_args:
+        command.append("--")
+        command.extend(runner_args)
+
+    env = os.environ.copy()
+    env["CARGO_TARGET_DIR"] = str(target_dir)
     if config.dry_run:
+        print("DRY-RUN", f"CARGO_TARGET_DIR={target_dir}", quote_command(command))
         return
+    print(f"CARGO_TARGET_DIR={target_dir} {quote_command(command)}")
+    subprocess.run(command, cwd=config.repo_root / "zircon_hub", check=True, env=env)
+
+
+def stage_hub_tauri_outputs(config: BuildConfig, target_dir: Path) -> None:
+    bundle_root = target_dir / config.profile_dir / "bundle" / HUB_TAURI_BUNDLE_TARGET
+    installers_dir = config.engine_root / HUB_INSTALLERS_DIR_NAME
+    if config.dry_run:
+        print(
+            "DRY-RUN copy "
+            f"{target_dir / config.profile_dir / platform_executable_name('zircon_hub')} "
+            f"-> {config.engine_root / platform_executable_name('zircon_hub')}"
+        )
+        print(f"DRY-RUN reset {installers_dir}")
+        print(f"DRY-RUN copytree {bundle_root} -> {installers_dir}")
+        return
+
     copy_artifact(config, target_dir, platform_executable_name("zircon_hub"))
+    stage_hub_tauri_installers(bundle_root, installers_dir, config)
+
+
+def stage_hub_tauri_installers(
+    bundle_root: Path, installers_dir: Path, config: BuildConfig
+) -> None:
+    if not bundle_root.exists() or not bundle_root.is_dir():
+        raise SystemExit(f"Tauri bundle output is missing: {bundle_root}")
+
+    if installers_dir.exists():
+        shutil.rmtree(installers_dir)
+    installers_dir.mkdir(parents=True, exist_ok=True)
+
+    copied = 0
+    for source in sorted(bundle_root.rglob("*")):
+        relative = source.relative_to(bundle_root)
+        destination = installers_dir / relative
+        if source.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
+            continue
+        if not source.is_file():
+            continue
+        copy_file(source, destination, config)
+        copied += 1
+
+    if copied == 0:
+        raise SystemExit(f"Tauri bundle output has no files: {bundle_root}")
 
 
 def build_runtime(
@@ -710,6 +796,7 @@ def stage_engine_assets(config: BuildConfig) -> None:
         skipped = copy_tree_contents(source_root, destination_root, config)
         if skipped:
             print(f"Skipped {skipped} legacy UI schema asset(s) from staged package")
+    stage_ui_compiled_artifacts(config, destination_root)
 
 
 def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildConfig) -> int:
@@ -732,6 +819,42 @@ def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildC
             continue
         copy_asset_file(source, destination, config)
     return skipped
+
+
+def stage_ui_compiled_artifacts(config: BuildConfig, destination_root: Path) -> None:
+    source_root = ui_compiled_artifact_cache_root(config)
+    destination = destination_root / UI_COMPILED_ARTIFACT_STAGE_ROOT
+    if not source_root.exists():
+        if config.dry_run:
+            print(f"DRY-RUN no UI compiled artifact cache found at {source_root}")
+        return
+    if not source_root.is_dir():
+        raise SystemExit(f"UI compiled artifact cache root is not a directory: {source_root}")
+    print(f"Staging UI compiled artifacts {source_root} -> {destination}")
+    copied = 0
+    skipped = 0
+    for source in sorted(source_root.rglob("*")):
+        if not source.is_file():
+            continue
+        if source.suffix not in UI_COMPILED_ARTIFACT_SUFFIXES:
+            skipped += 1
+            if config.dry_run:
+                print(f"DRY-RUN skip non-compiled UI cache payload {source}")
+            continue
+        relative = source.relative_to(source_root)
+        copy_asset_file(source, destination / relative, config)
+        copied += 1
+    if copied:
+        print(f"Staged {copied} UI compiled artifact cache file(s)")
+    if skipped:
+        print(f"Skipped {skipped} non-compiled UI cache file(s)")
+
+
+def ui_compiled_artifact_cache_root(config: BuildConfig) -> Path:
+    override = os.environ.get(UI_COMPILED_ARTIFACT_CACHE_ENV)
+    if override:
+        return Path(override).expanduser()
+    return config.repo_root / UI_COMPILED_ARTIFACT_CACHE_ROOT
 
 
 def should_skip_staged_engine_asset(relative: Path) -> bool:

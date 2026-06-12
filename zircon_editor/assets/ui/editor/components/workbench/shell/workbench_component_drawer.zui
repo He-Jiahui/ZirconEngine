@@ -10,6 +10,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui#WorkbenchCheckbox",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui#WorkbenchPopupMenu",
@@ -319,7 +320,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentInputs"
 classes = ["workbench-panel"]
 layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 214.0, preferred = 214.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "inputs_title" }, { node = "input_text" }, { node = "input_focused" }, { node = "input_disabled" }, { node = "input_dropdown_row" }]
+children = [{ node = "inputs_title" }, { node = "input_search" }, { node = "input_text" }, { node = "input_focused" }, { node = "input_dropdown_row" }]
 
 [nodes.inputs_title]
 component = "WorkbenchSectionTitle"
@@ -344,12 +345,14 @@ props = { value = "Focused input", placeholder = "Focused input", focused = true
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", route = "component_lab.value_changed.input_focused" }, { id = "ComponentLab/InputFocusedCommit", event = "Submit", route = "component_lab.commit.input_focused" }]
 
-[nodes.input_disabled]
-component = "WorkbenchField"
-control_id = "WorkbenchInputDisabled"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "", placeholder = "Disabled input", disabled = true, layout_width = 170.0, disabled_opacity = 0.94 }
+[nodes.input_search]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchInputSearch"
+classes = ["workbench-search-input", "workbench-component-field"]
+props = { query = "", placeholder = "Search components", layout_width = 170.0 }
+widget = { value_property = "query" }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ComponentLab/InputSearchEdit", event = "Change", route = "component_lab.value_changed.input_search" }, { id = "ComponentLab/InputSearchCommit", event = "Submit", route = "component_lab.commit.input_search" }]
 
 [nodes.input_dropdown_row]
 component = "HorizontalGroup"

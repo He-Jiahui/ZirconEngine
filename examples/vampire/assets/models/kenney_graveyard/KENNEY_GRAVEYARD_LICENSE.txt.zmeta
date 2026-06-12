@@ -1,0 +1,24 @@
+format_version = 6
+uuid = "3a9d59a7-1bb4-404e-a2af-808f84d2fce7"
+url = "res://models/kenney_graveyard/KENNEY_GRAVEYARD_LICENSE.txt"
+asset_kind = "Data"
+unit = "single"
+included_files = []
+artifact_locator = "lib://data/30bd6206-89af-a8ab-f781-60aa65b0a0c3.zasset"
+importer_id = "zircon.builtin.data.text"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670018000
+source_hash = "930a414cf3145122"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "3a9d59a7-1bb4-404e-a2af-808f84d2fce7"
+url = "res://models/kenney_graveyard/KENNEY_GRAVEYARD_LICENSE.txt"
+asset_kind = "Data"
+artifact_locator = "lib://data/30bd6206-89af-a8ab-f781-60aa65b0a0c3.zasset"
+dependencies = []

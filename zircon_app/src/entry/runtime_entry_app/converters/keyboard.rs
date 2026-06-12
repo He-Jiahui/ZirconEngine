@@ -17,6 +17,10 @@ pub(in crate::entry::runtime_entry_app) fn physical_key_code(key: &PhysicalKey) 
             KeyCode::ShiftLeft | KeyCode::ShiftRight => 16,
             KeyCode::ControlLeft | KeyCode::ControlRight => 17,
             KeyCode::AltLeft | KeyCode::AltRight => 18,
+            KeyCode::KeyA => u32::from(b'A'),
+            KeyCode::KeyD => u32::from(b'D'),
+            KeyCode::KeyS => u32::from(b'S'),
+            KeyCode::KeyW => u32::from(b'W'),
             _ => stable_key_code(format!("{code:?}").as_bytes()),
         },
         PhysicalKey::Unidentified(native) => native_key_code(native),
@@ -70,6 +74,10 @@ mod tests {
             17
         );
         assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::AltLeft)), 18);
+        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyW)), 87);
+        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyA)), 65);
+        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyS)), 83);
+        assert_eq!(physical_key_code(&PhysicalKey::Code(KeyCode::KeyD)), 68);
         assert_eq!(
             physical_key_code(&PhysicalKey::Unidentified(NativeKeyCode::Xkb(77))),
             77

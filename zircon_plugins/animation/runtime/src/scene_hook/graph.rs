@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use zircon_runtime::animation::sample_clip_events;
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationGraphClipInstance, AnimationGraphEvaluation,
@@ -7,8 +8,6 @@ use zircon_runtime::core::framework::animation::{
 };
 use zircon_runtime::core::math::{Quat, Real, Vec3};
 use zircon_runtime::scene::EntityId;
-
-use crate::clip_event::sample_clip_events;
 
 use super::pending::{PendingGraphPoseSample, PendingPoseSample};
 use super::pose::sample_pose_request;

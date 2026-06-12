@@ -131,8 +131,31 @@ impl AssetImporterRegistry {
             .collect()
     }
 
+    pub fn descriptors_for_plugin(&self, plugin_id: &str) -> Vec<AssetImporterDescriptor> {
+        self.importers
+            .iter()
+            .filter(|importer| importer.descriptor().plugin_id == plugin_id)
+            .map(|importer| importer.descriptor().clone())
+            .collect()
+    }
+
     pub fn importers(&self) -> Vec<Arc<dyn AssetImporterHandler>> {
         self.importers.clone()
+    }
+
+    pub fn remove_by_plugin_id(&mut self, plugin_id: &str) -> Vec<AssetImporterDescriptor> {
+        let mut removed = Vec::new();
+        let importers = std::mem::take(&mut self.importers);
+
+        for importer in importers {
+            if importer.descriptor().plugin_id == plugin_id {
+                removed.push(importer.descriptor().clone());
+            } else {
+                self.importers.push(importer);
+            }
+        }
+
+        removed
     }
 
     pub fn is_empty(&self) -> bool {

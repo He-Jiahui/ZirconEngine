@@ -9,20 +9,40 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
   - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_app/src/entry/export_bootstrap.rs
+  - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_app/src/entry/tests/export_bootstrap.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
+  - docs/zircon_app/export-bootstrap.md
+  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - docs/engine-architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
 implementation_files:
   - docs/engine-architecture/generated-code-boundary.md
+  - docs/zircon_app/export-bootstrap.md
+  - zircon_app/src/entry/export_bootstrap.rs
+  - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with generated-code boundaries
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
+  - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs zircon_runtime/src/tests/runtime_absorption/mod.rs
+  - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - cargo check -p zircon_app --lib --no-default-features --features core-min --locked --target-dir D:/cargo-targets/zircon-export-bootstrap-0612-app-core-min --message-format short --color never
+  - cargo test -p zircon_app --lib export_bootstrap --no-default-features --features core-min --locked --target-dir D:/cargo-targets/zircon-export-bootstrap-0612-app-core-min --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test -p zircon_runtime --lib export_build_plan --locked --target-dir D:/cargo-targets/zircon-export-bootstrap-0612-runtime --message-format short --color never -- --nocapture --test-threads=1
   - generated_code_boundary M1 gate status, explicit count fields, behavior decision group, migration debt, and unclassified behavior checks
 doc_type: module-detail
 ---
@@ -70,36 +90,41 @@ The structural audit now includes `generated_code_boundary`. Its implementation 
 Current evidence:
 
 - `template_file_count = 9` under `zircon_runtime/src/plugin/export_build_plan`;
-- `behavior_location_count = 13` architecture-sensitive generated behavior locations;
-- current flagged categories include entry bootstrap, native loader use, runtime/plugin registration calls, generated `main`, and generated runtime selection functions.
+- `behavior_location_count = 6` architecture-sensitive generated behavior locations after the M4 export-bootstrap and provider-table migration slices;
+- current flagged categories include thin export-bootstrap facade calls, generated `main`, and generated runtime selection functions. All 6 current locations are allowed generated adapters. Direct generated native loader use and direct generated `plugin_registration()` calls are no longer present. Provider-table rows are accepted as generated table adapters and are guarded separately against immediate execution.
+- current broad `generated` term scan under `zircon_runtime/src/**/*.rs` hits 42 files. These are classified as domain wording, tests, export-build-plan source/template owners, or the runtime absorption guard itself; they are not all generated artifacts.
+- current file-header generated marker scan has 0 production generated source files. The old "1 explicit marker" count was too broad because it can match test constants rather than a real generated file header.
 
 ## M1 Gate Output
 
 The structural audit now reports `generated_code_boundary.m1_gate_status`. Current status is:
 
-`migration-debt-present`
+`classified-and-clear`
 
 Current behavior classification:
 
-- `handwritten-owner-required`: `entry-bootstrap`, `plugin-registration`
-- `native-loader-isolation`: `native-loader`
+- `handwritten-owner-required`: `entry-bootstrap`
 - `entry-glue-review`: `generated-main`
 - `data-adapter-review`: `runtime-selection-function`
 
 Current gate evidence:
 
 - `template_file_count = 9`
-- `behavior_location_count = 13`
-- `behavior_decision_count = 5`
-- `generated_boundary_migration_debt_count = 5`
+- `behavior_location_count = 6`
+- `allowed_adapter_location_count = 6`
+- `migration_debt_location_count = 0`
+- `behavior_decision_count = 3`
+- `generated_boundary_migration_debt_count = 0`
 - `unclassified_behavior_label_count = 0`
 - `unclassified_behavior_labels = []`
 
-The classification means every current generated behavior label has an explicit migration target. It does not mean the boundary is converged.
+The classification means every current generated behavior label has an explicit owner decision and every current location is an allowed adapter shape. It does not mean generated files should grow new behavior; the guard still treats direct registration, native-loader calls, and direct bootstrap sequencing as regressions.
 
 ## M1 Decision Rules
 
-`entry-bootstrap` and `plugin-registration` must move to handwritten owners. Generated output may carry provider IDs, manifest rows, feature rows, or table data, but it must not directly decide bootstrap order or call plugin registration functions.
+`entry-bootstrap` must move to handwritten owners. The M4 export-bootstrap slice moved direct `EntryRunner` and native loader assembly into `zircon_app::entry::export_bootstrap`; generated entry files may call `zircon_app::bootstrap_export_runtime*` only as thin glue. The provider-table slice changed generated linked plugin output from direct `plugin_registration()` calls to `ExportRuntimePluginRegistrationProvider` / `ExportRuntimePluginFeatureRegistrationProvider` handoff rows. Generated output may carry provider IDs, manifest rows, feature rows, or provider-table rows, but it must not directly execute plugin registration from `main.rs`, platform `lib.rs`, or template-owned bootstrap sequencing.
+
+`plugin-registration` is now a regression label, not current migration debt. It is reserved for direct generated `plugin_registration()` / `plugin_feature_registration()` calls or old `runtime_plugin_registrations()` report-builder entry points. Provider-table rows are treated as allowed generated data adapters because the app owner executes them.
 
 `native-loader` must move behind the M4 native loader boundary. Generated output may reference native manifest data or call an isolated loader facade, but it must not instantiate or drive `NativePluginLoader` directly.
 
@@ -109,17 +134,41 @@ The classification means every current generated behavior label has an explicit 
 
 Any new generated behavior label that appears in `unclassified_behavior_labels` is a review blocker. Classify it with a target owner or remove it from generated output.
 
-These findings do not mean export is broken. They mean the current export source-template model still carries too much handwritten runtime behavior inside generated output. The M2/M4 target is to move that behavior into runtime-owned export/plugin owners and leave generated files as data or adapters.
+These findings do not mean export is broken. The current export source-template model now stays within the allowed adapter shapes for this boundary; the remaining risk is regression if templates reintroduce direct runtime, loader, registration, or scheduling behavior.
+
+## M4 Runtime Guard
+
+`runtime_absorption::generated_code_guard` is now the in-crate structure guard for this boundary. It keeps six checks close to the runtime absorption tests:
+
+- `generated_marker_format_is_uniform_when_source_files_are_marked` accepts only first-line source markers shaped as `// @generated <generator> - do not edit by hand`;
+- `marked_generated_source_files_stay_leaf_data_only` rejects behavior tokens inside files that carry the marker;
+- `export_template_generated_behavior_stays_classified_by_owner` requires every architecture-sensitive export-template behavior label to map to an explicit owner decision;
+- `export_template_scan_scope_stays_folder_backed` keeps the export-template scan constrained to `src/plugin/export_build_plan/**`.
+- `export_entry_templates_delegate_to_app_export_bootstrap_facade` rejects direct `EntryRunner`, `EntryConfig::new`, `NativePluginLoader`, `load_runtime_from_load_manifest`, and direct registration calls in generated entry templates while requiring the `zircon_app::bootstrap_export_runtime*` facade path.
+- `export_plugin_selection_template_delegates_registration_execution_to_app_providers` rejects direct registration call forms in `plugin_selection_template.rs` and requires provider-table handoff.
+
+The guard now distinguishes allowed adapters from migration debt. It prevents new unclassified generated behavior from entering and fails if direct bootstrap sequencing, native-loader calls, or direct plugin registration execution reappear in export templates.
+
+## M4 Export Bootstrap Slice
+
+The first M4 behavior migration slice moved generated startup sequencing into the `zircon_app` owner:
+
+- `zircon_app/src/entry/export_bootstrap.rs` owns `ExportRuntimeBootstrapConfig`, `bootstrap_export_runtime`, `bootstrap_export_runtime_with_native_plugins_from_export_root`, and `discover_export_root`.
+- `EntryRunner` now has a lower-level merge path that preserves linked registration reports and adds native dynamic reports loaded through `NativePluginLiveHost`.
+- `main_template.rs` and platform host `src/lib.rs` templates call only `zircon_app::bootstrap_export_runtime*`.
+- `plugin_selection_template.rs` now generates `export_runtime_bootstrap_config()` plus provider-table functions consumed by the app facade. It no longer generates immediate `plugin_registration()` or `plugin_feature_registration()` calls.
+
+The source scan confirms generated entry templates no longer contain `EntryRunner::`, `EntryConfig::new`, `NativePluginLoader`, `load_runtime_from_load_manifest`, or direct registration function calls. The provider-table guard confirms `plugin_selection_template.rs` no longer contains `plugin_registration()` or `plugin_feature_registration()` call forms. The structural audit moved from 13 behavior locations / 5 behavior labels / 5 migration-debt buckets to 6 behavior locations / 3 behavior labels / 0 migration-debt buckets after accepting facade calls and provider rows as generated adapters.
 
 ## Target Shape
 
 The target export shape is:
 
 - `zircon_runtime::plugin` owns export profile interpretation, plugin selection, linked registration, feature reports, and native loader isolation.
-- Generated plugin-selection files become data tables or serialized manifests.
+- Generated plugin-selection files stay as side-effect-free data tables or serialized manifests.
 - Generated platform host files become thin ABI adapters.
 - Generated `main` scaffolds call one stable handwritten export entry, not direct runtime/plugin assembly internals.
-- Native plugin loading is isolated from the runtime public main path and does not appear as generated application behavior.
+- Native plugin loading is isolated behind the app export bootstrap facade and does not appear as generated application behavior.
 
 ## Verification
 
@@ -129,12 +178,14 @@ Use the structural audit before calling this boundary converged:
 python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
 ```
 
-The `generated_code_boundary.behavior_location_count` should move toward zero as export behavior moves behind handwritten owners. If generated adapters still need to call a public export facade, the audit should be updated to allow only that facade and continue rejecting direct bootstrap, loader, registration, and scheduling logic.
+The `generated_code_boundary.migration_debt_location_count` and `generated_boundary_migration_debt_count` must stay at zero. `behavior_location_count` may stay nonzero when the remaining locations are explicitly classified allowed adapters such as a public export facade or side-effect-free selection table.
 
 Before editing export templates, inspect:
 
 - `generated_code_boundary.template_file_count`
 - `generated_code_boundary.behavior_location_count`
+- `generated_code_boundary.allowed_adapter_location_count`
+- `generated_code_boundary.migration_debt_location_count`
 - `generated_code_boundary.behavior_decision_count`
 - `generated_code_boundary.behavior_decision_groups`
 - `generated_code_boundary.generated_boundary_migration_debt_count`
@@ -142,4 +193,4 @@ Before editing export templates, inspect:
 - `generated_code_boundary.unclassified_behavior_label_count`
 - `generated_code_boundary.m1_gate_status`
 
-The gate is not clear while `m1_gate_status` is `migration-debt-present`.
+The gate is clear only while `m1_gate_status` is `classified-and-clear` and `migration_debt_location_count = 0`.

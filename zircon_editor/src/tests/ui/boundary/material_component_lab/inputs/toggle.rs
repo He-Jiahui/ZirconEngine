@@ -7,7 +7,8 @@ use super::assert_non_dispatchable_child;
 
 #[test]
 fn material_toggle_button_sample_covers_exclusive_multiple_and_disabled_states() {
-    let path = editor_asset("assets/ui/editor/material_components/inputs/material_toggle_button.zui");
+    let path =
+        editor_asset("assets/ui/editor/material_components/inputs/material_toggle_button.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)

@@ -16,7 +16,7 @@ impl zircon_runtime::plugin::RuntimePluginFeature for SoundRayTracedConvolutionR
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(zircon_runtime::core::ModuleDescriptor::new(
             "SoundRayTracedConvolutionFeatureModule",
-            "Sound ray-traced convolution reverb feature placeholder",
+            "Sound ray-traced convolution reverb feature",
         ))
     }
 }

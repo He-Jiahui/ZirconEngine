@@ -253,10 +253,9 @@ fn pages_compose_shared_data_components_instead_of_raw_data_material() {
                 "HubList",
                 "HubPanel",
                 "HubTreeView",
-                "MetricCard",
                 "ProjectCover",
-                "QuickActions",
-                "SourceEngineList",
+                "ProjectDetailSidebar",
+                "ProjectMetricsGrid",
                 "StatusBadge",
             ],
         ),
@@ -275,14 +274,7 @@ fn pages_compose_shared_data_components_instead_of_raw_data_material() {
         ),
         (
             "web/src/pages/SettingsPage.tsx",
-            vec![
-                "HubList",
-                "HubPanel",
-                "HubTreeView",
-                "MetricCard",
-                "SourceEngineList",
-                "StatusBadge",
-            ],
+            vec!["MetricCard", "SettingsSection"],
         ),
         (
             "web/src/pages/EditorPage.tsx",

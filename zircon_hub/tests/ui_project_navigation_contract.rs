@@ -52,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
 #[test]
 fn dashboard_routes_project_subpages_and_primary_project_commands() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let create_project = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
 
     assert_contains_all(
         "ProjectsDashboard.tsx",
@@ -68,10 +69,15 @@ fn dashboard_routes_project_subpages_and_primary_project_commands() {
             "onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}",
             "onClick={() => void onAction(HUB_ACTION.viewAllProjects)}",
             "onClick={() => void onAction(HUB_ACTION.newProject)}",
-            "HubDialog",
+            "CreateProjectDialog",
             "open={state.projectSubpage === \"new-project\"}",
             "onClose={() => void onAction(HUB_ACTION.viewAllProjects)}",
         ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_project,
+        &["HubDialog", "onCreate", "CreateProjectPayload"],
     );
 }
 
@@ -170,6 +176,7 @@ fn project_cards_route_corner_action_to_detail_instead_of_empty_menu() {
 #[test]
 fn detail_page_routes_back_to_browser_and_project_scoped_actions() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
 
     assert_contains_all(
         "ProjectDetailPage.tsx",
@@ -185,10 +192,20 @@ fn detail_page_routes_back_to_browser_and_project_scoped_actions() {
             "{ value: \"files\", label: text.files }",
             "{ value: \"actions\", label: text.actions }",
             "QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)}",
-            "SourceEngineList engines={state.sourceEngines} emptyLabel={state.ui.shell.noSourceEngineRegistered} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)}",
+            "ProjectDetailSidebar",
+            "sourceEngines={state.sourceEngines}",
+            "emptyEngineLabel={state.ui.shell.noSourceEngineRegistered}",
+            "onAction={onAction}",
+            "EmptyStateBlock title={text.noProjectSelected}",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &sidebar,
+        &[
+            "SourceEngineList engines={sourceEngines} emptyLabel={emptyEngineLabel} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)}",
             "void onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
             "void onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
-            "EmptyStateBlock title={text.noProjectSelected}",
         ],
     );
 }
@@ -228,7 +245,7 @@ fn tauri_runtime_preserves_project_navigation_state_transitions() {
         &hub_api,
         &[
             "export async function dispatchHubAction<TActionId extends HubActionId>(",
-            "invoke<HubShellState>(\"hub_action\"",
+            "invoke<unknown>(\"hub_action\"",
             "request: { actionId, targetId, payload }",
         ],
     );
@@ -241,9 +258,9 @@ fn tauri_runtime_preserves_project_navigation_state_transitions() {
             "projectViewMode: string;",
             "projectSubpage: string;",
             "searchQuery: string;",
-            "selectedProjectId?: string | null;",
+            "selectedProjectId: string | null;",
             "browserProjects: HubRecentProject[];",
-            "selectedProject?: HubProjectDetail | null;",
+            "selectedProject: HubProjectDetail | null;",
         ],
     );
 }

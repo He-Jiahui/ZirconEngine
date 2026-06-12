@@ -1,0 +1,16 @@
+version = 1
+name = "Jungle Leaf"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000142"
+url = "res://shaders/vampire_forest"
+
+[overrides]
+base_color = [0.06, 0.42, 0.12, 1.0]
+metallic = 0.0
+roughness = 0.72
+emissive = [0.0, 0.018, 0.004]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

@@ -8,3 +8,4 @@ export * from "./HubSwitch";
 export * from "./HubTabs";
 export * from "./HubTextField";
 export * from "./HubToggle";
+export * from "./ProjectsToolbar";

@@ -1,25 +1,40 @@
 use super::World;
 use crate::scene::components::{
-    ActiveSelf, Hierarchy, LocalTransform, Name, NodeRecord, RenderLayerMask,
+    ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
 };
 use crate::scene::EntityId;
 
 impl World {
     pub fn node_record(&self, entity: EntityId) -> Option<NodeRecord> {
+        let name = self.names.get(&entity)?.0.clone();
+        let kind = self.node_kind(entity)?;
+        let parent = match self.hierarchy.get(&entity) {
+            Some(hierarchy) => hierarchy.parent,
+            None => None,
+        };
+        let transform = match self.local_transforms.get(&entity) {
+            Some(local) => local.transform,
+            None => LocalTransform::default().transform,
+        };
+        let active = match self.active_self.get(&entity) {
+            Some(active) => active.0,
+            None => ActiveSelf::default().0,
+        };
+        let render_layer_mask = match self.render_layer_masks.get(&entity) {
+            Some(mask) => mask.0,
+            None => RenderLayerMask::default().0,
+        };
+        let mobility = match self.mobility.get(&entity) {
+            Some(mobility) => *mobility,
+            None => Mobility::default(),
+        };
+
         Some(NodeRecord {
             id: entity,
-            name: self.names.get(&entity)?.0.clone(),
-            kind: self.node_kind(entity)?,
-            parent: self
-                .hierarchy
-                .get(&entity)
-                .and_then(|hierarchy| hierarchy.parent),
-            transform: self
-                .local_transforms
-                .get(&entity)
-                .copied()
-                .unwrap_or_default()
-                .transform,
+            name,
+            kind,
+            parent,
+            transform,
             camera: self.cameras.get(&entity).cloned(),
             mesh: self.mesh_renderers.get(&entity).cloned(),
             sprite_2d: self.sprite_2d.get(&entity).cloned(),
@@ -29,14 +44,9 @@ impl World {
             point_light: self.point_lights.get(&entity).cloned(),
             rect_light: self.rect_lights.get(&entity).cloned(),
             spot_light: self.spot_lights.get(&entity).cloned(),
-            active: self.active_self.get(&entity).copied().unwrap_or_default().0,
-            render_layer_mask: self
-                .render_layer_masks
-                .get(&entity)
-                .copied()
-                .unwrap_or_default()
-                .0,
-            mobility: self.mobility.get(&entity).copied().unwrap_or_default(),
+            active,
+            render_layer_mask,
+            mobility,
             rigid_body: self.rigid_bodies.get(&entity).cloned(),
             collider: self.colliders.get(&entity).cloned(),
             joint: self.joints.get(&entity).cloned(),

@@ -47,6 +47,37 @@ fn bake_surface_accepts_typed_resource_json_from_dynamic_properties() {
 }
 
 #[test]
+fn bake_surface_ignores_script_only_empty_nodes() {
+    let manager = DefaultNavigationManager::new();
+    let mut world = World::new();
+    let surface = world.spawn_node(NodeKind::Cube);
+    let empty = world.spawn_node(NodeKind::Empty);
+    world
+        .register_component_type(navigation_component_descriptors()[0].clone())
+        .unwrap();
+    world
+        .set_dynamic_component(
+            surface,
+            NAV_MESH_SURFACE_COMPONENT_TYPE,
+            json!({
+                "enabled": true,
+                "volume_size": [6.0, 2.0, 6.0]
+            }),
+        )
+        .unwrap();
+    world
+        .update_transform(empty, Transform::from_translation(Vec3::new(1.0, 0.0, 1.0)))
+        .unwrap();
+
+    let report = manager
+        .bake_surface(&world, NavMeshBakeRequest::default())
+        .unwrap();
+
+    assert_eq!(report.source_triangles, 2);
+    assert!(report.baked_polygons > 0);
+}
+
+#[test]
 fn bake_surface_applies_modifier_area_and_embeds_offmesh_links() {
     let manager = DefaultNavigationManager::new();
     let mut world = World::new();

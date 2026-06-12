@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
+  - zircon_runtime/src/ui/theme/mod.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
@@ -55,10 +57,12 @@ related_code:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
+  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
   - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
@@ -113,6 +117,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
+  - zircon_editor/assets/ui/theme/editor_base.v2.ui.toml
   - zircon_editor/assets/ui/theme/editor_unreal_dark.v2.ui.toml
   - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 plan_sources:
@@ -202,18 +207,30 @@ tests:
   - cargo test -p zircon_editor --lib ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_preview --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 1 passed)
   - cargo test -p zircon_editor --lib tests::ui::ui_asset_editor --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 40 passed)
   - cargo test -p zircon_editor --lib global_material_surface_assets_follow_responsive_contracts --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 1 passed)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_editor\src\ui\template_runtime\runtime\runtime_host.rs zircon_editor\src\tests\host\template_runtime\shared_surface.rs (2026-06-12 active theme host path: passed)
+  - cargo test -p zircon_editor --lib editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-host-theme-0612 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-12 active theme host path: timed out after 904 seconds while compiling; matching editor-host cargo/rustc processes were stopped, leaving unrelated runtime_absorption cargo/rustc processes untouched)
+  - rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\v2\style.rs zircon_runtime\src\ui\v2\style.rs zircon_runtime\src\ui\v2\surface_tree\node.rs zircon_runtime\src\ui\tests\v2_asset.rs zircon_editor\src\tests\host\template_runtime\shared_surface.rs zircon_runtime\src\ui\style.rs zircon_runtime\src\ui\tests\material_button_style.rs (2026-06-12 v2 style token provenance metadata: passed)
+  - git diff --check -- zircon_runtime_interface/src/ui/v2/style.rs zircon_runtime/src/ui/v2/style.rs zircon_runtime/src/ui/v2/surface_tree/node.rs zircon_runtime/src/ui/tests/v2_asset.rs zircon_editor/src/tests/host/template_runtime/shared_surface.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 v2 style token provenance metadata: passed with LF-to-CRLF warnings only)
+  - cargo test -p zircon_editor --lib editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-host-theme-0612 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-12 style token provenance metadata assertions: not rerun in this slice after the same focused editor-host target timed out during cold compile earlier in the day)
+  - python -c "import tomllib, pathlib; paths=[r'zircon_editor/assets/ui/theme/editor_base.v2.ui.toml', r'zircon_editor/assets/ui/theme/editor_material.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml']; [tomllib.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in paths]" (2026-06-12 editor_base chrome theme role consumer: passed)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\tests\v2_asset.rs (2026-06-12 editor_base chrome theme role consumer: passed)
+  - git diff --check -- zircon_editor/assets/ui/theme/editor_base.v2.ui.toml zircon_runtime/src/ui/tests/v2_asset.rs docs/zircon_runtime/ui/theme.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 editor_base chrome theme role consumer: passed with LF-to-CRLF warnings only)
 doc_type: module-detail
 ---
 
 # Template Runtime Host
 
-`EditorUiHostRuntime` now keeps a v2 prototype store and a compiled v2 document table beside the legacy template registry. Files ending in `.v2.ui.toml` are loaded through `UiV2AssetLoader`, inserted into `UiV2PrototypeStore`, and compiled with `UiV2DocumentCompiler::compile_with_prototype_store`. This makes composite component prototypes resident in heap-backed runtime state instead of reparsing a full recursive tree every time a document is projected.
+`EditorUiHostRuntime` now keeps a v2 prototype store, a compiled v2 document table, and an active `UiThemeRegistry` beside the legacy template registry. Files ending in `.v2.ui.toml` are loaded through `UiV2AssetLoader`, inserted into `UiV2PrototypeStore`, and compiled with `UiV2DocumentCompiler::compile_with_prototype_store`. This makes composite component prototypes resident in heap-backed runtime state instead of reparsing a full recursive tree every time a document is projected.
 
 ## Projection Path
 
 `project_document` and `project_pane_body` check the v2 compiled document table before falling back to the legacy template registry. V2 documents are projected from arena handles into retained host projections without re-instantiating the legacy `UiTemplateNode` tree. The arena projection uses an explicit stack, so deep v2 documents do not recurse through editor projection.
 
 Pane payload injection is shared between old and v2 paths. Legacy panes still mutate a temporary `UiTemplateNode` before projection; v2 panes mutate the retained projection root and append any needed `HybridSlotAnchor` projection directly. This keeps existing Rust presenters and route IDs active while the pane body assets move to v2.
+
+`build_shared_surface(...)` uses the same active theme registry when it materializes v2 documents into `UiSurface`. A v2 shared surface can therefore author `$theme.palette.accent`, `theme.palette.surface.1`, or `var(theme.palette.text.primary)` in static rules and runtime pseudo-state rules, and those values are resolved before `UiTemplateNodeMetadata` captures attributes and style overrides. The same build path also preserves `UiTemplateNodeMetadata.style_tokens`, so editor host diagnostics can see whether a final shared-surface color came from a document token, a normalized theme role, or a runtime pseudo-state override. Projection-only calls still use the compiled arena table and remain metadata-oriented until a shared surface is requested.
+
+The workbench chrome path now benefits from that same theme-aware materialization through `editor_base.v2.ui.toml`. Menu, page, dock, status, and activity-rail assets still author local chrome classes, but their ordinary base aliases delegate to central palette roles. The runtime guard loads `workbench_activity_rail.v2.ui.toml` and `workbench_status_bar.v2.ui.toml` as real imported documents and checks the resulting `style_tokens`, so host diagnostics can trace chrome colors back through chains such as `token.panel_bg -> theme.palette.surface.2` instead of seeing only legacy hex literals.
 
 ## Current Hard Cut
 

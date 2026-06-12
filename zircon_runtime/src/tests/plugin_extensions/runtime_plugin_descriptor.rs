@@ -1,8 +1,9 @@
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleKind, PluginModuleManifest, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
+    PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
+    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
+use crate::scene::SystemStage;
 use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
@@ -201,6 +202,8 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
     ])
     .with_capability("runtime.plugin.weather")
     .with_capability("runtime.capability.weather.forecast")
+    .with_system_sets(["weather.main", "weather.simulation"])
+    .with_system_anchors(["weather.tick"])
     .with_optional_feature(sound_timeline_feature_manifest());
 
     let manifest = descriptor.package_manifest();
@@ -233,6 +236,46 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
             "runtime.capability.weather.forecast".to_string()
         ]
     );
+    assert_eq!(
+        runtime_module.system_sets,
+        vec!["weather.main".to_string(), "weather.simulation".to_string()]
+    );
+    assert_eq!(
+        runtime_module.system_anchors,
+        vec!["weather.tick".to_string()]
+    );
+}
+
+#[test]
+fn runtime_plugin_registration_report_validates_declared_system_anchors() {
+    let missing = WeatherAnchorPlugin::new(WeatherAnchorRegistrationMode::Missing);
+    let registration = RuntimePluginRegistrationReport::from_plugin(&missing);
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("weather.runtime")
+            && diagnostic.contains("system anchor `weather.tick`")
+            && diagnostic.contains("did not register")
+    }));
+
+    let wrong_owner = WeatherAnchorPlugin::new(WeatherAnchorRegistrationMode::WrongOwner);
+    let registration = RuntimePluginRegistrationReport::from_plugin(&wrong_owner);
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| {
+        diagnostic.contains("weather.runtime")
+            && diagnostic.contains("system anchor `weather.tick`")
+            && diagnostic.contains("did not register")
+    }));
+
+    let registered = WeatherAnchorPlugin::new(WeatherAnchorRegistrationMode::DeclaredOwner);
+    let registration = RuntimePluginRegistrationReport::from_plugin(&registered);
+
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    assert!(registration
+        .extensions
+        .plugin_systems()
+        .any(|(_, system)| system.id == "weather.tick"));
 }
 
 #[test]
@@ -282,4 +325,61 @@ fn sound_timeline_feature_manifest() -> PluginFeatureBundleManifest {
         )
         .with_capabilities(["editor.feature.sound.timeline_animation_track"]),
     )
+}
+
+#[derive(Clone, Debug)]
+struct WeatherAnchorPlugin {
+    descriptor: RuntimePluginDescriptor,
+    registration_mode: WeatherAnchorRegistrationMode,
+}
+
+impl WeatherAnchorPlugin {
+    fn new(registration_mode: WeatherAnchorRegistrationMode) -> Self {
+        Self {
+            descriptor: RuntimePluginDescriptor::new(
+                "weather",
+                "Weather",
+                RuntimePluginId::Particles,
+                "zircon_plugin_weather_runtime",
+            )
+            .with_target_modes([RuntimeTargetMode::ClientRuntime])
+            .with_capability("runtime.plugin.weather")
+            .with_system_sets(["weather.main"])
+            .with_system_anchors(["weather.tick"]),
+            registration_mode,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WeatherAnchorRegistrationMode {
+    Missing,
+    WrongOwner,
+    DeclaredOwner,
+}
+
+impl RuntimePlugin for WeatherAnchorPlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
+        &self.descriptor
+    }
+
+    fn register(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {
+        let owner = match self.registration_mode {
+            WeatherAnchorRegistrationMode::Missing => return Ok(()),
+            WeatherAnchorRegistrationMode::WrongOwner => {
+                registry.intern_plugin_module("weather.tools")?
+            }
+            WeatherAnchorRegistrationMode::DeclaredOwner => {
+                registry.intern_plugin_module("weather.runtime")?
+            }
+        };
+        let set = registry.intern_system_set("weather.main")?;
+        registry
+            .register_native_system::<(), _>(owner, "weather.tick", SystemStage::Update, |()| {})
+            .in_set(set)
+            .register()
+    }
 }

@@ -6,9 +6,10 @@ use std::sync::Arc;
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
     AlphaMode, Asset, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetKind, AssetLoadState, AssetLoadStates, AssetManagementRecordSets,
-    AssetManager, AssetMetaDocument, AssetReference, AssetSourceUnit, AssetUri, AssetUuid,
-    DependencyLoadState, FunctionAssetImporter, ImportedAsset, MaterialAsset,
+    AssetImporterDescriptor, AssetKind, AssetLoadState, AssetLoadStates,
+    AssetManagementFamilyIssueBucket, AssetManagementFamilyKind, AssetManagementFamilyStatus,
+    AssetManagementRecordSets, AssetManager, AssetMetaDocument, AssetReference, AssetSourceUnit,
+    AssetUri, AssetUuid, DependencyLoadState, FunctionAssetImporter, ImportedAsset, MaterialAsset,
     MaterialAssetManagementRecordSet, MaterialTextureSlotValue, MeshAsset,
     MeshAssetManagementRecordSet, MeshAttributeValues, ModelAsset, ModelAssetManagementRecordSet,
     ProjectAssetManager, ProjectManager, ProjectManifest, ProjectPaths,
@@ -65,11 +66,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_ready_record(&manager, "res://models/hero.gltf#Node0", AssetKind::Scene);
     assert_ready_record(&manager, "res://models/hero.gltf#Scene0", AssetKind::Scene);
     assert_ready_record(&manager, "res://shaders/lit_sample", AssetKind::Shader);
-    assert_ready_record(
-        &manager,
-        "res://shaders/default_pbr.zshader",
-        AssetKind::Shader,
-    );
+    assert_ready_record(&manager, "res://shaders/default_pbr", AssetKind::Shader);
     assert_ready_record(
         &manager,
         "res://materials/hero_surface.zmaterial",
@@ -96,7 +93,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         "res://models/hero.gltf#Material0",
         &[
             "res://models/hero.gltf#Texture0",
-            "res://shaders/default_pbr.zshader",
+            "res://shaders/default_pbr",
         ],
     );
     assert_dependencies(
@@ -352,6 +349,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(project_management.summary.material_issue_row_count, 2);
     assert_eq!(project_management.summary.prepared_material_count, 0);
     assert_eq!(project_management.summary.shader_count, 3);
+    assert_eq!(project_management.summary.shader_issue_row_count, 0);
     assert_eq!(
         project_management
             .summary
@@ -382,6 +380,40 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         asset_manager.asset_management_family_status_index(),
         project_management.family_status_index
     );
+    let project_degraded_status_view =
+        project_management.family_status_view(AssetManagementFamilyStatus::Degraded);
+    assert_eq!(
+        project_degraded_status_view.families,
+        vec![AssetManagementFamilyKind::Material]
+    );
+    assert_eq!(project_degraded_status_view.total_record_count, 5);
+    assert_eq!(project_degraded_status_view.ready_record_count, 3);
+    assert_eq!(project_degraded_status_view.degraded_record_count, 2);
+    assert_eq!(project_degraded_status_view.issue_row_count, 2);
+    assert_eq!(
+        asset_manager.asset_management_family_status_view(AssetManagementFamilyStatus::Degraded),
+        project_degraded_status_view
+    );
+    assert_eq!(
+        project_management.family_issue_index.with_issues,
+        vec![AssetManagementFamilyKind::Material]
+    );
+    assert_eq!(
+        asset_manager.asset_management_family_issue_index(),
+        project_management.family_issue_index
+    );
+    let project_issue_view =
+        project_management.family_issue_view(AssetManagementFamilyIssueBucket::WithIssues);
+    assert_eq!(
+        project_issue_view.families,
+        vec![AssetManagementFamilyKind::Material]
+    );
+    assert_eq!(project_issue_view.issue_row_count, 2);
+    assert_eq!(
+        asset_manager
+            .asset_management_family_issue_view(AssetManagementFamilyIssueBucket::WithIssues),
+        project_issue_view
+    );
 
     let RenderBackend { device, queue, .. } = RenderBackend::new_offscreen().unwrap();
     let texture_layout = texture_bind_group_layout(&device);
@@ -400,6 +432,18 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(
         streamer.asset_management_family_status_index(),
         streamer_management.family_status_index
+    );
+    assert_eq!(
+        streamer.asset_management_family_status_view(AssetManagementFamilyStatus::Degraded),
+        streamer_management.family_status_view(AssetManagementFamilyStatus::Degraded)
+    );
+    assert_eq!(
+        streamer.asset_management_family_issue_index(),
+        streamer_management.family_issue_index
+    );
+    assert_eq!(
+        streamer.asset_management_family_issue_view(AssetManagementFamilyIssueBucket::WithIssues),
+        streamer_management.family_issue_view(AssetManagementFamilyIssueBucket::WithIssues)
     );
 
     let compressed_texture = load_texture(&manager, "res://textures/hero_albedo_bc1.dds");
@@ -636,7 +680,7 @@ fn fs_main() -> @location(0) vec4f {
 }
 
 fn write_default_pbr_shader_package(paths: &ProjectPaths) {
-    let shader_uri = uri("res://shaders/default_pbr.zshader");
+    let shader_uri = uri("res://shaders/default_pbr");
     let mut meta = AssetMetaDocument::new(
         AssetUuid::from_stable_label("minimal-asset-flow/default-pbr-shader"),
         shader_uri,
@@ -647,7 +691,7 @@ fn write_default_pbr_shader_package(paths: &ProjectPaths) {
         paths
             .assets_root()
             .join("shaders")
-            .join("default_pbr.zshader.zmeta"),
+            .join("default_pbr.zmeta"),
     )
     .unwrap();
 
@@ -655,7 +699,7 @@ fn write_default_pbr_shader_package(paths: &ProjectPaths) {
         paths
             .assets_root()
             .join("shaders")
-            .join("default_pbr.zshader")
+            .join("default_pbr")
             .join("default_pbr.zshader"),
         r#"
 version = 1
@@ -686,7 +730,7 @@ sampler = "linear_repeat"
         paths
             .assets_root()
             .join("shaders")
-            .join("default_pbr.zshader")
+            .join("default_pbr")
             .join("default_pbr.wgsl"),
         r#"
 struct VsOut {

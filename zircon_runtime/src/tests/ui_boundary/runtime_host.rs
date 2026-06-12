@@ -31,15 +31,37 @@ fn runtime_ui_host_surface_stays_internal_to_runtime_ui_subtree() {
             .unwrap_or_default();
     let graphics_lib_source =
         std::fs::read_to_string(runtime_root.join("src/graphics/mod.rs")).unwrap_or_default();
+    let ui_mod_normalized = ui_mod_source.replace("\r\n", "\n");
+    let runtime_ui_mod_normalized = runtime_ui_mod_source.replace("\r\n", "\n");
 
     assert!(
         runtime_root.join("src/ui/runtime_ui/mod.rs").exists(),
         "runtime ui host subtree should live under zircon_runtime::ui::runtime_ui"
     );
     assert!(
-        ui_mod_source.contains("pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};")
-            && ui_mod_source.contains("pub(crate) use runtime_ui::PublicRuntimeFrame;"),
+        ui_mod_normalized
+            .contains("pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};")
+            && ui_mod_normalized.contains("pub(crate) use runtime_ui::PublicRuntimeFrame;"),
         "zircon_runtime::ui should keep runtime UI host/demo surface crate-private"
+    );
+    assert!(
+        !ui_mod_normalized.contains(
+            "#[cfg(test)]\npub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};"
+        ),
+        "runtime UI manager and fixtures must be crate-private production APIs so dynamic runtime modules can consume them"
+    );
+    assert!(
+        runtime_ui_mod_normalized.contains("pub(crate) use runtime_ui_fixture::RuntimeUiFixture;")
+            && runtime_ui_mod_normalized
+                .contains("pub(crate) use runtime_ui_manager::RuntimeUiManager;"),
+        "runtime UI subtree should re-export manager and fixtures to zircon_runtime::ui"
+    );
+    assert!(
+        !runtime_ui_mod_normalized
+            .contains("#[cfg(test)]\npub(crate) use runtime_ui_fixture::RuntimeUiFixture;")
+            && !runtime_ui_mod_normalized
+                .contains("#[cfg(test)]\npub(crate) use runtime_ui_manager::RuntimeUiManager;"),
+        "runtime UI subtree manager/fixture re-exports must not be test-only"
     );
     for required in ["RuntimeUiFixture", "RuntimeUiManager", "PublicRuntimeFrame"] {
         assert!(
@@ -108,7 +130,6 @@ fn runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces() {
 
 #[test]
 fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface() {
-    use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
     use zircon_runtime_interface::ui::dispatch::{
         UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent,
     };
@@ -124,14 +145,12 @@ fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface()
         .unwrap();
 
     let root_node = manager.surface().tree.roots[0];
-    let mut pointer_dispatcher = UiPointerDispatcher::default();
-    pointer_dispatcher.register(root_node, UiPointerEventKind::Down, |_| {
+    manager.register_pointer_handler(root_node, UiPointerEventKind::Down, |_| {
         UiPointerDispatchEffect::capture()
     });
 
     let pointer_result = manager
         .dispatch_pointer_event(
-            &pointer_dispatcher,
             UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
                 .with_button(UiPointerButton::Primary),
         )
@@ -139,20 +158,18 @@ fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface()
     assert_eq!(pointer_result.captured_by, Some(root_node));
     assert_eq!(manager.surface().focus.captured, Some(root_node));
 
-    let mut navigation_dispatcher = UiNavigationDispatcher::default();
-    navigation_dispatcher.register(root_node, UiNavigationEventKind::Activate, |_| {
+    manager.register_navigation_handler(root_node, UiNavigationEventKind::Activate, |_| {
         UiNavigationDispatchEffect::Handled
     });
 
     let navigation_result = manager
-        .dispatch_navigation_event(&navigation_dispatcher, UiNavigationEventKind::Activate)
+        .dispatch_navigation_event(UiNavigationEventKind::Activate)
         .unwrap();
     assert_eq!(navigation_result.handled_by, Some(root_node));
 }
 
 #[test]
 fn runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface() {
-    use crate::ui::dispatch::UiPointerDispatcher;
     use std::collections::BTreeSet;
     use zircon_runtime_interface::ui::dispatch::{UiPointerDispatchEffect, UiPointerEvent};
     use zircon_runtime_interface::ui::layout::UiPoint;
@@ -166,8 +183,7 @@ fn runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface() {
         .unwrap();
 
     let root_node = manager.surface().tree.roots[0];
-    let mut pointer_dispatcher = UiPointerDispatcher::default();
-    pointer_dispatcher.register(root_node, UiPointerEventKind::Move, |_| {
+    manager.register_pointer_handler(root_node, UiPointerEventKind::Move, |_| {
         UiPointerDispatchEffect::request_dirty(UiDirtyFlags {
             render: true,
             ..UiDirtyFlags::default()
@@ -175,10 +191,10 @@ fn runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface() {
     });
 
     let result = manager
-        .dispatch_pointer_event(
-            &pointer_dispatcher,
-            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(320.0, 180.0)),
-        )
+        .dispatch_pointer_event(UiPointerEvent::new(
+            UiPointerEventKind::Move,
+            UiPoint::new(320.0, 180.0),
+        ))
         .unwrap();
     let report = manager.surface().last_rebuild_report;
     let mut expected_dirty_nodes = BTreeSet::from([root_node]);
@@ -199,7 +215,6 @@ fn runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface() {
 
 #[test]
 fn runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_rebuild() {
-    use crate::ui::dispatch::UiPointerDispatcher;
     use zircon_runtime_interface::ui::dispatch::{UiPointerDispatchEffect, UiPointerEvent};
     use zircon_runtime_interface::ui::layout::UiPoint;
     use zircon_runtime_interface::ui::surface::UiPointerEventKind;
@@ -212,8 +227,7 @@ fn runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_re
         .unwrap();
 
     let root_node = manager.surface().tree.roots[0];
-    let mut pointer_dispatcher = UiPointerDispatcher::default();
-    pointer_dispatcher.register(root_node, UiPointerEventKind::Move, |_| {
+    manager.register_pointer_handler(root_node, UiPointerEventKind::Move, |_| {
         UiPointerDispatchEffect::request_dirty(UiDirtyFlags {
             layout: true,
             hit_test: true,
@@ -223,10 +237,10 @@ fn runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_re
     });
 
     let result = manager
-        .dispatch_pointer_event(
-            &pointer_dispatcher,
-            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(320.0, 180.0)),
-        )
+        .dispatch_pointer_event(UiPointerEvent::new(
+            UiPointerEventKind::Move,
+            UiPoint::new(320.0, 180.0),
+        ))
         .unwrap();
     let report = manager.surface().last_rebuild_report;
 
@@ -240,4 +254,117 @@ fn runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_re
         !manager.surface().dirty_flags().any(),
         "layout dirty requests should be rebuilt and cleared before the next runtime frame"
     );
+}
+
+#[test]
+fn runtime_ui_manager_clears_node_bound_input_handlers_when_fixture_changes() {
+    use zircon_runtime_interface::ui::dispatch::{UiPointerDispatchEffect, UiPointerEvent};
+    use zircon_runtime_interface::ui::layout::UiPoint;
+    use zircon_runtime_interface::ui::surface::{UiPointerButton, UiPointerEventKind};
+
+    let viewport_size = crate::core::math::UVec2::new(640, 360);
+    let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::PauseMenu)
+        .unwrap();
+
+    let pause_target = manager.surface().tree.roots[0];
+    manager.register_pointer_handler(pause_target, UiPointerEventKind::Down, |_| {
+        UiPointerDispatchEffect::capture()
+    });
+    let captured = manager
+        .dispatch_pointer_event(
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    assert_eq!(captured.captured_by, Some(pause_target));
+
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::InventoryList)
+        .unwrap();
+    let after_reload = manager
+        .dispatch_pointer_event(
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(
+        after_reload.captured_by, None,
+        "node-bound runtime UI handlers must not survive across a rebuilt fixture surface"
+    );
+}
+
+#[test]
+fn runtime_ui_manager_clears_phase_and_navigation_handlers_when_fixture_changes() {
+    use zircon_runtime_interface::ui::dispatch::{
+        UiDispatchPhase, UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent,
+    };
+    use zircon_runtime_interface::ui::layout::UiPoint;
+    use zircon_runtime_interface::ui::surface::{
+        UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
+    };
+
+    let viewport_size = crate::core::math::UVec2::new(640, 360);
+    let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::PauseMenu)
+        .unwrap();
+
+    let pause_root = manager.surface().tree.roots[0];
+    manager.register_pointer_phase_handler(
+        pause_root,
+        UiPointerEventKind::Down,
+        UiDispatchPhase::PreviewTunnel,
+        |_| UiPointerDispatchEffect::handled(),
+    );
+    manager.register_navigation_handler(pause_root, UiNavigationEventKind::Activate, |_| {
+        UiNavigationDispatchEffect::Handled
+    });
+
+    let preview_handled = manager
+        .dispatch_pointer_event(
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    assert_eq!(preview_handled.handled_by, Some(pause_root));
+    assert_eq!(
+        preview_handled
+            .invocations
+            .last()
+            .map(|invocation| invocation.phase),
+        Some(UiDispatchPhase::PreviewTunnel)
+    );
+
+    let navigation_handled = manager
+        .dispatch_navigation_event(UiNavigationEventKind::Activate)
+        .unwrap();
+    assert_eq!(navigation_handled.handled_by, Some(pause_root));
+
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::InventoryList)
+        .unwrap();
+
+    let after_reload_pointer = manager
+        .dispatch_pointer_event(
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(320.0, 180.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    assert!(
+        after_reload_pointer.invocations.is_empty(),
+        "phase-qualified runtime UI handlers must not survive across a rebuilt fixture surface"
+    );
+    assert_eq!(after_reload_pointer.handled_by, None);
+
+    let after_reload_navigation = manager
+        .dispatch_navigation_event(UiNavigationEventKind::Activate)
+        .unwrap();
+    assert!(
+        after_reload_navigation.invocations.is_empty(),
+        "navigation handlers must not survive across a rebuilt fixture surface"
+    );
+    assert_eq!(after_reload_navigation.handled_by, None);
 }

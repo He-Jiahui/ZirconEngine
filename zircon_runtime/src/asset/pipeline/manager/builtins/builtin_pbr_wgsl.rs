@@ -1,5 +1,8 @@
 pub(in crate::asset::pipeline::manager) fn builtin_pbr_wgsl() -> &'static str {
-    r#"
+    concat!(
+        include_str!("../../../../graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+        "\n",
+        r#"
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
@@ -13,19 +16,24 @@ struct ShadowReceiverUniform {
     params: vec4<f32>,
 };
 
-struct ModelUniform {
-    model: mat4x4<f32>,
-    tint: vec4<f32>,
-    shadow_params: vec4<f32>,
+struct MaterialPropertyUniform {
+    data0: vec4<f32>,
+    data1: vec4<f32>,
+    data2: vec4<f32>,
+    data3: vec4<f32>,
+    data4: vec4<f32>,
+    data5: vec4<f32>,
+    data6: vec4<f32>,
+    data7: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(1) @binding(0) var<uniform> model: ModelUniform;
 @group(2) @binding(0) var color_texture: texture_2d<f32>;
 @group(2) @binding(1) var color_sampler: sampler;
-@group(4) @binding(0) var shadow_map_tex: texture_depth_2d;
-@group(4) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;
-@group(4) @binding(2) var shadow_compare_sampler: sampler_comparison;
+@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;
+@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;
+@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -38,18 +46,23 @@ struct VertexOutput {
     @location(0) world_normal: vec3<f32>,
     @location(1) uv: vec2<f32>,
     @location(2) world_position: vec3<f32>,
+    @location(3) tint: vec4<f32>,
+    @location(4) shadow_params: vec4<f32>,
 };
 
 const EPSILON: f32 = 0.000001;
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
+fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {
     var out: VertexOutput;
-    let world_position = model.model * vec4<f32>(input.position, 1.0);
+    let world_from_local = zr_world_from_local(instance_index);
+    let world_position = world_from_local * vec4<f32>(input.position, 1.0);
     out.position = scene.view_proj * world_position;
-    out.world_normal = normalize((model.model * vec4<f32>(input.normal, 0.0)).xyz);
+    out.world_normal = normalize((world_from_local * vec4<f32>(input.normal, 0.0)).xyz);
     out.uv = input.uv;
     out.world_position = world_position.xyz;
+    out.tint = zr_gpu_scene_tint(instance_index);
+    out.shadow_params = zr_gpu_scene_shadow_params(instance_index);
     return out;
 }
 
@@ -75,11 +88,11 @@ fn sample_shadow_visibility(shadow_uv: vec2<f32>, receiver_depth: f32, offset: v
     return textureSampleCompare(shadow_map_tex, shadow_compare_sampler, sample_uv, receiver_depth);
 }
 
-fn shadow_visibility(world_position: vec3<f32>) -> f32 {
+fn shadow_visibility(world_position: vec3<f32>, shadow_params: vec4<f32>) -> f32 {
     if (shadow_receiver.params.x <= 0.5) {
         return 1.0;
     }
-    if (model.shadow_params.z <= 0.5) {
+    if (shadow_params.z <= 0.5) {
         return 1.0;
     }
 
@@ -110,13 +123,14 @@ fn shadow_visibility(world_position: vec3<f32>) -> f32 {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let albedo = textureSample(color_texture, color_sampler, input.uv) * model.tint;
+    let albedo = textureSample(color_texture, color_sampler, input.uv) * input.tint;
     let ndotl = max(dot(normalize(input.world_normal), normalize(-scene.light_dir.xyz)), 0.0);
-    let direct_visibility = shadow_visibility(input.world_position);
+    let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);
     let lighting = scene.ambient_color.rgb + scene.light_color.rgb * ndotl * direct_visibility;
     return vec4<f32>(albedo.rgb * lighting, albedo.a);
 }
 "#
+    )
 }
 
 #[cfg(test)]
@@ -143,15 +157,17 @@ mod tests {
     fn builtin_pbr_shader_receives_forward_shadow_map_resources() {
         let shader = builtin_pbr_wgsl();
 
-        assert!(shader.contains("@group(4) @binding(0) var shadow_map_tex: texture_depth_2d;"));
+        assert!(shader.contains("@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;"));
         assert!(shader.contains(
-            "@group(4) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;"
+            "@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;"
         ));
         assert!(shader
-            .contains("@group(4) @binding(2) var shadow_compare_sampler: sampler_comparison;"));
+            .contains("@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;"));
         assert!(shader.contains("textureSampleCompare"));
-        assert!(shader.contains("if (model.shadow_params.z <= 0.5)"));
-        assert!(shader.contains("let direct_visibility = shadow_visibility(input.world_position);"));
+        assert!(shader.contains("if (shadow_params.z <= 0.5)"));
+        assert!(shader.contains(
+            "let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);"
+        ));
         assert!(shader.contains(
             "let lighting = scene.ambient_color.rgb + scene.light_color.rgb * ndotl * direct_visibility;"
         ));

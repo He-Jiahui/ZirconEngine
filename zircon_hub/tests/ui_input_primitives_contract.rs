@@ -251,56 +251,62 @@ fn checkbox_and_switch_use_mui_form_controls_for_label_detail_rows() {
 
 #[test]
 fn routed_pages_consume_input_wrappers_instead_of_raw_material_inputs() {
-    for (page, expected_wrappers) in [
+    for (path, expected_wrappers) in [
         (
-            "ProjectsDashboard.tsx",
-            vec![
-                "HubButton",
-                "HubComboBox",
-                "HubSearchField",
-                "HubSelect",
-                "HubTextField",
-                "HubToggle",
-            ],
+            "web/src/pages/ProjectsDashboard.tsx",
+            vec!["HubButton", "ProjectsToolbar"],
         ),
         (
-            "ProjectBrowserPage.tsx",
+            "web/src/components/inputs/ProjectsToolbar.tsx",
+            vec!["HubSearchField", "HubSelect", "HubToggle"],
+        ),
+        (
+            "web/src/pages/ProjectBrowserPage.tsx",
             vec!["HubButton", "HubSearchField", "HubSelect", "HubToggle"],
         ),
-        ("ProjectDetailPage.tsx", vec!["HubButton", "HubTabs"]),
-        ("BuildsPage.tsx", vec!["HubButton", "HubTabs"]),
-        ("CatalogPage.tsx", vec!["HubSearchField", "HubTabs"]),
         (
-            "CloudPage.tsx",
+            "web/src/pages/ProjectDetailPage.tsx",
+            vec!["HubButton", "HubTabs"],
+        ),
+        ("web/src/pages/BuildsPage.tsx", vec!["HubButton", "HubTabs"]),
+        (
+            "web/src/pages/CatalogPage.tsx",
+            vec!["HubSearchField", "HubTabs"],
+        ),
+        (
+            "web/src/pages/CloudPage.tsx",
             vec!["HubButton", "HubCheckbox", "HubSwitch", "HubTabs"],
         ),
         (
-            "EditorPage.tsx",
+            "web/src/pages/EditorPage.tsx",
             vec!["HubButton", "HubCheckbox", "HubSwitch", "HubTabs"],
         ),
         (
-            "SettingsPage.tsx",
+            "web/src/pages/SettingsPage.tsx",
+            vec!["HubButton", "HubTabs", "SettingsSection"],
+        ),
+        (
+            "web/src/components/data/SettingsSection.tsx",
             vec![
-                "HubButton",
                 "HubCheckbox",
                 "HubComboBox",
+                "HubIconButton",
                 "HubSwitch",
-                "HubTabs",
                 "HubTextField",
             ],
         ),
-        ("TeamPage.tsx", vec!["HubTabs"]),
+        ("web/src/pages/TeamPage.tsx", vec!["HubTabs"]),
         (
-            "WorkspacePage.tsx",
+            "web/src/pages/WorkspacePage.tsx",
             vec!["HubButton", "HubCheckbox", "HubSwitch", "HubTabs"],
         ),
     ] {
-        let source = read_crate_file(&format!("web/src/pages/{page}"));
-        assert_contains_all(page, &source, &expected_wrappers);
+        let source = read_crate_file(path);
+        assert_contains_all(path, &source, &expected_wrappers);
 
         for import_line in source.lines().filter(|line| line.contains("@mui/material")) {
             assert_not_contains_any(
-                page,
+                path,
                 import_line,
                 &[
                     "Button",
@@ -317,7 +323,7 @@ fn routed_pages_consume_input_wrappers_instead_of_raw_material_inputs() {
             );
         }
         assert_not_contains_any(
-            page,
+            path,
             &source,
             &[
                 "<Button ",

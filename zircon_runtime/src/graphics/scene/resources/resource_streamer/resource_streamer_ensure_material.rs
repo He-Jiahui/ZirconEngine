@@ -31,26 +31,36 @@ impl ResourceStreamer {
         handle: ResourceHandle<MaterialMarker>,
     ) -> Result<(), GraphicsError> {
         let id = handle.id();
-        let (material, missing_material_fallback) = match self.asset_manager.load_material_asset(id)
+        let requested_revision = self.resource_revision(id).ok();
+        if let Some(prepared) = self
+            .materials
+            .get(&id)
+            .filter(|prepared| prepared.revision == requested_revision)
         {
-            Ok(material) => (material, None),
+            return material_prepare_result(id, &prepared.runtime.readiness_report);
+        }
+        let (material, missing_material_fallback, prepared_revision) = match self
+            .asset_manager
+            .load_material_asset(id)
+        {
+            Ok(material) => (material, None, requested_revision),
             Err(error) => {
                 let fallback_uri = fallback_material_uri();
                 let fallback_id = self.asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
-                    || {
-                        GraphicsError::Asset(format!(
-                            "missing material {id} ({error}); fallback material {fallback_uri} is not registered"
-                        ))
-                    },
-                )?;
+                        || {
+                            GraphicsError::Asset(format!(
+                                "missing material {id} ({error}); fallback material {fallback_uri} is not registered"
+                            ))
+                        },
+                    )?;
                 let material = self.asset_manager.load_material_asset(fallback_id).map_err(
-                    |fallback_error| {
-                        GraphicsError::Asset(format!(
-                            "missing material {id} ({error}); fallback material {fallback_uri} failed to load: {fallback_error}"
-                        ))
-                    },
-                )?;
-                (material, Some(missing_material_fallback_usage(id)))
+                        |fallback_error| {
+                            GraphicsError::Asset(format!(
+                                "missing material {id} ({error}); fallback material {fallback_uri} failed to load: {fallback_error}"
+                            ))
+                        },
+                    )?;
+                (material, Some(missing_material_fallback_usage(id)), None)
             }
         };
         let shader_contract = self.load_shader_contract(material.shader.clone());
@@ -211,11 +221,6 @@ impl ResourceStreamer {
         readiness.uniform_summary = Some(shader_property_uniform_payload.summary());
         readiness.uniform_fields = shader_property_uniform_payload.layout.clone();
         readiness.uniform_unsupported = shader_property_uniform_payload.unsupported.clone();
-        let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
-            device,
-            &self.material_bind_group_layout,
-            &shader_property_uniform_payload,
-        ));
         for texture in [
             &base_color_texture,
             &normal_texture,
@@ -271,13 +276,6 @@ impl ResourceStreamer {
                 readiness.push_diagnostic_once(diagnostic);
             }
         }
-        let has_blocking_validation = readiness.validation_errors.iter().any(|error| {
-            matches!(
-                error,
-                RenderMaterialValidationError::InvalidMaskCutoff { .. }
-                    | RenderMaterialValidationError::MissingRuntimeShaderSource
-            )
-        });
         let runtime = MaterialRuntime {
             base_color: Vec4::from_array(descriptor.base_color),
             emissive: Vec3::from_array(descriptor.emissive),
@@ -290,11 +288,24 @@ impl ResourceStreamer {
             unlit,
             cast_shadows: descriptor.cast_shadows,
             receive_shadows: descriptor.receive_shadows,
+            render_queue: descriptor.render_queue,
+            material_queue: descriptor.material_queue,
+            depth_bias: descriptor.depth_bias,
             base_color_texture: base_color_texture.id(),
+            base_color_texture_transform: descriptor.base_color_texture_transform,
+            base_color_texture_uv_channel: descriptor.base_color_texture_uv_channel,
             normal_texture: normal_texture.id(),
+            normal_texture_transform: descriptor.normal_texture_transform,
+            normal_texture_uv_channel: descriptor.normal_texture_uv_channel,
             metallic_roughness_texture: metallic_roughness_texture.id(),
+            metallic_roughness_texture_transform: descriptor.metallic_roughness_texture_transform,
+            metallic_roughness_texture_uv_channel: descriptor.metallic_roughness_texture_uv_channel,
             occlusion_texture: occlusion_texture.id(),
+            occlusion_texture_transform: descriptor.occlusion_texture_transform,
+            occlusion_texture_uv_channel: descriptor.occlusion_texture_uv_channel,
             emissive_texture: emissive_texture.id(),
+            emissive_texture_transform: descriptor.emissive_texture_transform,
+            emissive_texture_uv_channel: descriptor.emissive_texture_uv_channel,
             shader_property_values,
             shader_property_uniform_payload,
             non_standard_texture_slots,
@@ -315,14 +326,25 @@ impl ResourceStreamer {
             },
             readiness_report: readiness,
         };
-        if has_blocking_validation {
-            let validation_errors = runtime.readiness_report.validation_errors.clone();
-            self.materials
-                .insert(id, PreparedMaterial { runtime, uniform });
-            return Err(GraphicsError::Asset(format!(
-                "material {} is not render-ready: {:?}",
-                id, validation_errors
-            )));
+        let uniform = std::sync::Arc::new(GpuMaterialUniformResource::from_payload(
+            device,
+            &runtime.shader_property_uniform_payload,
+        ));
+        let standard_uniform = std::sync::Arc::new(
+            GpuMaterialUniformResource::from_standard_material(device, &runtime),
+        );
+        let prepare_result = material_prepare_result(id, &runtime.readiness_report);
+        if prepare_result.is_err() {
+            self.materials.insert(
+                id,
+                PreparedMaterial {
+                    revision: prepared_revision,
+                    runtime,
+                    uniform,
+                    standard_uniform,
+                },
+            );
+            return prepare_result;
         }
         for texture_id in [
             base_color_texture.id(),
@@ -340,8 +362,15 @@ impl ResourceStreamer {
         ) {
             self.ensure_texture(device, queue, texture_layout, texture_id)?;
         }
-        self.materials
-            .insert(id, PreparedMaterial { runtime, uniform });
+        self.materials.insert(
+            id,
+            PreparedMaterial {
+                revision: prepared_revision,
+                runtime,
+                uniform,
+                standard_uniform,
+            },
+        );
         Ok(())
     }
 
@@ -350,6 +379,30 @@ impl ResourceStreamer {
             .resolve_asset_id(&reference.locator)
             .and_then(|id| self.asset_manager.load_shader_asset(id).ok())
     }
+}
+
+fn material_prepare_result(
+    id: ResourceId,
+    report: &crate::core::framework::render::RenderMaterialReadinessReport,
+) -> Result<(), GraphicsError> {
+    if has_blocking_material_validation(&report.validation_errors) {
+        Err(GraphicsError::Asset(format!(
+            "material {} is not render-ready: {:?}",
+            id, report.validation_errors
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+fn has_blocking_material_validation(validation_errors: &[RenderMaterialValidationError]) -> bool {
+    validation_errors.iter().any(|error| {
+        matches!(
+            error,
+            RenderMaterialValidationError::InvalidMaskCutoff { .. }
+                | RenderMaterialValidationError::MissingRuntimeShaderSource
+        )
+    })
 }
 
 fn fallback_material_uri() -> ResourceLocator {

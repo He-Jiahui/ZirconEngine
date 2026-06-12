@@ -6,5 +6,6 @@ pub mod editor_event;
 pub mod editor_extension;
 pub mod editor_operation;
 pub mod editor_plugin;
+pub(crate) mod editor_plugin_catalog_gen;
 pub mod editor_plugin_sdk;
 pub mod gui_startup_request;

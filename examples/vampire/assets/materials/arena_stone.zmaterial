@@ -1,0 +1,16 @@
+version = 1
+name = "Arena Stone"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000041"
+url = "res://shaders/default_pbr"
+
+[overrides]
+base_color = [0.26, 0.24, 0.22, 1.0]
+metallic = 0.0
+roughness = 0.82
+emissive = [0.0, 0.0, 0.0]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

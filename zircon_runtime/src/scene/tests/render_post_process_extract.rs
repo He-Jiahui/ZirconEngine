@@ -1,3 +1,10 @@
+use crate::asset::{
+    SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset, SceneColorGradingSettingsAsset,
+    SceneEntityAsset, SceneFogSettingsAsset, SceneMobilityAsset, ScenePostProcessEffectStackAsset,
+    ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset,
+    SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneVignetteSettingsAsset,
+    TransformAsset,
+};
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderExtractContext, RenderLayerSet,
     RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
@@ -10,6 +17,158 @@ use crate::scene::components::{
     PostProcessSettingsComponent, PostProcessVolumeComponent,
 };
 use crate::scene::World;
+
+#[test]
+fn scene_asset_post_process_settings_feed_render_extract() {
+    let project_root = super::support::unique_temp_project_root(
+        "scene_asset_post_process_settings_feed_render_extract",
+    );
+    let project = super::support::create_test_project(&project_root);
+    let scene = SceneAsset {
+        entities: vec![
+            SceneEntityAsset {
+                entity: 1,
+                name: "MoodCamera".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: Some(SceneCameraAsset {
+                    post_process_settings: Some(ScenePostProcessSettingsAsset {
+                        bloom: SceneBloomSettingsAsset {
+                            threshold: 0.25,
+                            intensity: 0.4,
+                            radius: 0.5,
+                        },
+                        color_grading: SceneColorGradingSettingsAsset {
+                            exposure: 0.85,
+                            contrast: 1.15,
+                            saturation: 0.75,
+                            gamma: 1.05,
+                            tint: [0.72, 0.8, 1.0],
+                        },
+                        effect_stack: ScenePostProcessEffectStackAsset {
+                            tonemap: SceneTonemapSettingsAsset {
+                                operator: SceneTonemapOperatorAsset::Aces,
+                                exposure_bias: -0.15,
+                                white_point: 1.25,
+                            },
+                            vignette: SceneVignetteSettingsAsset {
+                                intensity: 0.35,
+                                smoothness: 0.6,
+                                roundness: 0.9,
+                            },
+                            fog: SceneFogSettingsAsset {
+                                density: 0.07,
+                                height_falloff: 0.2,
+                                color: [0.18, 0.22, 0.3],
+                            },
+                            ..ScenePostProcessEffectStackAsset::default()
+                        },
+                    }),
+                    ..SceneCameraAsset::default()
+                }),
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+            SceneEntityAsset {
+                entity: 2,
+                name: "MoodVolume".to_string(),
+                parent: None,
+                transform: TransformAsset::default(),
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Static,
+                camera: None,
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: Some(ScenePostProcessVolumeAsset {
+                    active: true,
+                    is_global: true,
+                    priority: 2.0,
+                    weight: 0.5,
+                    blend_distance: 0.0,
+                    profile: ScenePostProcessVolumeProfileAsset {
+                        bloom: Some(SceneBloomSettingsAsset {
+                            threshold: 0.2,
+                            intensity: 1.0,
+                            radius: 0.9,
+                        }),
+                        color_grading: None,
+                        effect_stack: Some(ScenePostProcessEffectStackAsset {
+                            tonemap: SceneTonemapSettingsAsset {
+                                operator: SceneTonemapOperatorAsset::Filmic,
+                                exposure_bias: -0.1,
+                                white_point: 1.1,
+                            },
+                            ..ScenePostProcessEffectStackAsset::default()
+                        }),
+                    },
+                }),
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+        ],
+    };
+    let mut world = World::from_scene_asset(&project, &scene).unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(800),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.view.scene_camera_entity, Some(1));
+    assert_near(extract.post_process.bloom.intensity, 0.4);
+    assert_near(extract.post_process.color_grading.saturation, 0.75);
+    assert_eq!(
+        extract.post_process.effect_stack.tonemap.operator,
+        RenderTonemapOperator::Aces
+    );
+    assert_near(extract.post_process.effect_stack.vignette.intensity, 0.35);
+    assert_near(extract.post_process.effect_stack.fog.density, 0.07);
+    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+
+    let resolved = extract
+        .post_process
+        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+    assert_near(resolved.bloom.intensity, 0.7);
+    assert_eq!(
+        resolved.effect_stack.tonemap.operator,
+        RenderTonemapOperator::Filmic
+    );
+}
 
 #[test]
 fn scene_camera_post_process_settings_seed_frame_extract_before_volume_resolution() {

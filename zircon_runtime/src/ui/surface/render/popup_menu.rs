@@ -120,6 +120,7 @@ struct RuntimePopupMenuItem {
     hovered: bool,
     focused: bool,
     pressed: bool,
+    loading: bool,
     danger: bool,
 }
 
@@ -134,6 +135,7 @@ impl RuntimePopupMenuItem {
                 hovered: false,
                 focused: false,
                 pressed: false,
+                loading: false,
                 danger: false,
             };
         }
@@ -149,6 +151,7 @@ impl RuntimePopupMenuItem {
             hovered: has_flag(flags, "hovered"),
             focused: has_flag(flags, "focused"),
             pressed: has_flag(flags, "pressed"),
+            loading: has_flag(flags, "loading"),
             danger: has_flag(flags, "danger"),
         }
     }
@@ -160,6 +163,7 @@ impl RuntimePopupMenuItem {
             self.focused,
             self.pressed,
             self.disabled,
+            self.loading,
         )
     }
 

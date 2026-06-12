@@ -158,6 +158,83 @@ active_drag_target = true
     }));
 }
 
+#[test]
+fn render_extract_loading_dropdown_trigger_uses_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.dropdowns.loading"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Dropdown",
+        UiFrame::new(12.0, 16.0, 160.0, 30.0),
+        r##"
+label = "Mode"
+value_text = "Compiling"
+popup_open = true
+pressed = true
+focused = true
+hovered = true
+loading = true
+background_color = "#153940"
+open_background_color = "#17454c"
+pressed_background_color = "#1f5660"
+hover_background_color = "#22636d"
+border_color = "#2a909d"
+focus_border_color = "#35c7d0"
+label_color = "#a7dde4"
+foreground_color = "#d9fbff"
+icon_color = "#ef7066"
+"##,
+        UiStateFlags {
+            pressed: true,
+            ..visible_state()
+        },
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 16.0, 160.0, 30.0)
+            && command.style.painter_family == UiPainterFamily::Dropdown
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Mode")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Compiling")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("chevron-down".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(168.0, 21.0, 2.0, 20.0)
+    }));
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,

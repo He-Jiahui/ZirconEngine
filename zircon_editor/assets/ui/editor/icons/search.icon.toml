@@ -1,0 +1,11 @@
+semantic_id = "editor.icons.search"
+default_size = 20.0
+
+[source]
+kind = "svg"
+text = """
+<svg width="24" height="24" viewBox="0 0 24 24">
+  <path d="M10.5 5a5.5 5.5 0 1 0 0 11a5.5 5.5 0 0 0 0-11z" stroke="#f4f8fb" fill="none" />
+  <path d="M15 15l4 4" stroke="#f4f8fb" />
+</svg>
+"""

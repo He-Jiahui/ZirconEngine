@@ -444,7 +444,7 @@ mod tests {
     }
 
     #[test]
-    fn disabled_workbench_button_uses_declared_style_and_opacity() {
+    fn disabled_workbench_button_suppresses_declared_style_but_keeps_opacity() {
         let mut node = positioned_button_node(
             "WorkbenchDisabledButton",
             "Disabled",
@@ -464,10 +464,10 @@ mod tests {
 
         let style = button_style(&node, button_kind(&node));
 
-        assert_eq!(style.surface, [45, 51, 55, 255]);
-        assert_eq!(style.border, [52, 61, 68, 255]);
-        assert_eq!(style.text, [116, 127, 134, 255]);
-        assert_eq!(style.glyph, [116, 127, 134, 255]);
+        assert_eq!(style.surface, PALETTE.surface_disabled);
+        assert_eq!(style.border, PALETTE.border_disabled);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.glyph, PALETTE.text_disabled);
         assert!((button_opacity(&node, 1.0) - 0.72).abs() < 0.001);
     }
 

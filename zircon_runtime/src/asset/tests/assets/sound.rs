@@ -3,8 +3,7 @@ use crate::core::framework::sound::SoundChannelLayout;
 
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xfffe;
 const PCM_SUBFORMAT_GUID: [u8; 16] = [
-    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b,
-    0x71,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71,
 ];
 const SPEAKER_FRONT_LEFT: u32 = 0x0000_0001;
 const SPEAKER_FRONT_RIGHT: u32 = 0x0000_0002;
@@ -42,7 +41,10 @@ fn sound_asset_wav_extensible_preserves_side_bed_channel_layout() {
     .unwrap();
 
     assert_eq!(asset.channel_count, 6);
-    assert_eq!(asset.channel_layout, SoundChannelLayout::surround_5_1_side());
+    assert_eq!(
+        asset.channel_layout,
+        SoundChannelLayout::surround_5_1_side()
+    );
     assert_eq!(asset.frame_count(), 1);
 }
 
@@ -50,7 +52,11 @@ fn sound_asset_wav_extensible_preserves_side_bed_channel_layout() {
 fn sound_asset_rejects_wav_extensible_unsupported_speaker_mask_bits() {
     let error = SoundAsset::from_wav_bytes(
         &AssetUri::parse("res://audio/height.wav").unwrap(),
-        &extensible_pcm_wav_bytes(3, SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_TOP_CENTER, &[0; 6]),
+        &extensible_pcm_wav_bytes(
+            3,
+            SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_TOP_CENTER,
+            &[0; 6],
+        ),
     )
     .unwrap_err();
 
@@ -85,7 +91,11 @@ fn wav_bytes(
     let block_align = channel_count * bytes_per_sample;
     let sample_rate_hz = 48_000_u32;
     let byte_rate = sample_rate_hz * block_align as u32;
-    let fmt_size = if channel_mask.is_some() { 40_u32 } else { 16_u32 };
+    let fmt_size = if channel_mask.is_some() {
+        40_u32
+    } else {
+        16_u32
+    };
     let riff_size = 4 + (8 + fmt_size) + (8 + data.len() as u32);
 
     let mut bytes = Vec::with_capacity((riff_size + 8) as usize);

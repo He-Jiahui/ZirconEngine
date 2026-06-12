@@ -9,6 +9,7 @@ pub mod engine_module;
 pub mod prelude;
 
 // `ui` must be declared before `asset` (asset types reference UI template loaders).
+pub mod animation;
 pub mod asset;
 pub mod scene;
 pub mod ui;
@@ -20,9 +21,10 @@ pub mod render_graph;
 pub mod rhi;
 pub mod rhi_wgpu;
 
-mod builtin;
+pub mod builtin;
 pub mod foundation;
 pub mod input;
+pub mod navigation;
 pub mod platform;
 pub mod plugin;
 pub mod script;
@@ -32,17 +34,10 @@ pub use zircon_runtime_reflection_macros::{
 };
 
 pub use builtin::{
-    builtin_runtime_modules, default_manifest_for_target, manifest_for_runtime_profile,
-    manifest_with_mode_baseline, runtime_core_modules, runtime_modules_for_runtime_profile,
-    runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
-    runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_runtime_profile_with_plugin_registration_reports,
-    runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
-    runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
-    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
+    RuntimeModuleLoadReport, RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
 };
+#[allow(unused_imports)]
+pub(crate) use graphics::pipeline::RendererFeatureReferenceListKind;
 #[allow(unused_imports)]
 pub(crate) use graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
@@ -52,8 +47,8 @@ pub(crate) use graphics::scene::{
 pub(crate) use graphics::{
     backend, extract, feature, material, pipeline, runtime, types, visibility,
     BuiltinRenderFeature, CompiledRenderPipeline, CompiledRenderPipelinePassStage,
-    FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, GraphicsError,
-    HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
+    FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, FrameVisibility,
+    GraphicsError, HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
     HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
     HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate, MaterialDomain,
     OfflineBakeOutput, OfflineBakeSettings, ParticleGpuFeedback, ParticleRuntimeFeedback,
@@ -63,17 +58,17 @@ pub(crate) use graphics::{
     RenderPipelineAsset, RenderPipelineAssetContext, RenderPipelineCompileOptions,
     RenderPipelineCompileReport, RendererAsset, RendererDataDocument, RendererDataDocumentError,
     RendererFeatureAsset, RendererFeatureAssetReferences, RendererFeatureContractDiagnostic,
-    RendererFeatureDocument, SceneRenderer, SolariRuntimeProvider,
-    SolariRuntimeProviderRegistration, ViewportFrame, ViewportFrameTextureHandle,
-    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
-    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
-    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
-    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
-    VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate, VisibilityContext,
-    VisibilityHistorySnapshot, VisibilityHybridGiFeedback, VisibilityHybridGiUpdatePlan,
-    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
-    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
-    WgpuRenderFramework, RENDERER_DATA_DOCUMENT_VERSION,
+    RendererFeatureContractDiagnosticSeverity, RendererFeatureDocument, SceneRenderer,
+    SolariRuntimeProvider, SolariRuntimeProviderRegistration, ViewCullingStats,
+    ViewVisibilityContext, ViewportFrame, ViewportFrameTextureHandle, VirtualGeometryGpuCompletion,
+    VirtualGeometryRuntimeExtractOutput, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
+    VisibilityContext, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
+    VisibilityHybridGiUpdatePlan, VisibilityViewKey, VisibilityVirtualGeometryCluster,
+    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
+    VisibilityVirtualGeometryPageUploadPlan, WgpuRenderFramework, RENDERER_DATA_DOCUMENT_VERSION,
 };
 #[cfg(test)]
 mod tests;

@@ -8,7 +8,6 @@ use zircon_runtime_interface::ui::v2::{
     UI_V2_REPEAT_ATTRIBUTE,
 };
 
-
 use super::interaction::infer_interaction;
 use super::layout::{infer_container, infer_layout_contract};
 use super::slot::infer_slot_contract;
@@ -89,6 +88,7 @@ fn insert_arena_node(
         .map(|parent| parent.container);
     let attributes = arena_node_attributes(node, resolved_styles);
     let style_overrides = arena_node_style_overrides(node, resolved_styles);
+    let style_tokens = arena_node_style_tokens(node, resolved_styles);
     let layout = infer_layout_contract(
         asset_id,
         path,
@@ -140,7 +140,7 @@ fn insert_arena_node(
             attributes,
             slot_attributes: slot_attributes.clone(),
             style_overrides,
-            style_tokens: BTreeMap::new(),
+            style_tokens,
             bindings: node.events.clone(),
             a11y: Default::default(),
             widget: Default::default(),
@@ -196,6 +196,17 @@ fn arena_node_style_overrides(
     }
     style_overrides.extend(node.style.self_values.clone());
     style_overrides
+}
+
+fn arena_node_style_tokens(
+    node: &UiV2ArenaNode,
+    resolved_styles: &UiV2ResolvedStyleSheet,
+) -> BTreeMap<String, String> {
+    resolved_styles
+        .nodes
+        .get(&node.source_id)
+        .map(|resolved| resolved.style_tokens.clone())
+        .unwrap_or_default()
 }
 
 fn stable_node_path(node: &UiV2ArenaNode) -> String {

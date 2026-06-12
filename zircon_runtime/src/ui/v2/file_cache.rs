@@ -3,12 +3,20 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
+use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::ui::template::{
+    UiAssetFingerprint, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+};
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2CompiledDocument};
 
 use super::{
     UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder,
     UiZuiAssetLoader,
 };
+use crate::ui::template::{UiCompiledArtifactKey, UiCompiledArtifactStore};
+
+const UI_V2_PERSISTENT_FILE_CACHE_SCHEMA_VERSION: u32 = 1;
+const UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION: u32 = 1;
 
 #[derive(Clone, Debug)]
 pub struct UiV2PrototypeStoreLoadOutcome {
@@ -17,16 +25,32 @@ pub struct UiV2PrototypeStoreLoadOutcome {
     pub compiled: Arc<UiV2CompiledDocument>,
     pub store: Arc<UiV2PrototypeStore>,
     pub cache_hit: bool,
+    pub persistent_cache_hit: bool,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct UiV2PrototypeStoreFileCache {
     entries: BTreeMap<UiV2FileStoreCacheKey, UiV2FileStoreCacheEntry>,
+    persistent_store: Option<UiCompiledArtifactStore>,
 }
 
 impl UiV2PrototypeStoreFileCache {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            entries: BTreeMap::new(),
+            persistent_store: None,
+        }
+    }
+
+    pub fn with_persistent_cache(root: impl Into<PathBuf>) -> Self {
+        Self {
+            entries: BTreeMap::new(),
+            persistent_store: Some(UiCompiledArtifactStore::new(root)),
+        }
+    }
+
+    pub fn persistent_store(&self) -> Option<&UiCompiledArtifactStore> {
+        self.persistent_store.as_ref()
     }
 
     pub fn len(&self) -> usize {
@@ -54,15 +78,32 @@ impl UiV2PrototypeStoreFileCache {
         if let Some(entry) = self.entries.get(&explicit_cache_key) {
             let current_source_key = UiV2FileStoreCacheKey::from_paths(&entry.source_paths);
             if entry.source_key == current_source_key {
-                return Ok(entry.to_outcome(true));
+                return Ok(entry.to_outcome(true, false));
+            }
+        }
+
+        if let Some(store) = &self.persistent_store {
+            if let Some(entry) = load_persistent_entry(store, &explicit_cache_key)? {
+                let outcome = entry.to_outcome(true, true);
+                let _ = self.entries.insert(explicit_cache_key, entry);
+                return Ok(outcome);
             }
         }
 
         let sources = collect_v2_sources(&paths)?;
         let entry = build_file_store_cache_entry(sources)?;
-        let outcome = entry.to_outcome(false);
+        if let Some(store) = &self.persistent_store {
+            store_persistent_entry(store, &explicit_cache_key, &entry)?;
+        }
+        let outcome = entry.to_outcome(false, false);
         let _ = self.entries.insert(explicit_cache_key, entry);
         Ok(outcome)
+    }
+}
+
+impl Default for UiV2PrototypeStoreFileCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -77,18 +118,23 @@ struct UiV2FileStoreCacheEntry {
 }
 
 impl UiV2FileStoreCacheEntry {
-    fn to_outcome(&self, cache_hit: bool) -> UiV2PrototypeStoreLoadOutcome {
+    fn to_outcome(
+        &self,
+        cache_hit: bool,
+        persistent_cache_hit: bool,
+    ) -> UiV2PrototypeStoreLoadOutcome {
         UiV2PrototypeStoreLoadOutcome {
             root_asset_id: self.root_asset_id.clone(),
             root_document: Arc::clone(&self.root_document),
             compiled: Arc::clone(&self.compiled),
             store: Arc::clone(&self.store),
             cache_hit,
+            persistent_cache_hit,
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct UiV2FileStoreCacheKey {
     sources: Vec<UiV2FileCacheSourceKey>,
 }
@@ -104,7 +150,7 @@ impl UiV2FileStoreCacheKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct UiV2FileCacheSourceKey {
     path: PathBuf,
     modified_unix_ns: Option<u128>,
@@ -145,6 +191,160 @@ where
         });
     }
     Ok(paths)
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct UiV2PersistentFileCacheRecord {
+    record_version: u32,
+    root_asset_id: String,
+    root_document: UiV2AssetDocument,
+    compiled: UiV2CompiledDocument,
+    documents: Vec<UiV2PersistentFileCacheDocument>,
+    source_paths: Vec<PathBuf>,
+    source_key: UiV2FileStoreCacheKey,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct UiV2PersistentFileCacheDocument {
+    document: UiV2AssetDocument,
+    aliases: Vec<String>,
+}
+
+fn load_persistent_entry(
+    store: &UiCompiledArtifactStore,
+    explicit_cache_key: &UiV2FileStoreCacheKey,
+) -> Result<Option<UiV2FileStoreCacheEntry>, UiV2AssetError> {
+    let Some(key) = persistent_key_for_source_key("ui-v2-file-cache", explicit_cache_key) else {
+        return Ok(None);
+    };
+    let Some(bytes) = store
+        .load_payload_bytes(&key)
+        .map_err(|error| persistent_cache_io_error("read", &key.asset_id, error))?
+    else {
+        return Ok(None);
+    };
+    let record = match bincode::deserialize::<UiV2PersistentFileCacheRecord>(&bytes) {
+        Ok(record) => record,
+        Err(_) => return Ok(None),
+    };
+    if record.record_version != UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION {
+        return Ok(None);
+    }
+    let current_source_key = UiV2FileStoreCacheKey::from_paths(&record.source_paths);
+    if record.source_key != current_source_key {
+        return Ok(None);
+    }
+
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    for document in &record.documents {
+        let _ = builder.insert_with_aliases(document.document.clone(), document.aliases.clone());
+    }
+    let store = Arc::new(builder.build()?);
+    let root_document =
+        store
+            .get(&record.root_asset_id)
+            .ok_or_else(|| UiV2AssetError::InvalidDocument {
+                asset_id: record.root_asset_id.clone(),
+                detail: "v2 persistent file cache did not retain the root asset document"
+                    .to_string(),
+            })?;
+
+    Ok(Some(UiV2FileStoreCacheEntry {
+        root_asset_id: record.root_asset_id,
+        root_document,
+        compiled: Arc::new(record.compiled),
+        store,
+        source_paths: record.source_paths,
+        source_key: record.source_key,
+    }))
+}
+
+fn store_persistent_entry(
+    store: &UiCompiledArtifactStore,
+    explicit_cache_key: &UiV2FileStoreCacheKey,
+    entry: &UiV2FileStoreCacheEntry,
+) -> Result<(), UiV2AssetError> {
+    let Some(key) = persistent_key_for_source_key("ui-v2-file-cache", explicit_cache_key) else {
+        return Ok(());
+    };
+    let record = UiV2PersistentFileCacheRecord {
+        record_version: UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION,
+        root_asset_id: entry.root_asset_id.clone(),
+        root_document: entry.root_document.as_ref().clone(),
+        compiled: entry.compiled.as_ref().clone(),
+        documents: persistent_documents_for_entry(entry),
+        source_paths: entry.source_paths.clone(),
+        source_key: entry.source_key.clone(),
+    };
+    let bytes = bincode::serialize(&record)
+        .map_err(|error| persistent_cache_data_error("serialize", &entry.root_asset_id, error))?;
+    store
+        .store_payload_bytes(&key, &bytes)
+        .map_err(|error| persistent_cache_io_error("write", &entry.root_asset_id, error))?;
+    Ok(())
+}
+
+fn persistent_documents_for_entry(
+    entry: &UiV2FileStoreCacheEntry,
+) -> Vec<UiV2PersistentFileCacheDocument> {
+    let mut documents = BTreeMap::<String, UiV2PersistentFileCacheDocument>::new();
+    for document in entry.store.documents() {
+        let canonical_id = document.asset.id.clone();
+        let _ = documents.entry(canonical_id.clone()).or_insert_with(|| {
+            UiV2PersistentFileCacheDocument {
+                document: document.as_ref().clone(),
+                aliases: Vec::new(),
+            }
+        });
+    }
+    for source_path in &entry.source_paths {
+        let Ok(document) = load_ui_v2_source_file(source_path) else {
+            continue;
+        };
+        let canonical_id = document.asset.id;
+        if let (Some(record), Some(alias)) = (
+            documents.get_mut(&canonical_id),
+            resource_alias_for_path(source_path),
+        ) {
+            if alias != canonical_id && !record.aliases.contains(&alias) {
+                record.aliases.push(alias);
+            }
+        }
+    }
+    documents.into_values().collect()
+}
+
+fn persistent_key_for_source_key(
+    asset_id: &str,
+    source_key: &UiV2FileStoreCacheKey,
+) -> Option<UiCompiledArtifactKey> {
+    let bytes = bincode::serialize(source_key).ok()?;
+    let fingerprint = UiAssetFingerprint::from_bytes(&bytes).value;
+    Some(UiCompiledArtifactKey::new(
+        asset_id,
+        fingerprint,
+        UI_V2_PERSISTENT_FILE_CACHE_SCHEMA_VERSION,
+        UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
+    ))
+}
+
+fn persistent_cache_io_error(
+    operation: &str,
+    asset_id: &str,
+    error: std::io::Error,
+) -> UiV2AssetError {
+    persistent_cache_data_error(operation, asset_id, error)
+}
+
+fn persistent_cache_data_error(
+    operation: &str,
+    asset_id: &str,
+    error: impl std::fmt::Display,
+) -> UiV2AssetError {
+    UiV2AssetError::InvalidDocument {
+        asset_id: asset_id.to_string(),
+        detail: format!("failed to {operation} v2 persistent file cache: {error}"),
+    }
 }
 
 struct UiV2FileSource {
@@ -346,8 +546,22 @@ fn resource_alias_for_path(path: &Path) -> Option<String> {
 }
 
 fn asset_root_for_path(path: &Path) -> Option<&Path> {
-    path.ancestors()
-        .find(|ancestor| ancestor.file_name().and_then(|name| name.to_str()) == Some("assets"))
+    let mut fallback = None;
+    for ancestor in path
+        .ancestors()
+        .filter(|ancestor| ancestor.file_name().and_then(|name| name.to_str()) == Some("assets"))
+    {
+        if fallback.is_none() {
+            fallback = Some(ancestor);
+        }
+        // `res://` is rooted at the package asset directory. Component content
+        // can legitimately live in nested folders named `assets`, so prefer the
+        // first ancestor that owns the package-level UI tree.
+        if ancestor.join("ui").is_dir() {
+            return Some(ancestor);
+        }
+    }
+    fallback
 }
 
 fn load_ui_v2_source_file(path: &Path) -> Result<UiV2AssetDocument, UiV2AssetError> {

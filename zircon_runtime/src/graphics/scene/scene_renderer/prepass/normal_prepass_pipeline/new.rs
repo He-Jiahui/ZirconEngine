@@ -8,7 +8,8 @@ impl NormalPrepassPipeline {
     pub(crate) fn new(
         device: &wgpu::Device,
         scene_layout: &wgpu::BindGroupLayout,
-        model_layout: &wgpu::BindGroupLayout,
+        material_layout: &wgpu::BindGroupLayout,
+        gpu_scene_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-normal-prepass-shader"),
@@ -16,7 +17,12 @@ impl NormalPrepassPipeline {
         });
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-normal-prepass-layout"),
-            bind_group_layouts: &[Some(scene_layout), Some(model_layout)],
+            bind_group_layouts: &[
+                Some(scene_layout),
+                None,
+                Some(material_layout),
+                Some(gpu_scene_layout),
+            ],
             immediate_size: 0,
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

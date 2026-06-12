@@ -4,7 +4,10 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use crate::graphics::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
+};
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -13,47 +16,15 @@ pub(crate) struct BaseScenePass;
 
 impl BaseScenePass {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn record<'a, I>(
+    pub(crate) fn record_commands_with_attachment_ops<'a, I>(
         &self,
         encoder: &mut wgpu::CommandEncoder,
         device: &wgpu::Device,
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        mesh_draws: I,
-        mesh_pipelines: &mut MeshPipelineCache,
-        streamer: &ResourceStreamer,
-        frame: &ViewportRenderFrame,
-    ) where
-        I: IntoIterator<Item = &'a MeshDraw>,
-    {
-        self.record_with_attachment_ops(
-            encoder,
-            device,
-            color_view,
-            depth_view,
-            scene_bind_group,
-            mesh_draws,
-            mesh_pipelines,
-            streamer,
-            frame,
-            None,
-            None,
-            None,
-            RenderGraphAttachmentOps::load_store(),
-            RenderGraphAttachmentOps::load_store(),
-        );
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn record_with_attachment_ops<'a, I>(
-        &self,
-        encoder: &mut wgpu::CommandEncoder,
-        device: &wgpu::Device,
-        color_view: &wgpu::TextureView,
-        depth_view: &wgpu::TextureView,
-        scene_bind_group: &wgpu::BindGroup,
-        mesh_draws: I,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: I,
         mesh_pipelines: &mut MeshPipelineCache,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
@@ -62,8 +33,9 @@ impl BaseScenePass {
         shadow_scene_uniform: Option<SceneUniform>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
-    ) where
-        I: IntoIterator<Item = &'a MeshDraw>,
+    ) -> MeshDrawReplayStats
+    where
+        I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
     {
         if let Some(queue) = queue {
             mesh_pipelines.update_forward_shadow_receiver(queue, shadow_scene_uniform);
@@ -88,18 +60,32 @@ impl BaseScenePass {
             multiview_mask: None,
         });
         pass.set_bind_group(0, scene_bind_group, &[]);
-        pass.set_bind_group(4, &forward_shadow_receiver_bind_group, &[]);
+        pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
         if frame.overlays().display_mode == DisplayMode::WireOnly {
-            return;
+            return MeshDrawReplayStats::default();
         }
-        for draw in mesh_draws {
-            let pipeline = mesh_pipelines.ensure_pipeline(device, streamer, draw.pipeline_key());
-            pass.set_pipeline(pipeline);
-            draw.bind_model(&mut pass);
-            draw.bind_texture(&mut pass);
-            draw.bind_material(&mut pass);
-            draw.bind_geometry_buffers(&mut pass);
-            draw.record_indexed_draw(&mut pass);
+        let mut replayer = MeshDrawCommandReplayer::default();
+        for stream in mesh_draw_commands {
+            replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
+                let uses_builtin_fallback_shader = mesh_pipelines
+                    .pipeline_uses_builtin_fallback_shader(streamer, command.pipeline_key());
+                if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
+                {
+                    let pipeline = mesh_pipelines
+                        .ensure_pipeline_for_variant(device, streamer, command.pipeline_variant_id)
+                        .expect("base mesh command must resolve a cache-backed pipeline variant");
+                    pass.set_pipeline(pipeline);
+                }
+                replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
+                if uses_builtin_fallback_shader {
+                    replayer.bind_standard_material_if_needed(pass, command);
+                } else {
+                    replayer.bind_material_if_needed(pass, command);
+                }
+                replayer.bind_geometry_if_needed(pass, command);
+                true
+            });
         }
+        replayer.stats()
     }
 }

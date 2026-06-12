@@ -32,6 +32,8 @@ pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> R
             crate::asset::ImportedAsset::UiLayout(_) => AssetKind::UiLayout,
             crate::asset::ImportedAsset::UiWidget(_) => AssetKind::UiWidget,
             crate::asset::ImportedAsset::UiStyle(_) => AssetKind::UiStyle,
+            crate::asset::ImportedAsset::UiTheme(_) => AssetKind::UiStyle,
+            crate::asset::ImportedAsset::UiIcon(_) => AssetKind::Texture,
             crate::asset::ImportedAsset::UiV2View(_) => AssetKind::UiLayout,
             crate::asset::ImportedAsset::UiV2Component(_) => AssetKind::UiWidget,
             crate::asset::ImportedAsset::UiV2Style(_) => AssetKind::UiStyle,

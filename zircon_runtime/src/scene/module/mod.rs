@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use crate::asset::{project::ProjectManager, AssetUri};
 use crate::core::manager::LevelManagerHandle;
+use crate::core::runtime::ServiceObject;
 use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind,
-    ServiceObject, StartupMode,
+    StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -67,7 +68,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
 }
 
 pub fn create_default_level(core: &CoreHandle) -> Result<crate::scene::LevelSystem, CoreError> {
-    resolve_default_level_manager(core).map(|manager| manager.create_default_level())
+    let manager = resolve_default_level_manager(core)?;
+    let level = manager.create_default_level();
+    apply_world_runtime_extensions_to_level(core, &level)?;
+    Ok(level)
 }
 
 pub fn load_level_asset(
@@ -82,9 +86,21 @@ pub fn load_level_asset(
         .scan_and_import()
         .map_err(|error| scene_core_error(error.to_string()))?;
     let uri = AssetUri::parse(uri).map_err(|error| scene_core_error(error.to_string()))?;
-    manager
+    let level = manager
         .load_level(&project, &uri)
-        .map_err(|error| scene_core_error(error.to_string()))
+        .map_err(|error| scene_core_error(error.to_string()))?;
+    apply_world_runtime_extensions_to_level(core, &level)?;
+    Ok(level)
+}
+
+fn apply_world_runtime_extensions_to_level(
+    core: &CoreHandle,
+    level: &crate::scene::LevelSystem,
+) -> Result<(), CoreError> {
+    level.with_world_mut(|world| {
+        core.apply_world_runtime_extensions(world)
+            .map_err(|error| scene_core_error(error.to_string()))
+    })
 }
 
 impl EngineModule for SceneModule {

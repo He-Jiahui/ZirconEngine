@@ -9,8 +9,9 @@ use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
 use zircon_runtime::core::framework::asset::ResourceManager;
+use zircon_runtime::core::framework::channel::ChannelReceiver;
 use zircon_runtime::core::manager::ManagerResolver;
-use zircon_runtime::core::{ChannelReceiver, CoreHandle};
+use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::resource::{

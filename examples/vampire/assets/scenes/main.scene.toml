@@ -1,0 +1,2734 @@
+[[entities]]
+entity = 1
+name = "Follow Camera"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 5.35, -7.25]
+rotation = [0.0, 0.9673612, 0.2534013, 0.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.camera]
+fov_y_radians = 0.88
+z_near = 0.1
+z_far = 240.0
+hdr = true
+exposure_ev100 = 0.2
+
+[entities.camera.post_process_settings.bloom]
+threshold = 0.52
+intensity = 0.9
+radius = 0.92
+
+[entities.camera.post_process_settings.color_grading]
+exposure = 0.72
+contrast = 1.34
+saturation = 1.24
+gamma = 1.05
+tint = [0.82, 1.0, 0.82]
+
+[entities.camera.post_process_settings.effect_stack.tonemap]
+operator = "aces"
+exposure_bias = -0.35
+white_point = 1.12
+
+[entities.camera.post_process_settings.effect_stack.vignette]
+intensity = 0.44
+smoothness = 0.68
+roundness = 0.9
+
+[entities.camera.post_process_settings.effect_stack.grain]
+intensity = 0.035
+response = 0.8
+
+[entities.camera.post_process_settings.effect_stack.dither]
+intensity = 0.015
+scale = 1.0
+
+[entities.camera.post_process_settings.effect_stack.chromatic_aberration]
+intensity = 0.018
+sample_spread = 1.1
+
+[entities.camera.post_process_settings.effect_stack.fog]
+density = 0.014
+height_falloff = 0.16
+color = [0.035, 0.075, 0.045]
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "camera"
+
+[[entities]]
+entity = 2
+name = "Count Veyr - Player"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.15, 1.15, 1.15]
+
+[entities.animation_skeleton.skeleton]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/character-vampire.glb#Animation0/Skeleton"
+
+[entities.animation_state_machine_player]
+active_state = "Idle"
+playing = true
+
+[entities.animation_state_machine_player.state_machine]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://animation/vampire_locomotion.state_machine.zranim"
+
+[entities.animation_state_machine_player.parameters.moving]
+bool = false
+
+[entities.animation_state_machine_player.parameters.attacking]
+bool = false
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "player"
+archetype = "vampire"
+hp = 120
+move_speed = 5.2
+
+[[entities]]
+entity = 201
+name = "Node1:root"
+parent = 2
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[[entities]]
+entity = 202
+name = "Node2:torso"
+parent = 201
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 0.223184, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 203
+name = "Node3:arm-right"
+parent = 202
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [-0.125, 0.15, 0.0024999976]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 204
+name = "Node4:arm-left"
+parent = 202
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.125, 0.15, 0.0024999976]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 205
+name = "Node5:head"
+parent = 202
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 0.223982066, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh3/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 206
+name = "Node6:leg-right"
+parent = 201
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [-0.074204, 0.223184, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh4/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 207
+name = "Node7:leg-left"
+parent = 201
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.074204, 0.223184, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-vampire.glb#Mesh5/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/player_blood.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000001"
+url = "res://models/kenney_graveyard/character-vampire.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/player_blood.zmaterial"
+
+[[entities]]
+entity = 3
+name = "Baked Jungle Terrain"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 2.8, 1.0]
+
+[entities.mesh]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000082"
+url = "res://models/jungle_terrain.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000083"
+url = "res://materials/jungle_ground.zmaterial"
+
+[entities.terrain]
+[entities.terrain.terrain]
+uuid = "00000000-0000-0000-0000-000000000090"
+url = "res://terrain/jungle_clearing.terrain.toml"
+
+[[entities]]
+entity = 4
+name = "Jungle Moon Ambient"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 4.0, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.ambient_light]
+color = [0.08, 0.18, 0.1]
+intensity = 0.18
+affects_lightmapped_meshes = true
+
+[[entities]]
+entity = 5
+name = "Canopy Moon Key Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.0, 8.0, -3.0]
+rotation = [-0.38268343, 0.0, 0.0, 0.9238795]
+scale = [1.0, 1.0, 1.0]
+
+[entities.directional_light]
+direction = [-0.42, -1.0, 0.18]
+color = [0.58, 0.92, 0.62]
+intensity = 4.8
+
+[[entities]]
+entity = 6
+name = "Global Blood Moon Volume"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.post_process_volume]
+active = true
+is_global = true
+priority = 5.0
+weight = 1.0
+blend_distance = 0.0
+
+[entities.post_process_volume.profile.bloom]
+threshold = 0.46
+intensity = 0.88
+radius = 0.9
+
+[entities.post_process_volume.profile.color_grading]
+exposure = 0.74
+contrast = 1.44
+saturation = 1.22
+gamma = 1.0
+tint = [0.82, 1.0, 0.84]
+
+[entities.post_process_volume.profile.effect_stack.tonemap]
+operator = "filmic"
+exposure_bias = -0.38
+white_point = 1.08
+
+[entities.post_process_volume.profile.effect_stack.vignette]
+intensity = 0.46
+smoothness = 0.7
+roundness = 0.95
+
+[entities.post_process_volume.profile.effect_stack.fog]
+density = 0.012
+height_falloff = 0.14
+color = [0.035, 0.08, 0.05]
+
+[[entities]]
+entity = 7
+name = "Northern Crypt"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 15.5]
+rotation = [0.0, 1.0, 0.0, 0.0]
+scale = [2.0, 2.0, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-large.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-large.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000007"
+url = "res://models/kenney_graveyard/crypt-large.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/crypt-large.glb#Material0"
+
+[[entities]]
+entity = 8
+name = "West Crypt"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-12.5, 0.0, 11.5]
+rotation = [0.0, 0.70710677, 0.0, 0.70710677]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-small.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-small.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000008"
+url = "res://models/kenney_graveyard/crypt-small.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/crypt-small.glb#Material0"
+
+[[entities]]
+entity = 9
+name = "East Crypt"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [12.5, 0.0, 11.5]
+rotation = [0.0, -0.70710677, 0.0, 0.70710677]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-small.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/crypt-small.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000009"
+url = "res://models/kenney_graveyard/crypt-small.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/crypt-small.glb#Material0"
+
+[[entities]]
+entity = 10
+name = "Blood Altar"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 5.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.7, 1.7, 1.7]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/altar-stone.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/altar-stone.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000010"
+url = "res://models/kenney_graveyard/altar-stone.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/altar-stone.glb#Material0"
+
+[[entities]]
+entity = 11
+name = "Old Coffin"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [3.0, 0.0, 3.5]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin-old.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000011"
+url = "res://models/kenney_graveyard/coffin-old.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin-old.glb#Material0"
+
+[[entities]]
+entity = 12
+name = "Open Coffin"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-3.1, 0.0, 2.8]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Material0" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000012"
+url = "res://models/kenney_graveyard/coffin.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin.glb#Material0"
+
+[[entities]]
+entity = 20
+name = "Skeleton Vanguard"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [-5.5, 0.0, -3.8]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.08, 1.08, 1.08]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh3/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh4/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh5/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000020"
+url = "res://models/kenney_graveyard/character-skeleton.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/pale_bone.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "skeleton"
+behavior_tree = "graveyard_enemy_bt"
+hp = 24
+move_speed = 3.3
+contact_damage = 8
+xp = 1
+
+[[entities]]
+entity = 21
+name = "Skeleton Flanker"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [5.4, 0.0, -4.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.08, 1.08, 1.08]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh3/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh4/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-skeleton.glb#Mesh5/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/pale_bone.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000020"
+url = "res://models/kenney_graveyard/character-skeleton.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/pale_bone.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "skeleton"
+behavior_tree = "graveyard_enemy_bt"
+hp = 24
+move_speed = 3.3
+contact_damage = 8
+xp = 1
+
+[[entities]]
+entity = 22
+name = "Grave Zombie"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [-8.0, 0.0, 4.5]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.18, 1.18, 1.18]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh3/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh4/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh5/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000022"
+url = "res://models/kenney_graveyard/character-zombie.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ghoul_shadow.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "zombie"
+behavior_tree = "graveyard_enemy_bt"
+hp = 46
+move_speed = 2.35
+contact_damage = 12
+xp = 2
+
+[[entities]]
+entity = 23
+name = "Crypt Zombie"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [8.2, 0.0, 4.8]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.18, 1.18, 1.18]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh3/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh4/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-zombie.glb#Mesh5/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghoul_shadow.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000022"
+url = "res://models/kenney_graveyard/character-zombie.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ghoul_shadow.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "zombie"
+behavior_tree = "graveyard_enemy_bt"
+hp = 46
+move_speed = 2.35
+contact_damage = 12
+xp = 2
+
+[[entities]]
+entity = 24
+name = "Wandering Ghost"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 0.0, -8.5]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000024"
+url = "res://models/kenney_graveyard/character-ghost.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ghost_mist.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "ghost"
+behavior_tree = "graveyard_enemy_bt"
+hp = 18
+move_speed = 3.9
+contact_damage = 6
+xp = 1
+
+[[entities]]
+entity = 25
+name = "Eastern Ghost"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [12.0, 0.0, -2.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/character-ghost.glb#Mesh2/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ghost_mist.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000024"
+url = "res://models/kenney_graveyard/character-ghost.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ghost_mist.zmaterial"
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "enemy"
+archetype = "ghost"
+behavior_tree = "graveyard_enemy_bt"
+hp = 18
+move_speed = 3.9
+contact_damage = 6
+xp = 1
+
+[[entities]]
+entity = 30
+name = "North Mud Trail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 9.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [2.1, 1.0, 2.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000030"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_path_mud.zmaterial"
+
+[[entities]]
+entity = 31
+name = "South Mud Trail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, -7.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [2.1, 1.0, 2.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000030"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_path_mud.zmaterial"
+
+[[entities]]
+entity = 32
+name = "West Mud Trail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-8.0, 0.0, 0.0]
+rotation = [0.0, 0.70710677, 0.0, 0.70710677]
+scale = [1.8, 1.0, 1.8]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000030"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_path_mud.zmaterial"
+
+[[entities]]
+entity = 33
+name = "East Mud Trail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [8.0, 0.0, 0.0]
+rotation = [0.0, 0.70710677, 0.0, 0.70710677]
+scale = [1.8, 1.0, 1.8]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000030"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_path_mud.zmaterial"
+
+[[entities]]
+entity = 40
+name = "South Gate"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, -18.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.6, 1.6, 1.6]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fence-gate.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000040"
+url = "res://models/kenney_graveyard/fence-gate.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/fence-gate.glb#Material0"
+
+[[entities]]
+entity = 41
+name = "West Fence Line"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-18.0, 0.0, 0.0]
+rotation = [0.0, 0.70710677, 0.0, 0.70710677]
+scale = [2.0, 2.0, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000041"
+url = "res://models/kenney_graveyard/iron-fence.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence.glb#Material0"
+
+[[entities]]
+entity = 42
+name = "East Fence Line"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [18.0, 0.0, 0.0]
+rotation = [0.0, 0.70710677, 0.0, 0.70710677]
+scale = [2.0, 2.0, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000041"
+url = "res://models/kenney_graveyard/iron-fence.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence.glb#Material0"
+
+[[entities]]
+entity = 43
+name = "North Broken Fence"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 18.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [2.0, 2.0, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000043"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0"
+
+[[entities]]
+entity = 50
+name = "West Grave Row"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-7.5, 0.0, -9.5]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000050"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 51
+name = "East Grave Row"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [7.5, 0.0, -9.2]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000050"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 52
+name = "Broken Cross Stone"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-11.0, 0.0, -4.5]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.25, 1.25, 1.25]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-cross.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-cross.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000052"
+url = "res://models/kenney_graveyard/gravestone-cross.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-cross.glb#Material0"
+
+[[entities]]
+entity = 53
+name = "Wide Grave Stone"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [11.0, 0.0, -4.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.25, 1.25, 1.25]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-wide.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000053"
+url = "res://models/kenney_graveyard/gravestone-wide.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-wide.glb#Material0"
+
+[[entities]]
+entity = 54
+name = "Broken Gravestone"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.2, 0.0, 11.2]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.15, 1.15, 1.15]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000054"
+url = "res://models/kenney_graveyard/gravestone-broken.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0"
+
+[[entities]]
+entity = 55
+name = "Grave Border"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.2, 0.0, 11.0]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000055"
+url = "res://models/kenney_graveyard/grave-border.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave-border.glb#Material0"
+
+[[entities]]
+entity = 70
+name = "Crooked Pine West"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-15.5, 0.0, -12.0]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.7, 1.7, 1.7]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000070"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Material0"
+
+[[entities]]
+entity = 71
+name = "Crooked Pine East"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [15.0, 0.0, -12.5]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.65, 1.65, 1.65]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000070"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Material0"
+
+[[entities]]
+entity = 72
+name = "North Pine West"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-15.0, 0.0, 14.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000072"
+url = "res://models/kenney_graveyard/pine.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine.glb#Material0"
+
+[[entities]]
+entity = 73
+name = "North Pine East"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [15.0, 0.0, 14.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000072"
+url = "res://models/kenney_graveyard/pine.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine.glb#Material0"
+
+[[entities]]
+entity = 90
+name = "West Blood Brazier"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.6, 0.0, 5.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000090"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/fire-basket.glb#Material0"
+
+[[entities]]
+entity = 91
+name = "East Blood Brazier"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.6, 0.0, 5.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000090"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/fire-basket.glb#Material0"
+
+[[entities]]
+entity = 92
+name = "South Lantern"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-2.6, 0.0, -14.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000092"
+url = "res://models/kenney_graveyard/lantern-candle.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Material0"
+
+[[entities]]
+entity = 93
+name = "Eastern Lantern"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [13.5, 0.0, 5.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000092"
+url = "res://models/kenney_graveyard/lantern-candle.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Material0"
+
+[[entities]]
+entity = 94
+name = "North Ghost Lantern"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 13.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/lantern-candle.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "10000000-0000-0000-0000-000000000092"
+url = "res://models/kenney_graveyard/lantern-candle.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/lantern-candle.glb#Material0"
+
+[[entities]]
+entity = 95
+name = "West Blood Brazier Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.6, 1.15, 5.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [1.0, 0.16, 0.06]
+intensity = 13.0
+range = 11.0
+
+[[entities]]
+entity = 96
+name = "East Blood Brazier Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.6, 1.15, 5.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [1.0, 0.16, 0.06]
+intensity = 8.5
+range = 9.0
+
+[[entities]]
+entity = 97
+name = "South Lantern Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-2.6, 1.1, -14.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.9, 0.28, 0.12]
+intensity = 7.2
+range = 8.0
+
+[[entities]]
+entity = 98
+name = "Eastern Lantern Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [13.5, 1.1, 5.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.9, 0.28, 0.12]
+intensity = 6.8
+range = 7.2
+
+[[entities]]
+entity = 99
+name = "North Ghost Lantern Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 1.1, 13.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.42, 0.7, 1.0]
+intensity = 6.4
+range = 7.5
+
+[[entities]]
+entity = 100
+name = "Near West Cross"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-7.2, 0.0, -2.0]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.35, 1.35, 1.35]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb#Material0"
+
+[[entities]]
+entity = 101
+name = "Near East Cross"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [7.1, 0.0, -1.4]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.25, 1.25, 1.25]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb#Material0"
+
+[[entities]]
+entity = 102
+name = "Player Left Broken Stone"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.0, 0.0, -4.8]
+rotation = [0.0, 0.19509032, 0.0, 0.98078528]
+scale = [1.15, 1.15, 1.15]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-broken.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0"
+
+[[entities]]
+entity = 103
+name = "Player Right Wide Stone"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.2, 0.0, -4.2]
+rotation = [0.0, -0.19509032, 0.0, 0.98078528]
+scale = [1.1, 1.1, 1.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-wide.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-wide.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-wide.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-wide.glb#Material0"
+
+[[entities]]
+entity = 104
+name = "Left Mid Grave"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-8.8, 0.0, 3.4]
+rotation = [0.0, 0.70710678, 0.0, 0.70710678]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 105
+name = "Right Mid Grave"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [8.6, 0.0, 3.6]
+rotation = [0.0, -0.70710678, 0.0, 0.70710678]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 106
+name = "West Foreground Rocks"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-12.2, 0.0, -8.6]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.35, 1.35, 1.35]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb#Material0"
+
+[[entities]]
+entity = 107
+name = "East Foreground Rocks"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [11.6, 0.0, -7.9]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.25, 1.25, 1.25]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb#Material0"
+
+[[entities]]
+entity = 108
+name = "Central Road Near"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, -6.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [2.5, 2.5, 2.5]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/road.glb#Material0"
+
+[[entities]]
+entity = 109
+name = "Central Road Mid"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.0, 0.0, 1.4]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [2.45, 2.45, 2.45]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/road.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/road.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/road.glb#Material0"
+
+[[entities]]
+entity = 110
+name = "West Iron Fence Foreground"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-14.8, 0.0, -4.0]
+rotation = [0.0, 0.70710678, 0.0, 0.70710678]
+scale = [1.4, 1.4, 1.4]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0"
+
+[[entities]]
+entity = 111
+name = "East Iron Fence Foreground"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [14.8, 0.0, -4.0]
+rotation = [0.0, -0.70710678, 0.0, 0.70710678]
+scale = [1.4, 1.4, 1.4]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/iron-fence-damaged.glb#Material0"
+
+[[entities]]
+entity = 112
+name = "North Left Grave Border"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-6.8, 0.0, 8.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.15, 1.15, 1.15]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave-border.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave-border.glb#Material0"
+
+[[entities]]
+entity = 113
+name = "North Right Grave Border"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [6.8, 0.0, 8.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.15, 1.15, 1.15]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave-border.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave-border.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave-border.glb#Material0"
+
+[[entities]]
+entity = 114
+name = "Crypt Left Coffin"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.6, 0.0, 10.0]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Material0" } },
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Mesh1/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin.glb#Material0"
+
+[[entities]]
+entity = 115
+name = "Crypt Right Coffin"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.8, 0.0, 9.6]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.0, 1.0, 1.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/coffin-old.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin-old.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/coffin-old.glb#Material0"
+
+
+[[entities]]
+entity = 116
+name = "Foreground Broken Grave Slab"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-3.2, 0.0, -4.7]
+rotation = [0.0, 0.38268343, 0.0, 0.9238795]
+scale = [1.2, 1.2, 1.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-broken.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0"
+
+[[entities]]
+entity = 117
+name = "Foreground Cross Silhouette"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [3.4, 0.0, -5.2]
+rotation = [0.0, -0.38268343, 0.0, 0.9238795]
+scale = [1.35, 1.35, 1.35]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/cross.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/cross.glb#Material0"
+
+[[entities]]
+entity = 119
+name = "Near West Glow Orchid"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.3, 0.12, -4.2]
+rotation = [0.0, 0.25881904, 0.0, 0.9659258]
+scale = [1.55, 1.35, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000084", url = "res://materials/jungle_mist.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000084"
+url = "res://materials/jungle_mist.zmaterial"
+
+[[entities]]
+entity = 120
+name = "Near East Glow Orchid"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.35, 0.12, -4.05]
+rotation = [0.0, -0.25881904, 0.0, 0.9659258]
+scale = [1.5, 1.32, 1.5]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000084", url = "res://materials/jungle_mist.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000084"
+url = "res://materials/jungle_mist.zmaterial"
+
+[[entities]]
+entity = 121
+name = "Near West Orchid Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.3, 1.0, -4.2]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.28, 0.86, 0.58]
+intensity = 5.8
+range = 5.2
+
+[[entities]]
+entity = 122
+name = "Near East Orchid Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.35, 1.0, -4.05]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.28, 0.86, 0.58]
+intensity = 5.4
+range = 5.0
+
+[[entities]]
+entity = 123
+name = "Midline Broadleaf Left"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.2, 0.22, -1.45]
+rotation = [0.0, 0.6087614, 0.0, 0.7933533]
+scale = [1.45, 1.35, 1.45]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_broadleaf.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000085", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_broadleaf.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000085"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 124
+name = "Midline Broadleaf Right"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.15, 0.22, -1.35]
+rotation = [0.0, -0.6087614, 0.0, 0.7933533]
+scale = [1.42, 1.32, 1.42]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_broadleaf.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000085", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_broadleaf.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000085"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 125
+name = "Left Procession Grave"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.2, 0.0, 1.4]
+rotation = [0.0, 0.4617486, 0.0, 0.8870108]
+scale = [1.12, 1.12, 1.12]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 126
+name = "Right Procession Grave"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.4, 0.0, 1.65]
+rotation = [0.0, -0.4617486, 0.0, 0.8870108]
+scale = [1.12, 1.12, 1.12]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/grave.glb#Material0" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/grave.glb#Material0"
+
+[[entities]]
+entity = 127
+name = "Left Jungle Relic Flame"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.8, 0.0, 5.8]
+rotation = [0.0, 0.19509032, 0.0, 0.98078525]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ember_flame.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ember_flame.zmaterial"
+
+[[entities]]
+entity = 128
+name = "Right Jungle Relic Flame"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.8, 0.0, 5.8]
+rotation = [0.0, -0.19509032, 0.0, 0.98078525]
+scale = [1.55, 1.55, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/ember_flame.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/ember_flame.zmaterial"
+
+[[entities]]
+entity = 129
+name = "Left Jungle Relic Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-4.8, 1.1, 5.8]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [1.0, 0.12, 0.035]
+intensity = 10.5
+range = 8.8
+
+[[entities]]
+entity = 130
+name = "Right Jungle Relic Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [4.8, 1.1, 5.8]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [1.0, 0.12, 0.035]
+intensity = 10.0
+range = 8.5
+
+[[entities]]
+entity = 131
+name = "Left Near Root Wall"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-6.4, 0.0, -2.7]
+rotation = [0.0, 0.7933533, 0.0, 0.6087614]
+scale = [1.35, 1.35, 1.35]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000086", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000086"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 132
+name = "Right Near Root Wall"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [6.6, 0.0, -2.55]
+rotation = [0.0, -0.7933533, 0.0, 0.6087614]
+scale = [1.35, 1.35, 1.35]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000086", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000086"
+url = "res://materials/jungle_trunk.zmaterial"
+
+
+[[entities]]
+entity = 133
+name = "Canopy West Ridge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-13.5, 0.25, -6.8]
+rotation = [0, 0.38268343, 0, 0.9238795]
+scale = [3.2, 2.6, 3.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_broadleaf.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_broadleaf.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 134
+name = "Canopy East Ridge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [13.2, 0.18, -6.4]
+rotation = [0, -0.38268343, 0, 0.9238795]
+scale = [3.0, 2.45, 3.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_broadleaf.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_broadleaf.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 135
+name = "Northwest Fern Bank"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-9.0, 0.1, 7.8]
+rotation = [0, 0.70710678, 0, 0.70710678]
+scale = [3.6, 1.7, 3.6]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 136
+name = "Northeast Fern Bank"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [9.2, 0.12, 7.6]
+rotation = [0, -0.70710678, 0, 0.70710678]
+scale = [3.4, 1.6, 3.4]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 137
+name = "Southwest Fern Bank"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-8.4, 0.02, -8.2]
+rotation = [0, 0.19509032, 0, 0.98078528]
+scale = [3.1, 1.45, 3.1]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 138
+name = "Southeast Fern Bank"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [8.0, 0.04, -8.0]
+rotation = [0, -0.19509032, 0, 0.98078528]
+scale = [3.2, 1.5, 3.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/jungle_fern_cluster.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_leaf.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/jungle_fern_cluster.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_leaf.zmaterial"
+
+[[entities]]
+entity = 139
+name = "West Vine Pillar"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-17.6, 0.12, 2.8]
+rotation = [0, 0.70710678, 0, 0.70710678]
+scale = [2.0, 2.8, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 140
+name = "East Vine Pillar"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [17.4, 0.12, 2.5]
+rotation = [0, -0.70710678, 0, 0.70710678]
+scale = [2.0, 2.8, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 141
+name = "North Canopy Gate Left"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.8, 0.18, 16.5]
+rotation = [0, 0, 0, 1]
+scale = [2.4, 2.7, 2.4]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 142
+name = "North Canopy Gate Right"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.8, 0.18, 16.4]
+rotation = [0, 0, 0, 1]
+scale = [2.4, 2.7, 2.4]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 143
+name = "Central Moss Boulder West"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-3.2, 0.16, 4.6]
+rotation = [0, 0.38268343, 0, 0.9238795]
+scale = [1.7, 1.15, 1.7]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/arena_stone.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/arena_stone.zmaterial"
+
+[[entities]]
+entity = 144
+name = "Central Moss Boulder East"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [3.4, 0.16, 4.8]
+rotation = [0, -0.38268343, 0, 0.9238795]
+scale = [1.55, 1.05, 1.55]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/rocks.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/arena_stone.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/rocks.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/arena_stone.zmaterial"
+
+[[entities]]
+entity = 145
+name = "South Root Arch Left"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.4, 0.06, -12.4]
+rotation = [0, 0.9238795, 0, 0.38268343]
+scale = [2.3, 2.2, 2.3]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 146
+name = "South Root Arch Right"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.4, 0.06, -12.2]
+rotation = [0, -0.9238795, 0, 0.38268343]
+scale = [2.3, 2.2, 2.3]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/jungle_trunk.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/jungle_trunk.zmaterial"
+
+[[entities]]
+entity = 147
+name = "West Firefly Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-10.8, 1.2, -1.4]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.3, 0.85, 0.52]
+intensity = 3.6
+range = 5.5
+
+[[entities]]
+entity = 148
+name = "East Firefly Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [10.6, 1.1, -1.1]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.3, 0.85, 0.52]
+intensity = 3.4
+range = 5.4
+
+[[entities]]
+entity = 149
+name = "North Firefly Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [0.2, 1.5, 10.5]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.24, 0.68, 0.95]
+intensity = 3.2
+range = 5.8
+
+[[entities]]
+entity = 150
+name = "South Firefly Light"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-0.4, 1.1, -10.4]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.24, 0.68, 0.95]
+intensity = 3.0
+range = 5.2
+
+[[entities]]
+entity = 118
+name = "Player Blood Aura Light"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+
+[entities.transform]
+translation = [0.0, 1.2, 0.0]
+rotation = [0.0, 0.0, 0.0, 1.0]
+scale = [1.0, 1.0, 1.0]
+
+[entities.point_light]
+color = [0.85, 0.04, 0.08]
+intensity = 2.6
+range = 4.4
+
+[[entities.script_bindings]]
+package = "vampire_game"
+module = "main"
+enabled = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "player_light"
+
+[[entities]]
+entity = 151
+name = "Static Grass Batch Foreground West"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-5.9, 0.04, -7.2]
+rotation = [0.0, 0.25881904, 0.0, 0.9659258]
+scale = [1.8, 1.15, 1.8]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"
+
+[[entities]]
+entity = 152
+name = "Static Grass Batch Foreground East"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [5.7, 0.04, -7.0]
+rotation = [0.0, -0.21643962, 0.0, 0.976296]
+scale = [1.75, 1.12, 1.75]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"
+
+[[entities]]
+entity = 153
+name = "Static Grass Batch West Path Edge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-8.6, 0.05, -1.0]
+rotation = [0.0, 0.60876143, 0.0, 0.7933533]
+scale = [2.05, 1.25, 2.05]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"
+
+[[entities]]
+entity = 154
+name = "Static Grass Batch East Path Edge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [8.4, 0.05, -0.6]
+rotation = [0.0, -0.57357645, 0.0, 0.819152]
+scale = [2.0, 1.22, 2.0]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"
+
+[[entities]]
+entity = 155
+name = "Static Grass Batch North Fern Merge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [-2.4, 0.06, 8.8]
+rotation = [0.0, 0.34202015, 0.0, 0.9396926]
+scale = [2.3, 1.35, 2.3]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"
+
+[[entities]]
+entity = 156
+name = "Static Grass Batch South Fern Merge"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+
+[entities.transform]
+translation = [2.2, 0.05, -11.2]
+rotation = [0.0, -0.42261827, 0.0, 0.9063078]
+scale = [2.2, 1.32, 2.2]
+
+[entities.mesh]
+primitives = [
+    { mesh = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://models/grass_billboard_static_batch.model.toml#Mesh0/Primitive0" }, material = { uuid = "00000000-0000-0000-0000-000000000000", url = "res://materials/forest_grass_billboard.zmaterial" } },
+]
+[entities.mesh.model]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/grass_billboard_static_batch.model.toml"
+
+[entities.mesh.material]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://materials/forest_grass_billboard.zmaterial"

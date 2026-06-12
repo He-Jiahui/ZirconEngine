@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "53e11bad-ab45-4ea3-ab96-4e86174afed6"
+url = "res://models/kenney_graveyard/coffin-old.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/23ce61f8-9c17-5ea5-7f13-8248d0c3c5b0.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670020000
+source_hash = "ce4dbfe5a12469a4"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/coffin-old.glb#Texture0",
+    "res://models/kenney_graveyard/coffin-old.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/coffin-old.glb#Material0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/coffin-old.glb#Node0",
+    "res://models/kenney_graveyard/coffin-old.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "53e11bad-ab45-4ea3-ab96-4e86174afed6"
+url = "res://models/kenney_graveyard/coffin-old.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/23ce61f8-9c17-5ea5-7f13-8248d0c3c5b0.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/coffin-old.glb#Texture0",
+    "res://models/kenney_graveyard/coffin-old.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/coffin-old.glb#Material0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/coffin-old.glb#Node0",
+    "res://models/kenney_graveyard/coffin-old.glb#Scene0",
+]
+
+[[entries]]
+uuid = "94f79714-2a31-4c11-926e-b53c5c509158"
+url = "res://models/kenney_graveyard/coffin-old.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/24b6d2b2-f42e-4ead-0ad6-3ef4950354e3.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "f10177f6-55c5-4a0b-bcc9-94325542d5e6"
+url = "res://models/kenney_graveyard/coffin-old.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/69d1567f-db1b-8ff5-4457-4d4bb3c16f02.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "6dad7915-4bf9-4bf9-a3e6-67a43d14257e"
+url = "res://models/kenney_graveyard/coffin-old.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/a2de1602-e0c6-1e83-f554-1e8d03149d1b.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/coffin-old.glb#Texture0",
+]
+
+[[entries]]
+uuid = "7e363c10-4408-491b-95af-d6037b7a6ea8"
+url = "res://models/kenney_graveyard/coffin-old.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/a1041611-be5a-717b-30a1-c5aeaa18ccc7.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/coffin-old.glb#Material0",
+]
+
+[[entries]]
+uuid = "91fc8713-aa8b-4328-9898-100eb0c529ed"
+url = "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/bdbfc235-2f67-4d49-e1ef-84391830c889.zasset"
+dependencies = ["res://models/kenney_graveyard/coffin-old.glb#Material0"]
+
+[[entries]]
+uuid = "8ee1f7fe-da99-44ed-8025-f0b5154d2e56"
+url = "res://models/kenney_graveyard/coffin-old.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/cf528f2e-e8b8-4501-5ea2-6129129245d4.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/coffin-old.glb#Node0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/coffin-old.glb#Material0",
+]
+
+[[entries]]
+uuid = "ae4b0a22-dda5-41f5-a0d3-1178017229f4"
+url = "res://models/kenney_graveyard/coffin-old.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/b4b74201-127e-f1f5-dbd8-0cef231b37e9.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/coffin-old.glb#Node0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0",
+    "res://models/kenney_graveyard/coffin-old.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/coffin-old.glb#Material0",
+]

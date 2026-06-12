@@ -198,7 +198,8 @@ fn source_template_emits_headless_host_scaffold_without_platform_shell() {
         generated_file_purpose(&plan, "src/main.rs"),
         "generated headless runtime entry point"
     );
-    assert!(generated_file(&plan, "src/main.rs").contains("EntryProfile::Headless"));
+    assert!(generated_file(&plan, "src/zircon_plugins.rs").contains("EntryProfile::Headless"));
+    assert!(generated_file(&plan, "src/main.rs").contains("zircon_app::bootstrap_export_runtime"));
     assert!(
         generated_file(&plan, "src/zircon_plugins.rs").contains("ExportTargetPlatform::Headless")
     );

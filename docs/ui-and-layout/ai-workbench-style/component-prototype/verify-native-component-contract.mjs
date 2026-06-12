@@ -133,6 +133,7 @@ const sources = {
   zuiWorkbenchPrimitiveGovernance: readRepo("../../../../zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs"),
   templateNodes: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs"),
   buttonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_button.rs"),
+  chromeStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_chrome.rs"),
   iconButtonStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_icon_button.rs"),
   textFieldStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_text_field.rs"),
   selectionControlStyle: readRepo("../../../../zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_selection_control.rs"),
@@ -157,6 +158,7 @@ const sources = {
   virtualRows: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs"),
   popupPrimitives: readRepo("../../../../zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs"),
   runtimeButtons: readRepo("../../../../zircon_runtime/src/ui/surface/render/buttons.rs"),
+  runtimeChrome: readRepo("../../../../zircon_runtime/src/ui/surface/render/chrome.rs"),
   runtimeCollectionRows: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/mod.rs"),
   runtimeCollectionRowsShared: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/shared.rs"),
   runtimeCollectionRowsList: readRepo("../../../../zircon_runtime/src/ui/surface/render/collection_rows/list.rs"),
@@ -167,6 +169,7 @@ const sources = {
   runtimeSliders: readRepo("../../../../zircon_runtime/src/ui/surface/render/sliders.rs"),
   runtimeDropdowns: readRepo("../../../../zircon_runtime/src/ui/surface/render/dropdowns.rs"),
   runtimeFeedback: readRepo("../../../../zircon_runtime/src/ui/surface/render/feedback.rs"),
+  runtimeFeedbackState: readRepo("../../../../zircon_runtime/src/ui/surface/render/feedback/state.rs"),
   runtimeTextFields: readRepo("../../../../zircon_runtime/src/ui/surface/render/text_fields.rs"),
   runtimeExtract: readRepo("../../../../zircon_runtime/src/ui/surface/render/extract.rs"),
   runtimePopupRows: readRepo("../../../../zircon_runtime/src/ui/surface/render/popup_rows.rs"),
@@ -176,6 +179,7 @@ const sources = {
   runtimeComponentInstancer: readRepo("../../../../zircon_runtime/src/ui/v2/component_instancer.rs"),
   runtimeTestsMod: readRepo("../../../../zircon_runtime/src/ui/tests/mod.rs"),
   runtimeButtonTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_buttons.rs"),
+  runtimeChromeTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_chrome.rs"),
   runtimeCollectionRowTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_collection_rows.rs"),
   runtimeSelectionTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_selection_controls.rs"),
   runtimeSegmentedControlTest: readRepo("../../../../zircon_runtime/src/ui/tests/render_segmented_controls.rs"),
@@ -360,6 +364,14 @@ const nativeZuiComponentAssets = [
     needles: ["editable_text = true", "placeholder"]
   },
   {
+    name: "search input atom",
+    file: "workbench/primitives/inputs/workbench_search_input.zui",
+    componentName: "WorkbenchSearchInput",
+    rootComponent: "SearchField",
+    interactive: true,
+    needles: ["query = \"\"", "search_icon", "value_property = \"query\""]
+  },
+  {
     name: "checkbox atom",
     file: "workbench/primitives/inputs/workbench_checkbox.zui",
     componentName: "WorkbenchCheckbox",
@@ -518,6 +530,7 @@ const componentDrawerImports = [
   ["workbench/primitives/inputs/workbench_checkbox.zui", "WorkbenchCheckbox"],
   ["workbench/primitives/inputs/workbench_dropdown.zui", "WorkbenchDropdown"],
   ["workbench/primitives/inputs/workbench_field.zui", "WorkbenchField"],
+  ["workbench/primitives/inputs/workbench_search_input.zui", "WorkbenchSearchInput"],
   ["workbench/primitives/inputs/workbench_icon_button.zui", "WorkbenchIconButton"],
   ["workbench/primitives/data/workbench_list_row.zui", "WorkbenchListRow"],
   ["workbench/primitives/feedback/workbench_popup_menu.zui", "WorkbenchPopupMenu"],
@@ -564,8 +577,8 @@ const nativeZuiShellSurfaceAssets = [
     rootComponent: "VerticalGroup",
     rootControlId: "WorkbenchSceneTreePanel",
     classes: ["workbench-panel", "workbench-left-panel"],
-    imports: ["workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow"],
-    mountedComponents: ["WorkbenchField", "WorkbenchIconButton", "WorkbenchTab", "WorkbenchTreeRow"],
+    imports: ["workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow"],
+    mountedComponents: ["WorkbenchSearchInput", "WorkbenchIconButton", "WorkbenchTab", "WorkbenchTreeRow"],
     controlIds: ["WorkbenchSceneTabs", "WorkbenchSceneSearchField", "WorkbenchSceneTree", "WorkbenchSceneRootItem"]
   },
   {
@@ -978,6 +991,16 @@ checks.push([
     && sources.buttonStyle.includes("ButtonInteractionState::Disabled")
 ]);
 checks.push([
+  "native chrome selector state",
+  sources.chromeStyle.includes("select_workbench_chrome_style")
+    && sources.chromeStyle.includes("WorkbenchChromeKind")
+    && sources.chromeStyle.includes("WorkbenchChromeStyle")
+    && sources.chromeStyle.includes("UiPainterFamily::Chrome")
+    && sources.chromeStyle.includes("UiPainterResolvedState::Loading")
+    && sources.chromeStyle.includes("UiPainterResolvedState::Focused")
+    && sources.chromeStyle.includes("UiPainterResolvedState::DropHovered")
+]);
+checks.push([
   "native icon button selector state",
   sources.iconButtonStyle.includes("select_workbench_icon_button_style")
     && sources.iconButtonStyle.includes("WorkbenchIconButtonStyle")
@@ -1093,6 +1116,24 @@ checks.push([
     && sources.runtimeExtract.includes("button_suppresses_owner_image")
 ]);
 checks.push([
+  "chrome runtime extract",
+  sources.runtimeChrome.includes('"WorkbenchShell" | "Shell" | "WorkbenchWindow"')
+    && sources.runtimeChrome.includes('"ActivityRail" | "ActivityRailPanel"')
+    && sources.runtimeChrome.includes('"TopToolbar" | "Toolbar" | "MenuBar" | "WorkbenchMenuBar"')
+    && sources.runtimeChrome.includes('"StatusBar" | "BottomStatusBar"')
+    && sources.runtimeChrome.includes('"ViewportPanel" | "Viewport" | "SceneViewport" | "DocumentViewport"')
+    && sources.runtimeChrome.includes("chrome_render_commands")
+    && sources.runtimeChrome.includes("chrome_suppresses_owner_surface")
+    && sources.runtimeChrome.includes("chrome_suppresses_owner_text")
+    && sources.runtimeChrome.includes("chrome_suppresses_owner_image")
+    && sources.runtimeChrome.includes("UiPainterFamily::Chrome")
+    && sources.runtimeChrome.includes("UiPainterResolvedState::Loading")
+    && sources.runtimeExtract.includes("chrome_render_commands")
+    && sources.runtimeExtract.includes("chrome_suppresses_owner_surface")
+    && sources.runtimeExtract.includes("chrome_suppresses_owner_text")
+    && sources.runtimeExtract.includes("chrome_suppresses_owner_image")
+]);
+checks.push([
   "collection row runtime extract",
   sources.runtimeCollectionRows.includes("collection_row_render_commands")
     && sources.runtimeCollectionRows.includes("collection_row_suppresses_owner_text")
@@ -1157,9 +1198,9 @@ checks.push([
     && sources.runtimeFeedback.includes("feedback_render_commands")
     && sources.runtimeFeedback.includes("feedback_suppresses_owner_text")
     && sources.runtimeFeedback.includes("feedback_suppresses_owner_image")
-    && sources.runtimeFeedback.includes("UiPainterFamily::Alert")
-    && sources.runtimeFeedback.includes("UiPainterFamily::Tooltip")
-    && sources.runtimeFeedback.includes("UiPainterFamily::Toast")
+    && sources.runtimeFeedbackState.includes("UiPainterFamily::Alert")
+    && sources.runtimeFeedbackState.includes("UiPainterFamily::Tooltip")
+    && sources.runtimeFeedbackState.includes("UiPainterFamily::Toast")
     && sources.runtimeExtract.includes("feedback_render_commands")
     && sources.runtimeExtract.includes("feedback_suppresses_owner_text")
     && sources.runtimeExtract.includes("feedback_suppresses_owner_image")
@@ -1187,6 +1228,7 @@ checks.push([
 checks.push([
   "runtime component render tests registered",
   sources.runtimeTestsMod.includes("mod render_buttons;")
+    && sources.runtimeTestsMod.includes("mod render_chrome;")
     && sources.runtimeTestsMod.includes("mod render_collection_rows;")
     && sources.runtimeTestsMod.includes("mod render_selection_controls;")
     && sources.runtimeTestsMod.includes("mod render_segmented_controls;")
@@ -1205,11 +1247,13 @@ checks.push([
     && sources.runtimeFeedbackTest.includes("render_extract_expands_feedback_primitives")
     && sources.runtimeTextFieldTest.includes("render_extract_expands_text_field_primitives")
     && sources.runtimePopupOptionsTest.includes("render_extract_expands_open_dropdown_options")
+    && sources.runtimeChromeTest.includes("render_extract_expands_workbench_chrome_surfaces")
+    && sources.runtimeChromeTest.includes("render_extract_chrome_uses_shared_unavailable_and_active_state_priority")
 ]);
 checks.push([
   "native component contract spans web and runtime",
   nativeComponentFamilies.length >= 15
-    && nativeZuiComponentAssets.length >= 23
+    && nativeZuiComponentAssets.length >= 24
     && nativeZuiShellSurfaceAssets.length >= 7
     && nativeInteractionContracts.length >= 10
     && sources.templateNodes.includes("push_template_node_commands")
@@ -1227,7 +1271,7 @@ if (failed.length > 0) {
 }
 
 console.log(
-  `native component contract: families=${nativeComponentFamilies.length} zuiAssets=${nativeZuiComponentAssets.length} shellSurfaces=${nativeZuiShellSurfaceAssets.length} interactions=${nativeInteractionContracts.length} runtimeExtract=button,collection-row,selection,segmented,slider,dropdown,feedback,text-field,popup`,
+  `native component contract: families=${nativeComponentFamilies.length} zuiAssets=${nativeZuiComponentAssets.length} shellSurfaces=${nativeZuiShellSurfaceAssets.length} interactions=${nativeInteractionContracts.length} runtimeExtract=button,chrome,collection-row,selection,segmented,slider,dropdown,feedback,text-field,popup`,
 );
 console.log("ok native component family contract");
 

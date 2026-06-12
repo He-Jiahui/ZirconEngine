@@ -3,7 +3,7 @@ mod snapshots;
 
 pub use readiness::{
     RenderLightFamilyReadiness, RenderLightReadinessReport,
-    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT,
+    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT,
 };
 pub use snapshots::{
     RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,

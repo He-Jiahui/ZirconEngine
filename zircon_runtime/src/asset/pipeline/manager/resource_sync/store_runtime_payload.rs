@@ -47,6 +47,12 @@ pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
         ImportedAsset::UiStyle(asset) => {
             resource_manager.store_payload(id, asset);
         }
+        ImportedAsset::UiTheme(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
+        ImportedAsset::UiIcon(asset) => {
+            resource_manager.store_payload(id, asset);
+        }
         ImportedAsset::UiV2View(asset) => {
             resource_manager.store_payload(id, asset);
         }

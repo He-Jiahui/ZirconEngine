@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "3456913d-7de5-4cbb-a64c-8b7aef3374a6"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/312c276d-bdf8-b674-7ea7-8fd409a2f2a8.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "5af7c998c593cd70"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/fire-basket.glb#Texture0",
+    "res://models/kenney_graveyard/fire-basket.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/fire-basket.glb#Material0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fire-basket.glb#Node0",
+    "res://models/kenney_graveyard/fire-basket.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "3456913d-7de5-4cbb-a64c-8b7aef3374a6"
+url = "res://models/kenney_graveyard/fire-basket.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/312c276d-bdf8-b674-7ea7-8fd409a2f2a8.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fire-basket.glb#Texture0",
+    "res://models/kenney_graveyard/fire-basket.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/fire-basket.glb#Material0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fire-basket.glb#Node0",
+    "res://models/kenney_graveyard/fire-basket.glb#Scene0",
+]
+
+[[entries]]
+uuid = "ff4715b4-17b0-4505-8198-5c4539f6ac53"
+url = "res://models/kenney_graveyard/fire-basket.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/e60efe78-b7ae-c0b1-729c-806fb3195e9c.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "cb8809e9-2735-462f-9031-cf3190c659e9"
+url = "res://models/kenney_graveyard/fire-basket.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/070c5ebc-d18c-3e06-c5c6-e5de9dc2352a.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "290342c4-c375-47f0-9f78-17f29d299127"
+url = "res://models/kenney_graveyard/fire-basket.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/ff0456b3-c609-764d-3055-4eb4f5d65c35.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/fire-basket.glb#Texture0",
+]
+
+[[entries]]
+uuid = "5dd59b16-567e-4800-8615-6200f7e1634d"
+url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/4ae2ebab-a2bd-d6de-0a76-cc8a8da13544.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fire-basket.glb#Material0",
+]
+
+[[entries]]
+uuid = "c4b065a0-e31c-419f-9244-f52a088d07ce"
+url = "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/b88735d4-8ffd-b753-a33a-6e3b1a6bc566.zasset"
+dependencies = ["res://models/kenney_graveyard/fire-basket.glb#Material0"]
+
+[[entries]]
+uuid = "760807e7-2838-4250-8a1b-02ad8e403e62"
+url = "res://models/kenney_graveyard/fire-basket.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/a9825480-c590-699c-bd87-462aea11731c.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fire-basket.glb#Node0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fire-basket.glb#Material0",
+]
+
+[[entries]]
+uuid = "3863db52-e292-4509-8b36-98f8f4116ec6"
+url = "res://models/kenney_graveyard/fire-basket.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/300de112-b798-c0d1-0e4e-21622155b70b.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fire-basket.glb#Node0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0",
+    "res://models/kenney_graveyard/fire-basket.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fire-basket.glb#Material0",
+]

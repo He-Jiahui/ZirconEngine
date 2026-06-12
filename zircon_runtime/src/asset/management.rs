@@ -56,6 +56,7 @@ pub struct AssetManagementRecordSetSummary {
     pub shader_count: usize,
     pub shader_ready_count: usize,
     pub shader_not_ready_count: usize,
+    pub shader_issue_row_count: usize,
     pub shader_validation_diagnostic_count: usize,
 }
 
@@ -95,12 +96,49 @@ pub struct AssetManagementFamilyStatusIndex {
     pub degraded: Vec<AssetManagementFamilyKind>,
 }
 
+/// Row-bearing companion for one top-level family status bucket.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetManagementFamilyStatusView {
+    pub status: AssetManagementFamilyStatus,
+    pub families: Vec<AssetManagementFamilyKind>,
+    pub rows: Vec<AssetManagementFamilySummary>,
+    pub total_record_count: usize,
+    pub ready_record_count: usize,
+    pub degraded_record_count: usize,
+    pub issue_row_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AssetManagementFamilyIssueBucket {
+    Clean,
+    WithIssues,
+}
+
+/// Issue-row buckets for top-level asset-family drilldown navigation.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetManagementFamilyIssueIndex {
+    pub clean: Vec<AssetManagementFamilyKind>,
+    pub with_issues: Vec<AssetManagementFamilyKind>,
+}
+
+/// Row-bearing companion for one top-level family issue bucket.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AssetManagementFamilyIssueView {
+    pub bucket: AssetManagementFamilyIssueBucket,
+    pub families: Vec<AssetManagementFamilyKind>,
+    pub rows: Vec<AssetManagementFamilySummary>,
+    pub issue_row_count: usize,
+}
+
 /// Lightweight top-level state for management headers and navigation chrome.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetManagementOverview {
     pub summary: AssetManagementRecordSetSummary,
     pub families: Vec<AssetManagementFamilySummary>,
+    #[serde(default)]
     pub family_status_index: AssetManagementFamilyStatusIndex,
+    #[serde(default)]
+    pub family_issue_index: AssetManagementFamilyIssueIndex,
 }
 
 /// One payload for renderer/editor panels that need all asset-management lists.
@@ -108,7 +146,10 @@ pub struct AssetManagementOverview {
 pub struct AssetManagementRecordSets {
     pub summary: AssetManagementRecordSetSummary,
     pub families: Vec<AssetManagementFamilySummary>,
+    #[serde(default)]
     pub family_status_index: AssetManagementFamilyStatusIndex,
+    #[serde(default)]
+    pub family_issue_index: AssetManagementFamilyIssueIndex,
     pub models: ModelAssetManagementRecordSet,
     pub meshes: MeshAssetManagementRecordSet,
     pub scenes: SceneAssetManagementRecordSet,
@@ -149,10 +190,12 @@ impl AssetManagementOverview {
     pub fn from_summary(summary: AssetManagementRecordSetSummary) -> Self {
         let families = summary.family_summaries();
         let family_status_index = AssetManagementFamilyStatusIndex::from_families(&families);
+        let family_issue_index = AssetManagementFamilyIssueIndex::from_families(&families);
         Self {
             summary,
             families,
             family_status_index,
+            family_issue_index,
         }
     }
 
@@ -162,6 +205,30 @@ impl AssetManagementOverview {
 
     pub fn family_status_index(&self) -> &AssetManagementFamilyStatusIndex {
         &self.family_status_index
+    }
+
+    pub fn family_status_view(
+        &self,
+        status: AssetManagementFamilyStatus,
+    ) -> AssetManagementFamilyStatusView {
+        AssetManagementFamilyStatusView::from_families(&self.families, status)
+    }
+
+    pub fn family_issue_index(&self) -> &AssetManagementFamilyIssueIndex {
+        &self.family_issue_index
+    }
+
+    pub fn family_issue_view(
+        &self,
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> AssetManagementFamilyIssueView {
+        AssetManagementFamilyIssueView::from_families(&self.families, bucket)
+    }
+}
+
+impl AssetManagementFamilyStatus {
+    fn matches(self, family: &AssetManagementFamilySummary) -> bool {
+        family.status == self
     }
 }
 
@@ -198,6 +265,107 @@ impl AssetManagementFamilyStatusIndex {
             AssetManagementFamilyStatus::Empty => &self.empty,
             AssetManagementFamilyStatus::Ready => &self.ready,
             AssetManagementFamilyStatus::Degraded => &self.degraded,
+        }
+    }
+}
+
+impl AssetManagementFamilyStatusView {
+    pub fn from_families(
+        families: &[AssetManagementFamilySummary],
+        status: AssetManagementFamilyStatus,
+    ) -> Self {
+        let rows = families
+            .iter()
+            .filter(|family| status.matches(family))
+            .cloned()
+            .collect::<Vec<_>>();
+        let total_record_count = rows.iter().map(|family| family.total_record_count).sum();
+        let ready_record_count = rows.iter().map(|family| family.ready_record_count).sum();
+        let degraded_record_count = rows.iter().map(|family| family.degraded_record_count).sum();
+        let issue_row_count = rows.iter().map(|family| family.issue_row_count).sum();
+        let families = rows.iter().map(|family| family.kind).collect();
+        Self {
+            status,
+            families,
+            rows,
+            total_record_count,
+            ready_record_count,
+            degraded_record_count,
+            issue_row_count,
+        }
+    }
+}
+
+impl AssetManagementFamilyIssueBucket {
+    fn matches(self, family: &AssetManagementFamilySummary) -> bool {
+        match self {
+            Self::Clean => family.issue_row_count == 0,
+            Self::WithIssues => family.issue_row_count > 0,
+        }
+    }
+}
+
+impl AssetManagementFamilyIssueIndex {
+    pub fn from_families(families: &[AssetManagementFamilySummary]) -> Self {
+        let mut index = Self::default();
+        for family in families {
+            if family.issue_row_count > 0 {
+                index.with_issues.push(family.kind);
+            } else {
+                index.clean.push(family.kind);
+            }
+        }
+        index
+    }
+
+    pub fn total_family_count(&self) -> usize {
+        self.clean.len() + self.with_issues.len()
+    }
+
+    pub fn issue_family_count(&self) -> usize {
+        self.with_issues.len()
+    }
+
+    pub fn has_issue_families(&self) -> bool {
+        !self.with_issues.is_empty()
+    }
+
+    pub fn families_with_issues(&self) -> &[AssetManagementFamilyKind] {
+        &self.with_issues
+    }
+
+    pub fn families_without_issues(&self) -> &[AssetManagementFamilyKind] {
+        &self.clean
+    }
+
+    pub fn families_for_bucket(
+        &self,
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> &[AssetManagementFamilyKind] {
+        match bucket {
+            AssetManagementFamilyIssueBucket::Clean => &self.clean,
+            AssetManagementFamilyIssueBucket::WithIssues => &self.with_issues,
+        }
+    }
+}
+
+impl AssetManagementFamilyIssueView {
+    pub fn from_families(
+        families: &[AssetManagementFamilySummary],
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> Self {
+        let rows = families
+            .iter()
+            .filter(|family| bucket.matches(family))
+            .cloned()
+            .collect::<Vec<_>>();
+        let issue_row_count = rows.iter().map(|family| family.issue_row_count).sum();
+        let families = rows.iter().map(|family| family.kind).collect();
+        Self {
+            bucket,
+            families,
+            rows,
+            issue_row_count,
         }
     }
 }
@@ -277,6 +445,7 @@ impl AssetManagementRecordSetSummary {
             shader_count: shaders.summary.shader_count,
             shader_ready_count: shaders.summary.ready_count,
             shader_not_ready_count: shaders.summary.not_ready_count,
+            shader_issue_row_count: shaders.summary.issue_row_count(),
             shader_validation_diagnostic_count: shaders.summary.validation_diagnostic_count,
         }
     }
@@ -323,7 +492,7 @@ impl AssetManagementRecordSetSummary {
                 self.shader_count,
                 self.shader_ready_count,
                 self.shader_not_ready_count,
-                self.shader_validation_diagnostic_count,
+                self.shader_issue_row_count,
             ),
         ]
     }
@@ -350,10 +519,12 @@ impl AssetManagementRecordSets {
         );
         let families = summary.family_summaries();
         let family_status_index = AssetManagementFamilyStatusIndex::from_families(&families);
+        let family_issue_index = AssetManagementFamilyIssueIndex::from_families(&families);
         Self {
             summary,
             families,
             family_status_index,
+            family_issue_index,
             models,
             meshes,
             scenes,
@@ -372,11 +543,30 @@ impl AssetManagementRecordSets {
         &self.family_status_index
     }
 
+    pub fn family_status_view(
+        &self,
+        status: AssetManagementFamilyStatus,
+    ) -> AssetManagementFamilyStatusView {
+        AssetManagementFamilyStatusView::from_families(&self.families, status)
+    }
+
+    pub fn family_issue_index(&self) -> &AssetManagementFamilyIssueIndex {
+        &self.family_issue_index
+    }
+
+    pub fn family_issue_view(
+        &self,
+        bucket: AssetManagementFamilyIssueBucket,
+    ) -> AssetManagementFamilyIssueView {
+        AssetManagementFamilyIssueView::from_families(&self.families, bucket)
+    }
+
     pub fn overview(&self) -> AssetManagementOverview {
         AssetManagementOverview {
             summary: self.summary.clone(),
             families: self.families.clone(),
             family_status_index: self.family_status_index.clone(),
+            family_issue_index: self.family_issue_index.clone(),
         }
     }
 }

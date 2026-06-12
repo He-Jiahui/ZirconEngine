@@ -10,9 +10,9 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::{
-    ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry,
-    EventStore, MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry,
-    ResourceStore, Schedule,
+    ArchetypeIndex, ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage,
+    DeferredCommandError, EntityRegistry, EventStore, MessageStore, ObserverStore,
+    RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
@@ -124,6 +124,8 @@ pub struct World {
     pub(super) observers: ObserverStore,
     #[serde(skip, default)]
     pub(super) command_queue: CommandQueue,
+    #[serde(skip, default)]
+    pub(super) deferred_command_errors: Vec<DeferredCommandError>,
     #[serde(skip, default)]
     pub(super) query_cache_revision: QueryCacheRevision,
     #[serde(skip, default = "default_change_tick")]
@@ -242,6 +244,7 @@ impl<'de> Deserialize<'de> for World {
             messages: Default::default(),
             observers: Default::default(),
             command_queue: Default::default(),
+            deferred_command_errors: Vec::new(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: default_change_tick(),
             last_change_tick: ChangeTick::ZERO,

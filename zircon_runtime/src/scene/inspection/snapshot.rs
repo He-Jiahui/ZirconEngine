@@ -204,6 +204,7 @@ fn inspection_field_from_reflection(
 
 fn node_kind_label(kind: &NodeKind) -> &'static str {
     match kind {
+        NodeKind::Empty => "Empty",
         NodeKind::Camera => "Camera",
         NodeKind::Cube => "Cube",
         NodeKind::Mesh => "Mesh",

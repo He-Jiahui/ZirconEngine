@@ -8,14 +8,14 @@ pub struct ChangeTickWindow {
 
 impl ChangeTickWindow {
     pub const fn new(last_run: ChangeTick, this_run: ChangeTick) -> Self {
-        Self { last_run, this_run }
+        Self {
+            last_run: last_run.clamp_older_than(this_run),
+            this_run,
+        }
     }
 
     pub const fn all(this_run: ChangeTick) -> Self {
-        Self {
-            last_run: ChangeTick::ZERO,
-            this_run,
-        }
+        Self::new(ChangeTick::ZERO, this_run)
     }
 
     pub const fn last_run(self) -> ChangeTick {

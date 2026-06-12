@@ -9,7 +9,8 @@ pub use effect::{
     UiDragDropEffectKind, UiFocusEffectReason, UiInputMethodRequest, UiInputMethodRequestKind,
     UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiNavigationRequestPolicy,
     UiPointerCaptureReason, UiPointerLockPolicy, UiPopupEffectKind, UiRedrawRequestReason,
-    UiTooltipEffectKind, UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
+    UiTooltipEffectKind, UiTransientDismissalReason, UiTransientDismissalTarget,
+    UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
 };
 pub use event::{
     UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,

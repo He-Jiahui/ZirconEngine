@@ -12,7 +12,7 @@ import WebAssetOutlinedIcon from "@mui/icons-material/WebAssetOutlined";
 import { Box, ButtonBase, Drawer, List, ListItemButton, ListItemIcon, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 import { hubTokens } from "../../theme/tokens";
-import type { HubActionHandler, HubPageId, HubShellText } from "../../types/hub";
+import type { HubActionHandler, HubPageId, HubShellText, HubSourceEngineSummary } from "../../types/hub";
 import { HUB_ACTION } from "../../types/hub";
 
 const navIcons: Record<HubPageId, typeof FolderOutlinedIcon> = {
@@ -31,14 +31,28 @@ export interface NavigationDrawerProps {
   activePage: string;
   text: HubShellText;
   engineVersion: string;
+  sourceEngines: HubSourceEngineSummary[];
+  activeSourceEngineId: string | null;
   onAction: HubActionHandler;
 }
 
-export function NavigationDrawer({ activePage, text, engineVersion, onAction }: NavigationDrawerProps) {
+export function NavigationDrawer({
+  activePage,
+  text,
+  engineVersion,
+  sourceEngines,
+  activeSourceEngineId,
+  onAction,
+}: NavigationDrawerProps) {
   const [collapsed, setCollapsed] = useState(false);
   const drawerWidth = collapsed ? hubTokens.window.sidebarCollapsedWidth : hubTokens.window.sidebarWidth;
   const collapseLabel = collapsed ? text.expand : text.collapse;
   const CollapseIcon = collapsed ? KeyboardDoubleArrowRightIcon : KeyboardDoubleArrowLeftIcon;
+  const activeEngine =
+    sourceEngines.find((engine) => engine.id === activeSourceEngineId) ?? sourceEngines.find((engine) => engine.active);
+  const statusColor = activeEngine ? hubTokens.colors.success : hubTokens.colors.warning;
+  const statusLabel = activeEngine?.status ?? text.noSourceEngineRegistered;
+  const engineLabel = activeEngine?.name ?? engineVersion;
 
   return (
     <Drawer
@@ -78,6 +92,8 @@ export function NavigationDrawer({ activePage, text, engineVersion, onAction }: 
                   color: selected ? hubTokens.colors.text : hubTokens.colors.textSoft,
                   border: `1px solid ${selected ? "rgba(45,212,207,0.34)" : "transparent"}`,
                   backgroundColor: selected ? "rgba(15,99,96,0.56)" : "transparent",
+                  justifyContent: collapsed ? "center" : "flex-start",
+                  px: collapsed ? 0 : 1.6,
                   "&.Mui-selected, &.Mui-selected:hover": {
                     backgroundColor: "rgba(15,99,96,0.64)",
                   },
@@ -86,7 +102,7 @@ export function NavigationDrawer({ activePage, text, engineVersion, onAction }: 
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
+                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40, color: "inherit", justifyContent: "center" }}>
                   <Icon />
                 </ListItemIcon>
                 <Typography
@@ -117,14 +133,14 @@ export function NavigationDrawer({ activePage, text, engineVersion, onAction }: 
           }}
         >
           <Typography variant="caption" sx={{ color: hubTokens.colors.text, display: "flex", gap: 0.8, alignItems: "center" }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: 999, backgroundColor: hubTokens.colors.success }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: hubTokens.radius.pill, backgroundColor: statusColor }} />
             {text.engineStatus}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1.2, color: hubTokens.colors.textSoft }}>
-            {engineVersion}
+            {engineLabel}
           </Typography>
-          <Typography variant="caption" sx={{ color: hubTokens.colors.success }}>
-            {text.upToDate}
+          <Typography variant="caption" sx={{ color: statusColor }}>
+            {statusLabel}
           </Typography>
           <Tooltip title={text.checkForUpdatesDetail}>
             <span style={{ display: "block" }}>

@@ -99,11 +99,12 @@ fn topbar_navigation_routes_source_engine_user_and_settings_actions() {
             "void onAction(HUB_ACTION.selectEngine, engineId)",
             "SourceEnginePopover",
             "UserMenuPopover",
-            "HubIconButton label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled",
+            "const notificationDetail = comingSoonDetail(state, \"notification-center\");",
+            "HubIconButton label={state.ui.shell.notifications} tooltip={notificationDetail} disabled",
             "HubIconButton label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, \"learn\")}",
             "HubIconButton label={state.ui.shell.settings}",
             "StatusBadge key={status.id}",
-            "gridTemplateColumns: \"222px minmax(250px, 1fr) auto\"",
+            "gridTemplateColumns: \"222px minmax(0, 1fr) auto\"",
             "gridTemplateColumns: \"78px minmax(0, 1fr) auto\"",
         ],
     );
@@ -139,23 +140,24 @@ fn hub_window_routes_primary_pages_from_one_shell_boundary() {
         &hub_window,
         &[
             "TopBar state={state} onAction={onAction}",
-            "NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction}",
+            "<NavigationDrawer",
+            "activePage={state.activePage}",
+            "text={state.ui.shell}",
+            "engineVersion={state.engineVersion}",
+            "sourceEngines={state.sourceEngines}",
+            "activeSourceEngineId={state.activeSourceEngineId}",
+            "onAction={onAction}",
             "component=\"main\"",
-            "state.activePage === \"projects\"",
-            "ProjectsDashboard state={state} onAction={onAction}",
-            "state.activePage === \"editor\"",
-            "EditorPage state={state} onAction={onAction}",
-            "state.activePage === \"builds\"",
-            "BuildsPage state={state} onAction={onAction}",
-            "state.activePage === \"cloud\"",
-            "CloudPage state={state} onAction={onAction}",
-            "state.activePage === \"assets\" || state.activePage === \"plugins\" || state.activePage === \"learn\"",
-            "CatalogPage state={state} onAction={onAction}",
-            "state.activePage === \"team\"",
-            "TeamPage state={state} onAction={onAction}",
-            "state.activePage === \"settings\"",
-            "SettingsPage state={state} onAction={onAction}",
-            "WorkspacePage state={state} onAction={onAction}",
+            "const pageRoutes: Record<HubPageId, HubPageComponent> = {",
+            "projects: ProjectsDashboard,",
+            "editor: EditorPage,",
+            "builds: BuildsPage,",
+            "cloud: CloudPage,",
+            "assets: CatalogPage,",
+            "team: TeamPage,",
+            "settings: SettingsPage,",
+            "const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;",
+            "<PageComponent state={state} onAction={onAction} />",
         ],
     );
 }
@@ -165,6 +167,7 @@ fn tabs_and_toggle_wrappers_own_secondary_navigation_controls() {
     let tabs = read_crate_file("web/src/components/inputs/HubTabs.tsx");
     let toggle = read_crate_file("web/src/components/inputs/HubToggle.tsx");
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let projects_toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
@@ -199,13 +202,21 @@ fn tabs_and_toggle_wrappers_own_secondary_navigation_controls() {
         "ProjectsDashboard.tsx",
         &dashboard,
         &[
-            "HubToggle",
-            "{ value: \"grid\", label: text.gridView",
-            "{ value: \"list\", label: text.listView",
+            "ProjectsToolbar",
             "void onAction(HUB_ACTION.setProjectViewMode, value)",
             "void onAction(HUB_ACTION.viewAllProjects)",
             "void onAction(HUB_ACTION.newProject)",
             "void onAction(HUB_ACTION.openProjectDetail, project.id)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectsToolbar.tsx",
+        &projects_toolbar,
+        &[
+            "HubToggle",
+            "{ value: \"grid\", label: text.gridView",
+            "{ value: \"list\", label: text.listView",
+            "onChange={onViewMode}",
         ],
     );
     assert_contains_all(
@@ -245,8 +256,8 @@ fn tauri_navigation_actions_flow_through_single_action_command() {
         &[
             "loadHubState",
             "dispatchHubAction",
-            "invoke<HubShellState>(\"hub_state\")",
-            "invoke<HubShellState>(\"hub_action\"",
+            "invoke<unknown>(\"hub_state\")",
+            "invoke<unknown>(\"hub_action\"",
             "request: { actionId, targetId, payload }",
             "fallbackShellState",
             "isTauriRuntime",
@@ -258,12 +269,15 @@ fn tauri_navigation_actions_flow_through_single_action_command() {
         &[
             "const handleAction: HubActionHandler = async (actionId, targetId, payload)",
             "dispatchHubAction(actionId, targetId, payload)",
-            "setState(nextState)",
+            "actionSequenceRef",
+            "stateGenerationRef",
+            "applyHubState(nextState)",
             "HubWindow state={state} onAction={handleAction}",
             "const shellText = stateRef.current.ui.shell;",
             "shellText.actionFailed",
         ],
     );
+    assert_not_contains_any("App.tsx", &app, &["setState(nextState);"]);
     assert_contains_all(
         "types/hub.ts",
         &types,
@@ -271,8 +285,8 @@ fn tauri_navigation_actions_flow_through_single_action_command() {
             "activePage: string;",
             "projectSubpage: string;",
             "projectViewMode: string;",
-            "selectedProjectId?: string | null;",
-            "activeSourceEngineId?: string | null;",
+            "selectedProjectId: string | null;",
+            "activeSourceEngineId: string | null;",
         ],
     );
 }

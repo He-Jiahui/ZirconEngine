@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "6dbf9b87-25c5-4c4e-a9b3-2c72f0993ff0"
+url = "res://models/kenney_graveyard/road.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/b74cb131-5edf-6282-1558-8b0147d18019.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "33119689084e4539"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/road.glb#Texture0",
+    "res://models/kenney_graveyard/road.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/road.glb#Material0",
+    "res://models/kenney_graveyard/road.glb#Mesh0",
+    "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/road.glb#Node0",
+    "res://models/kenney_graveyard/road.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "6dbf9b87-25c5-4c4e-a9b3-2c72f0993ff0"
+url = "res://models/kenney_graveyard/road.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/b74cb131-5edf-6282-1558-8b0147d18019.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/road.glb#Texture0",
+    "res://models/kenney_graveyard/road.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/road.glb#Material0",
+    "res://models/kenney_graveyard/road.glb#Mesh0",
+    "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/road.glb#Node0",
+    "res://models/kenney_graveyard/road.glb#Scene0",
+]
+
+[[entries]]
+uuid = "8503f9f5-be00-4f94-ba9d-11c1de8c4089"
+url = "res://models/kenney_graveyard/road.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/f185d6d5-e93c-605d-a66d-ce6598e361dd.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "4698e9e0-2aac-40d7-a9ba-317f9ff91013"
+url = "res://models/kenney_graveyard/road.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/26636c7a-72fd-40e5-432c-9fe03430fd6c.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "06c362b9-cf94-4026-b6fa-27887a2f3f94"
+url = "res://models/kenney_graveyard/road.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/c0d0a032-c3de-7386-d59f-bb3db23b21ee.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/road.glb#Texture0",
+]
+
+[[entries]]
+uuid = "5caa679d-5a93-48ab-bbf5-b79ace0f8c39"
+url = "res://models/kenney_graveyard/road.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/96b3d4e9-905e-44b2-694e-5f48f9f96d23.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/road.glb#Material0",
+]
+
+[[entries]]
+uuid = "c54972f8-1b56-471c-9591-b42e03159240"
+url = "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/1d116108-5009-aea8-94ab-21d0a35eb643.zasset"
+dependencies = ["res://models/kenney_graveyard/road.glb#Material0"]
+
+[[entries]]
+uuid = "2011876e-46e4-40a1-ad44-49b2ebe682d5"
+url = "res://models/kenney_graveyard/road.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/fab4b863-6d80-f172-6ed5-70cf45b494b3.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/road.glb#Node0",
+    "res://models/kenney_graveyard/road.glb#Mesh0",
+    "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/road.glb#Material0",
+]
+
+[[entries]]
+uuid = "6229bdbd-5cd6-4ec0-b79f-712661ab8605"
+url = "res://models/kenney_graveyard/road.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/880c1a26-a71e-8338-1a8f-0b7cefe36400.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/road.glb#Node0",
+    "res://models/kenney_graveyard/road.glb#Mesh0",
+    "res://models/kenney_graveyard/road.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/road.glb#Material0",
+]

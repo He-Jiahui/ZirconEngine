@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::{CoreError, PluginContext, PluginFactory, ServiceFactory, ServiceObject};
+use crate::core::runtime::ServiceObject;
+use crate::core::{CoreError, PluginContext, PluginFactory, ServiceFactory};
 
 pub fn factory(
     builder: impl Fn(&crate::core::CoreHandle) -> Result<ServiceObject, CoreError>

@@ -112,6 +112,7 @@ pub struct RenderHistoryCopyReport {
     pub global_illumination_copied: bool,
     pub ambient_occlusion_copied: bool,
     pub screen_space_reflection_copied: bool,
+    pub hzb_furthest_copied: bool,
 }
 
 impl RenderHistoryCopyReport {
@@ -123,6 +124,7 @@ impl RenderHistoryCopyReport {
         global_illumination_copied: bool,
         ambient_occlusion_copied: bool,
         screen_space_reflection_copied: bool,
+        hzb_furthest_copied: bool,
     ) -> Self {
         Self {
             history_target_present,
@@ -132,11 +134,13 @@ impl RenderHistoryCopyReport {
             copied_count: scene_color_copied as usize
                 + global_illumination_copied as usize
                 + ambient_occlusion_copied as usize
-                + screen_space_reflection_copied as usize,
+                + screen_space_reflection_copied as usize
+                + hzb_furthest_copied as usize,
             scene_color_copied,
             global_illumination_copied,
             ambient_occlusion_copied,
             screen_space_reflection_copied,
+            hzb_furthest_copied,
         }
     }
 }
@@ -446,12 +450,52 @@ impl RenderCameraTargetGraphImportReport {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphTransientPoolReport {
+    pub frame_index: u64,
+    pub texture_created_count: usize,
+    pub texture_reused_count: usize,
+    pub buffer_created_count: usize,
+    pub buffer_reused_count: usize,
+    pub texture_pool_entry_count: usize,
+    pub buffer_pool_entry_count: usize,
+    pub evicted_texture_count: usize,
+    pub evicted_buffer_count: usize,
+}
+
+impl RenderGraphTransientPoolReport {
+    pub const fn new(
+        frame_index: u64,
+        texture_created_count: usize,
+        texture_reused_count: usize,
+        buffer_created_count: usize,
+        buffer_reused_count: usize,
+        texture_pool_entry_count: usize,
+        buffer_pool_entry_count: usize,
+        evicted_texture_count: usize,
+        evicted_buffer_count: usize,
+    ) -> Self {
+        Self {
+            frame_index,
+            texture_created_count,
+            texture_reused_count,
+            buffer_created_count,
+            buffer_reused_count,
+            texture_pool_entry_count,
+            buffer_pool_entry_count,
+            evicted_texture_count,
+            evicted_buffer_count,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderGraphExecutionResourceReport {
     pub texture_view_count: usize,
     pub external_texture_view_count: usize,
     pub owned_texture_count: usize,
     pub buffer_count: usize,
     pub total_bound_resource_count: usize,
+    pub transient_pool_report: RenderGraphTransientPoolReport,
 }
 
 impl RenderGraphExecutionResourceReport {
@@ -467,7 +511,16 @@ impl RenderGraphExecutionResourceReport {
             owned_texture_count,
             buffer_count,
             total_bound_resource_count: texture_view_count + buffer_count,
+            transient_pool_report: RenderGraphTransientPoolReport::new(0, 0, 0, 0, 0, 0, 0, 0, 0),
         }
+    }
+
+    pub const fn with_transient_pool_report(
+        mut self,
+        transient_pool_report: RenderGraphTransientPoolReport,
+    ) -> Self {
+        self.transient_pool_report = transient_pool_report;
+        self
     }
 }
 
@@ -741,6 +794,8 @@ pub struct RenderCapabilitySummary {
     pub supports_pipeline_cache: bool,
     pub supports_storage_buffers: bool,
     pub supports_indirect_draw: bool,
+    pub supports_multi_draw_indirect: bool,
+    pub supports_indirect_first_instance: bool,
     pub supports_buffer_readback: bool,
     pub acceleration_structures_supported: bool,
     pub inline_ray_query: bool,
@@ -769,6 +824,12 @@ pub struct RenderCapabilityClassReport {
 }
 
 impl RenderCapabilitySummary {
+    pub const fn gpu_driven_submission_supported(&self) -> bool {
+        self.supports_indirect_draw
+            && self.supports_multi_draw_indirect
+            && self.supports_indirect_first_instance
+    }
+
     pub fn capability_class_report(
         &self,
         class: RenderCapabilityClass,
@@ -988,6 +1049,20 @@ impl RenderQualityProfile {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RenderGpuSceneUploadPath {
+    #[default]
+    DirectQueueWrite,
+}
+
+impl RenderGpuSceneUploadPath {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::DirectQueueWrite => "direct_queue_write",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderStats {
     pub active_viewports: usize,
@@ -1006,6 +1081,14 @@ pub struct RenderStats {
     pub last_capture_report: super::RenderCaptureReport,
     pub last_scene_camera_scheduled_count: usize,
     pub last_scene_camera_order_ambiguity_count: usize,
+    pub last_visibility_view_count: usize,
+    pub last_visibility_input_count: usize,
+    pub last_visibility_layer_filtered_count: usize,
+    pub last_visibility_frustum_culled_count: usize,
+    pub last_visibility_occlusion_culled_count: usize,
+    pub last_visibility_visible_count: usize,
+    pub last_hzb_mip_count: usize,
+    pub last_hzb_graph_executed_pass_count: usize,
     pub last_quality_profile: Option<String>,
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
@@ -1092,7 +1175,15 @@ pub struct RenderStats {
     pub last_mesh_alpha_mask_shadow_caster_draw_count: usize,
     pub last_mesh_prepared_geometry_draw_count: usize,
     pub last_mesh_dynamic_geometry_draw_count: usize,
+    pub last_mesh_skinned_draw_count: usize,
+    pub last_mesh_skinned_palette_upload_count: usize,
+    pub last_mesh_skinned_previous_palette_upload_count: usize,
+    pub last_mesh_skinned_gpu_source_candidate_count: usize,
+    pub last_mesh_skinned_gpu_cpu_morphed_source_candidate_count: usize,
+    pub last_mesh_skinned_gpu_skinning_draw_count: usize,
+    pub last_mesh_skinned_gpu_motion_vector_draw_count: usize,
     pub last_mesh_indirect_draw_count: usize,
+    pub last_mesh_lod_draw_count: usize,
     pub last_mesh_previous_motion_vector_transform_draw_count: usize,
     pub last_mesh_missing_motion_vector_transform_draw_count: usize,
     pub last_mesh_static_batch_candidate_group_count: usize,
@@ -1101,12 +1192,26 @@ pub struct RenderStats {
     pub last_mesh_dynamic_batch_candidate_draw_count: usize,
     pub last_mesh_gpu_instancing_candidate_group_count: usize,
     pub last_mesh_gpu_instancing_candidate_draw_count: usize,
+    pub last_indirect_batch_count: usize,
+    pub last_indirect_batched_draw_count: usize,
+    pub last_indirect_fallback_draw_count: usize,
+    pub last_indirect_args_count: usize,
+    pub last_gpu_scene_primitive_count: u32,
+    pub last_gpu_scene_instance_count: u32,
+    pub last_gpu_scene_dirty_entry_count: usize,
+    pub last_gpu_scene_uploaded_bytes: u64,
+    pub last_gpu_scene_upload_path: RenderGpuSceneUploadPath,
+    pub last_gpu_scene_free_span_count: usize,
+    pub last_gpu_scene_primitive_upload_range_count: usize,
+    pub last_gpu_scene_instance_upload_range_count: usize,
     pub last_sprite_count: usize,
     pub last_sprite_ready_count: usize,
     pub last_sprite_texture_fallback_count: usize,
     pub last_sprite_graph_executed_pass_count: usize,
     pub last_sprite_draw_batch_count: usize,
     pub last_sprite_batched_sprite_count: usize,
+    pub last_sprite_image_slice_count: usize,
+    pub last_sprite_expanded_image_slice_count: usize,
     pub last_sprite_vertex_count: usize,
     pub last_sprite_opaque_draw_batch_count: usize,
     pub last_sprite_alpha_mask_draw_batch_count: usize,
@@ -1215,19 +1320,28 @@ mod tests {
 
     #[test]
     fn history_copy_report_counts_copied_slots_from_slot_flags() {
-        let report =
-            RenderHistoryCopyReport::new(true, UVec2::new(960, 540), 4, true, true, false, true);
+        let report = RenderHistoryCopyReport::new(
+            true,
+            UVec2::new(960, 540),
+            5,
+            true,
+            true,
+            false,
+            true,
+            true,
+        );
 
         assert!(report.history_target_present);
         assert!(report.debug_marker_emitted);
         assert_eq!(report.target_size, UVec2::new(960, 540));
-        assert_eq!(report.requested_copy_count, 4);
-        assert_eq!(report.copied_count, 3);
+        assert_eq!(report.requested_copy_count, 5);
+        assert_eq!(report.copied_count, 4);
 
         let missing_target_report = RenderHistoryCopyReport::new(
             false,
             UVec2::new(960, 540),
             1,
+            false,
             false,
             false,
             false,
@@ -1346,5 +1460,36 @@ mod tests {
                 RenderCapabilityMismatchDetail::new(RenderCapabilityKind::SparseTexture),
             ]
         );
+    }
+
+    #[test]
+    fn gpu_driven_submission_requires_indirect_multi_draw_and_first_instance() {
+        let supported = RenderCapabilitySummary {
+            supports_indirect_draw: true,
+            supports_multi_draw_indirect: true,
+            supports_indirect_first_instance: true,
+            ..RenderCapabilitySummary::default()
+        };
+        assert!(supported.gpu_driven_submission_supported());
+
+        for capabilities in [
+            RenderCapabilitySummary {
+                supports_multi_draw_indirect: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_indirect_draw: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_indirect_draw: true,
+                supports_multi_draw_indirect: true,
+                ..RenderCapabilitySummary::default()
+            },
+        ] {
+            assert!(!capabilities.gpu_driven_submission_supported());
+        }
     }
 }

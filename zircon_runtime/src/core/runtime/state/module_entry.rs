@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::lifecycle::LifecycleState;
+use crate::core::LifecycleState;
 
 use super::super::descriptors::{ModuleDescriptor, RegistryName};
 

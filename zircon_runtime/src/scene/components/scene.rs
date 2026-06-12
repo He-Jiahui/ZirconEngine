@@ -23,8 +23,9 @@ use serde::{Deserialize, Serialize};
 use super::{Mesh2dComponent, Sprite2dComponent};
 use crate::scene::EntityId;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeKind {
+    Empty,
     Camera,
     Cube,
     Mesh,
@@ -164,15 +165,53 @@ pub struct MeshRendererPrimitiveBinding {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct MeshRenderer {
+pub struct MeshRendererLodLevel {
+    #[serde(default)]
+    pub min_distance: Real,
     pub model: ResourceHandle<ModelMarker>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mesh: Option<ResourceHandle<MeshMarker>>,
     pub material: ResourceHandle<MaterialMarker>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub primitives: Vec<MeshRendererPrimitiveBinding>,
+}
+
+impl MeshRendererLodLevel {
+    pub fn from_handles(
+        min_distance: Real,
+        model: ResourceHandle<ModelMarker>,
+        material: ResourceHandle<MaterialMarker>,
+    ) -> Self {
+        Self {
+            min_distance,
+            model,
+            mesh: None,
+            material,
+            primitives: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MeshRenderer {
+    pub model: ResourceHandle<ModelMarker>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh: Option<ResourceHandle<MeshMarker>>,
+    pub material: ResourceHandle<MaterialMarker>,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub render_queue: i32,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub material_queue: i32,
+    #[serde(default, skip_serializing_if = "is_zero_i32")]
+    pub order_in_layer: i32,
+    #[serde(default, skip_serializing_if = "is_zero_real")]
+    pub depth_bias: Real,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub morph_weights: Vec<Real>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub primitives: Vec<MeshRendererPrimitiveBinding>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lods: Vec<MeshRendererLodLevel>,
     pub tint: Vec4,
     #[serde(default)]
     pub material_alpha_mode: RenderMaterialAlphaMode,
@@ -187,8 +226,13 @@ impl MeshRenderer {
             model,
             mesh: None,
             material,
+            render_queue: 0,
+            material_queue: 0,
+            order_in_layer: 0,
+            depth_bias: 0.0,
             morph_weights: Vec::new(),
             primitives: Vec::new(),
+            lods: Vec::new(),
             tint: Vec4::ONE,
             material_alpha_mode: RenderMaterialAlphaMode::Opaque,
         }
@@ -645,6 +689,14 @@ pub const fn default_render_layer_mask() -> u32 {
 
 const fn default_true() -> bool {
     true
+}
+
+fn is_zero_i32(value: &i32) -> bool {
+    *value == 0
+}
+
+fn is_zero_real(value: &Real) -> bool {
+    *value == 0.0
 }
 
 const fn default_camera_ortho_size() -> Real {

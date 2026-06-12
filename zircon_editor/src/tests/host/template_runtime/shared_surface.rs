@@ -3,6 +3,54 @@ use super::support::*;
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
+fn editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface() {
+    let document_path = write_theme_probe_v2_document();
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime
+        .register_document_file("editor.theme_probe", &document_path)
+        .unwrap();
+
+    let surface = runtime.build_shared_surface("editor.theme_probe").unwrap();
+    let probe = surface
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some("ThemeProbe")
+        })
+        .unwrap();
+    let metadata = probe.template_metadata.as_ref().unwrap();
+
+    assert_eq!(
+        metadata
+            .attributes
+            .get("background")
+            .and_then(Value::as_str),
+        Some("#3cc7d6")
+    );
+    assert_eq!(
+        metadata
+            .attributes
+            .get("foreground")
+            .and_then(Value::as_str),
+        Some("#e8ecee")
+    );
+    assert_eq!(
+        metadata.style_tokens.get("background").map(String::as_str),
+        Some("theme.palette.accent")
+    );
+    assert_eq!(
+        metadata.style_tokens.get("foreground").map(String::as_str),
+        Some("theme.palette.text.primary")
+    );
+
+    let _ = std::fs::remove_dir_all(document_path.parent().unwrap());
+}
+
+#[test]
 fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -167,4 +215,40 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
     assert!(retained_snapshot
         .frame_entries
         .contains(&"v2/StatusBarRoot=0,696,1280,24".to_string()));
+}
+
+fn write_theme_probe_v2_document() -> std::path::PathBuf {
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("system clock should be after unix epoch")
+        .as_nanos();
+    let temp_dir = std::env::temp_dir().join(format!("zircon_editor_theme_probe_{unique}"));
+    let document_path = temp_dir.join("theme_probe.v2.ui.toml");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    std::fs::write(
+        &document_path,
+        r##"
+[asset]
+kind = "view"
+id = "editor.theme_probe"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Button"
+control_id = "ThemeProbe"
+classes = ["primary"]
+
+[[stylesheets]]
+id = "theme_probe"
+
+[[stylesheets.rules]]
+selector = "Button.primary"
+set = { self = { background = "$theme.palette.accent", foreground = "var(theme.palette.text.primary)" } }
+"##,
+    )
+    .unwrap();
+    document_path
 }

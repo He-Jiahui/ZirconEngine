@@ -13,8 +13,9 @@ use crate::core::framework::render::{
     RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature,
     RenderProductProfile, RenderProfileBundle, RenderQualityProfile, RenderRectLightSnapshot,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor,
-    RenderSpriteSnapshot, RenderViewportDescriptor, RenderVirtualGeometryPayloadSource,
-    RenderWorldSnapshotHandle, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
+    RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
+    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SolariRuntimeStatus,
+    SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -231,8 +232,8 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     assert_eq!(stats.last_directional_light_ready_count, 1);
     assert_eq!(stats.last_directional_light_degraded_count, 1);
     assert_eq!(stats.last_point_light_count, 1);
-    assert_eq!(stats.last_point_light_ready_count, 0);
-    assert_eq!(stats.last_point_light_degraded_count, 1);
+    assert_eq!(stats.last_point_light_ready_count, 1);
+    assert_eq!(stats.last_point_light_degraded_count, 0);
     assert_eq!(stats.last_spot_light_count, 1);
     assert_eq!(stats.last_spot_light_ready_count, 0);
     assert_eq!(stats.last_spot_light_degraded_count, 1);
@@ -271,15 +272,19 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
         extract.view.core_pipeline,
         vec![RenderMeshSnapshot {
             node_id: 601,
+            stable_instance_key: 601 << 16,
+            transform_revision: 0,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: u32::MAX,
         }],
     );
@@ -329,15 +334,19 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
         extract.view.core_pipeline,
         vec![RenderMeshSnapshot {
             node_id: 602,
+            stable_instance_key: 602 << 16,
+            transform_revision: 0,
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
                 "builtin://cube",
             )),
             mesh: None,
             material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
+            static_state: Default::default(),
             render_layer_mask: u32::MAX,
         }],
     );
@@ -560,15 +569,19 @@ fn snapshot_with_projection(projection_mode: ProjectionMode) -> RenderSceneSnaps
 fn pbr_mesh_with_missing_material() -> RenderMeshSnapshot {
     RenderMeshSnapshot {
         node_id: 600,
+        stable_instance_key: 600 << 16,
+        transform_revision: 0,
         transform: Transform::default(),
         model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
         mesh: None,
         material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
             "res://materials/not-registered",
         )),
+        mesh_lod: None,
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
+        static_state: Default::default(),
         render_layer_mask: u32::MAX,
     }
 }
@@ -664,6 +677,7 @@ fn default_core2d_sprite_acceptance_extract() -> RenderFrameExtract {
             flip_y: false,
             anchor: RenderSpriteAnchor::CENTER,
             custom_size: Some(Vec2::new(1.0, 1.0)),
+            image_mode: RenderSpriteImageMode::Stretch,
             color: Vec4::ONE,
             z_order: 0,
             render_layer_mask: u32::MAX,

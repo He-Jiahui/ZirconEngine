@@ -171,6 +171,14 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default();
+            let texcoords1 = reader
+                .read_tex_coords(1)
+                .map(|set| {
+                    set.into_f32()
+                        .flat_map(|uv| uv.into_iter())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
             let joint_indices = reader
                 .read_joints(0)
                 .map(|set| set.into_u16().collect::<Vec<_>>())
@@ -191,6 +199,7 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                 &positions,
                 &normals,
                 &texcoords,
+                &texcoords1,
                 &indices,
                 &joint_indices,
                 &joint_weights,
@@ -334,6 +343,7 @@ fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],
     texcoords: &[f32],
+    texcoords1: &[f32],
     indices: &[u32],
     joint_indices: &[[u16; 4]],
     joint_weights: &[[f32; 4]],
@@ -372,6 +382,11 @@ fn primitive_from_indexed_mesh(
             } else {
                 Vec2::ZERO
             };
+            let uv1 = if texcoords1.len() >= (index + 1) * 2 {
+                Vec2::new(texcoords1[index * 2], texcoords1[index * 2 + 1])
+            } else {
+                Vec2::ZERO
+            };
             MeshVertex::new(
                 position,
                 if normal.length_squared() <= f32::EPSILON {
@@ -381,6 +396,7 @@ fn primitive_from_indexed_mesh(
                 },
                 uv,
             )
+            .with_uv1(uv1)
             .with_skinning(
                 joint_indices.get(index).copied().unwrap_or([0, 0, 0, 0]),
                 joint_weights

@@ -18,9 +18,11 @@ pub use render_pipeline_compile_report::RenderPipelineCompileReport;
 pub use renderer_asset::RendererAsset;
 pub use renderer_data_document::{
     RendererDataDocument, RendererDataDocumentError, RendererFeatureDocument,
-    RENDERER_DATA_DOCUMENT_VERSION,
+    RendererFeatureReferenceListKind, RENDERER_DATA_DOCUMENT_VERSION,
 };
 pub use renderer_feature_asset::RendererFeatureAsset;
-pub use renderer_feature_contract_diagnostic::RendererFeatureContractDiagnostic;
+pub use renderer_feature_contract_diagnostic::{
+    RendererFeatureContractDiagnostic, RendererFeatureContractDiagnosticSeverity,
+};
 pub use renderer_feature_reference::RendererFeatureAssetReferences;
 pub use renderer_feature_source::RendererFeatureSource;

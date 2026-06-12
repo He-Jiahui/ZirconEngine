@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "20668551-14e6-4eae-a95d-e64a63411e17"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/89450628-09e1-d49f-73b0-2c2e92cee582.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "e9000e94825631b8"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/pine-crooked.glb#Texture0",
+    "res://models/kenney_graveyard/pine-crooked.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/pine-crooked.glb#Material0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Node0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "20668551-14e6-4eae-a95d-e64a63411e17"
+url = "res://models/kenney_graveyard/pine-crooked.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/89450628-09e1-d49f-73b0-2c2e92cee582.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/pine-crooked.glb#Texture0",
+    "res://models/kenney_graveyard/pine-crooked.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/pine-crooked.glb#Material0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Node0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Scene0",
+]
+
+[[entries]]
+uuid = "380643e7-800f-41d0-986f-e4651099cfa0"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/50f5e502-a998-5ec2-5783-8dc2c6109997.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "d7daf537-3cfc-44f9-91c2-e776e0c65162"
+url = "res://models/kenney_graveyard/pine-crooked.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/0ffef8c6-ab07-e552-9850-4dd456d6b3b6.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "f81237ec-a706-4589-8f1d-958680aa31a8"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/ba0acb52-31e9-dac7-1fed-acbf42e468f7.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/pine-crooked.glb#Texture0",
+]
+
+[[entries]]
+uuid = "5100d3cb-0ec0-4eff-94a4-64d38654494a"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/8b62d6b4-c349-1822-e4c6-2c158e82b818.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Material0",
+]
+
+[[entries]]
+uuid = "5fc1e7cb-eacf-430c-837a-255d8aaf78fb"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/4cc88241-1f8c-5667-d3e0-ba7305364419.zasset"
+dependencies = ["res://models/kenney_graveyard/pine-crooked.glb#Material0"]
+
+[[entries]]
+uuid = "27350507-8e3c-4d4f-8c18-7eab74d49e27"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/659dbe1c-586d-442b-4f5b-2a2cd30b50fd.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/pine-crooked.glb#Node0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Material0",
+]
+
+[[entries]]
+uuid = "6d5de0e6-3d9d-4d58-a316-5aa1060603cf"
+url = "res://models/kenney_graveyard/pine-crooked.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/25ab4826-403a-f391-5066-96d1e401412e.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/pine-crooked.glb#Node0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/pine-crooked.glb#Material0",
+]

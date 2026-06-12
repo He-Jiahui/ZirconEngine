@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UiDispatchDisposition, UiDispatchReply, UiInputDispatchResult, UiInputEvent,
-        UiKeyboardInputEvent, UiNavigationInputEvent,
+        UiDispatchDisposition, UiDispatchPhase, UiDispatchReply, UiInputDispatchResult,
+        UiInputEvent, UiKeyboardInputEvent, UiNavigationInputEvent,
     },
     focus::UiFocusedInputKind,
     tree::UiTreeError,
@@ -89,7 +89,9 @@ pub(super) fn dispatch_keyboard_input(
         if keyboard_requests_popup_dismissal(&keyboard) {
             let report = surface.apply_default_popup_dismissal_action(target)?;
             if report.handled {
-                result.reply = UiDispatchReply::handled().from_handler(target);
+                result.reply = UiDispatchReply::handled()
+                    .from_handler(target)
+                    .in_phase(UiDispatchPhase::Target);
                 result.diagnostics.handled_phase = Some("keyboard.popup_dismiss".to_string());
                 result.component_events = report.component_events;
                 result.binding_reports = report.binding_reports;
@@ -98,7 +100,9 @@ pub(super) fn dispatch_keyboard_input(
         if keyboard_requests_default_activation(&keyboard) {
             let report = surface.apply_default_keyboard_component_action(target)?;
             if report.handled {
-                result.reply = UiDispatchReply::handled().from_handler(target);
+                result.reply = UiDispatchReply::handled()
+                    .from_handler(target)
+                    .in_phase(UiDispatchPhase::Target);
                 result.diagnostics.handled_phase = Some("keyboard.widget".to_string());
                 result.component_events = report.component_events;
                 result.binding_reports = report.binding_reports;

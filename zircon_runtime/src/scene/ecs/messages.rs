@@ -46,15 +46,13 @@ where
     T: Message,
 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "message<{}>#{}",
-            type_name::<T>()
-                .rsplit("::")
-                .next()
-                .unwrap_or(type_name::<T>()),
-            self.id
-        )
+        let message_type_name = type_name::<T>();
+        let message_type_label = match message_type_name.rsplit("::").next() {
+            Some(label) => label,
+            None => message_type_name,
+        };
+
+        write!(formatter, "message<{}>#{}", message_type_label, self.id)
     }
 }
 
@@ -98,6 +96,21 @@ where
         self.next_id += 1;
         self.messages.push(MessageInstance { id, message });
         id
+    }
+
+    pub fn write_batch<I>(&mut self, messages: I) -> Vec<MessageId<T>>
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let messages = messages.into_iter();
+        let (lower_bound, _) = messages.size_hint();
+        self.messages.reserve(lower_bound);
+
+        let mut ids = Vec::with_capacity(lower_bound);
+        for message in messages {
+            ids.push(self.write(message));
+        }
+        ids
     }
 
     pub fn iter(&self) -> MessageReadIter<'_, T> {
@@ -165,18 +178,17 @@ where
     }
 
     pub fn unread_count(&self, messages: Option<&Messages<T>>) -> usize {
-        messages
-            .map(|messages| {
-                if self.generation == messages.generation() {
-                    messages
-                        .messages
-                        .len()
-                        .saturating_sub(self.cursor.min(messages.messages.len()))
-                } else {
-                    messages.messages.len()
-                }
-            })
-            .unwrap_or_default()
+        let Some(messages) = messages else {
+            return 0;
+        };
+        if self.generation == messages.generation() {
+            messages
+                .messages
+                .len()
+                .saturating_sub(self.cursor.min(messages.messages.len()))
+        } else {
+            messages.messages.len()
+        }
     }
 
     pub fn clear(&mut self, messages: Option<&Messages<T>>) {
@@ -233,9 +245,8 @@ impl MessageStore {
     where
         T: Message,
     {
-        self.stores
-            .get(&TypeId::of::<T>())
-            .and_then(|store| store.downcast_ref::<Messages<T>>())
+        let store = self.stores.get(&TypeId::of::<T>())?;
+        store.downcast_ref::<Messages<T>>()
     }
 
     pub fn messages_mut<T>(&mut self) -> &mut Messages<T>
@@ -258,6 +269,14 @@ impl MessageStore {
         self.messages_mut::<T>().write(message)
     }
 
+    pub fn write_batch<T, I>(&mut self, messages: I) -> Vec<MessageId<T>>
+    where
+        T: Message,
+        I: IntoIterator<Item = T>,
+    {
+        self.messages_mut::<T>().write_batch(messages)
+    }
+
     pub fn clear<T>(&mut self)
     where
         T: Message,
@@ -266,7 +285,10 @@ impl MessageStore {
     }
 
     pub fn registered_type_names(&self) -> Vec<&'static str> {
-        let mut names = self.type_names.values().copied().collect::<Vec<_>>();
+        let mut names = Vec::with_capacity(self.type_names.len());
+        for name in self.type_names.values() {
+            names.push(*name);
+        }
         names.sort_unstable();
         names
     }

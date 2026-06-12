@@ -2,6 +2,7 @@ mod bloom_pipeline;
 mod build;
 mod cluster_pipeline;
 mod depth_of_field_prepare_pipeline;
+mod hzb_pipeline;
 mod motion_vector_camera_pipeline;
 mod motion_vector_neighbor_max_pipeline;
 mod motion_vector_tile_max_pipeline;

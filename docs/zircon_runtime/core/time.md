@@ -1,8 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/core/time.rs
-  - zircon_runtime/src/core/frame_clock.rs
+  - zircon_runtime/src/core/runtime/time.rs
+  - zircon_runtime/src/core/runtime/frame_clock.rs
   - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/core/diagnostics/store.rs
   - zircon_runtime/src/core/runtime/runtime.rs
@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/core/framework/time/mod.rs
 implementation_files:
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/core/time.rs
+  - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
@@ -54,7 +54,7 @@ doc_type: module-detail
 
 # Core Runtime Time
 
-`zircon_runtime::core::time` is the runtime-owned clock bundle for Bevy-style frame time. The framework layer defines the neutral clock contracts, while this core layer stores one `RuntimeTimeClocks` instance inside each `CoreRuntime` and advances it through `CoreRuntime` or `CoreHandle`.
+`zircon_runtime::core::runtime::time` is the runtime-owned clock bundle for Bevy-style frame time. The framework layer defines the neutral clock contracts, while this core runtime layer stores one `RuntimeTimeClocks` instance inside each `CoreRuntime` and advances it through `CoreRuntime` or `CoreHandle`.
 
 ## Reference Evidence
 
@@ -67,8 +67,8 @@ Bevy's default plugin group in `dev/bevy/crates/bevy_internal/src/default_plugin
 ## Ownership Boundary
 
 - `zircon_runtime::core::framework::time` owns the plain contracts: `Time<Real>`, `Time<Virtual>`, `Time<Fixed>`, and `FixedStepPlan`.
-- `zircon_runtime::core::time` owns the runtime snapshot and update summary: `RuntimeTimeClocks` and `RuntimeTimeAdvance`.
-- `zircon_runtime::core::time` also owns the stable Time diagnostic path constants: `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`.
+- `zircon_runtime::core::runtime::time` owns the runtime snapshot and update summary: `RuntimeTimeClocks` and `RuntimeTimeAdvance`.
+- `zircon_runtime::core::runtime::time` also owns the stable Time diagnostic path constants: `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`.
 - `CoreRuntimeInner` owns one `FrameClock` and one `RuntimeTimeClocks` bundle per runtime instance.
 - `CoreRuntime` and `CoreHandle` expose read snapshots plus deterministic `advance_time_by(...)` and wall-clock `tick_time(...)` entry points.
 - `CoreRuntime` also owns a `DiagnosticStore`; time advancement records frame-time diagnostics there.
@@ -81,7 +81,7 @@ This keeps the app host out of concrete clock storage. `zircon_app` can choose w
 
 `advance_time_by(real_delta, max_fixed_steps)` advances `Time<Real>` by the raw wall-clock delta, advances `Time<Virtual>` from that real delta using pause, relative speed, and max-delta policy, then accumulates the virtual delta into `Time<Fixed>`. Fixed steps drain up to the caller-supplied max step budget and return a `RuntimeTimeAdvance` with the original real delta plus the resulting `FixedStepPlan`. The same call records `TIME_FRAME_TIME_DIAGNOSTIC`, `TIME_FPS_DIAGNOSTIC`, `TIME_FRAME_COUNT_DIAGNOSTIC`, and `TIME_FIXED_STEPS_DIAGNOSTIC` into the runtime-owned diagnostic store.
 
-The diagnostic path constants are `&'static str` values rather than Bevy-style const `DiagnosticPath` values because Zircon's `DiagnosticPath` currently owns a `String`. Keeping the public constants in `core::time` still gives callers a stable prelude-visible contract while avoiding a broader storage refactor in the diagnostics module.
+The diagnostic path constants are `&'static str` values rather than Bevy-style const `DiagnosticPath` values because Zircon's `DiagnosticPath` currently owns a `String`. Keeping the public constants re-exported through the curated `core` and prelude facades still gives callers a stable contract while avoiding a broader storage refactor in the diagnostics module.
 
 `tick_time(max_fixed_steps)` reads the runtime-owned `FrameClock`, then delegates to the deterministic path. This keeps tests and replay-style callers able to bypass the wall clock, while real app loops still have a single runtime-owned clock path.
 

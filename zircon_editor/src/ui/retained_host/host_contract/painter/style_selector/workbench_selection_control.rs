@@ -66,7 +66,7 @@ fn control_surface(
     state: UiPainterResolvedState,
     checked: bool,
 ) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         return PALETTE.surface_disabled;
     }
     match kind {
@@ -104,7 +104,7 @@ fn control_border(
     state: UiPainterResolvedState,
     checked: bool,
 ) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         return PALETTE.border_disabled;
     }
     match kind {
@@ -143,7 +143,7 @@ fn toggle_thumb(
     state: UiPainterResolvedState,
     checked: bool,
 ) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         PALETTE.text_disabled
     } else if checked {
         declared_style_foreground(node).unwrap_or(PALETTE.text)
@@ -153,7 +153,7 @@ fn toggle_thumb(
 }
 
 fn control_accent(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         PALETTE.text_disabled
     } else if node.value_color.a > 0 {
         [
@@ -168,7 +168,7 @@ fn control_accent(node: &TemplatePaneNodeData, state: UiPainterResolvedState) ->
 }
 
 fn selection_text(_node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         PALETTE.text_disabled
     } else {
         PALETTE.text
@@ -176,7 +176,7 @@ fn selection_text(_node: &TemplatePaneNodeData, state: UiPainterResolvedState) -
 }
 
 fn mark_label(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
-    if is_disabled(state) {
+    if is_unavailable_selection_state(state) {
         PALETTE.text_disabled
     } else if node.label_color.a > 0 {
         [
@@ -190,8 +190,11 @@ fn mark_label(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8
     }
 }
 
-fn is_disabled(state: UiPainterResolvedState) -> bool {
-    state == UiPainterResolvedState::Disabled
+fn is_unavailable_selection_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
 }
 
 pub(in crate::ui::retained_host::host_contract::painter) fn is_workbench_selection_state_hot(
@@ -224,4 +227,46 @@ fn declared_style_border(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
 fn declared_style_foreground(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
     resolved_style_color(node.button_style.element.foreground_color.as_ref())
         .filter(|color| color[3] > 0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::primitives::Color;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn selection_controls_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.checked = true;
+        node.selected = true;
+        node.hovered = true;
+        node.pressed = true;
+        node.drop_hovered = true;
+        node.button_style.loading = true;
+        node.value_color = Color::from_rgb_u8(67, 216, 226);
+        node.label_color = Color::from_rgb_u8(131, 141, 148);
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(32, 159, 168, 255)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(34, 161, 170, 255)));
+        node.button_style.element.foreground_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(255, 255, 255, 255)));
+
+        for kind in [
+            WorkbenchSelectionControlKind::Checkbox,
+            WorkbenchSelectionControlKind::Radio,
+            WorkbenchSelectionControlKind::Toggle,
+        ] {
+            let style = select_workbench_selection_control_style(&node, kind);
+
+            assert_eq!(style.state, UiPainterResolvedState::Loading);
+            assert_eq!(style.surface, PALETTE.surface_disabled);
+            assert_eq!(style.border, PALETTE.border_disabled);
+            assert_eq!(style.thumb, PALETTE.text_disabled);
+            assert_eq!(style.accent, PALETTE.text_disabled);
+            assert_eq!(style.text, PALETTE.text_disabled);
+            assert_eq!(style.label, PALETTE.text_disabled);
+        }
+    }
 }

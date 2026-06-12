@@ -3,12 +3,13 @@ use zircon_runtime_interface::ui::{
     component::UiComponentState,
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
-    style::{UiPainterFamily, UiPainterResolvedState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiVisualAssetRef},
     tree::UiTemplateNodeMetadata,
 };
 
-use super::painter_state::UiRenderPainterStateSource;
+mod state;
+
+use self::state::{FeedbackKind, FeedbackRenderState};
 
 const TOOLTIP_PADDING_X: f32 = 8.0;
 const TOOLTIP_TITLE_TOP: f32 = 7.0;
@@ -110,70 +111,11 @@ pub(super) fn feedback_render_commands(
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FeedbackKind {
-    Alert,
-    AlertTitle,
-    Tooltip,
-    Toast,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum AlertTone {
     Info,
     Success,
     Warning,
     Error,
-}
-
-#[derive(Clone, Copy)]
-struct FeedbackRenderState {
-    family: UiPainterFamily,
-    visual_state: UiPainterResolvedState,
-}
-
-impl FeedbackRenderState {
-    fn resolve(
-        kind: FeedbackKind,
-        metadata: &UiTemplateNodeMetadata,
-        state_flags: &UiStateFlags,
-        component_state: Option<&UiComponentState>,
-    ) -> Self {
-        let painter_state =
-            UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
-                .painter_state();
-        let family = match kind {
-            FeedbackKind::Alert | FeedbackKind::AlertTitle => UiPainterFamily::Alert,
-            FeedbackKind::Tooltip => UiPainterFamily::Tooltip,
-            FeedbackKind::Toast => UiPainterFamily::Toast,
-        };
-        Self {
-            family,
-            visual_state: painter_state.resolved_state_for_family(family),
-        }
-    }
-
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
-    }
-
-    fn pressed(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Pressed)
-    }
-
-    fn focused(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Focused)
-    }
-
-    fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
-    }
 }
 
 fn feedback_kind(metadata: &UiTemplateNodeMetadata) -> Option<FeedbackKind> {
@@ -631,7 +573,7 @@ fn alert_surface_color<'a>(
     state: &FeedbackRenderState,
     tone: AlertTone,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_SURFACE
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color")
@@ -650,7 +592,7 @@ fn alert_border_color<'a>(
     state: &FeedbackRenderState,
     tone: AlertTone,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_BORDER
     } else if state.focused() || state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
@@ -664,7 +606,7 @@ fn alert_text_color<'a>(
     state: &FeedbackRenderState,
     tone: AlertTone,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "foreground_color")
@@ -678,7 +620,7 @@ fn alert_mark_color<'a>(
     state: &FeedbackRenderState,
     tone: AlertTone,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "icon_color")
@@ -693,7 +635,7 @@ fn alert_action_color<'a>(
     state: &FeedbackRenderState,
     tone: AlertTone,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "action_color")
@@ -733,7 +675,7 @@ fn tooltip_surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_SURFACE
     } else {
         color_attribute(metadata, "background_color").unwrap_or(TOOLTIP_SURFACE)
@@ -744,7 +686,7 @@ fn tooltip_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_BORDER
     } else if state.focused() || state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
@@ -757,7 +699,7 @@ fn tooltip_title_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TOOLTIP_TITLE)
@@ -768,7 +710,7 @@ fn tooltip_body_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "label_color")
@@ -781,7 +723,7 @@ fn tooltip_icon_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else if state.focused() || state.pressed() {
         color_attribute(metadata, "icon_color").unwrap_or(FOCUS_BORDER)
@@ -794,7 +736,7 @@ fn toast_surface_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_SURFACE
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(TOAST_SURFACE_PRESSED)
@@ -809,7 +751,7 @@ fn toast_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_BORDER
     } else if state.focused() || state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
@@ -822,7 +764,7 @@ fn toast_text_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "foreground_color").unwrap_or(TOAST_TEXT)
@@ -833,7 +775,7 @@ fn toast_mark_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "label_color")
@@ -846,7 +788,7 @@ fn toast_action_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &FeedbackRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         color_attribute(metadata, "action_color")

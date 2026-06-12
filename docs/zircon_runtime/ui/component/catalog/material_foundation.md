@@ -12,6 +12,7 @@ related_code:
   - zircon_editor/src/ui/workbench/preset/panel_preset.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
+  - zircon_runtime/src/ui/component/catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
@@ -35,6 +36,7 @@ related_code:
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
@@ -55,6 +57,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
+  - zircon_runtime/src/ui/component/catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
@@ -85,6 +88,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
+  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
@@ -118,6 +122,8 @@ tests:
   - CARGO_TARGET_DIR=F:\cargo-targets\zircon-validation-cleanup-app-entry cargo test -p zircon_app runtime_entry_device_event_dispatch_stays_in_child_module --lib --no-default-features --features platform-x11,platform-wayland,input-mouse,input-keyboard,input-touch --locked --offline --jobs 1 --message-format short (2026-05-23: passed, 1 passed)
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs zircon_runtime/src/ui/tests/mod.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-05-25 M4 Badge zero-content parity: passed)
   - cargo metadata --locked --no-deps --format-version 1 --color never (2026-05-25 M4 Badge zero-content parity: passed)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\component\catalog\material_foundation\button_inputs.rs zircon_runtime\src\ui\tests\component_catalog\material_foundation\button_inputs.rs
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-button-family-0612-coremin --message-format short --color never (passed with existing warnings)
 doc_type: module-detail
 ---
 
@@ -153,8 +159,11 @@ The foundation descriptors now carry the first behavior-level props and events n
 - `PaneToolbar`, `GizmoControls`, `SourceEditor`, and `Timeline` cover viewport/editor toolbars, transform controls, text-source editing, and animation scrubbing.
 - `DocumentNode`, `TabStack`, and `FloatingWindow` expose the Workbench split/tab/detach model as authorable shell components.
 - `Drawer`, `View`, `ViewTab`, `Window`, `WindowFrame`, `DockHost`, and `WorkbenchShell` declare stable ids, active-selection/focus props, preset ids, and shell interaction events.
+- `Button`, `IconButton`, and `FloatingActionButton` expose the button-family interaction event set: `Focus`, `Hover`, `Press`, and `Commit`. The runtime state reducer owns retained focus/hover/press flags in `state_reducer/button.rs`, while `Commit` still uses the generic property-mutation path.
 - `ButtonGroup` is a structural composite: it declares group orientation, attached-radius, segment-count, and disabled-propagation metadata plus the child button style schemas/defaults (`button_variant`, `button_color`, `button_size`, and `icon_placement`). The group itself stays non-dispatchable; child buttons own click, press, focus, and selection routes.
 - `UseMediaQuery` remains a layout utility descriptor and now declares both raw query props (`query`, `min_width`, `max_width`, `defaultMatches`, `default_matches`, `matches`) and MUI breakpoint shorthand props (`up`, `down`, `between`, `breakpoint`). Runtime evaluation stays owned by the responsive layout pre-pass so catalog metadata and actual resize behavior share the same schema.
+- `Select` and `Autocomplete` popup lifecycle events now have a first runtime-owned reducer path: `OpenPopup` and `ClosePopup` mutate retained `popup_open` state through `state_reducer/overlay.rs`. Anchored context-menu opens use the same overlay family through `OpenPopupAt`, which records `popup_anchor_x` and `popup_anchor_y`; full popup placement, keyboard navigation, and outside-click close policy remain later overlay/dropdown work.
+- `VirtualList`/`DataGrid` visible-window events and `Pagination`/`TablePagination` page events now route through the runtime `state_reducer/windowing.rs` family. The visible-range path keeps the existing MUI/react-window alias support (`rowCount`, `rowHeight`, `overscanCount`, `disableVirtualization`), while the page path clamps invalid page sizes and out-of-range page indices before writing retained page window fields.
 
 These are still neutral component descriptors. They do not create native windows or bind editor state directly; they let v2 assets and editor presenters agree on which values and events are valid before a concrete skin or host renders them.
 
@@ -172,7 +181,7 @@ Surface descriptors that override a shared Material prop default must keep descr
 
 `Switch` remains in the basic input owner module because it is a local checked toggle with track/thumb presentation rather than grouped selection or popup state. The descriptor exposes `text`, `checked`, `switch_size`, `switch_color`, `label_click_toggles`, `track_click_toggles`, and `thumb_draggable`, plus `Focus` and `ValueChanged`. The current policy records label and track clicks as toggle owners while thumb dragging stays disabled until drag semantics are implemented. Its Material Lab prototype keeps one route-bearing sample row for `MaterialLab/Switches/Toggle`; the visible child examples are non-dispatchable `Switch` nodes for on, off, small, disabled, and error states. Child examples freeze the size/color and toggle policy metadata so later runtime behavior can prove disabled no-toggle and local checked-state mutation without changing the prototype schema.
 
-Selection-backed Material descriptors live in the `selection_inputs` child module instead of the broader input-control module. That subtree owns `Select`, `Dropdown`, `Autocomplete`, and `ToggleButtonGroup` because they share popup/option or grouped-selection ownership rather than text-edit or numeric-drag ownership. `Select` now records the Material field variant, display value, selected option ids, option ids, disabled/focused/hovered/pressed option id sets, `multiple`, `display_empty`, and `popup_open` metadata. It exposes `Focus`, `OpenPopup`, `SelectOption`, `ClosePopup`, and `ValueChanged` so later runtime popup support can distinguish opening the menu from committing a selected option. Its Material Lab prototype keeps one route-bearing sample row for `MaterialLab/Selects/Change`; the visible child examples are non-dispatchable `Select` nodes for closed placeholder, open popup, selected option, multi-chip selection, and disabled option states.
+Selection-backed Material descriptors live in the `selection_inputs` child module instead of the broader input-control module. That subtree owns `Select`, `Dropdown`, `Autocomplete`, and `ToggleButtonGroup` because they share popup/option or grouped-selection ownership rather than text-edit or numeric-drag ownership. `Select` now records the Material field variant, display value, selected option ids, option ids, disabled/focused/hovered/pressed option id sets, `multiple`, `display_empty`, and `popup_open` metadata. It exposes `Focus`, `OpenPopup`, `SelectOption`, `ClosePopup`, and `ValueChanged`; `OpenPopup` and `ClosePopup` already update the retained popup flag through the runtime overlay reducer, while option commit stays owned by the selection reducer. Its Material Lab prototype keeps one route-bearing sample row for `MaterialLab/Selects/Change`; the visible child examples are non-dispatchable `Select` nodes for closed placeholder, open popup, selected option, multi-chip selection, and disabled option states.
 
 `Autocomplete` stays in `selection_inputs` but adds the search-query side of the popup contract. Its descriptor records `query`, display value, selected option ids, all option ids, filtered option ids, disabled/focused/hovered/pressed/matched option id sets, `multiple`, `free_solo`, and `popup_open` metadata. It exposes `Focus`, `ValueChanged`, `OpenPopup`, `SelectOption`, `ClosePopup`, and `RemoveElement`; the remove event is reserved for chip deletion while query edits and option commits remain distinct. Its Material Lab prototype keeps one route-bearing sample row for `MaterialLab/Autocomplete/Change`; the visible child examples are non-dispatchable `Autocomplete` nodes for query-filtered results, open popup, selected option, multi-chip selection, and disabled option states. Free-solo and async loading are still future runtime behavior, but the descriptor carries the `free_solo` flag now so assets can declare the supported mode without changing the schema later.
 

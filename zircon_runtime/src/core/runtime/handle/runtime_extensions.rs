@@ -9,6 +9,28 @@ use super::super::state::SceneRuntimeHookStagePlan;
 use super::CoreHandle;
 
 impl CoreHandle {
+    pub fn install_world_runtime_extensions(
+        &self,
+        extensions: &RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.inner
+            .world_extensions
+            .lock()
+            .unwrap()
+            .install(extensions)
+    }
+
+    pub(crate) fn apply_world_runtime_extensions(
+        &self,
+        world: &mut crate::scene::World,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.inner
+            .world_extensions
+            .lock()
+            .unwrap()
+            .apply_to_world(world)
+    }
+
     pub fn install_scene_runtime_hooks(
         &self,
         extensions: &RuntimeExtensionRegistry,

@@ -1,4 +1,5 @@
-use crate::core::{ChannelReceiver, CoreError};
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::CoreError;
 use crossbeam_channel::unbounded;
 
 use super::super::errors::asset_error;
@@ -9,7 +10,7 @@ use super::super::{
     AssetManager as AssetManagerContract, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
 };
 use crate::asset::project::ProjectManager;
-use crate::asset::watch::{AssetChange, AssetChangeKind};
+use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
 };
@@ -112,6 +113,15 @@ impl AssetManagerContract for ProjectAssetManager {
         self.change_subscribers
             .lock()
             .expect("asset subscribers lock poisoned")
+            .push(sender);
+        receiver
+    }
+
+    fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError> {
+        let (sender, receiver) = unbounded();
+        self.watch_error_subscribers
+            .lock()
+            .expect("asset watch error subscribers lock poisoned")
             .push(sender);
         receiver
     }

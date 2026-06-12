@@ -1,0 +1,32 @@
+format_version = 6
+uuid = "cc251b70-126c-4a2b-9468-1472f9555f27"
+url = "res://materials/jungle_ground.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/8252d4b2-b46b-5cb9-f2eb-71443e609e1e.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689613
+source_hash = "41eca76dfcfaf4dc"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = [
+    "res://shaders/vampire_forest",
+    "res://textures/jungle_ground_albedo.png",
+    "res://textures/jungle_ground_albedo.png",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "cc251b70-126c-4a2b-9468-1472f9555f27"
+url = "res://materials/jungle_ground.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/8252d4b2-b46b-5cb9-f2eb-71443e609e1e.zasset"
+dependencies = [
+    "res://shaders/vampire_forest",
+    "res://textures/jungle_ground_albedo.png",
+    "res://textures/jungle_ground_albedo.png",
+]

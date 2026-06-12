@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::core::lifecycle::StartupMode;
+use crate::core::StartupMode;
 
 use super::super::super::descriptors::RegistryName;
 use super::super::super::state::ServiceEntry;

@@ -9,19 +9,19 @@ widgets = []
 styles = ["res://ui/theme/editor_material.v2.ui.toml"]
 
 [tokens]
-accent = "#4d89ff"
-panel_bg = "#20252d"
-shell_bg = "#171a20"
-surface_bg = "#242b35"
-surface_inset = "#171c24"
-surface_hover = "#2c3542"
-surface_selected = "#365382"
-border = "#424c5c"
-text = "#eef3ff"
-text_muted = "#9aa6b6"
-text_subtle = "#8595aa"
-warning = "#d8a24d"
-danger = "#d96b63"
+accent = "$theme.palette.accent"
+panel_bg = "$theme.palette.surface.2"
+shell_bg = "$theme.palette.surface.1"
+surface_bg = "$theme.palette.surface.3"
+surface_inset = "$theme.palette.surface.0"
+surface_hover = "$theme.palette.surface.3"
+surface_selected = "$material_surface_selected"
+border = "$theme.palette.separator"
+text = "$theme.palette.text.primary"
+text_muted = "$theme.palette.text.secondary"
+text_subtle = "$theme.palette.text.disabled"
+warning = "$theme.palette.warning"
+danger = "$theme.palette.error"
 title = "$text"
 
 [components]

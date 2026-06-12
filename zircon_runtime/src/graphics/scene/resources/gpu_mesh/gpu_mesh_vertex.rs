@@ -6,4 +6,7 @@ pub(crate) struct GpuMeshVertex {
     pub(crate) uv: [f32; 2],
     pub(crate) joint_indices: [u16; 4],
     pub(crate) joint_weights: [f32; 4],
+    pub(crate) tangent: [f32; 4],
+    pub(crate) color: [f32; 4],
+    pub(crate) uv1: [f32; 2],
 }

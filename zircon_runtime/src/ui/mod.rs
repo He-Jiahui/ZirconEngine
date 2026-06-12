@@ -9,7 +9,6 @@ pub use module::{
     UI_RUNTIME_DRIVER_NAME,
 };
 pub(crate) use runtime_ui::PublicRuntimeFrame;
-#[cfg(test)]
 pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};
 
 pub mod accessibility;
@@ -17,11 +16,13 @@ pub mod binding;
 pub mod component;
 pub mod dispatch;
 pub mod event_ui;
+pub mod icon_atlas;
 pub mod layout;
 pub mod style;
 pub mod surface;
 pub mod template;
 pub(crate) mod text;
+pub mod theme;
 pub mod tree;
 pub mod v2;
 

@@ -3,6 +3,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) cluster_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) hzb_pipeline:
+        wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) depth_of_field_prepare_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_camera_pipeline:

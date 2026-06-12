@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use crate::asset::AssetImporterDescriptor;
+use crate::core::framework::bridge::PluginInterface;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleManifest, PluginPackageManifest, RuntimePlugin, RuntimePluginCatalog,
-    RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    PluginInterfaceManifest, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport,
 };
 use crate::{RuntimePluginId, RuntimeTargetMode};
 
@@ -81,6 +85,105 @@ fn runtime_plugin_registration_report_rejects_invalid_package_manifest_public_me
         .iter()
         .any(|diagnostic| diagnostic.contains("sdk_api_version `0.01.0`")
             && diagnostic.contains("must not use leading zeroes")));
+}
+
+#[test]
+fn native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_declarations() {
+    let mut manifest = PluginPackageManifest::new("weather", "Weather")
+        .with_capability("runtime.plugin.weather")
+        .with_default_packaging([ExportPackagingStrategy::SourceTemplate])
+        .with_provided_interface(PluginInterfaceManifest::new("weather.query.v1"))
+        .with_provided_interface(PluginInterfaceManifest::new("weather.query.v1"))
+        .with_provided_interface(PluginInterfaceManifest::new(" weather.bad.v1 "))
+        .with_dependency(
+            PluginDependencyManifest::new("physics", true)
+                .with_capability("runtime.plugin.physics")
+                .with_interfaces(["physics.query.v1", "physics.query.v1", "physics.Bad.v1"]),
+        );
+    manifest.description = "weather".to_string();
+
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(manifest);
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("provided interface `weather.query.v1`")
+        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("provided interface id ` weather.bad.v1 `")
+        && diagnostic.contains("non-empty and trimmed")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("dependency `physics` interface `physics.query.v1`")
+        && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("dependency interface id `physics.Bad.v1`")
+        && diagnostic.contains("lowercase ASCII")));
+}
+
+#[test]
+fn native_runtime_plugin_registration_report_accepts_interface_only_dependency_rows() {
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+        PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_default_packaging([ExportPackagingStrategy::SourceTemplate])
+            .with_dependency(
+                PluginDependencyManifest::new("physics", true)
+                    .with_interfaces(["physics.query.v1", "physics.force.v1"]),
+            ),
+    );
+
+    assert!(registration.is_success());
+    assert!(registration.diagnostics.is_empty());
+}
+
+#[test]
+fn linked_runtime_plugin_registration_report_rejects_declared_but_unexported_interfaces() {
+    let plugin = ManifestOverrideRuntimePlugin {
+        descriptor: RuntimePluginDescriptor::new(
+            "weather",
+            "Weather",
+            RuntimePluginId::Particles,
+            "zircon_plugin_weather_runtime",
+        )
+        .with_capability("runtime.plugin.weather")
+        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        manifest: PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_supported_targets([RuntimeTargetMode::ClientRuntime])
+            .with_runtime_module(
+                PluginModuleManifest::runtime("weather.runtime", "zircon_plugin_weather_runtime")
+                    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                    .with_capabilities(["runtime.plugin.weather"]),
+            )
+            .with_provided_interface_id("weather.query.v1"),
+    };
+
+    let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("declares interface `weather.query.v1`")
+        && diagnostic.contains("did not export it")));
+}
+
+#[test]
+fn linked_runtime_plugin_registration_report_rejects_exported_but_undeclared_interfaces() {
+    let plugin = InterfaceExportRuntimePlugin {
+        manifest: PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_supported_targets([RuntimeTargetMode::ClientRuntime])
+            .with_runtime_module(
+                PluginModuleManifest::runtime("weather.runtime", "zircon_plugin_weather_runtime")
+                    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                    .with_capabilities(["runtime.plugin.weather"]),
+            ),
+    };
+
+    let registration = RuntimePluginRegistrationReport::from_plugin(&plugin);
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("exported interface `weather.query.v1`")
+        && diagnostic.contains("package manifest did not declare it")));
 }
 
 #[test]
@@ -690,6 +793,38 @@ fn native_runtime_plugin_registration_report_rejects_invalid_package_module_capa
 }
 
 #[test]
+fn native_runtime_plugin_registration_report_rejects_invalid_package_module_system_contracts() {
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+        PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_supported_targets([RuntimeTargetMode::ClientRuntime])
+            .with_runtime_module(
+                PluginModuleManifest::runtime("weather.runtime", "zircon_plugin_weather_runtime")
+                    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                    .with_capabilities(["runtime.plugin.weather"])
+                    .with_system_sets(["weather.main", "storm.main", "weather.main"])
+                    .with_system_anchors(["weather.tick", "tick", "weather.tick"]),
+            ),
+    );
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("module `weather.runtime` system_set `storm.main`")
+        && diagnostic.contains("prefixed by package id `weather`")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("module `weather.runtime` system_set `weather.main`")
+        && diagnostic.contains("unique")));
+    assert!(registration
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("system_anchor `tick`")
+            && diagnostic.contains("at least two dot-separated namespace segments")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("module `weather.runtime` system_anchor `weather.tick`")
+        && diagnostic.contains("unique")));
+}
+
+#[test]
 fn native_runtime_plugin_registration_report_rejects_invalid_package_module_target_modes() {
     let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
         PluginPackageManifest::new("weather", "Weather")
@@ -772,5 +907,57 @@ impl RuntimePlugin for ManifestOverrideRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         self.manifest.clone()
+    }
+}
+
+#[derive(Debug)]
+struct InterfaceExportRuntimePlugin {
+    manifest: PluginPackageManifest,
+}
+
+impl RuntimePlugin for InterfaceExportRuntimePlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
+        static DESCRIPTOR: std::sync::OnceLock<RuntimePluginDescriptor> =
+            std::sync::OnceLock::new();
+        DESCRIPTOR.get_or_init(|| {
+            RuntimePluginDescriptor::new(
+                "weather",
+                "Weather",
+                RuntimePluginId::Particles,
+                "zircon_plugin_weather_runtime",
+            )
+            .with_capability("runtime.plugin.weather")
+            .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        })
+    }
+
+    fn package_manifest(&self) -> PluginPackageManifest {
+        self.manifest.clone()
+    }
+
+    fn register(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module("weather.runtime")?;
+        registry
+            .export_interface::<dyn WeatherQueryInterface>(owner, Arc::new(WeatherQueryProvider))
+    }
+}
+
+trait WeatherQueryInterface: Send + Sync {
+    fn sample_temperature(&self) -> i32;
+}
+
+impl PluginInterface for dyn WeatherQueryInterface {
+    const INTERFACE_ID: &'static str = "weather.query.v1";
+}
+
+#[derive(Debug)]
+struct WeatherQueryProvider;
+
+impl WeatherQueryInterface for WeatherQueryProvider {
+    fn sample_temperature(&self) -> i32 {
+        21
     }
 }

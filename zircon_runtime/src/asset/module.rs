@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
 use crate::asset::AssetImporterRegistry;
 use crate::core::manager::ResourceManagerHandle;
+use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 

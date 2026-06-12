@@ -6,7 +6,7 @@ license.workspace = true
 description = "glTF and GLB asset importer runtime plugin package for Zircon."
 
 [dependencies]
-gltf = "1.4.1"
+gltf = { version = "1.4.1", features = ["KHR_texture_transform", "extensions"] }
 serde_json = "1.0.149"
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
 

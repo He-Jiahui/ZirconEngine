@@ -1,0 +1,10 @@
+[2026-06-11-11-52-16] [log] [diagnostic_log] log directory selected source=unity-compatible-user-log-directory path=C:\Users\HeJiahui\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\2026-06-11-11-52-16
+[2026-06-11-11-52-16] [log] [diagnostic_log] active channel=runtime requested_channel=runtime active_filter=verbose requested_filter=verbose active_console_enabled=true requested_console_enabled=true active_file_enabled=true requested_file_enabled=true file=C:\Users\HeJiahui\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\2026-06-11-11-52-16\runtime.log
+[2026-06-11-11-52-16] [log] [runtime_app] runtime_library_load_start
+[2026-06-11-11-52-16] [log] [runtime_app] runtime_library_load_done
+[2026-06-11-11-52-16] [log] [runtime_app] runtime_session_create_start
+[2026-06-11-11-52-48] [log] [runtime_app] runtime_session_create_done
+[2026-06-11-11-52-48] [log] [runtime_window] runtime_primary_window_created viewport=ZrRuntimeViewportHandle(1) size=1280x720
+[2026-06-11-11-52-49] [log] [runtime_surface_present] runtime_surface_present_enabled
+[2026-06-11-11-52-49] [log] [runtime_surface_present] runtime_surface_present_enabled
+[2026-06-11-11-52-49] [log] [runtime_surface_present] runtime_surface_present_enabled

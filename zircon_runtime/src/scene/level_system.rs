@@ -1,6 +1,6 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::animation::AnimationPoseOutput;
@@ -9,9 +9,9 @@ use crate::core::framework::physics::{
 };
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
-use crate::core::{CoreError, CoreHandle};
+use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::world::World;
-use crate::scene::{EntityId, WorldDriver, WORLD_DRIVER_NAME};
+use crate::scene::{ecs::RuntimeSceneSystemContext, EntityId, WorldDriver, WORLD_DRIVER_NAME};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -45,6 +45,7 @@ struct WorldRuntimeState {
     animation_graph_times: BTreeMap<EntityId, Real>,
     animation_state_machine_times: BTreeMap<EntityId, Real>,
     animation_state_machine_transitions: BTreeMap<EntityId, AnimationStateTransitionRuntime>,
+    script_started_bindings: BTreeSet<(EntityId, String)>,
 }
 
 #[derive(Clone, Debug)]
@@ -99,9 +100,26 @@ impl LevelSystem {
         write(&mut world)
     }
 
-    pub fn tick(&self, core: &CoreHandle, delta_seconds: Real) -> Result<(), CoreError> {
+    pub fn tick(&self, core: &CoreHandle, advance: RuntimeTimeAdvance) -> Result<(), CoreError> {
         let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-        driver.tick_level(core, self, delta_seconds)
+        driver.tick_level(core, self, advance)
+    }
+
+    pub(crate) fn run_runtime_scene_system(
+        &self,
+        core: &CoreHandle,
+        id: &str,
+        delta_seconds: Real,
+    ) -> Result<bool, CoreError> {
+        let Some(mut system) =
+            self.with_world_mut(|world| world.schedule_mut().take_runtime_system(id))
+        else {
+            return Ok(false);
+        };
+
+        let result = system.run(RuntimeSceneSystemContext::new(core, self, delta_seconds));
+        self.with_world_mut(|world| world.schedule_mut().restore_runtime_system(system));
+        result.map(|_| true)
     }
 
     pub fn last_physics_step_plan(&self) -> Option<PhysicsWorldStepPlan> {
@@ -170,6 +188,22 @@ impl LevelSystem {
         runtime_state.animation_graph_times = animation_graph_times;
         runtime_state.animation_state_machine_times = animation_state_machine_times;
         runtime_state.animation_state_machine_transitions = animation_state_machine_transitions;
+    }
+
+    pub fn script_binding_started(&self, entity: EntityId, binding_key: &str) -> bool {
+        self.runtime_state
+            .lock()
+            .unwrap()
+            .script_started_bindings
+            .contains(&(entity, binding_key.to_string()))
+    }
+
+    pub fn mark_script_binding_started(&self, entity: EntityId, binding_key: impl Into<String>) {
+        self.runtime_state
+            .lock()
+            .unwrap()
+            .script_started_bindings
+            .insert((entity, binding_key.into()));
     }
 
     pub fn metadata(&self) -> LevelMetadata {

@@ -109,6 +109,10 @@ fn ui_painter_state_contracts_round_trip_and_resolve_button_state() {
         round_trip(&UiPainterFamily::Button),
         UiPainterFamily::Button
     );
+    assert_eq!(
+        round_trip(&UiPainterFamily::Chrome),
+        UiPainterFamily::Chrome
+    );
 
     let hot = UiPainterState {
         hovered: true,

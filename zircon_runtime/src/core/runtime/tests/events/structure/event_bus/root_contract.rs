@@ -12,6 +12,12 @@ fn event_bus_root_stays_folder_backed_and_structural() {
     assert_absent(sources.root, "pub fn publish(");
     assert_absent(sources.root, "fn prune_topic_subscribers(");
     assert_absent(sources.root, "fn subscriber_failed(");
+    assert_absent(sources.root, "pub struct EngineEvent");
+    assert_contains(
+        sources.root,
+        "use crate::core::framework::events::EngineEvent;",
+    );
+    assert_contains(sources.root, "pub struct EventBus");
     assert_contains(
         sources.root,
         "HashMap<String, Arc<[ChannelSender<EngineEvent>]>>",

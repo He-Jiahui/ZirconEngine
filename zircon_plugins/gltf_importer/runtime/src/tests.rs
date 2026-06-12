@@ -5,7 +5,7 @@ use crate::test_fixtures::{
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-use zircon_runtime::asset::{AssetUri, DataAssetFormat, ImportedAssetEntry};
+use zircon_runtime::asset::{AssetUri, DataAssetFormat, ImportedAssetEntry, MaterialAsset};
 
 #[test]
 fn package_declares_gltf_importer() {
@@ -216,6 +216,125 @@ fn importer_decodes_triangle_gltf_into_model_asset() {
             );
         }
         other => panic!("unexpected Skin0/InverseBindMatrices asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_preserves_gltf_material_texcoord_as_texture_slot_uv_channel() {
+    let root = unique_temp_root("gltf_importer_material_uv_channel");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_material_uv_channel_gltf(&root);
+    let source_bytes = fs::read(&gltf_path).unwrap();
+    let root_uri = AssetUri::parse("res://models/material_uv_channel.gltf").unwrap();
+    let outcome = import_gltf(&AssetImportContext::new(
+        gltf_path,
+        root_uri.clone(),
+        source_bytes,
+        toml::Table::new(),
+    ))
+    .unwrap();
+
+    match &entry_for_locator(&outcome, &label_uri_for(&root_uri, "Material0")).asset {
+        ImportedAsset::Material(material) => {
+            let base_color = material
+                .texture_slots
+                .get("base_color")
+                .expect("base_color texture slot should be imported");
+            assert_eq!(
+                base_color.reference.as_ref().unwrap().locator,
+                label_uri_for(&root_uri, "Texture0")
+            );
+            assert_eq!(base_color.texture_uv_channel(), 1);
+            assert_eq!(
+                material
+                    .standard_material_descriptor()
+                    .base_color_texture_uv_channel,
+                1
+            );
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_preserves_gltf_texture_transform_on_standard_material_slot() {
+    let root = unique_temp_root("gltf_importer_texture_transform");
+    fs::create_dir_all(&root).unwrap();
+    let gltf_path = write_material_texture_transform_gltf(&root);
+    let source_bytes = fs::read(&gltf_path).unwrap();
+    let root_uri = AssetUri::parse("res://models/material_texture_transform.gltf").unwrap();
+    let outcome = import_gltf(&AssetImportContext::new(
+        gltf_path,
+        root_uri.clone(),
+        source_bytes,
+        toml::Table::new(),
+    ))
+    .unwrap();
+
+    match &entry_for_locator(&outcome, &label_uri_for(&root_uri, "Material0")).asset {
+        ImportedAsset::Material(material) => {
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "base_color",
+                [0.3, 0.4],
+                [0.1, 0.2],
+                1,
+            );
+            assert_texture_slot_transform(material, &root_uri, "normal", [0.5, 0.6], [0.3, 0.4], 0);
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "metallic_roughness",
+                [0.4, 0.5],
+                [0.2, 0.3],
+                0,
+            );
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "occlusion",
+                [0.6, 0.7],
+                [0.4, 0.5],
+                1,
+            );
+            assert_texture_slot_transform(
+                material,
+                &root_uri,
+                "emissive",
+                [0.7, 0.8],
+                [0.5, 0.6],
+                1,
+            );
+
+            let descriptor = material.standard_material_descriptor();
+            assert_vec2_near(descriptor.base_color_texture_transform.scale, [0.3, 0.4]);
+            assert_vec2_near(descriptor.base_color_texture_transform.offset, [0.1, 0.2]);
+            assert_eq!(descriptor.base_color_texture_uv_channel, 1);
+            assert_vec2_near(descriptor.normal_texture_transform.scale, [0.5, 0.6]);
+            assert_vec2_near(descriptor.normal_texture_transform.offset, [0.3, 0.4]);
+            assert_eq!(descriptor.normal_texture_uv_channel, 0);
+            assert_vec2_near(
+                descriptor.metallic_roughness_texture_transform.scale,
+                [0.4, 0.5],
+            );
+            assert_vec2_near(
+                descriptor.metallic_roughness_texture_transform.offset,
+                [0.2, 0.3],
+            );
+            assert_eq!(descriptor.metallic_roughness_texture_uv_channel, 0);
+            assert_vec2_near(descriptor.occlusion_texture_transform.scale, [0.6, 0.7]);
+            assert_vec2_near(descriptor.occlusion_texture_transform.offset, [0.4, 0.5]);
+            assert_eq!(descriptor.occlusion_texture_uv_channel, 1);
+            assert_vec2_near(descriptor.emissive_texture_transform.scale, [0.7, 0.8]);
+            assert_vec2_near(descriptor.emissive_texture_transform.offset, [0.5, 0.6]);
+            assert_eq!(descriptor.emissive_texture_uv_channel, 1);
+        }
+        other => panic!("unexpected Material0 asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
@@ -577,6 +696,37 @@ fn identity_bind_matrix() -> [[f32; 4]; 4] {
     ]
 }
 
+fn assert_texture_slot_transform(
+    material: &MaterialAsset,
+    root_uri: &AssetUri,
+    slot: &str,
+    expected_scale: [f32; 2],
+    expected_offset: [f32; 2],
+    expected_uv_channel: u32,
+) {
+    let value = material
+        .texture_slots
+        .get(slot)
+        .unwrap_or_else(|| panic!("{slot} texture slot should be imported"));
+    assert_eq!(
+        value.reference.as_ref().unwrap().locator,
+        label_uri_for(root_uri, "Texture0")
+    );
+    let transform = value.texture_transform();
+    assert_vec2_near(transform.scale, expected_scale);
+    assert_vec2_near(transform.offset, expected_offset);
+    assert_eq!(value.texture_uv_channel(), expected_uv_channel);
+}
+
+fn assert_vec2_near(actual: [f32; 2], expected: [f32; 2]) {
+    for (actual, expected) in actual.into_iter().zip(expected) {
+        assert!(
+            (actual - expected).abs() <= 0.000_001,
+            "expected {expected:?}, got {actual:?}"
+        );
+    }
+}
+
 fn unique_temp_root(label: &str) -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -773,6 +923,284 @@ fn write_line_gltf(root: &Path) -> PathBuf {
   "scene": 0
 }
 "#,
+    )
+    .unwrap();
+
+    gltf_path
+}
+
+fn write_material_uv_channel_gltf(root: &Path) -> PathBuf {
+    let buffer_path = root.join("material_uv_channel.bin");
+    let gltf_path = root.join("material_uv_channel.gltf");
+
+    let mut bytes = Vec::new();
+    for value in [
+        0.0_f32, 0.0, 0.0, //
+        1.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [
+        0.0_f32, 0.0, //
+        0.5, 0.0, //
+        0.0, 0.5,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [
+        1.0_f32, 0.25, //
+        0.25, 1.0, //
+        0.75, 0.75,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0_u16, 1, 2] {
+        bytes.extend_from_slice(&index.to_le_bytes());
+    }
+    fs::write(&buffer_path, bytes).unwrap();
+
+    fs::write(
+        &gltf_path,
+        r#"{
+  "asset": { "version": "2.0" },
+  "buffers": [
+    { "uri": "material_uv_channel.bin", "byteLength": 90 }
+  ],
+  "bufferViews": [
+    { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
+    { "buffer": 0, "byteOffset": 36, "byteLength": 24, "target": 34962 },
+    { "buffer": 0, "byteOffset": 60, "byteLength": 24, "target": 34962 },
+    { "buffer": 0, "byteOffset": 84, "byteLength": 6, "target": 34963 }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3",
+      "min": [0.0, 0.0, 0.0],
+      "max": [1.0, 1.0, 0.0]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 3,
+      "type": "SCALAR"
+    }
+  ],
+  "images": [
+    {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
+    }
+  ],
+  "textures": [
+    { "source": 0 }
+  ],
+  "materials": [
+    {
+      "name": "MaterialUvChannel",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": { "index": 0, "texCoord": 1 }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "TEXCOORD_0": 1,
+            "TEXCOORD_1": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [{ "mesh": 0 }],
+  "scenes": [{ "nodes": [0] }],
+  "scene": 0
+}"#,
+    )
+    .unwrap();
+
+    gltf_path
+}
+
+fn write_material_texture_transform_gltf(root: &Path) -> PathBuf {
+    let buffer_path = root.join("material_texture_transform.bin");
+    let gltf_path = root.join("material_texture_transform.gltf");
+
+    let mut bytes = Vec::new();
+    for value in [
+        0.0_f32, 0.0, 0.0, //
+        1.0, 0.0, 0.0, //
+        0.0, 1.0, 0.0,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [
+        0.0_f32, 0.0, //
+        0.5, 0.0, //
+        0.0, 0.5,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for value in [
+        1.0_f32, 0.25, //
+        0.25, 1.0, //
+        0.75, 0.75,
+    ] {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0_u16, 1, 2] {
+        bytes.extend_from_slice(&index.to_le_bytes());
+    }
+    fs::write(&buffer_path, bytes).unwrap();
+
+    fs::write(
+        &gltf_path,
+        r#"{
+  "asset": { "version": "2.0" },
+  "extensionsUsed": ["KHR_texture_transform"],
+  "buffers": [
+    { "uri": "material_texture_transform.bin", "byteLength": 90 }
+  ],
+  "bufferViews": [
+    { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
+    { "buffer": 0, "byteOffset": 36, "byteLength": 24, "target": 34962 },
+    { "buffer": 0, "byteOffset": 60, "byteLength": 24, "target": 34962 },
+    { "buffer": 0, "byteOffset": 84, "byteLength": 6, "target": 34963 }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3",
+      "min": [0.0, 0.0, 0.0],
+      "max": [1.0, 1.0, 0.0]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 3,
+      "type": "SCALAR"
+    }
+  ],
+  "images": [
+    {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg=="
+    }
+  ],
+  "textures": [
+    { "source": 0 }
+  ],
+  "materials": [
+    {
+      "name": "TextureTransformMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0,
+          "texCoord": 0,
+          "extensions": {
+            "KHR_texture_transform": {
+              "offset": [0.1, 0.2],
+              "scale": [0.3, 0.4],
+              "texCoord": 1
+            }
+          }
+        },
+        "metallicRoughnessTexture": {
+          "index": 0,
+          "extensions": {
+            "KHR_texture_transform": {
+              "offset": [0.2, 0.3],
+              "scale": [0.4, 0.5]
+            }
+          }
+        }
+      },
+      "normalTexture": {
+        "index": 0,
+        "texCoord": 1,
+        "extensions": {
+          "KHR_texture_transform": {
+            "offset": [0.3, 0.4],
+            "scale": [0.5, 0.6],
+            "texCoord": 0
+          }
+        }
+      },
+      "occlusionTexture": {
+        "index": 0,
+        "texCoord": 0,
+        "extensions": {
+          "KHR_texture_transform": {
+            "offset": [0.4, 0.5],
+            "scale": [0.6, 0.7],
+            "texCoord": 1
+          }
+        }
+      },
+      "emissiveTexture": {
+        "index": 0,
+        "texCoord": 1,
+        "extensions": {
+          "KHR_texture_transform": {
+            "offset": [0.5, 0.6],
+            "scale": [0.7, 0.8]
+          }
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "TEXCOORD_0": 1,
+            "TEXCOORD_1": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [{ "mesh": 0 }],
+  "scenes": [{ "nodes": [0] }],
+  "scene": 0
+}"#,
     )
     .unwrap();
 

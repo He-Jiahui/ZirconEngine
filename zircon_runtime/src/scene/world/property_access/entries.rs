@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use serde_json::Value;
 
 use crate::core::framework::animation::AnimationParameterValue;
@@ -8,7 +10,9 @@ use crate::scene::components::{ColliderShape, JointKind, Mobility, RigidBodyType
 use crate::scene::EntityId;
 
 use super::super::World;
-use super::value_conversion::combine_rule_label;
+use super::value_conversion::{combine_rule_label, normalized_identifier_matches};
+
+const MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX: &str = "MeshRenderer.morph_weights.";
 
 impl World {
     pub(super) fn property_entries(&self, entity: EntityId) -> Vec<ScenePropertyEntry> {
@@ -16,58 +20,94 @@ impl World {
             return Vec::new();
         }
 
-        let mut entries = Vec::new();
-        let mut push = |path: &str, value: ScenePropertyValue, animatable: bool| {
+        let mut entries = Vec::with_capacity(self.property_entry_capacity_hint(entity));
+        self.visit_property_entries(entity, true, |path, value, animatable| {
             entries.push(ScenePropertyEntry::new(
                 ComponentPropertyPath::parse(path).expect("valid property path"),
                 value,
                 animatable,
             ));
-        };
+            true
+        });
+
+        entries
+    }
+
+    pub(super) fn property_entry_value(
+        &self,
+        entity: EntityId,
+        target_component: &str,
+        target_segments: &[String],
+    ) -> Option<ScenePropertyValue> {
+        let mut found = None;
+        self.visit_property_entries(entity, false, |path, value, _animatable| {
+            if property_path_literal_matches_normalized(path, target_component, target_segments) {
+                found = Some(value);
+                false
+            } else {
+                true
+            }
+        });
+        found
+    }
+
+    fn visit_property_entries<F>(&self, entity: EntityId, include_dynamic: bool, mut visitor: F)
+    where
+        F: FnMut(&str, ScenePropertyValue, bool) -> bool,
+    {
+        if !self.contains_entity(entity) {
+            return;
+        }
+
+        macro_rules! push_entry {
+            ($path:expr, $value:expr, $animatable:expr $(,)?) => {
+                if !visitor($path, $value, $animatable) {
+                    return;
+                }
+            };
+        }
 
         if let Some(name) = self.names.get(&entity) {
-            push(
+            push_entry!(
                 "Name.value",
                 ScenePropertyValue::String(name.0.clone()),
                 false,
             );
         }
-        if self.contains_entity(entity) {
-            push(
-                "Hierarchy.parent",
-                ScenePropertyValue::Entity(self.parent_of(entity)),
-                false,
-            );
-        }
+        push_entry!(
+            "Hierarchy.parent",
+            ScenePropertyValue::Entity(self.parent_of(entity)),
+            false,
+        );
         if let Some(local) = self.local_transforms.get(&entity).copied() {
-            push(
+            push_entry!(
                 "Transform.translation",
                 ScenePropertyValue::Vec3(local.transform.translation.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "Transform.rotation",
                 ScenePropertyValue::Quaternion(local.transform.rotation.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "Transform.scale",
                 ScenePropertyValue::Vec3(local.transform.scale.to_array()),
                 true,
             );
         }
         if let Some(active) = self.active_self(entity) {
-            push("Active.enabled", ScenePropertyValue::Bool(active), false);
+            push_entry!("Active.enabled", ScenePropertyValue::Bool(active), false);
         }
         if let Some(mask) = self.render_layer_mask(entity) {
-            push(
+            push_entry!(
                 "RenderLayer.mask",
                 ScenePropertyValue::Unsigned(mask as u64),
                 false,
             );
         }
         if let Some(mobility) = self.mobility(entity) {
-            push(
+            push_entry!(
                 "Mobility.kind",
                 ScenePropertyValue::Enum(match mobility {
                     Mobility::Dynamic => "dynamic".to_string(),
@@ -77,170 +117,195 @@ impl World {
             );
         }
         if let Some(camera) = self.cameras.get(&entity) {
-            push(
+            push_entry!(
                 "Camera.fov_y_radians",
                 ScenePropertyValue::Scalar(camera.fov_y_radians),
                 true,
             );
-            push(
+            push_entry!(
                 "Camera.z_near",
                 ScenePropertyValue::Scalar(camera.z_near),
                 true,
             );
-            push(
+            push_entry!(
                 "Camera.z_far",
                 ScenePropertyValue::Scalar(camera.z_far),
                 true,
             );
         }
         if let Some(mesh) = self.mesh_renderers.get(&entity) {
-            push(
+            push_entry!(
                 "MeshRenderer.model",
                 ScenePropertyValue::Resource(mesh.model.id().to_string()),
                 false,
             );
             if let Some(mesh_handle) = mesh.mesh {
-                push(
+                push_entry!(
                     "MeshRenderer.mesh",
                     ScenePropertyValue::Resource(mesh_handle.id().to_string()),
                     false,
                 );
             }
-            push(
+            push_entry!(
                 "MeshRenderer.material",
                 ScenePropertyValue::Resource(mesh.material.id().to_string()),
                 false,
             );
-            push(
+            push_entry!(
+                "MeshRenderer.render_queue",
+                ScenePropertyValue::Integer(mesh.render_queue.into()),
+                true,
+            );
+            push_entry!(
+                "MeshRenderer.material_queue",
+                ScenePropertyValue::Integer(mesh.material_queue.into()),
+                true,
+            );
+            push_entry!(
+                "MeshRenderer.order_in_layer",
+                ScenePropertyValue::Integer(mesh.order_in_layer.into()),
+                true,
+            );
+            push_entry!(
+                "MeshRenderer.depth_bias",
+                ScenePropertyValue::Scalar(mesh.depth_bias),
+                true,
+            );
+            push_entry!(
                 "MeshRenderer.primitive_binding_count",
                 ScenePropertyValue::Unsigned(mesh.primitives.len() as u64),
                 false,
             );
-            push(
+            push_entry!(
+                "MeshRenderer.lod_level_count",
+                ScenePropertyValue::Unsigned(mesh.lods.len() as u64),
+                false,
+            );
+            push_entry!(
                 "MeshRenderer.morph_weight_count",
                 ScenePropertyValue::Unsigned(mesh.morph_weights.len() as u64),
                 false,
             );
-            for (index, weight) in mesh.morph_weights.iter().enumerate() {
-                push(
-                    &format!("MeshRenderer.morph_weights.{index}"),
-                    ScenePropertyValue::Scalar(*weight),
-                    true,
-                );
+            let mut morph_weight_index = 0;
+            while morph_weight_index < mesh.morph_weights.len() {
+                let path = mesh_renderer_morph_weight_path(morph_weight_index);
+                let weight = mesh.morph_weights[morph_weight_index];
+                push_entry!(&path, ScenePropertyValue::Scalar(weight), true,);
+                morph_weight_index += 1;
             }
-            push(
+            push_entry!(
                 "MeshRenderer.tint",
                 ScenePropertyValue::Vec4(mesh.tint.to_array()),
                 true,
             );
         }
         if let Some(light) = self.ambient_lights.get(&entity) {
-            push(
+            push_entry!(
                 "AmbientLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "AmbientLight.intensity",
                 ScenePropertyValue::Scalar(light.intensity),
                 true,
             );
-            push(
+            push_entry!(
                 "AmbientLight.affects_lightmapped_meshes",
                 ScenePropertyValue::Bool(light.affects_lightmapped_meshes),
                 false,
             );
         }
         if let Some(light) = self.directional_lights.get(&entity) {
-            push(
+            push_entry!(
                 "DirectionalLight.direction",
                 ScenePropertyValue::Vec3(light.direction.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "DirectionalLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "DirectionalLight.intensity",
                 ScenePropertyValue::Scalar(light.intensity),
                 true,
             );
         }
         if let Some(light) = self.point_lights.get(&entity) {
-            push(
+            push_entry!(
                 "PointLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "PointLight.intensity",
                 ScenePropertyValue::Scalar(light.intensity),
                 true,
             );
-            push(
+            push_entry!(
                 "PointLight.range",
                 ScenePropertyValue::Scalar(light.range),
                 true,
             );
         }
         if let Some(light) = self.rect_lights.get(&entity) {
-            push(
+            push_entry!(
                 "RectLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "RectLight.intensity",
                 ScenePropertyValue::Scalar(light.intensity),
                 true,
             );
-            push(
+            push_entry!(
                 "RectLight.range",
                 ScenePropertyValue::Scalar(light.range),
                 true,
             );
-            push(
+            push_entry!(
                 "RectLight.size",
                 ScenePropertyValue::Vec2(light.size.to_array()),
                 true,
             );
         }
         if let Some(light) = self.spot_lights.get(&entity) {
-            push(
+            push_entry!(
                 "SpotLight.direction",
                 ScenePropertyValue::Vec3(light.direction.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "SpotLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "SpotLight.intensity",
                 ScenePropertyValue::Scalar(light.intensity),
                 true,
             );
-            push(
+            push_entry!(
                 "SpotLight.range",
                 ScenePropertyValue::Scalar(light.range),
                 true,
             );
-            push(
+            push_entry!(
                 "SpotLight.inner_angle_radians",
                 ScenePropertyValue::Scalar(light.inner_angle_radians),
                 true,
             );
-            push(
+            push_entry!(
                 "SpotLight.outer_angle_radians",
                 ScenePropertyValue::Scalar(light.outer_angle_radians),
                 true,
             );
         }
         if let Some(rigid_body) = self.rigid_bodies.get(&entity) {
-            push(
+            push_entry!(
                 "RigidBody.kind",
                 ScenePropertyValue::Enum(match rigid_body.body_type {
                     RigidBodyType::Static => "static".to_string(),
@@ -249,48 +314,48 @@ impl World {
                 }),
                 false,
             );
-            push(
+            push_entry!(
                 "RigidBody.mass",
                 ScenePropertyValue::Scalar(rigid_body.mass),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.linear_velocity",
                 ScenePropertyValue::Vec3(rigid_body.linear_velocity.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.angular_velocity",
                 ScenePropertyValue::Vec3(rigid_body.angular_velocity.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.linear_damping",
                 ScenePropertyValue::Scalar(rigid_body.linear_damping),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.angular_damping",
                 ScenePropertyValue::Scalar(rigid_body.angular_damping),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.gravity_scale",
                 ScenePropertyValue::Scalar(rigid_body.gravity_scale),
                 true,
             );
-            push(
+            push_entry!(
                 "RigidBody.can_sleep",
                 ScenePropertyValue::Bool(rigid_body.can_sleep),
                 false,
             );
             for (axis_name, axis_index) in [("x", 0usize), ("y", 1usize), ("z", 2usize)] {
-                push(
+                push_entry!(
                     &format!("RigidBody.lock_translation.{axis_name}"),
                     ScenePropertyValue::Bool(rigid_body.lock_translation[axis_index]),
                     false,
                 );
-                push(
+                push_entry!(
                     &format!("RigidBody.lock_rotation.{axis_name}"),
                     ScenePropertyValue::Bool(rigid_body.lock_rotation[axis_index]),
                     false,
@@ -298,72 +363,72 @@ impl World {
             }
         }
         if let Some(collider) = self.colliders.get(&entity) {
-            push(
+            push_entry!(
                 "Collider.sensor",
                 ScenePropertyValue::Bool(collider.sensor),
                 false,
             );
-            push(
+            push_entry!(
                 "Collider.layer",
                 ScenePropertyValue::Unsigned(collider.layer as u64),
                 false,
             );
-            push(
+            push_entry!(
                 "Collider.collision_group",
                 ScenePropertyValue::Unsigned(collider.collision_group as u64),
                 false,
             );
-            push(
+            push_entry!(
                 "Collider.collision_mask",
                 ScenePropertyValue::Unsigned(collider.collision_mask as u64),
                 false,
             );
             if let Some(material) = collider.material {
-                push(
+                push_entry!(
                     "Collider.material",
                     ScenePropertyValue::Resource(material.id().to_string()),
                     false,
                 );
             }
-            push(
+            push_entry!(
                 "Collider.local_transform.translation",
                 ScenePropertyValue::Vec3(collider.local_transform.translation.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "Collider.local_transform.rotation",
                 ScenePropertyValue::Quaternion(collider.local_transform.rotation.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "Collider.local_transform.scale",
                 ScenePropertyValue::Vec3(collider.local_transform.scale.to_array()),
                 true,
             );
             if let Some(material_override) = collider.material_override.as_ref() {
-                push(
+                push_entry!(
                     "Collider.material_override.static_friction",
                     ScenePropertyValue::Scalar(material_override.static_friction),
                     true,
                 );
-                push(
+                push_entry!(
                     "Collider.material_override.dynamic_friction",
                     ScenePropertyValue::Scalar(material_override.dynamic_friction),
                     true,
                 );
-                push(
+                push_entry!(
                     "Collider.material_override.restitution",
                     ScenePropertyValue::Scalar(material_override.restitution),
                     true,
                 );
-                push(
+                push_entry!(
                     "Collider.material_override.friction_combine",
                     ScenePropertyValue::Enum(
                         combine_rule_label(material_override.friction_combine).to_string(),
                     ),
                     false,
                 );
-                push(
+                push_entry!(
                     "Collider.material_override.restitution_combine",
                     ScenePropertyValue::Enum(
                         combine_rule_label(material_override.restitution_combine).to_string(),
@@ -373,24 +438,24 @@ impl World {
             }
             match &collider.shape {
                 ColliderShape::Box { half_extents } => {
-                    push(
+                    push_entry!(
                         "Collider.shape.kind",
                         ScenePropertyValue::Enum("box".to_string()),
                         false,
                     );
-                    push(
+                    push_entry!(
                         "Collider.shape.half_extents",
                         ScenePropertyValue::Vec3(half_extents.to_array()),
                         true,
                     );
                 }
                 ColliderShape::Sphere { radius } => {
-                    push(
+                    push_entry!(
                         "Collider.shape.kind",
                         ScenePropertyValue::Enum("sphere".to_string()),
                         false,
                     );
-                    push(
+                    push_entry!(
                         "Collider.shape.radius",
                         ScenePropertyValue::Scalar(*radius),
                         true,
@@ -400,17 +465,17 @@ impl World {
                     radius,
                     half_height,
                 } => {
-                    push(
+                    push_entry!(
                         "Collider.shape.kind",
                         ScenePropertyValue::Enum("capsule".to_string()),
                         false,
                     );
-                    push(
+                    push_entry!(
                         "Collider.shape.radius",
                         ScenePropertyValue::Scalar(*radius),
                         true,
                     );
-                    push(
+                    push_entry!(
                         "Collider.shape.half_height",
                         ScenePropertyValue::Scalar(*half_height),
                         true,
@@ -419,7 +484,7 @@ impl World {
             }
         }
         if let Some(joint) = self.joints.get(&entity) {
-            push(
+            push_entry!(
                 "Joint.kind",
                 ScenePropertyValue::Enum(match joint.joint_type {
                     JointKind::Fixed => "fixed".to_string(),
@@ -431,118 +496,118 @@ impl World {
                 }),
                 false,
             );
-            push(
+            push_entry!(
                 "Joint.connected_entity",
                 ScenePropertyValue::Entity(joint.connected_entity),
                 false,
             );
-            push(
+            push_entry!(
                 "Joint.anchor",
                 ScenePropertyValue::Vec3(joint.anchor.to_array()),
                 true,
             );
-            push(
+            push_entry!(
                 "Joint.axis",
                 ScenePropertyValue::Vec3(joint.axis.to_array()),
                 true,
             );
             if let Some(limits) = joint.limits {
-                push(
+                push_entry!(
                     "Joint.limits.min",
                     ScenePropertyValue::Scalar(limits[0]),
                     true,
                 );
-                push(
+                push_entry!(
                     "Joint.limits.max",
                     ScenePropertyValue::Scalar(limits[1]),
                     true,
                 );
             }
-            push(
+            push_entry!(
                 "Joint.collide_connected",
                 ScenePropertyValue::Bool(joint.collide_connected),
                 false,
             );
         }
         if let Some(skeleton) = self.animation_skeletons.get(&entity) {
-            push(
+            push_entry!(
                 "AnimationSkeleton.skeleton",
                 ScenePropertyValue::Resource(skeleton.skeleton.id().to_string()),
                 false,
             );
         }
         if let Some(player) = self.animation_players.get(&entity) {
-            push(
+            push_entry!(
                 "AnimationPlayer.clip",
                 ScenePropertyValue::Resource(player.clip.id().to_string()),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationPlayer.playback_speed",
                 ScenePropertyValue::Scalar(player.playback_speed),
                 true,
             );
-            push(
+            push_entry!(
                 "AnimationPlayer.time_seconds",
                 ScenePropertyValue::Scalar(player.time_seconds),
                 true,
             );
-            push(
+            push_entry!(
                 "AnimationPlayer.weight",
                 ScenePropertyValue::Scalar(player.weight),
                 true,
             );
-            push(
+            push_entry!(
                 "AnimationPlayer.looping",
                 ScenePropertyValue::Bool(player.looping),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationPlayer.playing",
                 ScenePropertyValue::Bool(player.playing),
                 false,
             );
         }
         if let Some(player) = self.animation_sequence_players.get(&entity) {
-            push(
+            push_entry!(
                 "AnimationSequencePlayer.sequence",
                 ScenePropertyValue::Resource(player.sequence.id().to_string()),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationSequencePlayer.playback_speed",
                 ScenePropertyValue::Scalar(player.playback_speed),
                 true,
             );
-            push(
+            push_entry!(
                 "AnimationSequencePlayer.time_seconds",
                 ScenePropertyValue::Scalar(player.time_seconds),
                 true,
             );
-            push(
+            push_entry!(
                 "AnimationSequencePlayer.looping",
                 ScenePropertyValue::Bool(player.looping),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationSequencePlayer.playing",
                 ScenePropertyValue::Bool(player.playing),
                 false,
             );
         }
         if let Some(player) = self.animation_graph_players.get(&entity) {
-            push(
+            push_entry!(
                 "AnimationGraphPlayer.graph",
                 ScenePropertyValue::Resource(player.graph.id().to_string()),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationGraphPlayer.playing",
                 ScenePropertyValue::Bool(player.playing),
                 false,
             );
             for (key, value) in &player.parameters {
-                push(
+                push_entry!(
                     &format!("AnimationGraphPlayer.parameters.{key}"),
                     ScenePropertyValue::AnimationParameter(value.clone()),
                     animation_parameter_is_animatable(value),
@@ -550,30 +615,36 @@ impl World {
             }
         }
         if let Some(player) = self.animation_state_machine_players.get(&entity) {
-            push(
+            push_entry!(
                 "AnimationStateMachinePlayer.state_machine",
                 ScenePropertyValue::Resource(player.state_machine.id().to_string()),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationStateMachinePlayer.playing",
                 ScenePropertyValue::Bool(player.playing),
                 false,
             );
-            push(
+            push_entry!(
                 "AnimationStateMachinePlayer.active_state",
-                ScenePropertyValue::String(player.active_state.clone().unwrap_or_default()),
+                ScenePropertyValue::String(match &player.active_state {
+                    Some(active_state) => active_state.clone(),
+                    None => String::new(),
+                }),
                 false,
             );
             for (key, value) in &player.parameters {
-                push(
+                push_entry!(
                     &format!("AnimationStateMachinePlayer.parameters.{key}"),
                     ScenePropertyValue::AnimationParameter(value.clone()),
                     animation_parameter_is_animatable(value),
                 );
             }
         }
-        if let Some(dynamic_components) = self.dynamic_components.get(&entity) {
+        if include_dynamic {
+            let Some(dynamic_components) = self.dynamic_components.get(&entity) else {
+                return;
+            };
             for (component_id, component_value) in dynamic_components {
                 let Some(properties) = component_value.as_object() else {
                     continue;
@@ -582,29 +653,181 @@ impl World {
                     let Some(scene_value) = dynamic_scene_value_from_json(value) else {
                         continue;
                     };
-                    push(&format!("{component_id}.{property}"), scene_value, true);
+                    push_entry!(&format!("{component_id}.{property}"), scene_value, true);
+                }
+            }
+        }
+    }
+
+    fn property_entry_capacity_hint(&self, entity: EntityId) -> usize {
+        // The counts mirror the property groups pushed by `property_entries`.
+        let mut capacity = 1;
+
+        if self.names.contains_key(&entity) {
+            capacity += 1;
+        }
+        if self.local_transforms.contains_key(&entity) {
+            capacity += 3;
+        }
+        if self.active_self(entity).is_some() {
+            capacity += 1;
+        }
+        if self.render_layer_mask(entity).is_some() {
+            capacity += 1;
+        }
+        if self.mobility(entity).is_some() {
+            capacity += 1;
+        }
+        if self.cameras.contains_key(&entity) {
+            capacity += 3;
+        }
+        if let Some(mesh) = self.mesh_renderers.get(&entity) {
+            capacity += 10 + mesh.morph_weights.len();
+            if mesh.mesh.is_some() {
+                capacity += 1;
+            }
+        }
+        if self.ambient_lights.contains_key(&entity) {
+            capacity += 3;
+        }
+        if self.directional_lights.contains_key(&entity) {
+            capacity += 3;
+        }
+        if self.point_lights.contains_key(&entity) {
+            capacity += 3;
+        }
+        if self.rect_lights.contains_key(&entity) {
+            capacity += 4;
+        }
+        if self.spot_lights.contains_key(&entity) {
+            capacity += 6;
+        }
+        if self.rigid_bodies.contains_key(&entity) {
+            capacity += 14;
+        }
+        if let Some(collider) = self.colliders.get(&entity) {
+            capacity += 7;
+            if collider.material.is_some() {
+                capacity += 1;
+            }
+            if collider.material_override.is_some() {
+                capacity += 5;
+            }
+            capacity += match &collider.shape {
+                ColliderShape::Box { .. } | ColliderShape::Sphere { .. } => 2,
+                ColliderShape::Capsule { .. } => 3,
+            };
+        }
+        if let Some(joint) = self.joints.get(&entity) {
+            capacity += 5;
+            if joint.limits.is_some() {
+                capacity += 2;
+            }
+        }
+        if self.animation_skeletons.contains_key(&entity) {
+            capacity += 1;
+        }
+        if self.animation_players.contains_key(&entity) {
+            capacity += 6;
+        }
+        if self.animation_sequence_players.contains_key(&entity) {
+            capacity += 5;
+        }
+        if let Some(player) = self.animation_graph_players.get(&entity) {
+            capacity += 2 + player.parameters.len();
+        }
+        if let Some(player) = self.animation_state_machine_players.get(&entity) {
+            capacity += 3 + player.parameters.len();
+        }
+        if let Some(dynamic_components) = self.dynamic_components.get(&entity) {
+            for (_component_id, component_value) in dynamic_components {
+                let Some(properties) = component_value.as_object() else {
+                    continue;
+                };
+                for value in properties.values() {
+                    if dynamic_scene_value_is_projectable(value) {
+                        capacity += 1;
+                    }
                 }
             }
         }
 
-        entries
+        capacity
     }
+}
+
+fn mesh_renderer_morph_weight_path(index: usize) -> String {
+    let prefix_len = MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX.len();
+    let mut path = String::with_capacity(prefix_len + decimal_digit_count(index));
+    path.push_str(MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX);
+    write!(&mut path, "{index}").expect("writing to a String cannot fail");
+    path
+}
+
+fn decimal_digit_count(mut value: usize) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
+}
+
+fn property_path_literal_matches_normalized(
+    path: &str,
+    target_component: &str,
+    target_segments: &[String],
+) -> bool {
+    let Some((component, segments)) = path.split_once('.') else {
+        return false;
+    };
+
+    normalized_identifier_matches(component, target_component)
+        && property_literal_segments_match_normalized(segments, target_segments)
+}
+
+fn property_literal_segments_match_normalized(segments: &str, target_segments: &[String]) -> bool {
+    let mut target_index = 0;
+    for segment in segments.split('.') {
+        if target_index >= target_segments.len() {
+            return false;
+        }
+        if !normalized_identifier_matches(segment, &target_segments[target_index]) {
+            return false;
+        }
+        target_index += 1;
+    }
+
+    target_index == target_segments.len()
 }
 
 fn dynamic_scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {
     match value {
         Value::Bool(value) => Some(ScenePropertyValue::Bool(*value)),
-        Value::Number(value) => value
-            .as_i64()
-            .map(ScenePropertyValue::Integer)
-            .or_else(|| value.as_u64().map(ScenePropertyValue::Unsigned))
-            .or_else(|| {
-                value
-                    .as_f64()
-                    .map(|value| ScenePropertyValue::Scalar(value as _))
-            }),
+        Value::Number(value) => {
+            if let Some(value) = value.as_i64() {
+                return Some(ScenePropertyValue::Integer(value));
+            }
+            if let Some(value) = value.as_u64() {
+                return Some(ScenePropertyValue::Unsigned(value));
+            }
+            if let Some(value) = value.as_f64() {
+                return Some(ScenePropertyValue::Scalar(value as _));
+            }
+            None
+        }
         Value::String(value) => Some(ScenePropertyValue::String(value.clone())),
         Value::Null | Value::Array(_) | Value::Object(_) => None,
+    }
+}
+
+fn dynamic_scene_value_is_projectable(value: &Value) -> bool {
+    match value {
+        Value::Bool(_) | Value::String(_) => true,
+        Value::Number(value) => {
+            value.as_i64().is_some() || value.as_u64().is_some() || value.as_f64().is_some()
+        }
+        Value::Null | Value::Array(_) | Value::Object(_) => false,
     }
 }
 

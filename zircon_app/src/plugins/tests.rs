@@ -168,10 +168,10 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
         minimal.module_keys(),
         vec![
             zircon_runtime::foundation::FOUNDATION_MODULE_NAME,
-            zircon_runtime::core::modules::TASKS_MODULE_NAME,
-            zircon_runtime::core::modules::TIME_MODULE_NAME,
-            zircon_runtime::core::modules::FRAME_COUNT_MODULE_NAME,
-            zircon_runtime::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+            zircon_runtime::core::runtime::modules::TASKS_MODULE_NAME,
+            zircon_runtime::core::runtime::modules::TIME_MODULE_NAME,
+            zircon_runtime::core::runtime::modules::FRAME_COUNT_MODULE_NAME,
+            zircon_runtime::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
         ]
     );
     assert!(default
@@ -200,16 +200,16 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
         .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
     assert!(default
         .module_keys()
-        .contains(&zircon_runtime::core::modules::LOG_MODULE_NAME));
+        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
     assert!(!default
         .module_keys()
-        .contains(&zircon_runtime::core::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
     assert!(dev
         .module_keys()
-        .contains(&zircon_runtime::core::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::runtime::modules::LOG_DIAGNOSTICS_MODULE_NAME));
     assert!(headless
         .module_keys()
-        .contains(&zircon_runtime::core::modules::LOG_MODULE_NAME));
+        .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
     assert!(default
         .module_keys()
         .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));

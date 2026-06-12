@@ -73,6 +73,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         match state.renderer.render_frame_with_pipeline(
             &runtime_frame,
             context.compiled_pipeline(),
+            context.capabilities(),
             resolved_history.current_history_handle(),
             resolved_history.previous_history_available(),
         ) {

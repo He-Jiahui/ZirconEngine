@@ -1,23 +1,24 @@
 use super::super::super::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use super::super::super::mesh::MeshDraw;
+use super::super::super::mesh::mesh_pass::{
+    MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
+};
 use super::normal_prepass_pipeline::NormalPrepassPipeline;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl NormalPrepassPipeline {
-    pub(crate) fn record_with_attachment_ops<'a, I>(
+    pub(crate) fn record_commands_with_attachment_ops<'a>(
         &self,
         encoder: &mut wgpu::CommandEncoder,
         normal_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
-        mesh_draws: I,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: MeshDrawCommandStream<'a>,
         normal_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
-    ) where
-        I: IntoIterator<Item = &'a MeshDraw>,
-    {
+    ) -> MeshDrawReplayStats {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("NormalPrepass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -37,10 +38,13 @@ impl NormalPrepassPipeline {
         });
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
-        for draw in mesh_draws {
-            draw.bind_model(&mut pass);
-            draw.bind_geometry_buffers(&mut pass);
-            draw.record_indexed_draw(&mut pass);
-        }
+        let mut replayer = MeshDrawCommandReplayer::default();
+        replayer.replay_command_stream(&mut pass, mesh_draw_commands, |replayer, pass, command| {
+            replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
+            replayer.bind_standard_material_if_needed(pass, command);
+            replayer.bind_geometry_if_needed(pass, command);
+            true
+        });
+        replayer.stats()
     }
 }

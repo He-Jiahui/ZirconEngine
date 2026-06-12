@@ -457,7 +457,9 @@ fn inferred_role(node: &UiTreeNode, metadata: Option<&UiTemplateNodeMetadata>) -
         "RadioGroup" | "ButtonGroup" => UiA11yRole::RadioGroup,
         "Radio" | "RadioButton" => UiA11yRole::Radio,
         "Slider" | "RangeField" => UiA11yRole::Slider,
-        "InputField" | "TextField" | "LineEdit" | "TextEdit" => UiA11yRole::TextInput,
+        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "SearchField" => {
+            UiA11yRole::TextInput
+        }
         "Label" | "Text" => UiA11yRole::Text,
         "Image" | "Icon" => UiA11yRole::Image,
         "List" => UiA11yRole::List,

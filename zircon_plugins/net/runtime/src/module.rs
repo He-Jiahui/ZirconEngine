@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::manager::NetManagerHandle;
+use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
+    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 

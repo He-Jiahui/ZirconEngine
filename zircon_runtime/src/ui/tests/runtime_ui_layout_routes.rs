@@ -2,18 +2,28 @@ use std::collections::BTreeMap;
 
 use crate::core::math::UVec2;
 use crate::ui::{
-    dispatch::UiPointerDispatcher,
     surface::{hit_test_surface_frame, UiSurface},
     RuntimeUiFixture, RuntimeUiManager,
 };
 use zircon_runtime_interface::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerEvent},
+    dispatch::{
+        UiInputRoutePolicy, UiInputSequence, UiNavigationDispatchEffect, UiPointerDispatchEffect,
+        UiPointerEvent, UiWindowId,
+    },
     event_ui::UiNodeId,
     layout::{
         UiLayoutEngineBackend, UiLayoutEngineFallbackReason, UiLayoutEngineFamily,
-        UiLayoutEngineSupport, UiPoint,
+        UiLayoutEngineSupport, UiPoint, UiSize,
     },
-    surface::{UiPointerButton, UiPointerEventKind, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot},
+    surface::{
+        UiNavigationEventKind, UiPointerButton, UiPointerEventKind, UiSurfaceDebugOptions,
+        UiSurfaceDebugSnapshot,
+    },
+    window::{
+        UiWindowEvent, UiWindowEventKind, UiWindowEventMetadata, UiWindowInputContext,
+        UiWindowInputPumpBatch, UiWindowInputPumpEvent, UiWindowMetrics, UiWindowPixelSize,
+        UiWindowPlatformInputEvent,
+    },
 };
 
 #[test]
@@ -124,6 +134,239 @@ fn runtime_inventory_fixture_reports_virtualized_list_zircon_fallback() {
     assert_public_runtime_frame_uses_surface_render_extract(&manager);
 }
 
+#[test]
+fn runtime_ui_manager_dispatches_window_pump_through_shared_surface() {
+    let mut manager = RuntimeUiManager::new(UVec2::new(640, 360));
+    manager
+        .load_builtin_fixture(RuntimeUiFixture::PauseMenu)
+        .expect("pause menu runtime fixture should load");
+
+    let mut batch = UiWindowInputPumpBatch::default();
+    batch.push(UiWindowInputPumpEvent::Window(
+        UiWindowEvent::window_focused(window_metadata(1), true),
+    ));
+    batch.push(UiWindowInputPumpEvent::Window(
+        UiWindowEvent::application_activation_changed(window_metadata(2), true),
+    ));
+    batch.push(UiWindowInputPumpEvent::Window(UiWindowEvent::new(
+        window_metadata(3),
+        UiWindowEventKind::Occluded { occluded: true },
+    )));
+    batch.push(UiWindowInputPumpEvent::Window(UiWindowEvent::window_close(
+        window_metadata(4),
+    )));
+
+    let results = manager
+        .dispatch_window_input_pump_batch(batch)
+        .expect("runtime UI manager should route window pump batch");
+
+    assert_eq!(results.len(), 4);
+    assert_eq!(manager.surface().window_state.focused, Some(true));
+    assert_eq!(
+        manager.surface().window_state.application_active,
+        Some(true)
+    );
+    assert_eq!(manager.surface().window_state.occluded, Some(true));
+    assert!(manager.surface().window_state.close_requested);
+    assert_eq!(
+        manager.surface().surface_frame().window_state,
+        manager.surface().window_state
+    );
+    for result in &results {
+        assert_eq!(
+            result.diagnostics.route_policy,
+            UiInputRoutePolicy::DefaultAction
+        );
+        assert!(result
+            .diagnostics
+            .notes
+            .iter()
+            .any(|note| note == "window_input_pump"));
+    }
+    assert!(results[0]
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_focus_gained"));
+    assert!(results[1]
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_application_active"));
+    assert!(results[2]
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_occluded"));
+    assert!(results[3]
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_close_requested"));
+}
+
+#[test]
+fn runtime_ui_manager_rebuilds_after_window_pump_layout_metrics() {
+    let mut manager = RuntimeUiManager::new(UVec2::new(640, 360));
+    manager
+        .load_builtin_fixture(RuntimeUiFixture::QuestLogDialog)
+        .expect("quest log runtime fixture should load");
+
+    let resized_metrics = UiWindowMetrics::new(
+        UiSize::new(800.0, 450.0),
+        UiWindowPixelSize::new(1600, 900),
+        2.0,
+    );
+    let result = manager
+        .dispatch_window_input_pump_event(UiWindowInputPumpEvent::Window(
+            UiWindowEvent::size_changed(window_metadata(5), resized_metrics),
+        ))
+        .expect("runtime UI manager should route window resize pump event");
+
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_layout_metrics_dirty"));
+    assert_eq!(
+        manager
+            .surface()
+            .surface_frame()
+            .window_state
+            .metrics
+            .as_ref()
+            .map(|metrics| metrics.scale_factor),
+        Some(2.0)
+    );
+    assert_eq!(manager.build_frame().viewport_size, UVec2::new(800, 450));
+    assert!(
+        manager.surface().last_rebuild_report.layout_recomputed,
+        "layout metrics should rebuild the runtime UI surface before frame capture"
+    );
+    assert!(
+        manager.surface().last_rebuild_report.dirty_flags.layout
+            && manager.surface().last_rebuild_report.dirty_flags.hit_test
+            && manager.surface().last_rebuild_report.dirty_flags.render,
+        "window metrics should preserve structured layout/hit/render dirty domains"
+    );
+    assert!(
+        !manager.surface().dirty_flags().any(),
+        "runtime UI manager should consume window-pump dirty domains before the next runtime frame"
+    );
+}
+
+#[test]
+fn runtime_ui_manager_window_pump_batch_rebuilds_before_followup_pointer_input() {
+    let mut manager = RuntimeUiManager::new(UVec2::new(640, 360));
+    manager
+        .load_builtin_fixture(RuntimeUiFixture::PauseMenu)
+        .expect("pause menu runtime fixture should load");
+
+    let resume_button = node_id_by_control_id(manager.surface(), "ResumeButton");
+    manager.register_pointer_handler(resume_button, UiPointerEventKind::Down, move |context| {
+        assert_eq!(
+            context.route.hit_path.target,
+            Some(resume_button),
+            "pointer input in the same window-pump batch should see the resized layout"
+        );
+        UiPointerDispatchEffect::handled()
+    });
+
+    let resized_metrics = UiWindowMetrics::new(
+        UiSize::new(800.0, 450.0),
+        UiWindowPixelSize::new(1600, 900),
+        2.0,
+    );
+    let resized_resume_point = UiPoint::new(500.0, 219.0);
+    assert_ne!(
+        manager.surface().hit_test(resized_resume_point).top_hit,
+        Some(resume_button),
+        "pre-resize hit test should not already target the resized button point"
+    );
+
+    let mut batch = UiWindowInputPumpBatch::default();
+    batch.push(UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+        window_metadata(6),
+        resized_metrics,
+    )));
+    batch.push(UiWindowInputPumpEvent::Input(
+        UiWindowPlatformInputEvent::mouse_button_down(
+            UiWindowInputContext::default(),
+            UiPointerButton::Primary,
+            resized_resume_point,
+        )
+        .normalize(),
+    ));
+
+    let results = manager
+        .dispatch_window_input_pump_batch(batch)
+        .expect("runtime UI manager should rebuild between ordered pump events");
+
+    assert_eq!(results.len(), 2);
+    assert!(results[0]
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "window_layout_metrics_dirty"));
+    assert_eq!(results[1].diagnostics.route_target, Some(resume_button));
+    assert_eq!(results[1].reply.handler, Some(resume_button));
+    assert_eq!(manager.build_frame().viewport_size, UVec2::new(800, 450));
+    assert!(!manager.surface().dirty_flags().any());
+}
+
+#[test]
+fn runtime_ui_manager_window_pump_batch_reports_failing_index() {
+    let mut manager = RuntimeUiManager::new(UVec2::new(640, 360));
+    manager
+        .load_builtin_fixture(RuntimeUiFixture::PauseMenu)
+        .expect("pause menu runtime fixture should load");
+
+    let root_node = manager.surface().tree.roots[0];
+    manager.register_navigation_handler(root_node, UiNavigationEventKind::Activate, |_| {
+        UiNavigationDispatchEffect::focus(UiNodeId::new(u64::MAX))
+    });
+
+    let resized_metrics = UiWindowMetrics::new(
+        UiSize::new(800.0, 450.0),
+        UiWindowPixelSize::new(1600, 900),
+        2.0,
+    );
+    let mut batch = UiWindowInputPumpBatch::default();
+    batch.push(UiWindowInputPumpEvent::Window(UiWindowEvent::size_changed(
+        window_metadata(7),
+        resized_metrics,
+    )));
+    batch.push(UiWindowInputPumpEvent::Input(
+        UiWindowPlatformInputEvent::navigation(
+            UiWindowInputContext::default(),
+            UiNavigationEventKind::Activate,
+        )
+        .normalize(),
+    ));
+
+    let err = match manager.dispatch_window_input_pump_batch(batch) {
+        Ok(_) => panic!("window-pump batch should report the failing input event"),
+        Err(err) => err,
+    };
+
+    let message = err.to_string();
+    assert!(message.contains("window input pump batch index 1"));
+    assert!(message.contains("ui tree is missing node"));
+    assert_eq!(manager.build_frame().viewport_size, UVec2::new(800, 450));
+    assert_eq!(
+        manager
+            .surface()
+            .surface_frame()
+            .window_state
+            .metrics
+            .as_ref()
+            .map(|metrics| metrics.scale_factor),
+        Some(2.0),
+        "accepted window metrics should survive the later pump input failure"
+    );
+    assert!(!manager.surface().dirty_flags().any());
+}
+
 fn assert_route_report_exported(surface: &crate::ui::surface::UiSurface) {
     assert_route_report_counts_and_reasons(surface);
     let frame = surface.surface_frame();
@@ -142,6 +385,14 @@ fn assert_route_report_exported(surface: &crate::ui::surface::UiSurface) {
         exported_snapshot.layout_engine_report,
         surface.layout_engine_report.clone()
     );
+}
+
+fn window_metadata(sequence: u64) -> UiWindowEventMetadata {
+    UiWindowEventMetadata {
+        sequence: UiInputSequence::new(sequence),
+        window_id: UiWindowId::new("runtime-primary"),
+        ..UiWindowEventMetadata::default()
+    }
 }
 
 fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurface) {
@@ -340,8 +591,7 @@ fn assert_pointer_route_authority(manager: &mut RuntimeUiManager, control_id: &s
     assert_eq!(frame_hit.path.target, Some(node_id));
     assert_eq!(frame_hit.path.bubble_route.first().copied(), Some(node_id));
 
-    let mut dispatcher = UiPointerDispatcher::default();
-    dispatcher.register(node_id, UiPointerEventKind::Down, move |context| {
+    manager.register_pointer_handler(node_id, UiPointerEventKind::Down, move |context| {
         assert_eq!(context.route.hit_path.target, Some(node_id));
         assert_eq!(
             context.route.hit_path.bubble_route.first().copied(),
@@ -352,7 +602,6 @@ fn assert_pointer_route_authority(manager: &mut RuntimeUiManager, control_id: &s
 
     let dispatch = manager
         .dispatch_pointer_event(
-            &dispatcher,
             UiPointerEvent::new(UiPointerEventKind::Down, point)
                 .with_button(UiPointerButton::Primary),
         )

@@ -37,6 +37,28 @@ impl ZrByteSlice {
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrByteBufferRef {
+    pub data: *mut u8,
+    pub capacity: usize,
+    pub written: *mut usize,
+}
+
+impl ZrByteBufferRef {
+    pub const fn empty() -> Self {
+        Self {
+            data: ptr::null_mut(),
+            capacity: 0,
+            written: ptr::null_mut(),
+        }
+    }
+
+    pub const fn is_empty(self) -> bool {
+        self.data.is_null() && self.capacity == 0
+    }
+}
+
 pub type ZrFreeBytesFn = unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus;
 
 #[repr(C)]

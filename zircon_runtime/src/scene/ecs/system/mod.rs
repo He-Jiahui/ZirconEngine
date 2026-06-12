@@ -15,7 +15,9 @@ pub use events::{EventReader, EventReaderParam, EventWriter, EventWriterParam};
 pub use local::{Local, LocalParam};
 pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam};
 pub use native::{
-    BoxedSceneSystem, FunctionSceneSystem, IntoSceneSystem, SceneSystem, SceneSystemMetadata,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, FunctionRuntimeSceneSystem, FunctionSceneSystem,
+    IntoSceneSystem, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem,
+    SceneSystemMetadata,
 };
 pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;

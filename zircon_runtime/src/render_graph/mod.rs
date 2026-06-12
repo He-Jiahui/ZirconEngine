@@ -15,8 +15,8 @@ pub use types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
     RenderGraphAttachmentStoreOp, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
     RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
-    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
-    TransientBuffer, TransientTexture,
+    RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 
 #[cfg(test)]

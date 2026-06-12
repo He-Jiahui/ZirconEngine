@@ -34,17 +34,21 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_toa
     let state = painter_state_for_node(node).resolved_state_for_family(UiPainterFamily::Toast);
     let mut style = toast_state_style(state);
 
-    if let Some(surface) = resolved_style_color(node.button_style.element.background_color.as_ref())
-    {
-        style.surface = surface;
-    }
-    if let Some(border) = resolved_style_color(node.button_style.element.border_color.as_ref()) {
-        style.border = border;
-    }
-    if let Some(text) = resolved_style_color(node.button_style.element.foreground_color.as_ref()) {
-        style.text = text;
-    }
-    if state != UiPainterResolvedState::Disabled {
+    if !is_unavailable_toast_state(state) {
+        if let Some(surface) =
+            resolved_style_color(node.button_style.element.background_color.as_ref())
+        {
+            style.surface = surface;
+        }
+        if let Some(border) = resolved_style_color(node.button_style.element.border_color.as_ref())
+        {
+            style.border = border;
+        }
+        if let Some(text) =
+            resolved_style_color(node.button_style.element.foreground_color.as_ref())
+        {
+            style.text = text;
+        }
         if let Some(mark) = declared_color(node.label_color) {
             style.mark = mark;
         }
@@ -58,7 +62,7 @@ pub(in crate::ui::retained_host::host_contract::painter) fn select_workbench_toa
 
 fn toast_state_style(state: UiPainterResolvedState) -> WorkbenchToastStyle {
     match state {
-        UiPainterResolvedState::Disabled => WorkbenchToastStyle {
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => WorkbenchToastStyle {
             surface: PALETTE.surface_disabled,
             border: PALETTE.border_disabled,
             text: PALETTE.text_disabled,
@@ -88,16 +92,17 @@ fn toast_state_style(state: UiPainterResolvedState) -> WorkbenchToastStyle {
             style.border = PALETTE.accent_soft;
             style
         }
-        UiPainterResolvedState::Loading => {
-            let mut style = toast_normal_style(state);
-            style.text = PALETTE.text_muted;
-            style.close = PALETTE.text_muted;
-            style
-        }
         UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Normal => toast_normal_style(state),
     }
+}
+
+fn is_unavailable_toast_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
 }
 
 fn toast_normal_style(state: UiPainterResolvedState) -> WorkbenchToastStyle {
@@ -114,4 +119,37 @@ fn toast_normal_style(state: UiPainterResolvedState) -> WorkbenchToastStyle {
 
 fn declared_color(color: Color) -> Option<[u8; 4]> {
     (color.a > 0).then_some([color.r, color.g, color.b, color.a])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn toast_loading_state_uses_unavailable_visuals() {
+        let mut node = TemplatePaneNodeData::default();
+        node.hovered = true;
+        node.focused = true;
+        node.pressed = true;
+        node.button_style.loading = true;
+        node.label_color = Color::from_rgb_u8(53, 199, 208);
+        node.value_color = Color::from_rgb_u8(53, 199, 208);
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(21, 48, 53, 247)));
+        node.button_style.element.border_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(53, 199, 208, 20)));
+        node.button_style.element.foreground_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(206, 224, 226, 255)));
+
+        let style = select_workbench_toast_style(&node);
+
+        assert_eq!(style.state, UiPainterResolvedState::Loading);
+        assert_eq!(style.surface, PALETTE.surface_disabled);
+        assert_eq!(style.border, PALETTE.border_disabled);
+        assert_eq!(style.text, PALETTE.text_disabled);
+        assert_eq!(style.mark, PALETTE.text_disabled);
+        assert_eq!(style.action, PALETTE.text_disabled);
+        assert_eq!(style.close, PALETTE.text_disabled);
+    }
 }

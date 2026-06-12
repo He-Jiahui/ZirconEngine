@@ -28,4 +28,9 @@ fn runtime_preview_keeps_softbuffer_fallback_when_surface_api_is_optional() {
         runtime_surface_present_source.contains("capture_frame"),
         "runtime redraw fallback should continue using capture_frame()"
     );
+    assert!(
+        runtime_surface_present_source.contains("ZR_RUNTIME_FORCE_CAPTURE_PRESENT")
+            && runtime_surface_present_source.contains("force_capture_present()"),
+        "runtime surface-present binding should keep a capture-present override for validating capture-frame output in the app window"
+    );
 }

@@ -49,13 +49,22 @@ fn source_template_links_active_optional_feature_runtime_crates() {
         "{cargo_manifest}"
     );
     assert!(plugin_source.contains(
-        "pub fn runtime_plugin_feature_registrations() -> Vec<RuntimePluginFeatureRegistrationReport>"
+        "pub fn runtime_plugin_feature_registration_providers() -> Vec<ExportRuntimePluginFeatureRegistrationProvider>"
     ));
-    assert!(plugin_source
+    assert!(plugin_source.contains(
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration)"
+    ));
+    assert!(!plugin_source
         .contains("zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration()"));
-    assert!(main_source.contains("zircon_plugins::runtime_plugin_feature_registrations()"));
-    assert!(main_source
-        .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
+    assert!(plugin_source.contains(
+        ".with_runtime_plugin_feature_registration_providers(runtime_plugin_feature_registration_providers())"
+    ));
+    assert!(main_source.contains("zircon_app::bootstrap_export_runtime"));
+    assert!(main_source.contains("zircon_plugins::export_runtime_bootstrap_config()"));
+    assert!(!main_source.contains("EntryRunner::"));
+    assert!(
+        !main_source.contains("zircon_plugins::runtime_plugin_feature_registration_providers()")
+    );
 }
 
 #[test]
@@ -101,10 +110,8 @@ fn source_template_links_external_feature_provider_runtime_crates() {
         ),
         "{cargo_manifest}"
     );
-    assert!(plugin_source
-        .contains("zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration()"));
     assert!(plugin_source.contains(
-        "zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration().with_provider_package_id(\"sound_timeline_animation_track\")"
+        "ExportRuntimePluginFeatureRegistrationProvider::new(zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration).with_provider_package_id(\"sound_timeline_animation_track\")"
     ));
     assert!(!plan
         .diagnostics

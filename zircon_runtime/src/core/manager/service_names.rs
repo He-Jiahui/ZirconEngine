@@ -10,3 +10,4 @@ pub const NET_MANAGER_NAME: &str = "NetModule.Manager.NetManager";
 pub const PHYSICS_MANAGER_NAME: &str = "PhysicsModule.Manager.PhysicsManager";
 pub const ANIMATION_MANAGER_NAME: &str = "AnimationModule.Manager.AnimationManager";
 pub const SOUND_MANAGER_NAME: &str = "SoundModule.Manager.SoundManager";
+pub const NAVIGATION_MANAGER_NAME: &str = "NavigationModule.Manager.NavigationManager";

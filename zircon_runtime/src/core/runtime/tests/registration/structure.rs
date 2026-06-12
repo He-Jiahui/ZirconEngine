@@ -608,19 +608,30 @@ fn registration_source_preserves_hot_path_structure() {
     assert!(registration_source.contains("fn duplicate_existing_pending_service_name<'a>("));
     assert!(registration_source.contains("services: &HashMap<RegistryName, ServiceEntry>"));
     assert!(registration_source.contains("debug_assert!(pending_services.len() >= 6);"));
-    assert!(registration_source
-        .contains(".find_map(|(name, _)| services.contains_key(name).then_some(name))"));
+    assert!(registration_duplicates_source.contains("for (name, _) in pending_services"));
+    assert!(registration_duplicates_source.contains("if services.contains_key(name)"));
+    assert!(registration_duplicates_source.contains("return Some(name);"));
+    assert!(registration_duplicates_source.contains("None"));
+    assert!(!registration_duplicates_source.contains(".find_map("));
+    assert!(!registration_duplicates_source.contains(".then_some("));
     let six_or_more_duplicate_check_index = registration_source
         .find("fn duplicate_existing_pending_service_name<'a>(")
         .expect("six-or-more pending services should own the generic duplicate helper");
     let duplicate_helper_assert_index = registration_source
         .find("debug_assert!(pending_services.len() >= 6);")
         .expect("generic duplicate helper should only be called for six-or-more services");
-    let multi_duplicate_check_index = registration_source
-        .find(".find_map(|(name, _)| services.contains_key(name).then_some(name))")
-        .expect("six-or-more service registration should retain the iterator duplicate check");
+    let multi_duplicate_check_index = registration_duplicates_source
+        .find("for (name, _) in pending_services")
+        .expect("six-or-more service registration should scan pending services directly");
+    let multi_duplicate_contains_index = registration_duplicates_source
+        .find("if services.contains_key(name)")
+        .expect("six-or-more service registration should check the existing service table");
+    let multi_duplicate_return_index = registration_duplicates_source
+        .find("return Some(name);")
+        .expect("six-or-more service registration should return the first pending duplicate");
     assert!(six_or_more_duplicate_check_index < duplicate_helper_assert_index);
-    assert!(duplicate_helper_assert_index < multi_duplicate_check_index);
+    assert!(multi_duplicate_check_index < multi_duplicate_contains_index);
+    assert!(multi_duplicate_contains_index < multi_duplicate_return_index);
     assert!(registration_source
         .contains("fn register_single_service_reports_existing_service_table_key()"));
     assert!(registration_behavior_tests_source.contains(

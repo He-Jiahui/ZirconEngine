@@ -107,7 +107,7 @@ pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) 
         "PopupRow" | "MenuItem" => UiPainterFamily::PopupRow,
         "Alert" | "AlertTitle" => UiPainterFamily::Alert,
         "Tooltip" => UiPainterFamily::Tooltip,
-        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" => {
+        "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" | "SearchField" => {
             UiPainterFamily::TextField
         }
         "ListRow" => UiPainterFamily::ListRow,
@@ -115,6 +115,11 @@ pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) 
         "Table" | "TableRow" => UiPainterFamily::TableRow,
         "Tab" => UiPainterFamily::Tab,
         "Toast" | "Snackbar" | "SnackbarContent" => UiPainterFamily::Toast,
+        "WorkbenchShell" | "Shell" | "WorkbenchWindow" | "ActivityRail" | "ActivityRailPanel"
+        | "TopToolbar" | "Toolbar" | "MenuBar" | "WorkbenchMenuBar" | "StatusBar"
+        | "BottomStatusBar" | "SceneTreePanel" | "InspectorPanel" | "Panel" | "DockPanel"
+        | "ToolWindowStack" | "ViewportPanel" | "Viewport" | "SceneViewport"
+        | "DocumentViewport" => UiPainterFamily::Chrome,
         _ => UiPainterFamily::Generic,
     }
 }
@@ -301,6 +306,7 @@ fn supports_visible_value_fallback(metadata: Option<&UiTemplateNodeMetadata>) ->
             | "Checkbox"
             | "InputField"
             | "TextField"
+            | "SearchField"
             | "ComboBox"
             | "RangeField"
             | "NumberField"
@@ -326,7 +332,7 @@ fn is_editable_text_component(metadata: &UiTemplateNodeMetadata) -> bool {
         || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::TextInput
         || matches!(
             metadata.component.as_str(),
-            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
+            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField" | "SearchField"
         )
 }
 

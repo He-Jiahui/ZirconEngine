@@ -717,15 +717,15 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
 
     assert!(!stats.capabilities.supports_async_compute);
     assert_eq!(stats.last_async_compute_pass_count, 0);
-    assert_eq!(stats.last_graph_queue_fallback_pass_count, 1);
-    assert_eq!(stats.last_graph_compute_dispatch_count, 1);
+    assert_eq!(stats.last_graph_queue_fallback_pass_count, 2);
+    assert_eq!(stats.last_graph_compute_dispatch_count, 2);
     assert!(
         stats.last_graph_compute_dispatch_group_count > 0,
-        "clustered lighting should record concrete compute dispatch group evidence"
+        "clustered lighting and HZB should record concrete compute dispatch group evidence"
     );
-    assert_eq!(stats.last_graph_compute_storage_write_resource_count, 1);
-    assert_eq!(stats.last_graph_compute_planned_workload_count, 1);
-    assert_eq!(stats.last_graph_compute_matched_workload_count, 1);
+    assert_eq!(stats.last_graph_compute_storage_write_resource_count, 2);
+    assert_eq!(stats.last_graph_compute_planned_workload_count, 2);
+    assert_eq!(stats.last_graph_compute_matched_workload_count, 2);
     assert_eq!(stats.last_graph_compute_missing_dispatch_count, 0);
     assert_eq!(stats.last_graph_compute_workload_mismatch_count, 0);
     assert_eq!(stats.last_graph_compute_unexpected_dispatch_count, 0);

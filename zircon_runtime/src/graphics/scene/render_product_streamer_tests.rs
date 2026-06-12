@@ -7,9 +7,9 @@ use crate::asset::{
 };
 use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialFallbackReason, RenderMaterialPropertyValue,
-    RenderMaterialTextureSlotFallbackReason, RenderMaterialValidationError,
-    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderDefinitionValue,
+    RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureTransform,
+    RenderMaterialValidationError, RenderShaderBindGroupLayoutDescriptor,
+    RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
     RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
 };
 use crate::core::resource::{
@@ -67,9 +67,45 @@ fn pbr_material_with_all_texture_slots() -> MaterialAsset {
         alpha_mode: AlphaMode::Mask { cutoff: 0.42 },
         double_sided: true,
         property_values: Default::default(),
-        texture_slots: Default::default(),
+        texture_slots: [
+            (
+                "base_color",
+                material_texture_slot("res://textures/base.png", [2.0, 2.0], [0.125, 0.25], 1),
+            ),
+            (
+                "normal",
+                material_texture_slot("res://textures/normal.png", [1.0, 1.0], [0.0, 0.0], 0),
+            ),
+            (
+                "metallic_roughness",
+                material_texture_slot("res://textures/mr.png", [0.5, 0.5], [0.5, 0.0], 1),
+            ),
+            (
+                "occlusion",
+                material_texture_slot("res://textures/occlusion.png", [3.0, 4.0], [0.0, 0.75], 1),
+            ),
+            (
+                "emissive",
+                material_texture_slot("res://textures/emissive.png", [1.5, 1.25], [0.25, 0.125], 0),
+            ),
+        ]
+        .into_iter()
+        .map(|(slot, value)| (slot.to_string(), value))
+        .collect(),
         validation_diagnostics: Vec::new(),
     }
+}
+
+fn material_texture_slot(
+    uri: &str,
+    scale: [f32; 2],
+    offset: [f32; 2],
+    uv_channel: u32,
+) -> MaterialTextureSlotValue {
+    let mut slot = MaterialTextureSlotValue::new(asset_reference(uri));
+    slot.transform = Some(RenderMaterialTextureTransform { scale, offset });
+    slot.uv_channel = uv_channel;
+    slot
 }
 
 fn rgba_texture(uri: &str) -> TextureAsset {

@@ -18,14 +18,21 @@ pub(crate) struct MeshDrawQueueProfile {
     geometry_source: MeshDrawGeometrySource,
     mobility: Mobility,
     uses_indirect_draw: bool,
+    uses_skinned_gpu_skinning: bool,
+    uses_mesh_lod: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct MeshDrawBatchKey {
     geometry_source: MeshDrawGeometrySource,
     mesh: usize,
-    texture: usize,
+    base_color_texture: usize,
+    normal_texture: usize,
+    metallic_roughness_texture: usize,
+    occlusion_texture: usize,
+    emissive_texture: usize,
     material_uniform: usize,
+    standard_material_uniform: usize,
     pipeline_key: PipelineKey,
     first_index: u32,
     draw_index_count: u32,
@@ -53,12 +60,16 @@ impl MeshDrawQueueProfile {
         geometry_source: MeshDrawGeometrySource,
         mobility: Mobility,
         uses_indirect_draw: bool,
+        uses_skinned_gpu_skinning: bool,
+        uses_mesh_lod: bool,
     ) -> Self {
         Self {
             phase,
             geometry_source,
             mobility,
             uses_indirect_draw,
+            uses_skinned_gpu_skinning,
+            uses_mesh_lod,
         }
     }
 
@@ -90,6 +101,10 @@ impl MeshDrawQueueProfile {
         self.uses_indirect_draw
     }
 
+    pub(crate) fn uses_mesh_lod(self) -> bool {
+        self.uses_mesh_lod
+    }
+
     pub(crate) fn motion_vector_history_eligible(self) -> bool {
         self.mobility == Mobility::Dynamic
     }
@@ -97,6 +112,7 @@ impl MeshDrawQueueProfile {
     fn direct_prepared_non_transparent(self) -> bool {
         self.geometry_source == MeshDrawGeometrySource::Prepared
             && !self.uses_indirect_draw
+            && !self.uses_skinned_gpu_skinning
             && self.early_z_eligible()
     }
 }
@@ -108,6 +124,8 @@ impl MeshDraw {
             self.geometry_source,
             self.mobility,
             self.uses_indirect_draw(),
+            self.uses_skinned_gpu_skinning(),
+            self.mesh_lod.is_some(),
         )
     }
 
@@ -119,8 +137,14 @@ impl MeshDraw {
         MeshDrawBatchKey {
             geometry_source: self.geometry_source,
             mesh: Arc::as_ptr(&self.mesh) as usize,
-            texture: Arc::as_ptr(&self.texture) as usize,
+            base_color_texture: Arc::as_ptr(&self.material_textures.base_color) as usize,
+            normal_texture: Arc::as_ptr(&self.material_textures.normal) as usize,
+            metallic_roughness_texture: Arc::as_ptr(&self.material_textures.metallic_roughness)
+                as usize,
+            occlusion_texture: Arc::as_ptr(&self.material_textures.occlusion) as usize,
+            emissive_texture: Arc::as_ptr(&self.material_textures.emissive) as usize,
             material_uniform: Arc::as_ptr(&self.material_uniform) as usize,
+            standard_material_uniform: Arc::as_ptr(&self.standard_material_uniform) as usize,
             pipeline_key: self.pipeline_key.clone(),
             first_index: self.first_index,
             draw_index_count: self.draw_index_count,

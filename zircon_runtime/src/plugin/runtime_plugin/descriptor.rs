@@ -22,6 +22,8 @@ pub struct RuntimePluginDescriptor {
     pub required_by_default: bool,
     pub target_modes: Vec<RuntimeTargetMode>,
     pub capabilities: Vec<String>,
+    pub system_sets: Vec<String>,
+    pub system_anchors: Vec<String>,
     pub capability_statuses: Vec<CapabilityStatusManifest>,
     pub maturity: PluginMaturity,
     pub optional_features: Vec<PluginFeatureBundleManifest>,

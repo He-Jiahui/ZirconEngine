@@ -6,8 +6,8 @@ use crate::asset::{
     ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialLightingModel, RenderMaterialValidationError,
-    RenderShaderDefinitionValue,
+    RenderMaterialDiagnosticSource, RenderMaterialLightingModel, RenderMaterialTextureTransform,
+    RenderMaterialValidationError, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
 
@@ -120,6 +120,73 @@ fallback = "normal"
         Some("normal")
     );
     assert!(loaded.texture_slots["normal"].reference.is_none());
+}
+
+#[test]
+fn material_asset_roundtrip_preserves_standard_texture_transforms() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Tiled Grid"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.wgsl"
+
+[textures.base_color]
+uuid = "00000000-0000-0000-0000-000000000002"
+url = "res://textures/tiled.png"
+uv_channel = 1
+
+[textures.base_color.transform]
+scale = [2.0, 3.0]
+offset = [0.25, 0.5]
+"#,
+    )
+    .unwrap();
+
+    let transform = RenderMaterialTextureTransform {
+        scale: [2.0, 3.0],
+        offset: [0.25, 0.5],
+    };
+    assert_eq!(
+        material.texture_slots["base_color"].texture_transform(),
+        transform
+    );
+    assert_eq!(material.texture_slots["base_color"].texture_uv_channel(), 1);
+    assert_eq!(
+        material
+            .standard_material_descriptor()
+            .base_color_texture_transform,
+        transform
+    );
+    assert_eq!(
+        material
+            .standard_material_descriptor()
+            .base_color_texture_uv_channel,
+        1
+    );
+
+    let encoded = material.to_toml_string().unwrap();
+    let loaded = MaterialAsset::from_toml_str(&encoded).unwrap();
+
+    assert_eq!(
+        loaded.texture_slots["base_color"].texture_transform(),
+        transform
+    );
+    assert_eq!(loaded.texture_slots["base_color"].texture_uv_channel(), 1);
+    assert_eq!(
+        loaded
+            .standard_material_descriptor()
+            .base_color_texture_transform,
+        transform
+    );
+    assert_eq!(
+        loaded
+            .standard_material_descriptor()
+            .base_color_texture_uv_channel,
+        1
+    );
 }
 
 #[test]
@@ -338,6 +405,127 @@ cast_shadows = "no"
             && path == "overrides.cast_shadows"
             && name == "cast_shadows"
             && expected == "bool"
+    )));
+}
+
+#[test]
+fn material_owned_sort_fields_drive_standard_descriptor_without_shader_override() {
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Queue Shifted"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+render_queue = -20
+material_queue = 7
+depth_bias = -0.25
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    let descriptor = material.standard_material_descriptor();
+
+    assert_eq!(material.render_queue(), -20);
+    assert_eq!(material.material_queue(), 7);
+    assert_eq!(material.depth_bias(), -0.25);
+    assert_eq!(descriptor.render_queue, -20);
+    assert_eq!(descriptor.material_queue, 7);
+    assert_eq!(descriptor.depth_bias, -0.25);
+    for name in ["render_queue", "material_queue", "depth_bias"] {
+        assert!(material.shader_property_override(name).is_none());
+        assert!(material
+            .shader_property_overrides()
+            .all(|(property, _)| property != name));
+    }
+    assert_eq!(
+        material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+
+    let encoded = material.to_toml_string().unwrap();
+    assert!(encoded.contains("render_queue = -20"));
+    assert!(encoded.contains("material_queue = 7"));
+    assert!(encoded.contains("depth_bias = -0.25"));
+
+    material
+        .property_values
+        .insert("render_queue".to_string(), toml::Value::Integer(0));
+    material
+        .property_values
+        .insert("material_queue".to_string(), toml::Value::Integer(0));
+    material
+        .property_values
+        .insert("depth_bias".to_string(), toml::Value::Float(0.0));
+    let encoded = material.to_toml_string().unwrap();
+    assert!(!encoded.contains("render_queue"));
+    assert!(!encoded.contains("material_queue"));
+    assert!(!encoded.contains("depth_bias"));
+}
+
+#[test]
+fn material_owned_sort_fields_report_invalid_override_types() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Invalid Queue Fields"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+render_queue = 2.5
+material_queue = "front"
+depth_bias = "near"
+"#,
+    )
+    .unwrap();
+
+    let errors = material.validation_errors();
+
+    assert_eq!(material.render_queue(), 0);
+    assert_eq!(material.material_queue(), 0);
+    assert_eq!(material.depth_bias(), 0.0);
+    assert!(errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.render_queue"
+            && name == "render_queue"
+            && expected == "i32"
+    )));
+    assert!(errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.material_queue"
+            && name == "material_queue"
+            && expected == "i32"
+    )));
+    assert!(errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.depth_bias"
+            && name == "depth_bias"
+            && expected == "number"
     )));
 }
 
@@ -677,10 +865,15 @@ url = "res://shaders/custom.zshader"
     )
     .unwrap();
     material.base_color_texture = Some(legacy.clone());
-    material.texture_slots.insert(
-        "albedo".to_string(),
-        MaterialTextureSlotValue::new(shader_driven.clone()),
-    );
+    material.texture_slots.insert("albedo".to_string(), {
+        let mut slot = MaterialTextureSlotValue::new(shader_driven.clone());
+        slot.transform = Some(RenderMaterialTextureTransform {
+            scale: [4.0, 4.0],
+            offset: [0.125, 0.25],
+        });
+        slot.uv_channel = 1;
+        slot
+    });
     let mut shader = shader_contract();
     shader.texture_slots = vec![ShaderTextureSlotAsset {
         name: "albedo".to_string(),
@@ -698,6 +891,14 @@ url = "res://shaders/custom.zshader"
 
     assert_eq!(legacy_descriptor.base_color_texture, Some(legacy));
     assert_eq!(shader_descriptor.base_color_texture, Some(shader_driven));
+    assert_eq!(
+        shader_descriptor.base_color_texture_transform,
+        RenderMaterialTextureTransform {
+            scale: [4.0, 4.0],
+            offset: [0.125, 0.25],
+        }
+    );
+    assert_eq!(shader_descriptor.base_color_texture_uv_channel, 1);
 }
 
 #[test]
@@ -729,6 +930,8 @@ fn material_asset_management_record_set_sorts_and_summarizes_records() {
                 MaterialTextureSlotValue {
                     reference: None,
                     fallback: Some("normal".to_string()),
+                    transform: None,
+                    uv_channel: 0,
                 },
             ),
         ]),

@@ -1,0 +1,20 @@
+version = 1
+name = "Ghoul Shadow"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000141"
+url = "res://shaders/vampire_actor"
+
+[overrides]
+base_color = [0.22, 0.55, 0.42, 0.98]
+metallic = 0.0
+roughness = 0.75
+emissive = [0.02, 0.1, 0.06]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"
+
+[textures.base_color]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/character-zombie.glb#Texture0"

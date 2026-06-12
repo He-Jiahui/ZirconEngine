@@ -110,13 +110,14 @@ impl ObserverStore {
     }
 
     pub fn remove(&mut self, id: ObserverId) -> bool {
-        let before = self.total_len();
-        self.lifecycle_observers
-            .retain(|observer| observer.id != id);
-        self.event_observers.retain(|observer| observer.id != id);
-        self.entity_event_observers
-            .retain(|observer| observer.id != id);
-        self.total_len() != before
+        // Observer ids are allocated from one counter, so only one observer list can match.
+        if remove_observer_by_id(&mut self.lifecycle_observers, id, |observer| observer.id) {
+            return true;
+        }
+        if remove_observer_by_id(&mut self.event_observers, id, |observer| observer.id) {
+            return true;
+        }
+        remove_observer_by_id(&mut self.entity_event_observers, id, |observer| observer.id)
     }
 
     pub(crate) fn lifecycle_callbacks(
@@ -124,11 +125,15 @@ impl ObserverStore {
         kind: LifecycleEventKind,
         component_id: ComponentId,
     ) -> Vec<LifecycleCallback> {
-        self.lifecycle_observers
-            .iter()
-            .filter(|observer| observer.kind == kind && observer.component_id == component_id)
-            .map(|observer| observer.callback.clone())
-            .collect()
+        let callback_count =
+            lifecycle_callback_count(&self.lifecycle_observers, kind, component_id);
+        let mut callbacks = Vec::with_capacity(callback_count);
+        for observer in &self.lifecycle_observers {
+            if observer.kind == kind && observer.component_id == component_id {
+                callbacks.push(observer.callback.clone());
+            }
+        }
+        callbacks
     }
 
     pub(crate) fn event_callbacks<E>(&self) -> Vec<EventCallback>
@@ -136,11 +141,14 @@ impl ObserverStore {
         E: 'static,
     {
         let event_type = TypeId::of::<E>();
-        self.event_observers
-            .iter()
-            .filter(|observer| observer.event_type == event_type)
-            .map(|observer| observer.callback.clone())
-            .collect()
+        let callback_count = event_callback_count(&self.event_observers, event_type);
+        let mut callbacks = Vec::with_capacity(callback_count);
+        for observer in &self.event_observers {
+            if observer.event_type == event_type {
+                callbacks.push(observer.callback.clone());
+            }
+        }
+        callbacks
     }
 
     pub(crate) fn entity_event_callbacks<E>(&self, entity: EntityId) -> Vec<EntityEventCallback>
@@ -148,11 +156,15 @@ impl ObserverStore {
         E: 'static,
     {
         let event_type = TypeId::of::<E>();
-        self.entity_event_observers
-            .iter()
-            .filter(|observer| observer.event_type == event_type && observer.entity == entity)
-            .map(|observer| observer.callback.clone())
-            .collect()
+        let callback_count =
+            entity_event_callback_count(&self.entity_event_observers, event_type, entity);
+        let mut callbacks = Vec::with_capacity(callback_count);
+        for observer in &self.entity_event_observers {
+            if observer.event_type == event_type && observer.entity == entity {
+                callbacks.push(observer.callback.clone());
+            }
+        }
+        callbacks
     }
 
     fn allocate_id(&mut self) -> ObserverId {
@@ -160,12 +172,60 @@ impl ObserverStore {
         self.next_id += 1;
         id
     }
+}
 
-    fn total_len(&self) -> usize {
-        self.lifecycle_observers.len()
-            + self.event_observers.len()
-            + self.entity_event_observers.len()
+fn lifecycle_callback_count(
+    observers: &[LifecycleObserver],
+    kind: LifecycleEventKind,
+    component_id: ComponentId,
+) -> usize {
+    let mut count = 0_usize;
+    for observer in observers {
+        if observer.kind == kind && observer.component_id == component_id {
+            count += 1;
+        }
     }
+    count
+}
+
+fn event_callback_count(observers: &[EventObserver], event_type: TypeId) -> usize {
+    let mut count = 0_usize;
+    for observer in observers {
+        if observer.event_type == event_type {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn entity_event_callback_count(
+    observers: &[EntityEventObserver],
+    event_type: TypeId,
+    entity: EntityId,
+) -> usize {
+    let mut count = 0_usize;
+    for observer in observers {
+        if observer.event_type == event_type && observer.entity == entity {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn remove_observer_by_id<T>(
+    observers: &mut Vec<T>,
+    id: ObserverId,
+    observer_id: impl Fn(&T) -> ObserverId,
+) -> bool {
+    let mut index = 0_usize;
+    while index < observers.len() {
+        if observer_id(&observers[index]) == id {
+            observers.remove(index);
+            return true;
+        }
+        index += 1;
+    }
+    false
 }
 
 impl fmt::Debug for ObserverStore {

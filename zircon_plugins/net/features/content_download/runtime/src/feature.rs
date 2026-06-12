@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::manager::NetManagerHandle;
-use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind};
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 
 use crate::NetContentDownloadRuntimeManager;

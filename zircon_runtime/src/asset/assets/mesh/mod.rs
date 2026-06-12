@@ -15,6 +15,7 @@ pub use attribute::{
 pub use constants::{
     MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
     MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
+    MESH_ATTRIBUTE_UV1,
 };
 pub use indices::{MeshIndexFormat, MeshIndices};
 pub use mesh_asset::{

@@ -63,10 +63,7 @@ where
     where
         I: IntoIterator<Item = T>,
     {
-        messages
-            .into_iter()
-            .map(|message| self.write(message))
-            .collect()
+        self.store.write_batch::<T, I>(messages)
     }
 }
 

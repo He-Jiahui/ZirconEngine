@@ -10,5 +10,6 @@ mod update_stats;
 mod viewport_generation_guard;
 
 pub(in crate::graphics::runtime::render_framework) use submit::{
-    present_frame_extract, submit_frame_extract, submit_frame_extract_with_ui, submit_runtime_frame,
+    present_frame_extract, present_frame_extract_with_ui, submit_frame_extract,
+    submit_frame_extract_with_ui, submit_runtime_frame,
 };

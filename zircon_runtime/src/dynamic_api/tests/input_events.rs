@@ -40,6 +40,36 @@ fn mouse_wheel_events_reject_invalid_unit_and_delta() {
 }
 
 #[test]
+fn mouse_wheel_at_events_decode_delta_bits_for_dynamic_session() {
+    let source = include_str!("../session.rs");
+    let wheel_handler = source
+        .split("fn handle_mouse_wheel(&mut self, event: ZrRuntimeEventV1) -> ZrStatus")
+        .nth(1)
+        .expect("runtime dynamic session mouse wheel handler");
+    let next_handler = wheel_handler
+        .find("fn handle_lifecycle")
+        .expect("mouse wheel handler should end before lifecycle handler");
+    let wheel_handler = &wheel_handler[..next_handler];
+
+    assert!(wheel_handler.contains("ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1"));
+    assert!(wheel_handler.contains("f32::from_bits(event.key_code)"));
+    assert!(wheel_handler.contains("f32::from_bits(event.scan_code)"));
+
+    let decode = wheel_handler
+        .find("f32::from_bits(event.key_code)")
+        .expect("wheel-at-point delta bits should decode before validation");
+    let finite_check = wheel_handler
+        .find("if !delta_x.is_finite() || !delta_y.is_finite()")
+        .expect("decoded wheel deltas should be validated");
+    let submit = wheel_handler
+        .find("MouseWheelEvent::new(unit, delta_x, delta_y)")
+        .expect("decoded wheel deltas should feed runtime input state");
+
+    assert!(decode < finite_check);
+    assert!(finite_check < submit);
+}
+
+#[test]
 fn window_scale_factor_events_reject_non_positive_factor() {
     let api = runtime_api();
     let handle_event = api.handle_event.expect("handle_event");

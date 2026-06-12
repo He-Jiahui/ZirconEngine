@@ -109,15 +109,15 @@ impl ButtonRenderState {
         };
         Self {
             family,
-            visual_state: UiPainterStyleSelector::resolved_state_for_family(
-                painter_state,
-                family,
-            ),
+            visual_state: UiPainterStyleSelector::resolved_state_for_family(painter_state, family),
         }
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn selected(self) -> bool {
@@ -345,7 +345,7 @@ fn background_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &ButtonRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_SURFACE
     } else if is_icon_button(metadata) {
         icon_button_background(metadata, state)
@@ -397,7 +397,7 @@ fn icon_button_background<'a>(
 }
 
 fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &ButtonRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_BORDER
     } else if state.focused() || state.pressed() || state.selected() {
         color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
@@ -422,7 +422,7 @@ fn foreground_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &ButtonRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else {
         match button_kind(metadata) {
@@ -446,7 +446,7 @@ fn icon_button_foreground<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &ButtonRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         DISABLED_TEXT
     } else if state.selected() || state.focused() || state.pressed() {
         color_attribute(metadata, "selected_icon_color")

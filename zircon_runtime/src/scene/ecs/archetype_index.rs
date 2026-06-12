@@ -62,11 +62,13 @@ impl ArchetypeIndex {
     }
 
     pub fn signature(&self, id: ArchetypeId) -> Option<&ArchetypeSignature> {
-        self.records.get(id.index()).map(ArchetypeRecord::signature)
+        let record = self.records.get(id.index())?;
+        Some(record.signature())
     }
 
     pub fn entities(&self, id: ArchetypeId) -> Option<&[EntityId]> {
-        self.records.get(id.index()).map(ArchetypeRecord::entities)
+        let record = self.records.get(id.index())?;
+        Some(record.entities())
     }
 
     pub fn id_or_insert(&mut self, signature: ArchetypeSignature) -> ArchetypeId {
@@ -98,7 +100,11 @@ impl ArchetypeIndex {
             };
         }
 
-        let swapped_entity = previous.and_then(|id| self.remove_entity_from(id, entity));
+        let swapped_entity = if let Some(id) = previous {
+            self.remove_entity_from(id, entity)
+        } else {
+            None
+        };
         let entity_row = self.add_entity_to(target, entity);
         ArchetypeMove {
             entity_row,
@@ -111,42 +117,77 @@ impl ArchetypeIndex {
         required: &[ComponentId],
         without: &[ComponentId],
     ) -> Vec<ArchetypeId> {
-        let mut candidates = if let Some(component_id) = required
-            .iter()
-            .min_by_key(|component_id| self.by_component.get(*component_id).map_or(0, Vec::len))
-        {
-            self.by_component
-                .get(component_id)
-                .cloned()
-                .unwrap_or_default()
-        } else {
-            self.records.iter().map(ArchetypeRecord::id).collect()
-        };
+        if let Some(ids) = self.shortest_required_archetype_ids(required) {
+            if ids.is_empty() {
+                return Vec::new();
+            }
+            let mut matches = Vec::with_capacity(ids.len());
+            for id in ids {
+                if self.archetype_matches_required_without(*id, required, without) {
+                    matches.push(*id);
+                }
+            }
+            return matches;
+        }
 
-        candidates.retain(|id| {
-            self.signature(*id).is_some_and(|signature| {
-                required
-                    .iter()
-                    .all(|component_id| signature.contains(*component_id))
-                    && without
-                        .iter()
-                        .all(|component_id| !signature.contains(*component_id))
-            })
-        });
-        candidates.sort_unstable();
-        candidates.dedup();
-        candidates
+        let mut matches = Vec::with_capacity(self.records.len());
+        for record in &self.records {
+            let id = record.id();
+            if self.archetype_matches_required_without(id, required, without) {
+                matches.push(id);
+            }
+        }
+        matches
+    }
+
+    fn shortest_required_archetype_ids(&self, required: &[ComponentId]) -> Option<&[ArchetypeId]> {
+        let mut selected = None;
+        let mut selected_len = usize::MAX;
+        for component_id in required {
+            let ids = match self.by_component.get(component_id) {
+                Some(ids) => ids.as_slice(),
+                None => return Some(&[]),
+            };
+            let candidate_len = ids.len();
+            if selected.is_none() || candidate_len < selected_len {
+                selected = Some(ids);
+                selected_len = candidate_len;
+                if candidate_len == 0 {
+                    break;
+                }
+            }
+        }
+        selected
+    }
+
+    fn archetype_matches_required_without(
+        &self,
+        id: ArchetypeId,
+        required: &[ComponentId],
+        without: &[ComponentId],
+    ) -> bool {
+        let Some(record) = self.records.get(id.index()) else {
+            return false;
+        };
+        let signature = record.signature();
+        for component_id in required {
+            if !signature.contains(*component_id) {
+                return false;
+            }
+        }
+        for component_id in without {
+            if signature.contains(*component_id) {
+                return false;
+            }
+        }
+        true
     }
 
     fn add_entity_to(&mut self, id: ArchetypeId, entity: EntityId) -> usize {
         let Some(record) = self.records.get_mut(id.index()) else {
             return 0;
         };
-        if let Some(row) = record
-            .entities
-            .iter()
-            .position(|current| *current == entity)
-        {
+        if let Some(row) = entity_row(&record.entities, entity) {
             return row;
         }
         let row = record.entities.len();
@@ -160,14 +201,15 @@ impl ArchetypeIndex {
         entity: EntityId,
     ) -> Option<(EntityId, usize)> {
         let record = self.records.get_mut(id.index())?;
-        let row = record
-            .entities
-            .iter()
-            .position(|current| *current == entity)?;
+        let row = entity_row(&record.entities, entity)?;
         let last_row = record.entities.len() - 1;
         let removed = record.entities.swap_remove(row);
         debug_assert_eq!(removed, entity);
-        (row != last_row).then(|| (record.entities[row], row))
+        if row != last_row {
+            Some((record.entities[row], row))
+        } else {
+            None
+        }
     }
 
     fn index_signature_components(&mut self, id: ArchetypeId, signature: &ArchetypeSignature) {
@@ -178,12 +220,26 @@ impl ArchetypeIndex {
             .copied()
         {
             let ids = self.by_component.entry(component_id).or_default();
-            if !ids.contains(&id) {
-                ids.push(id);
-                ids.sort_unstable();
-            }
+            insert_archetype_id(ids, id);
         }
     }
+}
+
+fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId) {
+    if let Err(index) = ids.binary_search(&id) {
+        ids.insert(index, id);
+    }
+}
+
+fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize> {
+    let mut row = 0;
+    while row < entities.len() {
+        if entities[row] == entity {
+            return Some(row);
+        }
+        row += 1;
+    }
+    None
 }
 
 impl Default for ArchetypeIndex {

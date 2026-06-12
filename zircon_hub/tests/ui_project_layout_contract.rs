@@ -52,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
 #[test]
 fn dashboard_routes_project_subpages_and_owns_toolbar_grid_state() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
 
     assert_contains_all(
         "ProjectsDashboard.tsx",
@@ -69,16 +70,23 @@ fn dashboard_routes_project_subpages_and_owns_toolbar_grid_state() {
             "setFilter(state.projectFilter)",
             "setSort(state.projectSort)",
             "setViewMode(state.projectViewMode)",
+            "ProjectsToolbar",
+            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
+            "void onAction(HUB_ACTION.setProjectFilter, value)",
+            "void onAction(HUB_ACTION.setProjectSort, value)",
+            "void onAction(HUB_ACTION.setProjectViewMode, value)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectsToolbar.tsx",
+        &toolbar,
+        &[
             "HubSearchField",
             "HubSelect",
             "HubToggle",
             "gridTemplateColumns: \"minmax(260px, 307px) 1fr auto auto auto\"",
             "gridTemplateColumns: \"minmax(240px, 1fr) auto auto\"",
             "gridTemplateColumns: \"1fr\"",
-            "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
-            "void onAction(HUB_ACTION.setProjectFilter, value)",
-            "void onAction(HUB_ACTION.setProjectSort, value)",
-            "void onAction(HUB_ACTION.setProjectViewMode, value)",
         ],
     );
 }
@@ -86,6 +94,7 @@ fn dashboard_routes_project_subpages_and_owns_toolbar_grid_state() {
 #[test]
 fn dashboard_composes_cards_table_recent_actions_and_new_project_dialog() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let create_project = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
     let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
     let project_table = read_crate_file("web/src/components/data/ProjectTable.tsx");
 
@@ -98,19 +107,24 @@ fn dashboard_composes_cards_table_recent_actions_and_new_project_dialog() {
             "visibleRows",
             "const tableProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;",
             "ProjectCard",
+            "ProjectCardRail",
             "ProjectTable",
             "EmptyStateBlock",
             "HubPanel title={text.projectBrowser}",
             "title={text.recentProjects}",
             "HubPanel title={text.quickActions}",
+            "CreateProjectDialog",
+            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
+        ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_project,
+        &[
             "HubDialog",
             "label={text.projectName}",
             "label={text.location}",
             "HubComboBox",
-            "gridTemplateColumns: \"repeat(4, minmax(220px, 296px))\"",
-            "gridTemplateColumns: \"repeat(3, minmax(220px, 1fr))\"",
-            "gridTemplateColumns: \"repeat(2, minmax(220px, 1fr))\"",
-            "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.58fr)\"",
         ],
     );
     assert_not_contains_any(
@@ -180,6 +194,8 @@ fn browser_page_uses_shared_toolbar_table_and_side_panel_layout() {
 #[test]
 fn detail_page_uses_metric_tabs_media_main_and_sidebar_layout() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
+    let sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
 
     assert_contains_all(
         "ProjectDetailPage.tsx",
@@ -191,27 +207,41 @@ fn detail_page_uses_metric_tabs_media_main_and_sidebar_layout() {
             "const detailRows = useMemo",
             "const projectTree = useMemo",
             "HubStatusBanner",
-            "MetricCard",
+            "ProjectMetricsGrid",
+            "ProjectDetailSidebar",
             "HubTabs",
             "ProjectCover",
             "HubList",
             "HubTreeView",
             "QuickActions",
-            "SourceEngineList",
             "StatusBadge",
             "EmptyStateBlock title={text.noProjectSelected} detail={text.chooseProjectFromBrowser}",
-            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
-            "gridTemplateColumns: \"repeat(2, minmax(0, 1fr))\"",
             "gridTemplateColumns: \"minmax(0, 1fr) minmax(330px, 0.4fr)\"",
             "gridTemplateColumns: \"minmax(220px, 0.36fr) minmax(0, 1fr)\"",
             "HubPanel title={text.projectOverview}",
             "HubPanel title={text.projectTree}",
             "HubPanel title={text.projectActions}",
+            "const projectTarget = projectTargetPayload(project);",
+            "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
+        &[
+            "MetricCard",
+            "gridTemplateColumns: \"repeat(4, minmax(0, 1fr))\"",
+            "gridTemplateColumns: \"repeat(2, minmax(0, 1fr))\"",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &sidebar,
+        &[
+            "SourceEngineList",
             "HubPanel title={text.quickActions}",
             "HubPanel title={text.sourceEngines}",
             "HubPanel title={text.package}",
-            "const projectTarget = projectTargetPayload(project);",
-            "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
             "void onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
             "void onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
         ],
@@ -237,11 +267,11 @@ fn project_types_preserve_dashboard_browser_and_detail_data_contracts() {
             "projectViewMode: string;",
             "projectSubpage: string;",
             "searchQuery: string;",
-            "selectedProjectId?: string | null;",
+            "selectedProjectId: string | null;",
             "projects: HubProjectSummary[];",
             "browserProjects: HubRecentProject[];",
             "recentProjects: HubRecentProject[];",
-            "selectedProject?: HubProjectDetail | null;",
+            "selectedProject: HubProjectDetail | null;",
             "quickActions: HubQuickAction[];",
             "sourceEngines: HubSourceEngineSummary[];",
         ],

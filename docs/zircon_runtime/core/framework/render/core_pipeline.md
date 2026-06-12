@@ -106,6 +106,9 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
 tests:
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_clusters_opaque_by_pipeline_before_tie_breaker
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_keeps_transparent_depth_before_pipeline
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_ignores_transparent_pipeline_variant
   - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d_and_3d
   - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_camera_projection_selects_core_pipeline_kind
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_core2d_pipeline_compiles_expected_stage_order_and_passes
@@ -150,6 +153,8 @@ Concrete graph passes, WGPU command encoding, render pass assets, and resource p
 `RenderPhaseQueue` stores sorted phase items and exposes `items_for_phase(...)` for renderer or diagnostics consumers. `build_mesh_phase_queue(...)` and `build_sprite_phase_queue(...)` classify alpha modes into opaque, alpha-mask, or transparent phases for the selected core pipeline.
 
 `RenderPhaseSortKey` keeps deterministic ordering local to the framework contract. Meshes sort by phase, depth, and entity tie-breaker; sprites sort by z order before depth and entity. Transparent phases reverse depth ordering inside that rule.
+
+`packed_sort_key_u64(...)` is the graphics-facing bridge for the MD-M1 mesh command layer. It preserves the same queue-prefix inputs but emits the compact `u64` command sort key used by `MeshDrawCommand`. Non-transparent phases include a state bucket from pipeline variant plus material discriminant before the coarse depth/tie-breaker lane, so opaque/prepass/velocity command streams can cluster state. Transparent phases ignore pipeline/material state and keep ordered depth before the tie-breaker, preserving back-to-front semantics for alpha blending. The bit layout is still the MD-M1 transitional layout; plan 09 remains the authority for the final shared layout.
 
 ## Graphics Integration
 

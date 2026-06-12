@@ -14,7 +14,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
     VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
 };
-use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
 pub(super) fn pluginized_wgpu_render_framework() -> WgpuRenderFramework {
     pluginized_wgpu_render_framework_with_asset_manager(Arc::new(ProjectAssetManager::default()))
@@ -99,6 +99,11 @@ pub(super) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescr
                 QueueLane::AsyncCompute,
             )
             .with_executor_id("virtual-geometry.node-cluster-cull")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                "zircon-virtual-geometry-node-cluster-cull",
+                [64, 1, 1],
+                [1, 1, 1],
+            ))
             .read_buffer("virtual-geometry-page-requests")
             .write_buffer("virtual-geometry-visible-clusters"),
             RenderFeaturePassDescriptor::new(
@@ -157,6 +162,11 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::AsyncCompute,
             )
             .with_executor_id("hybrid-gi.trace-schedule")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                "zircon-hybrid-gi-trace-schedule",
+                [8, 8, 1],
+                [1, 1, 1],
+            ))
             .read_buffer("hybrid-gi-scene")
             .write_buffer("hybrid-gi-trace"),
             RenderFeaturePassDescriptor::new(
@@ -341,6 +351,10 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("ao.ssao-evaluate")
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            "zircon-ssao-pipeline",
+            [8, 8, 1],
+        ))
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],

@@ -223,7 +223,8 @@ fn tauri_view_model_exposes_catalog_scope_dtos_to_react() {
             "targets",
             ".iter()",
             "path == target.as_str() || resource.title == target.as_str()",
-            "Resource is not present in the current Learn catalog",
+            "LearnMessageId::ResourceNotInCatalog",
+            "LearnMessageId::RefreshOrChooseLocalDocument",
             "open_resource_payload_path_can_identify_catalog_entry_when_resource_id_is_stale",
         ],
     );
@@ -286,7 +287,8 @@ fn editor_plugin_page_filters_by_stable_scope_flags_not_localized_copy() {
         &["editor_scoped: plugin.editor_scoped"],
     );
     assert_contains_all("types/hub.ts", &types, &["editorScoped: boolean;"]);
-    assert_contains_all(
+    assert_contains_all("hubData.ts", &data, &["plugins: []"]);
+    assert_not_contains_any(
         "hubData.ts",
         &data,
         &["editorScoped: true", "editorScoped: false"],
@@ -328,7 +330,7 @@ fn catalog_page_unifies_assets_plugins_learn_scope_copy_and_filters() {
         "CatalogPage.tsx",
         &catalog,
         &[
-            "state.activePage === \"plugins\" || state.activePage === \"learn\" ? state.activePage : \"assets\"",
+            "const mode: \"assets\" | \"plugins\" | \"learn\" = state.activePage === \"plugins\" || state.activePage === \"learn\" ? state.activePage : \"assets\";",
             "const [selectedRowId, setSelectedRowId] = useState<string | null>(null);",
             "const rows = useMemo(() => catalogRows(state, mode, text), [mode, state, text]);",
             "const visibleRows = useMemo(() => filterRows(rows, mode, tab, query), [mode, query, rows, tab]);",

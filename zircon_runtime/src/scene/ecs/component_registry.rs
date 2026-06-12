@@ -14,20 +14,15 @@ pub struct ComponentDescriptor {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ComponentDescriptorSource {
-    RustType,
+    RustType { type_id: TypeId },
     DynamicPlugin { component_type_id: String },
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ComponentKey {
-    Rust(TypeId),
-    Dynamic(String),
 }
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct ComponentRegistry {
     descriptors: Vec<ComponentDescriptor>,
-    ids_by_key: HashMap<ComponentKey, ComponentId>,
+    rust_ids_by_type_id: HashMap<TypeId, ComponentId>,
+    dynamic_ids_by_type_id: HashMap<String, ComponentId>,
 }
 
 impl ComponentRegistry {
@@ -35,61 +30,58 @@ impl ComponentRegistry {
     where
         T: Component,
     {
-        let key = ComponentKey::Rust(TypeId::of::<T>());
-        if let Some(id) = self.ids_by_key.get(&key).copied() {
+        let type_id = TypeId::of::<T>();
+        if let Some(id) = self.rust_ids_by_type_id.get(&type_id).copied() {
             return id;
         }
-        self.insert_descriptor(
-            key,
+        let id = self.insert_descriptor(
             type_name::<T>().to_string(),
             T::STORAGE_TYPE,
-            ComponentDescriptorSource::RustType,
-        )
+            ComponentDescriptorSource::RustType { type_id },
+        );
+        self.rust_ids_by_type_id.insert(type_id, id);
+        id
     }
 
     pub fn dynamic_component_id(&mut self, component_type_id: &str) -> ComponentId {
-        let key = ComponentKey::Dynamic(component_type_id.to_string());
-        if let Some(id) = self.ids_by_key.get(&key).copied() {
+        if let Some(id) = self.dynamic_ids_by_type_id.get(component_type_id).copied() {
             return id;
         }
-        self.insert_descriptor(
-            key,
+        let id = self.insert_descriptor(
             component_type_id.to_string(),
             StorageType::SparseSet,
             ComponentDescriptorSource::DynamicPlugin {
                 component_type_id: component_type_id.to_string(),
             },
-        )
+        );
+        self.dynamic_ids_by_type_id
+            .insert(component_type_id.to_string(), id);
+        id
     }
 
     pub fn registered_component_id<T>(&self) -> Option<ComponentId>
     where
         T: Component,
     {
-        self.ids_by_key
-            .get(&ComponentKey::Rust(TypeId::of::<T>()))
-            .copied()
+        self.rust_ids_by_type_id.get(&TypeId::of::<T>()).copied()
     }
 
     pub fn registered_dynamic_component_id(&self, component_type_id: &str) -> Option<ComponentId> {
-        self.ids_by_key
-            .get(&ComponentKey::Dynamic(component_type_id.to_string()))
-            .copied()
+        self.dynamic_ids_by_type_id.get(component_type_id).copied()
     }
 
     pub fn descriptor(&self, id: ComponentId) -> Option<&ComponentDescriptor> {
         self.descriptors.get(id.index())
     }
 
-    pub(crate) fn rust_type_for_id(&self, id: ComponentId) -> Option<(TypeId, String)> {
-        self.ids_by_key.iter().find_map(|(key, component_id)| {
-            (*component_id == id).then(|| match key {
-                ComponentKey::Rust(type_id) => {
-                    Some((*type_id, self.descriptors[id.index()].type_name.clone()))
-                }
-                ComponentKey::Dynamic(_) => None,
-            })?
-        })
+    pub(crate) fn rust_type_for_id(&self, id: ComponentId) -> Option<(TypeId, &str)> {
+        let descriptor = self.descriptor(id)?;
+        match &descriptor.source {
+            ComponentDescriptorSource::RustType { type_id } => {
+                Some((*type_id, descriptor.type_name.as_str()))
+            }
+            ComponentDescriptorSource::DynamicPlugin { .. } => None,
+        }
     }
 
     pub fn descriptors(&self) -> &[ComponentDescriptor] {
@@ -98,7 +90,6 @@ impl ComponentRegistry {
 
     fn insert_descriptor(
         &mut self,
-        key: ComponentKey,
         type_name: String,
         storage_type: StorageType,
         source: ComponentDescriptorSource,
@@ -110,7 +101,6 @@ impl ComponentRegistry {
             storage_type,
             source,
         });
-        self.ids_by_key.insert(key, id);
         id
     }
 }

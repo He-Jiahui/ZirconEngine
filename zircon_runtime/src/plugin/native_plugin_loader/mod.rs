@@ -6,6 +6,7 @@ mod collect_manifests;
 mod discover;
 mod discover_load_manifest;
 mod dynamic_library_name;
+mod host_api_adapter;
 mod host_callbacks;
 mod load_discovered;
 mod loaded_native_plugin;
@@ -33,6 +34,7 @@ pub use abi_declarations::{
 };
 pub use behavior_calls::NativePluginBehaviorCallReport;
 pub use behavior_validation::{NativePluginBehaviorHealth, NativePluginBehaviorValidationReport};
+pub use host_api_adapter::NativeHostApiV3RegistrationScope;
 pub use loaded_native_plugin::LoadedNativePlugin;
 pub use native_plugin_abi::{NativePluginDescriptor, NativePluginEntryReport};
 pub use native_plugin_candidate::NativePluginCandidate;

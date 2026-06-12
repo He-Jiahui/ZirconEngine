@@ -1,0 +1,17 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui"
+version = 2
+display_name = "Workbench Search Input"
+
+[components.WorkbenchSearchInput]
+root = "root"
+default_classes = ["workbench-field", "workbench-search-input", "workbench-primitive"]
+
+[nodes.root]
+component = "SearchField"
+control_id = "WorkbenchSearchInputRoot"
+classes = ["workbench-field", "workbench-search-input"]
+props = { query = "", placeholder = "Search", validation_level = "normal", focused = false, hovered = false, disabled = false, editable_text = true, search_icon = "zircon_editor_shell/toolbar/search.svg", clear_icon = "zircon_editor_shell/controls/close.svg", has_clear_action = true, layout_padding_left = 28.0, layout_padding_right = 24.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0, layout_min_height = 30.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+widget = { value_property = "query" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }

@@ -4,7 +4,10 @@ use crate::core::framework::render::RenderDirectionalLightSnapshot;
 use crate::core::math::{is_finite_mat4, is_finite_vec3, view_matrix, Mat4, Real, Transform, Vec3};
 use crate::graphics::scene::resources::GpuMeshVertex;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
-use crate::graphics::scene::scene_renderer::mesh::MeshDraw;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
+    MeshPipelineVariantId, MeshSceneDataBindHandle, GPU_SCENE_BIND_GROUP_SLOT,
+};
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -38,8 +41,8 @@ impl ShadowMapRenderer {
     pub(crate) fn new(
         device: &wgpu::Device,
         scene_layout: &wgpu::BindGroupLayout,
-        model_layout: &wgpu::BindGroupLayout,
-        texture_layout: &wgpu::BindGroupLayout,
+        material_layout: &wgpu::BindGroupLayout,
+        gpu_scene_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-shadow-map-shader"),
@@ -47,9 +50,10 @@ impl ShadowMapRenderer {
         });
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-shadow-map-layout"),
-            bind_group_layouts: &[Some(scene_layout), Some(model_layout)],
+            bind_group_layouts: &[Some(scene_layout), None, None, Some(gpu_scene_layout)],
             immediate_size: 0,
         });
+        debug_assert_eq!(GPU_SCENE_BIND_GROUP_SLOT, 3);
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("zircon-shadow-map-pipeline"),
             layout: Some(&layout),
@@ -78,7 +82,12 @@ impl ShadowMapRenderer {
         });
         let alpha_mask_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-shadow-map-alpha-mask-layout"),
-            bind_group_layouts: &[Some(scene_layout), Some(model_layout), Some(texture_layout)],
+            bind_group_layouts: &[
+                Some(scene_layout),
+                None,
+                Some(material_layout),
+                Some(gpu_scene_layout),
+            ],
             immediate_size: 0,
         });
         let alpha_mask_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -135,18 +144,17 @@ impl ShadowMapRenderer {
         }
     }
 
-    pub(crate) fn record_with_attachment_ops<'a, I>(
+    pub(crate) fn record_commands_with_attachment_ops<'a>(
         &self,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         pass_name: &str,
         shadow_map_view: &wgpu::TextureView,
         frame: &ViewportRenderFrame,
-        mesh_draws: I,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        mesh_draw_commands: MeshDrawCommandStream<'a>,
         attachment_ops: RenderGraphAttachmentOps,
-    ) where
-        I: IntoIterator<Item = &'a MeshDraw>,
-    {
+    ) -> MeshDrawReplayStats {
         let scene_uniform = self.scene_uniform_for_frame(frame);
         if let Some(scene_uniform) = scene_uniform {
             queue.write_buffer(&self.scene_uniform_buffer, 0, bytes_of(&scene_uniform));
@@ -165,21 +173,31 @@ impl ShadowMapRenderer {
             multiview_mask: None,
         });
         if scene_uniform.is_none() {
-            return;
+            return MeshDrawReplayStats::default();
         }
-        pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.scene_bind_group, &[]);
-        for draw in mesh_draws {
-            if draw.is_alpha_mask() {
-                pass.set_pipeline(&self.alpha_mask_pipeline);
-                draw.bind_texture(&mut pass);
-            } else {
-                pass.set_pipeline(&self.pipeline);
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let fixed_shadow_variant = MeshPipelineVariantId::new(0);
+        replayer.replay_command_stream(&mut pass, mesh_draw_commands, |replayer, pass, command| {
+            match command.pipeline_kind {
+                MeshPassPipelineKind::ShadowDepthAlphaMask => {
+                    if replayer.should_set_pipeline(command.pipeline_kind, fixed_shadow_variant) {
+                        pass.set_pipeline(&self.alpha_mask_pipeline);
+                    }
+                    replayer.bind_standard_material_if_needed(pass, command);
+                }
+                MeshPassPipelineKind::ShadowDepth => {
+                    if replayer.should_set_pipeline(command.pipeline_kind, fixed_shadow_variant) {
+                        pass.set_pipeline(&self.pipeline);
+                    }
+                }
+                _ => return false,
             }
-            draw.bind_model(&mut pass);
-            draw.bind_geometry_buffers(&mut pass);
-            draw.record_indexed_draw(&mut pass);
-        }
+            replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
+            replayer.bind_geometry_if_needed(pass, command);
+            true
+        });
+        replayer.stats()
     }
 
     pub(crate) fn scene_uniform_for_frame(
@@ -231,6 +249,7 @@ fn shadow_scene_uniform(frame: &ViewportRenderFrame, light: ShadowLight) -> Scen
         ambient_color: Vec3::ZERO.extend(1.0).to_array(),
         previous_view_proj: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
+        ..SceneUniform::default()
     }
 }
 
@@ -345,6 +364,13 @@ mod tests {
     fn shadow_map_shader_keeps_opaque_depth_path_and_alpha_mask_cutoff_path() {
         assert!(super::SHADOW_MAP_SHADER.contains("@vertex"));
         assert!(super::SHADOW_MAP_SHADER.contains("fn fs_alpha_mask"));
+        assert!(super::SHADOW_MAP_SHADER.contains(
+            "@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;"
+        ));
+        assert!(super::SHADOW_MAP_SHADER.contains("@location(7) uv1: vec2<f32>"));
+        assert!(super::SHADOW_MAP_SHADER.contains(
+            "let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);"
+        ));
         assert!(super::SHADOW_MAP_SHADER.contains("discard"));
         assert!(super::SHADOW_MAP_SHADER.contains("shadow_params.y"));
     }

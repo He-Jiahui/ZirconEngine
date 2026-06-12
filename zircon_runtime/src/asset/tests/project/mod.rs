@@ -1,4 +1,7 @@
 mod asset_flow_sample;
+mod binary_library_artifacts;
+mod binary_library_assertions;
+mod example_vampire;
 mod manager;
 mod manifest;
 mod package_assets;

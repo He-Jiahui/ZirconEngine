@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderPostProcessEffectStackSettings,
+    PostProcessEffectKind, PostProcessGraphResourceNames, RenderPostProcessEffectStackSettings,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -9,12 +9,16 @@ use crate::graphics::scene::scene_renderer::post_process::{
     clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size, ssao_dispatch_groups,
     ssao_workgroup_size, ScenePostProcessResources, SceneRuntimeFeatureFlags,
 };
+use crate::graphics::visibility::HzbBuilder;
 use crate::render_graph::RenderGraphAttachmentOps;
 
-use super::super::super::RenderGraphComputeDispatchRecord;
+use super::super::super::{RenderGraphComputeDispatchRecord, RenderGraphExecutionResources};
 use super::RenderPassGpuExecutionContext;
 
 mod screen_space_reflection;
+
+const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
+const HZB_BUILD_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn with_post_process_stack_context(
@@ -68,45 +72,68 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let scene_depth_view = self
             .resources
             .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let graph = &self.frame.extract.post_process.graph;
+        let motion_vector_neighbor_max_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            stack.post_process,
+        )?;
+        let scene_normal_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            stack.post_process,
+        )?;
         let scene_material_view = stack
             .material_gbuffer_valid
             .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+                optional_texture_view_or_black(
+                    self.resources,
+                    PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+                    stack.post_process,
+                )
             })
             .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let depth_of_field_coc_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)?;
-        let depth_of_field_bokeh_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)?;
-        let _final_composited_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::FINAL_COMPOSITED)?;
+        let ambient_occlusion_view = optional_texture_view_or_white(
+            self.resources,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            stack.post_process,
+        )?;
+        let bloom_view = if post_process_graph_has_node(graph, PostProcessEffectKind::Bloom) {
+            self.resources
+                .require_texture_view(PostProcessGraphResourceNames::BLOOM)?
+        } else {
+            stack.post_process.black_texture_view()
+        };
+        let depth_of_field_coc_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            stack.post_process,
+        )?;
+        let depth_of_field_bokeh_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            stack.post_process,
+        )?;
+        let _final_composited_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::FINAL_COMPOSITED,
+            stack.post_process,
+        )?;
         let final_color_view = self
             .resources
             .require_texture_view(PostProcessGraphResourceNames::FINAL_COLOR)?;
         let global_illumination_view = self
             .resources
             .require_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION)?;
-        let screen_space_reflection_history_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)?;
-        let screen_space_reflection_specular_occlusion_view = self.resources.require_texture_view(
+        let screen_space_reflection_history_view = optional_texture_view_or_black(
+            self.resources,
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+            stack.post_process,
+        )?;
+        let screen_space_reflection_specular_occlusion_view = optional_texture_view_or_white(
+            self.resources,
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
+            stack.post_process,
         )?;
         let cluster_buffer = self
             .resources
@@ -232,6 +259,33 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     vec![light_list_resource_name.to_string()],
                 ));
         }
+        Ok(())
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn record_hzb_build_to_resource(
+        &mut self,
+        pass_name: &str,
+        executor_id: &str,
+        depth_resource_name: &str,
+        hzb_resource_name: &str,
+    ) -> Result<(), String> {
+        let _depth_view = self.resources.require_texture_view(depth_resource_name)?;
+        let _hzb_view = self.resources.require_texture_view(hzb_resource_name)?;
+        let plan = HzbBuilder::new(self.frame.extract.view.effective_render_size()).build_plan();
+        let dispatch_groups = [
+            plan.hzb_size.x.div_ceil(HZB_BUILD_WORKGROUP_SIZE[0]),
+            plan.hzb_size.y.div_ceil(HZB_BUILD_WORKGROUP_SIZE[1]),
+            1,
+        ];
+        self.compute_dispatches
+            .push(RenderGraphComputeDispatchRecord::new(
+                pass_name,
+                executor_id,
+                HZB_BUILD_PIPELINE_LABEL,
+                HZB_BUILD_WORKGROUP_SIZE,
+                dispatch_groups,
+                vec![hzb_resource_name.to_string()],
+            ));
         Ok(())
     }
 
@@ -395,6 +449,41 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             ),
         );
         Ok(())
+    }
+}
+
+fn post_process_graph_has_node(
+    graph: &crate::core::framework::render::PostProcessPassGraph,
+    kind: PostProcessEffectKind,
+) -> bool {
+    graph.nodes.iter().any(|node| node.kind == kind)
+}
+
+fn optional_texture_view_or_black<'a>(
+    resources: &'a RenderGraphExecutionResources,
+    resource_name: &str,
+    post_process: &'a ScenePostProcessResources,
+) -> Result<&'a wgpu::TextureView, String> {
+    optional_texture_view_or(resources, resource_name, post_process.black_texture_view())
+}
+
+fn optional_texture_view_or_white<'a>(
+    resources: &'a RenderGraphExecutionResources,
+    resource_name: &str,
+    post_process: &'a ScenePostProcessResources,
+) -> Result<&'a wgpu::TextureView, String> {
+    optional_texture_view_or(resources, resource_name, post_process.white_texture_view())
+}
+
+fn optional_texture_view_or<'a>(
+    resources: &'a RenderGraphExecutionResources,
+    resource_name: &str,
+    fallback: &'a wgpu::TextureView,
+) -> Result<&'a wgpu::TextureView, String> {
+    if resources.has_texture_view(resource_name) {
+        resources.require_texture_view(resource_name)
+    } else {
+        Ok(fallback)
     }
 }
 

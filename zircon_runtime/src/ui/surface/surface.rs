@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
+use crate::ui::dispatch::{
+    UiInputDispatchOutcome, UiInputManager, UiNavigationDispatcher, UiPointerDispatcher,
+};
 use crate::ui::tree::{
-    UiHitTestIndex, UiHitTestResult, UiRuntimeTreeFocusExt,
-    UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
+    UiHitTestIndex, UiHitTestResult, UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt,
+    UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
 };
 use crate::ui::v2::UiV2RuntimeStyleIndex;
 use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
@@ -22,20 +24,21 @@ use zircon_runtime_interface::ui::{
     surface::{
         UiArrangedTree, UiFocusPath, UiFocusState, UiHitTestDebugDump, UiHitTestQuery,
         UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerActivationPhase,
-        UiPointerButton,
-        UiPointerEventKind, UiPointerRoute, UiRenderExtract, UiRenderList, UiSurfaceDebugOptions,
-        UiSurfaceDebugSnapshot, UiSurfaceFrame,
+        UiPointerButton, UiPointerEventKind, UiPointerRoute, UiRenderExtract, UiRenderList,
+        UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceFrame, UiSurfaceWindowState,
     },
+    window::{UiWindowInputPumpBatch, UiWindowInputPumpEvent},
 };
 
 use super::{
+    arranged_focus_path,
     component_state::{property_may_affect_runtime_pseudo_state, UiSurfaceComponentStateStore},
     debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
-    arranged_focus_path,
     input::{
         apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event,
-        is_valid_input_owner, UiSurfaceInputState,
+        dispatch_window_input_pump_batch, dispatch_window_input_pump_event, is_valid_input_owner,
+        UiSurfaceInputState,
     },
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
     property_mutation::{
@@ -67,6 +70,8 @@ pub struct UiSurface {
     pub navigation: UiNavigationState,
     pub render_extract: UiRenderExtract,
     #[serde(default)]
+    pub window_state: UiSurfaceWindowState,
+    #[serde(default)]
     pub render_cache: UiSurfaceRenderCache,
     #[serde(default)]
     pub node_pool: UiSurfaceNodePool,
@@ -95,6 +100,7 @@ impl UiSurface {
                 tree_id,
                 list: UiRenderList::default(),
             },
+            window_state: UiSurfaceWindowState::default(),
             render_cache: UiSurfaceRenderCache::default(),
             node_pool: UiSurfaceNodePool::default(),
             last_rebuild_report: UiSurfaceRebuildReport::default(),
@@ -159,6 +165,7 @@ impl UiSurface {
     pub fn surface_frame(&self) -> UiSurfaceFrame {
         UiSurfaceFrame {
             tree_id: self.tree.tree_id.clone(),
+            window_state: self.window_state.clone(),
             arranged_tree: self.arranged_tree.clone(),
             render_extract: self.render_extract.clone(),
             hit_grid: self.hit_test.grid.clone(),
@@ -351,6 +358,48 @@ impl UiSurface {
         event: UiInputEvent,
     ) -> Result<UiInputDispatchResult, UiTreeError> {
         dispatch_input_event(self, pointer_dispatcher, navigation_dispatcher, event)
+    }
+
+    pub fn dispatch_input_event_with_manager(
+        &mut self,
+        manager: &mut UiInputManager,
+        event: UiInputEvent,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        manager.dispatch_input_event(self, event)
+    }
+
+    pub fn dispatch_window_input_pump_event(
+        &mut self,
+        pointer_dispatcher: &UiPointerDispatcher,
+        navigation_dispatcher: &UiNavigationDispatcher,
+        event: UiWindowInputPumpEvent,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        dispatch_window_input_pump_event(self, pointer_dispatcher, navigation_dispatcher, event)
+    }
+
+    pub fn dispatch_window_input_pump_event_with_manager(
+        &mut self,
+        manager: &mut UiInputManager,
+        event: UiWindowInputPumpEvent,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        manager.dispatch_window_event(self, event)
+    }
+
+    pub fn dispatch_window_input_pump_batch(
+        &mut self,
+        pointer_dispatcher: &UiPointerDispatcher,
+        navigation_dispatcher: &UiNavigationDispatcher,
+        batch: UiWindowInputPumpBatch,
+    ) -> Result<Vec<UiInputDispatchResult>, UiTreeError> {
+        dispatch_window_input_pump_batch(self, pointer_dispatcher, navigation_dispatcher, batch)
+    }
+
+    pub fn dispatch_window_input_pump_batch_with_manager(
+        &mut self,
+        manager: &mut UiInputManager,
+        batch: UiWindowInputPumpBatch,
+    ) -> Result<UiInputDispatchOutcome, UiTreeError> {
+        manager.dispatch_window_batch(self, batch)
     }
 
     pub fn route_pointer_event(

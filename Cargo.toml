@@ -21,7 +21,7 @@ bincode = "1.3.3"
 bytemuck = { version = "1.25.0", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 glam = { version = "0.32.1", features = ["serde"] }
-gltf = "1.4.1"
+gltf = { version = "1.4.1", features = ["KHR_texture_transform", "extensions"] }
 image = "0.25.10"
 naga = { version = "29.0.1", features = ["glsl-in", "spv-in", "wgsl-in", "wgsl-out"] }
 notify = "9.0.0-rc.3"

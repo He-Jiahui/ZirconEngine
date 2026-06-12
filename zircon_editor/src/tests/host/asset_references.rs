@@ -312,6 +312,7 @@ fn scene_asset() -> SceneAsset {
             point_light: None,
             rect_light: None,
             spot_light: None,
+            post_process_volume: None,
             rigid_body: None,
             collider: Some(SceneColliderAsset {
                 shape: SceneColliderShapeAsset::Box {
@@ -360,6 +361,7 @@ fn scene_asset() -> SceneAsset {
             terrain: None,
             tilemap: None,
             prefab_instance: None,
+            script_bindings: Vec::new(),
         }],
     }
 }

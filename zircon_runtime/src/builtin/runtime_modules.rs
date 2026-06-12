@@ -1,7 +1,6 @@
 mod assembly;
 mod availability;
 mod core_modules;
-mod extensions;
 mod ids;
 mod load_report;
 mod manifest;

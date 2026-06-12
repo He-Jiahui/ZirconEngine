@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use crate::core::runtime::ServiceObject;
 use crate::core::{
     CoreRuntime, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,
-    RegistryName, ServiceKind, ServiceObject, StartupMode,
+    RegistryName, ServiceKind, StartupMode,
 };
 
 use super::{

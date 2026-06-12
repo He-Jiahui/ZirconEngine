@@ -3,7 +3,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     let resolution_mod_source = include_str!("mod.rs");
     let resolution_behavior_source = include_str!("behavior.rs");
     let resolution_source = include_str!("../../handle/resolution.rs");
-    let devtools_source = include_str!("../../../diagnostics/devtools.rs");
+    let devtools_source = include_str!("../../diagnostics/devtools.rs");
     let registration_source = [
         include_str!("../../handle/registration/mod.rs"),
         include_str!("../../handle/registration/register_module.rs"),
@@ -39,7 +39,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(!resolution_behavior_source.contains("include_str!(\"../../handle/resolution.rs\")"));
     assert!(resolution_source.contains("stack: &mut Vec<RegistryName>"));
     assert!(resolution_source.contains("const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;"));
-    assert!(resolution_source.contains("resolution_stack_contains(stack.as_slice(), &service_key)"));
+    assert!(resolution_source.contains("resolution_stack_contains(stack.as_slice(), service_key)"));
     assert!(resolution_source.contains(
         "fn resolution_stack_contains(stack: &[RegistryName], service_key: &RegistryName) -> bool",
     ));
@@ -52,25 +52,69 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source.contains(
         "first_existing == service_key || second_existing == service_key || third_existing == service_key",
     ));
-    assert!(resolution_source.contains("_ => stack.iter().any(|existing| existing == service_key)"));
+    assert!(resolution_source.contains("_ => {"));
+    assert!(resolution_source.contains("for existing in stack"));
+    assert!(resolution_source.contains("if existing == service_key"));
+    assert!(resolution_source.contains("return true;"));
+    assert!(
+        !resolution_source.contains("_ => stack.iter().any(|existing| existing == service_key)")
+    );
     assert!(
         resolution_source
             .matches("let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);")
             .count()
             >= 2
     );
+    assert!(resolution_source.contains("enum NamedServiceResolution"));
+    assert!(resolution_source.contains("enum RegisteredServiceResolution"));
+    assert!(resolution_source.contains("fn downcast_resolved_service<T: Any + Send + Sync>("));
+    assert!(resolution_source.contains("match Arc::downcast::<T>(service)"));
+    assert!(resolution_source.contains("fn named_service_resolution("));
+    assert!(resolution_source.contains("fn registered_service_resolution("));
+    assert!(resolution_source
+        .contains("match self.named_service_resolution(service_name, expected_kind)?"));
+    assert!(
+        resolution_source.contains("NamedServiceResolution::Resolved(instance) => Ok(instance)")
+    );
+    assert!(resolution_source.contains("NamedServiceResolution::Pending(service_key) => {"));
+    assert!(resolution_source
+        .contains("match self.registered_service_resolution(service_key, expected_kind)?"));
+    assert!(resolution_source
+        .contains("RegisteredServiceResolution::Resolved(instance) => Ok(instance)"));
+    assert!(resolution_source.contains("RegisteredServiceResolution::Pending => {"));
     assert!(resolution_source.contains(".get_key_value(service_name)"));
+    assert!(resolution_source
+        .contains("let Some((name, entry)) = services.get_key_value(service_name) else"));
     assert!(resolution_source.contains("fn resolve_registered_service_inner("));
     assert!(resolution_source.contains("service_key: &RegistryName"));
+    assert!(
+        resolution_source.contains("self.resolve_existing_service_inner(&service_key, &mut stack)")
+    );
     assert!(resolution_source.contains("self.resolve_existing_service_inner(service_key, stack)"));
     assert!(resolution_source.contains(".get(service_key)"));
+    assert!(resolution_source.contains("let Some(entry) = services.get(service_key) else"));
+    assert!(
+        resolution_source
+            .matches("let Some(entry) = services.get_mut(service_key) else")
+            .count()
+            >= 2
+    );
     assert!(resolution_source.contains("let actual_kind = name.service_kind()"));
     assert!(resolution_source.contains("let owner_module = service_key.module_name()"));
     assert!(resolution_source.contains("let canonical_service_name = service_key.as_str()"));
     assert!(resolution_source.contains(".get(owner_module)"));
+    assert!(resolution_source.contains("match modules.get(owner_module)"));
+    assert!(resolution_source
+        .contains("Some(module) => module.lifecycle == LifecycleState::Registered"));
     assert!(resolution_source.contains("self.activate_module(owner_module)?"));
+    assert!(resolution_source.contains("self.resolved_service_instance(service_key)"));
     assert!(resolution_source.contains("plugin_name: canonical_service_name.to_owned()"));
     assert!(resolution_source.contains("let (dependency_names, factory)"));
+    assert!(resolution_source.contains("let factory_result = match factory"));
+    assert!(resolution_source.contains("let instance = match factory_result"));
+    assert!(resolution_source.contains("Err(error) => {"));
+    assert!(resolution_source.contains("fn resolved_service_instance("));
+    assert!(resolution_source.contains("return None;"));
     assert!(
         resolution_source
             .matches("if let Some(instance) = entry.instance.clone()")
@@ -130,7 +174,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source
         .contains("self.resolve_registered_service_inner(dependency_name, None, stack)?"));
     assert!(resolution_source.contains("if result.is_err()"));
-    assert!(resolution_source.contains("self.reset_initializing_service(&service_key)"));
+    assert!(resolution_source.contains("self.reset_initializing_service(service_key)"));
     assert!(resolution_source
         .contains("fn reset_initializing_service(&self, service_key: &RegistryName)"));
     assert!(resolution_source.contains("entry.lifecycle == LifecycleState::Initializing"));
@@ -139,6 +183,19 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(registration_source.contains("fn prepare_five_descriptor_service_entries("));
     assert!(service_entry_source.contains("dependencies: Arc<[RegistryName]>"));
     assert!(!resolution_source.contains("stack: &mut Vec<String>"));
+    assert!(!resolution_source.contains("service_key: RegistryName"));
+    assert!(!resolution_source
+        .contains("self.resolve_existing_service_inner(service_key.clone(), stack)"));
+    assert!(!resolution_source.contains("fn resolve_named_service_inner("));
+    assert!(
+        !resolution_source.contains("resolution_stack_contains(stack.as_slice(), &service_key)")
+    );
+    assert!(!resolution_source.contains("self.resolved_service_instance(&service_key)"));
+    assert!(!resolution_source.contains("Arc::downcast::<T>(service).map_err"));
+    assert!(!resolution_source.contains(".ok_or_else(|| CoreError::MissingService"));
+    assert!(!resolution_source.contains(".is_some_and("));
+    assert!(!resolution_source.contains(".and_then(|entry| entry.instance.clone())"));
+    assert!(!resolution_source.contains(".map_err(|error|"));
     assert!(!resolution_source.contains("ROOT_RESOLUTION_STACK_CAPACITY"));
     assert!(!resolution_source.contains("stack.push(service_name.to_string())"));
     assert!(!resolution_source.contains("&mut Vec::new()"));
@@ -162,6 +219,46 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(!resolution_source.contains(
         "fn reserve_dependency_resolution_frame(stack: &mut Vec<RegistryName>, dependency_count: usize)",
     ));
+
+    let named_resolution_match_index = resolution_source
+        .find("match self.named_service_resolution(service_name, expected_kind)?")
+        .expect("named resolution should separate cached lookup from pending stack allocation");
+    let named_resolved_index = resolution_source[named_resolution_match_index..]
+        .find("NamedServiceResolution::Resolved(instance) => Ok(instance)")
+        .map(|offset| named_resolution_match_index + offset)
+        .expect("cached named resolution should return before stack allocation");
+    let named_pending_index = resolution_source[named_resolution_match_index..]
+        .find("NamedServiceResolution::Pending(service_key) => {")
+        .map(|offset| named_resolution_match_index + offset)
+        .expect("unresolved named services should enter the pending stack path");
+    let named_stack_index = resolution_source[named_pending_index..]
+        .find("let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);")
+        .map(|offset| named_pending_index + offset)
+        .expect("only pending named service resolution should allocate the root stack");
+    assert!(named_resolution_match_index < named_resolved_index);
+    assert!(named_resolved_index < named_pending_index);
+    assert!(named_pending_index < named_stack_index);
+
+    let registered_resolution_match_index = resolution_source
+        .find("match self.registered_service_resolution(service_key, expected_kind)?")
+        .expect(
+            "registered resolution should separate cached lookup from pending stack allocation",
+        );
+    let registered_resolved_index = resolution_source[registered_resolution_match_index..]
+        .find("RegisteredServiceResolution::Resolved(instance) => Ok(instance)")
+        .map(|offset| registered_resolution_match_index + offset)
+        .expect("cached registered resolution should return before stack allocation");
+    let registered_pending_index = resolution_source[registered_resolution_match_index..]
+        .find("RegisteredServiceResolution::Pending => {")
+        .map(|offset| registered_resolution_match_index + offset)
+        .expect("unresolved registered services should enter the pending stack path");
+    let registered_stack_index = resolution_source[registered_pending_index..]
+        .find("let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);")
+        .map(|offset| registered_pending_index + offset)
+        .expect("only pending registered service resolution should allocate the root stack");
+    assert!(registered_resolution_match_index < registered_resolved_index);
+    assert!(registered_resolved_index < registered_pending_index);
+    assert!(registered_pending_index < registered_stack_index);
 
     let dependency_empty_index = resolution_source
         .find("if !dependency_names.is_empty()")
@@ -280,9 +377,25 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         .map(|offset| stack_helper_index + offset)
         .expect("five-frame resolution should avoid iterator cycle detection");
     let multi_stack_index = resolution_source[stack_helper_index..]
-        .find("_ => stack.iter().any(|existing| existing == service_key)")
+        .find("_ => {")
         .map(|offset| stack_helper_index + offset)
-        .expect("six-or-more-frame resolution should retain iterator cycle detection");
+        .expect("six-or-more-frame resolution should retain fallback cycle detection");
+    let multi_stack_loop_index = resolution_source[multi_stack_index..]
+        .find("for existing in stack")
+        .map(|offset| multi_stack_index + offset)
+        .expect("six-or-more-frame resolution should scan existing stack frames directly");
+    let multi_stack_match_index = resolution_source[multi_stack_loop_index..]
+        .find("if existing == service_key")
+        .map(|offset| multi_stack_loop_index + offset)
+        .expect("six-or-more-frame resolution should compare stack frames directly");
+    let multi_stack_return_index = resolution_source[multi_stack_match_index..]
+        .find("return true;")
+        .map(|offset| multi_stack_match_index + offset)
+        .expect("six-or-more-frame resolution should return on first matching frame");
+    let multi_stack_false_index = resolution_source[multi_stack_return_index..]
+        .find("false")
+        .map(|offset| multi_stack_return_index + offset)
+        .expect("six-or-more-frame resolution should fall through to false");
     assert!(empty_stack_index < single_stack_index);
     assert!(single_stack_index < two_stack_index);
     assert!(two_stack_index < two_stack_compare_index);
@@ -293,6 +406,10 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(four_stack_compare_index < five_stack_index);
     assert!(five_stack_index < five_stack_compare_index);
     assert!(five_stack_compare_index < multi_stack_index);
+    assert!(multi_stack_index < multi_stack_loop_index);
+    assert!(multi_stack_loop_index < multi_stack_match_index);
+    assert!(multi_stack_match_index < multi_stack_return_index);
+    assert!(multi_stack_return_index < multi_stack_false_index);
     assert!(devtools_source.contains("owner_module: name.module_name().to_string()"));
     assert!(devtools_source.contains("kind: name.service_kind()"));
 }

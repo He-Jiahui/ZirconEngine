@@ -1,0 +1,49 @@
+format_version = 6
+uuid = "00000000-0000-0000-0000-000000000141"
+url = "res://shaders/vampire_actor"
+asset_kind = "Shader"
+unit = "compound"
+included_files = [
+    "res://shaders/vampire_actor/vampire_actor.zshader",
+    "res://shaders/vampire_actor/vampire_actor_base.wgsl",
+    "res://shaders/vampire_actor/vampire_actor_variant.wgsl",
+]
+artifact_locator = "lib://shaders/5091ce03-b6ff-bc79-ec80-3aa693020b5d.zasset"
+importer_id = "zircon.builtin.shader.zshader_package"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781201280992
+source_hash = "621866afc1bbcfff"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = []
+
+[import_settings]
+
+[[entries]]
+uuid = "00000000-0000-0000-0000-000000000141"
+url = "res://shaders/vampire_actor"
+asset_kind = "Shader"
+artifact_locator = "lib://shaders/5091ce03-b6ff-bc79-ec80-3aa693020b5d.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "2f576d5d-8ec3-482e-98b7-5aee4bdd15e1"
+url = "res://shaders/vampire_actor#zshader:vampire_actor.zshader"
+asset_kind = "Data"
+artifact_locator = "lib://data/bf7410f0-7d30-5fbc-6e57-4e71dbdb94cf.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "865b86b3-8d9e-44d6-9eaf-ff1c9253dffe"
+url = "res://shaders/vampire_actor#wgsl:vampire_actor_base.wgsl"
+asset_kind = "Data"
+artifact_locator = "lib://data/ef23d04e-45c1-823e-e198-a55ccf9ec536.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "b86cd6fa-402b-4625-8492-37114cc2b7e8"
+url = "res://shaders/vampire_actor#wgsl:vampire_actor_variant.wgsl"
+asset_kind = "Data"
+artifact_locator = "lib://data/58c98511-45cb-bedd-f658-32ff444aece4.zasset"
+dependencies = []

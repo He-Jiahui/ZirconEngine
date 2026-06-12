@@ -5,6 +5,7 @@ use crate::plugin::{
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 use super::super::behavior_calls::NativePluginBehavior;
 
@@ -404,6 +405,112 @@ fn native_live_host_rollback_plan_reports_when_previous_plugin_was_already_unloa
     assert!(reload_state.into_rollback_plugin().is_none());
 }
 
+#[test]
+fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
+    restored_payloads().lock().unwrap().clear();
+    let existing = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 7,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: Some(hot_reload_save_state),
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+    let mut reload_state = NativePluginHotReloadState::new(
+        PluginModuleKind::Runtime,
+        "runtime:physics".to_string(),
+        Some(existing),
+    );
+
+    let snapshot = reload_state
+        .save_existing_runtime_snapshot("physics")
+        .expect("stateful plugin snapshot should save")
+        .expect("stateful plugin should produce a snapshot")
+        .clone();
+    let replacement = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 7,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: None,
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+
+    let diagnostics =
+        restore_runtime_snapshot(&snapshot, &replacement).expect("snapshot should restore");
+
+    assert!(diagnostics.is_empty());
+    assert_eq!(snapshot.blob, b"state:physics".to_vec());
+    assert_eq!(
+        restored_payloads().lock().unwrap().as_slice(),
+        &[b"state:physics".to_vec()]
+    );
+}
+
+#[test]
+fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
+    let existing = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 7,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: Some(hot_reload_save_state),
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+    let mut reload_state = NativePluginHotReloadState::new(
+        PluginModuleKind::Runtime,
+        "runtime:physics".to_string(),
+        Some(existing),
+    );
+    let snapshot = reload_state
+        .save_existing_runtime_snapshot("physics")
+        .expect("stateful plugin snapshot should save")
+        .expect("stateful plugin should produce a snapshot")
+        .clone();
+    let replacement = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 8,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: None,
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+
+    let error = restore_runtime_snapshot(&snapshot, &replacement).unwrap_err();
+
+    assert!(
+        error.contains("snapshot state schema Some(7) does not match loaded state schema Some(8)")
+    );
+}
+
 fn native_live_host_test_plugin(
     plugin_id: &str,
     _module_kind: PluginModuleKind,
@@ -476,6 +583,46 @@ fn native_live_host_test_plugin_with_behavior(
 }
 
 static INTERIOR_NUL_INVOKE_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+static HOT_RELOAD_STATE_BYTES: &[u8] = b"state:physics";
+
+fn restored_payloads() -> &'static Mutex<Vec<Vec<u8>>> {
+    static PAYLOADS: OnceLock<Mutex<Vec<Vec<u8>>>> = OnceLock::new();
+    PAYLOADS.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+unsafe extern "C" fn hot_reload_save_state(
+    output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    if !output.is_null() {
+        *output = super::super::abi_declarations::NativePluginOwnedByteBufferV2 {
+            data: HOT_RELOAD_STATE_BYTES.as_ptr() as *mut u8,
+            len: HOT_RELOAD_STATE_BYTES.len(),
+            capacity: HOT_RELOAD_STATE_BYTES.len(),
+            owner_token: 0,
+            free: None,
+        };
+    }
+    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
+
+unsafe extern "C" fn hot_reload_restore_state(
+    state: super::super::abi_declarations::NativePluginByteSliceV2,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    let payload = if state.data.is_null() || state.len == 0 {
+        Vec::new()
+    } else {
+        std::slice::from_raw_parts(state.data, state.len).to_vec()
+    };
+    restored_payloads().lock().unwrap().push(payload);
+    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        diagnostics: std::ptr::null(),
+    }
+}
 
 unsafe extern "C" fn interior_nul_probe_invoke_command(
     _command_name: *const std::ffi::c_char,

@@ -5,6 +5,7 @@ use crate::ui::template::{collect_document_resource_dependencies, UiAssetLoader}
 use crate::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use zircon_runtime_interface::ui::style::UiThemeDocument;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
 
@@ -24,6 +25,38 @@ pub struct UiWidgetAsset {
 #[serde(transparent)]
 pub struct UiStyleAsset {
     pub document: UiAssetDocument,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct UiThemeAsset {
+    pub document: UiThemeDocument,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiIconAsset {
+    pub source: UiIconSource,
+    #[serde(default = "default_ui_icon_size")]
+    pub default_size: f32,
+    #[serde(default)]
+    pub semantic_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiIconSource {
+    pub kind: UiIconSourceKind,
+    #[serde(default)]
+    pub text: Option<String>,
+    #[serde(default)]
+    pub uri: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiIconSourceKind {
+    Svg,
+    SvgAsset,
+    Bitmap,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -53,6 +86,20 @@ pub enum UiAssetDocumentError {
         expected: UiAssetKind,
         actual: UiAssetKind,
     },
+}
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum UiThemeAssetDocumentError {
+    #[error("failed to parse ui theme asset document: {0}")]
+    Parse(String),
+}
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum UiIconAssetDocumentError {
+    #[error("failed to parse ui icon asset document: {0}")]
+    Parse(String),
+    #[error("ui icon asset is invalid: {0}")]
+    Invalid(String),
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -93,6 +140,80 @@ impl UiStyleAsset {
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
         toml::to_string_pretty(&self.document)
+    }
+}
+
+impl UiThemeAsset {
+    pub fn from_toml_str(document: &str) -> Result<Self, UiThemeAssetDocumentError> {
+        toml::from_str::<UiThemeDocument>(document)
+            .map(|document| Self { document })
+            .map_err(|error| UiThemeAssetDocumentError::Parse(error.to_string()))
+    }
+
+    pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
+        toml::to_string_pretty(&self.document)
+    }
+}
+
+impl UiIconAsset {
+    pub fn from_toml_str(document: &str) -> Result<Self, UiIconAssetDocumentError> {
+        let asset = toml::from_str::<Self>(document)
+            .map_err(|error| UiIconAssetDocumentError::Parse(error.to_string()))?;
+        asset.validate()?;
+        Ok(asset)
+    }
+
+    pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {
+        toml::to_string_pretty(self)
+    }
+
+    pub fn direct_references(&self) -> Vec<AssetReference> {
+        let mut references = Vec::new();
+        let mut seen = HashSet::new();
+        match self.source.kind {
+            UiIconSourceKind::Svg => {}
+            UiIconSourceKind::SvgAsset | UiIconSourceKind::Bitmap => {
+                let Some(uri) = self.source.uri.as_deref() else {
+                    return references;
+                };
+                push_reference(uri, &mut references, &mut seen);
+            }
+        }
+        references
+    }
+
+    fn validate(&self) -> Result<(), UiIconAssetDocumentError> {
+        if !self.default_size.is_finite() || self.default_size <= 0.0 {
+            return Err(UiIconAssetDocumentError::Invalid(
+                "default_size must be a positive finite value".to_string(),
+            ));
+        }
+        if self.semantic_id.trim().is_empty() {
+            return Err(UiIconAssetDocumentError::Invalid(
+                "semantic_id must not be empty".to_string(),
+            ));
+        }
+        match self.source.kind {
+            UiIconSourceKind::Svg => match self.source.text.as_deref() {
+                Some(text) if !text.trim().is_empty() => Ok(()),
+                _ => Err(UiIconAssetDocumentError::Invalid(
+                    "inline svg source must not be empty".to_string(),
+                )),
+            },
+            UiIconSourceKind::SvgAsset | UiIconSourceKind::Bitmap => {
+                let Some(uri) = self.source.uri.as_deref() else {
+                    return Err(UiIconAssetDocumentError::Invalid(
+                        "external icon source uri must not be empty".to_string(),
+                    ));
+                };
+                if ResourceLocator::parse(uri).is_err() {
+                    return Err(UiIconAssetDocumentError::Invalid(format!(
+                        "source uri is not a valid resource locator: {uri}"
+                    )));
+                }
+                Ok(())
+            }
+        }
     }
 }
 
@@ -175,6 +296,10 @@ pub fn ui_v2_asset_references(document: &UiV2AssetDocument) -> Vec<AssetReferenc
         }
     }
     references
+}
+
+const fn default_ui_icon_size() -> f32 {
+    16.0
 }
 
 fn push_reference(

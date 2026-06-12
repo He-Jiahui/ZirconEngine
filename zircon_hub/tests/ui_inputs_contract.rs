@@ -272,12 +272,12 @@ fn pages_compose_shared_input_components_instead_of_raw_material_inputs() {
             vec![
                 "from \"../components/inputs\"",
                 "HubButton",
-                "HubComboBox",
-                "HubSearchField",
-                "HubSelect",
-                "HubTextField",
-                "HubToggle",
+                "ProjectsToolbar",
             ],
+        ),
+        (
+            "web/src/components/inputs/ProjectsToolbar.tsx",
+            vec!["HubSearchField", "HubSelect", "HubToggle"],
         ),
         (
             "web/src/pages/ProjectBrowserPage.tsx",
@@ -302,10 +302,18 @@ fn pages_compose_shared_input_components_instead_of_raw_material_inputs() {
             vec![
                 "from \"../components/inputs\"",
                 "HubButton",
+                "HubTabs",
+                "SettingsSection",
+            ],
+        ),
+        (
+            "web/src/components/data/SettingsSection.tsx",
+            vec![
+                "from \"../inputs\"",
                 "HubCheckbox",
                 "HubComboBox",
+                "HubIconButton",
                 "HubSwitch",
-                "HubTabs",
                 "HubTextField",
             ],
         ),
@@ -361,7 +369,8 @@ fn shell_and_dialog_surfaces_use_input_wrappers_for_commands() {
             "web/src/components/shell/TopBar.tsx",
             vec![
                 "HubIconButton",
-                "label={state.ui.shell.notifications} tooltip={state.ui.shell.notificationsDetail} disabled",
+                "const notificationDetail = comingSoonDetail(state, \"notification-center\");",
+                "label={state.ui.shell.notifications} tooltip={notificationDetail} disabled",
                 "label={state.ui.shell.help} onClick={() => void onAction(HUB_ACTION.showPage, \"learn\")}",
                 "label={state.ui.shell.settings}",
                 "label={state.ui.shell.minimize} onClick={handleMinimize}",

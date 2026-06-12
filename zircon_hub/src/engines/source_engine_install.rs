@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::state::HubMessage;
+
 const BUILD_HISTORY_LIMIT: usize = 8;
 
 // Stored per source checkout so Hub can show recent source-build attempts without
@@ -14,9 +16,9 @@ pub struct SourceBuildRecord {
     #[serde(default)]
     pub jobs: Option<u16>,
     pub output_dir: PathBuf,
-    pub detail: String,
-    #[serde(default)]
-    pub log_excerpt: String,
+    pub detail: HubMessage,
+    #[serde(default = "HubMessage::empty")]
+    pub log_excerpt: HubMessage,
     #[serde(default)]
     pub command_line: Vec<String>,
 }
@@ -62,8 +64,8 @@ mod tests {
                 profile: "debug".to_string(),
                 jobs: Some(1),
                 output_dir: PathBuf::from("E:/out"),
-                detail: format!("run {index}"),
-                log_excerpt: format!("log {index}"),
+                detail: HubMessage::legacy(format!("run {index}")),
+                log_excerpt: HubMessage::legacy(format!("log {index}")),
                 command_line: vec!["python".to_string(), "tools/zircon_build.py".to_string()],
             });
         }

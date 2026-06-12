@@ -47,7 +47,7 @@ fn input_protocol_types_live_in_runtime_input_surface() {
 
     assert!(
         input_runtime_source.contains("crate::core::framework::input"),
-        "runtime input manager should source input contracts from zircon_framework"
+        "runtime input manager should source input contracts from crate::core::framework::input"
     );
     assert!(
         !app_runtime_input_source.contains("use crate::core::manager::{InputButton, InputEvent};"),
@@ -65,11 +65,11 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     ] {
         assert!(
             !manager_mod_source.contains(forbidden),
-            "core manager mod.rs should not re-export {forbidden} after framework migration"
+            "core manager mod.rs should not re-export {forbidden} after core framework convergence"
         );
         assert!(
             !manager_resolver_source.contains(forbidden),
-            "core manager resolver should not re-export {forbidden} after framework migration"
+            "core manager resolver should not re-export {forbidden} after core framework convergence"
         );
     }
 

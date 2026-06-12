@@ -1,5 +1,5 @@
 use crossbeam_channel::unbounded;
-use zircon_runtime::core::ChannelReceiver;
+use zircon_runtime::core::framework::channel::ChannelReceiver;
 
 use super::super::super::EditorAssetChangeRecord;
 use super::DefaultEditorAssetManager;

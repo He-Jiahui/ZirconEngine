@@ -6,6 +6,7 @@ mod camera_ordering;
 mod capture;
 mod core_pipeline;
 mod frame_extract;
+mod frame_phase_queue_summary;
 mod framework;
 mod framework_error;
 mod image;
@@ -17,6 +18,7 @@ mod plugin_renderer_outputs;
 mod post_process;
 mod prepared_runtime_sidebands;
 mod profile;
+mod relevance;
 mod scene_extract;
 mod shader;
 mod shadow;
@@ -41,12 +43,12 @@ pub use backend_types::{
     RenderCameraTargetGraphImportStatus, RenderCameraTargetResolutionReport,
     RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus, RenderCapabilityClass,
     RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings,
+    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings, RenderGpuSceneUploadPath,
     RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
-    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderHybridGiPayloadSource,
-    RenderPipelineHandle, RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
-    RenderingBackendInfo,
+    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
+    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
+    RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -62,15 +64,23 @@ pub use camera_ordering::{
 };
 pub use capture::{CapturedFrame, RenderCaptureReport, RenderCaptureSource};
 pub use core_pipeline::{
-    build_mesh_phase_queue, build_sprite_phase_queue, CorePipelineKind, MeshPhaseInput,
-    RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue,
-    RenderPhaseSortComponents, RenderPhaseSortKey, SpritePhaseInput,
+    build_mesh_phase_queue, build_sprite_phase_queue, packed_sort_key_u64, CorePipelineKind,
+    MeshPhaseInput, RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue,
+    RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary, RenderPhaseQueueSummaryPhaseCount,
+    RenderPhaseQueueSummaryPhaseOrderSpan, RenderPhaseSortComponents, RenderPhaseSortDecision,
+    RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPhaseSortKeyBreakdown,
+    SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
     PostProcessExtract, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
     RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
-    RenderWorldSnapshotHandle, SpritePhaseExtractInput, VisibilityInput, VisibilityRenderableInput,
+    RenderWorldSnapshotHandle, SpritePhaseExtractInput, StaticMeshBatchExtract, VisibilityInput,
+    VisibilityRenderableInput,
+};
+pub use frame_phase_queue_summary::{
+    RenderFramePhaseQueueSummary, RenderFramePhaseQueueSummaryPhaseCount,
+    RenderFramePhaseQueueSummaryPhaseOrderSpan,
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
@@ -83,7 +93,7 @@ pub use light::{
     RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,
     RenderLightFamilyReadiness, RenderLightReadinessReport, RenderPointLightSnapshot,
     RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderSpotLightSnapshot,
-    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT,
+    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT,
 };
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
@@ -113,7 +123,7 @@ pub use material::{
     RenderMaterialReadinessReport, RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
     RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
-    RenderMaterialValidationError, StandardMaterialDescriptor,
+    RenderMaterialTextureTransform, RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
@@ -148,14 +158,17 @@ pub use profile::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
     RENDER_PROFILE_CONFIG_KEY,
 };
+pub use relevance::PrimitiveRelevance;
 pub use scene_extract::{
-    PreviewEnvironmentExtract, RenderBloomSettings, RenderColorGradingSettings,
-    RenderExtractPacket, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
-    RenderMeshSnapshot, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
+    render_mesh_stable_instance_key, render_mesh_transform_revision, PreviewEnvironmentExtract,
+    RenderBloomSettings, RenderColorGradingSettings, RenderExtractPacket, RenderHybridGiDebugView,
+    RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
     RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
+    RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL, RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
@@ -170,8 +183,9 @@ pub use solari::{
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
 };
 pub use sprite::{
-    RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteBounds, RenderSpriteRect,
-    RenderSpriteSnapshot, SpriteExtract,
+    RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteBounds, RenderSpriteImageMode,
+    RenderSpriteRect, RenderSpriteScalingMode, RenderSpriteSliceBorder, RenderSpriteSliceScaleMode,
+    RenderSpriteSlicer, RenderSpriteSnapshot, SpriteExtract,
 };
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use virtual_geometry_debug_snapshot::{

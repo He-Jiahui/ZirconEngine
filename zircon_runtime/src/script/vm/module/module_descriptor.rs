@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::{ModuleDescriptor, ServiceObject, StartupMode};
+use crate::core::runtime::ServiceObject;
+use crate::core::{ModuleDescriptor, StartupMode};
 use crate::engine_module::{dependency_on, factory, plugin_factory, qualified_name};
 
 use crate::script::{

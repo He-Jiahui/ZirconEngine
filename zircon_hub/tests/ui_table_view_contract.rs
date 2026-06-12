@@ -74,16 +74,17 @@ fn project_table_owns_material_column_model_selection_and_detail_action() {
         "ProjectTable.tsx",
         &table,
         &[
-            "import { IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from \"@mui/material\";",
+            "import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from \"@mui/material\";",
             "import type { HubRecentProject } from \"../../types/hub\";",
             "import { ProjectCover } from \"./ProjectCover\";",
             "export interface ProjectTableProps",
             "projects: HubRecentProject[];",
-            "selectedProjectId?: string | null;",
+            "selectedProjectId: string | null;",
             "labels: {",
             "onSelect?: (project: HubRecentProject) => void;",
             "onOpenDetail?: (project: HubRecentProject) => void;",
-            "<Table size=\"small\" sx={{ tableLayout: \"fixed\" }}>",
+            "<Box sx={{ overflowX: \"auto\", minWidth: 0 }}>",
+            "<Table size=\"small\" sx={{ tableLayout: \"fixed\", minWidth: 560 }}>",
             "<TableHead>",
             "<HeaderCell width=\"32%\">{labels.name}</HeaderCell>",
             "<HeaderCell width=\"18%\">{labels.engineVersion}</HeaderCell>",
@@ -281,8 +282,9 @@ fn routed_pages_consume_shared_table_list_and_tree_views() {
         (
             "SettingsPage.tsx",
             vec![
-                "HubList items={healthRows}",
-                "HubTreeView nodes={pathTree} defaultExpanded={[\"settings-root\"]}",
+                "<SettingsSection",
+                "healthRows={healthRows}",
+                "pathTree={pathTree}",
                 "() => draftSettings.health.rows.map((row) => ({ ...row, disabled: false }))",
             ],
         ),
@@ -312,6 +314,27 @@ fn routed_pages_consume_shared_table_list_and_tree_views() {
             ],
         );
     }
+
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
+            "HubList items={healthRows}",
+            "HubTreeView nodes={pathTree} defaultExpanded={[\"settings-root\"]}",
+        ],
+    );
+    assert_not_contains_any(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
+            " Table,",
+            " TableBody",
+            " TableCell",
+            " TableHead",
+            " TableRow",
+        ],
+    );
 }
 
 #[test]
@@ -363,6 +386,7 @@ fn table_view_contract_is_cut_over_to_react_sources() {
             "web/src/components/data/ProjectTable.tsx",
             "web/src/components/data/HubList.tsx",
             "web/src/components/data/HubTreeView.tsx",
+            "web/src/components/data/SettingsSection.tsx",
             "web/src/pages/ProjectsDashboard.tsx",
             "web/src/pages/ProjectBrowserPage.tsx",
             "web/src/pages/ProjectDetailPage.tsx",

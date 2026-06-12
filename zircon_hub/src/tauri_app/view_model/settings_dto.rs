@@ -4,10 +4,12 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::error::HubError;
 use crate::settings::{BuildProfile, HubLanguage, HubSettings};
+use crate::{
+    error::HubError,
+    state::{HubMessage, HubMessageId, SettingsMessageId},
+};
 
 use super::display::path_text;
 use super::localized::HubTextBundle;
@@ -61,6 +63,8 @@ pub(crate) struct HubSettingsText {
     pub heading: String,
     pub projects_button: String,
     pub save_button: String,
+    pub discard_button: String,
+    pub restore_defaults_button: String,
     pub build_defaults_panel: String,
     pub configuration_paths_panel: String,
     pub source_engines_panel: String,
@@ -76,6 +80,81 @@ pub(crate) struct HubSettingsText {
     pub language_options: Vec<HubSettingsOptionText>,
     pub labels: HubSettingsFieldLabels,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SettingsFieldKind {
+    Executable,
+    Directory,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SettingsFieldSpec {
+    id: &'static str,
+    title_en: &'static str,
+    title_zh: &'static str,
+    required_label: &'static str,
+    kind: SettingsFieldKind,
+    selected: bool,
+}
+
+const SETTINGS_FIELD_SPECS: &[SettingsFieldSpec] = &[
+    SettingsFieldSpec {
+        id: "python-path",
+        title_en: "Python",
+        title_zh: "Python",
+        required_label: "Python executable",
+        kind: SettingsFieldKind::Executable,
+        selected: true,
+    },
+    SettingsFieldSpec {
+        id: "cargo-path",
+        title_en: "Cargo",
+        title_zh: "Cargo",
+        required_label: "Cargo executable",
+        kind: SettingsFieldKind::Executable,
+        selected: false,
+    },
+    SettingsFieldSpec {
+        id: "rustup-path",
+        title_en: "Rustup",
+        title_zh: "Rustup",
+        required_label: "Rustup executable",
+        kind: SettingsFieldKind::Executable,
+        selected: false,
+    },
+    SettingsFieldSpec {
+        id: "project-dir",
+        title_en: "Project Directory",
+        title_zh: "项目目录",
+        required_label: "Default project directory",
+        kind: SettingsFieldKind::Directory,
+        selected: false,
+    },
+    SettingsFieldSpec {
+        id: "source-dir",
+        title_en: "Source Checkout",
+        title_zh: "源码检出目录",
+        required_label: "Default source directory",
+        kind: SettingsFieldKind::Directory,
+        selected: false,
+    },
+    SettingsFieldSpec {
+        id: "build-output",
+        title_en: "Build Output",
+        title_zh: "构建输出",
+        required_label: "Default build output directory",
+        kind: SettingsFieldKind::Directory,
+        selected: false,
+    },
+    SettingsFieldSpec {
+        id: "device-install",
+        title_en: "Device Install",
+        title_zh: "设备安装",
+        required_label: "Default device install directory",
+        kind: SettingsFieldKind::Directory,
+        selected: false,
+    },
+];
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -109,9 +188,10 @@ pub(crate) struct HubSettingsFieldLabels {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
-struct HubSettingsActionPayload {
-    settings: HubSettingsPayload,
+pub(crate) struct HubSettingsActionPayload {
+    pub(crate) settings: HubSettingsPayload,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -156,32 +236,53 @@ impl HubSettingsPayload {
         }
         if let Some(value) = self.build_profile {
             settings.build_profile = BuildProfile::from_ui_value(&value)
-                .ok_or_else(|| HubError::message(format!("Unknown build profile: {value}")))?;
+                .ok_or_else(|| settings_error(SettingsMessageId::UnknownBuildProfile, [value]))?;
         }
         if let Some(value) = self.jobs {
             settings.jobs = value.max(1);
         }
         if let Some(value) = self.language {
             settings.language = HubLanguage::from_ui_value(&value)
-                .ok_or_else(|| HubError::message(format!("Unknown Hub language: {value}")))?;
+                .ok_or_else(|| settings_error(SettingsMessageId::UnknownLanguage, [value]))?;
         }
         Ok(())
     }
-}
 
-pub(crate) fn settings_payload_from_value(
-    payload: Option<&Value>,
-) -> Result<Option<HubSettingsPayload>, HubError> {
-    let Some(payload) = payload else {
-        return Ok(None);
-    };
-
-    if payload.get("settings").is_some() {
-        let payload: HubSettingsActionPayload = serde_json::from_value(payload.clone())?;
-        return Ok(Some(payload.settings));
+    pub(crate) fn apply_to_draft(self, settings: &mut HubSettings) -> Result<(), HubError> {
+        if let Some(value) = self.python_path {
+            settings.python_path = value.trim().to_string();
+        }
+        if let Some(value) = self.cargo_path {
+            settings.cargo_path = value.trim().to_string();
+        }
+        if let Some(value) = self.rustup_path {
+            settings.rustup_path = value.trim().to_string();
+        }
+        if let Some(value) = self.default_project_dir {
+            settings.default_project_dir = PathBuf::from(value.trim());
+        }
+        if let Some(value) = self.default_source_dir {
+            settings.default_source_dir = PathBuf::from(value.trim());
+        }
+        if let Some(value) = self.default_build_output_dir {
+            settings.default_build_output_dir = PathBuf::from(value.trim());
+        }
+        if let Some(value) = self.default_device_install_dir {
+            settings.default_device_install_dir = PathBuf::from(value.trim());
+        }
+        if let Some(value) = self.build_profile {
+            settings.build_profile = BuildProfile::from_ui_value(&value)
+                .ok_or_else(|| settings_error(SettingsMessageId::UnknownBuildProfile, [value]))?;
+        }
+        if let Some(value) = self.jobs {
+            settings.jobs = value.max(1);
+        }
+        if let Some(value) = self.language {
+            settings.language = HubLanguage::from_ui_value(&value)
+                .ok_or_else(|| settings_error(SettingsMessageId::UnknownLanguage, [value]))?;
+        }
+        Ok(())
     }
-
-    Ok(Some(serde_json::from_value(payload.clone())?))
 }
 
 pub(crate) fn settings_summary(settings: &HubSettings) -> HubSettingsSummary {
@@ -230,6 +331,8 @@ impl HubSettingsText {
                 .to_string(),
             projects_button: text.pair("Projects", "项目").to_string(),
             save_button: text.pair("Save Changes", "保存更改").to_string(),
+            discard_button: text.pair("Discard Changes", "放弃修改").to_string(),
+            restore_defaults_button: text.pair("Restore Defaults", "恢复默认").to_string(),
             build_defaults_panel: text.pair("Build Defaults", "构建默认值").to_string(),
             configuration_paths_panel: text.pair("Configuration Paths", "配置路径").to_string(),
             source_engines_panel: text.pair("Source Engines", "源码引擎").to_string(),
@@ -256,10 +359,7 @@ impl HubSettingsText {
                 option("debug", text.pair("Debug", "Debug")),
                 option("release", text.pair("Release", "Release")),
             ],
-            language_options: vec![
-                option("Chinese", text.pair("Chinese", "中文")),
-                option("English", text.pair("English", "English")),
-            ],
+            language_options: vec![option("Chinese", "中文"), option("English", "English")],
             labels: HubSettingsFieldLabels {
                 python_path: text
                     .pair("Python Executable", "Python 可执行文件")
@@ -292,59 +392,32 @@ impl HubSettingsText {
     }
 }
 
+pub(crate) fn validate_settings_for_save(settings: &HubSettings) -> Result<(), HubError> {
+    for spec in SETTINGS_FIELD_SPECS {
+        match spec.kind {
+            SettingsFieldKind::Executable => {
+                let value = settings_executable_value(settings, spec);
+                trimmed_required(value.to_string(), spec.required_label)?;
+            }
+            SettingsFieldKind::Directory => {
+                if settings_directory_value(settings, spec)
+                    .as_os_str()
+                    .is_empty()
+                {
+                    return Err(required_settings_error(spec.required_label));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn settings_health(settings: &HubSettings) -> HubSettingsHealthSummary {
     let text = HubTextBundle::new(settings.language);
-    let rows = vec![
-        executable_row(
-            "python-path",
-            text.pair("Python", "Python"),
-            &settings.python_path,
-            settings.language,
-            true,
-        ),
-        executable_row(
-            "cargo-path",
-            text.pair("Cargo", "Cargo"),
-            &settings.cargo_path,
-            settings.language,
-            false,
-        ),
-        executable_row(
-            "rustup-path",
-            text.pair("Rustup", "Rustup"),
-            &settings.rustup_path,
-            settings.language,
-            false,
-        ),
-        directory_row(
-            "project-dir",
-            text.pair("Project Directory", "项目目录"),
-            &settings.default_project_dir,
-            settings.language,
-            false,
-        ),
-        directory_row(
-            "source-dir",
-            text.pair("Source Checkout", "源码检出目录"),
-            &settings.default_source_dir,
-            settings.language,
-            false,
-        ),
-        directory_row(
-            "build-output",
-            text.pair("Build Output", "构建输出"),
-            &settings.default_build_output_dir,
-            settings.language,
-            false,
-        ),
-        directory_row(
-            "device-install",
-            text.pair("Device Install", "设备安装"),
-            &settings.default_device_install_dir,
-            settings.language,
-            false,
-        ),
-    ];
+    let rows = SETTINGS_FIELD_SPECS
+        .iter()
+        .map(|spec| settings_field_row(settings, spec))
+        .collect::<Vec<_>>();
     let ready_count = rows
         .iter()
         .filter(|row| row.state == "ok" || row.state == "warn")
@@ -373,6 +446,47 @@ fn settings_health(settings: &HubSettings) -> HubSettingsHealthSummary {
         tone: if has_error { "warning" } else { "success" }.to_string(),
         completion,
         rows,
+    }
+}
+
+fn settings_field_row(settings: &HubSettings, spec: &SettingsFieldSpec) -> HubSettingsHealthRow {
+    let language = settings.language;
+    let text = HubTextBundle::new(language);
+    let title = text.pair(spec.title_en, spec.title_zh);
+    match spec.kind {
+        SettingsFieldKind::Executable => executable_row(
+            spec.id,
+            title,
+            settings_executable_value(settings, spec),
+            language,
+            spec.selected,
+        ),
+        SettingsFieldKind::Directory => directory_row(
+            spec.id,
+            title,
+            settings_directory_value(settings, spec),
+            language,
+            spec.selected,
+        ),
+    }
+}
+
+fn settings_executable_value<'a>(settings: &'a HubSettings, spec: &SettingsFieldSpec) -> &'a str {
+    match spec.id {
+        "python-path" => &settings.python_path,
+        "cargo-path" => &settings.cargo_path,
+        "rustup-path" => &settings.rustup_path,
+        _ => "",
+    }
+}
+
+fn settings_directory_value<'a>(settings: &'a HubSettings, spec: &SettingsFieldSpec) -> &'a Path {
+    match spec.id {
+        "project-dir" => &settings.default_project_dir,
+        "source-dir" => &settings.default_source_dir,
+        "build-output" => &settings.default_build_output_dir,
+        "device-install" => &settings.default_device_install_dir,
+        _ => Path::new(""),
     }
 }
 
@@ -558,13 +672,34 @@ fn option(value: &str, label: &str) -> HubSettingsOptionText {
 fn trimmed_required(value: String, label: &str) -> Result<String, HubError> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
-        return Err(HubError::message(format!("{label} is required")));
+        return Err(required_settings_error(label));
     }
     Ok(trimmed.to_string())
 }
 
 fn path_from_required(value: String, label: &str) -> Result<PathBuf, HubError> {
     Ok(PathBuf::from(trimmed_required(value, label)?))
+}
+
+fn required_settings_error(label: &str) -> HubError {
+    let id = match label {
+        "Python executable" => SettingsMessageId::PythonRequired,
+        "Cargo executable" => SettingsMessageId::CargoRequired,
+        "Rustup executable" => SettingsMessageId::RustupRequired,
+        "Default project directory" => SettingsMessageId::DefaultProjectDirRequired,
+        "Default source directory" => SettingsMessageId::DefaultSourceDirRequired,
+        "Default build output directory" => SettingsMessageId::DefaultBuildOutputDirRequired,
+        "Default device install directory" => SettingsMessageId::DefaultDeviceInstallDirRequired,
+        _ => return HubError::message(format!("{label} is required")),
+    };
+    HubError::status(HubMessage::new(HubMessageId::Settings(id)), None)
+}
+
+fn settings_error<const N: usize>(id: SettingsMessageId, params: [String; N]) -> HubError {
+    HubError::status(
+        HubMessage::with_params(HubMessageId::Settings(id), params),
+        None,
+    )
 }
 
 fn build_profile_label(profile: BuildProfile) -> &'static str {
@@ -652,12 +787,11 @@ mod tests {
                 "language": "zh"
             }
         });
-        let payload = settings_payload_from_value(Some(&value))
-            .unwrap()
-            .expect("settings payload should parse");
+        let payload: HubSettingsActionPayload =
+            serde_json::from_value(value).expect("settings payload should parse");
         let mut settings = HubSettings::default();
 
-        payload.apply_to(&mut settings).unwrap();
+        payload.settings.apply_to(&mut settings).unwrap();
 
         assert_eq!(settings.python_path, "py");
         assert_eq!(settings.build_profile, BuildProfile::Release);
@@ -676,6 +810,29 @@ mod tests {
         assert_eq!(summary.text.heading, "工具链、构建默认值与路径");
         assert_eq!(summary.text.language_options[0].label, "中文");
         assert_eq!(summary.text.job_count_plural_template, "{jobs} 任务");
+    }
+
+    #[test]
+    fn settings_language_options_keep_native_names_across_ui_languages() {
+        let mut settings = HubSettings {
+            language: HubLanguage::English,
+            ..HubSettings::default()
+        };
+
+        let english_summary = settings_summary(&settings);
+
+        assert_eq!(english_summary.text.language_options[0].value, "Chinese");
+        assert_eq!(english_summary.text.language_options[0].label, "中文");
+        assert_eq!(english_summary.text.language_options[1].value, "English");
+        assert_eq!(english_summary.text.language_options[1].label, "English");
+
+        settings.language = HubLanguage::Chinese;
+        let chinese_summary = settings_summary(&settings);
+
+        assert_eq!(chinese_summary.text.language_options[0].value, "Chinese");
+        assert_eq!(chinese_summary.text.language_options[0].label, "中文");
+        assert_eq!(chinese_summary.text.language_options[1].value, "English");
+        assert_eq!(chinese_summary.text.language_options[1].label, "English");
     }
 
     #[test]

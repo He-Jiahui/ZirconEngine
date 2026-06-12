@@ -1,5 +1,6 @@
 //! Scene rasterization and resource streaming.
 
+mod gpu_scene;
 #[cfg(test)]
 mod render_product_material_property_tests;
 #[cfg(test)]

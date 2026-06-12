@@ -1,0 +1,11 @@
+semantic_id = "editor.icons.save"
+default_size = 20.0
+
+[source]
+kind = "svg"
+text = """
+<svg width="24" height="24" viewBox="0 0 24 24">
+  <path d="M5 3h12l2 2v16H5z" fill="#f4f8fb" />
+  <path d="M8 4v6h8V4z" fill="#27323a" />
+</svg>
+"""

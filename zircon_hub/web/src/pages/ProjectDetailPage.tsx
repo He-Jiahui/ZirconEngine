@@ -1,9 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { Box, Typography } from "@mui/material";
@@ -13,10 +10,10 @@ import {
   HubList,
   HubPanel,
   HubTreeView,
-  MetricCard,
+  ProjectDetailSidebar,
   ProjectCover,
+  ProjectMetricsGrid,
   QuickActions,
-  SourceEngineList,
   StatusBadge,
 } from "../components/data";
 import { HubStatusBanner } from "../components/feedback";
@@ -116,21 +113,7 @@ export function ProjectDetailPage({ state, onAction }: ProjectDetailPageProps) {
         <EmptyStateBlock title={text.noProjectSelected} detail={text.chooseProjectFromBrowser} icon={<WarningAmberIcon />} />
       ) : (
         <>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-              gap: 1.2,
-              mb: 1.4,
-              "@media (max-width: 1180px)": { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
-              "@media (max-width: 720px)": { gridTemplateColumns: "1fr" },
-            }}
-          >
-            <MetricCard label={text.status} value={project.status} detail={project.exists ? text.ready : text.pathUnavailable} icon={<WarningAmberIcon />} tone={project.exists ? "success" : "warning"} />
-            <MetricCard label={text.engine} value={project.engineVersion} detail={boundEngine?.status ?? text.projectBinding} icon={<StorageOutlinedIcon />} tone="accent" />
-            <MetricCard label={text.lastModified} value={project.modified} detail={project.platform} icon={<EventOutlinedIcon />} />
-            <MetricCard label={text.projectPin} value={project.pinned ? text.pinned : text.unpinned} detail={project.templateLabel} icon={<PushPinOutlinedIcon />} />
-          </Box>
+          <ProjectMetricsGrid project={project} boundEngine={boundEngine} text={text} />
 
           <Box sx={{ mb: 1.4 }}>
             <HubTabs
@@ -185,50 +168,17 @@ export function ProjectDetailPage({ state, onAction }: ProjectDetailPageProps) {
               </HubPanel>
             ) : null}
 
-            <Box sx={{ display: "grid", gap: 1.4, alignContent: "start" }}>
-              <HubPanel title={text.quickActions}>
-                <QuickActions actions={state.quickActions} onAction={(action) => void onAction(action.id, undefined, quickActionProjectTarget)} />
-              </HubPanel>
-              <HubPanel title={text.sourceEngines}>
-                <SourceEngineList engines={state.sourceEngines} emptyLabel={state.ui.shell.noSourceEngineRegistered} onSelect={(engine) => void onAction(HUB_ACTION.selectEngine, engine.id)} />
-              </HubPanel>
-              <HubPanel title={text.package}>
-                <Box sx={{ display: "grid", gap: 1 }}>
-                  <HubButton startIcon={<Inventory2OutlinedIcon />} onClick={() => void onAction(HUB_ACTION.packageProject, undefined, projectTarget)}>
-                    {actionText.packageProject}
-                  </HubButton>
-                  <HubButton onClick={() => void onAction(HUB_ACTION.installDevice, undefined, projectTarget)}>
-                    {actionText.installToDevice}
-                  </HubButton>
-                </Box>
-              </HubPanel>
-              <HubPanel title={text.projectManagement}>
-                <Box sx={{ display: "grid", gap: 1 }}>
-                  {project.pendingDelete ? (
-                    <>
-                      <StatusBadge label={text.deleteRequested} tone="warning" />
-                      <Typography variant="caption" color="text.secondary">
-                        {text.deleteRequestedDetail}
-                      </Typography>
-                      <HubButton onClick={() => void onAction(HUB_ACTION.cancelDelete, undefined, projectTarget)}>{actionText.cancelDelete}</HubButton>
-                      <HubButton tone="danger" onClick={() => void onAction(HUB_ACTION.confirmDelete, undefined, projectTarget)}>
-                        {actionText.confirmDelete}
-                      </HubButton>
-                    </>
-                  ) : (
-                    <>
-                      <HubButton onClick={() => void onAction(project.pinned ? HUB_ACTION.unpinProject : HUB_ACTION.pinProject, undefined, projectTarget)}>
-                        {project.pinned ? actionText.unpinProject : actionText.pinProject}
-                      </HubButton>
-                      <HubButton onClick={() => void onAction(HUB_ACTION.removeFromHub, undefined, projectTarget)}>{actionText.removeFromHub}</HubButton>
-                      <HubButton tone="danger" onClick={() => void onAction(HUB_ACTION.requestDelete, undefined, projectTarget)}>
-                        {actionText.requestDelete}
-                      </HubButton>
-                    </>
-                  )}
-                </Box>
-              </HubPanel>
-            </Box>
+            <ProjectDetailSidebar
+              project={project}
+              projectTarget={projectTarget}
+              quickActionProjectTarget={quickActionProjectTarget}
+              quickActions={state.quickActions}
+              sourceEngines={state.sourceEngines}
+              text={text}
+              actionText={actionText}
+              emptyEngineLabel={state.ui.shell.noSourceEngineRegistered}
+              onAction={onAction}
+            />
           </Box>
         </>
       )}

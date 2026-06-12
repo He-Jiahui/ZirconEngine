@@ -12,6 +12,8 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
         .with_pipeline_cache(true)
         .with_storage_buffers(true)
         .with_indirect_draw(true)
+        .with_multi_draw_indirect(true)
+        .with_indirect_first_instance(true)
         .with_buffer_readback(true)
         .with_neural_compute(true)
         .with_sparse_texture(true)
@@ -27,6 +29,8 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
     assert!(caps.supports_pipeline_cache);
     assert!(caps.supports_storage_buffers);
     assert!(caps.supports_indirect_draw);
+    assert!(caps.supports_multi_draw_indirect);
+    assert!(caps.supports_indirect_first_instance);
     assert!(caps.supports_buffer_readback);
     assert!(caps.supports_neural_compute);
     assert!(caps.supports_sparse_texture);

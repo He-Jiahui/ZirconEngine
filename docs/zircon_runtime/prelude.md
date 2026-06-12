@@ -2,6 +2,8 @@
 related_code:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/builtin/mod.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/modules/log.rs
   - zircon_runtime/src/core/tasks/mod.rs
@@ -24,6 +26,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/builtin/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/tasks/report.rs
   - zircon_runtime/src/core/framework/window/mod.rs
@@ -64,6 +67,7 @@ doc_type: module-detail
 - `zircon_runtime::core::framework::window` owns neutral window descriptors, resolution, resize constraints, position, mode, present mode, and primary-window handle DTOs.
 - `zircon_runtime::input` owns neutral input events, button state, frame snapshots, gamepad/touch vocabulary, and the default runtime input reducer.
 - `zircon_runtime::engine_module` owns module/service descriptor helpers and the `EngineModule` trait.
+- `zircon_runtime::builtin` owns runtime module assembly helpers that the prelude curates for application bootstrap convenience.
 - `zircon_runtime::prelude` only curates those public surfaces for ergonomic imports.
 
 This keeps the prelude behavior-free: milestones can add stable contracts after their owning modules exist, but the prelude itself does not introduce behavior or hidden ownership.
@@ -81,6 +85,7 @@ The runtime prelude exports:
 - Bevy-style runtime Time diagnostic path constants such as `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`,
 - diagnostics and log filter types such as `DiagnosticStore`, `DiagnosticPath`, `RuntimeDiagnosticsSnapshot`, `DiagnosticLogFilter`, `DiagnosticLogLevel`, `DiagnosticLogSettings` / `LogSettings`, diagnostic-store log formatting helpers, `DiagnosticStoreLogSchedule`, and the `ZIRCON_LOG_FILTER` / `ZIRCON_LOG` / `RUST_LOG` environment constant names,
 - runtime profile and target selection types such as `RuntimeProfileDescriptor`, `RuntimeProfileId`, `RuntimeCoreProfile`, `EditorCoreProfile`, `PluginMaturity`, `RuntimePluginId`, and `RuntimeTargetMode`.
+- runtime module assembly helpers such as `runtime_modules_for_target(...)`, profile assembly helpers, manifest baseline helpers, and `RuntimeModuleLoadReport`, all re-exported from the builtin owner instead of the crate root.
 
 ## Non-Goals
 

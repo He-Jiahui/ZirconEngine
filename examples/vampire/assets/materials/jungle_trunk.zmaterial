@@ -1,0 +1,16 @@
+version = 1
+name = "Jungle Trunk"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000142"
+url = "res://shaders/vampire_forest"
+
+[overrides]
+base_color = [0.36, 0.19, 0.075, 1.0]
+metallic = 0.0
+roughness = 0.86
+emissive = [0.012, 0.006, 0.0]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

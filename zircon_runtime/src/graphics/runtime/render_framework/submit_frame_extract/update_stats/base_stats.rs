@@ -4,9 +4,10 @@ use crate::core::framework::render::{
     PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
     RenderGraphExecutionCoverageReport, RenderLightReadinessReport,
     RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
-    RenderShadowExecutionReport,
+    RenderShadowExecutionReport, RenderStats,
 };
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::visibility::{FrameVisibility, HzbBuilder};
 use crate::graphics::ViewportMotionVectorObjectHistory;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
@@ -40,6 +41,10 @@ pub(super) fn update_base_stats(
     state.stats.last_scene_camera_order_ambiguity_count = context
         .scene_camera_order_report()
         .map_or(0, |report| report.ambiguities.len());
+    update_visibility_stats(
+        &mut state.stats,
+        &context.visibility_context().frame_visibility,
+    );
     let compiled_pipeline = context.compiled_pipeline();
     state.stats.last_effective_features = compiled_feature_names(compiled_pipeline);
     let graph_stats = compiled_pipeline.graph.stats();
@@ -163,6 +168,12 @@ pub(super) fn update_base_stats(
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
     state.stats.last_anti_alias_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "post.fxaa");
+    let hzb_plan = HzbBuilder::new(context.render_size()).build_plan();
+    state.stats.last_hzb_mip_count = hzb_plan.mip_count as usize;
+    state.stats.last_hzb_graph_executed_pass_count = count_executor_prefix(
+        &state.stats.last_graph_executed_executor_ids,
+        "visibility.hzb-",
+    );
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();
@@ -229,7 +240,23 @@ pub(super) fn update_base_stats(
         prepared_mesh_queue_stats.prepared_geometry_draw_count;
     state.stats.last_mesh_dynamic_geometry_draw_count =
         prepared_mesh_queue_stats.dynamic_geometry_draw_count;
+    state.stats.last_mesh_skinned_draw_count = prepared_mesh_queue_stats.skinned_draw_count;
+    state.stats.last_mesh_skinned_palette_upload_count =
+        prepared_mesh_queue_stats.skinned_palette_upload_count;
+    state.stats.last_mesh_skinned_previous_palette_upload_count =
+        prepared_mesh_queue_stats.skinned_previous_palette_upload_count;
+    state.stats.last_mesh_skinned_gpu_source_candidate_count =
+        prepared_mesh_queue_stats.skinned_gpu_source_candidate_count;
+    state
+        .stats
+        .last_mesh_skinned_gpu_cpu_morphed_source_candidate_count =
+        prepared_mesh_queue_stats.skinned_gpu_cpu_morphed_source_candidate_count;
+    state.stats.last_mesh_skinned_gpu_skinning_draw_count =
+        prepared_mesh_queue_stats.skinned_gpu_skinning_draw_count;
+    state.stats.last_mesh_skinned_gpu_motion_vector_draw_count =
+        prepared_mesh_queue_stats.skinned_gpu_motion_vector_draw_count;
     state.stats.last_mesh_indirect_draw_count = prepared_mesh_queue_stats.indirect_draw_count;
+    state.stats.last_mesh_lod_draw_count = prepared_mesh_queue_stats.lod_draw_count;
     state
         .stats
         .last_mesh_previous_motion_vector_transform_draw_count =
@@ -250,6 +277,25 @@ pub(super) fn update_base_stats(
         prepared_mesh_queue_stats.gpu_instancing_candidate_group_count;
     state.stats.last_mesh_gpu_instancing_candidate_draw_count =
         prepared_mesh_queue_stats.gpu_instancing_candidate_draw_count;
+    state.stats.last_indirect_batch_count = prepared_mesh_queue_stats.indirect_batch_count;
+    state.stats.last_indirect_batched_draw_count =
+        prepared_mesh_queue_stats.indirect_batched_draw_count;
+    state.stats.last_indirect_fallback_draw_count =
+        prepared_mesh_queue_stats.indirect_fallback_draw_count;
+    state.stats.last_indirect_args_count = prepared_mesh_queue_stats.indirect_args_count;
+    state.stats.last_gpu_scene_primitive_count =
+        prepared_mesh_queue_stats.gpu_scene_primitive_count;
+    state.stats.last_gpu_scene_instance_count = prepared_mesh_queue_stats.gpu_scene_instance_count;
+    state.stats.last_gpu_scene_dirty_entry_count =
+        prepared_mesh_queue_stats.gpu_scene_dirty_entry_count;
+    state.stats.last_gpu_scene_uploaded_bytes = prepared_mesh_queue_stats.gpu_scene_uploaded_bytes;
+    state.stats.last_gpu_scene_upload_path = prepared_mesh_queue_stats.gpu_scene_upload_path;
+    state.stats.last_gpu_scene_free_span_count =
+        prepared_mesh_queue_stats.gpu_scene_free_span_count;
+    state.stats.last_gpu_scene_primitive_upload_range_count =
+        prepared_mesh_queue_stats.gpu_scene_primitive_upload_range_count;
+    state.stats.last_gpu_scene_instance_upload_range_count =
+        prepared_mesh_queue_stats.gpu_scene_instance_upload_range_count;
     state.stats.last_sprite_count = state.renderer.last_sprite_count();
     state.stats.last_sprite_ready_count = state.renderer.last_sprite_ready_count();
     state.stats.last_sprite_texture_fallback_count =
@@ -259,6 +305,9 @@ pub(super) fn update_base_stats(
     let prepared_sprite_queue_stats = state.renderer.last_prepared_sprite_queue_stats();
     state.stats.last_sprite_draw_batch_count = prepared_sprite_queue_stats.draw_batch_count;
     state.stats.last_sprite_batched_sprite_count = prepared_sprite_queue_stats.sprite_count;
+    state.stats.last_sprite_image_slice_count = prepared_sprite_queue_stats.image_slice_count;
+    state.stats.last_sprite_expanded_image_slice_count =
+        prepared_sprite_queue_stats.expanded_image_slice_count;
     state.stats.last_sprite_vertex_count = prepared_sprite_queue_stats.vertex_count;
     state.stats.last_sprite_opaque_draw_batch_count =
         prepared_sprite_queue_stats.opaque_draw_batch_count;
@@ -303,6 +352,35 @@ fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
         .iter()
         .filter(|executor_id| executor_id.starts_with(prefix))
         .count()
+}
+
+fn update_visibility_stats(stats: &mut RenderStats, frame_visibility: &FrameVisibility) {
+    stats.last_visibility_view_count = frame_visibility.views.len();
+    stats.last_visibility_input_count = frame_visibility
+        .views
+        .iter()
+        .map(|view| view.stats.input_count)
+        .sum();
+    stats.last_visibility_layer_filtered_count = frame_visibility
+        .views
+        .iter()
+        .map(|view| view.stats.layer_filtered_count)
+        .sum();
+    stats.last_visibility_frustum_culled_count = frame_visibility
+        .views
+        .iter()
+        .map(|view| view.stats.frustum_culled_count)
+        .sum();
+    stats.last_visibility_occlusion_culled_count = frame_visibility
+        .views
+        .iter()
+        .map(|view| view.stats.occlusion_culled_count)
+        .sum();
+    stats.last_visibility_visible_count = frame_visibility
+        .views
+        .iter()
+        .map(|view| view.stats.visible_count)
+        .sum();
 }
 
 fn graph_execution_coverage_report(
@@ -446,12 +524,13 @@ fn runtime_ui_graph_pass_order(
 mod tests {
     use super::{
         effect_stack_resource_status, graph_execution_coverage_report_from_names,
-        runtime_ui_graph_pass_order,
+        runtime_ui_graph_pass_order, update_visibility_stats,
     };
     use crate::core::framework::render::{
         MotionVectorCameraStatus, PostProcessEffectKind, PostProcessGraphResourceNames,
-        PostProcessPassGraph, PostProcessPassNode,
+        PostProcessPassGraph, PostProcessPassNode, RenderStats,
     };
+    use crate::graphics::visibility::{FrameVisibility, ViewCullingStats, ViewVisibilityContext};
 
     #[test]
     fn graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passes() {
@@ -473,6 +552,45 @@ mod tests {
         assert_eq!(report.missing_planned_pass_count, 1);
         assert_eq!(report.unexpected_executed_pass_count, 1);
         assert_eq!(report.duplicate_executed_pass_count, 1);
+    }
+
+    #[test]
+    fn update_visibility_stats_sums_per_view_culling_counts() {
+        let frame_visibility = FrameVisibility {
+            views: vec![
+                ViewVisibilityContext {
+                    stats: ViewCullingStats {
+                        input_count: 4,
+                        layer_filtered_count: 1,
+                        frustum_culled_count: 1,
+                        occlusion_culled_count: 0,
+                        visible_count: 2,
+                    },
+                    ..ViewVisibilityContext::default()
+                },
+                ViewVisibilityContext {
+                    stats: ViewCullingStats {
+                        input_count: 4,
+                        layer_filtered_count: 0,
+                        frustum_culled_count: 2,
+                        occlusion_culled_count: 1,
+                        visible_count: 1,
+                    },
+                    ..ViewVisibilityContext::default()
+                },
+            ],
+            ..FrameVisibility::default()
+        };
+        let mut stats = RenderStats::default();
+
+        update_visibility_stats(&mut stats, &frame_visibility);
+
+        assert_eq!(stats.last_visibility_view_count, 2);
+        assert_eq!(stats.last_visibility_input_count, 8);
+        assert_eq!(stats.last_visibility_layer_filtered_count, 1);
+        assert_eq!(stats.last_visibility_frustum_culled_count, 3);
+        assert_eq!(stats.last_visibility_occlusion_culled_count, 1);
+        assert_eq!(stats.last_visibility_visible_count, 3);
     }
 
     #[test]

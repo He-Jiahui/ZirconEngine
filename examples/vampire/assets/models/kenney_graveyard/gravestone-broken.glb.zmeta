@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "3d0488e2-dfaf-4441-b743-d97c7733819c"
+url = "res://models/kenney_graveyard/gravestone-broken.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/6b3fa2e8-0601-cf83-bca4-3d12cf5831c0.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "f7a5970259db62a6"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-broken.glb#Texture0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Material0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "3d0488e2-dfaf-4441-b743-d97c7733819c"
+url = "res://models/kenney_graveyard/gravestone-broken.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/6b3fa2e8-0601-cf83-bca4-3d12cf5831c0.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-broken.glb#Texture0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Material0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Scene0",
+]
+
+[[entries]]
+uuid = "9298e880-2fcf-4267-bf8f-a8a5c48c7e3e"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/717af655-c537-f9b6-6b17-834fbedceb3c.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "61fdabdf-0e46-45b4-9388-fb5629b0c8b8"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/3a833df5-45d9-076a-1dfb-997e9aab978b.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "cbf5f914-d891-49d9-83e3-2332b27128f3"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/dbf95524-40d7-01ed-a31d-8e80992ce727.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Texture0",
+]
+
+[[entries]]
+uuid = "4c150d83-70e0-4963-b27d-8a6325b7be5d"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/38cbb823-4f53-84ff-0cd0-8b9f2bca4b3e.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Material0",
+]
+
+[[entries]]
+uuid = "5803b4ec-fb0a-4032-a943-543e1befc570"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/03b32035-2e4a-207c-ca70-b696cb3b344d.zasset"
+dependencies = ["res://models/kenney_graveyard/gravestone-broken.glb#Material0"]
+
+[[entries]]
+uuid = "36a7a410-2cf5-4015-8aa0-8cafe513d2cb"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/1dad2402-1ae8-ca5c-014f-7b2d0431c6e5.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-broken.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Material0",
+]
+
+[[entries]]
+uuid = "cb68e40c-b982-4bfa-be6d-fc28ebce542a"
+url = "res://models/kenney_graveyard/gravestone-broken.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/38fef6ad-3ff0-4c2a-3285-c1d4a91a333e.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/gravestone-broken.glb#Node0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/gravestone-broken.glb#Material0",
+]

@@ -33,6 +33,15 @@ first-party-navigation-runtime-plugin = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/navigation-runtime-plugin",
 ]
+first-party-zr-vm-language-runtime-plugin = [
+    "dep:zircon_first_party_runtime_catalog",
+    "zircon_first_party_runtime_catalog/zr-vm-language-runtime-plugin",
+]
+first-party-zr-vm-real-backend = [
+    "first-party-zr-vm-language-runtime-plugin",
+    "zircon_first_party_runtime_catalog/zr-vm-real-backend",
+    "zircon_runtime/zr-vm-real-backend",
+]
 default-platform = [
     "zircon_runtime/default-platform",
     "platform-window",

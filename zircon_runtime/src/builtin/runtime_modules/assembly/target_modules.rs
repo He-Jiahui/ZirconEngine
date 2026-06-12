@@ -4,12 +4,13 @@ use crate::plugin::ProjectPluginManifest;
 
 use super::super::availability::target_manifest_availability;
 use super::super::core_modules::runtime_core_modules_for_target_with_render_features;
+use super::super::ids::RuntimeTargetMode;
+use super::super::load_report::RuntimeModuleLoadReport;
 use super::super::manifest::manifest_with_mode_baseline;
 use super::super::plugin_modules::{
     builtin_runtime_domain_is_available, builtin_runtime_domain_message,
     linked_plugin_is_available, module_for_plugin,
 };
-use super::super::{RuntimeModuleLoadReport, RuntimeRequiredPluginMissing, RuntimeTargetMode};
 use super::registration_inputs::RuntimeModuleRegistrationInputs;
 
 pub(super) fn runtime_modules_for_target_with_registration_inputs(
@@ -82,10 +83,7 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
                 runtime_id.label(),
                 reason.clone()
             );
-            report.required_missing.push(RuntimeRequiredPluginMissing {
-                id: runtime_id,
-                reason,
-            });
+            report.push_required_missing(runtime_id, reason);
             report.errors.push(message);
         }
     }

@@ -778,6 +778,81 @@ mod tests {
     }
 
     #[test]
+    fn vm_plugin_manager_calls_exports_by_loaded_package_name() {
+        let manager = VmPluginManager::mock();
+        let slot = manager
+            .load_package(test_package("gameplay", "0.1.0"))
+            .unwrap();
+
+        let returned = manager
+            .call_package_export(
+                "gameplay",
+                "player",
+                "onUpdate",
+                &[ScriptHostValue::Int(7), ScriptHostValue::Float(0.25)],
+            )
+            .unwrap();
+
+        assert_eq!(returned, Some(ScriptHostValue::Null));
+        assert_eq!(manager.slot_for_package_name("gameplay").unwrap(), slot);
+    }
+
+    #[test]
+    fn builtin_host_modules_register_gameplay_capabilities() {
+        let exports = HostExportRegistry::default();
+        super::super::register_builtin_host_modules(&exports, &HostRegistry::default()).unwrap();
+
+        let gameplay = exports.module("zr.zircon.gameplay").unwrap();
+        assert!(gameplay
+            .descriptor
+            .capabilities
+            .contains(&"gameplay.input".to_string()));
+        assert!(gameplay
+            .descriptor
+            .capabilities
+            .contains(&"gameplay.entity".to_string()));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "key_pressed"));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "nav_next_point_json"));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "nearest_by_script_property"));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "damage_entity"));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "set_world_hud_bar"));
+        assert!(gameplay
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "set_animation_bool"));
+        assert!(
+            !gameplay
+                .descriptor
+                .functions
+                .iter()
+                .any(|function| function.name == "vampire_start"
+                    || function.name == "vampire_tick"),
+            "gameplay host should expose generic gameplay calls, not vampire-specific Rust delegates"
+        );
+    }
+
+    #[test]
     fn unavailable_backend_reports_error() {
         let backend = UnavailableVmBackend;
         let source = VmPluginPackageSource::default();
@@ -1030,6 +1105,8 @@ mod tests {
             "host/constants.rs",
             "host/vm_plugin_host_context.rs",
             "host/vm_plugin_slot_lifecycle.rs",
+            "gameplay_host.rs",
+            "gameplay_host/script_bindings.rs",
             "plugin/mod.rs",
             "plugin/management_policy/mod.rs",
             "plugin/management_policy/policy.rs",
@@ -1047,11 +1124,23 @@ mod tests {
             "runtime/vm_plugin_slot_record.rs",
             "runtime/vm_plugin_slot_state.rs",
             "runtime/vm_plugin_manager.rs",
+            "runtime_context.rs",
+            "scene_hook.rs",
         ] {
             assert!(
                 root.join(relative).exists(),
                 "expected vm module {relative} under {:?}",
                 root
+            );
+        }
+
+        for forbidden in [
+            "backend/zr_vm_project_fallback_backend.rs",
+            "backend/zr_vm_project_fallback_backend",
+        ] {
+            assert!(
+                !root.join(forbidden).exists(),
+                "vm runtime must not keep project-specific fallback backend path {forbidden}"
             );
         }
     }

@@ -1,0 +1,120 @@
+version = 1
+name = "Vampire Actor PBR"
+wgsl_files = ["vampire_actor_base.wgsl", "vampire_actor_variant.wgsl"]
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+
+[pipeline_layout]
+push_constant_ranges = []
+
+[[pipeline_layout.bind_groups]]
+group = 0
+label = "scene"
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 0
+label = "scene_uniform"
+resource_type = "uniform_buffer"
+visibility = ["vertex", "fragment"]
+
+[[pipeline_layout.bind_groups]]
+group = 1
+label = "model"
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 0
+label = "model_uniform"
+resource_type = "uniform_buffer"
+visibility = ["vertex", "fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 1
+label = "current_skinned_joint_palette"
+resource_type = "uniform_buffer"
+visibility = ["vertex"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 2
+label = "previous_skinned_joint_palette"
+resource_type = "uniform_buffer"
+visibility = ["vertex"]
+
+[[pipeline_layout.bind_groups]]
+group = 2
+label = "material_textures"
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 0
+label = "base_color_texture"
+resource_type = "texture"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 1
+label = "base_color_sampler"
+resource_type = "sampler"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 2
+label = "normal_texture"
+resource_type = "texture"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 3
+label = "normal_sampler"
+resource_type = "sampler"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 4
+label = "metallic_roughness_texture"
+resource_type = "texture"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 5
+label = "metallic_roughness_sampler"
+resource_type = "sampler"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 6
+label = "occlusion_texture"
+resource_type = "texture"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 7
+label = "occlusion_sampler"
+resource_type = "sampler"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 8
+label = "emissive_texture"
+resource_type = "texture"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 9
+label = "emissive_sampler"
+resource_type = "sampler"
+visibility = ["fragment"]
+
+[[pipeline_layout.bind_groups]]
+group = 3
+label = "material"
+
+[[pipeline_layout.bind_groups.bindings]]
+binding = 0
+label = "material_uniform"
+resource_type = "uniform_buffer"
+visibility = ["fragment"]

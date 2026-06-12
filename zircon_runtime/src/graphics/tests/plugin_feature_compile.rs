@@ -8,7 +8,9 @@ use crate::graphics::tests::plugin_render_feature_fixtures::{
     hybrid_gi_render_feature_descriptor, particle_render_feature_descriptor,
     virtual_geometry_render_feature_descriptor,
 };
-use crate::render_graph::QueueLane;
+use crate::render_graph::{
+    QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
+};
 use crate::{
     BuiltinRenderFeature, FrameHistoryBinding, FrameHistorySlot,
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
@@ -90,6 +92,7 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
             pipeline.name
         );
         for feature in [
+            BuiltinRenderFeature::SkinnedMesh,
             BuiltinRenderFeature::Particle,
             BuiltinRenderFeature::Terrain,
             BuiltinRenderFeature::Tree,
@@ -241,6 +244,44 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
             "enabled graph should contain {pass_name}"
         );
     }
+    let hybrid_trace = enabled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "hybrid-gi-trace-schedule")
+        .expect("hybrid GI trace schedule pass should compile");
+    let hybrid_workload = hybrid_trace
+        .compute_workload
+        .as_ref()
+        .expect("hybrid GI trace schedule pass should keep planned compute workload metadata");
+    assert_eq!(
+        hybrid_workload.pipeline_label,
+        "zircon-hybrid-gi-trace-schedule"
+    );
+    assert_eq!(hybrid_workload.workgroup_size, [8, 8, 1]);
+    assert_eq!(
+        hybrid_workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
+    );
+    let virtual_geometry_cull = enabled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "virtual-geometry-node-cluster-cull")
+        .expect("virtual geometry node-cluster cull pass should compile");
+    let virtual_geometry_workload = virtual_geometry_cull
+        .compute_workload
+        .as_ref()
+        .expect("virtual geometry cull pass should keep planned compute workload metadata");
+    assert_eq!(
+        virtual_geometry_workload.pipeline_label,
+        "zircon-virtual-geometry-node-cluster-cull"
+    );
+    assert_eq!(virtual_geometry_workload.workgroup_size, [64, 1, 1]);
+    assert_eq!(
+        virtual_geometry_workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
+    );
     assert!(enabled
         .history_bindings
         .contains(&FrameHistoryBinding::read_write(
@@ -364,6 +405,16 @@ fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
         .find(|pass| pass.name == "plugin-neural-inference")
         .expect("enabled neural compute plugin pass should compile into the render graph");
     assert_eq!(neural_pass.queue, QueueLane::AsyncCompute);
+    let workload = neural_pass
+        .compute_workload
+        .as_ref()
+        .expect("neural compute pass should keep planned compute workload metadata");
+    assert_eq!(workload.pipeline_label, "zircon-neural-inference");
+    assert_eq!(workload.workgroup_size, [8, 8, 1]);
+    assert_eq!(
+        workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::Viewport
+    );
     assert!(enabled
         .required_extract_sections
         .contains(&"plugin_neural_compute".to_string()));
@@ -494,6 +545,10 @@ fn plugin_neural_compute_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("plugin.neural.inference")
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            "zircon-neural-inference",
+            [8, 8, 1],
+        ))
         .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
         .write_buffer("plugin-neural-output")],
     )

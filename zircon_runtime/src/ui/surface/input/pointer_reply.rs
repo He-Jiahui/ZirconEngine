@@ -67,7 +67,7 @@ fn pointer_reply_phase(
             )
         })
         .map(|invocation| invocation.phase)
-        .or(Some(UiDispatchPhase::Bubble))
+        .or(Some(UiDispatchPhase::Target))
 }
 
 fn pointer_reply_effects(

@@ -82,8 +82,9 @@ impl RowRenderState {
         self.expanded
     }
 
-    pub(super) fn disabled(self) -> bool {
+    pub(super) fn unavailable(self) -> bool {
         matches!(self.visual_state, UiPainterResolvedState::Disabled)
+            || matches!(self.visual_state, UiPainterResolvedState::Loading)
     }
 
     pub(super) fn pressed(self) -> bool {

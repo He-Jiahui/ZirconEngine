@@ -1,8 +1,15 @@
-use crate::scene::ecs::{EventStore, Events};
+use crate::scene::ecs::{Event, EventStore, Events};
 
 use super::World;
 
 impl World {
+    pub fn register_event<T>(&mut self)
+    where
+        T: Event,
+    {
+        self.events.events_mut::<T>();
+    }
+
     pub fn send_event<T>(&mut self, event: T)
     where
         T: 'static + Send + Sync,

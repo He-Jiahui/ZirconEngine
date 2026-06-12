@@ -1,6 +1,4 @@
-use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, surface::UiSurface,
-};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
     layout::{

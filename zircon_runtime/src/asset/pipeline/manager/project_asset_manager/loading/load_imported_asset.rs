@@ -39,7 +39,10 @@ impl ProjectAssetManager {
             AssetKind::TileSet => self.load_tile_set_asset(id).map(ImportedAsset::TileSet),
             AssetKind::TileMap => self.load_tile_map_asset(id).map(ImportedAsset::TileMap),
             AssetKind::Prefab => self.load_prefab_asset(id).map(ImportedAsset::Prefab),
-            AssetKind::Texture => self.load_texture_asset(id).map(ImportedAsset::Texture),
+            AssetKind::Texture => self
+                .load_ui_icon_asset(id)
+                .map(ImportedAsset::UiIcon)
+                .or_else(|_| self.load_texture_asset(id).map(ImportedAsset::Texture)),
             AssetKind::Shader => self.load_shader_asset(id).map(ImportedAsset::Shader),
             AssetKind::Scene => self.load_scene_asset(id).map(ImportedAsset::Scene),
             AssetKind::AnimationSkeleton => self
@@ -68,6 +71,7 @@ impl ProjectAssetManager {
             AssetKind::UiStyle => self
                 .load_ui_v2_style_asset(id)
                 .map(ImportedAsset::UiV2Style)
+                .or_else(|_| self.load_ui_theme_asset(id).map(ImportedAsset::UiTheme))
                 .or_else(|_| self.load_ui_style_asset(id).map(ImportedAsset::UiStyle)),
         }
     }

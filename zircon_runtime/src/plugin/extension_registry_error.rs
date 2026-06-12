@@ -44,4 +44,20 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateSceneHook(String),
     #[error("invalid scene hook: {0}")]
     InvalidSceneHook(String),
+    #[error("invalid plugin module: {0}")]
+    InvalidPluginModule(String),
+    #[error("plugin system {0} already registered")]
+    DuplicatePluginSystem(String),
+    #[error("invalid plugin system: {0}")]
+    InvalidPluginSystem(String),
+    #[error("plugin resource {0} already registered")]
+    DuplicatePluginResource(String),
+    #[error("plugin event {0} already registered")]
+    DuplicatePluginEvent(String),
+    #[error("plugin interface {0} already registered")]
+    DuplicatePluginInterface(String),
+    #[error("plugin interface {0} is not enabled")]
+    MissingPluginInterface(String),
+    #[error("plugin world registration failed: {0}")]
+    WorldRegistration(String),
 }

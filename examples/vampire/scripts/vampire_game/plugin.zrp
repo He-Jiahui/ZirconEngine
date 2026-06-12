@@ -1,0 +1,6 @@
+{
+  "name": "vampire_game",
+  "source": ".",
+  "binary": "bin",
+  "entry": "main"
+}

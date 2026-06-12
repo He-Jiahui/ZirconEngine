@@ -147,7 +147,7 @@ fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
         body
     });
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    tick_physics_level(&runtime, &level);
 
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 0);
@@ -206,7 +206,7 @@ fn builtin_query_only_syncs_queries_without_fixed_step_writeback() {
         body
     });
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    tick_physics_level(&runtime, &level);
 
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 0);
@@ -289,12 +289,51 @@ fn builtin_fixed_step_uses_live_world_records_before_node_cache_flush() {
         body
     });
 
-    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+    tick_physics_level(&runtime, &level);
 
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
     assert!(transform.translation.x > 0.0);
     assert_eq!(level.physics_contacts().len(), 1);
+}
+
+#[test]
+fn runtime_fixed_update_runs_one_physics_step_without_reaccumulating() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime.set_fixed_timestep(Duration::from_nanos(1_000_000_000 / 64));
+    runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            fixed_hz: 60,
+            max_substeps: 4,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Dynamic,
+                    linear_velocity: Vec3::X,
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        body
+    });
+
+    tick_physics_level(&runtime, &level);
+
+    let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
+    assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
+    assert!(transform.translation.x > 0.0);
 }
 
 #[test]

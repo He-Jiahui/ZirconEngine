@@ -2,7 +2,6 @@ use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::template_component_family::{template_component_family, TemplateComponentFamily};
 use super::render_commands::HostPaintCommand;
 use super::style_selector::{
-    is_workbench_selection_state_hot, painter_state_for_node,
     select_workbench_selection_control_style, WorkbenchSelectionControlKind as SelectionStyleKind,
     WorkbenchSelectionControlStyle,
 };
@@ -421,15 +420,12 @@ fn selection_visual_state(node: &TemplatePaneNodeData) -> UiPainterResolvedState
     selection_style(node, SelectionStyleKind::Checkbox).state
 }
 
-fn selection_visual_disabled(node: &TemplatePaneNodeData) -> bool {
+#[cfg(test)]
+fn selection_visual_unavailable(node: &TemplatePaneNodeData) -> bool {
     matches!(
         selection_visual_state(node),
-        UiPainterResolvedState::Disabled
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
     )
-}
-
-fn selection_visual_hot(node: &TemplatePaneNodeData) -> bool {
-    is_workbench_selection_state_hot(selection_visual_state(node))
 }
 
 fn selection_style(
@@ -650,6 +646,44 @@ mod tests {
         );
         assert_eq!(checkbox_background(&node), CHECKBOX_CHECKED_FILL);
         assert_eq!(checkbox_border_color(&node), PALETTE.focus_ring);
+    }
+
+    #[test]
+    fn selection_control_loading_state_mutes_active_checked_visuals() {
+        let node = TemplatePaneNodeData {
+            checked: true,
+            selected: true,
+            pressed: true,
+            hovered: true,
+            drop_hovered: true,
+            label_color: crate::ui::retained_host::primitives::Color::from_rgb_u8(131, 141, 148),
+            value_color: crate::ui::retained_host::primitives::Color::from_rgb_u8(67, 216, 226),
+            button_style: ResolvedButtonStyle {
+                loading: true,
+                ..resolved_background_foreground_and_border(
+                    [32, 159, 168, 255],
+                    [255, 255, 255, 255],
+                    [53, 199, 208, 255],
+                )
+            },
+            ..node_with_role("Checkbox", "checkbox", "WorkbenchCheckboxOn")
+        };
+
+        assert_eq!(
+            selection_visual_state(&node),
+            UiPainterResolvedState::Loading
+        );
+        assert!(selection_visual_unavailable(&node));
+        assert_eq!(checkbox_background(&node), PALETTE.surface_disabled);
+        assert_eq!(checkbox_border_color(&node), PALETTE.border_disabled);
+        assert_eq!(radio_background(&node), PALETTE.surface_disabled);
+        assert_eq!(radio_border_color(&node), PALETTE.border_disabled);
+        assert_eq!(toggle_track_color(&node), PALETTE.surface_disabled);
+        assert_eq!(toggle_thumb_color(&node), PALETTE.text_disabled);
+        assert_eq!(control_border_color(&node), PALETTE.border_disabled);
+        assert_eq!(control_accent_color(&node), PALETTE.text_disabled);
+        assert_eq!(selection_text_color(&node), PALETTE.text_disabled);
+        assert_eq!(selection_mark_label_color(&node), PALETTE.text_disabled);
     }
 
     #[test]

@@ -3,6 +3,7 @@ mod engine_entry;
 mod entry_config;
 mod entry_profile;
 mod entry_runner;
+mod export_bootstrap;
 mod first_party_runtime_plugins;
 #[cfg(feature = "platform-winit")]
 mod runtime_entry_app;
@@ -17,6 +18,11 @@ pub use engine_entry::{
 pub use entry_config::EntryConfig;
 pub use entry_profile::EntryProfile;
 pub use entry_runner::{EntryRunner, EntryRuntimeBootstrap, NativePluginRuntimeBootstrap};
+pub use export_bootstrap::{
+    bootstrap_export_runtime, bootstrap_export_runtime_with_native_plugins_from_export_root,
+    bootstrap_export_runtime_with_report, discover_export_root, ExportRuntimeBootstrapConfig,
+    ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider,
+};
 pub use first_party_runtime_plugins::{
     first_party_runtime_plugin_registrations_for_config,
     first_party_runtime_plugin_registrations_for_manifest,

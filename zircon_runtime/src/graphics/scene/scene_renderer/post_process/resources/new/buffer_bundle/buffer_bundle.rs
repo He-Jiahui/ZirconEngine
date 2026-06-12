@@ -7,6 +7,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) depth_of_field_prepare_params_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) hzb_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_camera_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) post_process_params_buffer:

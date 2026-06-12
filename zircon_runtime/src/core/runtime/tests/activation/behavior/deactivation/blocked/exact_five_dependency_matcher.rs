@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use super::super::super::super::super::super::*;
 use super::super::super::super::super::fixtures::{TestDriver, TestManager};
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{ServiceKind, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
+use crate::core::{ServiceKind, StartupMode};
 
 #[test]
 fn deactivate_exact_five_services_reports_first_shutdown_service_when_dependent_names_all() {
@@ -102,8 +102,8 @@ fn deactivate_exact_five_services_reports_first_shutdown_service_when_dependent_
                         .resolve_manager::<TestManager>(first_manager_name_for_factory.as_str())?;
                     let _ = core
                         .resolve_manager::<TestManager>(second_manager_name_for_factory.as_str())?;
-                    let _ = core
-                        .resolve_plugin::<TestManager>(first_plugin_name_for_factory.as_str())?;
+                    let _ =
+                        core.resolve_plugin::<TestManager>(first_plugin_name_for_factory.as_str())?;
                     let _ = core
                         .resolve_plugin::<TestManager>(second_plugin_name_for_factory.as_str())?;
                     Ok(Arc::new(TestManager) as ServiceObject)

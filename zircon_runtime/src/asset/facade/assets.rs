@@ -54,6 +54,14 @@ impl<TAsset: Asset> Assets<TAsset> {
         )
     }
 
+    pub fn failure_reason(&self, handle: Handle<TAsset>) -> Option<String> {
+        let record = self.manager.registry().get(handle.id()).cloned()?;
+        if record.kind != TAsset::Marker::KIND {
+            return None;
+        }
+        record.failure_reason().map(str::to_owned)
+    }
+
     pub fn insert(&self, record: ResourceRecord, asset: TAsset) -> Option<Handle<TAsset>> {
         if record.kind != TAsset::Marker::KIND {
             return None;

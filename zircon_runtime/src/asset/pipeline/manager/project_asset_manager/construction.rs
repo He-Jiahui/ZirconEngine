@@ -7,7 +7,7 @@ use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
-use crate::asset::worker_pool::AssetWorkerPool;
+use crate::asset::worker_pool::{AssetWorkerPool, AssetWorkerPoolOptions};
 use crate::asset::{
     AssetId, AssetImportError, AssetImporter, AssetImporterCapabilityReport, AssetImporterHandler,
     AssetImporterRegistry, AssetUri, ShaderAsset,
@@ -21,6 +21,7 @@ impl Default for ProjectAssetManager {
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
+            watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher: Arc::new(Mutex::new(None)),
         }
     }
@@ -34,12 +35,13 @@ impl ProjectAssetManager {
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
+            watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher: Arc::new(Mutex::new(None)),
         }
     }
 
     pub fn spawn_worker_pool(&self) -> Result<AssetWorkerPool, crate::core::ZirconError> {
-        AssetWorkerPool::new(self.default_worker_count)
+        AssetWorkerPool::new(AssetWorkerPoolOptions::new(self.default_worker_count))
     }
 
     pub fn default_worker_count(&self) -> usize {

@@ -1,6 +1,7 @@
 mod alpha_mode;
 mod dependency_set;
 mod material_asset;
+mod material_control;
 mod property_values;
 mod texture_slot;
 mod validation;
@@ -12,6 +13,7 @@ pub use material_asset::{
     MaterialAssetManagementRecordSetSummary, MaterialAssetOverview,
 };
 pub use property_values::shader_property_values_for_shader;
+pub(super) use texture_slot::is_standard_texture_slot_alias;
 pub use texture_slot::MaterialTextureSlotValue;
 pub use validation::{validate_alpha_mode, validate_shader_contract, validate_wgsl_captures};
 pub use zmaterial::ZMaterialDocument;

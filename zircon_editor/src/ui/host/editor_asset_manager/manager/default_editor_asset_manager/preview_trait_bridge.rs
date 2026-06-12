@@ -7,7 +7,7 @@ use super::super::super::{
 use super::{
     editor_asset_error::editor_asset_error, parse_uuid::parse_uuid, DefaultEditorAssetManager,
 };
-use zircon_runtime::core::ChannelReceiver;
+use zircon_runtime::core::framework::channel::ChannelReceiver;
 
 impl EditorAssetManager for DefaultEditorAssetManager {
     fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {

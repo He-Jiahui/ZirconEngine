@@ -15,6 +15,7 @@ pub(super) fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
         UiDispatchEffect::RequestInputMethod { request } => Some(request.owner),
         UiDispatchEffect::RequestClipboard { request } => Some(request.owner),
         UiDispatchEffect::Popup { owner, .. } | UiDispatchEffect::Tooltip { owner, .. } => *owner,
-        UiDispatchEffect::RequestNavigation { .. } => None,
+        UiDispatchEffect::DismissTransientUi { .. }
+        | UiDispatchEffect::RequestNavigation { .. } => None,
     }
 }

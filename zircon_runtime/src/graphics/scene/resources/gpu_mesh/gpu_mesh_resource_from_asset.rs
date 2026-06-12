@@ -58,6 +58,8 @@ fn indirect_order_signature(payload: &crate::asset::assets::ModelPrimitiveAsset)
         hash = fnv1a_f32_slice(hash, &vertex.uv);
         hash = fnv1a_u16_slice(hash, &vertex.joint_indices);
         hash = fnv1a_f32_slice(hash, &vertex.joint_weights);
+        hash = fnv1a_f32_slice(hash, &vertex.tangent);
+        hash = fnv1a_f32_slice(hash, &vertex.color);
     }
     for index in &payload.indices {
         hash = fnv1a_u32(hash, *index);

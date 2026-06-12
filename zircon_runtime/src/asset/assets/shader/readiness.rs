@@ -131,6 +131,13 @@ impl ShaderAssetManagementRecordSetSummary {
                 .sum(),
         }
     }
+
+    pub fn issue_row_count(&self) -> usize {
+        self.unavailable_runtime_source_count
+            + self.entry_point_diagnostic_count
+            + self.shader_definition_diagnostic_count
+            + self.validation_diagnostic_count
+    }
 }
 
 impl ShaderAssetManagementRecordSet {
@@ -221,6 +228,18 @@ impl ShaderReadinessReport {
                 || !shader.pipeline_layout.push_constant_ranges.is_empty(),
             pipeline_layout: pipeline_layout_readiness(shader),
         }
+    }
+}
+
+impl ShaderAssetReadinessSummary {
+    pub fn issue_row_count(&self) -> usize {
+        (if self.runtime_source_kind == ShaderRuntimeSourceKind::Unavailable {
+            1
+        } else {
+            0
+        }) + self.entry_point_diagnostic_count
+            + self.shader_definition_diagnostic_count
+            + self.validation_diagnostic_count
     }
 }
 

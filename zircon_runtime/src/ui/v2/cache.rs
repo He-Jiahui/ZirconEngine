@@ -35,6 +35,10 @@ impl UiV2PrototypeStore {
     pub fn is_empty(&self) -> bool {
         self.assets.is_empty()
     }
+
+    pub fn documents(&self) -> impl Iterator<Item = Arc<UiV2AssetDocument>> + '_ {
+        self.assets.values().cloned()
+    }
 }
 
 #[derive(Clone, Debug, Default)]

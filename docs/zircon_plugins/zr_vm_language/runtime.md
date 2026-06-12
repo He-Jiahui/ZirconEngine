@@ -21,6 +21,9 @@ related_code:
   - zircon_plugins/Cargo.lock
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
+  - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -55,6 +58,9 @@ implementation_files:
   - zircon_plugins/Cargo.lock
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
+  - zircon_runtime/src/script/vm/scene_hook.rs
+  - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
@@ -105,12 +111,16 @@ tests:
   - "cargo fmt --manifest-path zircon_plugins/Cargo.toml --all --check: attempted 2026-05-18; blocked by unrelated unformatted hybrid_gi/runtime and runtime asset/render/scene files owned by concurrent sessions"
   - "2026-05-31: cargo test --manifest-path .\\zircon_plugins\\zr_vm_language\\runtime\\Cargo.toml zr_vm_language_registration_reports_backend_capability --locked --offline --jobs 1 --target-dir D:\\cargo-targets\\zircon-authoring-runtime-metadata --color never --quiet: red before linked capability-status metadata, then passed with existing runtime warnings"
   - "2026-05-31: cargo test --manifest-path .\\Cargo.toml -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --offline --jobs 1 --target-dir D:\\cargo-targets\\zircon-authoring-runtime-metadata --color never --quiet: passed with existing runtime warnings"
+  - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --lib zr_vm_language_registration_reports_backend_capability --message-format short --color never -- --test-threads=1 --nocapture with CARGO_TARGET_DIR=E:\\cargo-targets\\zircon-vampire-plugins: passed 2026-06-09"
+  - "cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --message-format short --color never with CARGO_TARGET_DIR=E:\\cargo-targets\\zircon-vampire-plugins, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug, PATH including E:\\Git\\zr_vm\\build\\codex-msvc-debug\\bin\\Debug: passed 2026-06-09"
 doc_type: module-detail
 ---
 
 # ZrVM Language Runtime Plugin
 
 `zircon_plugin_zr_vm_language_runtime` contributes the `zr_vm` VM backend family. The backend selector for source projects is `zr_vm:project`. Its runtime module resolves `VmPluginManager` and registers `ZrVmBackendFamily` during module activation.
+
+The plugin also contributes scene runtime hooks for entity-bound ZrVM scripts. The registered hook ids are `zr_vm_language.script.scene.fixed_update` and `zr_vm_language.script.scene.update`; both are plugin-id prefixed to satisfy runtime extension validation. Those hooks use scene `script.bindings` data to call package exports through `VmPluginManager`.
 
 The plugin is optional and disabled by default in project selection. This keeps ZirconEngine buildable on machines that do not have `E:\Git\zr_vm` or the `zr_vm_rust_binding` dynamic library available.
 
@@ -147,6 +157,8 @@ Real ZrVM build:
 The real backend serializes access through a process-global mutex because the current binding tests show shared C-side runtime state.
 
 Lifecycle export calls pass the target module name to `ProjectSession::call_module_export` and keep `RunOptions::module_name` empty when the session is started. This matches the current `zr_vm_rust_binding` export-call contract: the binding loads the project entry once, then resolves later `module.export` calls from the same project global.
+
+Scene export calls use the same module-export path. `VmPluginInstance::call_export` returns an optional neutral `ScriptHostValue`, and the real backend converts ZrVM null/bool/int/float/string return values back to the runtime host-value surface. Object/array/native-handle returns are still rejected because scene lifecycle hooks do not yet define ownership semantics for those payloads.
 
 The feature-gated test suite includes a real project fixture when `real-zr-vm` is enabled. That fixture now lives in `tests/support.rs`; it writes a JSON `.zrp`, imports `zr.zircon.math` and `zr.zircon.foundation`, calls native host functions from `activate()`, then verifies the package can be loaded, hot reloaded through `saveState`/`restoreState`, and unloaded. It also copies the documented minimal example into a temporary package root and loads that copy, so the checked-in example stays aligned with the real backend without writing build artifacts into `docs/`.
 

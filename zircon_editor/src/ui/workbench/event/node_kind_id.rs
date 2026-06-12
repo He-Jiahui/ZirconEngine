@@ -2,6 +2,7 @@ use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_id(kind: &NodeKind) -> &'static str {
     match kind {
+        NodeKind::Empty => "Empty",
         NodeKind::Camera => "Camera",
         NodeKind::Cube => "Cube",
         NodeKind::Mesh => "Mesh",
@@ -15,6 +16,7 @@ pub(super) fn node_kind_id(kind: &NodeKind) -> &'static str {
 
 pub(super) fn node_kind_action_id(kind: &NodeKind) -> &'static str {
     match kind {
+        NodeKind::Empty => "empty",
         NodeKind::Camera => "camera",
         NodeKind::Cube => "cube",
         NodeKind::Mesh => "mesh",

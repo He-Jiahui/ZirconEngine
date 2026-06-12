@@ -4,6 +4,7 @@ use super::render_commands::HostPaintCommand;
 use super::style_selector::{select_workbench_tree_row_style, WorkbenchTreeRowStyle};
 use super::template_node_labels::template_node_label;
 use super::theme::PALETTE;
+use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const TREE_FONT_SIZE: f32 = 12.0;
@@ -144,7 +145,12 @@ fn push_tree_object_icon(
     match tree_icon_kind(node) {
         TreeIconKind::Audio => push_audio_icon(commands, rect, clip, order, color, opacity),
         TreeIconKind::PlayerStart => {
-            push_player_start_icon(commands, rect, clip, order, TREE_OBJECT_BLUE, opacity)
+            let icon_color = if is_unavailable_tree_row_state(tree_row_style(node).state) {
+                color
+            } else {
+                TREE_OBJECT_BLUE
+            };
+            push_player_start_icon(commands, rect, clip, order, icon_color, opacity)
         }
         TreeIconKind::Cube => push_cube_icon(commands, rect, clip, order, color, opacity),
     }
@@ -310,6 +316,13 @@ fn tree_action_color(node: &TemplatePaneNodeData) -> [u8; 4] {
 
 fn tree_row_style(node: &TemplatePaneNodeData) -> WorkbenchTreeRowStyle {
     select_workbench_tree_row_style(node)
+}
+
+fn is_unavailable_tree_row_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
 }
 
 fn shows_tree_lock_action(node: &TemplatePaneNodeData) -> bool {
@@ -546,7 +559,6 @@ mod tests {
     use super::super::template_nodes::paint_template_nodes_for_test;
     use super::*;
     use crate::ui::layouts::common::model_rc;
-    use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
     #[test]
     fn tree_row_kind_matches_roles_and_scene_ids() {
@@ -665,6 +677,22 @@ mod tests {
 
         assert!(changed_pixel_count(&bytes, 240, 14, 11, 14, 16) > 0);
         assert!(changed_pixel_count(&bytes, 240, 32, 10, 28, 22) > 0);
+    }
+
+    #[test]
+    fn loading_player_start_tree_row_mutes_special_icon_color() {
+        let mut node = tree_node(
+            "WorkbenchScenePlayerStartItem",
+            "TreeRow",
+            "tree-row",
+            "PlayerStart",
+            0,
+            false,
+        );
+        node.button_style.loading = true;
+        let bytes = paint_template_nodes_for_test(280, 48, model_rc(vec![node]));
+
+        assert_eq!(pixel_at(&bytes, 280, 38, 16), PALETTE.text_disabled);
     }
 
     fn tree_node(

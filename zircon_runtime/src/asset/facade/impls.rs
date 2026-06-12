@@ -4,8 +4,8 @@ use crate::asset::{
     AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
     ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
     SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
-    UiV2ViewAsset, UiWidgetAsset,
+    TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset, UiThemeAsset,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -75,6 +75,8 @@ impl_asset!(
 impl_asset!(UiLayoutAsset, UiLayoutMarker, "ui_layout");
 impl_asset!(UiWidgetAsset, UiWidgetMarker, "ui_widget");
 impl_asset!(UiStyleAsset, UiStyleMarker, "ui_style");
+impl_asset!(UiThemeAsset, UiStyleMarker, "ui_theme");
+impl_asset!(UiIconAsset, TextureMarker, "ui_icon");
 impl_asset!(UiV2ViewAsset, UiLayoutMarker, "ui_v2_view");
 impl_asset!(UiV2ComponentAsset, UiWidgetMarker, "ui_v2_component");
 impl_asset!(UiV2StyleAsset, UiStyleMarker, "ui_v2_style");

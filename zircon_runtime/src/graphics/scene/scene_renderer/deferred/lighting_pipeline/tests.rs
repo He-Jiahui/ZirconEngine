@@ -19,6 +19,22 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
 }
 
 #[test]
+fn deferred_lighting_shader_receives_scene_point_lights() {
+    for expected in [
+        "point_light_position_range: array<vec4<f32>, 8>",
+        "point_light_color_intensity: array<vec4<f32>, 8>",
+        "point_light_params: vec4<f32>",
+        "fn point_light_lighting",
+        "let point_lights = point_light_lighting(world_position",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should use `{expected}` for point lighting"
+        );
+    }
+}
+
+#[test]
 fn deferred_lighting_shader_receives_shadow_map_resources() {
     for expected in [
         "@group(1) @binding(4) var scene_depth_tex: texture_depth_2d;",

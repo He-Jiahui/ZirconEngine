@@ -8,18 +8,12 @@ impl DeferredSceneResources {
     pub(crate) fn new(
         device: &wgpu::Device,
         scene_layout: &wgpu::BindGroupLayout,
-        model_layout: &wgpu::BindGroupLayout,
-        texture_layout: &wgpu::BindGroupLayout,
         material_layout: &wgpu::BindGroupLayout,
+        gpu_scene_layout: &wgpu::BindGroupLayout,
         target_format: wgpu::TextureFormat,
     ) -> Self {
-        let geometry_pipeline = create_geometry_pipeline(
-            device,
-            scene_layout,
-            model_layout,
-            texture_layout,
-            material_layout,
-        );
+        let geometry_pipeline =
+            create_geometry_pipeline(device, scene_layout, material_layout, gpu_scene_layout);
         let lighting_bind_group_layout = create_lighting_bind_group_layout(device);
         let lighting_pipeline = create_lighting_pipeline(
             device,

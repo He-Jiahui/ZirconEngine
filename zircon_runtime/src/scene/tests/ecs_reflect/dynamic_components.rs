@@ -1,4 +1,5 @@
 use serde_json::json;
+use std::path::{Path, PathBuf};
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectFieldValue, ReflectObjectAddress, ReflectReadRequest, ReflectTypeKind,
     ReflectWriteRequest, ReflectedValue,
@@ -53,6 +54,196 @@ fn dynamic_component_descriptor_registers_reflected_json_component() {
         .clone()
         .expect("dynamic component registration should have adapter");
     assert!(!adapter.contains(&world, entity));
+}
+
+#[test]
+fn dynamic_component_reflection_registration_pre_sizes_descriptor_fields() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let registration = source
+        .split("pub fn registration_from_component_descriptor")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub fn reflect_component_for_dynamic_descriptor")
+                .next()
+        })
+        .expect("read dynamic component reflection registration body");
+
+    assert!(
+        registration.contains("let mut fields = Vec::with_capacity(descriptor.properties.len());")
+            && registration.contains("for property in &descriptor.properties")
+            && registration.contains("fields.push(field_from_property_descriptor(")
+            && registration.contains("&descriptor.type_id")
+            && registration.contains("property")
+            && !registration.contains(".collect::<Result<Vec<_>, _>>()")
+            && !registration.contains(".map(|property| field_from_property_descriptor"),
+        "dynamic component reflection registration must pre-size the reflected field list from descriptor properties and push fields directly"
+    );
+}
+
+#[test]
+fn dynamic_component_reflection_field_info_uses_constructor_display_name() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let field_builder = source
+        .split("fn field_from_property_descriptor")
+        .nth(1)
+        .and_then(|text| text.split("fn short_type_path").next())
+        .expect("read dynamic component field descriptor projection body");
+
+    assert!(
+        field_builder.contains("ReflectFieldInfo::new(")
+            && field_builder.contains("descriptor.name.clone(),")
+            && field_builder.contains("descriptor.value_type.clone(),")
+            && field_builder.contains("ReflectEditorHint::None")
+            && field_builder.contains(".with_editable(descriptor.editable)")
+            && !field_builder.contains(".with_display_name("),
+        "dynamic component reflection fields must rely on ReflectFieldInfo::new for same-as-name display labels instead of cloning and overwriting the display name"
+    );
+}
+
+#[test]
+fn dynamic_component_reflection_short_type_path_uses_direct_split_branch() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let short_type_path = source
+        .split("fn short_type_path")
+        .nth(1)
+        .and_then(|text| text.split("fn contains").next())
+        .expect("read dynamic component short type-path helper");
+
+    assert!(
+        short_type_path.contains("if let Some((_, short)) = type_path.rsplit_once('.')")
+            && short_type_path.contains("return short;")
+            && short_type_path.contains("type_path")
+            && !short_type_path.contains(".map(|(_, short)| short)")
+            && !short_type_path.contains(".unwrap_or(type_path)"),
+        "dynamic component short type-path parsing must use a direct split branch instead of Option adapter chaining"
+    );
+}
+
+#[test]
+fn dynamic_component_reflection_read_fields_pre_sizes_result_vector() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let read_fields = source
+        .split("fn read_fields")
+        .nth(1)
+        .and_then(|text| text.split("fn write_field").next())
+        .expect("read dynamic component reflection read_fields body");
+
+    assert!(
+        read_fields.contains("let fields = &registration.type_info.fields;")
+            && read_fields.contains("let mut values = Vec::with_capacity(fields.len());")
+            && read_fields.contains("for field in fields")
+            && read_fields.contains("let value = read_field(world, entity, type_path, &field.name)?;")
+            && read_fields.contains("values.push(ReflectFieldValue::new(field.name.clone(), value));")
+            && read_fields.contains("Ok(values)")
+            && !read_fields.contains(".collect()")
+            && !read_fields.contains(".map(|field|"),
+        "dynamic component reflection read_fields must pre-size reflected field results and push directly instead of relying on collect growth"
+    );
+}
+
+#[test]
+fn dynamic_component_reflection_property_path_uses_direct_constructor() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let property_path = source
+        .split("fn dynamic_property_path")
+        .nth(1)
+        .expect("read dynamic component reflection property-path helper");
+
+    assert!(
+        property_path.contains("let mut property_segments = Vec::with_capacity(1);")
+            && property_path.contains("property_segments.push(field_name.to_string());")
+            && property_path
+                .contains("ComponentPropertyPath::new(type_path.to_string(), property_segments)")
+            && !property_path.contains("ComponentPropertyPath::parse(&path)")
+            && !property_path
+                .contains("String::with_capacity(type_path.len() + 1 + field_name.len())")
+            && !property_path.contains("format!(\"{type_path}.{field_name}\")"),
+        "dynamic component reflection property-path helper must construct the full component path directly instead of re-parsing a joined string"
+    );
+}
+
+#[test]
+fn dynamic_component_reflection_read_helpers_use_direct_success_branches() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("reflect")
+            .join("dynamic_component.rs"),
+    );
+    let read_field = source
+        .split("fn read_field")
+        .nth(1)
+        .and_then(|text| text.split("fn read_fields").next())
+        .expect("read dynamic component reflection read_field body");
+    let ensure_dynamic_component = source
+        .split("fn ensure_dynamic_component")
+        .nth(1)
+        .and_then(|text| text.split("fn ensure_declared_field").next())
+        .expect("read dynamic component presence helper");
+    let ensure_declared_field = source
+        .split("fn ensure_declared_field")
+        .nth(1)
+        .and_then(|text| text.split("fn ensure_json_field_present").next())
+        .expect("read reflected field declaration helper");
+    let ensure_json_field_present = source
+        .split("fn ensure_json_field_present")
+        .nth(1)
+        .and_then(|text| text.split("fn dynamic_property_path").next())
+        .expect("read dynamic JSON field presence helper");
+
+    assert!(
+        read_field.contains(
+            "let Some(value) = world.dynamic_component_property(entity, &property_path) else"
+        )
+            && read_field.contains("return Err(ReflectError::UnsupportedConversion")
+            && ensure_dynamic_component
+                .contains("let Some(component) = world.dynamic_component(entity, type_path) else")
+            && ensure_dynamic_component.contains("return Err(ReflectError::MissingComponent")
+            && ensure_dynamic_component.contains("Ok(component)")
+            && ensure_declared_field.contains("for field in &registration.type_info.fields")
+            && ensure_declared_field.contains("return Ok(field);")
+            && ensure_declared_field.contains("Err(ReflectError::UnknownField")
+            && ensure_json_field_present.contains("let Some(object) = component.as_object() else")
+            && ensure_json_field_present.contains("if object.contains_key(field_name)")
+            && ensure_json_field_present.contains("return Ok(());")
+            && !read_field.contains(".ok_or_else(|| ReflectError::UnsupportedConversion")
+            && !ensure_dynamic_component.contains(".ok_or_else(|| ReflectError::MissingComponent")
+            && !ensure_declared_field.contains(".iter()\n        .find(")
+            && !ensure_json_field_present.contains(".and_then(|object| object.get(field_name))")
+            && !ensure_json_field_present.contains(".ok_or_else(|| ReflectError::UnknownField"),
+        "dynamic component reflection read helpers must use direct success-path branches instead of closure-based Option conversion"
+    );
 }
 
 #[test]
@@ -274,4 +465,13 @@ fn cloud_layer_descriptor() -> ComponentTypeDescriptor {
 fn cloud_layer_address(entity: u64) -> ReflectObjectAddress {
     ReflectObjectAddress::component(entity, "weather.Component.CloudLayer")
         .expect("dynamic component address should be valid")
+}
+
+fn manifest_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+fn read_source(path: &Path) -> String {
+    std::fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("failed to read source file {}: {error}", path.display()))
 }

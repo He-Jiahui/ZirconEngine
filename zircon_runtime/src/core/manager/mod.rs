@@ -8,23 +8,25 @@ pub use crate::core::framework::animation::AnimationManager;
 pub use crate::core::framework::asset::ResourceManager;
 pub use crate::core::framework::foundation::{ConfigManager, EventManager};
 pub use crate::core::framework::input::InputManager;
+pub use crate::core::framework::navigation::NavigationManager;
 pub use crate::core::framework::net::NetManager;
 pub use crate::core::framework::physics::PhysicsManager;
 pub use crate::core::framework::render::{RenderingBackendInfo, RenderingManager};
 pub use crate::core::framework::sound::SoundManager;
 pub use resolver::{
     resolve_ai_manager, resolve_animation_manager, resolve_config_manager, resolve_event_manager,
-    resolve_input_manager, resolve_level_manager, resolve_net_manager, resolve_physics_manager,
-    resolve_render_framework, resolve_rendering_manager, resolve_resource_manager,
-    resolve_sound_manager, AiManagerHandle, AnimationManagerHandle, ConfigManagerHandle,
-    EventManagerHandle, InputManagerHandle, LevelManagerHandle, ManagerResolver, NetManagerHandle,
-    PhysicsManagerHandle, RenderFrameworkHandle, RenderingManagerHandle, ResourceManagerHandle,
-    SoundManagerHandle,
+    resolve_input_manager, resolve_level_manager, resolve_navigation_manager, resolve_net_manager,
+    resolve_physics_manager, resolve_render_framework, resolve_rendering_manager,
+    resolve_resource_manager, resolve_sound_manager, AiManagerHandle, AnimationManagerHandle,
+    ConfigManagerHandle, EventManagerHandle, InputManagerHandle, LevelManagerHandle,
+    ManagerResolver, NavigationManagerHandle, NetManagerHandle, PhysicsManagerHandle,
+    RenderFrameworkHandle, RenderingManagerHandle, ResourceManagerHandle, SoundManagerHandle,
 };
 pub use service_names::{
     AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME, PHYSICS_MANAGER_NAME,
-    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, NET_MANAGER_NAME,
+    PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    SOUND_MANAGER_NAME,
 };
 
 #[cfg(test)]

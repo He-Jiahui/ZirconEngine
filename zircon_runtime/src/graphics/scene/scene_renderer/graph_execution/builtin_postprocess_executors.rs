@@ -1,4 +1,6 @@
-use crate::core::framework::render::{PostProcessEffectKind, PostProcessGraphResourceNames};
+use crate::core::framework::render::{
+    PostProcessEffectKind, PostProcessGraphResourceNames, RenderPostProcessEffectStackSettings,
+};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassExecutionContext;
@@ -43,8 +45,8 @@ fn product_postprocess_executor(
     context: &mut RenderPassExecutionContext<'_>,
     kind: PostProcessEffectKind,
 ) -> Result<(), String> {
-    let gpu = context.require_gpu()?;
     let required_resources = {
+        let gpu = context.require_gpu()?;
         let frame_extract = gpu.frame_extract();
         let Some(node) = frame_extract
             .post_process
@@ -63,10 +65,56 @@ fn product_postprocess_executor(
     };
 
     for resource in required_resources {
-        gpu.resources.require_texture_view(&resource)?;
+        if let Some(declaration) = context.resource_resolver().and_then(|resolver| {
+            resolver.pass_resource_declaration_by_name(
+                &resource,
+                crate::render_graph::RenderGraphResourceAccessKind::Read,
+            )
+        }) {
+            context
+                .require_gpu()?
+                .resources
+                .require_texture_view_for_declaration(declaration)?;
+        } else {
+            context
+                .require_gpu()?
+                .resources
+                .require_texture_view(&resource)?;
+        }
     }
 
     Ok(())
+}
+
+fn frame_post_process_effect_stack(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<RenderPostProcessEffectStackSettings, String> {
+    Ok(context
+        .require_gpu()?
+        .frame_extract()
+        .post_process
+        .effect_stack)
+}
+
+fn frame_uses_reconstructed_motion_vectors(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<bool, String> {
+    let effect_stack = frame_post_process_effect_stack(context)?;
+    Ok(effect_stack.motion_blur.is_enabled() || effect_stack.screen_space_reflection.is_enabled())
+}
+
+fn frame_uses_depth_of_field(context: &mut RenderPassExecutionContext<'_>) -> Result<bool, String> {
+    Ok(frame_post_process_effect_stack(context)?
+        .depth_of_field
+        .is_enabled())
+}
+
+fn frame_uses_screen_space_reflection(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<bool, String> {
+    Ok(frame_post_process_effect_stack(context)?
+        .screen_space_reflection
+        .is_enabled())
 }
 
 pub(super) fn ssao_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
@@ -96,6 +144,20 @@ pub(super) fn clustered_lighting_executor(
     )
 }
 
+pub(super) fn hzb_build_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let executor_id = context.executor_id.as_str().to_string();
+    let gpu = context.require_gpu()?;
+    gpu.record_hzb_build_to_resource(
+        &pass_name,
+        &executor_id,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
+    )
+}
+
 pub(super) fn bloom_extract_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
@@ -111,6 +173,9 @@ pub(super) fn bloom_extract_executor(
 pub(super) fn motion_vector_clear_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_motion_vector_clear_to_resource(
@@ -123,6 +188,9 @@ pub(super) fn motion_vector_clear_executor(
 pub(super) fn motion_vector_camera_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_motion_vector_camera_to_resource(
@@ -136,6 +204,9 @@ pub(super) fn motion_vector_camera_executor(
 pub(super) fn motion_vector_mesh_object_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
         .unwrap_or_else(RenderGraphAttachmentOps::load_store);
@@ -152,6 +223,9 @@ pub(super) fn motion_vector_mesh_object_executor(
 pub(super) fn motion_vector_tile_max_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_motion_vector_tile_max_to_resource(
@@ -165,6 +239,9 @@ pub(super) fn motion_vector_tile_max_executor(
 pub(super) fn motion_vector_tile_max_coarse_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_motion_vector_tile_max_to_resource(
@@ -178,6 +255,9 @@ pub(super) fn motion_vector_tile_max_coarse_executor(
 pub(super) fn motion_vector_neighbor_max_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_reconstructed_motion_vectors(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_motion_vector_neighbor_max_to_resource(
@@ -191,6 +271,9 @@ pub(super) fn motion_vector_neighbor_max_executor(
 pub(super) fn depth_of_field_prepare_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_depth_of_field(context)? {
+        return Ok(());
+    }
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_depth_of_field_prepare_to_resources(
@@ -205,6 +288,9 @@ pub(super) fn depth_of_field_prepare_executor(
 pub(super) fn screen_space_reflection_resolve_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
@@ -228,6 +314,9 @@ pub(super) fn screen_space_reflection_resolve_executor(
 pub(super) fn screen_space_reflection_depth_pyramid_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
@@ -246,6 +335,9 @@ pub(super) fn screen_space_reflection_depth_pyramid_executor(
 pub(super) fn screen_space_reflection_depth_pyramid_coarse_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
@@ -264,6 +356,9 @@ pub(super) fn screen_space_reflection_depth_pyramid_coarse_executor(
 pub(super) fn screen_space_reflection_reflection_pyramid_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
@@ -282,6 +377,9 @@ pub(super) fn screen_space_reflection_reflection_pyramid_executor(
 pub(super) fn screen_space_reflection_reflection_pyramid_coarse_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
@@ -300,6 +398,9 @@ pub(super) fn screen_space_reflection_reflection_pyramid_coarse_executor(
 pub(super) fn screen_space_reflection_specular_occlusion_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    if !frame_uses_screen_space_reflection(context)? {
+        return Ok(());
+    }
     let attachment_ops = context
         .attachment_ops_for_write(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,

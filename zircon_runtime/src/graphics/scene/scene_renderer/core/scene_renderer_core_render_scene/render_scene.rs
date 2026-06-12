@@ -19,13 +19,20 @@ impl SceneRendererCore {
         });
         let built_mesh_draws = self.advanced_plugin_resources.build_mesh_draws(
             device,
+            queue,
             &mut encoder,
-            &self.model_bind_group_layout,
+            &self.material_texture_bind_group_layout,
+            &mut self.gpu_scene,
             streamer,
             frame,
             false,
         );
         let mesh_draws = built_mesh_draws.into_draws();
+        let gpu_scene_bind_group = self.gpu_scene.scene_bind_group().clone();
+        let gpu_scene_bind_handle =
+            crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshSceneDataBindHandle::new(
+                &gpu_scene_bind_group,
+            );
         let prepared_overlays = self.overlay_renderer.prepare_buffers(
             device,
             queue,
@@ -40,6 +47,7 @@ impl SceneRendererCore {
             depth_view,
             &self.scene_bind_group,
             &mesh_draws,
+            Some(gpu_scene_bind_handle),
             &mut self.mesh_pipelines,
             streamer,
             frame,

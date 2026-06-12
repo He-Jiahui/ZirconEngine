@@ -1,44 +1,26 @@
 //! Core runtime, lifecycle management, service registry, and shared runtime primitives.
 
-mod channel_util;
-mod config_store;
-mod error;
-mod event_bus;
-mod frame_clock;
-mod job_scheduler;
-mod lifecycle;
 pub mod runtime;
-pub mod tasks;
-mod time;
-mod types;
 
-pub mod diagnostics;
 pub mod framework;
 pub mod manager;
 pub mod math;
-pub mod modules;
 pub mod resource;
-pub mod state;
 
-pub use channel_util::{recv_latest, spawn_named_thread, wait_for};
-pub use config_store::ConfigStore;
-pub use error::{CoreError, ZirconError};
-pub use event_bus::{EngineEvent, EventBus};
-pub use frame_clock::FrameClock;
-pub use job_scheduler::JobScheduler;
-pub use lifecycle::{LifecycleState, ServiceKind, StartupMode};
+pub use framework::error::{CoreError, ZirconError};
+pub use framework::events::EngineEvent;
+pub use framework::state::{
+    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+};
+pub use runtime::diagnostics;
 pub use runtime::{
-    CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, ManagerDescriptor,
-    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
-    ServiceFactory,
+    CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DiagnosticsCoreModule, DriverDescriptor,
+    EventBus, FrameClock, FrameCountModule, JobScheduler, LifecycleState, LogDiagnosticsModule,
+    LogModule, ManagerDescriptor, ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor,
+    PluginFactory, RegistryName, RuntimeTimeAdvance, RuntimeTimeClocks, ServiceFactory,
+    ServiceKind, StartupMode, TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions,
+    TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts,
+    TaskPools, TasksModule, TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME,
+    LOG_DIAGNOSTICS_MODULE_NAME, LOG_MODULE_NAME, TASKS_MODULE_NAME, TIME_FIXED_STEPS_DIAGNOSTIC,
+    TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC, TIME_MODULE_NAME,
 };
-pub use state::{NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent};
-pub use tasks::{
-    TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
-    TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools,
-};
-pub use time::{
-    RuntimeTimeAdvance, RuntimeTimeClocks, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC,
-    TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC,
-};
-pub use types::{ChannelReceiver, ChannelSender, ServiceObject};

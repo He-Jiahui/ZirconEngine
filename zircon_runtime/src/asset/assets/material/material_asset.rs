@@ -7,18 +7,15 @@ use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialDiagnosticSource,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
-    RenderMaterialValidationError, StandardMaterialDescriptor,
+    RenderMaterialTextureTransform, RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 use crate::core::resource::ResourceId;
 
 use super::{
-    dependency_set, shader_property_values_for_shader, validate_alpha_mode,
-    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
+    dependency_set, is_standard_texture_slot_alias, material_control,
+    shader_property_values_for_shader, validate_alpha_mode, validate_shader_contract, AlphaMode,
+    MaterialTextureSlotValue, ZMaterialDocument,
 };
-
-const MATERIAL_LIGHTING_MODEL_PROPERTY: &str = "lighting_model";
-const MATERIAL_CAST_SHADOWS_PROPERTY: &str = "cast_shadows";
-const MATERIAL_RECEIVE_SHADOWS_PROPERTY: &str = "receive_shadows";
 
 /// Asset-level material summary that does not require renderer preparation.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -223,9 +220,7 @@ impl MaterialAsset {
 
     pub fn validation_errors(&self) -> Vec<RenderMaterialValidationError> {
         let mut errors = validate_alpha_mode(&self.alpha_mode);
-        errors.extend(self.lighting_model_validation_errors());
-        errors.extend(self.cast_shadows_validation_errors());
-        errors.extend(self.receive_shadows_validation_errors());
+        errors.extend(material_control::validation_errors(&self.property_values));
         errors
     }
 
@@ -342,19 +337,40 @@ impl MaterialAsset {
             dependencies: self.dependency_set(),
             base_color: self.base_color,
             base_color_texture: self.base_color_texture.clone(),
+            base_color_texture_transform: self
+                .texture_slot_transform(&["base_color", "base_color_texture"]),
+            base_color_texture_uv_channel: self
+                .texture_slot_uv_channel(&["base_color", "base_color_texture"]),
             normal_texture: self.normal_texture.clone(),
+            normal_texture_transform: self.texture_slot_transform(&["normal", "normal_texture"]),
+            normal_texture_uv_channel: self.texture_slot_uv_channel(&["normal", "normal_texture"]),
             metallic: self.metallic,
             roughness: self.roughness,
             metallic_roughness_texture: self.metallic_roughness_texture.clone(),
+            metallic_roughness_texture_transform: self
+                .texture_slot_transform(&["metallic_roughness", "metallic_roughness_texture"]),
+            metallic_roughness_texture_uv_channel: self
+                .texture_slot_uv_channel(&["metallic_roughness", "metallic_roughness_texture"]),
             occlusion_texture: self.occlusion_texture.clone(),
+            occlusion_texture_transform: self
+                .texture_slot_transform(&["occlusion", "occlusion_texture"]),
+            occlusion_texture_uv_channel: self
+                .texture_slot_uv_channel(&["occlusion", "occlusion_texture"]),
             emissive: self.emissive,
             emissive_texture: self.emissive_texture.clone(),
+            emissive_texture_transform: self
+                .texture_slot_transform(&["emissive", "emissive_texture"]),
+            emissive_texture_uv_channel: self
+                .texture_slot_uv_channel(&["emissive", "emissive_texture"]),
             alpha_mode: (&self.alpha_mode).into(),
             lighting_model,
             unlit,
             double_sided: self.double_sided,
             cast_shadows: self.cast_shadows(),
             receive_shadows: self.receive_shadows(),
+            render_queue: self.render_queue(),
+            material_queue: self.material_queue(),
+            depth_bias: self.depth_bias(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
     }
@@ -364,27 +380,47 @@ impl MaterialAsset {
         shader: &ShaderAsset,
     ) -> StandardMaterialDescriptor {
         let mut descriptor = self.standard_material_descriptor();
-        descriptor.base_color_texture = self
-            .shader_texture_slot_reference(
-                shader,
-                &["base_color", "base_color_texture", "albedo", "diffuse"],
-            )
-            .or(descriptor.base_color_texture);
-        descriptor.normal_texture = self
-            .shader_texture_slot_reference(shader, &["normal", "normal_texture"])
-            .or(descriptor.normal_texture);
-        descriptor.metallic_roughness_texture = self
-            .shader_texture_slot_reference(
-                shader,
-                &["metallic_roughness", "metallic_roughness_texture"],
-            )
-            .or(descriptor.metallic_roughness_texture);
-        descriptor.occlusion_texture = self
-            .shader_texture_slot_reference(shader, &["occlusion", "occlusion_texture"])
-            .or(descriptor.occlusion_texture);
-        descriptor.emissive_texture = self
-            .shader_texture_slot_reference(shader, &["emissive", "emissive_texture"])
-            .or(descriptor.emissive_texture);
+        if let Some(slot) = self.shader_texture_slot(
+            shader,
+            &["base_color", "base_color_texture", "albedo", "diffuse"],
+        ) {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.base_color_texture = Some(reference);
+            }
+            descriptor.base_color_texture_transform = slot.texture_transform();
+            descriptor.base_color_texture_uv_channel = slot.texture_uv_channel();
+        }
+        if let Some(slot) = self.shader_texture_slot(shader, &["normal", "normal_texture"]) {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.normal_texture = Some(reference);
+            }
+            descriptor.normal_texture_transform = slot.texture_transform();
+            descriptor.normal_texture_uv_channel = slot.texture_uv_channel();
+        }
+        if let Some(slot) = self.shader_texture_slot(
+            shader,
+            &["metallic_roughness", "metallic_roughness_texture"],
+        ) {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.metallic_roughness_texture = Some(reference);
+            }
+            descriptor.metallic_roughness_texture_transform = slot.texture_transform();
+            descriptor.metallic_roughness_texture_uv_channel = slot.texture_uv_channel();
+        }
+        if let Some(slot) = self.shader_texture_slot(shader, &["occlusion", "occlusion_texture"]) {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.occlusion_texture = Some(reference);
+            }
+            descriptor.occlusion_texture_transform = slot.texture_transform();
+            descriptor.occlusion_texture_uv_channel = slot.texture_uv_channel();
+        }
+        if let Some(slot) = self.shader_texture_slot(shader, &["emissive", "emissive_texture"]) {
+            if let Some(reference) = slot.reference.clone() {
+                descriptor.emissive_texture = Some(reference);
+            }
+            descriptor.emissive_texture_transform = slot.texture_transform();
+            descriptor.emissive_texture_uv_channel = slot.texture_uv_channel();
+        }
         descriptor.dependencies = self.shader_aware_dependency_set_from_descriptor(&descriptor);
         descriptor
     }
@@ -409,11 +445,11 @@ impl MaterialAsset {
     pub fn shader_property_overrides(&self) -> impl Iterator<Item = (&String, &toml::Value)> {
         self.property_values
             .iter()
-            .filter(|(name, _)| !is_material_owned_property(name))
+            .filter(|(name, _)| !material_control::is_material_owned_property(name))
     }
 
     pub fn shader_property_override(&self, name: &str) -> Option<&toml::Value> {
-        (!is_material_owned_property(name))
+        (!material_control::is_material_owned_property(name))
             .then(|| self.property_values.get(name))
             .flatten()
     }
@@ -428,6 +464,18 @@ impl MaterialAsset {
 
     pub fn receive_shadows(&self) -> bool {
         self.receive_shadows_from_property().unwrap_or(true)
+    }
+
+    pub fn render_queue(&self) -> i32 {
+        self.render_queue_from_property().unwrap_or_default()
+    }
+
+    pub fn material_queue(&self) -> i32 {
+        self.material_queue_from_property().unwrap_or_default()
+    }
+
+    pub fn depth_bias(&self) -> f32 {
+        self.depth_bias_from_property().unwrap_or_default()
     }
 
     pub fn all_texture_slots(&self) -> Vec<(String, &AssetReference)> {
@@ -477,19 +525,31 @@ impl MaterialAsset {
         slots
     }
 
-    fn shader_texture_slot_reference(
+    fn shader_texture_slot(
         &self,
         shader: &ShaderAsset,
         aliases: &[&str],
-    ) -> Option<AssetReference> {
+    ) -> Option<&MaterialTextureSlotValue> {
         aliases
             .iter()
             .filter(|alias| shader.texture_slots.iter().any(|slot| slot.name == **alias))
-            .find_map(|alias| {
-                self.texture_slots
-                    .get(*alias)
-                    .and_then(|value| value.reference.clone())
-            })
+            .find_map(|alias| self.texture_slots.get(*alias))
+    }
+
+    fn texture_slot_transform(&self, aliases: &[&str]) -> RenderMaterialTextureTransform {
+        aliases
+            .iter()
+            .find_map(|alias| self.texture_slots.get(*alias))
+            .map(MaterialTextureSlotValue::texture_transform)
+            .unwrap_or_default()
+    }
+
+    fn texture_slot_uv_channel(&self, aliases: &[&str]) -> u32 {
+        aliases
+            .iter()
+            .find_map(|alias| self.texture_slots.get(*alias))
+            .map(MaterialTextureSlotValue::texture_uv_channel)
+            .unwrap_or_default()
     }
 
     fn property_overrides_with_legacy_defaults(&self) -> BTreeMap<String, toml::Value> {
@@ -517,116 +577,34 @@ impl MaterialAsset {
         } else {
             overrides.remove("double_sided");
         }
-        match self.cast_shadows_from_property() {
-            Some(false) => {
-                overrides.insert(
-                    MATERIAL_CAST_SHADOWS_PROPERTY.to_string(),
-                    toml::Value::Boolean(false),
-                );
-            }
-            Some(true) => {
-                overrides.remove(MATERIAL_CAST_SHADOWS_PROPERTY);
-            }
-            None if !self
-                .property_values
-                .contains_key(MATERIAL_CAST_SHADOWS_PROPERTY) =>
-            {
-                overrides.remove(MATERIAL_CAST_SHADOWS_PROPERTY);
-            }
-            None => {}
-        }
-        match self.receive_shadows_from_property() {
-            Some(false) => {
-                overrides.insert(
-                    MATERIAL_RECEIVE_SHADOWS_PROPERTY.to_string(),
-                    toml::Value::Boolean(false),
-                );
-            }
-            Some(true) => {
-                overrides.remove(MATERIAL_RECEIVE_SHADOWS_PROPERTY);
-            }
-            None if !self
-                .property_values
-                .contains_key(MATERIAL_RECEIVE_SHADOWS_PROPERTY) =>
-            {
-                overrides.remove(MATERIAL_RECEIVE_SHADOWS_PROPERTY);
-            }
-            None => {}
-        }
+        material_control::sync_material_control_overrides(&mut overrides, &self.property_values);
         overrides
     }
 }
 
 impl MaterialAsset {
     fn lighting_model_from_property(&self) -> Option<RenderMaterialLightingModel> {
-        let value = self.property_values.get(MATERIAL_LIGHTING_MODEL_PROPERTY)?;
-        value
-            .as_str()
-            .and_then(|value| value.parse::<RenderMaterialLightingModel>().ok())
+        material_control::lighting_model(&self.property_values)
     }
 
     fn cast_shadows_from_property(&self) -> Option<bool> {
-        override_bool(&self.property_values, MATERIAL_CAST_SHADOWS_PROPERTY)
+        material_control::cast_shadows(&self.property_values)
     }
 
     fn receive_shadows_from_property(&self) -> Option<bool> {
-        override_bool(&self.property_values, MATERIAL_RECEIVE_SHADOWS_PROPERTY)
+        material_control::receive_shadows(&self.property_values)
     }
 
-    fn lighting_model_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
-        let Some(value) = self.property_values.get(MATERIAL_LIGHTING_MODEL_PROPERTY) else {
-            return Vec::new();
-        };
-        let Some(token) = value.as_str() else {
-            return vec![RenderMaterialValidationError::InvalidLightingModel {
-                path: format!("overrides.{MATERIAL_LIGHTING_MODEL_PROPERTY}"),
-                value: value.to_string(),
-            }];
-        };
-        if token.parse::<RenderMaterialLightingModel>().is_ok() {
-            Vec::new()
-        } else {
-            vec![RenderMaterialValidationError::InvalidLightingModel {
-                path: format!("overrides.{MATERIAL_LIGHTING_MODEL_PROPERTY}"),
-                value: token.to_string(),
-            }]
-        }
+    fn render_queue_from_property(&self) -> Option<i32> {
+        material_control::render_queue(&self.property_values)
     }
 
-    fn cast_shadows_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
-        let Some(value) = self.property_values.get(MATERIAL_CAST_SHADOWS_PROPERTY) else {
-            return Vec::new();
-        };
-        if value.as_bool().is_some() {
-            Vec::new()
-        } else {
-            vec![
-                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
-                    source: RenderMaterialDiagnosticSource::MaterialOverride,
-                    path: format!("overrides.{MATERIAL_CAST_SHADOWS_PROPERTY}"),
-                    name: MATERIAL_CAST_SHADOWS_PROPERTY.to_string(),
-                    expected: "bool".to_string(),
-                },
-            ]
-        }
+    fn material_queue_from_property(&self) -> Option<i32> {
+        material_control::material_queue(&self.property_values)
     }
 
-    fn receive_shadows_validation_errors(&self) -> Vec<RenderMaterialValidationError> {
-        let Some(value) = self.property_values.get(MATERIAL_RECEIVE_SHADOWS_PROPERTY) else {
-            return Vec::new();
-        };
-        if value.as_bool().is_some() {
-            Vec::new()
-        } else {
-            vec![
-                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
-                    source: RenderMaterialDiagnosticSource::MaterialOverride,
-                    path: format!("overrides.{MATERIAL_RECEIVE_SHADOWS_PROPERTY}"),
-                    name: MATERIAL_RECEIVE_SHADOWS_PROPERTY.to_string(),
-                    expected: "bool".to_string(),
-                },
-            ]
-        }
+    fn depth_bias_from_property(&self) -> Option<f32> {
+        material_control::depth_bias(&self.property_values)
     }
 
     fn readiness_report_from_texture_slots(
@@ -739,33 +717,6 @@ impl MaterialAsset {
     }
 }
 
-fn is_material_owned_property(name: &str) -> bool {
-    matches!(
-        name,
-        MATERIAL_LIGHTING_MODEL_PROPERTY
-            | MATERIAL_CAST_SHADOWS_PROPERTY
-            | MATERIAL_RECEIVE_SHADOWS_PROPERTY
-    )
-}
-
-fn is_standard_texture_slot_alias(slot: &str) -> bool {
-    matches!(
-        slot,
-        "base_color"
-            | "base_color_texture"
-            | "albedo"
-            | "diffuse"
-            | "normal"
-            | "normal_texture"
-            | "metallic_roughness"
-            | "metallic_roughness_texture"
-            | "occlusion"
-            | "occlusion_texture"
-            | "emissive"
-            | "emissive_texture"
-    )
-}
-
 fn texture_slot_reference(
     slots: &BTreeMap<String, MaterialTextureSlotValue>,
     slot: &str,
@@ -785,7 +736,7 @@ fn override_f32(values: &BTreeMap<String, toml::Value>, key: &str) -> Option<f32
 }
 
 fn override_bool(values: &BTreeMap<String, toml::Value>, key: &str) -> Option<bool> {
-    values.get(key).and_then(toml::Value::as_bool)
+    material_control::override_bool(values, key)
 }
 
 fn override_vec4(values: &BTreeMap<String, toml::Value>, key: &str) -> Option<[f32; 4]> {
@@ -822,14 +773,23 @@ fn sync_texture_slot(
     match texture {
         Some(texture) => {
             let fallback = slots.get(slot).and_then(|value| value.fallback.clone());
+            let transform = slots.get(slot).and_then(|value| value.transform);
+            let uv_channel = slots
+                .get(slot)
+                .map(MaterialTextureSlotValue::texture_uv_channel)
+                .unwrap_or_default();
             let mut value = MaterialTextureSlotValue::new(texture.clone());
             value.fallback = fallback;
+            value.transform = transform;
+            value.uv_channel = uv_channel;
             slots.insert(slot.to_string(), value);
         }
         None => {
             let should_remove = if let Some(value) = slots.get_mut(slot) {
                 value.reference = None;
                 value.fallback.is_none()
+                    && value.transform.is_none()
+                    && value.texture_uv_channel() == 0
             } else {
                 false
             };

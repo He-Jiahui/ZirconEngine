@@ -10,34 +10,32 @@ impl RuntimeExtensionRegistry {
         registration: SceneRuntimeHookRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         validate_scene_hook_registration(&registration)?;
-        let id = registration.descriptor().id.as_str();
-        if self
-            .scene_hooks
-            .iter()
-            .any(|existing| existing.descriptor().id == id)
-        {
-            return Err(RuntimeExtensionRegistryError::DuplicateSceneHook(
-                id.to_string(),
-            ));
+        let id = registration.descriptor().id.clone();
+        if self.scene_hooks.contains_key(&id) {
+            return Err(RuntimeExtensionRegistryError::DuplicateSceneHook(id));
         }
-        self.scene_hooks.push(registration);
-        sort_scene_hooks(&mut self.scene_hooks);
+        let owner = self.intern_runtime_owner(&registration.descriptor().plugin_id)?;
+        self.scene_hooks
+            .register(owner, id, registration)
+            .expect("scene hook duplicate was prechecked");
+        self.scene_hooks.sort_by_values(compare_scene_hooks);
         Ok(())
     }
 }
 
-fn sort_scene_hooks(hooks: &mut [SceneRuntimeHookRegistration]) {
-    hooks.sort_by(|left, right| {
-        scene_stage_rank(left.descriptor().stage)
-            .cmp(&scene_stage_rank(right.descriptor().stage))
-            .then(left.descriptor().order.cmp(&right.descriptor().order))
-            .then(
-                left.descriptor()
-                    .id
-                    .as_str()
-                    .cmp(right.descriptor().id.as_str()),
-            )
-    });
+fn compare_scene_hooks(
+    left: &SceneRuntimeHookRegistration,
+    right: &SceneRuntimeHookRegistration,
+) -> std::cmp::Ordering {
+    scene_stage_rank(left.descriptor().stage)
+        .cmp(&scene_stage_rank(right.descriptor().stage))
+        .then(left.descriptor().order.cmp(&right.descriptor().order))
+        .then(
+            left.descriptor()
+                .id
+                .as_str()
+                .cmp(right.descriptor().id.as_str()),
+        )
 }
 
 fn scene_stage_rank(stage: SystemStage) -> usize {

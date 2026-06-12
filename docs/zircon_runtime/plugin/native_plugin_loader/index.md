@@ -5,36 +5,60 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
   - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_loader.rs
   - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
+  - zircon_runtime_interface/src/plugin_api.rs
+  - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime/tests/native_plugin_loader_contract.rs
+  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
+  - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
   - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
   - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
   - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
+  - zircon_runtime_interface/src/plugin_api.rs
+  - zircon_runtime_interface/src/buffer.rs
+  - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
+  - zircon_plugins/native_dynamic_fixture/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 plan_sources:
+  - docs/plans/zircon_plugins/01-plugin-architecture-core.md
   - docs/superpowers/specs/2026-05-19-native-dynamic-v3-hardening-design.md
   - docs/superpowers/plans/2026-05-20-native-dynamic-v3-hardening.md
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - .codex/plans/ZrVM 语言插件与反射注册计划.md
 tests:
+  - cargo test -p zircon_runtime_interface --lib plugin_api_contracts --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture
+  - cargo check -p zircon_runtime --lib --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short
+  - cargo test -p zircon_runtime --lib native_hot_reload --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture
+  - cargo test -p zircon_runtime --lib native_live_host --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture
   - cargo test -p zircon_runtime --lib native_live_host --locked --jobs 1
   - cargo test -p zircon_runtime --lib native_plugin_loader --locked --jobs 1
   - cargo test -p zircon_runtime --test native_plugin_loader_contract --locked --jobs 1
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1
   - cargo fmt --all --check
+  - rustfmt --check zircon_plugins/native_dynamic_fixture/native/src/lib.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - git diff --check -- zircon_plugins/native_dynamic_fixture/plugin.toml zircon_plugins/native_dynamic_fixture/native/src/lib.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
 doc_type: module-detail
 ---
 
@@ -50,6 +74,7 @@ The loader is split by responsibility so the ABI boundary does not accumulate be
 - `native_plugin_abi.rs` owns descriptor probing, entry symbol invocation, and conversion from raw ABI reports into owned `NativePluginDescriptor` and `NativePluginEntryReport` values.
 - `native_strings.rs` owns C string reads, newline-list parsing, native symbol termination, and package-manifest TOML conversion helpers.
 - `host_callbacks.rs` owns ABI v2/v3 host function table callbacks, capability negotiation, v3 host log/diagnostic capture, and callback-diagnostic draining.
+- `host_api_adapter.rs` owns the public `zircon_runtime_interface::ZrHostApiV3` registration adapter. It creates an owner-scoped `NativeHostApiV3RegistrationScope`, maps ABI system/component callbacks into `RuntimeExtensionRegistry` registrations, and keeps unsupported spawn/asset/event callbacks explicit until those host domains have real runtime endpoints.
 - `behavior_calls.rs` owns copied behavior callback metadata, byte-command invocation, save/restore/unload calls, status conversion, plugin-owned byte-buffer copying, and free-callback diagnostics.
 - `behavior_validation.rs` owns host-derived behavior health classification and schema/callback consistency checks.
 - `loaded_native_plugin.rs` keeps the dynamic library handle alive while behavior callbacks are invoked and exposes copied behavior metadata and validation reports.
@@ -60,11 +85,21 @@ The loader is split by responsibility so the ABI boundary does not accumulate be
 
 ## ABI Stability
 
-ABI v3 remains the current NativeDynamic product ABI for this slice. The C structs, symbol names, callback signatures, byte-slice contracts, owned-buffer contract, status codes, and host callback table shape are unchanged. The hardening work derives additional Rust-owned reports after raw metadata has been copied into safe Rust values.
+ABI v3 remains the current NativeDynamic product ABI for the private loader path, and `zircon_runtime_interface::plugin_api` now exposes the plan-level public `ZrHostApiV3` domain table. The public interface table uses `ZR_PLUGIN_ENTRY_SYMBOL_V3` and separates ECS, asset, event, and diagnostics callbacks into `ZrHostEcsApiV1`, `ZrHostAssetApiV1`, `ZrHostEventApiV1`, and `ZrHostDiagnosticsApiV1`. The ECS domain carries `ZrSystemRegistrationV1` and `ZrComponentDescV1`, while event drain and snapshot paths share `ZrByteBufferRef`.
+
+The existing native loader still probes its private descriptor ABI v3 first, then falls back to ABI v2 and ABI v1. The C structs, symbol names, callback signatures, byte-slice contracts, owned-buffer contract, status codes, and private host callback table shape remain stable. The hardening work derives additional Rust-owned reports after raw metadata has been copied into safe Rust values.
 
 The loader still probes ABI v3 first, then falls back to ABI v2 and ABI v1. ABI v2 entries still receive the v2 host function table and can produce clean compatibility validation reports with no v3 schema strings. ABI v1 entries have no behavior table, so the derived behavior report is invalid for behavior inspection while descriptor/package diagnostics remain available.
 
 Host callback capture is entry-scoped. ABI v3 entries receive `NativePluginHostFunctionTableV3` with `host_log` and `host_diagnostic`; the loader stores those records in host-owned capture state during entry invocation and flattens them into existing entry diagnostics after the plugin returns. No runtime/editor object, `wgpu` object, Rust trait object, or borrowed world/editor state crosses the C ABI.
+
+## Public Host API Adapter
+
+`NativeHostApiV3RegistrationScope` is the runtime-side bridge for the public v3 host table. A scope interns the plugin module owner in `RuntimeExtensionRegistry`, exposes a `ZrRuntimePluginHandle`, and publishes a `ZrHostApiV3` table whose callbacks are valid only while that registration scope is alive.
+
+The ECS `register_system` callback reads `ZrSystemRegistrationV1`, resolves the stage through `SystemStage::ORDER`, interns declared system sets, maps before/after system ids into `SystemRef::System(...)`, and registers a boxed native system through the normal extension registry path. The optional native invoke callback is retained as a conservative no-world payload callback; the adapter deliberately does not pass a Rust `World`, `SystemParam`, or trait object through the C ABI.
+
+The ECS `register_component` callback reads `ZrComponentDescV1` and creates a `ComponentTypeDescriptor` owned by the plugin module. The component catalog plugin id is derived by stripping the `.runtime` suffix from the interned runtime module name, not by splitting on the first dot, so package ids such as `net.rpc` keep their full owner id. The schema and storage-kind fields remain ABI data for later typed reflection/runtime storage work; this slice records the type id, display name, and plugin owner in the existing component catalog. Spawn, asset, and event callbacks currently return `UnsupportedVersion` rather than inventing partial behavior without the corresponding runtime endpoints.
 
 ## Behavior Validation
 
@@ -100,11 +135,15 @@ runtime plugin {plugin_id} restore-state skipped because snapshot state schema {
 
 Missing/unloaded plugins remain skipped restore diagnostics instead of host failures. Play-mode enter/exit continues to compose snapshot, command-dispatch, and restore reports so restore diagnostics are preserved through `combined_diagnostics()`.
 
+Hot reload now also uses the runtime state path. `NativePluginHotReloadState` saves an owned `PluginStateSnapshot` for stateful runtime plugins before unloading the old behavior. After the replacement native library has loaded, the live host compares snapshot schema with the replacement schema and calls `restore_state` before inserting the replacement handle. If restore fails, the replacement behavior is unloaded, the previously loaded handle is reinserted when available, and the saved snapshot is restored into that old handle as part of rollback diagnostics.
+
+Stateless runtime behavior and editor behavior do not require a snapshot. Schema mismatches fail before invoking the replacement restore callback, so a plugin cannot receive state bytes authored for a different state schema version.
+
 ## Fixture Contract
 
-`zircon_plugins/native_dynamic_fixture/native` is the real `cdylib` fixture for the loader. The fixture now exports ABI v3 descriptors and runtime/editor entry symbols by default while keeping an `abi_v2_only` feature to prove fallback. The runtime v3 behavior is stateful, declares state schema version `3`, uses the supported command/event schema ids, provides non-empty command/event manifest text, and implements invoke/save/restore/unload. The editor v3 behavior is stateless, leaves schema pointers null for empty manifests, supplies a denied stateless command callback, and omits save/restore.
+`zircon_plugins/native_dynamic_fixture/native` is the real `cdylib` fixture for the loader. The fixture now exports ABI v3 descriptors and runtime/editor entry symbols by default while keeping an `abi_v2_only` feature to prove fallback. The runtime v3 behavior is stateful, declares state schema version `3`, uses the supported command/event schema ids, provides non-empty command/event manifest text, and implements invoke/save/restore/unload. The editor v3 behavior is stateless, leaves schema pointers null for empty manifests, supplies a denied stateless command callback, omits save/restore, and reports editor entry diagnostics through the v3 host ABI string. The v2 editor diagnostic remains available only for the `abi_v2_only` fallback path.
 
-Focused contract coverage proves the clean ABI v3 fixture reports `NativePluginBehaviorHealth::Clean` for runtime and editor behavior, preserves host log and host diagnostic callback output, preserves v2 fallback behavior, validates plugin-owned byte-buffer free diagnostics, and keeps runtime registration diagnostics scoped to runtime entries.
+Focused contract coverage proves the clean ABI v3 fixture reports `NativePluginBehaviorHealth::Clean` for runtime and editor behavior, preserves host log and host diagnostic callback output, preserves v2 fallback behavior, validates plugin-owned byte-buffer free diagnostics, keeps runtime registration diagnostics scoped to runtime entries, and rejects accidental v2 editor diagnostics on the v3 entry path.
 
 ## Acceptance Evidence
 
@@ -121,6 +160,14 @@ Scoped evidence recorded during the M1-M6 implementation stages:
 - `cargo test -p zircon_runtime --lib native_plugin_loader --locked --jobs 1` passed during M6 with 37 tests passed and the pre-existing warning.
 - `cargo test -p zircon_runtime --test native_plugin_loader_contract --locked --jobs 1` passed during M6 with 3 tests passed and the pre-existing warning.
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1` passed during M6.
+- `cargo test -p zircon_runtime_interface --lib plugin_api_contracts --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture` passed with 4 tests after adding public `ZrHostApiV3`.
+- `cargo check -p zircon_runtime --lib --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short` passed with existing warnings after hot reload snapshot wiring.
+- `cargo test -p zircon_runtime --lib native_live_host --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture` passed with 13 tests.
+- `cargo test -p zircon_runtime --lib native_hot_reload --locked --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short -- --nocapture` passed with 2 tests.
+- `cargo test -p zircon_runtime --lib host_api_adapter --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never -- --nocapture` was attempted after adding the public host adapter but timed out after 5 minutes while other runtime Cargo jobs were compiling. No adapter-test pass is claimed for this slice.
+- `cargo test -p zircon_runtime --lib plugin_extensions::runtime_plugin_descriptor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never -- --nocapture` was attempted after adding the descriptor-owned system-anchor contract but timed out after 10 minutes under concurrent runtime Cargo load. The timed-out target-dir process was cleaned up; no runtime-descriptor test pass is claimed for this slice.
+- `rustfmt --check zircon_plugins/native_dynamic_fixture/native/src/lib.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` passed after the fixture v3 editor diagnostic and dotted-plugin-id adapter updates.
+- `git diff --check -- zircon_plugins/native_dynamic_fixture/plugin.toml zircon_plugins/native_dynamic_fixture/native/src/lib.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` passed after the same updates, with only line-ending warnings.
 
 This slice does not claim full workspace validation because the checkout had unrelated concurrent-session changes and full workspace formatting was blocked by an editor file outside the NativeDynamic scope.
 

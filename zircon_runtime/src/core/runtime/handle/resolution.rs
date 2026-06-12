@@ -1,9 +1,9 @@
 use std::any::Any;
 use std::sync::Arc;
 
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{LifecycleState, ServiceKind};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
+use crate::core::{LifecycleState, ServiceKind};
 
 use super::super::contexts::PluginContext;
 use super::super::descriptors::RegistryName;
@@ -12,20 +12,30 @@ use super::CoreHandle;
 
 const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
 
+enum NamedServiceResolution {
+    Resolved(ServiceObject),
+    Pending(RegistryName),
+}
+
+enum RegisteredServiceResolution {
+    Resolved(ServiceObject),
+    Pending,
+}
+
 impl CoreHandle {
     pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Driver))?;
-        Arc::downcast::<T>(service).map_err(|_| CoreError::ServiceDowncast(name.to_string()))
+        downcast_resolved_service(name, service)
     }
 
     pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Manager))?;
-        Arc::downcast::<T>(service).map_err(|_| CoreError::ServiceDowncast(name.to_string()))
+        downcast_resolved_service(name, service)
     }
 
     pub fn resolve_plugin<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Plugin))?;
-        Arc::downcast::<T>(service).map_err(|_| CoreError::ServiceDowncast(name.to_string()))
+        downcast_resolved_service(name, service)
     }
 
     pub(crate) fn resolve_named_service(
@@ -34,8 +44,13 @@ impl CoreHandle {
         expected_kind: Option<ServiceKind>,
     ) -> Result<ServiceObject, CoreError> {
         crate::profile_scope!("runtime", "core", "resolve_named_service");
-        let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
-        self.resolve_named_service_inner(service_name, expected_kind, &mut stack)
+        match self.named_service_resolution(service_name, expected_kind)? {
+            NamedServiceResolution::Resolved(instance) => Ok(instance),
+            NamedServiceResolution::Pending(service_key) => {
+                let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
+                self.resolve_existing_service_inner(&service_key, &mut stack)
+            }
+        }
     }
 
     pub(crate) fn resolve_registered_service(
@@ -44,38 +59,39 @@ impl CoreHandle {
         expected_kind: Option<ServiceKind>,
     ) -> Result<ServiceObject, CoreError> {
         crate::profile_scope!("runtime", "core", "resolve_registered_service");
-        let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
-        self.resolve_registered_service_inner(service_key, expected_kind, &mut stack)
+        match self.registered_service_resolution(service_key, expected_kind)? {
+            RegisteredServiceResolution::Resolved(instance) => Ok(instance),
+            RegisteredServiceResolution::Pending => {
+                let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
+                self.resolve_existing_service_inner(service_key, &mut stack)
+            }
+        }
     }
 
-    fn resolve_named_service_inner(
+    fn named_service_resolution(
         &self,
         service_name: &str,
         expected_kind: Option<ServiceKind>,
-        stack: &mut Vec<RegistryName>,
-    ) -> Result<ServiceObject, CoreError> {
-        let service_key = {
-            let services = self.inner.services.lock().unwrap();
-            let (name, entry) = services
-                .get_key_value(service_name)
-                .ok_or_else(|| CoreError::MissingService(service_name.to_string()))?;
-            if let Some(expected_kind) = expected_kind {
-                let actual_kind = name.service_kind();
-                if actual_kind != expected_kind {
-                    return Err(CoreError::ServiceKindMismatch {
-                        name: service_name.to_string(),
-                        expected: expected_kind,
-                        actual: actual_kind,
-                    });
-                }
-            }
-            if let Some(instance) = entry.instance.clone() {
-                return Ok(instance);
-            }
-            name.clone()
+    ) -> Result<NamedServiceResolution, CoreError> {
+        let services = self.inner.services.lock().unwrap();
+        let Some((name, entry)) = services.get_key_value(service_name) else {
+            return Err(CoreError::MissingService(service_name.to_string()));
         };
+        if let Some(expected_kind) = expected_kind {
+            let actual_kind = name.service_kind();
+            if actual_kind != expected_kind {
+                return Err(CoreError::ServiceKindMismatch {
+                    name: service_name.to_string(),
+                    expected: expected_kind,
+                    actual: actual_kind,
+                });
+            }
+        }
+        if let Some(instance) = entry.instance.clone() {
+            return Ok(NamedServiceResolution::Resolved(instance));
+        }
 
-        self.resolve_existing_service_inner(service_key, stack)
+        Ok(NamedServiceResolution::Pending(name.clone()))
     }
 
     fn resolve_registered_service_inner(
@@ -84,6 +100,19 @@ impl CoreHandle {
         expected_kind: Option<ServiceKind>,
         stack: &mut Vec<RegistryName>,
     ) -> Result<ServiceObject, CoreError> {
+        match self.registered_service_resolution(service_key, expected_kind)? {
+            RegisteredServiceResolution::Resolved(instance) => Ok(instance),
+            RegisteredServiceResolution::Pending => {
+                self.resolve_existing_service_inner(service_key, stack)
+            }
+        }
+    }
+
+    fn registered_service_resolution(
+        &self,
+        service_key: &RegistryName,
+        expected_kind: Option<ServiceKind>,
+    ) -> Result<RegisteredServiceResolution, CoreError> {
         if let Some(expected_kind) = expected_kind {
             let actual_kind = service_key.service_kind();
             if actual_kind != expected_kind {
@@ -96,23 +125,23 @@ impl CoreHandle {
         }
         {
             let services = self.inner.services.lock().unwrap();
-            let entry = services
-                .get(service_key)
-                .ok_or_else(|| CoreError::MissingService(service_key.to_string()))?;
+            let Some(entry) = services.get(service_key) else {
+                return Err(CoreError::MissingService(service_key.to_string()));
+            };
             if let Some(instance) = entry.instance.clone() {
-                return Ok(instance);
+                return Ok(RegisteredServiceResolution::Resolved(instance));
             }
         }
 
-        self.resolve_existing_service_inner(service_key.clone(), stack)
+        Ok(RegisteredServiceResolution::Pending)
     }
 
     fn resolve_existing_service_inner(
         &self,
-        service_key: RegistryName,
+        service_key: &RegistryName,
         stack: &mut Vec<RegistryName>,
     ) -> Result<ServiceObject, CoreError> {
-        if resolution_stack_contains(stack.as_slice(), &service_key) {
+        if resolution_stack_contains(stack.as_slice(), service_key) {
             return Err(CoreError::DependencyCycle(service_key.to_string()));
         }
         stack.push(service_key.clone());
@@ -122,9 +151,9 @@ impl CoreHandle {
             let canonical_service_name = service_key.as_str();
             let (dependency_names, factory) = {
                 let mut services = self.inner.services.lock().unwrap();
-                let entry = services
-                    .get_mut(&service_key)
-                    .ok_or_else(|| CoreError::MissingService(service_key.to_string()))?;
+                let Some(entry) = services.get_mut(service_key) else {
+                    return Err(CoreError::MissingService(service_key.to_string()));
+                };
                 if let Some(instance) = entry.instance.clone() {
                     return Ok(instance);
                 }
@@ -134,13 +163,14 @@ impl CoreHandle {
 
             let should_activate = {
                 let modules = self.inner.modules.lock().unwrap();
-                modules
-                    .get(owner_module)
-                    .is_some_and(|module| module.lifecycle == LifecycleState::Registered)
+                match modules.get(owner_module) {
+                    Some(module) => module.lifecycle == LifecycleState::Registered,
+                    None => false,
+                }
             };
             if should_activate {
                 self.activate_module(owner_module)?;
-                if let Some(instance) = self.resolved_service_instance(&service_key) {
+                if let Some(instance) = self.resolved_service_instance(service_key) {
                     return Ok(instance);
                 }
             }
@@ -149,7 +179,7 @@ impl CoreHandle {
                 self.resolve_dependency_services(dependency_names.as_ref(), stack)?;
             }
 
-            let instance = match factory {
+            let factory_result = match factory {
                 ServiceEntryFactory::Service(factory) => factory(self),
                 ServiceEntryFactory::Plugin(factory) => {
                     let context = PluginContext {
@@ -161,16 +191,22 @@ impl CoreHandle {
                     };
                     factory(&context)
                 }
-            }
-            .map_err(|error| {
-                CoreError::Initialization(canonical_service_name.to_owned(), error.to_string())
-            })?;
+            };
+            let instance = match factory_result {
+                Ok(instance) => instance,
+                Err(error) => {
+                    return Err(CoreError::Initialization(
+                        canonical_service_name.to_owned(),
+                        error.to_string(),
+                    ));
+                }
+            };
 
             {
                 let mut services = self.inner.services.lock().unwrap();
-                let entry = services
-                    .get_mut(&service_key)
-                    .ok_or_else(|| CoreError::MissingService(service_key.to_string()))?;
+                let Some(entry) = services.get_mut(service_key) else {
+                    return Err(CoreError::MissingService(service_key.to_string()));
+                };
                 entry.instance = Some(instance.clone());
                 entry.lifecycle = LifecycleState::Running;
             }
@@ -179,7 +215,7 @@ impl CoreHandle {
         })();
 
         if result.is_err() {
-            self.reset_initializing_service(&service_key);
+            self.reset_initializing_service(service_key);
         }
 
         stack.pop();
@@ -246,12 +282,21 @@ impl CoreHandle {
     }
 
     fn resolved_service_instance(&self, service_key: &RegistryName) -> Option<ServiceObject> {
-        self.inner
-            .services
-            .lock()
-            .unwrap()
-            .get(service_key)
-            .and_then(|entry| entry.instance.clone())
+        let services = self.inner.services.lock().unwrap();
+        let Some(entry) = services.get(service_key) else {
+            return None;
+        };
+        entry.instance.clone()
+    }
+}
+
+fn downcast_resolved_service<T: Any + Send + Sync>(
+    name: &str,
+    service: ServiceObject,
+) -> Result<Arc<T>, CoreError> {
+    match Arc::downcast::<T>(service) {
+        Ok(service) => Ok(service),
+        Err(_) => Err(CoreError::ServiceDowncast(name.to_string())),
     }
 }
 
@@ -284,6 +329,13 @@ fn resolution_stack_contains(stack: &[RegistryName], service_key: &RegistryName)
                 || fourth_existing == service_key
                 || fifth_existing == service_key
         }
-        _ => stack.iter().any(|existing| existing == service_key),
+        _ => {
+            for existing in stack {
+                if existing == service_key {
+                    return true;
+                }
+            }
+            false
+        }
     }
 }

@@ -1,12 +1,12 @@
 use crate::asset::{
-    AssetManagementFamilyKind, AssetManagementFamilyStatus, AssetManagementRecordSets,
-    MaterialAssetManagementRecordSet, MaterialAssetManagementRecordSetSummary,
-    MeshAssetManagementRecordFailure, MeshAssetManagementRecordSet,
-    MeshAssetManagementRecordSetSummary, ModelAssetManagementRecordSet,
-    ModelAssetManagementRecordSetSummary, SceneAssetManagementRecordSet,
-    SceneAssetManagementRecordSetSummary, SceneEntityManagementRecordSet,
-    SceneEntityManagementRecordSetSummary, ShaderAssetManagementRecordSet,
-    ShaderAssetManagementRecordSetSummary,
+    AssetManagementFamilyIssueBucket, AssetManagementFamilyKind, AssetManagementFamilyStatus,
+    AssetManagementRecordSets, MaterialAssetManagementRecordSet,
+    MaterialAssetManagementRecordSetSummary, MeshAssetManagementRecordFailure,
+    MeshAssetManagementRecordSet, MeshAssetManagementRecordSetSummary,
+    ModelAssetManagementRecordSet, ModelAssetManagementRecordSetSummary,
+    SceneAssetManagementRecordSet, SceneAssetManagementRecordSetSummary,
+    SceneEntityManagementRecordSet, SceneEntityManagementRecordSetSummary,
+    ShaderAssetManagementRecordSet, ShaderAssetManagementRecordSetSummary,
 };
 use crate::core::framework::render::{
     RenderMaterialManagementRecordSet, RenderMaterialManagementRecordSummary,
@@ -109,6 +109,9 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
             shader_count: 2,
             ready_count: 1,
             not_ready_count: 1,
+            unavailable_runtime_source_count: 1,
+            entry_point_diagnostic_count: 2,
+            shader_definition_diagnostic_count: 3,
             validation_diagnostic_count: 5,
             ..Default::default()
         },
@@ -172,6 +175,7 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
     assert_eq!(aggregate.summary.shader_count, 2);
     assert_eq!(aggregate.summary.shader_ready_count, 1);
     assert_eq!(aggregate.summary.shader_not_ready_count, 1);
+    assert_eq!(aggregate.summary.shader_issue_row_count, 11);
     assert_eq!(aggregate.summary.shader_validation_diagnostic_count, 5);
     assert_eq!(aggregate.meshes.failures[0].mesh_id, invalid_mesh_id);
     assert_eq!(
@@ -234,7 +238,7 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
                 2,
                 1,
                 1,
-                5,
+                11,
             ),
         ]
     );
@@ -260,10 +264,123 @@ fn asset_management_record_sets_summarize_asset_family_lists() {
     assert_eq!(aggregate.family_status_index.total_family_count(), 6);
     assert_eq!(aggregate.family_status_index.degraded_family_count(), 3);
     assert!(aggregate.family_status_index.has_degraded_families());
+    let ready_status_view = aggregate.family_status_view(AssetManagementFamilyStatus::Ready);
+    assert_eq!(ready_status_view.status, AssetManagementFamilyStatus::Ready);
+    assert_eq!(
+        ready_status_view.families,
+        vec![
+            AssetManagementFamilyKind::Model,
+            AssetManagementFamilyKind::Scene,
+            AssetManagementFamilyKind::Entity
+        ]
+    );
+    assert_eq!(ready_status_view.total_record_count, 8);
+    assert_eq!(ready_status_view.ready_record_count, 8);
+    assert_eq!(ready_status_view.degraded_record_count, 0);
+    assert_eq!(ready_status_view.issue_row_count, 0);
+    assert_eq!(
+        ready_status_view
+            .rows
+            .iter()
+            .map(|family| family.kind)
+            .collect::<Vec<_>>(),
+        ready_status_view.families
+    );
+    let degraded_status_view = aggregate.family_status_view(AssetManagementFamilyStatus::Degraded);
+    assert_eq!(
+        degraded_status_view.status,
+        AssetManagementFamilyStatus::Degraded
+    );
+    assert_eq!(
+        degraded_status_view.families,
+        vec![
+            AssetManagementFamilyKind::Mesh,
+            AssetManagementFamilyKind::Material,
+            AssetManagementFamilyKind::Shader,
+        ]
+    );
+    assert_eq!(degraded_status_view.total_record_count, 9);
+    assert_eq!(degraded_status_view.ready_record_count, 5);
+    assert_eq!(degraded_status_view.degraded_record_count, 4);
+    assert_eq!(degraded_status_view.issue_row_count, 17);
+    assert_eq!(
+        degraded_status_view
+            .rows
+            .iter()
+            .map(|family| family.kind)
+            .collect::<Vec<_>>(),
+        degraded_status_view.families
+    );
+    let clean_families = vec![
+        AssetManagementFamilyKind::Model,
+        AssetManagementFamilyKind::Scene,
+        AssetManagementFamilyKind::Entity,
+    ];
+    let issue_families = vec![
+        AssetManagementFamilyKind::Mesh,
+        AssetManagementFamilyKind::Material,
+        AssetManagementFamilyKind::Shader,
+    ];
+    assert_eq!(aggregate.family_issue_index.clean, clean_families);
+    assert_eq!(
+        aggregate.family_issue_index.families_without_issues(),
+        clean_families.as_slice()
+    );
+    assert_eq!(aggregate.family_issue_index.with_issues, issue_families);
+    assert_eq!(
+        aggregate.family_issue_index.families_with_issues(),
+        issue_families.as_slice()
+    );
+    assert_eq!(aggregate.family_issue_index.total_family_count(), 6);
+    assert_eq!(aggregate.family_issue_index.issue_family_count(), 3);
+    assert!(aggregate.family_issue_index.has_issue_families());
+    assert_eq!(
+        aggregate
+            .family_issue_index()
+            .families_for_bucket(AssetManagementFamilyIssueBucket::WithIssues),
+        issue_families.as_slice()
+    );
+    assert_eq!(
+        aggregate
+            .family_issue_index()
+            .families_for_bucket(AssetManagementFamilyIssueBucket::Clean),
+        clean_families.as_slice()
+    );
+    let issue_view = aggregate.family_issue_view(AssetManagementFamilyIssueBucket::WithIssues);
+    assert_eq!(
+        issue_view.bucket,
+        AssetManagementFamilyIssueBucket::WithIssues
+    );
+    assert_eq!(issue_view.families, issue_families);
+    assert_eq!(issue_view.issue_row_count, 17);
+    assert_eq!(
+        issue_view
+            .rows
+            .iter()
+            .map(|family| family.kind)
+            .collect::<Vec<_>>(),
+        issue_view.families
+    );
+    let clean_view = aggregate.family_issue_view(AssetManagementFamilyIssueBucket::Clean);
+    assert_eq!(clean_view.bucket, AssetManagementFamilyIssueBucket::Clean);
+    assert_eq!(clean_view.families, clean_families);
+    assert_eq!(clean_view.issue_row_count, 0);
     assert_eq!(overview.summary, aggregate.summary);
     assert_eq!(overview.family_summaries(), aggregate.family_summaries());
     assert_eq!(
         overview.family_status_index(),
         aggregate.family_status_index()
+    );
+    assert_eq!(
+        overview.family_status_view(AssetManagementFamilyStatus::Degraded),
+        degraded_status_view
+    );
+    assert_eq!(
+        overview.family_issue_index(),
+        aggregate.family_issue_index()
+    );
+    assert_eq!(
+        overview.family_issue_view(AssetManagementFamilyIssueBucket::WithIssues),
+        issue_view
     );
 }

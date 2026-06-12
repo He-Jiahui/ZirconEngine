@@ -111,8 +111,10 @@ where
     ) -> Result<D::Item<'world>, QueryEntityError> {
         self.update_cache(world);
         self.validate_mut_after_update_with_ticks(world, entity, ticks)?;
-        D::fetch_mut_with_ticks(world, entity, ticks)
-            .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+        let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) else {
+            return Err(QueryEntityError::QueryDoesNotMatch(entity));
+        };
+        Ok(item)
     }
 
     pub(crate) fn single_mut_with_ticks<'world>(
@@ -137,8 +139,13 @@ where
             }
         }
 
-        let entity = matched.ok_or(QuerySingleError::NoEntities)?;
-        D::fetch_mut_with_ticks(world, entity, ticks).ok_or(QuerySingleError::NoEntities)
+        let Some(entity) = matched else {
+            return Err(QuerySingleError::NoEntities);
+        };
+        let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) else {
+            return Err(QuerySingleError::NoEntities);
+        };
+        Ok(item)
     }
 
     pub(crate) fn get_many_mut_with_ticks<'world, const N: usize>(
@@ -276,6 +283,8 @@ unsafe fn fetch_mut_after_validation_unchecked<'world, D>(
 where
     D: QueryMutData,
 {
-    D::fetch_mut_with_ticks(unsafe { &mut *world }, entity, ticks)
-        .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
+    let Some(item) = D::fetch_mut_with_ticks(unsafe { &mut *world }, entity, ticks) else {
+        return Err(QueryEntityError::QueryDoesNotMatch(entity));
+    };
+    Ok(item)
 }

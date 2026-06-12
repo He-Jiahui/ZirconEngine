@@ -1,0 +1,100 @@
+id = "graveyard_enemy_bt"
+version = 1
+root = "combat_selector"
+description = "Enemy behavior tree used by the vampire roguelite example."
+
+[blackboard]
+target_entity = 2
+attack_range = 1.45
+vision_range = 30.0
+line_of_sight = true
+has_nav_path = true
+hp_is_zero = false
+
+[[nodes]]
+id = "combat_selector"
+kind = "selector"
+children = ["dead_sequence", "attack_sequence", "chase_sequence", "idle_patrol"]
+
+[[nodes]]
+id = "dead_sequence"
+kind = "sequence"
+children = ["is_dead", "play_death_state"]
+
+[[nodes]]
+id = "is_dead"
+kind = "condition"
+blackboard_key = "hp_is_zero"
+expected = true
+
+[[nodes]]
+id = "play_death_state"
+kind = "task"
+action = "state.dead"
+result = "success"
+
+[[nodes]]
+id = "attack_sequence"
+kind = "sequence"
+children = ["target_in_attack_range", "cooldown_ready", "play_attack_state", "apply_contact_damage"]
+
+[[nodes]]
+id = "target_in_attack_range"
+kind = "condition"
+blackboard_key = "target_distance"
+operator = "less_or_equal"
+value = 1.45
+
+[[nodes]]
+id = "cooldown_ready"
+kind = "condition"
+blackboard_key = "attack_cooldown"
+operator = "less_or_equal"
+value = 0.0
+
+[[nodes]]
+id = "play_attack_state"
+kind = "task"
+action = "state.attack"
+result = "success"
+
+[[nodes]]
+id = "apply_contact_damage"
+kind = "task"
+action = "combat.contact_damage"
+result = "success"
+
+[[nodes]]
+id = "chase_sequence"
+kind = "sequence"
+children = ["can_see_target", "has_nav_path", "play_run_state", "nav_chase_target"]
+
+[[nodes]]
+id = "can_see_target"
+kind = "condition"
+blackboard_key = "line_of_sight"
+expected = true
+
+[[nodes]]
+id = "has_nav_path"
+kind = "condition"
+blackboard_key = "has_nav_path"
+expected = true
+
+[[nodes]]
+id = "play_run_state"
+kind = "task"
+action = "state.run"
+result = "success"
+
+[[nodes]]
+id = "nav_chase_target"
+kind = "task"
+action = "navigation.move_towards_target"
+result = "running"
+
+[[nodes]]
+id = "idle_patrol"
+kind = "task"
+action = "state.idle_patrol"
+result = "running"

@@ -1,11 +1,24 @@
 use super::World;
 #[cfg(test)]
 use crate::scene::ecs::ScheduledSceneStep;
-use crate::scene::ecs::{IntoSceneSystem, Schedule, ScheduleError, SystemParam, SystemStage};
+use crate::scene::ecs::{
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, Schedule, ScheduleError,
+    SystemParam, SystemStage,
+};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
         &self.schedule
+    }
+
+    pub(crate) fn register_boxed_runtime_scene_system(
+        &mut self,
+        system: BoxedRuntimeSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        let result = schedule.register_boxed_runtime_system(system);
+        self.schedule = schedule;
+        result
     }
 
     pub fn schedule_mut(&mut self) -> &mut Schedule {
@@ -26,6 +39,16 @@ impl World {
     {
         let mut schedule = std::mem::take(&mut self.schedule);
         let result = schedule.register_native_system::<P, S>(id, stage, order, self, system);
+        self.schedule = schedule;
+        result
+    }
+
+    pub(crate) fn register_boxed_native_system(
+        &mut self,
+        system: BoxedSceneSystem,
+    ) -> Result<(), ScheduleError> {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        let result = schedule.register_boxed_native_system(system);
         self.schedule = schedule;
         result
     }
@@ -67,7 +90,10 @@ impl World {
                 ScheduledSceneStep::Native { id, .. } => {
                     self.run_native_scene_system(&id);
                 }
-                ScheduledSceneStep::ApplyDeferred { .. } => self.apply_deferred(),
+                ScheduledSceneStep::Runtime { .. } => {}
+                ScheduledSceneStep::ApplyDeferred { .. } => {
+                    self.apply_deferred();
+                }
             }
         }
     }

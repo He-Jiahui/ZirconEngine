@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::RenderMaterialPropertyUniformPayload;
 
-use super::super::fallback::create_fallback_texture;
+use super::super::fallback::{create_fallback_normal_texture, create_fallback_texture};
 use super::super::{GpuMaterialUniformResource, OutputTargetWritebackConverter};
 use super::ResourceStreamer;
 
@@ -14,11 +14,9 @@ impl ResourceStreamer {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
-        material_layout: &wgpu::BindGroupLayout,
     ) -> Self {
         Self {
             asset_manager,
-            material_bind_group_layout: material_layout.clone(),
             models: HashMap::new(),
             meshes: HashMap::new(),
             materials: HashMap::new(),
@@ -27,11 +25,18 @@ impl ResourceStreamer {
             post_process_lut_textures: HashMap::new(),
             shaders: HashMap::new(),
             fallback_texture: Arc::new(create_fallback_texture(device, queue, texture_layout)),
+            fallback_normal_texture: Arc::new(create_fallback_normal_texture(
+                device,
+                queue,
+                texture_layout,
+            )),
             fallback_material_uniform: Arc::new(GpuMaterialUniformResource::from_payload(
                 device,
-                material_layout,
                 &RenderMaterialPropertyUniformPayload::default(),
             )),
+            fallback_standard_material_uniform: Arc::new(
+                GpuMaterialUniformResource::fallback_standard_material(device),
+            ),
             output_target_writeback_converter: OutputTargetWritebackConverter::new(device),
             last_material_count: 0,
             last_material_ready_count: 0,
@@ -59,30 +64,6 @@ impl ResourceStreamer {
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
     ) -> Self {
-        let material_layout = create_test_material_bind_group_layout(device);
-        Self::new(
-            asset_manager,
-            device,
-            queue,
-            texture_layout,
-            &material_layout,
-        )
+        Self::new(asset_manager, device, queue, texture_layout)
     }
-}
-
-#[cfg(test)]
-fn create_test_material_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-test-material-property-uniform-layout"),
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        }],
-    })
 }

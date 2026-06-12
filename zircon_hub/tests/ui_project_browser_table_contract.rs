@@ -57,13 +57,14 @@ fn project_table_owns_recent_project_columns_selection_and_detail_action() {
         "ProjectTable.tsx",
         &table,
         &[
-            "import { IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from \"@mui/material\";",
+            "import { Box, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from \"@mui/material\";",
             "export interface ProjectTableProps",
             "projects: HubRecentProject[];",
-            "selectedProjectId?: string | null;",
+            "selectedProjectId: string | null;",
             "onSelect?: (project: HubRecentProject) => void;",
             "onOpenDetail?: (project: HubRecentProject) => void;",
-            "<Table size=\"small\" sx={{ tableLayout: \"fixed\" }}>",
+            "<Box sx={{ overflowX: \"auto\", minWidth: 0 }}>",
+            "<Table size=\"small\" sx={{ tableLayout: \"fixed\", minWidth: 560 }}>",
             "<HeaderCell width=\"32%\">{labels.name}</HeaderCell>",
             "<HeaderCell width=\"18%\">{labels.engineVersion}</HeaderCell>",
             "<HeaderCell width=\"16%\">{labels.lastModified}</HeaderCell>",
@@ -231,7 +232,7 @@ fn view_model_and_types_project_browser_rows_remain_camel_case_dtos() {
             "coverId: string;",
             "browserProjects: HubRecentProject[];",
             "recentProjects: HubRecentProject[];",
-            "selectedProjectId?: string | null;",
+            "selectedProjectId: string | null;",
         ],
     );
 }

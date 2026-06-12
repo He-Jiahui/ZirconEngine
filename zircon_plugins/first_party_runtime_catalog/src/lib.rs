@@ -44,6 +44,10 @@ pub fn first_party_registration_for_runtime_plugin(
         RuntimePluginId::Animation => Some(zircon_plugin_animation_runtime::plugin_registration()),
         #[cfg(feature = "base-runtime-plugins")]
         RuntimePluginId::Rendering => Some(zircon_plugin_rendering_runtime::plugin_registration()),
+        #[cfg(feature = "base-runtime-plugins")]
+        RuntimePluginId::GltfImporter => {
+            Some(zircon_plugin_gltf_importer_runtime::plugin_registration())
+        }
         #[cfg(feature = "advanced-render-runtime-plugins")]
         RuntimePluginId::VirtualGeometry => {
             Some(zircon_plugin_virtual_geometry_runtime::plugin_registration())
@@ -52,6 +56,10 @@ pub fn first_party_registration_for_runtime_plugin(
         RuntimePluginId::HybridGi => Some(zircon_plugin_hybrid_gi_runtime::plugin_registration()),
         #[cfg(feature = "advanced-render-runtime-plugins")]
         RuntimePluginId::Solari => Some(zircon_plugin_solari_runtime::plugin_registration()),
+        #[cfg(feature = "zr-vm-language-runtime-plugin")]
+        RuntimePluginId::ZrVmLanguage => {
+            Some(zircon_plugin_zr_vm_language_runtime::plugin_registration())
+        }
         _ => None,
     }
 }
@@ -65,7 +73,8 @@ mod tests {
     #[cfg(not(any(
         feature = "base-runtime-plugins",
         feature = "advanced-render-runtime-plugins",
-        feature = "navigation-runtime-plugin"
+        feature = "navigation-runtime-plugin",
+        feature = "zr-vm-language-runtime-plugin"
     )))]
     #[test]
     fn catalog_without_provider_features_returns_no_registrations() {

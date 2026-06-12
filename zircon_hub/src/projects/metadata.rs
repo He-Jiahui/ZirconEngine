@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -39,6 +39,23 @@ pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String {
         .canonicalize()
         .unwrap_or_else(|_| path.as_ref().to_path_buf());
     project_metadata_key(resolved)
+}
+
+pub fn normalize_project_root(path: impl AsRef<Path>) -> PathBuf {
+    let path = path.as_ref();
+    let resolved = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    strip_windows_extended_length_prefix(resolved)
+}
+
+fn strip_windows_extended_length_prefix(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(stripped) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{stripped}"));
+    }
+    if let Some(stripped) = text.strip_prefix(r"\\?\") {
+        return PathBuf::from(stripped.to_string());
+    }
+    path
 }
 
 fn looks_like_windows_drive_path(path: &str) -> bool {
@@ -104,6 +121,34 @@ mod tests {
         assert_eq!(
             project_filesystem_path_key(project.join(".")),
             project_filesystem_path_key(&project)
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn normalize_project_root_resolves_dot_components_and_strips_extended_prefix() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-hub-normalize-root-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let project = root.join("Project");
+        std::fs::create_dir_all(&project).unwrap();
+
+        assert_eq!(
+            normalize_project_root(project.join(".")),
+            strip_windows_extended_length_prefix(project.canonicalize().unwrap())
+        );
+        assert_eq!(
+            normalize_project_root(r"\\?\E:\Projects\Game"),
+            PathBuf::from(r"E:\Projects\Game")
+        );
+        assert_eq!(
+            normalize_project_root(r"\\?\UNC\server\share\Game"),
+            PathBuf::from(r"\\server\share\Game")
         );
 
         std::fs::remove_dir_all(root).unwrap();

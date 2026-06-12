@@ -4,6 +4,7 @@ use super::render_commands::HostPaintCommand;
 use super::style_selector::{select_workbench_list_row_style, WorkbenchListRowStyle};
 use super::template_node_labels::template_node_label;
 use super::theme::PALETTE;
+use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const LIST_ROW_FONT_SIZE: f32 = 12.0;
@@ -134,7 +135,7 @@ enum ListRowAdornmentKind {
 }
 
 fn list_row_adornment_kind(node: &TemplatePaneNodeData) -> ListRowAdornmentKind {
-    if node.disabled {
+    if is_unavailable_list_row_state(list_row_style(node).state) {
         ListRowAdornmentKind::DisabledDiamond
     } else if node.checked || node.selected {
         ListRowAdornmentKind::Check
@@ -165,6 +166,13 @@ fn list_row_adornment_color(node: &TemplatePaneNodeData) -> [u8; 4] {
 
 fn list_row_style(node: &TemplatePaneNodeData) -> WorkbenchListRowStyle {
     select_workbench_list_row_style(node)
+}
+
+fn is_unavailable_list_row_state(state: UiPainterResolvedState) -> bool {
+    matches!(
+        state,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+    )
 }
 
 fn list_row_adornment_rect(rect: &FrameRect) -> FrameRect {
@@ -313,7 +321,6 @@ mod tests {
     use super::super::template_nodes::paint_template_nodes_for_test;
     use super::*;
     use crate::ui::layouts::common::model_rc;
-    use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
     #[test]
     fn list_row_adornment_kind_prefers_disabled_then_selected_then_chevron() {
@@ -324,6 +331,16 @@ mod tests {
                 checked: true,
                 ..TemplatePaneNodeData::default()
             }),
+            ListRowAdornmentKind::DisabledDiamond
+        );
+        let mut loading_selected = TemplatePaneNodeData {
+            selected: true,
+            checked: true,
+            ..TemplatePaneNodeData::default()
+        };
+        loading_selected.button_style.loading = true;
+        assert_eq!(
+            list_row_adornment_kind(&loading_selected),
             ListRowAdornmentKind::DisabledDiamond
         );
         assert_eq!(

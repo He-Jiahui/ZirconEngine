@@ -1,0 +1,16 @@
+version = 1
+name = "Jungle Mud Path"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000142"
+url = "res://shaders/vampire_forest"
+
+[overrides]
+base_color = [0.34, 0.22, 0.1, 1.0]
+metallic = 0.0
+roughness = 0.93
+emissive = [0.01, 0.005, 0.0]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"

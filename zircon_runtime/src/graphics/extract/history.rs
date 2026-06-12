@@ -4,6 +4,7 @@ pub use crate::core::framework::render::FrameHistoryHandle;
 pub enum FrameHistorySlot {
     AmbientOcclusion,
     GlobalIllumination,
+    HzbFurthest,
     SceneColor,
 }
 

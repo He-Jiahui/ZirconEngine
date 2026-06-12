@@ -1,4 +1,7 @@
 use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    component::UiComponentEvent,
+    dispatch::UiComponentEventReport,
     event_ui::UiNodeId,
     tree::{UiTemplateNodeMetadata, UiTreeError, UiTreeNode},
 };
@@ -38,5 +41,59 @@ impl UiSurface {
         metadata: Option<&UiTemplateNodeMetadata>,
     ) -> bool {
         !ui_surface_effective_disabled(self, node_id, node, metadata)
+    }
+
+    pub(crate) fn clear_hovered_input_path(
+        &mut self,
+    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
+        let hovered = std::mem::take(&mut self.focus.hovered);
+        let mut reports = Vec::new();
+        for node_id in hovered {
+            if self.component_states.set_hovered(node_id, false) {
+                self.mark_component_state_render_dirty(node_id)?;
+            }
+            self.push_hover_leave_reports(node_id, &mut reports)?;
+        }
+        Ok(reports)
+    }
+
+    pub(crate) fn clear_pointer_interaction_without_route(
+        &mut self,
+    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
+        if let Some(pressed) = self.focus.pressed.take() {
+            if self.component_states.set_pressed(pressed, false) {
+                self.mark_component_state_render_dirty(pressed)?;
+            }
+        }
+        self.release_pointer_capture();
+        self.input.clear_last_cursor_point();
+        self.clear_hovered_input_path()
+    }
+
+    fn push_hover_leave_reports(
+        &self,
+        node_id: UiNodeId,
+        reports: &mut Vec<UiComponentEventReport>,
+    ) -> Result<(), UiTreeError> {
+        let node = self
+            .tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        let Some(metadata) = node.template_metadata.as_ref() else {
+            return Ok(());
+        };
+        for _ in metadata
+            .bindings
+            .iter()
+            .filter(|binding| binding.event == UiEventKind::Hover)
+        {
+            reports.push(UiComponentEventReport {
+                target: node_id,
+                event: UiComponentEvent::Hover { hovered: false },
+                delivered: true,
+                drag: None,
+            });
+        }
+        Ok(())
     }
 }

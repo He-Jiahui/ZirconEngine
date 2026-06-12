@@ -1,6 +1,6 @@
 //! Static API contracts for the React/MUI Hub input and navigation surface.
 
-use std::{fs, path::PathBuf};
+use std::{collections::BTreeSet, fs, path::PathBuf};
 
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -47,6 +47,97 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
             "{source_name} should not contain obsolete input/navigation API snippet {snippet:?}"
         );
     }
+}
+
+fn quoted_values_between(source: &str, begin: &str, end: &str) -> BTreeSet<String> {
+    let start = source
+        .find(begin)
+        .unwrap_or_else(|| panic!("marker {begin:?} should exist"))
+        + begin.len();
+    let stop = source[start..]
+        .find(end)
+        .unwrap_or_else(|| panic!("marker {end:?} should exist after {begin:?}"))
+        + start;
+    source[start..stop]
+        .split('"')
+        .skip(1)
+        .step_by(2)
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn hub_action_id_table_matches_react_hub_action_map_bidirectionally() {
+    let action_id = read_crate_file("src/tauri_app/action_id.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    let rust_ids = quoted_values_between(
+        &action_id,
+        "pub(crate) fn as_str(self) -> &'static str {",
+        "pub(crate) fn from_str(",
+    );
+    let web_ids = quoted_values_between(&types, "export const HUB_ACTION = {", "} as const;");
+
+    assert!(
+        !rust_ids.is_empty(),
+        "Rust action id table must not be empty"
+    );
+    assert_eq!(
+        rust_ids, web_ids,
+        "HubActionId::as_str() table and web HUB_ACTION map must expose identical id sets"
+    );
+}
+
+#[test]
+fn hub_action_legacy_aliases_stay_rust_side_only() {
+    let action_id = read_crate_file("src/tauri_app/action_id.rs");
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "action_id.rs",
+        &action_id,
+        &[
+            "\"page\" => Some(Self::ShowPage)",
+            "\"project-subpage\" => Some(Self::ShowProjectSubpage)",
+            "\"open-project\" => Some(Self::SelectProject)",
+        ],
+    );
+    assert_not_contains_any(
+        "types/hub.ts",
+        &types,
+        &["\"page\",", "\"project-subpage\",", "\"open-project\","],
+    );
+}
+
+#[test]
+fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
+    let types = read_crate_file("web/src/types/hub.ts");
+
+    assert_contains_all(
+        "types/hub.ts",
+        &types,
+        &[
+            "[HUB_ACTION.searchProjects]: SearchProjectsPayload;",
+            "[HUB_ACTION.updateNewProjectDraft]: NewProjectDraftPayload;",
+            "[HUB_ACTION.createProject]: CreateProjectPayload;",
+            "[HUB_ACTION.importProject]: ImportProjectPayload;",
+            "[HUB_ACTION.pinProject]: ProjectTargetPayload;",
+            "[HUB_ACTION.unpinProject]: ProjectTargetPayload;",
+            "[HUB_ACTION.removeFromHub]: ProjectTargetPayload;",
+            "[HUB_ACTION.requestDelete]: ProjectTargetPayload;",
+            "[HUB_ACTION.cancelDelete]: ProjectTargetPayload;",
+            "[HUB_ACTION.confirmDelete]: ProjectTargetPayload;",
+            "[HUB_ACTION.buildProject]: ProjectTargetPayload;",
+            "[HUB_ACTION.packageProject]: ProjectTargetPayload;",
+            "[HUB_ACTION.installDevice]: ProjectTargetPayload;",
+            "[HUB_ACTION.openEditor]: ProjectTargetPayload;",
+            "[HUB_ACTION.updateSettingsDraft]: UpdateSettingsDraftPayload;",
+            "[HUB_ACTION.saveSettings]: SaveSettingsPayload;",
+            "[HUB_ACTION.browseSettingsFolder]: BrowseSettingsFolderPayload;",
+            "[HUB_ACTION.openResource]: OpenResourcePayload;",
+            "[HUB_ACTION.openOutputFolder]: OpenOutputFolderPayload;",
+        ],
+    );
 }
 
 #[test]
@@ -279,10 +370,18 @@ fn navigation_components_share_one_action_dispatcher_api() {
             "state: HubShellState;",
             "onAction: HubActionHandler;",
             "<TopBar state={state} onAction={onAction} />",
-            "<NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction}",
-            "ProjectsDashboard state={state} onAction={onAction}",
-            "CatalogPage state={state} onAction={onAction}",
-            "WorkspacePage state={state} onAction={onAction}",
+            "<NavigationDrawer",
+            "activePage={state.activePage}",
+            "text={state.ui.shell}",
+            "engineVersion={state.engineVersion}",
+            "sourceEngines={state.sourceEngines}",
+            "activeSourceEngineId={state.activeSourceEngineId}",
+            "onAction={onAction}",
+            "const pageRoutes: Record<HubPageId, HubPageComponent> = {",
+            "projects: ProjectsDashboard,",
+            "assets: CatalogPage,",
+            "const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;",
+            "<PageComponent state={state} onAction={onAction} />",
         ],
     );
     assert_contains_all(
@@ -291,16 +390,19 @@ fn navigation_components_share_one_action_dispatcher_api() {
         &[
             "const handleAction: HubActionHandler = async (actionId, targetId, payload) =>",
             "dispatchHubAction(actionId, targetId, payload)",
-            "setState(nextState)",
+            "actionSequenceRef",
+            "stateGenerationRef",
+            "applyHubState(nextState)",
             "<HubWindow state={state} onAction={handleAction} />",
         ],
     );
+    assert_not_contains_any("App.tsx", &app, &["setState(nextState);"]);
     assert_contains_all(
         "hubApi.ts",
         &hub_api,
         &[
             "dispatchHubAction<TActionId extends HubActionId>",
-            "invoke<HubShellState>(\"hub_action\"",
+            "invoke<unknown>(\"hub_action\"",
             "request: { actionId, targetId, payload }",
         ],
     );
@@ -309,26 +411,45 @@ fn navigation_components_share_one_action_dispatcher_api() {
 #[test]
 fn routed_pages_use_input_callbacks_for_navigation_and_filters() {
     let projects = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let projects_toolbar = read_crate_file("web/src/components/inputs/ProjectsToolbar.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
     let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
 
     assert_contains_all(
         "ProjectsDashboard.tsx",
         &projects,
         &[
-            "HubSearchField",
-            "HubSelect",
-            "HubToggle",
-            "HubComboBox",
-            "HubTextField",
+            "ProjectsToolbar",
+            "search={search}",
+            "filter={filter}",
+            "sort={sort}",
+            "viewMode={viewMode}",
             "void onAction(HUB_ACTION.searchProjects, undefined, { query: value });",
             "void onAction(HUB_ACTION.setProjectFilter, value)",
             "void onAction(HUB_ACTION.setProjectSort, value)",
             "void onAction(HUB_ACTION.setProjectViewMode, value)",
             "void onAction(HUB_ACTION.viewAllProjects)",
             "void onAction(HUB_ACTION.newProject)",
+        ],
+    );
+    assert_contains_all(
+        "ProjectsToolbar.tsx",
+        &projects_toolbar,
+        &[
+            "HubSearchField",
+            "HubSelect",
+            "HubToggle",
+            "value={search}",
+            "onChange={onSearch}",
+            "value={filter}",
+            "onChange={onFilter}",
+            "value={sort}",
+            "onChange={onSort}",
+            "value={viewMode}",
+            "onChange={onViewMode}",
         ],
     );
     assert_contains_all(
@@ -367,12 +488,21 @@ fn routed_pages_use_input_callbacks_for_navigation_and_filters() {
         "SettingsPage.tsx",
         &settings,
         &[
+            "HubTabs",
+            "SettingsSection",
+            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "HubTextField",
             "HubComboBox",
             "HubCheckbox",
             "HubSwitch",
-            "HubTabs",
-            "void onAction(HUB_ACTION.saveSettings, undefined, { settings: draft })",
+            "updateDraft",
+            "browseFolder",
         ],
     );
 }

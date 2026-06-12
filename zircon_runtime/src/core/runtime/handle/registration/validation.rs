@@ -1,5 +1,5 @@
-use crate::core::error::CoreError;
-use crate::core::lifecycle::ServiceKind;
+use crate::core::CoreError;
+use crate::core::ServiceKind;
 
 use super::super::super::descriptors::{DependencySpec, RegistryName};
 

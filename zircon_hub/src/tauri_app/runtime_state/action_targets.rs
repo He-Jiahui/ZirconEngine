@@ -2,6 +2,8 @@ use std::path::Path;
 
 use crate::error::HubError;
 use crate::projects::{project_paths_match, RecentProject};
+use crate::state::{HubMessage, HubMessageId, ShellMessageId};
+use crate::tauri_app::action_id::HubActionId;
 use crate::tauri_app::action_request::{HubActionRequest, ProjectTargetActionPayload};
 
 use super::{recent_project_display_name, HubRuntimeSession};
@@ -11,19 +13,16 @@ impl HubRuntimeSession {
         &mut self,
         request: &HubActionRequest,
     ) -> Result<(), HubError> {
+        let action = request.action()?;
         let payload = request.project_target_payload()?;
-        self.apply_action_project_target(
-            request.target_id.as_deref(),
-            payload.as_ref(),
-            request.action_id.trim(),
-        )
+        self.apply_action_project_target(request.target_id.as_deref(), payload.as_ref(), action)
     }
 
     pub(in crate::tauri_app) fn apply_action_project_target(
         &mut self,
         target_id: Option<&str>,
         payload: Option<&ProjectTargetActionPayload>,
-        action_id: &str,
+        action: HubActionId,
     ) -> Result<(), HubError> {
         let targets = project_target_candidates(target_id, payload);
         if targets.is_empty() {
@@ -33,10 +32,15 @@ impl HubRuntimeSession {
             .iter()
             .find_map(|target| self.find_recent_project(target))
         else {
-            return Err(HubError::message(format!(
-                "Unknown recent project target for {action_id}: {}",
-                targets[0]
-            )));
+            return Err(HubError::status(
+                HubMessage::with_params(
+                    HubMessageId::Shell(ShellMessageId::UnknownRecentProjectTarget),
+                    [action.as_str().to_string(), targets[0].clone()],
+                ),
+                Some(HubMessage::new(HubMessageId::Shell(
+                    ShellMessageId::CheckActionTarget,
+                ))),
+            ));
         };
         self.activate_recent_project_target(project)
     }
@@ -129,7 +133,9 @@ mod tests {
         );
         session.task_status = crate::state::TaskStatus::running_operation(
             "Packaging",
-            "Copying project into package output",
+            crate::state::HubMessage::new(crate::state::HubMessageId::Delivery(
+                crate::state::DeliveryMessageId::CopyingProjectToPackage,
+            )),
             TaskOperationKind::Project,
             "Target",
         );
@@ -168,9 +174,7 @@ mod tests {
                 action_id: "package-project".to_string(),
                 target_id: Some(fallback.to_string_lossy().into_owned()),
                 payload: Some(serde_json::json!({
-                    "project": {
-                        "projectPath": target
-                    }
+                    "projectPath": target
                 })),
             })
             .expect("typed project payload should select the payload project before target_id");
@@ -199,10 +203,8 @@ mod tests {
                 action_id: "package-project".to_string(),
                 target_id: None,
                 payload: Some(serde_json::json!({
-                    "project": {
-                        "projectId": fallback,
-                        "projectPath": target
-                    }
+                    "projectId": fallback,
+                    "projectPath": target
                 })),
             })
             .expect("projectPath should resolve before projectId when both are present");

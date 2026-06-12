@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use crate::core::config_store::ConfigStore;
 use crate::core::diagnostics::DiagnosticStore;
-use crate::core::event_bus::EventBus;
-use crate::core::frame_clock::FrameClock;
-use crate::core::job_scheduler::JobScheduler;
-use crate::core::state::StateRegistry;
-use crate::core::tasks::TaskPools;
-use crate::core::time::RuntimeTimeClocks;
+use crate::core::framework::state::StateRegistry;
 
+use super::super::config_store::ConfigStore;
 use super::super::descriptors::RegistryName;
-use super::{ModuleEntry, SceneRuntimeHookSet, ServiceEntry};
+use super::super::events::EventBus;
+use super::super::frame_clock::FrameClock;
+use super::super::tasks::{JobScheduler, TaskPools};
+use super::super::time::RuntimeTimeClocks;
+use super::{ModuleEntry, SceneRuntimeHookSet, ServiceEntry, WorldRuntimeExtensionSet};
 
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
@@ -25,4 +24,5 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) diagnostics: Mutex<DiagnosticStore>,
     pub(crate) states: Mutex<StateRegistry>,
     pub(crate) scene_hooks: Mutex<SceneRuntimeHookSet>,
+    pub(crate) world_extensions: Mutex<WorldRuntimeExtensionSet>,
 }

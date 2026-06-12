@@ -10,11 +10,11 @@ pub(super) struct EventBusSources {
 
 impl EventBusSources {
     pub(super) fn load() -> Self {
-        let root = include_str!("../../../../../event_bus.rs");
-        let subscribe = include_str!("../../../../../event_bus/subscribe.rs");
-        let publish = include_str!("../../../../../event_bus/publish.rs");
-        let failure = include_str!("../../../../../event_bus/failure.rs");
-        let prune = include_str!("../../../../../event_bus/prune.rs");
+        let root = include_str!("../../../../events.rs");
+        let subscribe = include_str!("../../../../events/subscribe.rs");
+        let publish = include_str!("../../../../events/publish.rs");
+        let failure = include_str!("../../../../events/failure.rs");
+        let prune = include_str!("../../../../events/prune.rs");
         let combined = format!("{subscribe}\n{publish}\n{failure}\n{prune}\n{root}");
         let normalized_combined = combined.replace("\r\n", "\n");
         Self {

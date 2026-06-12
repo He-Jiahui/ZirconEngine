@@ -28,7 +28,7 @@ fn ray_cast_uses_capsule_shape_instead_of_capsule_aabb() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let rounded_cap_corner_miss = physics.ray_cast(&PhysicsRayCastQuery {
@@ -96,7 +96,7 @@ fn ray_cast_reports_capsule_exit_hit_when_origin_starts_inside_axis() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hit = physics
@@ -147,7 +147,7 @@ fn ray_cast_uses_absolute_max_sphere_scale() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hit = physics
@@ -203,7 +203,7 @@ fn ray_cast_uses_scaled_collider_local_transform() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hit = physics
@@ -258,7 +258,7 @@ fn ray_cast_rejects_non_finite_query_input() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     assert!(physics
@@ -321,7 +321,7 @@ fn ray_cast_skips_non_finite_collider_transform() {
             .unwrap();
         valid
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hit = physics
@@ -371,7 +371,7 @@ fn ray_cast_skips_negative_sphere_radius() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     assert!(physics
@@ -421,7 +421,7 @@ fn ray_cast_skips_non_finite_box_half_extents() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     assert!(physics
@@ -475,7 +475,7 @@ fn ray_cast_skips_non_finite_scaled_box_half_extents() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     assert!(physics
@@ -561,7 +561,7 @@ fn shape_overlap_uses_shared_query_filter_for_layers_sensors_groups_and_exclusio
 
         (included, excluded)
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hits = physics.shape_overlap(&PhysicsShapeOverlapQuery {
@@ -607,7 +607,7 @@ fn shape_overlap_rejects_non_finite_query_rotation() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let hits = physics.shape_overlap(&PhysicsShapeOverlapQuery {
@@ -652,7 +652,7 @@ fn builtin_shape_cast_reports_initial_overlap_without_claiming_swept_solver() {
             .unwrap();
         target
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let physics = resolve_physics_manager(&runtime.handle()).unwrap();
 
     let initial_hit = physics

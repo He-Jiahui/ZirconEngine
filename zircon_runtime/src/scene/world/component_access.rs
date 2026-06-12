@@ -119,7 +119,11 @@ impl World {
         if !self.contains_entity(entity) {
             return Err(format!("cannot update joint for missing node {entity}"));
         }
-        if joint.as_ref().and_then(|joint| joint.connected_entity) == Some(entity) {
+        let joint_connects_to_self = match &joint {
+            Some(joint) => joint.connected_entity == Some(entity),
+            None => false,
+        };
+        if joint_connects_to_self {
             return Err(format!("joint on node {entity} cannot connect to itself"));
         }
         let changed = match joint {

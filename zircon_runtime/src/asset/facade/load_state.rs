@@ -178,6 +178,82 @@ impl AssetLoadStates {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator};
+
+    fn record_with_state(state: ResourceState) -> ResourceRecord {
+        let locator =
+            ResourceLocator::parse("res://textures/state-matrix.png").expect("valid test locator");
+        ResourceRecord::new(
+            ResourceId::from_locator(&locator),
+            ResourceKind::Texture,
+            locator,
+        )
+        .with_state(state)
+    }
+
+    #[test]
+    fn asset_load_state_projection_matches_resource_record_matrix() {
+        assert_eq!(
+            AssetLoadState::from_resource(None, None, false),
+            AssetLoadState::NotLoaded
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Pending)),
+                None,
+                false
+            ),
+            AssetLoadState::Loading
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Ready)),
+                None,
+                true
+            ),
+            AssetLoadState::Loaded
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Ready)),
+                None,
+                false
+            ),
+            AssetLoadState::NotLoaded
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Error)),
+                None,
+                true
+            ),
+            AssetLoadState::Failed
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Ready)),
+                Some(RuntimeResourceState::Error),
+                true
+            ),
+            AssetLoadState::Failed
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Reloading)),
+                None,
+                true
+            ),
+            AssetLoadState::Reloading
+        );
+        assert_eq!(
+            AssetLoadState::from_resource(
+                Some(&record_with_state(ResourceState::Ready)),
+                Some(RuntimeResourceState::Reloading),
+                true
+            ),
+            AssetLoadState::Reloading
+        );
+    }
 
     #[test]
     fn asset_load_states_classification_helpers_cover_tooling_status_rows() {

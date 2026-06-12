@@ -12,10 +12,12 @@ use crate::core::framework::render::{
     SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
-use crate::core::resource::{AnimationSkeletonMarker, ResourceHandle, ResourceId, TextureMarker};
+use crate::core::resource::{
+    AnimationSkeletonMarker, MeshMarker, ResourceHandle, ResourceId, TextureMarker,
+};
 use crate::scene::components::{
-    AmbientLight, AnimationSkeletonComponent, CameraComponent, MeshRenderer, Mobility, NodeKind,
-    PostProcessVolumeComponent, Sprite2dComponent,
+    AmbientLight, AnimationSkeletonComponent, CameraComponent, MeshRenderer, MeshRendererLodLevel,
+    Mobility, NodeKind, PostProcessVolumeComponent, Sprite2dComponent,
 };
 use crate::scene::{DefaultLevelManager, World};
 
@@ -209,6 +211,70 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
 }
 
 #[test]
+fn render_frame_extract_selects_mesh_lod_by_camera_distance() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0001);
+    world.set_active_camera(camera);
+    world
+        .update_transform(camera, Transform::default())
+        .expect("test camera transform should be mutable");
+    let mesh_entity = spawn_mesh_on_layer(&mut world, 0b0001, Mobility::Dynamic);
+    let base_model = model_handle(&format!("res://models/direct-{mesh_entity}.obj"));
+    let base_material = material_handle(&format!("res://materials/direct-{mesh_entity}.zmaterial"));
+    let lod_model = model_handle("res://models/direct-lod1.obj");
+    let lod_mesh = mesh_handle("res://meshes/direct-lod1.zmesh");
+    let lod_material = material_handle("res://materials/direct-lod1.zmaterial");
+
+    world.get_mut::<MeshRenderer>(mesh_entity).unwrap().lods = vec![MeshRendererLodLevel {
+        min_distance: 10.0,
+        model: lod_model,
+        mesh: Some(lod_mesh),
+        material: lod_material,
+        primitives: Vec::new(),
+    }];
+
+    world
+        .update_transform(
+            mesh_entity,
+            Transform::from_translation(Vec3::new(0.0, 0.0, 5.0)),
+        )
+        .unwrap();
+    let near_extract = world.to_render_frame_extract();
+    let near_mesh = near_extract
+        .geometry
+        .meshes
+        .iter()
+        .find(|mesh| mesh.node_id == mesh_entity)
+        .expect("near mesh should be extracted");
+    assert_eq!(near_mesh.model, base_model);
+    assert_eq!(near_mesh.mesh, None);
+    assert_eq!(near_mesh.material, base_material);
+    assert!(near_mesh.mesh_lod.is_none());
+
+    world
+        .update_transform(
+            mesh_entity,
+            Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
+        )
+        .unwrap();
+    let far_extract = world.to_render_frame_extract();
+    let far_mesh = far_extract
+        .geometry
+        .meshes
+        .iter()
+        .find(|mesh| mesh.node_id == mesh_entity)
+        .expect("far mesh should be extracted");
+    assert_eq!(far_mesh.model, lod_model);
+    assert_eq!(far_mesh.mesh, Some(lod_mesh));
+    assert_eq!(far_mesh.material, lod_material);
+    let far_mesh_lod = far_mesh
+        .mesh_lod
+        .expect("far mesh should carry lod metadata");
+    assert_eq!(far_mesh_lod.level_index, 0);
+    assert_eq!(far_mesh_lod.min_distance, 10.0);
+}
+
+#[test]
 fn inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b1111);
@@ -344,6 +410,176 @@ fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers()
         .visibility
         .renderable_entities
         .contains(&hidden_sprite));
+}
+
+#[test]
+fn render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+    let visible = world.spawn_node(NodeKind::Empty);
+    let hidden = world.spawn_node(NodeKind::Empty);
+    world.set_render_layer_mask(visible, 0b0010).unwrap();
+    world.set_render_layer_mask(hidden, 0b0100).unwrap();
+    world
+        .set_dynamic_component(
+            visible,
+            "render.particle_sprites",
+            serde_json::json!({
+                "style": "blood_flame_haste_shield",
+                "sprites": [{
+                    "position": [1.0, 2.0, 3.0],
+                    "size": 0.45,
+                    "rotation": 0.25,
+                    "color": [1.0, 0.2, 0.1, 0.75],
+                    "intensity": 1.8
+                }]
+            }),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            hidden,
+            "render.particle_sprites",
+            serde_json::json!({
+                "sprites": [{
+                    "position": [6.0, 2.0, 3.0],
+                    "size": 0.8,
+                    "color": [0.1, 0.9, 1.0, 1.0],
+                    "intensity": 3.0
+                }]
+            }),
+        )
+        .unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(706),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.particles.emitters, vec![visible]);
+    assert_eq!(extract.particles.sprites.len(), 1);
+    let sprite = extract.particles.sprites[0];
+    assert_eq!(sprite.entity, visible);
+    assert_eq!(sprite.position, Vec3::new(1.0, 2.0, 3.0));
+    assert_eq!(sprite.size, 0.45);
+    assert_eq!(sprite.rotation, 0.25);
+    assert_eq!(sprite.color, Vec4::new(1.0, 0.2, 0.1, 0.75));
+    assert_eq!(sprite.intensity, 1.8);
+    assert_eq!(extract.particles.bounds.len(), 1);
+    assert_eq!(extract.particles.bounds[0].entity, visible);
+    assert_eq!(
+        extract.particles.sort_camera_position,
+        Some(extract.view.camera.transform.translation)
+    );
+    assert!(extract.visibility.dynamic_entities.contains(&visible));
+    assert!(!extract.visibility.dynamic_entities.contains(&hidden));
+}
+
+#[test]
+fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+    let visible = world.spawn_node(NodeKind::Empty);
+    let hidden = world.spawn_node(NodeKind::Empty);
+    world.set_render_layer_mask(visible, 0b0010).unwrap();
+    world.set_render_layer_mask(hidden, 0b0100).unwrap();
+    world
+        .set_dynamic_component(
+            visible,
+            "render.world_hud_bars",
+            serde_json::json!({
+                "bars": [{
+                    "position": [2.0, 3.5, 4.0],
+                    "width": 1.2,
+                    "height": 0.12,
+                    "ratio": 0.5,
+                    "segments": 4,
+                    "back_color": [0.04, 0.03, 0.04, 0.7],
+                    "fill_color": [0.2, 0.9, 0.35, 0.88],
+                    "intensity": 1.25
+                }]
+            }),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            hidden,
+            "render.world_hud_bars",
+            serde_json::json!({
+                "bars": [{
+                    "position": [6.0, 3.5, 4.0],
+                    "ratio": 1.0,
+                    "segments": 4
+                }]
+            }),
+        )
+        .unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(707),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.particles.emitters, vec![visible]);
+    assert_eq!(
+        extract.particles.sprites.len(),
+        2,
+        "world HUD health should render as one background billboard and one fill billboard"
+    );
+    assert_eq!(
+        extract.particles.sprites[0].color,
+        Vec4::new(0.04, 0.03, 0.04, 0.7),
+        "background should be submitted before the fill for same-entity HUD bars"
+    );
+    assert_eq!(extract.particles.sprites[0].size, 0.12);
+    assert_eq!(extract.particles.sprites[0].aspect_ratio, 10.0);
+    assert_eq!(extract.particles.sprites[0].billboard_offset, Vec2::ZERO);
+    assert_eq!(
+        extract.particles.sprites[1].color,
+        Vec4::new(0.2, 0.9, 0.35, 0.88)
+    );
+    assert!(
+        (extract.particles.sprites[1].size - 0.0864).abs() <= 0.0001,
+        "fill height should be inset from the background"
+    );
+    assert!(
+        (extract.particles.sprites[1].aspect_ratio - (0.6 / 0.0864)).abs() <= 0.0001,
+        "fill width should encode the health ratio"
+    );
+    assert_eq!(
+        extract.particles.sprites[1].billboard_offset,
+        Vec2::new(-0.3, 0.0),
+        "fill should stay left-aligned inside the background bar"
+    );
+    assert_eq!(
+        extract
+            .particles
+            .sprites
+            .iter()
+            .filter(|sprite| sprite.color == Vec4::new(0.04, 0.03, 0.04, 0.7))
+            .count(),
+        1,
+        "world HUD bar should emit one background billboard"
+    );
+    assert_eq!(
+        extract
+            .particles
+            .sprites
+            .iter()
+            .filter(|sprite| sprite.color == Vec4::new(0.2, 0.9, 0.35, 0.88))
+            .count(),
+        1,
+        "world HUD bar should emit one filled billboard from its health ratio"
+    );
+    assert!(extract
+        .particles
+        .sprites
+        .iter()
+        .all(|sprite| sprite.entity == visible && sprite.position.y == 3.5));
+    assert!(extract.visibility.dynamic_entities.contains(&visible));
+    assert!(!extract.visibility.dynamic_entities.contains(&hidden));
 }
 
 #[test]
@@ -914,6 +1150,10 @@ fn spawn_mesh_on_layer(
         world.set_mobility(entity, mobility).unwrap();
     }
     entity
+}
+
+fn mesh_handle(label: &str) -> ResourceHandle<MeshMarker> {
+    ResourceHandle::new(ResourceId::from_stable_label(label))
 }
 
 fn spawn_sprite_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {

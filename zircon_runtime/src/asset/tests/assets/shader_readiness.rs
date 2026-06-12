@@ -367,6 +367,7 @@ fn shader_asset_management_record_set_sorts_and_summarizes_records() {
     assert_eq!(summary.entry_point_diagnostic_count, 1);
     assert_eq!(summary.shader_definition_diagnostic_count, 1);
     assert_eq!(summary.validation_diagnostic_count, 1);
+    assert_eq!(summary.issue_row_count(), 4);
     assert_eq!(summary.pipeline_layout_count, 1);
     assert_eq!(summary.bind_group_count, 1);
     assert_eq!(summary.binding_count, 2);

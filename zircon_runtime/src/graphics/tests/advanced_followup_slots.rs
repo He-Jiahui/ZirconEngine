@@ -3,53 +3,11 @@ use crate::core::framework::render::{
     RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
+use crate::graphics::feature::descriptor_only_advanced_slots;
 use crate::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
     RenderPipelineCompileOptions, RendererFeatureAsset,
 };
-
-const ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(
-    BuiltinRenderFeature,
-    &str,
-    RenderFeatureCapabilityRequirement,
-)] = &[(
-    BuiltinRenderFeature::SparseTexture,
-    "sparse_texture",
-    RenderFeatureCapabilityRequirement::SparseTexture,
-)];
-
-const ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS: &[(BuiltinRenderFeature, &str, &str)] = &[
-    (BuiltinRenderFeature::MeshLod, "mesh_lod", "mesh_lod"),
-    (BuiltinRenderFeature::Particle, "particle", "particles"),
-    (BuiltinRenderFeature::Terrain, "terrain", "terrain"),
-    (BuiltinRenderFeature::Tree, "tree", "tree"),
-    (BuiltinRenderFeature::Decal, "decals", "decals"),
-    (BuiltinRenderFeature::Projector, "projector", "projector"),
-    (BuiltinRenderFeature::Halo, "halo", "halo"),
-    (BuiltinRenderFeature::LensFlare, "lens_flare", "lens_flare"),
-    (BuiltinRenderFeature::Trail, "trail", "trail"),
-    (BuiltinRenderFeature::Billboard, "billboard", "billboard"),
-    (BuiltinRenderFeature::Tilemap, "tilemap", "tilemap"),
-    (
-        BuiltinRenderFeature::TextShaping,
-        "text_shaping",
-        "text_shaping",
-    ),
-    (BuiltinRenderFeature::Skybox, "skybox", "skybox"),
-    (BuiltinRenderFeature::Cubemap, "cubemap", "cubemap"),
-    (
-        BuiltinRenderFeature::Texture2dArray,
-        "texture_2d_array",
-        "texture_2d_array",
-    ),
-    (BuiltinRenderFeature::NormalMap, "normal_map", "normal_map"),
-    (BuiltinRenderFeature::Mipmap, "mipmap", "mipmap"),
-    (
-        BuiltinRenderFeature::ColorSpace,
-        "color_space",
-        "color_space",
-    ),
-];
 
 #[test]
 fn flagship_feature_descriptors_declare_backend_capability_requirements() {
@@ -90,35 +48,31 @@ fn flagship_feature_descriptors_declare_backend_capability_requirements() {
 
 #[test]
 fn advanced_followup_feature_slots_reserve_extract_sections_without_runtime_passes() {
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
+    for slot in descriptor_only_advanced_slots() {
+        let feature = slot.feature();
         let descriptor = feature.descriptor();
-        assert_eq!(descriptor.name, *extract_section);
+        assert_eq!(descriptor.name, slot.descriptor_name());
         assert_eq!(
             descriptor.required_extract_sections,
-            vec![extract_section.to_string()]
+            slot.extract_section()
+                .into_iter()
+                .map(str::to_string)
+                .collect::<Vec<_>>()
         );
-        assert_eq!(descriptor.capability_requirements, vec![*requirement]);
+        assert_eq!(
+            descriptor.capability_requirements,
+            slot.capability_requirement()
+                .into_iter()
+                .collect::<Vec<_>>()
+        );
         assert!(descriptor.history_bindings.is_empty());
         assert!(
             descriptor.stage_passes.is_empty(),
             "{feature:?} should stay descriptor-only until its dedicated render plan registers passes"
         );
-    }
-
-    for (feature, descriptor_name, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        let descriptor = feature.descriptor();
-        assert_eq!(descriptor.name, *descriptor_name);
-        assert_eq!(
-            descriptor.required_extract_sections,
-            vec![extract_section.to_string()]
-        );
-        assert!(descriptor.capability_requirements.is_empty());
-        assert!(descriptor.history_bindings.is_empty());
         assert!(
-            descriptor.stage_passes.is_empty(),
-            "{feature:?} should stay descriptor-only until its dedicated render plan registers passes"
+            feature.requires_explicit_opt_in(),
+            "{feature:?} should not enter default pipelines without explicit opt-in"
         );
     }
 }
@@ -165,109 +119,80 @@ fn neural_compute_builtin_slot_compiles_only_with_explicit_feature_opt_in() {
 #[test]
 fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
     let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    for (feature, _, _) in ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
+    for slot in descriptor_only_advanced_slots() {
         pipeline
             .renderer
             .features
-            .push(RendererFeatureAsset::builtin(*feature));
-    }
-    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        pipeline
-            .renderer
-            .features
-            .push(RendererFeatureAsset::builtin(*feature));
+            .push(RendererFeatureAsset::builtin(slot.feature()));
     }
 
     let default_compiled = pipeline.compile(&test_extract()).unwrap();
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
+    for slot in descriptor_only_advanced_slots() {
+        let feature = slot.feature();
         assert!(
             !default_compiled
                 .enabled_features
                 .iter()
-                .any(|asset| asset.is_builtin(*feature)),
+                .any(|asset| asset.is_builtin(feature)),
             "{feature:?} should not compile until explicitly opted in"
         );
-        assert!(
-            !default_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should not request extract data until explicitly opted in"
-        );
-        assert!(
-            !default_compiled
-                .capability_requirements
-                .contains(requirement),
-            "{feature:?} should not require backend capability until explicitly opted in"
-        );
-    }
-    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        assert!(
-            !default_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should not compile until explicitly opted in"
-        );
-        assert!(
-            !default_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should not request extract data until explicitly opted in"
-        );
+        if let Some(section) = slot.extract_section() {
+            assert!(
+                !default_compiled
+                    .required_extract_sections
+                    .contains(&section.to_string()),
+                "{feature:?} should not request extract data until explicitly opted in"
+            );
+        }
+        if let Some(requirement) = slot.capability_requirement() {
+            assert!(
+                !default_compiled
+                    .capability_requirements
+                    .contains(&requirement),
+                "{feature:?} should not require backend capability until explicitly opted in"
+            );
+        }
     }
 
     let mut options = RenderPipelineCompileOptions::default();
-    for (feature, _, requirement) in ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        options = options
-            .with_feature_enabled(*feature)
-            .with_capability_enabled(*requirement);
-    }
-    for (feature, _, _) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        options = options.with_feature_enabled(*feature);
+    for slot in descriptor_only_advanced_slots() {
+        options = options.with_feature_enabled(slot.feature());
+        if slot.requires_capability_opt_in() {
+            options = options.with_capability_enabled(
+                slot.capability_requirement()
+                    .expect("capability opt-in slots must declare a capability requirement"),
+            );
+        }
     }
     let enabled_compiled = pipeline
         .compile_with_options(&test_extract(), &options)
         .unwrap();
 
-    for (feature, extract_section, requirement) in
-        ADVANCED_CAPABILITY_GATED_DESCRIPTOR_ONLY_FEATURE_SLOTS
-    {
+    for slot in descriptor_only_advanced_slots() {
+        let feature = slot.feature();
         assert!(
             enabled_compiled
                 .enabled_features
                 .iter()
-                .any(|asset| asset.is_builtin(*feature)),
+                .any(|asset| asset.is_builtin(feature)),
             "{feature:?} should compile when explicitly opted in"
         );
-        assert!(
-            enabled_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should reserve its neutral extract section"
-        );
-        assert!(
-            enabled_compiled
-                .capability_requirements
-                .contains(requirement),
-            "{feature:?} should declare its backend capability requirement"
-        );
-    }
-    for (feature, _, extract_section) in ADVANCED_DESCRIPTOR_ONLY_FEATURE_SLOTS {
-        assert!(
-            enabled_compiled
-                .enabled_features
-                .iter()
-                .any(|asset| asset.is_builtin(*feature)),
-            "{feature:?} should compile when explicitly opted in"
-        );
-        assert!(
-            enabled_compiled
-                .required_extract_sections
-                .contains(&extract_section.to_string()),
-            "{feature:?} should reserve its neutral extract section"
-        );
+        if let Some(section) = slot.extract_section() {
+            assert!(
+                enabled_compiled
+                    .required_extract_sections
+                    .contains(&section.to_string()),
+                "{feature:?} should reserve its neutral extract section"
+            );
+        }
+        if let Some(requirement) = slot.capability_requirement() {
+            assert!(
+                enabled_compiled
+                    .capability_requirements
+                    .contains(&requirement),
+                "{feature:?} should declare its backend capability requirement"
+            );
+        }
     }
     assert_eq!(
         enabled_compiled

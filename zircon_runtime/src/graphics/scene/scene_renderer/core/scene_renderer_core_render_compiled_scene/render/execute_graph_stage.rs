@@ -15,7 +15,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord,
     RenderGraphExecutionResources, RenderGraphImportedFinalTarget, RenderPassExecutionContext,
     RenderPassExecutorId, RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
-    RenderPassMeshDrawLists, RenderPassPostProcessStackContext,
+    RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
@@ -28,6 +28,7 @@ use crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer;
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::visibility::HzbBuilder;
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene)
 struct RenderGraphStageExecution
@@ -167,7 +168,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
     mut mesh_pipelines: Option<&mut MeshPipelineCache>,
-    mesh_draw_lists: Option<RenderPassMeshDrawLists<'_>>,
+    mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
@@ -399,7 +400,7 @@ fn execute_graph_pass(
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
     mesh_pipelines: Option<&mut MeshPipelineCache>,
-    mesh_draw_lists: Option<RenderPassMeshDrawLists<'_>>,
+    mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
@@ -481,6 +482,7 @@ fn execute_graph_pass(
             pass.dependencies.clone(),
             pass.resources.clone(),
         )
+        .with_resource_resolver(&pipeline.graph, pass.id)
         .with_gpu(gpu);
 
     registry
@@ -496,9 +498,11 @@ fn execute_graph_pass(
         })
         .unwrap_or_default();
     let cluster_grid_size = cluster_dimensions_for_size(frame.viewport_size);
+    let hzb_plan = HzbBuilder::new(frame.extract.view.effective_render_size()).build_plan();
     let dispatch_context = RenderGraphComputeWorkloadDispatchContext::new(
         [frame.viewport_size.x, frame.viewport_size.y],
         [cluster_grid_size.x, cluster_grid_size.y],
+        [hzb_plan.hzb_size.x, hzb_plan.hzb_size.y],
     );
     execution.record.audit_compute_workload(
         &pass.name,

@@ -3,6 +3,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryDebugSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use crate::graphics::visibility::FrameVisibility;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 #[derive(Clone, Debug)]
@@ -16,6 +17,7 @@ pub struct ViewportRenderFrame {
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(crate) previous_motion_vector_object_history:
         Option<super::ViewportMotionVectorObjectHistory>,
+    pub(crate) frame_visibility: Option<FrameVisibility>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
 }
@@ -50,6 +52,10 @@ impl ViewportRenderFrame {
         self.previous_motion_vector_object_history.as_ref()
     }
 
+    pub(crate) fn frame_visibility(&self) -> Option<&FrameVisibility> {
+        self.frame_visibility.as_ref()
+    }
+
     pub(crate) fn meshes(&self) -> &[crate::core::framework::render::RenderMeshSnapshot] {
         &self.extract.geometry.meshes
     }
@@ -62,6 +68,12 @@ impl ViewportRenderFrame {
         &self,
     ) -> &[crate::core::framework::render::RenderDirectionalLightSnapshot] {
         &self.extract.lighting.directional_lights
+    }
+
+    pub(crate) fn point_lights(
+        &self,
+    ) -> &[crate::core::framework::render::RenderPointLightSnapshot] {
+        &self.extract.lighting.point_lights
     }
 
     pub(crate) fn ambient_lights(

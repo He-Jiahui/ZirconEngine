@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use super::super::super::super::*;
 use super::super::super::fixtures::{TestDriver, TestManager};
-use crate::core::error::CoreError;
-use crate::core::lifecycle::{ServiceKind, StartupMode};
-use crate::core::types::ServiceObject;
+use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
+use crate::core::{ServiceKind, StartupMode};
 
 #[test]
 fn register_module_rejects_noncanonical_module_names() {

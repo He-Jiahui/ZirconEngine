@@ -81,6 +81,7 @@ fn bundled_hub_config_and_runtime_defaults_keep_chinese_as_first_launch_language
 
 #[test]
 fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
+    let action_id = read_crate_file("src/tauri_app/action_id.rs");
     let action_request = read_crate_file("src/tauri_app/action_request.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
     let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
@@ -99,6 +100,22 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
     let action_history_dto = read_crate_file("src/tauri_app/view_model/action_history.rs");
 
     assert_contains_all(
+        "action_id.rs",
+        &action_id,
+        &[
+            "pub(crate) enum HubActionId",
+            "pub(crate) const ALL: [HubActionId; 31]",
+            "Self::BuildProject => \"build-project\"",
+            "Self::PackageProject => \"package-project\"",
+            "Self::InstallDevice => \"install-device\"",
+            "Self::OpenEditor => \"open-editor\"",
+            "\"page\" => Some(Self::ShowPage)",
+            "\"project-subpage\" => Some(Self::ShowProjectSubpage)",
+            "\"open-project\" => Some(Self::SelectProject)",
+            "every_action_id_round_trips_between_as_str_and_from_str",
+        ],
+    );
+    assert_contains_all(
         "action_request.rs",
         &action_request,
         &[
@@ -114,22 +131,33 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "OpenOutputFolderPayload",
             "pub history_id: Option<String>",
             "pub settings: Option<HubSettingsPayload>",
+            "pub(crate) fn action(&self) -> Result<HubActionId, HubError>",
             "pub(crate) fn parse(&self) -> Result<HubAction, HubError>",
-            "\"show-page\" | \"page\" => Ok(HubAction::ShowPage",
-            "\"select-project\" | \"open-project\" => Ok(HubAction::SelectProject",
-            "\"save-settings\" => Ok(HubAction::SaveSettings",
-            "payload: settings_payload_from_value(self.payload.as_ref())?",
-            "\"create-project\" => Ok(HubAction::CreateProject",
-            "payload: create_project_payload_from_value(self.payload.as_ref())?",
-            "\"open-resource\" => Ok(HubAction::OpenResource",
-            "payload: open_resource_payload_from_value(self.payload.as_ref())?",
-            "\"open-output-folder\" => Ok(HubAction::OpenOutputFolder",
-            "payload: open_output_folder_payload_from_value(self.payload.as_ref())?",
-            "\"cancel-delete\" => Ok(HubAction::CancelDelete",
+            "pub(in crate::tauri_app) fn parse_as(",
+            "pub(crate) trait ValidatePayload",
+            "fn parse_payload<T>(action: HubActionId, payload: Option<&Value>) -> Result<T, HubError>",
+            "fn parse_optional_payload<T>(",
+            "HubActionId::ShowPage => Ok(HubAction::ShowPage",
+            "HubActionId::SelectProject => Ok(HubAction::SelectProject",
+            "HubActionId::UpdateSettingsDraft => Ok(HubAction::UpdateSettingsDraft",
+            "HubActionId::SaveSettings => Ok(HubAction::SaveSettings",
+            "payload: parse_payload::<HubSettingsActionPayload>(action, self.payload.as_ref())?",
+            "payload: parse_optional_payload::<HubSettingsActionPayload>(",
+            "HubActionId::CreateProject => Ok(HubAction::CreateProject",
+            "payload: parse_payload(action, self.payload.as_ref())?",
+            "HubActionId::OpenResource => Ok(HubAction::OpenResource",
+            "HubActionId::OpenOutputFolder => Ok(HubAction::OpenOutputFolder",
+            "payload: parse_optional_payload(action, self.payload.as_ref())?",
+            "impl ValidatePayload for CreateProjectActionPayload",
+            "impl ValidatePayload for ProjectTargetActionPayload",
+            "project_target_envelope_payload_is_rejected_after_hard_cutover",
+            "missing_required_payload_is_rejected_with_action_id",
+            "settings_payload_requires_settings_wrapper",
+            "HubActionId::CancelDelete => Ok(HubAction::CancelDelete",
             "parses_cancel_delete_project_target_payload",
             "parses_create_project_payload_for_create_project_action",
             "parses_browse_settings_folder_payload_for_folder_action",
-            "parses_open_output_folder_wrapped_payload_for_output_action",
+            "parses_open_output_folder_flat_payload_for_output_action",
             "unknown_action_is_rejected_before_runtime_routing",
         ],
     );
@@ -139,7 +167,10 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &[
             "pub(super) fn apply_action(",
             "request: HubActionRequest",
-            "match request.parse()? {",
+            "let action_id = request.action()?;",
+            "request.parse_as(action_id)",
+            "self.record_action_payload_failure(action_id, error)?;",
+            "fn record_action_payload_failure(",
             "HubAction::ShowPage { target_id } => self.select_page_by_id(&target_id)?",
             "HubAction::ShowProjectSubpage { target_id } =>",
             "HubAction::SearchProjects { query } => self.search_projects(&query)",
@@ -151,7 +182,11 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "HubAction::ViewAllProjects => self.view_all_projects()",
             "HubAction::NewProject =>",
             "HubAction::SelectEngine { target_id } => self.select_engine_by_id(&target_id)?",
+            "HubAction::UpdateSettingsDraft { payload } =>",
+            "self.update_settings_draft_from_action(payload)?",
             "HubAction::SaveSettings { payload } => self.save_settings_from_action(payload)?",
+            "HubAction::DiscardSettingsDraft => self.discard_settings_draft()",
+            "HubAction::RestoreDefaultSettings => self.restore_default_settings()",
             "HubAction::BrowseSettingsFolder { target_id, payload } =>",
             "self.browse_settings_folder(target_id.as_deref(), payload)?",
             "HubAction::CreateProject { payload } => self.create_project_from_payload(payload)?",
@@ -162,26 +197,28 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "HubAction::OpenOutputFolder { target_id, payload } =>",
             "HubAction::BuildProject { target_id, payload } =>",
             "payload.as_ref(),",
-            "\"build-project\",",
+            "HubActionId::BuildProject,",
             "self.build_selected_project_engine()?",
             "HubAction::PackageProject { target_id, payload } =>",
-            "\"package-project\",",
+            "HubActionId::PackageProject,",
             "self.package_recent_project()?",
             "HubAction::InstallDevice { target_id, payload } =>",
-            "\"install-device\",",
+            "HubActionId::InstallDevice,",
             "self.install_recent_project_to_device()?",
             "HubAction::OpenEditor { target_id, payload } =>",
-            "\"open-editor\",",
+            "HubActionId::OpenEditor,",
             "self.open_selected_project_or_editor()?",
             "Ok(self.view_model())",
-            "fn persist_hub_config(&self) -> Result<(), HubError>",
+            "fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError>",
             "config.runtime = self.runtime_state_for_config();",
-            "fn persist_with_last_project(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+            "fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
             "save_editor_recent_projects_with_last_project(",
             "fn runtime_state_for_config(&self) -> HubRuntimeState",
-            "self.register_source_engine_from_settings();",
+            "self.register_source_engine_from_settings()",
+            "validate_settings_for_save(&settings)",
             "self.refresh_source_scoped_views()?;",
             "save_settings_refreshes_source_scoped_catalogs_in_returned_view_model",
+            "apply_action_records_payload_validation_failure_as_recoverable_status",
             "const VISUAL_TASK_STATE_ENV: &str = \"ZIRCON_HUB_VISUAL_TASK_STATE\";",
             "fn apply_visual_task_state_override_from_env(&mut self)",
             "TaskStatus::warning(",
@@ -192,17 +229,24 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &action_tasks,
         &[
             "enum BackgroundHubAction",
-            "\"build-project\" => Some(Self::BuildProject)",
-            "\"package-project\" => Some(Self::PackageProject)",
-            "\"install-device\" => Some(Self::InstallDevice)",
-            "\"open-editor\" => Some(Self::OpenEditor)",
+            "HubActionId::BuildProject => Some(Self::BuildProject)",
+            "HubActionId::PackageProject => Some(Self::PackageProject)",
+            "HubActionId::InstallDevice => Some(Self::InstallDevice)",
+            "HubActionId::OpenEditor => Some(Self::OpenEditor)",
             "TaskStatus::running_operation(",
+            "pub(in crate::tauri_app) trait BackgroundTask",
+            "pub(in crate::tauri_app) fn execute_background_task",
+            "pub(in crate::tauri_app) fn dispatch_background_request",
+            "pub(in crate::tauri_app) fn run_background_worker_loop",
+            "pub(in crate::tauri_app) fn lock_session",
+            "panic::catch_unwind",
             "pub(in crate::tauri_app) fn should_run_action_in_background",
             "pub(in crate::tauri_app) fn start_background_action_status",
             "background_worker_active",
             "background_action_queue",
             "pub(in crate::tauri_app) fn take_next_background_action",
             "pub(in crate::tauri_app) fn record_background_action_error",
+            "pub(in crate::tauri_app) fn record_background_worker_panic",
         ],
     );
     assert_contains_all(
@@ -210,9 +254,10 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &build_actions,
         &[
             "pub(in crate::tauri_app) struct PendingEditorRuntimeBuild",
+            "impl BackgroundTask for PendingEditorRuntimeBuild",
             "pub(in crate::tauri_app) fn prepare_background_editor_runtime_build",
             "pub(in crate::tauri_app) fn complete_background_editor_runtime_build",
-            "let result = run_build_command(pending_build.command())",
+            "let result = pending_build.run()",
             "record_active_build(",
             "background_build_prepares_command_without_running_or_recording_history",
             "background_build_completion_records_success_after_external_result",
@@ -259,6 +304,11 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "CreateProjectActionPayload",
             "ImportProjectActionPayload",
             "FolderPickerRequest::new(",
+            "(self.folder_picker)(",
+            "normalize_project_root(",
+            "find_recent_project_by_filesystem_key(",
+            "fn record_create_project_kept_folder_failure(",
+            "(self.recycle_delete)(",
             "HubTextBundle::new(self.config.settings.language)",
             "import_project_picker_title(text)",
             "fn import_project_picker_title(text: HubTextBundle) -> &'static str",
@@ -282,7 +332,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "action_history_id(record) == target",
             "OpenFolderCommand::new(output_dir.clone())",
             "HubActionKind::OpenOutput",
-            "TaskStatus::success(\"Output folder opened\"",
+            "\"Output folder opened\"",
             "TaskStatus::error(\"Open Output failed\"",
             "record.action.id()",
             "open_output_folder_resolves_record_id_before_path_fallback",
@@ -300,22 +350,28 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &settings_actions,
         &[
             "pub(super) fn browse_settings_folder(",
+            "pub(super) fn update_settings_draft_from_action(",
             "pub(super) fn save_settings_from_action(",
+            "pub(super) fn discard_settings_draft(",
+            "pub(super) fn restore_default_settings(",
             "BrowseSettingsFolderPayload",
             "settings_payload: Option<HubSettingsPayload>",
+            "self.settings_draft = draft;",
+            "update_settings_draft_recomputes_health_without_persisting",
             "self.save_settings(settings_payload)",
             "record_settings_save_failure",
             "text.status_label(\"Save Settings failed\")",
-            "text.status_detail(\"Check Settings values and save again\")",
+            "HubMessage::new(HubMessageId::Settings(",
+            "SettingsMessageId::CheckValuesAndSave",
             "FolderPickerRequest::new(",
             "field.picker_title(text)",
-            "field.set_path(&mut self.settings_draft",
+            "field.set_path(&mut draft",
             "HubTextBundle::new(self.settings_draft.language)",
             "text.pair(\"Choose Default Project Directory\", \"选择默认项目目录\")",
             "text.status_label(\"Folder selected\")",
             "text.status_label(\"Folder selection cancelled\")",
             "text.status_label(\"Browse folder failed\")",
-            "text.status_detail(\"Choose an existing local folder or type the path manually\")",
+            "SettingsMessageId::ChooseExistingFolderOrManual",
             "settings_draft_folder_changes_wait_for_save_settings",
             "settings_folder_picker_title_uses_current_language",
             "save_settings_validation_errors_return_localized_view_model",
@@ -327,6 +383,8 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         &[
             "pub(crate) struct HubSettingsHealthSummary",
             "pub(crate) struct HubSettingsHealthRow",
+            "pub(crate) struct HubSettingsActionPayload",
+            "pub(crate) settings: HubSettingsPayload",
             "\"python-path\"",
             "&settings.python_path",
             "\"cargo-path\"",
@@ -372,33 +430,9 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "let should_spawn = session.start_background_action_or_record_error(&request)?;",
             "spawn_background_action(request, session_handle, app.clone());",
             "fn spawn_background_action(",
-            "run_background_build_action(request, session_handle, app);",
-            "run_background_package_action(request, session_handle, app);",
-            "run_background_install_action(request, session_handle, app);",
-            "run_background_editor_action(request, session_handle, app);",
-            "fn run_background_build_action(",
-            "session.prepare_background_editor_runtime_build()",
-            "run_build_command(pending_build.command())",
-            "session.complete_background_editor_runtime_build(",
-            "fn run_background_package_action(",
-            "session.prepare_background_project_package()",
-            "pending_package.run()",
-            "session.complete_background_project_package(",
-            "fn run_background_install_action(",
-            "session.prepare_background_device_install()",
-            "pending_install.run()",
-            "session.complete_background_device_install(",
-            "fn run_background_editor_action(",
-            "session.prepare_background_editor_launch()",
-            "pending_launch.run()",
-            "session.complete_background_editor_launch(",
-            "emit_current_state_and_continue(session_handle, app);",
-            "fn emit_and_continue(",
-            "fn continue_background_queue(",
-            "session.take_next_background_action()",
-            "let view_model = match session.apply_action(request.clone())",
-            "session.record_background_action_error(&request, error.to_string())",
-            "app.emit(\"hub-state-changed\", &view_model)",
+            "let emit_state = |view_model: &HubViewModel|",
+            "run_background_worker_loop(request, &session_handle, &emit_state);",
+            "app.emit(\"hub-state-changed\", view_model)",
         ],
     );
     assert_contains_all(
@@ -426,10 +460,10 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "let text = HubTextBundle::new(language);",
             "action: text.action_label(record.action).to_string()",
             "status: text.action_status_label(record.status).to_string()",
-            "let detail = text.status_detail(&record.detail);",
-            "let log_excerpt = text.status_detail(&record.log_excerpt);",
+            "let detail = text.render_message(&record.detail);",
+            "let log_excerpt = text.render_message(&record.log_excerpt);",
             "let detail_rows = action_history_detail_rows(",
-            ".map(|recovery| text.status_detail(recovery))",
+            ".map(|recovery| text.render_message(recovery))",
             "let finished = relative_time(now_ms, record.finished_unix_ms, language);",
         ],
     );
@@ -451,7 +485,7 @@ fn project_selection_detail_and_source_context_refresh_before_view_model() {
             "self.activate_project_engine_for_path(&project.path);",
             "self.refresh_project_context_views(",
             "self.config.active_engine_id != active_engine_before",
-            "self.persist_with_last_project(Some(&project.path))",
+            "self.persist(Some(&project.path))",
             "fn open_project_detail(&mut self, target: &str) -> Result<(), HubError>",
             "self.select_project_target(target)?;",
             "self.project_subpage = ProjectSubpage::ProjectDetail;",
@@ -570,7 +604,7 @@ fn backend_workflow_actions_record_history_and_visible_task_status() {
             "command_line,",
             "output_dir: Some(output_dir.clone())",
             "record_output_folder_failure(",
-            "Open the folder manually from the file system and verify shell integration",
+            "DeliveryMessageId::OpenFolderManuallyRecovery",
         ],
     );
     assert_contains_all(
@@ -592,13 +626,16 @@ fn backend_workflow_actions_record_history_and_visible_task_status() {
         &task_status,
         &[
             "pub struct TaskStatus",
+            "pub task_id: u64",
+            "pub fn with_task_id(",
             "pub fn running_operation(",
             "pub fn success(",
             "pub fn warning(",
             "pub fn error(",
             "pub fn with_operation(",
             "pub fn operation_summary(&self) -> String",
-            "pub fn detail_with_recovery(&self) -> String",
+            "pub detail: HubMessage",
+            "pub recovery: Option<HubMessage>",
         ],
     );
 }
@@ -610,10 +647,12 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let detail_sidebar = read_crate_file("web/src/components/data/ProjectDetailSidebar.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
     let editor = read_crate_file("web/src/pages/EditorPage.tsx");
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     let types = read_crate_file("web/src/types/hub.ts");
 
     assert_contains_all(
@@ -621,8 +660,16 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &app,
         &[
             "const handleAction: HubActionHandler = async (actionId, targetId, payload) =>",
+            "const stateGenerationRef = useRef(0);",
+            "const actionSequenceRef = useRef(0);",
+            "function applyHubState(nextState: HubShellState) {",
+            "stateGenerationRef.current += 1;",
+            "const actionSequence = actionSequenceRef.current + 1;",
+            "actionSequenceRef.current = actionSequence;",
+            "const stateGenerationAtDispatch = stateGenerationRef.current;",
             "const nextState = await dispatchHubAction(actionId, targetId, payload);",
-            "setState(nextState);",
+            "if (actionSequence === actionSequenceRef.current && stateGenerationRef.current === stateGenerationAtDispatch) {",
+            "applyHubState(nextState);",
             "const shellText = stateRef.current.ui.shell;",
             "label: shellText.actionFailed",
             "detail: shellText.actionFailedDetail",
@@ -633,9 +680,9 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         "hubApi.ts",
         &hub_api,
         &[
-            "return await invoke<HubShellState>(\"hub_action\", {",
+            "await invoke<unknown>(\"hub_action\", {",
             "request: { actionId, targetId, payload },",
-            "return await invoke<HubShellState>(\"hub_state\");",
+            "return assertHubShellState(await invoke<unknown>(\"hub_state\"));",
         ],
     );
     assert_contains_all(
@@ -643,19 +690,27 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &types,
         &[
             "openOutputFolder: \"open-output-folder\"",
+            "updateNewProjectDraft: \"update-new-project-draft\"",
+            "updateSettingsDraft: \"update-settings-draft\"",
+            "discardSettingsDraft: \"discard-settings-draft\"",
+            "restoreDefaultSettings: \"restore-default-settings\"",
             "browseSettingsFolder: \"browse-settings-folder\"",
             "export type HubActionHistoryKind =",
             "kind: HubActionHistoryKind;",
             "export type HubSettingsFolderField =",
             "export interface SearchProjectsPayload",
+            "export interface NewProjectDraftPayload",
             "export interface ProjectTargetPayload",
             "projectId?: string;",
             "projectPath?: string;",
             "export interface BrowseSettingsFolderPayload",
             "settings?: Partial<HubSettingsSummary>;",
+            "export interface UpdateSettingsDraftPayload",
+            "[HUB_ACTION.updateSettingsDraft]: UpdateSettingsDraftPayload;",
             "export interface OpenOutputFolderPayload {\n  outputDir?: string;\n  historyId?: string;\n}",
             "historyId?: string;",
             "[HUB_ACTION.searchProjects]: SearchProjectsPayload;",
+            "[HUB_ACTION.updateNewProjectDraft]: NewProjectDraftPayload;",
             "[HUB_ACTION.buildProject]: ProjectTargetPayload;",
             "[HUB_ACTION.pinProject]: ProjectTargetPayload;",
             "[HUB_ACTION.unpinProject]: ProjectTargetPayload;",
@@ -668,7 +723,7 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
             "[HUB_ACTION.openEditor]: ProjectTargetPayload;",
             "[HUB_ACTION.browseSettingsFolder]: BrowseSettingsFolderPayload;",
             "[HUB_ACTION.openOutputFolder]: OpenOutputFolderPayload;",
-            "settingsDraft?: HubSettingsSummary | null;",
+            "settingsDraft: HubSettingsSummary | null;",
         ],
     );
     assert_contains_all(
@@ -704,6 +759,13 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
             "void onAction(HUB_ACTION.viewAllProjects)",
             "void onAction(HUB_ACTION.openEditor, undefined, projectTarget)",
             "void onAction(action.id, undefined, quickActionProjectTarget)",
+            "<ProjectDetailSidebar",
+        ],
+    );
+    assert_contains_all(
+        "ProjectDetailSidebar.tsx",
+        &detail_sidebar,
+        &[
             "void onAction(HUB_ACTION.packageProject, undefined, projectTarget)",
             "void onAction(HUB_ACTION.installDevice, undefined, projectTarget)",
             "void onAction(project.pinned ? HUB_ACTION.unpinProject : HUB_ACTION.pinProject, undefined, projectTarget)",
@@ -778,7 +840,15 @@ fn react_pages_dispatch_project_workflows_through_single_action_api() {
         &[
             "settingsDraftState(state)",
             "state.settingsDraft ?? state.settings",
+            "void onAction(HUB_ACTION.updateSettingsDraft, undefined, { settings: nextDraft });",
             "void onAction(HUB_ACTION.browseSettingsFolder, field, { field, initialDir, settings: draft });",
+            "<SettingsSection",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "state.ui.actions.browseFolder",
             "settingsText.buildProfileOptions",
             "settingsText.languageOptions",
@@ -802,9 +872,8 @@ fn project_search_uses_typed_payload_instead_of_target_id() {
         &action_request,
         &[
             "pub(crate) struct SearchProjectsPayload",
-            "query: search_projects_payload_from_value(",
-            "self.target_id.as_deref(),",
-            "parses_search_projects_typed_payload_before_target_fallback",
+            "parse_payload::<SearchProjectsPayload>",
+            "parses_search_projects_typed_payload",
         ],
     );
     assert_contains_all(
@@ -863,8 +932,12 @@ fn project_workflow_documentation_records_tauri_react_cutover() {
             "web/src/tauri/hubApi.ts",
             "web/src/pages/ProjectsDashboard.tsx",
             "open-output-folder",
+            "update-settings-draft",
+            "actionSequenceRef",
+            "stateGenerationRef",
             "browse-settings-folder",
             "settingsDraft",
+            "recomputes Configuration Health",
             "single action dispatcher and refreshed HubViewModel",
         ],
     );
@@ -874,9 +947,69 @@ fn project_workflow_documentation_records_tauri_react_cutover() {
         &[
             "`project_workflow_contract.rs`",
             "React/MUI project workflow routing",
+            "`update-settings-draft` health refresh",
+            "`actionSequenceRef` and `stateGenerationRef`",
+            "sends typed `{ settings: draft }` payloads on field edits",
             "browse-settings-folder",
             "settingsDraft",
             "single action dispatcher and refreshed HubViewModel",
+        ],
+    );
+}
+
+#[test]
+fn hub_build_target_routes_through_tauri_nsis_bundler() {
+    let build_tool = read_repo_file("tools/zircon_build.py");
+    let tauri_config = read_crate_file("tauri.conf.json");
+    let actionable_doc = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
+
+    assert_contains_all(
+        "tools/zircon_build.py",
+        &build_tool,
+        &[
+            "HUB_TAURI_BUNDLE_TARGET = \"nsis\"",
+            "HUB_INSTALLERS_DIR_NAME = \"installers\"",
+            "run_tauri_build(config, target_dir)",
+            "stage_hub_tauri_outputs(config, target_dir)",
+            "def run_tauri_build(config: BuildConfig, target_dir: Path) -> None:",
+            "str(tauri_cli_path(config))",
+            "\"build\",",
+            "\"--runner\",",
+            "config.cargo,",
+            "\"--bundles\",",
+            "HUB_TAURI_BUNDLE_TARGET,",
+            "\"--ci\",",
+            "\"--no-sign\",",
+            "command.append(\"--debug\")",
+            "runner_args.append(\"--locked\")",
+            "runner_args.extend([\"--jobs\", config.jobs])",
+            "env[\"CARGO_TARGET_DIR\"] = str(target_dir)",
+            "subprocess.run(command, cwd=config.repo_root / \"zircon_hub\", check=True, env=env)",
+            "bundle_root = target_dir / config.profile_dir / \"bundle\" / HUB_TAURI_BUNDLE_TARGET",
+            "installers_dir = config.engine_root / HUB_INSTALLERS_DIR_NAME",
+        ],
+    );
+    assert_contains_all(
+        "tauri.conf.json",
+        &tauri_config,
+        &[
+            "\"beforeBuildCommand\": \"npm run build\"",
+            "\"frontendDist\": \"web/dist\"",
+            "\"active\": true",
+            "\"targets\": [",
+            "\"nsis\"",
+        ],
+    );
+    assert_contains_all(
+        "actionable-pages.md",
+        &actionable_doc,
+        &[
+            "tools/zircon_build.py --targets hub",
+            "tauri build --bundles nsis --ci --no-sign",
+            "frontendDist",
+            "web/dist",
+            "ZirconEngine/installers",
+            "Tauri has no ASAR-style archive layer",
         ],
     );
 }

@@ -28,8 +28,8 @@ pub(crate) use constants::{
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
 };
-pub(crate) use pass_graph::execute_post_process_pass_graph;
 pub(in crate::graphics::scene::scene_renderer) use params::motion_vector_camera_params::MotionVectorCameraParams;
+pub(crate) use pass_graph::execute_post_process_pass_graph;
 pub(crate) use scene_post_process_resources::ScenePostProcessResources;
 pub(crate) use scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 

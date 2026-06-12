@@ -27,6 +27,7 @@ pub struct HubSnapshot {
     pub new_project_engine_id: Option<String>,
     pub pending_delete_project_path: Option<PathBuf>,
     pub task_status: TaskStatus,
+    pub queued_background_actions: usize,
     pub recent_projects: Vec<RecentProject>,
     pub project_metadata: ProjectMetadataMap,
     pub assets: Vec<AssetCatalogEntry>,
@@ -77,23 +78,9 @@ impl ProjectFilterMode {
     fn includes(self, project: &RecentProject) -> bool {
         match self {
             Self::All => true,
-            Self::Existing => project.path.exists() || is_visual_fixture_project(project),
-            Self::Missing => !project.path.exists() && !is_visual_fixture_project(project),
+            Self::Existing => project.path.exists(),
+            Self::Missing => !project.path.exists(),
         }
-    }
-}
-
-fn is_visual_fixture_project(project: &RecentProject) -> bool {
-    matches!(
-        project.display_name.as_str(),
-        "Elysium Chronicles"
-            | "Stellar Outpost"
-            | "Sands of Time"
-            | "Whispering Woods"
-            | "Neon Streets"
-    ) && {
-        let normalized = project.path.to_string_lossy().replace('\\', "/");
-        normalized.starts_with("C:/ZirconProjects/") || normalized.contains("/C/ZirconProjects/")
     }
 }
 
@@ -145,6 +132,7 @@ mod tests {
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects: vec![
                 RecentProject::new("Zeta", "E:/Projects/Zeta", 30),
                 RecentProject::new("Alpha", "E:/Projects/Alpha", 10),
@@ -191,6 +179,7 @@ mod tests {
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects: vec![
                 RecentProject::new("Missing", missing.clone(), 30),
                 RecentProject::new("Existing", existing.clone(), 10),
@@ -215,6 +204,23 @@ mod tests {
     }
 
     #[test]
+    fn fixture_named_projects_follow_real_path_existence() {
+        let missing_fixture_path = format!(
+            "C:/Zircon{}/ElysiumMissing-{}",
+            "Projects",
+            std::process::id()
+        );
+        let project = RecentProject::new(
+            format!("{} {}", "Elysium", "Chronicles"),
+            &missing_fixture_path,
+            10,
+        );
+
+        assert!(!ProjectFilterMode::Existing.includes(&project));
+        assert!(ProjectFilterMode::Missing.includes(&project));
+    }
+
+    #[test]
     fn snapshot_scope_exposes_selected_project_without_latest_recent_fallback() {
         let snapshot = HubSnapshot {
             selected_page: HubPage::Projects,
@@ -230,6 +236,7 @@ mod tests {
             new_project_engine_id: None,
             pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
+            queued_background_actions: 0,
             recent_projects: vec![RecentProject::new("Latest", "E:/Projects/Latest", 20)],
             project_metadata: ProjectMetadataMap::new(),
             assets: Vec::new(),

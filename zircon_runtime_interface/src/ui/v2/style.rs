@@ -40,6 +40,8 @@ pub struct UiV2ResolvedStyle {
     pub self_values: BTreeMap<String, Value>,
     #[serde(default)]
     pub slot: BTreeMap<String, Value>,
+    #[serde(default)]
+    pub style_tokens: BTreeMap<String, String>,
 }
 
 impl UiV2ResolvedStyle {

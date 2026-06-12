@@ -1,3 +1,5 @@
+use crate::graphics::scene::gpu_scene::GpuScene;
+use crate::graphics::scene::gpu_scene::GpuSceneUploadReport;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{BuiltMeshDraws, MeshDraw};
 use crate::graphics::types::ViewportRenderFrame;
@@ -6,6 +8,7 @@ use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResourc
 
 pub(super) struct CompiledSceneDraws {
     draws: Vec<MeshDraw>,
+    gpu_scene_upload_report: GpuSceneUploadReport,
     #[allow(dead_code)]
     indirect_segment_count: u32,
     #[allow(dead_code)]
@@ -31,8 +34,10 @@ impl CompiledSceneDraws {
         let indirect_authority_buffer = built_mesh_draws.indirect_authority_buffer();
         let indirect_draw_ref_buffer = built_mesh_draws.indirect_draw_ref_buffer();
         let indirect_segment_buffer = built_mesh_draws.indirect_segment_buffer();
+        let gpu_scene_upload_report = built_mesh_draws.gpu_scene_upload_report();
         Self {
             draws: built_mesh_draws.into_draws(),
+            gpu_scene_upload_report,
             indirect_segment_count,
             indirect_args_count,
             indirect_args_buffer,
@@ -49,6 +54,11 @@ impl CompiledSceneDraws {
 
     pub(super) fn draws_mut(&mut self) -> &mut [MeshDraw] {
         &mut self.draws
+    }
+
+    #[allow(dead_code)]
+    pub(super) fn gpu_scene_upload_report(&self) -> GpuSceneUploadReport {
+        self.gpu_scene_upload_report
     }
 
     #[allow(dead_code)]
@@ -90,16 +100,20 @@ impl CompiledSceneDraws {
 pub(super) fn build_compiled_scene_draws(
     advanced_plugin_resources: &SceneRendererAdvancedPluginResources,
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
-    model_bind_group_layout: &wgpu::BindGroupLayout,
+    material_texture_bind_group_layout: &wgpu::BindGroupLayout,
+    gpu_scene: &mut GpuScene,
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
 ) -> CompiledSceneDraws {
     let built_mesh_draws = advanced_plugin_resources.build_mesh_draws(
         device,
+        queue,
         encoder,
-        model_bind_group_layout,
+        material_texture_bind_group_layout,
+        gpu_scene,
         streamer,
         frame,
         virtual_geometry_enabled,

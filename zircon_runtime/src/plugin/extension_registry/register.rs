@@ -8,29 +8,60 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{LoadedNativePlugin, RuntimeExtensionRegistryError};
+use crate::scene::ecs::SystemSetId;
 use std::sync::Arc;
 
+use super::owner::PluginModuleId;
 use super::RuntimeExtensionRegistry;
 
+mod bridge_registration;
+mod event_registration;
 mod metadata;
+mod resource_registration;
 mod runtime_core;
+mod runtime_scene_system_registration;
 mod scene_hook;
+mod system_registration;
+
+pub(in crate::plugin::extension_registry) use event_registration::EventRegistration;
+pub(in crate::plugin::extension_registry) use resource_registration::ResourceRegistration;
+pub(in crate::plugin::extension_registry) use runtime_scene_system_registration::RuntimeSceneSystemRegistration;
+pub(in crate::plugin::extension_registry) use system_registration::SystemRegistration;
 
 impl RuntimeExtensionRegistry {
+    pub fn intern_plugin_module(
+        &mut self,
+        name: impl Into<String>,
+    ) -> Result<PluginModuleId, RuntimeExtensionRegistryError> {
+        self.plugin_modules.intern(name)
+    }
+
+    pub fn plugin_module_name(&self, owner: PluginModuleId) -> Option<&str> {
+        self.plugin_modules.name(owner)
+    }
+
+    pub fn intern_system_set(
+        &mut self,
+        name: impl Into<String>,
+    ) -> Result<SystemSetId, RuntimeExtensionRegistryError> {
+        self.system_sets
+            .intern(name)
+            .map_err(|error| RuntimeExtensionRegistryError::InvalidPluginSystem(error.to_string()))
+    }
+
     pub fn register_render_feature(
         &mut self,
         descriptor: RenderFeatureDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .render_features
-            .iter()
-            .any(|existing| existing.name == descriptor.name)
-        {
+        if self.render_features.contains_key(&descriptor.name) {
             return Err(RuntimeExtensionRegistryError::DuplicateRenderFeature(
                 descriptor.name,
             ));
         }
-        self.render_features.push(descriptor);
+        let owner = self.intern_owner_from_namespaced_key(&descriptor.name)?;
+        self.render_features
+            .register(owner, descriptor.name.clone(), descriptor)
+            .expect("render feature duplicate was prechecked");
         Ok(())
     }
 
@@ -38,16 +69,16 @@ impl RuntimeExtensionRegistry {
         &mut self,
         registration: RenderPassExecutorRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .render_pass_executors
-            .iter()
-            .any(|existing| existing.executor_id() == registration.executor_id())
-        {
+        let executor_id = registration.executor_id().to_string();
+        if self.render_pass_executors.contains_key(&executor_id) {
             return Err(RuntimeExtensionRegistryError::DuplicateRenderPassExecutor(
-                registration.executor_id().to_string(),
+                executor_id,
             ));
         }
-        self.render_pass_executors.push(registration);
+        let owner = self.intern_owner_from_namespaced_key(&executor_id)?;
+        self.render_pass_executors
+            .register(owner, executor_id, registration)
+            .expect("render pass executor duplicate was prechecked");
         Ok(())
     }
 
@@ -55,18 +86,16 @@ impl RuntimeExtensionRegistry {
         &mut self,
         registration: RuntimePrepareCollectorRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .runtime_prepare_collectors
-            .iter()
-            .any(|existing| existing.collector_id() == registration.collector_id())
-        {
+        let collector_id = registration.collector_id().to_string();
+        if self.runtime_prepare_collectors.contains_key(&collector_id) {
             return Err(
-                RuntimeExtensionRegistryError::DuplicateRuntimePrepareCollector(
-                    registration.collector_id().to_string(),
-                ),
+                RuntimeExtensionRegistryError::DuplicateRuntimePrepareCollector(collector_id),
             );
         }
-        self.runtime_prepare_collectors.push(registration);
+        let owner = self.intern_owner_from_namespaced_key(&collector_id)?;
+        self.runtime_prepare_collectors
+            .register(owner, collector_id, registration)
+            .expect("runtime prepare collector duplicate was prechecked");
         Ok(())
     }
 
@@ -74,18 +103,19 @@ impl RuntimeExtensionRegistry {
         &mut self,
         registration: VirtualGeometryRuntimeProviderRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        let provider_id = registration.provider_id().to_string();
         if self
             .virtual_geometry_runtime_providers
-            .iter()
-            .any(|existing| existing.provider_id() == registration.provider_id())
+            .contains_key(&provider_id)
         {
             return Err(
-                RuntimeExtensionRegistryError::DuplicateVirtualGeometryRuntimeProvider(
-                    registration.provider_id().to_string(),
-                ),
+                RuntimeExtensionRegistryError::DuplicateVirtualGeometryRuntimeProvider(provider_id),
             );
         }
-        self.virtual_geometry_runtime_providers.push(registration);
+        let owner = self.intern_owner_from_namespaced_key(&provider_id)?;
+        self.virtual_geometry_runtime_providers
+            .register(owner, provider_id, registration)
+            .expect("virtual geometry provider duplicate was prechecked");
         Ok(())
     }
 
@@ -93,18 +123,16 @@ impl RuntimeExtensionRegistry {
         &mut self,
         registration: HybridGiRuntimeProviderRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .hybrid_gi_runtime_providers
-            .iter()
-            .any(|existing| existing.provider_id() == registration.provider_id())
-        {
+        let provider_id = registration.provider_id().to_string();
+        if self.hybrid_gi_runtime_providers.contains_key(&provider_id) {
             return Err(
-                RuntimeExtensionRegistryError::DuplicateHybridGiRuntimeProvider(
-                    registration.provider_id().to_string(),
-                ),
+                RuntimeExtensionRegistryError::DuplicateHybridGiRuntimeProvider(provider_id),
             );
         }
-        self.hybrid_gi_runtime_providers.push(registration);
+        let owner = self.intern_owner_from_namespaced_key(&provider_id)?;
+        self.hybrid_gi_runtime_providers
+            .register(owner, provider_id, registration)
+            .expect("hybrid GI provider duplicate was prechecked");
         Ok(())
     }
 
@@ -112,18 +140,14 @@ impl RuntimeExtensionRegistry {
         &mut self,
         registration: SolariRuntimeProviderRegistration,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        if self
-            .solari_runtime_providers
-            .iter()
-            .any(|existing| existing.provider_id() == registration.provider_id())
-        {
-            return Err(
-                RuntimeExtensionRegistryError::DuplicateSolariRuntimeProvider(
-                    registration.provider_id().to_string(),
-                ),
-            );
+        let provider_id = registration.provider_id().to_string();
+        if self.solari_runtime_providers.contains_key(&provider_id) {
+            return Err(RuntimeExtensionRegistryError::DuplicateSolariRuntimeProvider(provider_id));
         }
-        self.solari_runtime_providers.push(registration);
+        let owner = self.intern_owner_from_namespaced_key(&provider_id)?;
+        self.solari_runtime_providers
+            .register(owner, provider_id, registration)
+            .expect("Solari provider duplicate was prechecked");
         Ok(())
     }
 
@@ -162,5 +186,24 @@ impl RuntimeExtensionRegistry {
         self.asset_importers
             .register_arc(importer)
             .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
+    }
+
+    pub(super) fn intern_runtime_owner(
+        &mut self,
+        plugin_id: &str,
+    ) -> Result<PluginModuleId, RuntimeExtensionRegistryError> {
+        self.intern_plugin_module(format!("{plugin_id}.runtime"))
+    }
+
+    pub(super) fn intern_owner_from_namespaced_key(
+        &mut self,
+        key: &str,
+    ) -> Result<PluginModuleId, RuntimeExtensionRegistryError> {
+        let Some(plugin_id) = key.split('.').next() else {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginModule(
+                key.to_string(),
+            ));
+        };
+        self.intern_runtime_owner(plugin_id)
     }
 }

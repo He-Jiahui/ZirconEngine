@@ -4,6 +4,7 @@ mod create;
 mod depth_of_field_prepare_params_buffer;
 mod hybrid_gi_probe_buffer;
 mod hybrid_gi_trace_region_buffer;
+mod hzb_params_buffer;
 mod light_buffer;
 mod motion_vector_camera_params_buffer;
 mod post_process_params_buffer;

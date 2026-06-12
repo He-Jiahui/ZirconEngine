@@ -2,11 +2,11 @@ use std::time::Duration;
 
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::time::{Fixed, Real, Time, Virtual};
-use crate::core::time::{
+
+use super::super::time::{
     RuntimeTimeAdvance, RuntimeTimeClocks, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC,
     TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC,
 };
-
 use super::CoreHandle;
 
 impl CoreHandle {

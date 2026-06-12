@@ -11,13 +11,25 @@ impl RuntimeEntryApp {
         delta: MouseScrollDelta,
     ) {
         let (unit, x, y) = mouse_wheel_delta(delta);
-        let event = ZrRuntimeEventV1::mouse_wheel_delta(
-            ZIRCON_RUNTIME_ABI_VERSION_V1,
-            self.viewport,
-            unit,
-            x,
-            y,
-        );
+        let event = if let Some(position) = self.last_pointer_position {
+            ZrRuntimeEventV1::mouse_wheel_delta_at(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                self.viewport,
+                unit,
+                position.x as f32,
+                position.y as f32,
+                x,
+                y,
+            )
+        } else {
+            ZrRuntimeEventV1::mouse_wheel_delta(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                self.viewport,
+                unit,
+                x,
+                y,
+            )
+        };
         if self.session.handle_event(event).is_err() {
             event_loop.exit();
         }

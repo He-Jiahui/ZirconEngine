@@ -1,0 +1,20 @@
+version = 1
+name = "Ghost Mist"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000143"
+url = "res://shaders/vampire_effect"
+
+[overrides]
+base_color = [0.42, 0.72, 0.86, 0.98]
+metallic = 0.0
+roughness = 0.9
+emissive = [0.08, 0.18, 0.24]
+double_sided = true
+
+[overrides.alpha_mode]
+mode = "opaque"
+
+[textures.base_color]
+uuid = "00000000-0000-0000-0000-000000000000"
+url = "res://models/kenney_graveyard/character-ghost.glb#Texture0"

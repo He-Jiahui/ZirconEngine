@@ -38,7 +38,10 @@ pub(super) fn infer_slot_contract(
                 slot = slot.with_linear_sizing(linear_sizing);
             }
         }
-        if matches!(parent_container, UiContainerKind::Free | UiContainerKind::Canvas) {
+        if matches!(
+            parent_container,
+            UiContainerKind::Free | UiContainerKind::Canvas
+        ) {
             if let Some(placement) = parse_canvas_placement(layout, path)? {
                 slot = slot.with_canvas_placement(placement);
             }

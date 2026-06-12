@@ -24,10 +24,12 @@ impl PostProcessGraphResourceNames {
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
     pub const LIGHT_LIST: &'static str = "light-list";
+    pub const HZB_FURTHEST: &'static str = "hzb-furthest";
     // Temporal resources use distinct names so a pass cannot silently read and overwrite the same history slot.
     pub const HISTORY_PREVIOUS_SCENE_COLOR: &'static str = "history.previous.scene-color";
     pub const HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION: &'static str =
         "history.previous.screen-space-reflection";
+    pub const HISTORY_PREVIOUS_HZB_FURTHEST: &'static str = "history.previous.hzb-furthest";
     pub const HISTORY_CURRENT_SCENE_COLOR: &'static str = "history.current.scene-color";
     pub const HISTORY_OUTPUT_SCENE_COLOR: &'static str = "postprocess.history-resolved";
     pub const BLOOM: &'static str = "bloom-texture";

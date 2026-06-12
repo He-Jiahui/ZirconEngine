@@ -37,7 +37,8 @@ pub fn first_party_runtime_plugin_registrations_for_manifest(
 #[cfg(any(
     feature = "first-party-runtime-plugins",
     feature = "first-party-advanced-render-runtime-plugins",
-    feature = "first-party-navigation-runtime-plugin"
+    feature = "first-party-navigation-runtime-plugin",
+    feature = "first-party-zr-vm-language-runtime-plugin"
 ))]
 fn first_party_runtime_plugin_registrations_for_manifest_impl(
     target_mode: RuntimeTargetMode,
@@ -52,7 +53,8 @@ fn first_party_runtime_plugin_registrations_for_manifest_impl(
 #[cfg(not(any(
     feature = "first-party-runtime-plugins",
     feature = "first-party-advanced-render-runtime-plugins",
-    feature = "first-party-navigation-runtime-plugin"
+    feature = "first-party-navigation-runtime-plugin",
+    feature = "first-party-zr-vm-language-runtime-plugin"
 )))]
 fn first_party_runtime_plugin_registrations_for_manifest_impl(
     target_mode: RuntimeTargetMode,

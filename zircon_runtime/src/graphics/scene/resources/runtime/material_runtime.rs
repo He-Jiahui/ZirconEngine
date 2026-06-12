@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
-    RenderMaterialReadinessReport,
+    RenderMaterialReadinessReport, RenderMaterialTextureTransform,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -24,10 +24,20 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
     pub(crate) base_color_texture: Option<ResourceId>,
+    pub(crate) base_color_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) base_color_texture_uv_channel: u32,
     pub(crate) normal_texture: Option<ResourceId>,
+    pub(crate) normal_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) normal_texture_uv_channel: u32,
     pub(crate) metallic_roughness_texture: Option<ResourceId>,
+    pub(crate) metallic_roughness_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) metallic_roughness_texture_uv_channel: u32,
     pub(crate) occlusion_texture: Option<ResourceId>,
+    pub(crate) occlusion_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) occlusion_texture_uv_channel: u32,
     pub(crate) emissive_texture: Option<ResourceId>,
+    pub(crate) emissive_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) emissive_texture_uv_channel: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -44,11 +54,24 @@ pub(crate) struct MaterialRuntime {
     pub(crate) unlit: bool,
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
+    pub(crate) render_queue: i32,
+    pub(crate) material_queue: i32,
+    pub(crate) depth_bias: f32,
     pub(crate) base_color_texture: Option<ResourceId>,
+    pub(crate) base_color_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) base_color_texture_uv_channel: u32,
     pub(crate) normal_texture: Option<ResourceId>,
+    pub(crate) normal_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) normal_texture_uv_channel: u32,
     pub(crate) metallic_roughness_texture: Option<ResourceId>,
+    pub(crate) metallic_roughness_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) metallic_roughness_texture_uv_channel: u32,
     pub(crate) occlusion_texture: Option<ResourceId>,
+    pub(crate) occlusion_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) occlusion_texture_uv_channel: u32,
     pub(crate) emissive_texture: Option<ResourceId>,
+    pub(crate) emissive_texture_transform: RenderMaterialTextureTransform,
+    pub(crate) emissive_texture_uv_channel: u32,
     pub(crate) shader_property_values: BTreeMap<String, RenderMaterialPropertyValue>,
     pub(crate) shader_property_uniform_payload: RenderMaterialPropertyUniformPayload,
     pub(crate) non_standard_texture_slots: BTreeMap<String, Option<ResourceId>>,
@@ -72,10 +95,20 @@ impl MaterialRuntime {
             cast_shadows: self.cast_shadows,
             receive_shadows: self.receive_shadows,
             base_color_texture: self.base_color_texture,
+            base_color_texture_transform: self.base_color_texture_transform,
+            base_color_texture_uv_channel: self.base_color_texture_uv_channel,
             normal_texture: self.normal_texture,
+            normal_texture_transform: self.normal_texture_transform,
+            normal_texture_uv_channel: self.normal_texture_uv_channel,
             metallic_roughness_texture: self.metallic_roughness_texture,
+            metallic_roughness_texture_transform: self.metallic_roughness_texture_transform,
+            metallic_roughness_texture_uv_channel: self.metallic_roughness_texture_uv_channel,
             occlusion_texture: self.occlusion_texture,
+            occlusion_texture_transform: self.occlusion_texture_transform,
+            occlusion_texture_uv_channel: self.occlusion_texture_uv_channel,
             emissive_texture: self.emissive_texture,
+            emissive_texture_transform: self.emissive_texture_transform,
+            emissive_texture_uv_channel: self.emissive_texture_uv_channel,
         }
     }
 }

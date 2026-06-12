@@ -1,17 +1,22 @@
 use std::sync::Arc;
 
-use crate::core::framework::scene::Mobility;
-use crate::graphics::scene::resources::{
-    GpuMaterialUniformResource, GpuMeshResource, GpuTextureResource, PipelineKey,
+use crate::core::framework::render::{
+    PrimitiveRelevance, RenderMeshLodSelection, RenderMeshStaticState,
 };
+use crate::core::framework::scene::{EntityId, Mobility};
+use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource, PipelineKey};
 
 use super::geometry_source::MeshDrawGeometrySource;
+use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
     pub(super) geometry_source: MeshDrawGeometrySource,
     pub(super) mobility: Mobility,
+    pub(super) source_entity: EntityId,
+    pub(super) source_draw_ordinal: u32,
+    pub(super) static_state: RenderMeshStaticState,
     pub(super) first_index: u32,
     pub(super) draw_index_count: u32,
     pub(super) indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
@@ -20,14 +25,31 @@ pub(crate) struct MeshDraw {
     pub(super) virtual_geometry_submission_key: Option<(u64, u32)>,
     #[allow(dead_code)]
     pub(super) virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
-    pub(super) texture: Arc<GpuTextureResource>,
+    pub(super) material_textures: MaterialTextureSet,
+    pub(super) material_bind_group: wgpu::BindGroup,
+    pub(super) standard_material_bind_group: wgpu::BindGroup,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
+    pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
     pub(super) cast_shadows: bool,
-    #[allow(dead_code)]
-    pub(super) model_buffer: wgpu::Buffer,
-    pub(super) model_bind_group: wgpu::BindGroup,
+    pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
+    pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
+    pub(super) primitive_relevance: Option<PrimitiveRelevance>,
+    pub(super) main_view_visible: bool,
+    pub(super) shadow_view_visible: bool,
     pub(super) has_previous_motion_vector_transform: bool,
+    pub(super) mesh_lod: Option<RenderMeshLodSelection>,
+    pub(super) skinned: bool,
+    #[allow(dead_code)]
+    pub(super) skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+    #[allow(dead_code)]
+    pub(super) previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(super) skinned_joint_count: u32,
+    // Retains the source mesh that allowed this draw to enter the shader-skinning
+    // path. Draws without this source remain CPU-skinned dynamic fallbacks.
+    pub(super) skinned_gpu_source: Option<Arc<GpuMeshResource>>,
+    pub(super) skinned_gpu_source_uses_cpu_morphed_source: bool,
+    pub(super) skinned_gpu_skinning_enabled: bool,
 }
 
 impl MeshDraw {
@@ -36,23 +58,39 @@ impl MeshDraw {
         mesh: Arc<GpuMeshResource>,
         geometry_source: MeshDrawGeometrySource,
         mobility: Mobility,
+        source_entity: EntityId,
+        source_draw_ordinal: u32,
+        static_state: RenderMeshStaticState,
         first_index: u32,
         draw_index_count: u32,
         indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
         indirect_args_offset: u64,
         virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
-        texture: Arc<GpuTextureResource>,
+        material_textures: MaterialTextureSet,
+        material_bind_group: wgpu::BindGroup,
+        standard_material_bind_group: wgpu::BindGroup,
         material_uniform: Arc<GpuMaterialUniformResource>,
+        standard_material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
         cast_shadows: bool,
-        model_buffer: wgpu::Buffer,
-        model_bind_group: wgpu::BindGroup,
+        gpu_scene_bind_group: Option<wgpu::BindGroup>,
         has_previous_motion_vector_transform: bool,
+        mesh_lod: Option<RenderMeshLodSelection>,
+        skinned: bool,
+        skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+        previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
+        skinned_joint_count: u32,
+        skinned_gpu_source: Option<Arc<GpuMeshResource>>,
+        skinned_gpu_source_uses_cpu_morphed_source: bool,
+        skinned_gpu_skinning_enabled: bool,
     ) -> Self {
         Self {
             mesh,
             geometry_source,
             mobility,
+            source_entity,
+            source_draw_ordinal,
+            static_state,
             first_index,
             draw_index_count,
             indirect_args_buffer,
@@ -60,13 +98,65 @@ impl MeshDraw {
             virtual_geometry_submission_key: virtual_geometry_submission_detail
                 .map(|detail| (detail.entity(), detail.page_id())),
             virtual_geometry_submission_detail,
-            texture,
+            material_textures,
+            material_bind_group,
+            standard_material_bind_group,
             material_uniform,
+            standard_material_uniform,
             pipeline_key,
             cast_shadows,
-            model_buffer,
-            model_bind_group,
+            gpu_scene_bind_group,
+            gpu_scene_instance_span: None,
+            primitive_relevance: None,
+            main_view_visible: true,
+            shadow_view_visible: true,
             has_previous_motion_vector_transform,
+            mesh_lod,
+            skinned,
+            skinned_joint_palette_buffer,
+            previous_skinned_joint_palette_buffer,
+            skinned_joint_count,
+            skinned_gpu_source,
+            skinned_gpu_source_uses_cpu_morphed_source,
+            skinned_gpu_skinning_enabled,
         }
+    }
+
+    pub(crate) fn has_previous_motion_vector_transform(&self) -> bool {
+        self.has_previous_motion_vector_transform
+    }
+
+    pub(crate) fn source_entity(&self) -> EntityId {
+        self.source_entity
+    }
+
+    pub(crate) fn source_draw_ordinal(&self) -> u32 {
+        self.source_draw_ordinal
+    }
+
+    pub(crate) fn static_state(&self) -> RenderMeshStaticState {
+        self.static_state
+    }
+
+    pub(crate) fn with_gpu_scene_instance_span(
+        mut self,
+        first_instance_index: u32,
+        instance_count: u32,
+    ) -> Self {
+        debug_assert!(instance_count > 0);
+        self.gpu_scene_instance_span = Some((first_instance_index, instance_count));
+        self
+    }
+
+    pub(crate) fn with_visibility(
+        mut self,
+        relevance: PrimitiveRelevance,
+        main_view_visible: bool,
+        shadow_view_visible: bool,
+    ) -> Self {
+        self.primitive_relevance = Some(relevance);
+        self.main_view_visible = main_view_visible;
+        self.shadow_view_visible = shadow_view_visible;
+        self
     }
 }

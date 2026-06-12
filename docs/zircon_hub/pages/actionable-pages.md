@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
   - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
@@ -25,10 +26,22 @@ related_code:
   - zircon_hub/src/plugins/catalog.rs
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs
+  - zircon_hub/src/state/hub_message/id.rs
+  - zircon_hub/src/state/hub_message/message.rs
+  - zircon_hub/src/state/hub_message/mod.rs
   - zircon_hub/src/team/local_git.rs
+  - tools/zircon_build.py
+  - zircon_hub/tauri.conf.json
   - zircon_hub/web/src/App.tsx
   - zircon_hub/web/src/tauri/hubApi.ts
+  - zircon_hub/web/src/tauri/hubStateValidator.ts
   - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data/ProjectMetricsGrid.tsx
+  - zircon_hub/web/src/components/data/SettingsSection.tsx
+  - zircon_hub/web/src/components/feedback/HubErrorBoundary.tsx
+  - zircon_hub/web/src/components/inputs/ProjectsToolbar.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
   - zircon_hub/web/src/pages/BuildsPage.tsx
   - zircon_hub/web/src/pages/CatalogPage.tsx
   - zircon_hub/web/src/pages/CloudPage.tsx
@@ -49,8 +62,10 @@ related_code:
   - zircon_hub/tests/ui_foundation_contract.rs
   - zircon_hub/tests/ui_selected_project_catalog_contract.rs
   - zircon_hub/tests/ui_selected_project_runtime_contract.rs
+  - zircon_hub/tests/ui_workspace_split_contract.rs
 implementation_files:
   - zircon_hub/src/tauri_app/runtime_state.rs
+  - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
   - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
@@ -70,9 +85,21 @@ implementation_files:
   - zircon_hub/src/tauri_app/view_model/settings_dto.rs
   - zircon_hub/src/tauri_app/view_model/source_engines.rs
   - zircon_hub/src/tauri_app/view_model/ui_text.rs
+  - zircon_hub/src/state/hub_message/id.rs
+  - zircon_hub/src/state/hub_message/message.rs
+  - zircon_hub/src/state/hub_message/mod.rs
+  - tools/zircon_build.py
+  - zircon_hub/tauri.conf.json
   - zircon_hub/web/src/App.tsx
   - zircon_hub/web/src/tauri/hubApi.ts
+  - zircon_hub/web/src/tauri/hubStateValidator.ts
   - zircon_hub/web/src/tauri/projectTarget.ts
+  - zircon_hub/web/src/components/data/ProjectDetailSidebar.tsx
+  - zircon_hub/web/src/components/data/ProjectMetricsGrid.tsx
+  - zircon_hub/web/src/components/data/SettingsSection.tsx
+  - zircon_hub/web/src/components/feedback/HubErrorBoundary.tsx
+  - zircon_hub/web/src/components/inputs/ProjectsToolbar.tsx
+  - zircon_hub/web/src/components/overlays/CreateProjectDialog.tsx
   - zircon_hub/web/src/pages/BuildsPage.tsx
   - zircon_hub/web/src/pages/CatalogPage.tsx
   - zircon_hub/web/src/pages/CloudPage.tsx
@@ -96,6 +123,8 @@ tests:
   - cargo test --manifest-path zircon_hub/Cargo.toml --test project_page_copy_contract -- --nocapture
   - npm run typecheck
   - npm run build
+  - python tools/zircon_build.py --targets hub --out target/zircon-hub-tauri-bundler-check --mode debug --dry-run
+  - python tools/zircon_build.py --targets hub --out target/zircon-hub-tauri-bundler-check --mode debug
 doc_type: workflow-detail
 ---
 
@@ -111,11 +140,17 @@ Selected-project workflows resolve through Rust state rather than page-local fal
 
 Dashboard-style quick actions may still run without a payload when no selected project exists; that is the only latest-recent fallback surface. Detail, Editor, Builds, Catalog, Cloud, and Team panels pass the selected project payload when one exists so the backend resolves the same target the user sees.
 
+Action ids are no longer page-owned strings. React imports stable ids from `HUB_ACTION`, and Rust parses them through `HubActionId` before `action_request.rs` validates the payload DTO for that action. Unknown ids, invalid payload shapes, and disabled future capability attempts become localized recoverable task feedback rather than route fallthroughs. Status details, recovery hints, and action-history details are stored as structured `HubMessage` ids with parameters in `src/state/hub_message`, then localized by the view-model projection. Legacy string config rows still load, but new workflow status and history data can be rendered in the current language without React parsing English copy. The frontend state boundary is also guarded: `hubStateValidator.ts` validates `hub_state`, action replies, and live event payloads before `App.tsx` or `HubWindow.tsx` can apply them, and `HubErrorBoundary` lets a render failure reload a fresh backend state instead of falling back to demo rows.
+
 ## Builds And Editor
 
 `web/src/pages/BuildsPage.tsx` and `web/src/pages/EditorPage.tsx` compose the local workflow surfaces from DTOs. They render selected-project state, Source Engine rows, task feedback, history rows, and output-folder actions with shared React components, while Rust owns the actual action preparation and completion.
 
 `src/tauri_app/runtime_state/build_actions.rs` prepares and completes `tools/zircon_build.py --targets editor,runtime` work. `src/tauri_app/runtime_state/editor_launch_actions.rs` prepares and completes selected-project or empty-editor launches. `src/tauri_app/runtime_state/action_tasks.rs` marks build, package, install, and open-editor as background actions so Tauri can return a running view model immediately and later publish `hub-state-changed`.
+
+`tools/zircon_build.py --targets hub` is the Hub application packaging path. It invokes `tauri build --bundles nsis --ci --no-sign` from `zircon_hub`, adds `--debug` when the selected build mode is debug, and forwards locked/jobs values to Cargo through the Tauri runner. `tauri.conf.json` keeps `beforeBuildCommand` on `npm run build` and `frontendDist` on `web/dist`, so Vite builds the React pages and static resources before Tauri packages the app.
+
+The staged Hub output keeps the built executable at `ZirconEngine/zircon_hub.exe` and copies generated NSIS bundle files into `ZirconEngine/installers`. Tauri has no ASAR-style archive layer; additional non-frontend resources should be declared in Tauri `bundle.resources`, while project package/install delivery remains directory-based.
 
 Builds history renders `HubActionHistoryItem.detailRows` directly. The DTO rows include localized target, finish time, output directory, recovery hint, command line, and log excerpt, so the page does not rebuild business copy or punctuation from raw runtime fields. Source Engine build history follows the same rule through `src/tauri_app/view_model/source_engines.rs`, including the backend-owned `secondaryDetail` line for command/log display.
 
@@ -143,9 +178,11 @@ Team invitation, permissions, and remote collaboration are not implemented in v1
 
 ## Settings
 
-`web/src/pages/SettingsPage.tsx` renders persisted settings and the editable `settingsDraft` DTO from `src/tauri_app/view_model/settings_dto.rs`. The page edits local tool paths, default project/source/build/device directories, build profile, jobs, and language. It displays localized option labels while submitting stable machine values such as `debug`, `release`, `Chinese`, and `English`.
+`web/src/pages/SettingsPage.tsx` renders persisted settings and the editable `settingsDraft` DTO from `src/tauri_app/view_model/settings_dto.rs`. The page owns the route header, summary metrics, tabs, and main/sidebar split shell, while `SettingsSection.tsx` owns the build defaults, path defaults, advanced settings, configuration health, and active Source Engine panels. The page edits local tool paths, default project/source/build/device directories, build profile, jobs, and language. It displays localized option labels while submitting stable machine values such as `debug`, `release`, `Chinese`, and `English`.
 
 `browse-settings-folder` sends `{ field, initialDir, settings }` and mutates only `settingsDraft`. Native folder picker titles use the draft language. `save-settings` applies the typed settings payload, persists Hub config, registers or updates the Source Engine from the saved source directory, and refreshes Assets, Plugins, Learn, and Team catalogs.
+
+Settings also exposes `discard-settings-draft` and `restore-default-settings` as typed local actions. Discard resets only the editable draft from persisted settings; restore builds a default draft and leaves persistence to `save-settings`. Saving validates the Source Engine checkout before registration, requiring a real directory, a workspace `Cargo.toml` that includes `zircon_runtime`, and `tools/zircon_build.py`, so a bad source path cannot become the active engine or refresh source-scoped catalogs.
 
 Configuration health is computed from actual settings rows for Python, Cargo, Rustup, and local directory defaults. Completion percentage, row labels, row details, and tones are DTO-owned; the React page only places the rows.
 
@@ -157,6 +194,7 @@ The current contract surface is intentionally split by ownership:
 - `ui_selected_project_runtime_contract.rs` locks selected-project DTO projection and passive page consumption across Projects, Browser, Detail, Editor, Builds, and Cloud.
 - `ui_selected_project_catalog_contract.rs` locks catalog discovery scope, Learn `open-resource`, Team Git repository preference, Cloud selected-project surfaces, and Catalog quick-action target payloads.
 - `project_page_copy_contract.rs` locks DTO-owned page copy, localized task/action-history fields, template option labels, Catalog search placeholder punctuation, Builds `detailRows`, and Cloud output-directory history rows.
+- `ui_workspace_split_contract.rs` locks page-level main/sidebar grid geometry while allowing `ProjectDetailSidebar.tsx` and `SettingsSection.tsx` to own nested support panels.
 - `hub_docs_contract.rs` keeps this document aligned with the active React/Tauri ownership model and rejects obsolete page-owner references.
 
 ## Docs Refresh Handoff

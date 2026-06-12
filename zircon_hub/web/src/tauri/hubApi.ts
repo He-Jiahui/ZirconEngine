@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { fallbackShellState } from "../data/hubData";
 import type { HubActionId, HubActionPayload, HubShellState } from "../types/hub";
+import { assertHubShellState } from "./hubStateValidator";
 
 declare global {
   interface Window {
@@ -16,8 +17,9 @@ export async function loadHubState(): Promise<HubShellState> {
   }
 
   try {
-    return await invoke<HubShellState>("hub_state");
-  } catch {
+    return assertHubShellState(await invoke<unknown>("hub_state"));
+  } catch (error) {
+    console.warn("Hub state validation failed; using fallback state.", error);
     return fallbackShellState;
   }
 }
@@ -31,9 +33,11 @@ export async function dispatchHubAction<TActionId extends HubActionId>(
     return fallbackShellState;
   }
 
-  return await invoke<HubShellState>("hub_action", {
-    request: { actionId, targetId, payload },
-  });
+  return assertHubShellState(
+    await invoke<unknown>("hub_action", {
+      request: { actionId, targetId, payload },
+    }),
+  );
 }
 
 export async function subscribeHubStateChanged(onStateChanged: (state: HubShellState) => void): Promise<UnlistenFn> {
@@ -41,8 +45,12 @@ export async function subscribeHubStateChanged(onStateChanged: (state: HubShellS
     return () => {};
   }
 
-  return await listen<HubShellState>("hub-state-changed", (event) => {
-    onStateChanged(event.payload);
+  return await listen<unknown>("hub-state-changed", (event) => {
+    try {
+      onStateChanged(assertHubShellState(event.payload));
+    } catch (error) {
+      console.warn("Ignored invalid hub-state-changed payload.", error);
+    }
   });
 }
 

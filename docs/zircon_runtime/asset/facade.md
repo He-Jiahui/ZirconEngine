@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/management.rs
   - zircon_runtime/src/asset/facade/mod.rs
   - zircon_runtime/src/asset/facade/asset.rs
   - zircon_runtime/src/asset/facade/handle.rs
@@ -9,6 +10,9 @@ related_code:
   - zircon_runtime/src/asset/facade/load_state.rs
   - zircon_runtime/src/asset/facade/readiness.rs
   - zircon_runtime/src/asset/facade/impls.rs
+  - zircon_runtime/src/asset/assets/ui.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/facade/manager.rs
@@ -33,6 +37,7 @@ related_code:
   - zircon_runtime_interface/src/resource/resource_event.rs
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/management.rs
   - zircon_runtime/src/asset/facade/mod.rs
   - zircon_runtime/src/asset/facade/asset.rs
   - zircon_runtime/src/asset/facade/handle.rs
@@ -41,6 +46,9 @@ implementation_files:
   - zircon_runtime/src/asset/facade/load_state.rs
   - zircon_runtime/src/asset/facade/readiness.rs
   - zircon_runtime/src/asset/facade/impls.rs
+  - zircon_runtime/src/asset/assets/ui.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/facade/manager.rs
@@ -72,6 +80,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-18-asset-facade-load-state-convergence.md
   - docs/superpowers/specs/2026-05-23-asset-readiness-diagnostics-design.md
   - docs/superpowers/plans/2026-05-23-asset-readiness-diagnostics.md
+  - docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md
 tests:
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/assets/mesh.rs
@@ -95,7 +104,21 @@ tests:
   - zircon_runtime/src/asset/tests/facade.rs::readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payloads
   - zircon_runtime/src/asset/tests/facade.rs::readiness_report_marks_missing_dependency_records_as_failed_rows
   - zircon_runtime/src/asset/tests/facade.rs::readiness_report_keeps_shallowest_direct_dependency_row_and_terminates_cycles
+  - zircon_runtime/src/asset/tests/facade/failure_reason.rs::failed_asset_exposes_failure_reason_through_facade
+  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_error_to_ready_without_reloading
+  - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
+  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
+  - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
+  - zircon_runtime/src/asset/tests/watcher.rs::rapid_successive_writes_within_debounce_window_emit_single_reload
+  - zircon_runtime/src/asset/tests/watcher.rs::watcher_failure_on_removed_directory_surfaces_observable_error
+  - zircon_runtime/src/asset/tests/facade/hot_reload.rs::hot_reload_transitions_through_reloading_state_and_emits_modified_event
+  - zircon_runtime/src/asset/tests/facade/hot_reload.rs::reload_failure_emits_reload_failed_event_and_lands_failed_state
   - zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open
+  - zircon_runtime/src/asset/tests/assets/ui.rs::ui_theme_asset_round_trips_toml_and_registers_facade_label
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-theme-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiThemeAsset slice: passed with existing warnings)
+  - zircon_runtime/src/asset/tests/assets/ui.rs::ui_icon_asset_round_trips_toml_and_registers_facade_label
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiIconAsset slice: passed with existing warnings)
+  - cargo test -p zircon_runtime --lib ui_icon --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-icon-asset-0612-coremin-check --message-format short --color never -- --test-threads=1 --nocapture (2026-06-12 UiIconAsset slice: passed, 4 passed / 0 failed / 3563 filtered out)
 doc_type: module-detail
 ---
 
@@ -121,10 +144,12 @@ doc_type: module-detail
 - `AssetDependencyReadiness` carries dependency id, optional locator/kind/revision metadata, direct/recursive depth, direct-edge classification, load state, and diagnostics.
 - `AssetReadinessReport`, `AssetReadinessNode`, and `AssetDependencyReadiness` are serde DTOs. They preserve IDs, locators, kind, revision, state, depth/direct classification, and diagnostics across JSON roundtrips without invoking import or residency logic.
 - `ProjectAssetManager::readiness_report<TAsset>(handle)` is read-only. It does not restore payloads, run importers, touch artifacts, invoke graphics, or mutate lease-driven residency.
-- `ProjectAssetManager` now exposes `load<TAsset>(locator)`, `handle<TAsset>(locator)`, `assets<TAsset>()`, `load_state(handle)`, `dependency_load_state(handle)`, `load_states(handle)`, `readiness_report<TAsset>(handle)`, `is_loaded(handle)`, `is_loaded_with_direct_dependencies(handle)`, `is_loaded_with_dependencies(handle)`, `recursive_dependency_load_state(handle)`, `asset_load_state_by_id<TAsset>(id)`, `subscribe_asset_events<TAsset>()`, and importer capability report helpers.
-- `ProjectAssetManager` also exposes pure asset-management reads for project/editor tooling that does not have a graphics device: per-family management record sets for model, mesh, scene, flattened scene entity, material asset, and shader rows, plus `asset_management_record_sets()`, `asset_management_overview()`, `asset_management_family_summaries()`, and `asset_management_family_status_index()`.
+- `ProjectAssetManager` now exposes `load<TAsset>(locator)`, `handle<TAsset>(locator)`, `assets<TAsset>()`, `load_state(handle)`, `failure_reason(handle)`, `dependency_load_state(handle)`, `load_states(handle)`, `readiness_report<TAsset>(handle)`, `is_loaded(handle)`, `is_loaded_with_direct_dependencies(handle)`, `is_loaded_with_dependencies(handle)`, `recursive_dependency_load_state(handle)`, `asset_load_state_by_id<TAsset>(id)`, `subscribe_asset_events<TAsset>()`, and importer capability report helpers.
+- `ProjectAssetManager` also exposes pure asset-management reads for project/editor tooling that does not have a graphics device: per-family management record sets for model, mesh, scene, flattened scene entity, material asset, and shader rows, plus `asset_management_record_sets()`, `asset_management_overview()`, `asset_management_family_summaries()`, `asset_management_family_status_index()`, `asset_management_family_status_view(...)`, `asset_management_family_issue_index()`, and `asset_management_family_issue_view(...)`.
 - The public `AssetManager` service trait forwards the importer capability report helpers so tools that resolve the manager through the core service boundary can query importer availability without downcasting to `ProjectAssetManager`.
 - `MeshAsset` is now part of this typed facade through `AssetKind::Mesh`, `MeshMarker`, `Handle<MeshAsset>`, and `Assets<MeshAsset>`.
+- `UiThemeAsset` is a typed facade payload for `UiThemeDocument`. It uses `UiStyleMarker` and `AssetKind::UiStyle` with label `ui_theme`, so editor/theme tooling can distinguish standalone theme payloads without adding a new public resource kind.
+- `UiIconAsset` is a typed facade payload for icon authoring documents. It uses `TextureMarker` and `AssetKind::Texture` with label `ui_icon`, so editor/tool UI can address icons through the existing image resource family before later atlas and SVG rasterization work lands.
 - The top-level `zircon_runtime::asset` facade also re-exports shared asset validation helpers such as `validate_wgsl_captures(...)`, so documented fixtures, shader import, and public callers use the same shader/material capture contract.
 
 ## Bevy Alignment And Zircon Divergence
@@ -132,6 +157,24 @@ doc_type: module-detail
 The facade follows Bevy's typed `Handle<T>`, `Assets<T>`, typed asset events, and load-state vocabulary, but it preserves Zircon's existing storage and residency model. A `Handle<TAsset>` is a cheap identity value; it does not keep a payload resident by itself. Residency is still controlled by `ResourceLease<T>` from `Assets<TAsset>::acquire`, and the last lease drop may unload the payload until `ProjectAssetManager` rehydrates it from project artifacts or builtins.
 
 `AssetLoadState::Reloading` is a Zircon extension. It is treated as a loading-class state through `is_loading_class()` while keeping the explicit state visible for diagnostics and hot-reload UI.
+
+Failed asset reasons are derived from the owning `ResourceRecord` diagnostics through `ResourceRecord::failure_reason()`. The facade methods return those messages only for records whose authoritative `ResourceState` is `Error`; a non-resident ready asset remains `NotLoaded` and does not report a failure reason. This keeps failure reporting tied to the resource state machine rather than adding a second asset-local error field.
+
+## Reference Asset Stack Gap Table
+
+Runtime plan 04 uses this table as the authority for what Zircon intentionally keeps versus what still needs follow-up work. The owning boundary is split deliberately: `zircon_runtime::asset::facade` owns typed handles, facade queries, event DTOs, and importer-facing asset vocabulary, while `zircon_runtime::core::resource` owns record identity, runtime residency, revisions, diagnostics, and state transitions.
+
+| Reference anchor | Zircon owner | Current semantic difference | Runtime 04 decision |
+|---|---|---|---|
+| Bevy `handle.rs` strong/weak handles | `asset/facade/handle.rs` `Handle<TAsset>` plus `core::resource::ResourceHandle` | Zircon handles are `Copy` typed IDs with no reference-counted strong/weak residency ownership. Payload residency is controlled by `ResourceLease<T>` and resource records. | Keep the divergence for the current architecture: it is cdylib/serialization friendly and keeps lifetime authority in `core::resource`. Runtime 04 M1.1 locks dangling-handle queries to report `NotLoaded` rather than panic or imply residency. |
+| Bevy `server/` loading/status entry point | `ProjectAssetManager`, `Assets<TAsset>`, and `AssetManager` service trait | Zircon does not use the `server` term because non-network server naming is blocked in this repo. Loading and status queries are split across manager/facade/service surfaces. | Keep `manager` / `facade` naming. New status or loading API must extend these existing surfaces rather than adding an asset server vocabulary. |
+| Bevy `loader.rs` | `asset/importer/` plus format-specific `asset/load/*` helpers | Importer selection, diagnostic-only backends, and raw decode helpers are separate. Some loaders produce multiple entries or diagnostic records instead of a single payload. | Keep the split. Concrete format parsing stays under importer/load owners; Runtime 04 only tightens facade, state, worker, and watcher behavior. |
+| Bevy `processor/` import-to-artifact path | `asset/importer/ingest/`, `asset/artifact`, `asset/project`, and `.zmeta` entries | Artifact and processor semantics are already tied to `.zmeta` per-entry UUIDs, dependency locators, package roots, and shader/material assetization. | Do not reopen a second processor design here. Runtime 04 records the boundary and delegates schema/processor evolution to the `.zmeta` and shader/material assetization plan. |
+| Bevy `meta.rs` | `asset/project/meta.rs` and the `.zmeta` plan | Runtime asset meta is `.zmeta`; old `*.meta.toml` is ignored for runtime assets. Editor-only metadata remains separate. | Keep the hard cutover. Runtime 04 may reference meta state but must not introduce an alternate meta compatibility path. |
+| Fyrox `state.rs` | `core/resource::{ResourceState, RuntimeResourceState}` with facade projections in `asset/facade/load_state.rs` | `AssetLoadState` is not the authority; it is a typed projection over resource records, runtime slots, and payload residency. | Keep the split. Runtime 04 M1.2 locks the matrix at `core::resource`: `Error -> Ready` must pass through `Reloading`, `Ready -> Error` is rejected without a reload boundary, and facade tests only verify projection and failure-reason visibility. |
+| Fyrox `event.rs` | `asset/facade/event.rs` over `core::resource::ResourceEvent` | Typed asset events are payload-free DTOs and include revision/kind filtering so removal events remain filterable after registry deletion. | Keep the event shape. Runtime 04 M3 should prove reload chains emit `Modified` / `ReloadFailed` through this path rather than adding a polling contract. |
+| Worker execution backend | `asset/pipeline/worker_pool.rs` plus `ProjectAssetManager::spawn_worker_pool` | Runtime 04 M2.1 makes unbounded mode explicit through `AssetWorkerPoolOptions { queue_depth: None }` and uses bounded channels plus non-blocking `request(...)` errors when `queue_depth` is set. Runtime 04 M2.2 adds pool-local in-flight request coalescing and broadcasts one completion per waiter count. Runtime 04 M2.3 adds `asset.worker.in_flight`, `asset.worker.completed`, `asset.worker.failed`, and `asset.worker.queue_peak` diagnostics. | M2 worker-pool parity slice is code-complete pending Cargo. `request_sender()` remains documented as a low-level bypass until a future manager-level loading queue can remove it cleanly. |
+| Watcher debounce loop | `asset/watch/watch_loop.rs`, `asset/watch/asset_watcher.rs`, and `docs/zircon_runtime/asset/watcher.md` | Runtime 04 M3 keeps the 120ms default but adds `AssetWatcherOptions` for injectable debounce windows. Notify errors and watch-triggered scan/sync failures now surface as `AssetWatchError` through a separate `AssetManager::subscribe_asset_watch_errors()` stream instead of fake asset changes. | M3 watcher slice is code/doc static-complete pending Cargo. Reload success/failure stays owned by `core::resource` and typed asset events map `Updated`/`ReloadFailed` to `Modified`/`ReloadFailed`. |
 
 M2 adds dependency graph behavior without moving authority out of `ResourceManager`. `ImportedAssetEntry.dependencies` is persisted into the project meta document as locator data for each root or labeled subasset entry, then the completed `ProjectManager` registry resolves those locators to `ResourceRecord.dependency_ids`. This two-phase resolution lets forward references within a project scan resolve to the target asset's UUID-derived `ResourceId` instead of a locator-derived fallback ID. Unresolved dependency locators become `ResourceDiagnostic::error("unresolved asset dependency ...")` on the owning record.
 
@@ -161,13 +204,15 @@ Serialized typed events are snapshot DTOs, not a replay log contract. They prese
 
 ## Test Coverage
 
-`zircon_runtime/src/asset/tests/facade.rs` covers typed handle kind mismatch, typed payload access, acquire/release residency behavior, event filtering across kinds including removed events, rename/reload/remove event ordering, load-state mapping, direct and recursive dependency graph state, missing dependency failure, wrong concrete payload residency, failed reload preserving last-good payload, `Assets<TAsset>::insert/remove_by_locator`, and `ProjectAssetManager` generic load/handle/state/event entry points. `zircon_runtime/src/asset/facade/event.rs::tests::typed_asset_events_roundtrip_for_tooling_snapshots` verifies JSON roundtrips for typed added and renamed asset events, including handle id, locator, previous locator, snake-case variant, revision, `AssetEventKind`, and the read-only event metadata accessors. The load-state convergence coverage includes `load_states_separate_root_direct_and_recursive_dependency_state`, `dependency_load_state_applies_direct_precedence_and_missing_records`, and `load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads`, which verify `AssetLoadStates`, `DependencyLoadState`, missing and wrong-kind root mapping, non-resident root read-only behavior, direct versus recursive aggregation, and the `is_loaded*` predicates. `zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_states_classification_helpers_cover_tooling_status_rows` covers the metadata-only classification helpers used by tool status rows.
+`zircon_runtime/src/asset/tests/facade.rs` covers typed handle kind mismatch, typed payload access, acquire/release residency behavior, event filtering across kinds including removed events, rename/reload/remove event ordering, load-state mapping, direct and recursive dependency graph state, missing dependency failure, wrong concrete payload residency, failed reload preserving last-good payload, `Assets<TAsset>::insert/remove_by_locator`, and `ProjectAssetManager` generic load/handle/state/event entry points. `zircon_runtime/src/asset/tests/facade/handle_lifecycle.rs::dangling_handle_queries_report_not_loaded_instead_of_panicking` is the Runtime 04 M1.1 regression for Zircon's retained handle divergence: a `Handle<TAsset>` is only a typed ID, and querying an unknown ID through both `Assets<TAsset>` and `ProjectAssetManager` reports `NotLoaded` instead of panicking or implying residency. `zircon_runtime/src/asset/tests/facade/failure_reason.rs::failed_asset_exposes_failure_reason_through_facade` verifies that failed typed assets expose the current resource diagnostic through both `ProjectAssetManager::failure_reason(...)` and `Assets<TAsset>::failure_reason(...)`. `zircon_runtime/src/asset/facade/event.rs::tests::typed_asset_events_roundtrip_for_tooling_snapshots` verifies JSON roundtrips for typed added and renamed asset events, including handle id, locator, previous locator, snake-case variant, revision, `AssetEventKind`, and the read-only event metadata accessors. The load-state convergence coverage includes `load_states_separate_root_direct_and_recursive_dependency_state`, `dependency_load_state_applies_direct_precedence_and_missing_records`, `load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads`, and `asset_load_state_projection_matches_resource_record_matrix`, which verify `AssetLoadStates`, `DependencyLoadState`, missing and wrong-kind root mapping, non-resident root read-only behavior, direct versus recursive aggregation, `ResourceState`/runtime-state/payload projection, and the `is_loaded*` predicates. `zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_states_classification_helpers_cover_tooling_status_rows` covers the metadata-only classification helpers used by tool status rows.
 
 The readiness diagnostics coverage includes `readiness_report_exposes_loaded_dependency_rows_and_record_diagnostics`, `readiness_report_and_load_states_roundtrip_for_tooling_snapshots`, `readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payloads`, `readiness_report_marks_missing_dependency_records_as_failed_rows`, and `readiness_report_keeps_shallowest_direct_dependency_row_and_terminates_cycles`. These tests verify root and dependency diagnostics, synthetic missing and wrong-kind diagnostics, read-only non-resident root behavior, missing dependency rows, shallowest/direct row merging, cycle termination, JSON roundtrips for readiness reports, and snake-case state field output for tooling snapshots. `zircon_runtime/src/core/resource/tests.rs::register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics` verifies that runtime ready registration preserves current diagnostics while allowing clean reimports to clear stale diagnostics.
 
 `zircon_runtime/src/asset/tests/assets/importer.rs` covers importer capability reports, including diagnostic-only model formats that remain intentionally non-producing. `zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open` covers the service-trait path before a project is open and after the pending importer registry is applied to the active project. `zircon_runtime/src/asset/tests/project/manager.rs` covers entry dependency resolution into `ResourceRecord.dependency_ids`, unresolved dependency diagnostics, restart restore through the meta-persisted dependency locator list, root plus labeled subasset artifact persistence, duplicate label failure records, and structured unknown-label load errors. `zircon_runtime/src/asset/tests/project/package_assets.rs` covers direct and manifest-based package asset roots, package subasset UUID/artifact restore, unknown package lookup, malformed package roots, and structured missing-label errors for `package://` sources. `zircon_runtime/src/asset/tests/project/zmeta.rs` covers `.zmeta` schema generation, ignored old sidecars, UUID-first stale-URL lookup, restored entry URL remapping after source rename, and subasset UUID preservation across transient failed reimport. `zircon_runtime/src/core/resource/tests.rs` covers dependency ID changes as revision-bearing record changes.
 
-`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` now exercises the same facade state surface against a scanned project instead of a hand-built resource graph. The sample opens the generated project through `ProjectAssetManager`, loads typed handles for `SceneAsset`, `ModelAsset`, `MeshAsset`, `MaterialAsset`, `ShaderAsset`, and `TextureAsset`, and asserts `AssetLoadState::Loaded`, direct `DependencyLoadState::Loaded`, recursive `RecursiveDependencyLoadState::Loaded`, the combined `AssetLoadStates` tuple, and `is_loaded_with_dependencies(...)`. The same project graph now also checks that `Scene0` depends on the labeled `Mesh0/Primitive0` mesh subasset, that the primitive mesh payload preserves a glTF morph target, that scene/entity/aggregate management counters see the primitive mesh/material binding plus default morph weight, that `ProjectAssetManager` can produce the full asset-management aggregate, compact overview, family rows, and family status index without a renderer, and that `ResourceStreamer` reuses that same project-level management surface for renderer-side reads.
+`zircon_runtime/src/asset/tests/assets/ui.rs::ui_theme_asset_round_trips_toml_and_registers_facade_label` locks the `UiThemeAsset` facade contract: the label is `ui_theme`, the marker kind remains `UiStyle`, sparse theme TOML inherits default palette values, and serialized theme payloads parse back into the same document. `zircon_runtime/src/asset/tests/assets/ui.rs::ui_icon_asset_round_trips_toml_and_registers_facade_label` locks the matching icon facade contract: the label is `ui_icon`, the marker kind remains `Texture`, external icon source URIs become direct references, and the TOML payload roundtrips through the typed asset.
+
+`zircon_runtime/src/asset/tests/project/asset_flow_sample.rs` now exercises the same facade state surface against a scanned project instead of a hand-built resource graph. The sample opens the generated project through `ProjectAssetManager`, loads typed handles for `SceneAsset`, `ModelAsset`, `MeshAsset`, `MaterialAsset`, `ShaderAsset`, and `TextureAsset`, and asserts `AssetLoadState::Loaded`, direct `DependencyLoadState::Loaded`, recursive `RecursiveDependencyLoadState::Loaded`, the combined `AssetLoadStates` tuple, and `is_loaded_with_dependencies(...)`. The same project graph now also checks that `Scene0` depends on the labeled `Mesh0/Primitive0` mesh subasset, that the primitive mesh payload preserves a glTF morph target, that scene/entity/aggregate management counters see the primitive mesh/material binding plus default morph weight, that `ProjectAssetManager` can produce the full asset-management aggregate, compact overview, family rows, family status index, and row-bearing family status view without a renderer, and that `ResourceStreamer` reuses that same project-level management surface for renderer-side reads.
 
 The 2026-05-20 runtime `--tests` check also covers the facade-level `validate_wgsl_captures(...)` re-export used by the documented `.zshader` fixture; the first run exposed the missing top-level export and the rerun passed after restoring that public surface.
 

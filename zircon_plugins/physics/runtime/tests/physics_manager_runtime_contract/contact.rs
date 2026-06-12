@@ -53,7 +53,7 @@ fn contact_skips_non_finite_collider_transform() {
             .unwrap();
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "colliders with non-finite synced transforms must not emit fallback contacts"
@@ -101,7 +101,7 @@ fn contact_skips_negative_box_half_extents() {
             .unwrap();
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "box with negative half extents must not emit fallback contacts"
@@ -149,7 +149,7 @@ fn contact_skips_non_finite_sphere_radius() {
             .unwrap();
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "sphere with non-finite radius must not emit fallback contacts"
@@ -204,7 +204,7 @@ fn contact_skips_non_finite_scaled_capsule_radius() {
             .unwrap();
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "capsule with non-finite scaled radius must not emit fallback contacts"
@@ -245,7 +245,7 @@ fn contact_point_stays_finite_for_large_overlapping_centers() {
         }
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     let contacts = level.physics_contacts();
     assert_eq!(contacts.len(), 1);
     assert!(
@@ -298,7 +298,7 @@ fn contact_skips_negative_capsule_radius() {
             .unwrap();
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "capsule with negative radius must not emit fallback contacts"
@@ -352,7 +352,7 @@ fn contact_uses_capsule_shape_instead_of_capsule_aabb() {
         sphere
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "sphere is inside the capsule AABB but outside the rounded capsule cap"
@@ -366,7 +366,7 @@ fn contact_uses_capsule_shape_instead_of_capsule_aabb() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert_eq!(level.physics_contacts().len(), 1);
 }
 
@@ -416,7 +416,7 @@ fn contact_uses_box_sphere_shape_instead_of_aabb_overlap() {
         sphere
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "sphere AABB overlaps the box corner, but the sphere does not touch the box"
@@ -430,7 +430,7 @@ fn contact_uses_box_sphere_shape_instead_of_aabb_overlap() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert_eq!(level.physics_contacts().len(), 1);
 }
 
@@ -483,7 +483,7 @@ fn contact_uses_box_capsule_shape_instead_of_aabb_overlap() {
         capsule
     });
 
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert!(
         level.physics_contacts().is_empty(),
         "capsule AABB overlaps the box corner, but the capsule does not touch the box"
@@ -497,6 +497,6 @@ fn contact_uses_box_capsule_shape_instead_of_aabb_overlap() {
             )
             .unwrap();
     });
-    level.tick(&runtime.handle(), 0.0).unwrap();
+    tick_physics_level(&runtime, &level);
     assert_eq!(level.physics_contacts().len(), 1);
 }

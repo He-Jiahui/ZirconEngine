@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderPipelineHandle, RenderPluginRendererOutputs,
+    PostProcessGraphResourceNames, RenderDepthOfFieldSettings, RenderFrameExtract,
+    RenderMotionBlurSettings, RenderPipelineHandle, RenderPluginRendererOutputs,
+    RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
 };
 use crate::core::math::UVec2;
 use crate::graphics::backend::RenderBackend;
@@ -18,7 +20,7 @@ use crate::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOp
 
 use super::super::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
-    RenderPassExecutorRegistration, RenderPassGpuExecutionContext,
+    RenderPassGpuExecutionContext,
 };
 use super::RenderPassExecutorRegistry;
 use support::{import_test_texture, test_extract, test_ui_extract, ContextMutatingExecutor};
@@ -170,6 +172,7 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.bloom-extract",
         "post.motion-vector-clear",
         "post.motion-vector-camera",
+        "post.motion-vector-object",
         "post.motion-vector-tile-max",
         "post.motion-vector-tile-max-coarse",
         "post.motion-vector-neighbor-max",
@@ -180,6 +183,7 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.screen-space-reflection-reflection-pyramid-coarse",
         "post.screen-space-reflection-resolve",
         "post.screen-space-reflection-specular-occlusion",
+        "visibility.hzb-build",
         "post.color-grade",
         "post.stack",
         "history.scene-color",
@@ -330,9 +334,10 @@ fn bloom_extract_executor_requires_post_process_context_instead_of_nooping() {
 
 #[test]
 fn motion_vector_clear_executor_requires_graph_target_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "motion-vector-clear",
         "post.motion-vector-clear",
+        effect_stack_with_motion_vectors(),
     );
 
     assert_eq!(
@@ -343,9 +348,10 @@ fn motion_vector_clear_executor_requires_graph_target_instead_of_nooping() {
 
 #[test]
 fn motion_vector_camera_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "motion-vector-camera",
         "post.motion-vector-camera",
+        effect_stack_with_motion_vectors(),
     );
 
     assert_eq!(
@@ -355,10 +361,25 @@ fn motion_vector_camera_executor_requires_post_process_context_instead_of_noopin
 }
 
 #[test]
+fn motion_vector_object_executor_requires_graph_target_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
+        "motion-vector-object",
+        "post.motion-vector-object",
+        effect_stack_with_motion_vectors(),
+    );
+
+    assert_eq!(
+        error,
+        "render graph execution texture resource `scene-motion-vector` is not bound"
+    );
+}
+
+#[test]
 fn motion_vector_tile_max_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "motion-vector-tile-max",
         "post.motion-vector-tile-max",
+        effect_stack_with_motion_vectors(),
     );
 
     assert_eq!(
@@ -369,9 +390,10 @@ fn motion_vector_tile_max_executor_requires_post_process_context_instead_of_noop
 
 #[test]
 fn motion_vector_tile_max_coarse_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "motion-vector-tile-max-coarse",
         "post.motion-vector-tile-max-coarse",
+        effect_stack_with_motion_vectors(),
     );
 
     assert_eq!(
@@ -382,9 +404,10 @@ fn motion_vector_tile_max_coarse_executor_requires_post_process_context_instead_
 
 #[test]
 fn motion_vector_neighbor_max_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "motion-vector-neighbor-max",
         "post.motion-vector-neighbor-max",
+        effect_stack_with_motion_vectors(),
     );
 
     assert_eq!(
@@ -395,9 +418,10 @@ fn motion_vector_neighbor_max_executor_requires_post_process_context_instead_of_
 
 #[test]
 fn depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "depth-of-field-prepare",
         "post.depth-of-field-prepare",
+        effect_stack_with_depth_of_field(),
     );
 
     assert_eq!(
@@ -408,9 +432,10 @@ fn depth_of_field_prepare_executor_requires_post_process_context_instead_of_noop
 
 #[test]
 fn screen_space_reflection_resolve_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-resolve",
         "post.screen-space-reflection-resolve",
+        effect_stack_with_screen_space_reflection(),
     );
 
     assert_eq!(
@@ -422,9 +447,10 @@ fn screen_space_reflection_resolve_executor_requires_post_process_context_instea
 #[test]
 fn screen_space_reflection_depth_pyramid_executor_requires_post_process_context_instead_of_nooping()
 {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-depth-pyramid",
         "post.screen-space-reflection-depth-pyramid",
+        effect_stack_with_screen_space_reflection(),
     );
 
     assert_eq!(
@@ -436,9 +462,10 @@ fn screen_space_reflection_depth_pyramid_executor_requires_post_process_context_
 #[test]
 fn screen_space_reflection_depth_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
 ) {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-depth-pyramid-coarse",
         "post.screen-space-reflection-depth-pyramid-coarse",
+        effect_stack_with_screen_space_reflection(),
     );
 
     assert_eq!(
@@ -450,9 +477,10 @@ fn screen_space_reflection_depth_pyramid_coarse_executor_requires_post_process_c
 #[test]
 fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping(
 ) {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid",
         "post.screen-space-reflection-reflection-pyramid",
+        effect_stack_with_screen_space_reflection(),
     );
 
     assert_eq!(
@@ -464,15 +492,70 @@ fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_con
 #[test]
 fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
 ) {
-    let error = execute_gpu_executor_without_specialized_context(
+    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid-coarse",
         "post.screen-space-reflection-reflection-pyramid-coarse",
+        effect_stack_with_screen_space_reflection(),
     );
 
     assert_eq!(
         error,
         "screen-space reflection reflection-pyramid coarse graph executor for pass `screen-space-reflection-reflection-pyramid-coarse` requires post-process stack context"
     );
+}
+
+#[test]
+fn optional_postprocess_executors_skip_resource_work_when_effects_are_disabled() {
+    for (pass_name, executor_id) in [
+        ("motion-vector-clear", "post.motion-vector-clear"),
+        ("motion-vector-camera", "post.motion-vector-camera"),
+        ("motion-vector-object", "post.motion-vector-object"),
+        ("motion-vector-tile-max", "post.motion-vector-tile-max"),
+        (
+            "motion-vector-tile-max-coarse",
+            "post.motion-vector-tile-max-coarse",
+        ),
+        (
+            "motion-vector-neighbor-max",
+            "post.motion-vector-neighbor-max",
+        ),
+        ("depth-of-field-prepare", "post.depth-of-field-prepare"),
+        (
+            "screen-space-reflection-depth-pyramid",
+            "post.screen-space-reflection-depth-pyramid",
+        ),
+        (
+            "screen-space-reflection-depth-pyramid-coarse",
+            "post.screen-space-reflection-depth-pyramid-coarse",
+        ),
+        (
+            "screen-space-reflection-reflection-pyramid",
+            "post.screen-space-reflection-reflection-pyramid",
+        ),
+        (
+            "screen-space-reflection-reflection-pyramid-coarse",
+            "post.screen-space-reflection-reflection-pyramid-coarse",
+        ),
+        (
+            "screen-space-reflection-resolve",
+            "post.screen-space-reflection-resolve",
+        ),
+        (
+            "screen-space-reflection-specular-occlusion",
+            "post.screen-space-reflection-specular-occlusion",
+        ),
+    ] {
+        execute_gpu_executor_without_specialized_context_for_extract(
+            pass_name,
+            executor_id,
+            test_extract(),
+        )
+        .unwrap_or_else(|error| {
+            panic!(
+                "disabled optional post-process executor `{executor_id}` should skip before resource work; error={error}"
+            )
+        });
+    }
 }
 
 #[test]
@@ -487,8 +570,32 @@ fn preview_sky_executor_requires_preview_renderer_context_instead_of_nooping() {
 }
 
 fn execute_gpu_executor_without_specialized_context(pass_name: &str, executor_id: &str) -> String {
+    execute_gpu_executor_without_specialized_context_for_extract(
+        pass_name,
+        executor_id,
+        test_extract(),
+    )
+    .unwrap_err()
+}
+
+fn execute_gpu_executor_without_specialized_context_with_effect_stack(
+    pass_name: &str,
+    executor_id: &str,
+    effect_stack: RenderPostProcessEffectStackSettings,
+) -> String {
+    let mut extract = test_extract();
+    extract.post_process.effect_stack = effect_stack;
+    execute_gpu_executor_without_specialized_context_for_extract(pass_name, executor_id, extract)
+        .unwrap_err()
+}
+
+fn execute_gpu_executor_without_specialized_context_for_extract(
+    pass_name: &str,
+    executor_id: &str,
+    extract: RenderFrameExtract,
+) -> Result<(), String> {
     let backend = RenderBackend::new_offscreen().unwrap();
-    let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
+    let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(16, 16));
     let mut encoder = backend
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -530,9 +637,39 @@ fn execute_gpu_executor_without_specialized_context(pass_name: &str, executor_id
         RenderPassExecutionContext::new(pass_name, RenderPassExecutorId::new(executor_id))
             .with_gpu(gpu);
 
-    RenderPassExecutorRegistry::with_builtin_noop_executors()
-        .execute(&mut context)
-        .unwrap_err()
+    RenderPassExecutorRegistry::with_builtin_noop_executors().execute(&mut context)
+}
+
+fn effect_stack_with_motion_vectors() -> RenderPostProcessEffectStackSettings {
+    RenderPostProcessEffectStackSettings {
+        motion_blur: RenderMotionBlurSettings {
+            shutter_angle: 90.0,
+            samples: 8,
+        },
+        ..Default::default()
+    }
+}
+
+fn effect_stack_with_depth_of_field() -> RenderPostProcessEffectStackSettings {
+    RenderPostProcessEffectStackSettings {
+        depth_of_field: RenderDepthOfFieldSettings {
+            aperture: 0.75,
+            max_blur_radius: 3.0,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
+fn effect_stack_with_screen_space_reflection() -> RenderPostProcessEffectStackSettings {
+    RenderPostProcessEffectStackSettings {
+        screen_space_reflection: RenderScreenSpaceReflectionSettings {
+            intensity: 0.5,
+            max_steps: 24,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
 }
 
 #[test]
@@ -1099,6 +1236,8 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::SHADOW_MAP,
     ] {
         import_test_texture(&mut resources, &backend.device, resource);
     }
@@ -1214,7 +1353,7 @@ fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
 #[test]
 fn registry_ignores_culled_pass_with_unknown_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
-    let unused = graph.create_transient_texture(TextureDesc::new(
+    let unused = graph.create_texture(TextureDesc::new(
         "unused-target",
         1,
         1,

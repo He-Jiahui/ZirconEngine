@@ -1,0 +1,452 @@
+---
+related_code:
+  - zircon_runtime/src/graphics/debug_markers.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/update.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/environment.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/tasks/pool.rs
+  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ProfilingDebugging/RealtimeGPUProfiler.h
+  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/SceneRendering.h
+  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Debugging/ProfilingScope.cs
+  - dev/bevy/crates/bevy_render/src/pipelined_rendering.rs
+  - dev/bevy/crates/bevy_render/src/lib.rs
+plan_sources:
+  - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
+---
+
+# 计划 17:性能体系与优化(profiling / 并行 / 预算 / 防回归)
+
+本计划是骨架层与能力层之上的横切层:为计划 01–16 的产出提供统一的观测底座、CPU 并行化骨架、内存/带宽预算治理与性能回归基线。跨计划契约名一律原样引用、只消费不重定义:计划 01 `RgTextureHandle`/`TransientResourcePool`/`CompiledGraphCache`;计划 02 `MeshDrawCommand`/`CachedMeshDrawCommands`;计划 03 `GpuScene`/`IndirectDrawBatcher`;计划 04 `ViewVisibilityContext`/`HzbBuilder`;计划 08 `ShaderVariantKey`;计划 09 `CameraRenderDescriptor`;计划 16 `ComputePassDescriptor`/`GpuReadbackQueue`。index.md §6 全局边界约束与 §8 全局工程约定全部适用;`sort_key` 位段归计划 09,本计划不触碰。
+
+## 目标
+
+1. **观测底座(A)**:pass 级 wgpu timestamp query、分层 `RenderFrameProfile`(frame → pass → 子系统)、debug marker 与 render graph 节点名对齐、RenderDoc 抓帧钩子标准化、1080p 中档参考帧预算表。这是其它计划 stats 验收的公共依赖。
+2. **CPU 并行化(B)**:extract 双缓冲与 sim/render 两帧重叠(bevy pipelined rendering 同型)、prepare/queue 的 rayon 并行、按 pass 分桶的多 `CommandEncoder` 并行录制与顺序合并提交;全部带回退开关。
+3. **内存与带宽预算(C)**:瞬态池/staging 总预算与统计、超预算降级阶梯(顺序定稿)、attachment load/store lint 统计、G-buffer/HDR 中间格式带宽账本。
+4. **编译卡顿治理与防回归(D)**:pipeline 异步编译与占位策略、计划 08 磁盘变体缓存预热衔接、wgpu `PipelineCache` 能力 gate、冷启动测量;`render_perf_*` 确定性计数断言进 `cargo test`,时间类指标只观测不断言。
+
+## 现状与差距
+
+基于实读代码的现状盘点:
+
+- **统计是平铺的、CPU 侧的**:`RenderStats`(`zircon_runtime/src/core/framework/render/backend_types.rs`)是一个百余字段的扁平 `last_*` 结构(`last_mesh_draw_count`、`last_graph_executed_pass_count`、`last_graph_transient_texture_bytes_reserved` 等),由提交尾部的 `update_stats`(`submit_frame_extract/update_stats/update.rs`,旁挂 base/particle/hybrid_gi/virtual_geometry 等分文件)一次性写入,再经 `core/runtime/diagnostics/render_stats_store.rs` 镜像给诊断层。没有 frame → pass → 子系统的层级结构,没有任何 GPU 耗时维度。
+- **完全没有 GPU timestamp**:Grep 全 `zircon_runtime/src`,所有 render/compute pass 创建点(`viewport_surface.rs`、`execute_lighting.rs`、`record_gbuffer_geometry.rs`、`mesh_motion_vector.rs` 等)一律 `timestamp_writes: None`;设备请求处未启用 `TIMESTAMP_QUERY` 系能力。pass 到底花了多少 GPU 时间,目前只能靠 RenderDoc 离线看。
+- **CPU profiling 已有基础**:`profile_scope!` / `profile_dynamic_scope!` 宏(`core/runtime/diagnostics/profiling/scope.rs` 的 `ProfileScope::enter(stream, category, name)`)已埋进 `submit_frame_extract` 主路径(`build_submission_context`、`prepare_runtime_submission`、`render_frame_with_pipeline` 等)与 `execute_graph_stage` 的 stage 维度。本计划复用该体系,不另造 CPU 打点框架。
+- **debug marker 已有但两套粒度**:`graphics/debug_markers.rs` 有固定 stage 常量(`zircon::Prepass`、`zircon::MainScene` 等,带 `REQUIRED_RENDERDOC_STAGE_MARKERS` 测试)与 graph 节点前缀 `zircon::RenderGraphPass::<pass_name>`(`marker_for_render_graph_pass`);`execute_graph_stage` 两者都打。计划 01 的 graph dump 落地后,marker 与 dump 的 pass 名对拍尚无测试闭环。
+- **RenderDoc 钩子已存在**:`ZR_RENDERDOC_CAPTURE_NEXT` 环境变量(`graphics_debugger_capture/environment.rs`)触发单帧捕获,生命周期由 `begin_graphics_debugger_capture` / `finish_active_capture_and_relock` 管理(见 `submit/submit.rs`)。本计划收编该钩子:capture 帧自动附带 frame profile 与 graph dump,不改触发语义。
+- **渲染全链单线程**:`submit_frame_extract` 在 `server.lock_operation()` + `lock_state()` 双锁下从 extract 到 present 串行执行;`execute_graph_stage` 对 stage 内 pass 逐个 for 循环录制。rayon 已在工作区内(`zircon_runtime/Cargo.toml` rayon 1.11;`core/runtime/tasks/pool.rs` 的 `TaskPool` 封装 `rayon::ThreadPool`,提供 `join`/`install`;ECS 有 `schedule_parallel_executor.rs`),但渲染路径零并行。
+- **没有预算与防回归机制**:超预算无降级、无 OOM 阶梯;CI(`.github/workflows/ci.yml`)只跑 build + test,没有任何性能维度的回归围栏。
+
+差距汇总:观测(无 GPU 耗时、统计无层级)→ 并行(单线程提交)→ 预算(无上限无降级)→ 防回归(无基线)四块全部缺位,而 01–16 各计划的 stats 验收都需要本计划的观测底座先行。
+
+## 参考代码
+
+| 文件 | 应重点阅读 |
+|------|-----------|
+| `dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ProfilingDebugging/RealtimeGPUProfiler.h`(实现在同目录 `Private/.../RealtimeGPUProfiler.cpp`) | `FRealtimeGPUProfiler` 的 `BeginFrame/EndFrame` + `PushEvent/PopEvent` 帧内事件栈;`PendingFrames` 多帧 in-flight 查询池与 `FRealtimeGPUProfilerQuery::Discard`(pass 被 culling 时丢弃查询);`FRealtimeGPUProfilerHistoryItem` 64 帧滑动窗口与 `FetchPerfByDescription` 的 Avg/Min/Max 平滑 |
+| `dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/SceneRendering.h` | `FParallelCommandListSet`(line ~475):per-view 并行命令列表集合、`MinDrawsPerCommandList` 切分阈值、析构期 `Dispatch` 顺序合并;注意它已被标记 `UE_DEPRECATED(5.5, "Use GraphBuilder.AddDispatchPass instead")` —— UE 自己也把并行录制收编进 RDG pass 粒度,与 wgpu 的现实约束同向 |
+| `dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Debugging/ProfilingScope.cs` | `ProfilingSampler` 单名字三联打点:主 marker 进 CommandBuffer(`cmd?.BeginSample(m_Marker)`,自动附 `MarkerFlags.SampleGPU`)+ `Inl_` 前缀 inline marker 记调用线程 CPU;recorder 懒分配零常驻开销 |
+| `dev/bevy/crates/bevy_render/src/pipelined_rendering.rs` | `PipelinedRenderingPlugin` 的 sim/render 两帧重叠:`RenderAppChannels` 两条 bounded(1) 通道交换 `SubApp` 所有权,render 线程 loop(recv → update → send back),`renderer_extract` 在主线程等回 render app 再跑 extract;`Drop` 里 `recv_blocking` 保证 non-send 数据在正确线程析构 |
+| `dev/bevy/crates/bevy_render/src/lib.rs` | `ExtractSchedule` 的定位:extract 是唯一同时摸两个 world 的同步点,extract 命令延迟到 render 侧应用以便主世界尽早开跑 |
+
+次参考:`dev/tracy`(CPU profile 导出格式可对接,既有 `profiling/export.rs` 已具备);wgpu `Features::TIMESTAMP_QUERY` / `Queue::get_timestamp_period` 文档语义。
+
+## 目标架构
+
+### A. 观测底座(GpuPassTimer + RenderFrameProfile)
+
+- `GpuPassTimer`(graphics 层,持 wgpu):`TIMESTAMP_QUERY` 能力 gate;每 graph pass 一对 query(begin/end)经 `RenderPassTimestampWrites`/`ComputePassTimestampWrites` 挂载 —— 不需要 `TIMESTAMP_QUERY_INSIDE_PASSES`,pass 边界粒度即可;帧末 `resolve_query_set` → copy 到 MAP_READ 小环(FRAMES_IN_FLIGHT=3 槽,N 帧延迟非阻塞读取)。该小环先独立实现,计划 16 `GpuReadbackQueue` 落地后在 PF-M1 收尾切片内迁移为其消费方(同型 staging 思路,迁移是硬切换)。
+- `RenderFrameProfile`(framework 契约层,纯 POD 无 wgpu):frame → pass → 子系统三层;pass 条目带 `gpu_time_us`(能力缺失为 None)、draw 数、实例数、状态切换数(02 replayer 统计)、上传字节、dispatch 数;frame 级带瞬态内存峰值(01 `TransientResourcePool`)、staging 合计(03/13/16 ring)、`profile_latency_frames`。既有扁平 `last_*` 字段保留为兼容消费面,层级 profile 是新增权威,二者由同一 `update_stats` 写入,数值必须自洽(测试对拍)。
+- marker 对齐:graph pass 的 marker 唯一来源是 `marker_for_render_graph_pass(pass_name)`,pass_name 与计划 01 `CompiledRenderGraph::dump()` 输出、`RenderFrameProfile.passes[].pass_name` 三方一致;固定 stage 常量保留为外层分组 marker。
+- RenderDoc 收编:`ZR_RENDERDOC_CAPTURE_NEXT` 触发语义不变;capture 结果附带当帧 `RenderFrameProfile` 序列化文本 + graph dump,经既有 capture 查询路径返回。
+- 帧预算表:`RenderFrameBudget::reference_1080p_mid()` 给出参考档位(见工程落地细化的观测点表),预算超标只产生 stats 告警计数,不在 PF-M1 触发降级(降级归 PF-M3)。
+
+### B. CPU 并行化(pipelined extract + rayon prepare + 并行录制)
+
+- **sim/render 两帧重叠**:bevy 通道模型同型。runtime 侧 `submit_frame_extract` 的调用退化为"把 `(viewport, RenderFrameExtract, Option<UiRenderExtract>)` 投入 bounded(1) 通道";render 线程独占 `WgpuRenderFramework` 状态执行现有提交体。所有权模型:extract 本来就是值传递快照(契约即 index.md §6 第 6 条),天然适合跨线程;feedback(`collect_runtime_feedback` 产物)变为滞后一帧回流,语义变化显式进契约注释与测试。回退开关:`pipelined_render` 关闭时通道退化为同步直调,行为与现状逐字节一致。
+- **prepare/queue 并行**:02 的批次 → `MeshDrawCommand` 转换按 pass processor 维度 rayon 并行;04 落地后再叠加 per-`ViewVisibilityContext` 维度并行。线程池策略:统一走 `core/runtime/tasks/pool.rs` 的 `TaskPool`(与计划 04 并行剔除共享同一池),禁止渲染模块私建 `ThreadPoolBuilder`。
+- **并行命令录制**:wgpu 没有 secondary command buffer,也不允许多线程往同一 `CommandEncoder` 写 —— 因此并行粒度固定为 pass:按 graph 拓扑分层把 pass 分桶,每桶一个 `CommandEncoder` 在 rayon 任务里录制,完成后按 graph 拓扑序合并成 `Vec<CommandBuffer>` 单次 `Queue::submit`。重 pass(base pass)内部 draw 循环保持串行,靠 02 重放器的低单 draw 开销兜底;这与 UE 把 `FParallelCommandListSet` 废弃、收编进 RDG dispatch pass 的方向一致。timestamp_writes 按 pass 挂,与并行录制天然正交。
+
+### C. 内存与带宽预算
+
+- 预算对象三类:瞬态池(01 `TransientResourcePool` 的纹理/缓冲峰值)、staging 总量(03 `GpuSceneStagingRing` + 13 上传环 + 16 `GpuReadbackQueue` ring 的合计上限)、attachment 带宽(load/store 实际行为)。
+- 降级阶梯顺序定稿(固定、不可配置重排):① render scale 降档(1.0 → 0.85 → 0.7,走计划 07 动态分辨率);② 全局 mip bias +1(走计划 13);③ 关可选 feature(固定顺序 SSR → SSAO → contact shadow → bloom 高档,经 RenderFeature descriptor 关闭,compiled graph 即不含对应 pass)。升档迟滞 N 帧防抖。
+- load/store lint:在计划 01 首写 ops 决策表校验之上,统计"本可 DontCare 却用了 Store/Load"的 pass-attachment 对(终读后仍 Store、首写前 Load 等),进 `RenderFrameProfile` 的 lint 计数,不阻断编译。
+- 带宽账本:按计划 07 定稿的 G-buffer/HDR 中间格式逐 attachment 记每像素字节数与每帧读写次数,得出理论带宽;与 timestamp 实测互为印证(见观测点表)。
+
+### D. 编译卡顿治理与性能回归基线
+
+- pipeline 异步编译:`ensure_pipeline_for_variant`(02/08 已定)miss 时不阻塞当帧 —— 占位策略定稿为 `SkipDraw`(默认,该 draw 当帧不渲染)与 `DepthOnly`(仅深度,供 prepass 链)两档;绝不渲染错误材质;编译完成帧自动补回。
+- 预热衔接:计划 08 `ShaderVariantCache` 磁盘缓存与 prewarm 清单是输入;本计划补"启动期预热钩子"(加载屏/Hub 启动阶段消费 prewarm 清单批量编译)与首帧 miss 计数验收。
+- wgpu `PipelineCache`:能力 gate(目前仅 Vulkan 后端有效),命中时设备级缓存落盘随 08 磁盘缓存同目录;不可用平台静默跳过。
+- 冷启动测量:计划 01 `CompiledGraphCache` 的冷/热编译耗时与命中计数进 profile,作为启动优化的观测面。
+- 回归基线形态定稿:`render_perf_*` 测试只断言确定性计数(draw 数上限、状态切换数上限、上传字节上限、瞬态峰值上限、graph 编译次数),时间类(ms)指标一律只进观测导出不进断言;CI 现状(`ci.yml` 单 job `cargo test --workspace`)无需改动即可携带,计时型基线建议另开手动触发 workflow,本计划只给建议不强改。
+
+## 里程碑
+
+依赖与并行性:PF-M1 不依赖其它计划,可与阶段 A(01/02)并行启动,且是各计划 stats 验收的依赖项,**最先做**;PF-M2 依赖 01/02 落地;PF-M3 依赖 01(池 stats)与 03(ring);PF-M4 依赖 08(变体缓存)与 01(graph 缓存),回归基线部分依赖 PF-M1。
+
+### PF-M1 观测底座
+
+实施切片:
+1. `GpuPassTimer` + 能力 gate + 3 槽延迟读取小环;graph 执行循环挂 pass 级 `timestamp_writes`;`Queue::get_timestamp_period` 换算 us。
+2. `RenderFrameProfile` 契约类型 + `update_stats` 写入层级结构(与扁平字段同源自洽);`render_stats_store` 镜像扩展。
+3. marker 对齐收口:pass marker 统一经 `marker_for_render_graph_pass`,与 graph dump、profile pass 名三方一致;RenderDoc capture 附带 profile 文本(收编 `ZR_RENDERDOC_CAPTURE_NEXT`)。
+4. `RenderFrameBudget::reference_1080p_mid()` 预算表 + 超标告警计数;(收尾,待 16 CN-M1)timer 读取环迁移到 `GpuReadbackQueue`。
+
+测试阶段:
+- `cargo test -p zircon_runtime render_perf --locked` + `cargo test -p zircon_runtime render_debugger --locked` 回归
+- 验收证据:无 timestamp 能力的 adapter 上 profile 的 `gpu_time_us` 全 None 且零 panic;有能力平台 pass 耗时非零且 `profile_latency_frames <= 3`;capture 帧附带的 pass 名与 graph dump 完全一致(断言)。
+
+### PF-M2 CPU 并行化
+
+实施切片:
+1. pipelined extract:render 线程 + bounded(1) 通道 + feedback 滞后一帧回流;`pipelined_render` 回退开关(关闭 = 同步直调)。
+2. prepare/queue rayon 并行(pass processor 维度,经共享 `TaskPool`);并行前后 `MeshDrawCommandList` 排序结果逐元素一致(确定性归并)。
+3. 并行命令录制:graph 拓扑分桶 → 每桶独立 `CommandEncoder` → 拓扑序合并单次 submit;`parallel_record` 开关与最小桶阈值。
+
+测试阶段:
+- `cargo test -p zircon_runtime render_perf --locked` + `cargo test -p zircon_runtime mesh_pass --locked` 回归
+- 验收证据:三开关任意组合下 `render_product_*` 产物对拍逐像素一致;并行开启时提交的 command buffer 顺序与 graph 拓扑序一致(断言);pipelined 模式 feedback 滞后语义单测。
+
+### PF-M3 内存与带宽预算
+
+实施切片:
+1. 预算配置类型 + 瞬态池/staging 合计统计接入 profile;超预算告警计数。
+2. 降级阶梯(scale → mip bias → feature off)状态机 + 迟滞;接 07 动态分辨率与 13 mip bias 的既有入口。
+3. load/store lint 统计(01 ops 校验之上);带宽账本(07 格式定稿后填实数值)。
+
+测试阶段:
+- `cargo test -p zircon_runtime render_perf --locked` + `cargo test -p zircon_runtime render_graph --locked` 回归
+- 验收证据:人工压低预算后阶梯按固定顺序逐级触发且 stats 可解释;lint 在故意的"终读后 Store"用例上计数为 1;恢复预算后迟滞 N 帧再升档(断言)。
+
+### PF-M4 编译治理与回归基线
+
+实施切片:
+1. `PipelineAsyncCompiler` + `SkipDraw`/`DepthOnly` 占位策略;首帧 miss 计数;补回帧验证。
+2. 08 prewarm 清单的启动期预热钩子;wgpu `PipelineCache` 能力 gate 接入;01 `CompiledGraphCache` 冷启动计数进 profile。
+3. `render_perf_*` 基线测试族定稿(计数断言上限进 `cargo test`);CI 接入建议文档化(现有 ci.yml 不动)。
+
+测试阶段:
+- `cargo test -p zircon_runtime render_perf --locked` 全族 + `cargo test -p zircon_runtime shader_variant --locked` 回归
+- 验收证据:异步编译开启时首帧无错误材质画面(产物对拍:占位 = 无该 draw);预热后二次启动首帧变体 miss 计数为 0;基线测试在标准测试场景上全绿且对故意 +1 draw 的注入用例报红。
+
+## 工程落地细化
+
+本章是计划 17 的实施权威(index.md §8 第 7 条)。bind group 槽位、GPU 数据布局、测试命名等全局约定直接引用 index.md §8,不重定义;facade 固定 `zircon_runtime::core::framework::render`,契约层零 wgpu,全部硬切换,观测与并行不得绕过 render graph。
+
+### 模块与文件落点
+
+新增文件:
+
+| 路径 | 职责(一行) |
+|------|------------|
+| `zircon_runtime/src/core/framework/render/frame_profile.rs` | `RenderFrameProfile`/`RenderPassProfileEntry`/`RenderSubsystemProfileEntry`/`RenderBudgetKey`/`RenderFrameBudget` 契约类型(纯 POD,无 wgpu),含 `#[cfg(test)] mod tests` |
+| `zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/mod.rs` | wiring:`gpu_pass_timer` 模块声明与受控导出 |
+| `zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/gpu_pass_timer.rs` | `GpuPassTimer`:QuerySet 池、resolve、3 槽 MAP_READ 延迟读取环(PF-M1 收尾迁 `GpuReadbackQueue`) |
+| `zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs` | `FrameProfiler`:CPU 计数 + GPU timer 结果按 pass 聚合为 `RenderFrameProfile`,挂 `RenderFrameworkState` |
+| `zircon_runtime/src/graphics/runtime/render_framework/pipelined/mod.rs` | wiring:pipelined 子模块声明 |
+| `zircon_runtime/src/graphics/runtime/render_framework/pipelined/render_thread.rs` | render 线程生命周期、bounded(1) 通道、同步直调回退路径 |
+| `zircon_runtime/src/graphics/runtime/render_framework/pipelined/feedback.rs` | `RenderThreadFeedback` 滞后一帧回流载体与排空语义 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/parallel_encoder_set.rs` | `ParallelEncoderSet`:graph 拓扑分桶、并行录制、拓扑序合并 |
+| `zircon_runtime/src/graphics/runtime/render_framework/budget/mod.rs` | wiring:budget 子模块声明 |
+| `zircon_runtime/src/graphics/runtime/render_framework/budget/memory_budget.rs` | `RenderMemoryBudget`:瞬态/staging 上限配置与超标判定 |
+| `zircon_runtime/src/graphics/runtime/render_framework/budget/degrade_ladder.rs` | `BudgetDegradeLadder`:固定顺序降级状态机 + 迟滞 |
+| `zircon_runtime/src/render_graph/store_lint.rs` | load/store lint:基于资源生命周期(first/last pass)的"可 DontCare 未 DontCare"统计(规划层,无 wgpu) |
+| `zircon_runtime/src/graphics/pipeline/async_compile.rs` | `PipelineAsyncCompiler` + `PipelinePlaceholderPolicy`(SkipDraw/DepthOnly) |
+| `zircon_runtime/src/graphics/pipeline/pipeline_cache_gate.rs` | wgpu `PipelineCache` 能力 gate 与落盘路径(随 08 磁盘缓存同目录) |
+| `zircon_runtime/src/graphics/tests/render_perf_baseline.rs` | `render_perf_*` 基线测试族(标准测试场景计数断言) |
+
+修改文件:
+
+| 路径 | 改动点 |
+|------|--------|
+| `zircon_runtime/src/core/framework/render/mod.rs` | 仅 wiring:声明 `frame_profile` 模块并导出契约类型 |
+| `zircon_runtime/src/core/framework/render/backend_types.rs` | `RenderStats` 增 `last_frame_profile: RenderFrameProfile`、`last_budget_warning_count`、`last_store_lint_count`、`last_pipeline_async_pending_count`、`last_variant_first_frame_miss_count`;features 增 `allow_gpu_timing`/`allow_pipelined_render`/`allow_parallel_record` 三开关(沿用 `with_async_compute` 形态) |
+| `zircon_runtime/src/graphics/backend/render_backend/request_device.rs` | 申请 `wgpu::Features::TIMESTAMP_QUERY`(可选位,失败降级);`RenderCapabilitySummary` 增 `supports_gpu_timestamp: bool` |
+| `zircon_runtime/src/graphics/debug_markers.rs` | `marker_for_render_graph_pass` 保持唯一 pass marker 入口;固定 stage 常量降级为外层分组 marker(文档注释说明,不删常量与测试) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs` | pass 循环挂 `GpuPassTimer::pass_timestamp_writes`;并行模式改经 `ParallelEncoderSet`(串行模式保留原循环) |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs` | 帧末 `gpu_pass_timer.resolve_and_copy(encoder)`;`try_collect` 结果交 `FrameProfiler` |
+| `zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs` | `RenderFrameworkState` 增 `frame_profiler: FrameProfiler`、`memory_budget: RenderMemoryBudget`、`degrade_ladder: BudgetDegradeLadder` 字段 |
+| `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs` | pipelined 开启时本函数体整体迁至 render 线程执行(入口只投递);串行模式路径不变 |
+| `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/update.rs` | 写入 `last_frame_profile` 与预算/lint/编译计数;层级与扁平字段同源自洽 |
+| `zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/mod.rs`(及状态文件) | capture 帧附带 `RenderFrameProfile` 序列化文本 + graph dump |
+| `zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs`(及分文件) | 镜像层级 profile 给诊断/编辑器消费 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs`(族) | miss 路径接 `PipelineAsyncCompiler`(占位策略),同步路径保留为 `allow_async_compile=false` 档 |
+| `zircon_runtime/src/render_graph/mod.rs` | 仅 wiring:声明 `store_lint` 模块 |
+| `tools/zircon_build.py` | 预热钩子:staged 启动脚本消费 08 prewarm 清单(衔接 08 的 `--prewarm-shaders`,不重复实现) |
+
+### 核心类型与接口
+
+契约层(`core/framework/render/frame_profile.rs`,可序列化、无 wgpu):
+
+```rust
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RenderBudgetKey {
+    Shadow, DepthPrepass, Hzb, GpuSceneUpdate, BasePass, LightGrid,
+    DeferredLighting, Ssao, Transparent, PostProcess, TemporalAa, Ui, Other,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderPassProfileEntry {
+    pub pass_name: String,            // = graph 节点名 = marker 后缀 = dump 名(三方一致)
+    pub executor_id: String,
+    pub budget_key: RenderBudgetKey,  // pass → 子系统聚合键
+    pub gpu_time_us: Option<u64>,     // 能力缺失 None;数值滞后 profile_latency_frames 帧
+    pub draw_count: u32,              // 02 MeshDrawReplayStats 注入
+    pub instance_count: u32,          // 03 IndirectDrawBatcher 合批后实例数
+    pub state_change_count: u32,      // pipeline + bind group 切换(02 重放器去重统计)
+    pub upload_bytes: u64,            // 本 pass 归因的 staging/直写字节
+    pub dispatch_count: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderSubsystemProfileEntry {
+    pub key: RenderBudgetKey,
+    pub gpu_time_us: Option<u64>,     // 同 key pass 求和
+    pub budget_us: u64,               // 来自 RenderFrameBudget
+    pub over_budget: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderFrameProfile {
+    pub frame_generation: u64,
+    pub gpu_frame_time_us: Option<u64>,
+    pub cpu_submit_time_us: u64,            // submit_frame_extract 全程(profile_scope 同源)
+    pub profile_latency_frames: u32,        // GPU 时间数据的滞后帧数(<= 3)
+    pub passes: Vec<RenderPassProfileEntry>,
+    pub subsystems: Vec<RenderSubsystemProfileEntry>,
+    pub transient_texture_peak_bytes: u64,  // 01 TransientResourcePool stats
+    pub transient_buffer_peak_bytes: u64,
+    pub staging_total_bytes: u64,           // 03 GpuSceneStagingRing + 13 上传环 + 16 GpuReadbackQueue 合计
+    pub compiled_graph_cache_hit: bool,     // 01 CompiledGraphCache
+    pub variant_miss_count: u32,            // 08 ShaderVariantKey 解析 miss
+    pub store_lint_count: u32,
+    pub budget_warning_count: u32,
+    pub degrade_step_active: u32,           // 0 = 未降级
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderFrameBudget { /* Vec<(RenderBudgetKey, u64 /*us*/)> + total_us */ }
+impl RenderFrameBudget {
+    pub fn reference_1080p_mid() -> Self; // 见观测点表
+    pub fn budget_us(&self, key: RenderBudgetKey) -> u64;
+}
+```
+
+graphics 实现层(持 wgpu,不出 graphics):
+
+```rust
+// graphics/backend/render_backend/gpu_pass_timer/gpu_pass_timer.rs
+pub(crate) struct GpuPassTimer {
+    query_set: wgpu::QuerySet,        // TIMESTAMP,容量 = 2 * max_passes
+    resolve_buffer: wgpu::Buffer,     // QUERY_RESOLVE | COPY_SRC
+    readback_slots: [TimerSlot; 3],   // MAP_READ;N 帧延迟轮转(PF-M1 收尾迁 GpuReadbackQueue)
+    period_ns_per_tick: f32,          // Queue::get_timestamp_period
+    pass_names: Vec<String>,          // 帧内按挂载序登记,与 query 下标对应
+}
+impl GpuPassTimer {
+    pub(crate) fn try_new(device: &wgpu::Device, queue: &wgpu::Queue, max_passes: u32) -> Option<Self>; // 能力 gate
+    pub(crate) fn begin_frame(&mut self, frame_generation: u64);
+    /// 每个 graph pass 录制前调用;返回 None 表示容量耗尽(只丢观测不丢渲染)
+    pub(crate) fn render_pass_writes(&mut self, pass_name: &str) -> Option<wgpu::RenderPassTimestampWrites<'_>>;
+    pub(crate) fn compute_pass_writes(&mut self, pass_name: &str) -> Option<wgpu::ComputePassTimestampWrites<'_>>;
+    pub(crate) fn resolve_and_copy(&mut self, encoder: &mut wgpu::CommandEncoder);
+    /// 非阻塞:返回最近一个已完成帧的 (frame_generation, Vec<(pass_name, gpu_time_us)>)
+    pub(crate) fn try_collect(&mut self) -> Option<GpuTimerFrameResult>;
+}
+
+// graphics/runtime/render_framework/pipelined/render_thread.rs
+pub(crate) struct RenderThreadHandle {
+    submit_tx: std::sync::mpsc::SyncSender<RenderThreadFrame>, // bounded(1):sim 最多领先 1 帧
+    feedback_rx: std::sync::mpsc::Receiver<RenderThreadFeedback>,
+    join: Option<std::thread::JoinHandle<()>>,
+}
+pub(crate) struct RenderThreadFrame {
+    pub(crate) viewport: RenderViewportHandle,
+    pub(crate) extract: RenderFrameExtract,
+    pub(crate) ui: Option<UiRenderExtract>,
+}
+// Drop 语义对齐 bevy:先关 submit_tx,recv 排空 feedback,join 线程,
+// 保证 wgpu 资源在 render 线程析构。
+
+// graphics/scene/scene_renderer/graph_execution/parallel_encoder_set.rs
+pub(crate) struct ParallelEncoderSet {
+    buckets: Vec<EncoderBucket>,      // 桶 = 连续拓扑层切片;桶间无资源写后读跨越
+    min_passes_per_bucket: usize,     // 低于阈值退化为单 encoder(对齐 UE MinDrawsPerCommandList 思路)
+}
+impl ParallelEncoderSet {
+    pub(crate) fn partition(compiled: &CompiledRenderGraph, min_passes_per_bucket: usize) -> Self;
+    /// pool = core::runtime::tasks::TaskPool(与计划 04 共享);返回序 = graph 拓扑序
+    pub(crate) fn record_parallel<F>(self, pool: &TaskPool, record_bucket: F) -> Vec<wgpu::CommandBuffer>
+    where F: Fn(&EncoderBucket, &mut wgpu::CommandEncoder) + Sync;
+}
+
+// graphics/runtime/render_framework/budget/degrade_ladder.rs
+pub(crate) enum DegradeStep {
+    RenderScale(f32),                 // 1.0 → 0.85 → 0.7(07 动态分辨率入口)
+    GlobalMipBias(i32),               // +1(13 入口)
+    DisableFeature(&'static str),     // 固定序:ssr → ssao → contact_shadow → bloom_high
+}
+pub(crate) struct BudgetDegradeLadder {
+    steps: Vec<DegradeStep>,          // 构造期定稿,运行期只走 active 指针
+    active: usize,
+    hysteresis_frames: u32,           // 升档迟滞(默认 120 帧)
+    frames_under_budget: u32,
+}
+impl BudgetDegradeLadder {
+    pub(crate) fn evaluate(&mut self, profile: &RenderFrameProfile, budget: &RenderMemoryBudget) -> Option<&DegradeStep>;
+}
+
+// graphics/pipeline/async_compile.rs
+pub(crate) enum PipelinePlaceholderPolicy { SkipDraw, DepthOnly }
+pub(crate) struct PipelineAsyncCompiler { /* pending: 按 MeshPipelineVariantId 去重;完成经通道回收 */ }
+```
+
+### GPU 数据布局与观测点表
+
+GPU 侧仅 `GpuPassTimer` 一处新增资源:QuerySet(TIMESTAMP,2 × max_passes,默认 max_passes = 64)+ resolve buffer(`8 B × 2 × max_passes`,QUERY_RESOLVE | COPY_SRC)+ 3 个 MAP_READ 槽同尺寸。无新增 storage/uniform 布局,index.md §8 第 2 条不涉及。
+
+观测点 → 来源对照表(profile 字段的唯一数据源,禁止旁路再统计):
+
+| 观测点 | 来源(契约名) | 落点字段 |
+|--------|--------------|---------|
+| pass GPU 耗时 | `GpuPassTimer`(本计划) | `RenderPassProfileEntry.gpu_time_us` |
+| draw 数 / 状态切换数 | 计划 02 `MeshDrawCommand` 重放统计(`CachedMeshDrawCommands` 命中亦计) | `draw_count` / `state_change_count` |
+| 实例数 / indirect 批次 | 计划 03 `IndirectDrawBatcher` | `instance_count` |
+| 上传字节 | 计划 03 `GpuScene` flush + 13 纹理上传 + 16 readback staging | `upload_bytes` / `staging_total_bytes` |
+| 瞬态内存峰值 | 计划 01 `TransientResourcePool` stats | `transient_*_peak_bytes` |
+| graph 编译命中 | 计划 01 `CompiledGraphCache` | `compiled_graph_cache_hit` |
+| 变体 miss | 计划 08 `ShaderVariantKey` 解析路径 | `variant_miss_count` |
+| 可见性/HZB 计数 | 计划 04 `ViewVisibilityContext`/`HzbBuilder`(per-view) | 04 自有扁平字段,PF 不重复 |
+| 相机序列 | 计划 09 `CameraRenderDescriptor` 解析结果 | 既有 `last_scene_camera_*`,PF 不重复 |
+
+帧预算参考档位 `reference_1080p_mid()`(1080p、中档独显、60 fps,GPU 总预算 14.0 ms 留 2.6 ms 余量;数值是观测基线非断言):
+
+| RenderBudgetKey | 预算 ms | 说明 |
+|---|---|---|
+| Shadow | 2.2 | CSM + 本地光 atlas(05) |
+| DepthPrepass | 0.7 | early-z(02) |
+| Hzb | 0.25 | mip 金字塔 reduce(04) |
+| GpuSceneUpdate | 0.4 | 上传 + GPU 剔除(03/04) |
+| BasePass | 3.2 | forward 主 pass 或 G-buffer(07 格式定稿) |
+| LightGrid | 0.35 | froxel 注入(05) |
+| DeferredLighting | 2.2 | deferred 路径;forward 路径并入 BasePass |
+| Ssao | 0.8 | 既有 SSAO feature |
+| Transparent | 1.2 | |
+| PostProcess | 1.6 | uber + bloom + tonemap(07) |
+| TemporalAa | 0.7 | TAA resolve(06) |
+| Ui | 0.4 | UI pass(既有闭环) |
+| Other | 0.0 | 兜底归集,预算 0 即"出现即告警" |
+
+带宽账本记法(07 格式定稿后填实):每 attachment 一行 `格式 × 每像素字节 × 读写次数`,frame 合计与 `gpu_frame_time_us` 实测互证;例:1080p RGBA16F scene color 一写一读 ≈ 2 M px × 8 B × 2 = 33 MB/帧。
+
+### 帧时序与集成点
+
+串行模式(回退档,行为 = 现状 + 观测):
+
+```text
+submit_frame_extract
+ ├─ build_frame_submission_context(01 CompiledGraphCache 命中走缓存)
+ ├─ begin_graphics_debugger_capture(ZR_RENDERDOC_CAPTURE_NEXT 语义不变)
+ ├─ prepare_runtime_submission
+ ├─ render_frame_with_pipeline
+ │   ├─ gpu_pass_timer.begin_frame
+ │   ├─ execute_graph_stage × N:每 pass 挂 timestamp_writes + marker_for_render_graph_pass
+ │   └─ 帧末 encoder:gpu_pass_timer.resolve_and_copy → present
+ ├─ collect_runtime_feedback
+ ├─ gpu_pass_timer.try_collect →(滞后 ≤3 帧的)GpuTimerFrameResult
+ └─ update_stats:FrameProfiler 聚合 → RenderStats.last_frame_profile + 扁平字段
+```
+
+pipelined 模式(PF-M2,bevy 同型):
+
+```text
+sim 线程:  | extract N+1 | 投递(bounded(1),满则阻塞=自然背压)| sim N+2 ...
+render 线程:| 提交体(frame N):上图全流程 | feedback N 回流(sim 于 N+1 帧首排空)|
+```
+
+集成点定稿:
+1. timestamp 挂载点唯一在 graph pass 录制处(`execute_graph_stage` 的 pass 循环与 compute 等价路径)——观测不绕过 graph(index.md §6 第 3 条的观测面延伸)。
+2. 降级阶梯 `evaluate` 在 `update_stats` 之后、下一帧 `build_frame_submission_context` 之前消费(降级影响下一帧编译输入,不回写当帧)。
+3. `PipelineAsyncCompiler` 完成回收在 `prepare_runtime_submission` 入口排空(补回的 variant 当帧生效)。
+4. 并行录制桶边界 = 拓扑层边界,跨桶资源依赖天然满足;`ParallelEncoderSet::record_parallel` 输出直接喂单次 `Queue::submit`,提交序测试断言。
+5. profile 经 `render_stats_store` 镜像 + 既有 `query_stats` 路径暴露给编辑器/诊断面板;capture 附件经 capture 查询路径返回。
+
+### 实施切片细化
+
+PF-M1(每切片末 `cargo check -p zircon_runtime --lib --locked`):
+1. `frame_profile.rs` 契约类型 + `RenderStats.last_frame_profile` 字段 + `update_stats` 空聚合(纯 CPU 计数先通)。
+2. `request_device.rs` 申请 TIMESTAMP_QUERY(可选)+ `supports_gpu_timestamp` 能力位;`GpuPassTimer` 实现与单元测试桩。
+3. `execute_graph_stage` 挂 `timestamp_writes` + `resolve_and_copy` 接 `render.rs` 帧末;`try_collect` 接 `FrameProfiler`。
+4. marker 三方一致收口 + capture 附带 profile/dump;预算表与告警计数。
+5. (待 16 CN-M1)读取环迁 `GpuReadbackQueue`,删除私有 slots(硬切换)。
+
+PF-M2:
+1. `pipelined/` 模块 + 同步直调回退;`submit.rs` 入口投递化;feedback 滞后契约注释。
+2. prepare/queue rayon 化(processor 维度;确定性归并排序断言先写)。
+3. `ParallelEncoderSet` + `execute_graph_stage` 并行分支;三开关矩阵产物对拍。
+
+PF-M3:
+1. `memory_budget.rs` + profile 接入瞬态/staging 合计。
+2. `degrade_ladder.rs` 状态机 + 07/13/feature 三入口接线 + 迟滞。
+3. `store_lint.rs`(规划层,消费 01 生命周期数据)+ 带宽账本文档化。
+
+PF-M4:
+1. `async_compile.rs` + `ensure_pipeline_for_variant` miss 路径接入 + 占位两档。
+2. 预热钩子 + `pipeline_cache_gate.rs` + 冷启动计数。
+3. `render_perf_baseline.rs` 基线族 + 标准测试场景固化 + CI 建议文档。
+
+### 测试与验收清单
+
+全部进 `cargo test -p zircon_runtime --lib --locked`(过滤词 `render_perf`),计数断言、零时间断言:
+
+| 测试名 | 断言 |
+|--------|------|
+| `render_perf_frame_profile_matches_flat_stats` | 层级 profile 的 draw/pass/上传合计与既有扁平 `last_*` 字段自洽 |
+| `render_perf_pass_names_match_graph_dump_and_markers` | profile pass 名 = 01 graph dump = `marker_for_render_graph_pass` 后缀,三方一致 |
+| `render_perf_gpu_timer_capability_gate` | 无 TIMESTAMP_QUERY 时 `try_new` 返回 None,profile 全 None 且渲染产物不变 |
+| `render_perf_gpu_timer_latency_within_three_frames` | mock 设备下 `try_collect` 滞后 ≤ 3 帧且不阻塞 |
+| `render_perf_budget_table_covers_all_builtin_passes` | 内建 pass 的 `budget_key` 无一落入 Other(新 pass 忘登记即红) |
+| `render_perf_draw_count_baseline` | 标准场景 draw 数 ≤ 基线上限;注入 +1 draw 用例必须红(防失效) |
+| `render_perf_state_change_baseline` | 02 重放去重后状态切换数 ≤ 基线上限 |
+| `render_perf_upload_bytes_static_second_frame_zero` | 静态场景第 2 帧 `upload_bytes` = 0(03 增量上传验收的横切复验) |
+| `render_perf_transient_peak_baseline` | 瞬态峰值 ≤ 基线上限(01 池统计) |
+| `render_perf_pipelined_product_parity` | pipelined 开/关产物对拍逐像素一致;feedback 滞后一帧语义 |
+| `render_perf_parallel_record_submission_order` | 并行录制提交序 = graph 拓扑序;开/关产物一致 |
+| `render_perf_parallel_prepare_deterministic_sort` | rayon prepare 前后 `MeshDrawCommandList` 逐元素一致 |
+| `render_perf_degrade_ladder_fixed_order` | 超预算按 scale → mip bias → feature 固定序触发;迟滞帧数内不升档 |
+| `render_perf_store_lint_detects_dead_store` | 故意"终读后 Store"用例 lint 计数 = 1 |
+| `render_perf_async_pipeline_placeholder_no_error_material` | 占位期产物 = 无该 draw(SkipDraw)或 depth-only;补回帧恢复 |
+| `render_perf_prewarm_zero_first_frame_miss` | 预热清单消费后首帧 `variant_miss_count` = 0 |
+| `render_perf_cold_start_graph_compile_once` | 冷启动 graph 编译 1 次,第 2 帧 `compiled_graph_cache_hit` = true |
+
+产物对拍:`render_product_*` 系列在三开关(pipelined/parallel_record/async_compile)8 组合矩阵下全绿。CI 接入建议(不强改):`ci.yml` 现有 `cargo test --workspace` 自动携带上述确定性测试;计时型观测建议另开 `workflow_dispatch` 手动 job 导出 profile 文本工件,不设阈值门禁。
+
+### 参考实现精读笔记
+
+- **UE `FRealtimeGPUProfiler`**(`RealtimeGPUProfiler.h`):单例 `Get()`,`BeginFrame/EndFrame(FRHICommandListImmediate&)` 圈帧;`PushEvent(GPUMask, Name, Stat, Description)` 返回 `FRealtimeGPUProfilerQuery`,查询对象延迟 `Submit(RHICmdList, bBegin)`,且专门提供 `Discard(bBegin)` 处理"RDG 建了 profiler event 但 pass 被 culling 从未提交"的情况 —— Zircon 对应:`GpuPassTimer` 的 query 槽按实际录制挂载而非按 graph 声明预分配,01 的 pass culling 天然不产生悬空查询。`ActiveFrame` + `TQueue<TUniquePtr<FRealtimeGPUProfilerFrame>> PendingFrames` + `FRenderQueryPoolRHIRef` 即多帧 in-flight 池,与本计划 3 槽延迟环同构;`FRealtimeGPUProfilerHistoryItem`(HistoryCount=64,`AccumulatedTime`)与 `FetchPerfByDescription` 的 Avg/Min/Max 说明 UI 展示要做滑动窗口平滑 —— 我们放诊断层(`render_stats_store`)做,契约层只传单帧。
+- **UE `FParallelCommandListSet`**(`SceneRendering.h` line 475):`NewParallelCommandList/AddParallelCommandList` 聚 `QueuedCommandLists`,派生类析构调 `Dispatch` 顺序合并,`MinDrawsPerCommandList` 控制切分粒度;整个类已 `UE_DEPRECATED(5.5, "Use GraphBuilder.AddDispatchPass instead")`。结论直接吸收:不做 pass 内 draw 级并行拆分(wgpu 也没有 secondary command buffer),并行粒度 = graph pass 桶,阈值参数对齐 `min_passes_per_bucket`。
+- **Unity `ProfilingSampler`/`ProfilingScope`**(`ProfilingScope.cs`):一个采样名同时驱动三条时间线 —— `cmd?.BeginSample(m_Marker)` 进 CommandBuffer(渲染线程执行时间 + 自动 `MarkerFlags.SampleGPU` 的 GPU 时间)与 `Inl_<name>` inline marker(调用线程 CPU);recorder 懒分配保证不开观测零常驻成本。Zircon 对应:pass_name 同名贯通 `profile_scope!`(CPU)、debug marker(RenderDoc)、`GpuPassTimer`(GPU)三面;`allow_gpu_timing=false` 时 `GpuPassTimer` 不创建任何 wgpu 资源。
+- **bevy `pipelined_rendering.rs`**:`RenderAppChannels` 用两条 `async_channel::bounded(1)` 交换 `SubApp` 所有权,render 线程 `loop { recv → render_app.update() → send back }`;`renderer_extract` 在主线程收回 render app 后才跑 extract(extract 是唯一双世界同步点,对应 `ExtractSchedule`);`Drop for RenderAppChannels` 里 `recv_blocking` 等 render world 归还,保证 non-send 数据在正确线程析构。Zircon 简化:我们传的不是 world 而是 `RenderFrameExtract` 值快照(契约已禁渲染侧访问 ECS),无需 world 往返,单向 frame 通道 + 反向 feedback 通道即可;线程退出排空语义照抄。
+
+## 风险与回退
+
+| 风险 | 缓解 / 回退 |
+|------|------------|
+| TIMESTAMP_QUERY 在部分后端(GL/老驱动)不可用或精度差 | 能力 gate 已是 None 语义;profile 其余计数维度不受影响;验收明确"无能力平台零 panic" |
+| timestamp 读取引入气泡或与 present 抢提交 | resolve/copy 合入帧末既有 encoder,读取走 3 槽非阻塞环;`allow_gpu_timing=false` 一键全关(不创建资源) |
+| pipelined 模式暴露隐藏的线程亲和假设(surface/窗口句柄、Drop 顺序) | 回退开关默认关,逐平台开;Drop 排空语义照 bevy;feedback 滞后语义有契约测试,消费方(拾取/回读)按 N-1 帧语义改造在同一里程碑内完成 |
+| 并行录制收益不足(pass 数少、单 pass 过重) | `min_passes_per_bucket` 阈值退化单 encoder;收益依赖 02 命令化后录制成本下降,故 PF-M2 排在 01/02 之后 |
+| rayon 并行引入排序不确定性导致产物抖动 | 确定性归并(按 sort_key 稳定序,位段归 09)先于并行开启;产物对拍测试在开关矩阵上跑 |
+| 降级阶梯与用户显式画质设置打架 | 阶梯只作用于"预算超标"运行态,且 `degrade_step_active` 进 profile 可解释;用户设置为底,阶梯只降不改底 |
+| 异步编译占位造成首帧画面缺 draw 被误判为 bug | 占位策略仅两档且进 stats(`last_pipeline_async_pending_count`);`allow_async_compile=false` 回退同步编译 |
+| 基线上限定得过松(永远绿)或过紧(噪声红) | 只断言确定性计数不断言时间;每个基线测试配一个"注入劣化必须红"的反向用例防失效 |
+| `RenderStats` 双形态(扁平 + 层级)长期并存漂移 | `render_perf_frame_profile_matches_flat_stats` 自洽断言常驻;扁平字段新增项必须同步进层级聚合,否则该测试红 |
+
+回退总开关:`allow_gpu_timing` / `allow_pipelined_render` / `allow_parallel_record` / `allow_async_compile` 四开关相互独立,任意组合下 `render_product_*` 产物一致是 PF-M2/M4 的硬验收;全关即与本计划落地前行为等价(观测字段为空,不影响渲染正确性)。
+

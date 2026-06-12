@@ -7,6 +7,7 @@ use crate::core::framework::{
     asset::ResourceManager,
     foundation::{ConfigManager, EventManager},
     input::InputManager,
+    navigation::NavigationManager,
     net::NetManager,
     physics::PhysicsManager,
     render::{RenderFramework, RenderingManager},
@@ -17,8 +18,9 @@ use crate::core::{CoreError, CoreHandle};
 
 use super::{
     AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME, PHYSICS_MANAGER_NAME,
-    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, NET_MANAGER_NAME,
+    PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    SOUND_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -45,8 +47,8 @@ macro_rules! define_manager_holder {
         }
 
         pub fn $resolver(core: &CoreHandle) -> Result<Arc<dyn $trait_name>, CoreError> {
-            core.resolve_manager::<$holder>($service_name)
-                .map(|holder| holder.shared())
+            let holder = core.resolve_manager::<$holder>($service_name)?;
+            Ok(holder.shared())
         }
 
         impl ManagerResolver {
@@ -155,4 +157,11 @@ define_manager_holder!(
     resolve_sound_manager,
     SOUND_MANAGER_NAME,
     sound
+);
+define_manager_holder!(
+    NavigationManagerHandle,
+    NavigationManager,
+    resolve_navigation_manager,
+    NAVIGATION_MANAGER_NAME,
+    navigation
 );

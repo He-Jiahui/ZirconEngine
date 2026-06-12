@@ -19,10 +19,11 @@ use crate::graphics::{
     VirtualGeometryRuntimeUpdate,
 };
 use crate::plugin::{
-    RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    PluginEventManifest, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
+    RuntimePluginDescriptor, SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
 };
+use crate::scene::ecs::{Res, ResMut, ResMutParam, ResParam, Resource, RuntimeSceneSystemContext};
 use crate::scene::{SystemStage, World};
 use crate::RenderFeaturePassDescriptor;
 use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
@@ -293,6 +294,19 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
         report.registry.scene_hooks()[0].descriptor().id.as_str(),
         "weather.scene.update"
     );
+    assert_eq!(report.registry.plugin_resources().count(), 2);
+    assert_eq!(report.registry.plugin_events().count(), 1);
+    assert_eq!(report.registry.plugin_systems().count(), 1);
+    assert_eq!(report.registry.plugin_runtime_systems().count(), 1);
+
+    let mut world = World::empty();
+    report.registry.clone().apply_to_world(&mut world).unwrap();
+    world.run_native_scene_systems_for_stage(SystemStage::Update);
+    assert_eq!(
+        world.resource::<WeatherObserved>(),
+        &WeatherObserved(vec![7])
+    );
+    assert!(world.events::<WeatherChanged>().is_some());
 }
 
 #[test]
@@ -310,7 +324,7 @@ fn runtime_modules_propagate_reported_executor_registrations_into_render_framewo
     let registration = crate::plugin::RuntimePluginRegistrationReport::from_plugin(&plugin);
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
 
-    let modules = crate::runtime_modules_for_target_with_plugin_registration_reports(
+    let modules = crate::builtin::runtime_modules_for_target_with_plugin_registration_reports(
         RuntimeTargetMode::ClientRuntime,
         None,
         [&registration],
@@ -408,9 +422,54 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             SystemStage::Update,
             0,
         ))?;
+        let owner = registry.intern_plugin_module("weather.runtime")?;
+        let set = registry.intern_system_set("weather.main")?;
+        registry.register_resource::<WeatherConfig>(owner, || WeatherConfig(7))?;
+        registry.register_resource::<WeatherObserved>(owner, || WeatherObserved(Vec::new()))?;
+        registry.register_event::<WeatherChanged>(
+            owner,
+            PluginEventManifest {
+                id: "weather.changed".to_string(),
+                display_name: "Weather Changed".to_string(),
+                payload_schema: "WeatherChanged".to_string(),
+            },
+        )?;
+        registry
+            .register_native_system::<(ResParam<WeatherConfig>, ResMutParam<WeatherObserved>), _>(
+                owner,
+                "weather.apply",
+                SystemStage::Update,
+                |(config, mut observed): (Res<'_, WeatherConfig>, ResMut<'_, WeatherObserved>)| {
+                    observed.0.push(config.0);
+                },
+            )
+            .in_set(set)
+            .register()?;
+        registry
+            .register_runtime_scene_system(
+                owner,
+                "weather.runtime-context",
+                SystemStage::Update,
+                |_context: RuntimeSceneSystemContext<'_>| Ok(()),
+            )
+            .in_set(set)
+            .register()?;
         Ok(())
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+struct WeatherConfig(u32);
+
+impl Resource for WeatherConfig {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct WeatherObserved(Vec<u32>);
+
+impl Resource for WeatherObserved {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct WeatherChanged;
 
 #[derive(Debug)]
 struct NoopSceneHook;

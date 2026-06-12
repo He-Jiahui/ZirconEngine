@@ -143,7 +143,7 @@ fn load_package_payload(
 ) -> Result<(Vec<u8>, Option<PathBuf>, Option<ZrVmPluginProjectSource>), VmError> {
     if is_zr_vm_project_backend(&disk_manifest.backend) {
         let zr_vm = disk_manifest.zr_vm.as_ref().ok_or_else(|| {
-            VmError::Parse("zr_vm:project backend requires a [zr_vm] project section".to_string())
+            VmError::Parse("zr_vm project backend requires a [zr_vm] project section".to_string())
         })?;
         let project_path = package_root.join(&zr_vm.project);
         if !project_path.exists() {
@@ -326,6 +326,31 @@ mod tests {
             .to_string()
             .contains("invalid plugin management policy"));
         assert!(error.to_string().contains("soft_limit_bytes 2048 exceeds"));
+    }
+
+    #[test]
+    fn discovery_rejects_zr_vm_project_fallback_backend() {
+        let fixture = PackageFixture::new();
+        fs::write(
+            &fixture.manifest_path,
+            concat!(
+                "name = \"fallback_project\"\n",
+                "version = \"0.1.0\"\n",
+                "entry = \"main\"\n",
+                "backend = \"zr_vm_fallback:project\"\n",
+                "\n",
+                "[zr_vm]\n",
+                "project = \"script/plugin.zrp\"\n",
+            ),
+        )
+        .unwrap();
+
+        let error = discover_vm_plugin_package(&fixture.manifest_path).unwrap_err();
+
+        assert!(matches!(error, VmError::Parse(_)));
+        assert!(error
+            .to_string()
+            .contains("[zr_vm] project section requires backend = \"zr_vm:project\""));
     }
 
     struct PackageFixture {

@@ -100,6 +100,317 @@ impl Default for UiResolvedElementStyle {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct UiThemeTokenRef(pub String);
+
+impl UiThemeTokenRef {
+    pub fn new(token: impl Into<String>) -> Self {
+        Self(token.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiThemeDocument {
+    pub id: String,
+    pub palette: UiThemePalette,
+    pub typography: Vec<UiThemeTypographyVariant>,
+    pub shape: UiThemeShape,
+    pub spacing: Vec<f32>,
+    pub control_sizes: UiThemeControlSizes,
+    pub elevation: Vec<UiThemeElevation>,
+}
+
+impl Default for UiThemeDocument {
+    fn default() -> Self {
+        Self::dark()
+    }
+}
+
+impl UiThemeDocument {
+    pub fn dark() -> Self {
+        Self {
+            id: "zircon.dark".to_string(),
+            palette: UiThemePalette::dark(),
+            typography: vec![
+                UiThemeTypographyVariant {
+                    variant: "body".to_string(),
+                    family: "Inter".to_string(),
+                    size: 13.0,
+                    weight: 400,
+                    line_height: 1.45,
+                },
+                UiThemeTypographyVariant {
+                    variant: "caption".to_string(),
+                    family: "Inter".to_string(),
+                    size: 11.0,
+                    weight: 400,
+                    line_height: 1.35,
+                },
+                UiThemeTypographyVariant {
+                    variant: "title".to_string(),
+                    family: "Inter".to_string(),
+                    size: 15.0,
+                    weight: 600,
+                    line_height: 1.35,
+                },
+            ],
+            shape: UiThemeShape::default(),
+            spacing: vec![0.0, 4.0, 8.0, 12.0, 16.0, 24.0, 32.0],
+            control_sizes: UiThemeControlSizes::default(),
+            elevation: vec![
+                UiThemeElevation::level(0, 0.0, 0.0, 0.0, 0.0),
+                UiThemeElevation::level(1, 0.0, 2.0, 8.0, 0.0),
+                UiThemeElevation::level(2, 0.0, 4.0, 16.0, 0.0),
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiThemePalette {
+    #[serde(default = "default_theme_surface")]
+    pub surface: [UiRgbaColor; 4],
+    #[serde(default = "default_theme_text_primary")]
+    pub text_primary: UiRgbaColor,
+    #[serde(default = "default_theme_text_secondary")]
+    pub text_secondary: UiRgbaColor,
+    #[serde(default = "default_theme_text_disabled")]
+    pub text_disabled: UiRgbaColor,
+    #[serde(default = "default_theme_accent")]
+    pub accent: UiRgbaColor,
+    #[serde(default = "default_theme_success")]
+    pub success: UiRgbaColor,
+    #[serde(default = "default_theme_info")]
+    pub info: UiRgbaColor,
+    #[serde(default = "default_theme_warning")]
+    pub warning: UiRgbaColor,
+    #[serde(default = "default_theme_error")]
+    pub error: UiRgbaColor,
+    #[serde(default = "default_theme_separator")]
+    pub separator: UiRgbaColor,
+}
+
+impl Default for UiThemePalette {
+    fn default() -> Self {
+        Self::dark()
+    }
+}
+
+impl UiThemePalette {
+    pub fn dark() -> Self {
+        Self {
+            surface: [
+                default_theme_surface()[0],
+                default_theme_surface()[1],
+                default_theme_surface()[2],
+                default_theme_surface()[3],
+            ],
+            text_primary: default_theme_text_primary(),
+            text_secondary: default_theme_text_secondary(),
+            text_disabled: default_theme_text_disabled(),
+            accent: default_theme_accent(),
+            success: default_theme_success(),
+            info: default_theme_info(),
+            warning: default_theme_warning(),
+            error: default_theme_error(),
+            separator: default_theme_separator(),
+        }
+    }
+}
+
+fn default_theme_surface() -> [UiRgbaColor; 4] {
+    [
+        UiRgbaColor::from_u8(17, 20, 22, 255),
+        UiRgbaColor::from_u8(23, 26, 29, 255),
+        UiRgbaColor::from_u8(27, 31, 35, 255),
+        UiRgbaColor::from_u8(37, 43, 49, 255),
+    ]
+}
+
+fn default_theme_text_primary() -> UiRgbaColor {
+    UiRgbaColor::from_u8(232, 236, 238, 255)
+}
+
+fn default_theme_text_secondary() -> UiRgbaColor {
+    UiRgbaColor::from_u8(164, 174, 180, 255)
+}
+
+fn default_theme_text_disabled() -> UiRgbaColor {
+    UiRgbaColor::from_u8(101, 111, 118, 255)
+}
+
+fn default_theme_accent() -> UiRgbaColor {
+    UiRgbaColor::from_u8(60, 199, 214, 255)
+}
+
+fn default_theme_success() -> UiRgbaColor {
+    UiRgbaColor::from_u8(85, 190, 120, 255)
+}
+
+fn default_theme_info() -> UiRgbaColor {
+    UiRgbaColor::from_u8(95, 170, 230, 255)
+}
+
+fn default_theme_warning() -> UiRgbaColor {
+    UiRgbaColor::from_u8(220, 172, 80, 255)
+}
+
+fn default_theme_error() -> UiRgbaColor {
+    UiRgbaColor::from_u8(235, 96, 92, 255)
+}
+
+fn default_theme_separator() -> UiRgbaColor {
+    UiRgbaColor::from_u8(57, 65, 71, 255)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiThemeTypographyVariant {
+    #[serde(default = "default_typography_variant_name")]
+    pub variant: String,
+    #[serde(default = "default_typography_family")]
+    pub family: String,
+    #[serde(default = "default_typography_size")]
+    pub size: f32,
+    #[serde(default = "default_typography_weight")]
+    pub weight: u16,
+    #[serde(default = "default_typography_line_height")]
+    pub line_height: f32,
+}
+
+impl Default for UiThemeTypographyVariant {
+    fn default() -> Self {
+        Self {
+            variant: default_typography_variant_name(),
+            family: default_typography_family(),
+            size: default_typography_size(),
+            weight: default_typography_weight(),
+            line_height: default_typography_line_height(),
+        }
+    }
+}
+
+fn default_typography_variant_name() -> String {
+    "body".to_string()
+}
+
+fn default_typography_family() -> String {
+    "Inter".to_string()
+}
+
+fn default_typography_size() -> f32 {
+    13.0
+}
+
+fn default_typography_weight() -> u16 {
+    400
+}
+
+fn default_typography_line_height() -> f32 {
+    1.45
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiThemeShape {
+    #[serde(default = "default_radius_small")]
+    pub radius_small: f32,
+    #[serde(default = "default_radius_medium")]
+    pub radius_medium: f32,
+    #[serde(default = "default_radius_large")]
+    pub radius_large: f32,
+    #[serde(default = "default_radius_panel")]
+    pub radius_panel: f32,
+}
+
+impl Default for UiThemeShape {
+    fn default() -> Self {
+        Self {
+            radius_small: default_radius_small(),
+            radius_medium: default_radius_medium(),
+            radius_large: default_radius_large(),
+            radius_panel: default_radius_panel(),
+        }
+    }
+}
+
+fn default_radius_small() -> f32 {
+    4.0
+}
+
+fn default_radius_medium() -> f32 {
+    5.0
+}
+
+fn default_radius_large() -> f32 {
+    8.0
+}
+
+fn default_radius_panel() -> f32 {
+    12.0
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiThemeControlSizes {
+    #[serde(default = "default_control_height")]
+    pub default_height: f32,
+    #[serde(default = "compact_control_height")]
+    pub compact_height: f32,
+    #[serde(default = "dense_control_height")]
+    pub dense_height: f32,
+}
+
+impl Default for UiThemeControlSizes {
+    fn default() -> Self {
+        Self {
+            default_height: default_control_height(),
+            compact_height: compact_control_height(),
+            dense_height: dense_control_height(),
+        }
+    }
+}
+
+fn default_control_height() -> f32 {
+    40.0
+}
+
+fn compact_control_height() -> f32 {
+    32.0
+}
+
+fn dense_control_height() -> f32 {
+    28.0
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiThemeElevation {
+    pub level: u8,
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub blur: f32,
+    pub spread: f32,
+}
+
+impl UiThemeElevation {
+    pub fn level(level: u8, offset_x: f32, offset_y: f32, blur: f32, spread: f32) -> Self {
+        Self {
+            level,
+            offset_x,
+            offset_y,
+            blur,
+            spread,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ButtonVariant {
@@ -225,6 +536,7 @@ pub enum UiPainterFamily {
     TableRow,
     Tab,
     Toast,
+    Chrome,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -292,7 +604,8 @@ impl UiPainterStyleSelector {
             | UiPainterFamily::TreeRow
             | UiPainterFamily::TableRow
             | UiPainterFamily::Tab
-            | UiPainterFamily::Toast => Self::interactive_resolved_state(state),
+            | UiPainterFamily::Toast
+            | UiPainterFamily::Chrome => Self::interactive_resolved_state(state),
         }
     }
 
@@ -322,11 +635,11 @@ impl UiPainterStyleSelector {
         }
     }
 
-    pub const fn selection_control_resolved_state(
-        state: UiPainterState,
-    ) -> UiPainterResolvedState {
+    pub const fn selection_control_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
         if state.disabled {
             UiPainterResolvedState::Disabled
+        } else if state.loading {
+            UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
         } else if state.focused {
@@ -349,6 +662,8 @@ impl UiPainterStyleSelector {
     pub const fn slider_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
         if state.disabled {
             UiPainterResolvedState::Disabled
+        } else if state.loading {
+            UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
         } else if state.focused {

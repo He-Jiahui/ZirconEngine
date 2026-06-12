@@ -1,0 +1,105 @@
+format_version = 6
+uuid = "11862f34-8b9f-46cb-b6e2-8ba575239275"
+url = "res://models/kenney_graveyard/fence-gate.glb"
+asset_kind = "Model"
+unit = "single"
+included_files = []
+artifact_locator = "lib://models/005da90f-0457-82e5-93e5-133edc2d423a.zasset"
+importer_id = "zircon.builtin.model.gltf"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1760670022000
+source_hash = "5e80301708e9a616"
+preview_state = "ready"
+importer_version = 2
+migration_summary = ""
+dependencies = [
+    "res://models/kenney_graveyard/fence-gate.glb#Texture0",
+    "res://models/kenney_graveyard/fence-gate.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/fence-gate.glb#Material0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fence-gate.glb#Node0",
+    "res://models/kenney_graveyard/fence-gate.glb#Scene0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "11862f34-8b9f-46cb-b6e2-8ba575239275"
+url = "res://models/kenney_graveyard/fence-gate.glb"
+asset_kind = "Model"
+artifact_locator = "lib://models/005da90f-0457-82e5-93e5-133edc2d423a.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fence-gate.glb#Texture0",
+    "res://models/kenney_graveyard/fence-gate.glb#DefaultMaterial",
+    "res://models/kenney_graveyard/fence-gate.glb#Material0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fence-gate.glb#Node0",
+    "res://models/kenney_graveyard/fence-gate.glb#Scene0",
+]
+
+[[entries]]
+uuid = "70a03552-a302-45e2-a7b8-f52da55aada5"
+url = "res://models/kenney_graveyard/fence-gate.glb#Texture0"
+asset_kind = "Texture"
+artifact_locator = "lib://textures/a0034024-5528-a930-ce54-9a626de93a78.zasset"
+dependencies = []
+
+[[entries]]
+uuid = "250a31fb-1879-4143-a2dc-cb58e6e57391"
+url = "res://models/kenney_graveyard/fence-gate.glb#DefaultMaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/f6459700-1a01-a9a2-e380-7516d7e15824.zasset"
+dependencies = ["res://shaders/default_pbr"]
+
+[[entries]]
+uuid = "8aa9b38e-c8a9-424e-9efb-3a920223f3e6"
+url = "res://models/kenney_graveyard/fence-gate.glb#Material0"
+asset_kind = "Material"
+artifact_locator = "lib://materials/669be8f8-29c8-6f0f-91a3-7fa0d07732a2.zasset"
+dependencies = [
+    "res://shaders/default_pbr",
+    "res://models/kenney_graveyard/fence-gate.glb#Texture0",
+]
+
+[[entries]]
+uuid = "dd2db732-54ea-4032-ba82-19a2fc25d041"
+url = "res://models/kenney_graveyard/fence-gate.glb#Mesh0"
+asset_kind = "Model"
+artifact_locator = "lib://models/fdcd7cb5-f193-e70f-4fd3-7eed98c85b1b.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fence-gate.glb#Material0",
+]
+
+[[entries]]
+uuid = "273e3704-6e14-4bf1-bc1b-a378f0e72d22"
+url = "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0"
+asset_kind = "Mesh"
+artifact_locator = "lib://meshes/f75d7b42-48e6-ffe4-73a2-6d9904fd06ea.zasset"
+dependencies = ["res://models/kenney_graveyard/fence-gate.glb#Material0"]
+
+[[entries]]
+uuid = "33886323-24a8-440d-961c-9cd994fb82da"
+url = "res://models/kenney_graveyard/fence-gate.glb#Node0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/80cc4076-1930-d50a-aedf-7db93ba3ba5d.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fence-gate.glb#Node0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fence-gate.glb#Material0",
+]
+
+[[entries]]
+uuid = "6ac411be-1ef6-40e9-9832-fa4465a1bf66"
+url = "res://models/kenney_graveyard/fence-gate.glb#Scene0"
+asset_kind = "Scene"
+artifact_locator = "lib://scenes/6613a26b-b9db-5d8b-d20c-a8bdb1c9f4c3.zasset"
+dependencies = [
+    "res://models/kenney_graveyard/fence-gate.glb#Node0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0",
+    "res://models/kenney_graveyard/fence-gate.glb#Mesh0/Primitive0",
+    "res://models/kenney_graveyard/fence-gate.glb#Material0",
+]

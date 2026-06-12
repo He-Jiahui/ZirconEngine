@@ -1,15 +1,12 @@
 use zircon_runtime::script::VmPluginManager;
 
-mod backend;
 mod module;
-#[cfg(feature = "real-zr-vm")]
-mod real_backend;
 
-pub use backend::{ZrVmBackend, ZrVmBackendFamily};
 pub use module::{
     module_descriptor, ZrVmLanguageBackendRegistration, ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME,
     ZR_VM_LANGUAGE_MODULE_NAME,
 };
+pub use zircon_runtime::script::{ZrVmBackend, ZrVmBackendFamily};
 
 pub const PLUGIN_ID: &str = "zr_vm_language";
 pub const ZR_VM_PROJECT_BACKEND_SELECTOR: &str = "zr_vm:project";
@@ -42,7 +39,12 @@ impl zircon_runtime::plugin::RuntimePlugin for ZrVmLanguageRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
+        registry.register_module(module_descriptor())?;
+        registry.register_scene_hook(
+            zircon_runtime::script::script_scene_fixed_update_hook_registration(),
+        )?;
+        registry
+            .register_scene_hook(zircon_runtime::script::script_scene_update_hook_registration())
     }
 }
 

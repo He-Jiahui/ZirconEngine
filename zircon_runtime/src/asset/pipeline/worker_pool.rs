@@ -1,53 +1,158 @@
 //! Background worker pool for asset decoding.
 
-use crossbeam_channel::unbounded;
+use crossbeam_channel::{bounded, unbounded, TrySendError};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
-use crate::core::{spawn_named_thread, ChannelReceiver, ChannelSender, ZirconError};
+use crate::core::diagnostics::DiagnosticStore;
+use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
+use crate::core::runtime::tasks::spawn_named_thread;
+use crate::core::ZirconError;
 
 use crate::asset::load::{mesh, texture};
 use crate::asset::types::{AssetRequest, CpuAssetPayload};
 
+pub const ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC: &str = "asset.worker.in_flight";
+pub const ASSET_WORKER_COMPLETED_DIAGNOSTIC: &str = "asset.worker.completed";
+pub const ASSET_WORKER_FAILED_DIAGNOSTIC: &str = "asset.worker.failed";
+pub const ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC: &str = "asset.worker.queue_peak";
+
 pub struct AssetWorkerPool {
+    options: AssetWorkerPoolOptions,
     request_tx: Option<ChannelSender<AssetRequest>>,
+    #[cfg(test)]
+    #[allow(dead_code)]
+    // Keeps the request channel connected while tests exercise bounded overflow without workers.
+    request_rx_guard: Option<ChannelReceiver<AssetRequest>>,
+    in_flight: Arc<Mutex<HashMap<AssetRequest, usize>>>,
+    diagnostics: Arc<Mutex<AssetWorkerPoolDiagnostics>>,
+    completion_tx: ChannelSender<CpuAssetPayload>,
     completion_rx: ChannelReceiver<CpuAssetPayload>,
     joins: Vec<JoinHandle<()>>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AssetWorkerPoolOptions {
+    pub worker_count: usize,
+    pub queue_depth: Option<usize>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AssetWorkerPoolDiagnostics {
+    pub in_flight: usize,
+    pub completed: u64,
+    pub failed: u64,
+    pub queue_peak: usize,
+}
+
+impl AssetWorkerPoolOptions {
+    pub fn new(worker_count: usize) -> Self {
+        Self {
+            worker_count: worker_count.max(1),
+            queue_depth: None,
+        }
+    }
+
+    pub fn with_queue_depth(mut self, queue_depth: usize) -> Self {
+        self.queue_depth = Some(queue_depth);
+        self
+    }
+}
+
 impl AssetWorkerPool {
-    pub fn new(worker_count: usize) -> Result<Self, ZirconError> {
-        let worker_count = worker_count.max(1);
-        let (request_tx, request_rx) = unbounded();
+    pub fn new(options: AssetWorkerPoolOptions) -> Result<Self, ZirconError> {
+        let worker_count = options.worker_count.max(1);
+        let (request_tx, request_rx) = request_channel(options.queue_depth);
         let (completion_tx, completion_rx) = unbounded();
+        let in_flight = Arc::new(Mutex::new(HashMap::new()));
+        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::default()));
         let mut joins = Vec::with_capacity(worker_count);
 
         for worker_index in 0..worker_count {
             let request_rx = request_rx.clone();
             let completion_tx = completion_tx.clone();
+            let in_flight = Arc::clone(&in_flight);
+            let diagnostics = Arc::clone(&diagnostics);
             joins.push(spawn_named_thread(
                 format!("zircon-asset-{worker_index}"),
                 move || {
                     while let Ok(request) = request_rx.recv() {
                         let payload = process_request(request);
-                        let _ = completion_tx.send(payload);
+                        publish_completion(&completion_tx, &in_flight, &diagnostics, payload);
                     }
                 },
             )?);
         }
 
         Ok(Self {
+            options,
             request_tx: Some(request_tx),
+            #[cfg(test)]
+            request_rx_guard: None,
+            in_flight,
+            diagnostics,
+            completion_tx,
             completion_rx,
             joins,
         })
     }
 
+    #[cfg(test)]
+    pub(crate) fn new_without_workers_for_test(options: AssetWorkerPoolOptions) -> Self {
+        let (request_tx, request_rx) = request_channel(options.queue_depth);
+        let (_completion_tx, completion_rx) = unbounded();
+
+        Self {
+            options,
+            request_tx: Some(request_tx),
+            request_rx_guard: Some(request_rx),
+            in_flight: Arc::new(Mutex::new(HashMap::new())),
+            diagnostics: Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::default())),
+            completion_tx: _completion_tx,
+            completion_rx,
+            joins: Vec::new(),
+        }
+    }
+
+    pub fn options(&self) -> &AssetWorkerPoolOptions {
+        &self.options
+    }
+
     pub fn request(&self, request: AssetRequest) -> Result<(), ZirconError> {
-        self.request_tx
+        let mut in_flight = self
+            .in_flight
+            .lock()
+            .expect("asset worker in-flight lock poisoned");
+        if let Some(waiter_count) = in_flight.get_mut(&request) {
+            *waiter_count += 1;
+            self.record_in_flight_locked(&in_flight);
+            return Ok(());
+        }
+
+        // Register the in-flight key before publishing to the worker channel so
+        // a very fast worker cannot complete and remove the key before it exists.
+        let queued_request = request.clone();
+        in_flight.insert(request.clone(), 1);
+        if let Err(error) = self
+            .request_tx
             .as_ref()
             .expect("asset worker request sender alive")
-            .send(request.clone())
-            .map_err(|_| ZirconError::ChannelSend(format!("asset request dropped: {request:?}")))
+            .try_send(queued_request)
+        {
+            in_flight.remove(&request);
+            self.record_in_flight_locked(&in_flight);
+            return Err(match error {
+                TrySendError::Full(request) => {
+                    ZirconError::ChannelSend(format!("asset request queue full: {request:?}"))
+                }
+                TrySendError::Disconnected(request) => {
+                    ZirconError::ChannelSend(format!("asset request dropped: {request:?}"))
+                }
+            });
+        }
+        self.record_in_flight_locked(&in_flight);
+        Ok(())
     }
 
     pub fn request_sender(&self) -> ChannelSender<AssetRequest> {
@@ -60,6 +165,60 @@ impl AssetWorkerPool {
     pub fn completion_receiver(&self) -> ChannelReceiver<CpuAssetPayload> {
         self.completion_rx.clone()
     }
+
+    pub fn diagnostics(&self) -> AssetWorkerPoolDiagnostics {
+        *self
+            .diagnostics
+            .lock()
+            .expect("asset worker diagnostics lock poisoned")
+    }
+
+    pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
+        let diagnostics = self.diagnostics();
+        for (path, value) in [
+            (
+                ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
+                diagnostics.in_flight as f64,
+            ),
+            (
+                ASSET_WORKER_COMPLETED_DIAGNOSTIC,
+                diagnostics.completed as f64,
+            ),
+            (ASSET_WORKER_FAILED_DIAGNOSTIC, diagnostics.failed as f64),
+            (
+                ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
+                diagnostics.queue_peak as f64,
+            ),
+        ] {
+            store.record(
+                path,
+                frame_index,
+                value,
+                Some("request"),
+                ["asset", "worker"],
+            );
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn publish_completion_for_test(&self, payload: CpuAssetPayload) {
+        publish_completion(
+            &self.completion_tx,
+            &self.in_flight,
+            &self.diagnostics,
+            payload,
+        );
+    }
+
+    fn record_in_flight_locked(&self, in_flight: &HashMap<AssetRequest, usize>) {
+        let in_flight_count = total_waiter_count(in_flight);
+        let mut diagnostics = self
+            .diagnostics
+            .lock()
+            .expect("asset worker diagnostics lock poisoned");
+        diagnostics.in_flight = in_flight_count;
+        diagnostics.queue_peak = diagnostics.queue_peak.max(in_flight_count);
+    }
 }
 
 impl Drop for AssetWorkerPool {
@@ -69,6 +228,56 @@ impl Drop for AssetWorkerPool {
         for join in self.joins.drain(..) {
             let _ = join.join();
         }
+    }
+}
+
+fn request_channel(
+    queue_depth: Option<usize>,
+) -> (ChannelSender<AssetRequest>, ChannelReceiver<AssetRequest>) {
+    match queue_depth {
+        Some(queue_depth) => bounded(queue_depth),
+        None => unbounded(),
+    }
+}
+
+fn publish_completion(
+    completion_tx: &ChannelSender<CpuAssetPayload>,
+    in_flight: &Mutex<HashMap<AssetRequest, usize>>,
+    diagnostics: &Mutex<AssetWorkerPoolDiagnostics>,
+    payload: CpuAssetPayload,
+) {
+    let request = request_for_payload(&payload);
+    let (waiter_count, remaining_waiters) = {
+        let mut in_flight = in_flight
+            .lock()
+            .expect("asset worker in-flight lock poisoned");
+        let waiter_count = in_flight.remove(&request).unwrap_or(1);
+        (waiter_count, total_waiter_count(&in_flight))
+    };
+    {
+        let mut diagnostics = diagnostics
+            .lock()
+            .expect("asset worker diagnostics lock poisoned");
+        diagnostics.in_flight = remaining_waiters;
+        diagnostics.completed += waiter_count as u64;
+        if matches!(payload, CpuAssetPayload::Failure { .. }) {
+            diagnostics.failed += waiter_count as u64;
+        }
+    }
+    for _ in 0..waiter_count {
+        let _ = completion_tx.send(payload.clone());
+    }
+}
+
+fn total_waiter_count(in_flight: &HashMap<AssetRequest, usize>) -> usize {
+    in_flight.values().sum()
+}
+
+fn request_for_payload(payload: &CpuAssetPayload) -> AssetRequest {
+    match payload {
+        CpuAssetPayload::Texture(texture) => AssetRequest::Texture(texture.source.clone()),
+        CpuAssetPayload::Mesh(mesh) => AssetRequest::Mesh(mesh.source.clone()),
+        CpuAssetPayload::Failure { request, .. } => request.clone(),
     }
 }
 

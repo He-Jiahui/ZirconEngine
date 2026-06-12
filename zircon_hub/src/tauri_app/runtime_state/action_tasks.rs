@@ -1,10 +1,177 @@
+use std::any::Any;
+use std::panic::{self, AssertUnwindSafe};
+use std::sync::{Arc, Mutex, MutexGuard};
+
 use crate::engines::active_source_engine;
 use crate::error::HubError;
 use crate::projects::RecentProject;
-use crate::state::{TaskOperationKind, TaskStatus, TASK_PROGRESS_PREPARED_PERCENT};
+use crate::state::{
+    DeliveryMessageId, EngineMessageId, HubMessage, HubMessageId, ProcessMessageId, ShellMessageId,
+    TaskOperationKind, TaskStatus, TASK_PROGRESS_PREPARED_PERCENT,
+};
 
 use super::{recent_project_display_name, HubRuntimeSession};
+use crate::tauri_app::action_id::HubActionId;
 use crate::tauri_app::HubActionRequest;
+use crate::tauri_app::HubViewModel;
+
+pub(in crate::tauri_app) trait BackgroundTask: Send + 'static {
+    type Output: Send + 'static;
+
+    fn run(&self) -> Result<Self::Output, HubError>;
+}
+
+pub(in crate::tauri_app) type EmitState<'a> = &'a dyn Fn(&HubViewModel);
+
+pub(in crate::tauri_app) fn lock_session(
+    session_handle: &Arc<Mutex<HubRuntimeSession>>,
+) -> MutexGuard<'_, HubRuntimeSession> {
+    session_handle.lock().unwrap_or_else(|poisoned| {
+        eprintln!("zircon_hub: Hub runtime session lock was poisoned; recovering last state");
+        poisoned.into_inner()
+    })
+}
+
+pub(in crate::tauri_app) fn execute_background_task<T: BackgroundTask>(
+    request: &HubActionRequest,
+    session_handle: &Arc<Mutex<HubRuntimeSession>>,
+    emit_state: EmitState<'_>,
+    prepare: fn(&mut HubRuntimeSession) -> Result<Option<T>, HubError>,
+    complete: fn(&mut HubRuntimeSession, T, Result<T::Output, HubError>) -> Result<(), HubError>,
+) {
+    let pending = {
+        let mut session = lock_session(session_handle);
+        if let Err(error) = session.apply_request_project_target(request) {
+            let _ = session.record_background_action_error(request, error);
+            let view_model = session.view_model();
+            drop(session);
+            emit_state(&view_model);
+            return;
+        }
+        let pending = match prepare(&mut session) {
+            Ok(pending) => pending,
+            Err(error) => {
+                let _ = session.record_background_action_error(request, error);
+                let view_model = session.view_model();
+                drop(session);
+                emit_state(&view_model);
+                return;
+            }
+        };
+        let view_model = session.view_model();
+        drop(session);
+        emit_state(&view_model);
+        pending
+    };
+
+    let Some(pending) = pending else {
+        let view_model = lock_session(session_handle).view_model();
+        emit_state(&view_model);
+        return;
+    };
+
+    let result = pending.run();
+    let mut session = lock_session(session_handle);
+    let view_model = match complete(&mut session, pending, result) {
+        Ok(()) => session.view_model(),
+        Err(error) => {
+            let _ = session.record_background_action_error(request, error);
+            session.view_model()
+        }
+    };
+    drop(session);
+    emit_state(&view_model);
+}
+
+pub(in crate::tauri_app) fn dispatch_background_request(
+    request: &HubActionRequest,
+    session_handle: &Arc<Mutex<HubRuntimeSession>>,
+    emit_state: EmitState<'_>,
+) {
+    match BackgroundHubAction::from_request(request) {
+        Some(BackgroundHubAction::BuildProject) => execute_background_task(
+            request,
+            session_handle,
+            emit_state,
+            HubRuntimeSession::prepare_background_editor_runtime_build,
+            HubRuntimeSession::complete_background_editor_runtime_build,
+        ),
+        Some(BackgroundHubAction::PackageProject) => execute_background_task(
+            request,
+            session_handle,
+            emit_state,
+            HubRuntimeSession::prepare_background_project_package,
+            HubRuntimeSession::complete_background_project_package,
+        ),
+        Some(BackgroundHubAction::InstallDevice) => execute_background_task(
+            request,
+            session_handle,
+            emit_state,
+            HubRuntimeSession::prepare_background_device_install,
+            HubRuntimeSession::complete_background_device_install,
+        ),
+        Some(BackgroundHubAction::OpenEditor) => execute_background_task(
+            request,
+            session_handle,
+            emit_state,
+            HubRuntimeSession::prepare_background_editor_launch,
+            HubRuntimeSession::complete_background_editor_launch,
+        ),
+        None => {
+            let mut session = lock_session(session_handle);
+            let view_model = match session.apply_action(request.clone()) {
+                Ok(view_model) => view_model,
+                Err(error) => {
+                    let _ = session.record_background_action_error(request, error);
+                    session.view_model()
+                }
+            };
+            drop(session);
+            emit_state(&view_model);
+        }
+    }
+}
+
+pub(in crate::tauri_app) fn run_background_worker_loop(
+    first_request: HubActionRequest,
+    session_handle: &Arc<Mutex<HubRuntimeSession>>,
+    emit_state: EmitState<'_>,
+) {
+    let mut request = first_request;
+    loop {
+        let outcome = panic::catch_unwind(AssertUnwindSafe(|| {
+            dispatch_background_request(&request, session_handle, emit_state);
+        }));
+        if let Err(payload) = outcome {
+            let detail = panic_detail(payload.as_ref());
+            eprintln!(
+                "zircon_hub: background worker panicked while running {}: {detail}",
+                request.action_id
+            );
+            let mut session = lock_session(session_handle);
+            session.record_background_worker_panic(&request, &detail);
+            let view_model = session.view_model();
+            drop(session);
+            emit_state(&view_model);
+        }
+
+        let next_request = lock_session(session_handle).take_next_background_action();
+        match next_request {
+            Some(next_request) => request = next_request,
+            None => return,
+        }
+    }
+}
+
+fn panic_detail(payload: &(dyn Any + Send)) -> String {
+    if let Some(text) = payload.downcast_ref::<&str>() {
+        (*text).to_string()
+    } else if let Some(text) = payload.downcast_ref::<String>() {
+        text.clone()
+    } else {
+        "unknown panic payload".to_string()
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum BackgroundHubAction {
@@ -16,11 +183,15 @@ enum BackgroundHubAction {
 
 impl BackgroundHubAction {
     fn from_request(request: &HubActionRequest) -> Option<Self> {
-        match request.action_id.trim() {
-            "build-project" => Some(Self::BuildProject),
-            "package-project" => Some(Self::PackageProject),
-            "install-device" => Some(Self::InstallDevice),
-            "open-editor" => Some(Self::OpenEditor),
+        HubActionId::from_str(&request.action_id).and_then(Self::from_action_id)
+    }
+
+    fn from_action_id(action: HubActionId) -> Option<Self> {
+        match action {
+            HubActionId::BuildProject => Some(Self::BuildProject),
+            HubActionId::PackageProject => Some(Self::PackageProject),
+            HubActionId::InstallDevice => Some(Self::InstallDevice),
+            HubActionId::OpenEditor => Some(Self::OpenEditor),
             _ => None,
         }
     }
@@ -34,14 +205,20 @@ impl BackgroundHubAction {
         }
     }
 
-    fn detail(self) -> &'static str {
+    fn detail(self) -> HubMessage {
         match self {
-            Self::BuildProject => "Running tools/zircon_build.py",
-            Self::PackageProject => "Copying project into package output",
-            Self::InstallDevice => {
-                "Preparing package and copying to local device install directory"
+            Self::BuildProject => {
+                HubMessage::new(HubMessageId::Engine(EngineMessageId::RunningBuildScript))
             }
-            Self::OpenEditor => "Launching staged editor process",
+            Self::PackageProject => HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::CopyingProjectToPackage,
+            )),
+            Self::InstallDevice => HubMessage::new(HubMessageId::Delivery(
+                DeliveryMessageId::PreparingPackageInstall,
+            )),
+            Self::OpenEditor => HubMessage::new(HubMessageId::Process(
+                ProcessMessageId::LaunchingEditorProcess,
+            )),
         }
     }
 
@@ -78,13 +255,15 @@ impl HubRuntimeSession {
             return Ok(());
         };
         let target = self.background_action_target(action, request);
+        self.background_task_counter += 1;
         self.task_status = TaskStatus::running_operation(
             action.label(),
             action.detail(),
             action.operation(),
             target,
-        );
-        self.persist_hub_config()
+        )
+        .with_task_id(self.background_task_counter);
+        self.persist(None)
     }
 
     pub(in crate::tauri_app) fn start_background_action_or_record_error(
@@ -101,12 +280,12 @@ impl HubRuntimeSession {
         }
 
         if let Err(error) = self.apply_request_project_target(request) {
-            self.record_background_action_error(request, error.to_string())?;
+            self.record_background_action_error(request, error)?;
             return Ok(false);
         }
 
         if let Err(error) = self.start_background_action_status(request) {
-            self.record_background_action_error(request, error.to_string())?;
+            self.record_background_action_error(request, error)?;
             return Ok(false);
         }
 
@@ -130,7 +309,7 @@ impl HubRuntimeSession {
     pub(in crate::tauri_app) fn record_background_action_error(
         &mut self,
         request: &HubActionRequest,
-        detail: impl Into<String>,
+        error: HubError,
     ) -> Result<(), HubError> {
         let action = BackgroundHubAction::from_request(request);
         let target = action
@@ -147,13 +326,36 @@ impl HubRuntimeSession {
         let operation = action
             .map(BackgroundHubAction::operation)
             .unwrap_or(TaskOperationKind::Hub);
+        let (detail, recovery) = error.into_status_messages();
         self.task_status = TaskStatus::error(
             label,
-            detail.into(),
-            "Review the action target and retry from Hub",
+            detail,
+            recovery.unwrap_or_else(|| {
+                HubMessage::new(HubMessageId::Shell(ShellMessageId::ReviewActionTarget))
+            }),
         )
-        .with_operation(operation, target);
-        self.persist_hub_config()
+        .with_operation(operation, target)
+        .with_task_id(self.task_status.task_id);
+        self.persist(None)
+    }
+
+    pub(in crate::tauri_app) fn record_background_worker_panic(
+        &mut self,
+        request: &HubActionRequest,
+        detail: &str,
+    ) {
+        let _ = self.record_background_action_error(
+            request,
+            HubError::status(
+                HubMessage::with_params(
+                    HubMessageId::Shell(ShellMessageId::BackgroundTaskPanicked),
+                    [detail],
+                ),
+                Some(HubMessage::new(HubMessageId::Shell(
+                    ShellMessageId::ReviewActionTarget,
+                ))),
+            ),
+        );
     }
 
     fn background_action_target(
@@ -216,6 +418,7 @@ mod tests {
     use std::{fs, path::PathBuf};
 
     use crate::{
+        error::HubError,
         projects::RecentProject,
         settings::HubConfig,
         state::{
@@ -252,6 +455,7 @@ mod tests {
             session.task_status.progress_percent,
             TASK_PROGRESS_STARTED_PERCENT
         );
+        assert_eq!(session.task_status.task_id, 1);
         assert_eq!(session.config.action_history.len(), 0);
 
         fs::remove_dir_all(temp).unwrap();
@@ -296,7 +500,7 @@ mod tests {
                     target_id: None,
                     payload: None,
                 },
-                "worker failed",
+                HubError::message("worker failed"),
             )
             .unwrap();
 
@@ -402,6 +606,9 @@ mod tests {
             session.task_status, running_status,
             "queued actions must not overwrite the currently running status"
         );
+        let model = session.view_model();
+        assert_eq!(model.task_summary.task_id, running_status.task_id);
+        assert_eq!(model.task_summary.queued, 2);
 
         let next_request = session
             .take_next_background_action()
@@ -447,7 +654,7 @@ mod tests {
         );
         assert_eq!(
             model.task_summary.recovery.as_deref(),
-            Some("检查操作目标后从 Hub 重试")
+            Some("检查操作目标后重试")
         );
 
         fs::remove_dir_all(temp).unwrap();

@@ -13,4 +13,8 @@ pub struct PluginModuleManifest {
     pub target_modes: Vec<RuntimeTargetMode>,
     #[serde(default)]
     pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub system_sets: Vec<String>,
+    #[serde(default)]
+    pub system_anchors: Vec<String>,
 }

@@ -166,8 +166,11 @@ impl SelectionRenderState {
         self.checked || self.selected
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn hot(self) -> bool {
@@ -276,7 +279,7 @@ fn push_radio(
             centered_square(mark, dot_size),
             clip_frame,
             z_index.saturating_add(2),
-            color_attribute(metadata, "dot_color").unwrap_or(ACCENT_BRIGHT),
+            radio_dot_color(metadata, state),
             None,
             0.0,
             dot_size * 0.5,
@@ -474,7 +477,7 @@ fn checkbox_background<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
         color_attribute(metadata, "background_color").unwrap_or(ACCENT)
@@ -487,7 +490,7 @@ fn checkbox_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_BORDER
     } else if state.hot() {
         BORDER_FOCUS
@@ -504,7 +507,7 @@ fn radio_background<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
         color_attribute(metadata, "background_color").unwrap_or(RADIO_CHECKED_FILL)
@@ -517,7 +520,7 @@ fn radio_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_BORDER
     } else if state.hot() {
         BORDER_FOCUS
@@ -528,11 +531,22 @@ fn radio_border_color<'a>(
     }
 }
 
+fn radio_dot_color<'a>(
+    metadata: &'a UiTemplateNodeMetadata,
+    state: &SelectionRenderState,
+) -> &'a str {
+    if state.unavailable() {
+        LABEL_DISABLED
+    } else {
+        color_attribute(metadata, "dot_color").unwrap_or(ACCENT_BRIGHT)
+    }
+}
+
 fn toggle_track_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_FILL
     } else if state.active() {
         color_attribute(metadata, "background_color").unwrap_or(ACCENT)
@@ -549,7 +563,7 @@ fn toggle_border_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         MARK_DISABLED_BORDER
     } else if state.active() || state.hot() {
         color_attribute(metadata, "border_color").unwrap_or(BORDER_FOCUS)
@@ -562,7 +576,7 @@ fn toggle_thumb_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SelectionRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         LABEL_DISABLED
     } else if state.active() {
         color_attribute(metadata, "foreground_color").unwrap_or(TOGGLE_THUMB_ON)
@@ -572,7 +586,7 @@ fn toggle_thumb_color<'a>(
 }
 
 fn label_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SelectionRenderState) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         LABEL_DISABLED
     } else {
         color_attribute(metadata, "label_color")

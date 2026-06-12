@@ -18,6 +18,7 @@ impl ViewportRenderFrame {
             output_target: Default::default(),
             previous_motion_vector_camera: None,
             previous_motion_vector_object_history: None,
+            frame_visibility: None,
             virtual_geometry_debug_snapshot: None,
             prepared_runtime_sidebands: Default::default(),
         }

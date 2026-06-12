@@ -5,6 +5,7 @@ use zircon_runtime::core::framework::navigation::{
     NavigationAreaSettings, NavigationManager, AREA_WALKABLE, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
+use zircon_runtime::core::manager::resolve_navigation_manager;
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::components::NodeKind;
@@ -21,10 +22,7 @@ fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
-    let manager = runtime
-        .handle()
-        .resolve_manager::<DefaultNavigationManager>(NAVIGATION_MANAGER_NAME)
-        .unwrap();
+    let manager = resolve_navigation_manager(&runtime.handle()).unwrap();
 
     let handle = manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 5.0))

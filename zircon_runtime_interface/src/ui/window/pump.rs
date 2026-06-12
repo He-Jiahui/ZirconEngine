@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::dispatch::UiInputEvent;
+use crate::ui::dispatch::{UiDispatchEffect, UiInputEvent};
 
 use super::{UiWindowEvent, UiWindowPlatformInputEvent};
 
@@ -13,6 +13,13 @@ pub enum UiWindowInputPumpEvent {
 impl UiWindowInputPumpEvent {
     pub const fn is_redraw_request(&self) -> bool {
         matches!(self, Self::Window(event) if event.is_redraw_request())
+    }
+
+    pub fn transient_dismissal_effect(&self) -> Option<UiDispatchEffect> {
+        match self {
+            Self::Window(event) => event.transient_dismissal_effect(),
+            Self::Input(_) => None,
+        }
     }
 }
 
@@ -41,5 +48,11 @@ impl UiWindowInputPumpBatch {
 
     pub fn push_platform_input(&mut self, event: UiWindowPlatformInputEvent) {
         self.push(UiWindowInputPumpEvent::Input(event.normalize()));
+    }
+
+    pub fn transient_dismissal_effects(&self) -> impl Iterator<Item = UiDispatchEffect> + '_ {
+        self.events
+            .iter()
+            .filter_map(UiWindowInputPumpEvent::transient_dismissal_effect)
     }
 }

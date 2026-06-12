@@ -1,7 +1,9 @@
 mod context;
 mod culling;
 mod declarations;
+mod occlusion;
 mod planning;
+mod view_context;
 
 pub use declarations::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,
@@ -11,4 +13,8 @@ pub use declarations::{
     VisibilityParticleUploadPlan, VisibilityVirtualGeometryCluster,
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan,
+};
+pub use occlusion::{HzbBuildPlan, HzbBuilder};
+pub use view_context::{
+    FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey,
 };

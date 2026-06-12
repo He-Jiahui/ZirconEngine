@@ -79,12 +79,13 @@ fn write_field(
             });
         }
     };
-    world
-        .set_mobility(entity, parse_mobility(&kind)?)
-        .map_err(|error| ReflectError::UnsupportedConversion {
+    match world.set_mobility(entity, parse_mobility(&kind)?) {
+        Ok(changed) => Ok(changed),
+        Err(error) => Err(ReflectError::UnsupportedConversion {
             source: error,
-            target: format!("{TYPE_PATH}.{field_name}"),
-        })
+            target: shared::field_target(TYPE_PATH, field_name),
+        }),
+    }
 }
 
 fn remove(world: &mut World, entity: EntityId, _type_path: &str) -> Result<bool, ReflectError> {

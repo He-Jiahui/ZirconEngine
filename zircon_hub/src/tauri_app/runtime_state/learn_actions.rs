@@ -1,7 +1,8 @@
 use crate::error::HubError;
 use crate::process::{open_folder, OpenFolderCommand};
 use crate::state::{
-    HubActionKind, HubActionRecord, HubActionStatus, TaskOperationKind, TaskStatus,
+    DeliveryMessageId, HubActionKind, HubActionRecord, HubActionStatus, HubMessage, HubMessageId,
+    LearnMessageId, ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::tauri_app::action_request::OpenResourcePayload;
 
@@ -16,10 +17,13 @@ impl HubRuntimeSession {
         let targets = match open_resource_targets(target_id, payload) {
             Ok(targets) => targets,
             Err(error) => {
+                let (detail, recovery) = error.into_status_messages();
                 self.record_open_resource_failure(
                     "Learn Resource".to_string(),
-                    error.to_string(),
-                    "Choose a resource from the current Learn catalog",
+                    detail,
+                    recovery.unwrap_or_else(|| {
+                        HubMessage::new(HubMessageId::Learn(LearnMessageId::ChooseResource))
+                    }),
                 )?;
                 return Ok(());
             }
@@ -36,19 +40,23 @@ impl HubRuntimeSession {
         }) else {
             self.record_open_resource_failure(
                 fallback_target,
-                "Resource is not present in the current Learn catalog".to_string(),
-                "Refresh the Learn catalog or choose an existing local document",
+                HubMessage::new(HubMessageId::Learn(LearnMessageId::ResourceNotInCatalog)),
+                HubMessage::new(HubMessageId::Learn(
+                    LearnMessageId::RefreshOrChooseLocalDocument,
+                )),
             )?;
             return Ok(());
         };
         if !resource.path.is_file() {
             self.record_open_resource_failure(
                 resource.title.clone(),
-                format!(
-                    "Resource file does not exist: {}",
-                    resource.path.to_string_lossy()
+                HubMessage::with_params(
+                    HubMessageId::Learn(LearnMessageId::ResourceFileDoesNotExist),
+                    [resource.path.to_string_lossy().into_owned()],
                 ),
-                "Refresh the Learn catalog and choose an existing local document",
+                HubMessage::new(HubMessageId::Learn(
+                    LearnMessageId::RefreshAndChooseLocalDocument,
+                )),
             )?;
             return Ok(());
         }
@@ -69,8 +77,11 @@ impl HubRuntimeSession {
                         action: HubActionKind::OpenResource,
                         status: HubActionStatus::Success,
                         target: resource.title.clone(),
-                        detail: resource.path.to_string_lossy().into_owned(),
-                        log_excerpt: String::new(),
+                        detail: HubMessage::with_params(
+                            HubMessageId::Shell(ShellMessageId::OpenedPath),
+                            [resource.path.to_string_lossy().into_owned()],
+                        ),
+                        log_excerpt: HubMessage::empty(),
                         recovery: None,
                         process_id: Some(process_id),
                         command_line,
@@ -79,15 +90,17 @@ impl HubRuntimeSession {
                 );
                 self.task_status = TaskStatus::success(
                     "Resource opened",
-                    resource.path.to_string_lossy().into_owned(),
+                    HubMessage::legacy(resource.path.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Hub, resource.title.clone());
-                self.persist_hub_config()
+                self.persist(None)
             }
             Err(error) => self.record_open_resource_failure(
                 resource.title.clone(),
-                error.to_string(),
-                "Open the containing folder from the file system and verify shell integration",
+                HubMessage::legacy(error.to_string()),
+                HubMessage::new(HubMessageId::Delivery(
+                    DeliveryMessageId::OpenContainingFolderRecovery,
+                )),
             ),
         }
     }
@@ -95,8 +108,8 @@ impl HubRuntimeSession {
     fn record_open_resource_failure(
         &mut self,
         target: String,
-        detail: String,
-        recovery: &str,
+        detail: HubMessage,
+        recovery: HubMessage,
     ) -> Result<(), HubError> {
         crate::state::push_action_record(
             &mut self.config.action_history,
@@ -107,7 +120,7 @@ impl HubRuntimeSession {
                 target: target.clone(),
                 detail: detail.clone(),
                 log_excerpt: detail.clone(),
-                recovery: Some(recovery.to_string()),
+                recovery: Some(recovery.clone()),
                 process_id: None,
                 command_line: Vec::new(),
                 output_dir: None,
@@ -115,7 +128,7 @@ impl HubRuntimeSession {
         );
         self.task_status = TaskStatus::error("Open Resource failed", detail, recovery)
             .with_operation(TaskOperationKind::Hub, target);
-        self.persist_hub_config()
+        self.persist(None)
     }
 }
 
@@ -143,7 +156,14 @@ fn open_resource_targets(
     }
 
     if targets.is_empty() {
-        Err(HubError::message("Open Resource target is required"))
+        Err(HubError::status(
+            HubMessage::new(HubMessageId::Learn(
+                LearnMessageId::OpenResourceTargetRequired,
+            )),
+            Some(HubMessage::new(HubMessageId::Learn(
+                LearnMessageId::ChooseResource,
+            ))),
+        ))
     } else {
         Ok(targets)
     }
@@ -196,9 +216,7 @@ mod tests {
             action_id: "open-resource".to_string(),
             target_id: None,
             payload: Some(serde_json::json!({
-                "resource": {
-                    "path": resource.to_string_lossy()
-                }
+                "path": resource.to_string_lossy()
             })),
         }
         .parse()
@@ -226,10 +244,8 @@ mod tests {
                 action_id: "open-resource".to_string(),
                 target_id: None,
                 payload: Some(serde_json::json!({
-                    "resource": {
-                        "resourceId": "stale-learn-row-id",
-                        "path": resource_path.to_string_lossy()
-                    }
+                    "resourceId": "stale-learn-row-id",
+                    "path": resource_path.to_string_lossy()
                 })),
             })
             .expect("open-resource should fall back to catalog path from typed payload");
@@ -324,6 +340,14 @@ mod tests {
     fn session_with_docs(temp: &std::path::Path) -> HubRuntimeSession {
         let source = temp.join("ZirconEngine");
         fs::create_dir_all(source.join("docs")).unwrap();
+        fs::create_dir_all(source.join("tools")).unwrap();
+        fs::create_dir_all(source.join("zircon_runtime")).unwrap();
+        fs::write(
+            source.join("Cargo.toml"),
+            "[workspace]\nmembers = [\"zircon_runtime\"]\n",
+        )
+        .unwrap();
+        fs::write(source.join("tools").join("zircon_build.py"), "").unwrap();
         fs::write(
             source.join("docs").join("guide.md"),
             "# Guide\n\nLocal guide.",

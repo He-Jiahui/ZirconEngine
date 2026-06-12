@@ -74,7 +74,11 @@ fn ui_painter_state_keeps_disabled_and_loading_priorities_explicit() {
     );
     assert_eq!(
         loading_button.resolved_state_for_family(UiPainterFamily::Slider),
-        UiPainterResolvedState::Pressed
+        UiPainterResolvedState::Loading
+    );
+    assert_eq!(
+        loading_button.resolved_state_for_family(UiPainterFamily::Checkbox),
+        UiPainterResolvedState::Loading
     );
 }
 
@@ -115,6 +119,10 @@ fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
     for family in [
         UiPainterFamily::Generic,
         UiPainterFamily::IconButton,
+        UiPainterFamily::Toggle,
+        UiPainterFamily::Checkbox,
+        UiPainterFamily::Radio,
+        UiPainterFamily::Slider,
         UiPainterFamily::Dropdown,
         UiPainterFamily::PopupRow,
         UiPainterFamily::Alert,
@@ -125,6 +133,7 @@ fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
         UiPainterFamily::TableRow,
         UiPainterFamily::Tab,
         UiPainterFamily::Toast,
+        UiPainterFamily::Chrome,
     ] {
         assert_selector(interactive_busy, family, UiPainterResolvedState::Loading);
     }
@@ -134,17 +143,16 @@ fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
         UiPainterResolvedState::Loading,
     );
 
-    for family in [
-        UiPainterFamily::Checkbox,
-        UiPainterFamily::Radio,
-        UiPainterFamily::Toggle,
-    ] {
-        assert_selector(interactive_busy, family, UiPainterResolvedState::Pressed);
-    }
     assert_selector(
-        interactive_busy,
-        UiPainterFamily::Slider,
-        UiPainterResolvedState::Pressed,
+        UiPainterState {
+            loading: true,
+            pressed: true,
+            hovered: true,
+            checked: true,
+            ..UiPainterState::normal()
+        },
+        UiPainterFamily::Checkbox,
+        UiPainterResolvedState::Loading,
     );
 
     let button_hot_without_focus = UiPainterState {
@@ -170,7 +178,7 @@ fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
     );
 }
 
-fn all_painter_families() -> [UiPainterFamily; 17] {
+fn all_painter_families() -> [UiPainterFamily; 18] {
     [
         UiPainterFamily::Generic,
         UiPainterFamily::Button,
@@ -189,6 +197,7 @@ fn all_painter_families() -> [UiPainterFamily; 17] {
         UiPainterFamily::TableRow,
         UiPainterFamily::Tab,
         UiPainterFamily::Toast,
+        UiPainterFamily::Chrome,
     ]
 }
 

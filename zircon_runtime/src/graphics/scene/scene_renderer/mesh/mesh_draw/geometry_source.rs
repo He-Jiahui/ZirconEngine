@@ -2,4 +2,5 @@
 pub(crate) enum MeshDrawGeometrySource {
     Prepared,
     Dynamic,
+    DynamicGpuSkinningSource,
 }

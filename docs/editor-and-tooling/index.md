@@ -24,6 +24,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
@@ -44,6 +45,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_scene/src/world/mod.rs
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
   - user: 2026-04-12 实现 Zircon Editor Workbench Shell V1
@@ -73,6 +75,7 @@ tests:
   - cargo check --workspace --locked
   - cargo check -p zircon_editor --lib --message-format short
   - cargo check -p zircon_runtime --lib --message-format short --target-dir target/codex-runtime-config-check
+  - editor_only_dependency_candidates_have_editor_backlog_owner
 doc_type: category-index
 ---
 
@@ -107,6 +110,7 @@ doc_type: category-index
 - [Editor Host Locking](./editor-host-locking.md): `zircon_editor::ui::host` 生产路径共享状态的锁获取策略，记录 host/session/asset/animation/shell pointer direct `lock().unwrap()` 与 `lock().expect(...)` 收口。
 - [Editor Host Minimal Plugin Loading](./editor-host-minimal-plugin-loading.md): `EditorHostMinimal` 白名单、扩展黑名单、EngineModule/VM 双轨加载入口、VM host capability handle bridge 和失败隔离策略。
 - [Editor Structure Hard Cutover Rules](./editor-structure-hard-cutover-rules.md): `core/scene/ui` 顶层分工、`ui/host` vs `ui/retained_host` vs `ui/asset_editor` vs `ui/workbench` 的 owner 红线，以及 `zircon_editor` crate root/public surface 收口规则。
+- [Runtime Editor-Only Dependency Backlog](./runtime-editor-only-dependency-backlog.md): `rfd` 文件对话框和 `arboard` 剪贴板是 editor-host 候选依赖，不属于 runtime 技术栈；若未来引入，归 `zircon_editor::ui::host` / retained host 适配层，而不是 `zircon_runtime`。
 - [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_runtime::ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、test-only fixture migration、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。
 - [UI And Layout / Shared UI Core Foundation](../ui-and-layout/shared-ui-core-foundation.md): 运行时/编辑器共享的 `zircon_ui` 约束类型、retained tree、命中索引、surface/render extract，以及 editor workbench 对共享布局核心的复用边界。
 - [UI And Layout / Shared UI Template Runtime](../ui-and-layout/shared-ui-template-runtime.md): shared TOML 模板文档、slot/composite 展开和稳定 binding ref 保留语义，是 editor shell compatibility migration 的共享模板真源。

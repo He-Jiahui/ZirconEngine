@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::core::framework::render::PostProcessStackDescriptor;
 use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -10,4 +11,5 @@ pub struct RenderPipelineCompileOptions {
     pub enabled_capabilities: BTreeSet<RenderFeatureCapabilityRequirement>,
     pub allow_async_compute: bool,
     pub graph_msaa_sample_count: Option<u32>,
+    pub post_process_stack: Option<PostProcessStackDescriptor>,
 }

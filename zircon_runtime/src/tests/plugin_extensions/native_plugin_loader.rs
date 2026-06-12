@@ -484,6 +484,14 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .iter()
         .any(|message| message.contains("editor entry reached")));
     assert!(report
+        .entry_diagnostics()
+        .iter()
+        .any(|message| { message.contains("editor entry reached with v3 host ABI table") }));
+    assert!(!report
+        .entry_diagnostics()
+        .iter()
+        .any(|message| { message.contains("editor entry reached with v2 host ABI table") }));
+    assert!(report
         .diagnostics_for_plugin("native_dynamic_fixture")
         .iter()
         .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
@@ -491,6 +499,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .diagnostics_for_plugin("native_dynamic_fixture")
         .iter()
         .any(|message| message.contains("editor entry reached")));
+    assert!(report
+        .diagnostics_for_plugin("native_dynamic_fixture")
+        .iter()
+        .any(|message| message.contains("editor entry reached with v3 host ABI table")));
     assert!(report
         .diagnostics_for_runtime_plugin("native_dynamic_fixture")
         .iter()
@@ -503,6 +515,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .diagnostics_for_editor_plugin("native_dynamic_fixture")
         .iter()
         .any(|message| message.contains("editor entry reached")));
+    assert!(report
+        .diagnostics_for_editor_plugin("native_dynamic_fixture")
+        .iter()
+        .any(|message| message.contains("editor entry reached with v3 host ABI table")));
     assert!(!report
         .diagnostics_for_editor_plugin("native_dynamic_fixture")
         .iter()
@@ -544,6 +560,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .entry_diagnostics()
         .iter()
         .any(|message| message.contains("editor entry reached")));
+    assert!(editor_report
+        .entry_diagnostics()
+        .iter()
+        .any(|message| { message.contains("editor entry reached with v3 host ABI table") }));
     assert!(!editor_report
         .entry_diagnostics()
         .iter()

@@ -1,8 +1,10 @@
 use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 mod access;
+mod bridge_dependencies;
 mod contributions;
 mod descriptor_contributions;
+mod diagnostics;
 mod extension_merge;
 mod extension_report;
 mod feature_blocking;
@@ -29,6 +31,7 @@ mod runtime_extensions;
 mod runtime_feature_definitions;
 mod status;
 
+pub use bridge_dependencies::{RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker};
 pub use extension_report::RuntimeExtensionCatalogReport;
 pub use feature_report::{RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport};
 

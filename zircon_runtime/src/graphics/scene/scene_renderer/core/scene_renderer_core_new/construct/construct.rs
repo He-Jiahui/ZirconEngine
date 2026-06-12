@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
+use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::{RenderFeatureDescriptor, RuntimePrepareCollectorRegistration};
 
 use super::super::super::super::deferred::DeferredSceneResources;
-use super::super::super::super::mesh::MeshPipelineCache;
+use super::super::super::super::mesh::skinning::{
+    create_empty_skinned_joint_palette_buffer, skinned_joint_palette_uniform_min_binding_size,
+};
+use super::super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
 use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRenderer};
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
@@ -16,8 +20,7 @@ use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
 };
 use super::super::layouts::{
-    create_material_bind_group_layout, create_model_bind_group_layout,
-    create_texture_bind_group_layout,
+    create_material_texture_bind_group_layout, create_texture_bind_group_layout,
 };
 use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
@@ -33,35 +36,40 @@ impl SceneRendererCore {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Self {
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
-        let model_bind_group_layout = create_model_bind_group_layout(device);
+        let skinned_joint_palette_fallback_buffer =
+            create_empty_skinned_joint_palette_buffer(device);
         let texture_bind_group_layout = create_texture_bind_group_layout(device);
-        let material_bind_group_layout = create_material_bind_group_layout(device);
+        let material_texture_bind_group_layout = create_material_texture_bind_group_layout(device);
+        let gpu_scene = GpuScene::new(
+            device,
+            Arc::clone(&skinned_joint_palette_fallback_buffer),
+            skinned_joint_palette_uniform_min_binding_size(),
+        );
 
         let mesh_pipelines = MeshPipelineCache::new(
             device,
             target_format,
             &scene_bind_group_bundle.layout,
-            &model_bind_group_layout,
-            &texture_bind_group_layout,
-            &material_bind_group_layout,
+            &material_texture_bind_group_layout,
+            gpu_scene.scene_bind_group_layout(),
         );
         let normal_prepass = NormalPrepassPipeline::new(
             device,
             &scene_bind_group_bundle.layout,
-            &model_bind_group_layout,
+            &material_texture_bind_group_layout,
+            gpu_scene.scene_bind_group_layout(),
         );
         let shadow_map_renderer = ShadowMapRenderer::new(
             device,
             &scene_bind_group_bundle.layout,
-            &model_bind_group_layout,
-            &texture_bind_group_layout,
+            &material_texture_bind_group_layout,
+            gpu_scene.scene_bind_group_layout(),
         );
         let deferred = DeferredSceneResources::new(
             device,
             &scene_bind_group_bundle.layout,
-            &model_bind_group_layout,
-            &texture_bind_group_layout,
-            &material_bind_group_layout,
+            &material_texture_bind_group_layout,
+            gpu_scene.scene_bind_group_layout(),
             target_format,
         );
         let particle_renderer =
@@ -93,9 +101,11 @@ impl SceneRendererCore {
             texture_bind_group_layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
             scene_bind_group: scene_bind_group_bundle.bind_group,
-            model_bind_group_layout,
-            material_bind_group_layout,
+            mesh_command_generation: 0,
+            material_texture_bind_group_layout,
             mesh_pipelines,
+            cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
+            gpu_scene,
             normal_prepass,
             shadow_map_renderer,
             deferred,
@@ -104,6 +114,7 @@ impl SceneRendererCore {
             post_process,
             overlay_renderer,
             screen_space_ui_renderer,
+            transient_resource_pool: Default::default(),
             advanced_plugin_resources,
         }
     }

@@ -108,8 +108,11 @@ impl SegmentedRenderState {
         }
     }
 
-    fn disabled(self) -> bool {
-        matches!(self.visual_state, UiPainterResolvedState::Disabled)
+    fn unavailable(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        )
     }
 
     fn pressed(self) -> bool {
@@ -465,7 +468,7 @@ fn segmented_background<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         SEGMENTED_DISABLED
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED)
@@ -480,8 +483,8 @@ fn segmented_border<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> &'a str {
-    if state.disabled() {
-        color_attribute(metadata, "disabled_border_color").unwrap_or("#334852")
+    if state.unavailable() {
+        "#334852"
     } else if state.pressed() || state.hot() {
         color_attribute(metadata, "focus_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
     } else {
@@ -500,7 +503,7 @@ fn selected_surface<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         SEGMENTED_DISABLED
     } else {
         color_attribute(metadata, "selected_background_color").unwrap_or(SEGMENTED_SELECTED_SURFACE)
@@ -509,18 +512,26 @@ fn selected_surface<'a>(
 
 fn selected_border<'a>(
     metadata: &'a UiTemplateNodeMetadata,
-    _state: &SegmentedRenderState,
+    state: &SegmentedRenderState,
 ) -> &'a str {
-    color_attribute(metadata, "selected_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
+    if state.unavailable() {
+        "#334852"
+    } else {
+        color_attribute(metadata, "selected_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
+    }
 }
 
 fn selected_underline<'a>(
     metadata: &'a UiTemplateNodeMetadata,
-    _state: &SegmentedRenderState,
+    state: &SegmentedRenderState,
 ) -> &'a str {
-    color_attribute(metadata, "selected_underline_color")
-        .or_else(|| color_attribute(metadata, "accent_color"))
-        .unwrap_or(SEGMENTED_SELECTED_BORDER)
+    if state.unavailable() {
+        TEXT_DISABLED
+    } else {
+        color_attribute(metadata, "selected_underline_color")
+            .or_else(|| color_attribute(metadata, "accent_color"))
+            .unwrap_or(SEGMENTED_SELECTED_BORDER)
+    }
 }
 
 fn option_text_color<'a>(
@@ -528,7 +539,7 @@ fn option_text_color<'a>(
     state: &SegmentedRenderState,
     selected: bool,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if selected {
         color_attribute(metadata, "selected_foreground_color")
@@ -545,7 +556,7 @@ fn group_label_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else {
         color_attribute(metadata, "label_color").unwrap_or(GROUP_LABEL)
@@ -556,7 +567,7 @@ fn tab_background<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> Option<&'a str> {
-    if state.disabled() {
+    if state.unavailable() {
         Some(SEGMENTED_DISABLED)
     } else if state.pressed() {
         Some(color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED))
@@ -571,7 +582,7 @@ fn tab_text_color<'a>(
     metadata: &'a UiTemplateNodeMetadata,
     state: &SegmentedRenderState,
 ) -> &'a str {
-    if state.disabled() {
+    if state.unavailable() {
         TEXT_DISABLED
     } else if state.active {
         color_attribute(metadata, "selected_foreground_color")

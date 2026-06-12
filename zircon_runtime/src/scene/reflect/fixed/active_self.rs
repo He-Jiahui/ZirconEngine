@@ -73,10 +73,10 @@ fn write_field(
     if current.0 == next {
         return Ok(false);
     }
-    world
-        .insert(entity, ActiveSelf(next))
-        .map_err(|_| shared::missing_component(entity, TYPE_PATH))?;
-    Ok(true)
+    match world.insert(entity, ActiveSelf(next)) {
+        Ok(_) => Ok(true),
+        Err(_) => Err(shared::missing_component(entity, TYPE_PATH)),
+    }
 }
 
 fn remove(world: &mut World, entity: EntityId, _type_path: &str) -> Result<bool, ReflectError> {

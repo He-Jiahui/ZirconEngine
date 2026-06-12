@@ -8,7 +8,8 @@ import { SettingsPage } from "../../pages/SettingsPage";
 import { TeamPage } from "../../pages/TeamPage";
 import { WorkspacePage } from "../../pages/WorkspacePage";
 import { hubTokens } from "../../theme/tokens";
-import type { HubActionHandler, HubShellState } from "../../types/hub";
+import type { ComponentType } from "react";
+import type { HubActionHandler, HubPageId, HubShellState } from "../../types/hub";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { TopBar } from "./TopBar";
 
@@ -17,7 +18,24 @@ export interface HubWindowProps {
   onAction: HubActionHandler;
 }
 
+type HubPageComponent = ComponentType<HubWindowProps>;
+
+const pageRoutes: Record<HubPageId, HubPageComponent> = {
+  projects: ProjectsDashboard,
+  editor: EditorPage,
+  assets: CatalogPage,
+  builds: BuildsPage,
+  plugins: CatalogPage,
+  cloud: CloudPage,
+  team: TeamPage,
+  learn: CatalogPage,
+  settings: SettingsPage,
+};
+
 export function HubWindow({ state, onAction }: HubWindowProps) {
+  const activeRoute = toHubPageId(state.activePage);
+  const PageComponent = activeRoute ? pageRoutes[activeRoute] : WorkspacePage;
+
   return (
     <Box
       sx={{
@@ -27,15 +45,21 @@ export function HubWindow({ state, onAction }: HubWindowProps) {
         minHeight: 0,
         overflow: "hidden",
         color: hubTokens.colors.text,
-        background:
-          "radial-gradient(circle at 30% 18%, rgba(38,86,82,0.13), transparent 30%), linear-gradient(180deg, #161616 0%, #111111 100%)",
+        background: hubTokens.gradients.window,
         border: `1px solid ${hubTokens.colors.lineStrong}`,
         borderRadius: "10px",
       }}
     >
       <TopBar state={state} onAction={onAction} />
       <Box sx={{ display: "flex", height: `calc(100vh - ${hubTokens.window.topBarHeight}px)`, minHeight: 0 }}>
-        <NavigationDrawer activePage={state.activePage} text={state.ui.shell} engineVersion={state.engineVersion} onAction={onAction} />
+        <NavigationDrawer
+          activePage={state.activePage}
+          text={state.ui.shell}
+          engineVersion={state.engineVersion}
+          sourceEngines={state.sourceEngines}
+          activeSourceEngineId={state.activeSourceEngineId}
+          onAction={onAction}
+        />
         <Box
           component="main"
           sx={{
@@ -46,25 +70,13 @@ export function HubWindow({ state, onAction }: HubWindowProps) {
             backgroundColor: "rgba(17,17,17,0.55)",
           }}
         >
-          {state.activePage === "projects" ? (
-            <ProjectsDashboard state={state} onAction={onAction} />
-          ) : state.activePage === "editor" ? (
-            <EditorPage state={state} onAction={onAction} />
-          ) : state.activePage === "builds" ? (
-            <BuildsPage state={state} onAction={onAction} />
-          ) : state.activePage === "cloud" ? (
-            <CloudPage state={state} onAction={onAction} />
-          ) : state.activePage === "assets" || state.activePage === "plugins" || state.activePage === "learn" ? (
-            <CatalogPage state={state} onAction={onAction} />
-          ) : state.activePage === "team" ? (
-            <TeamPage state={state} onAction={onAction} />
-          ) : state.activePage === "settings" ? (
-            <SettingsPage state={state} onAction={onAction} />
-          ) : (
-            <WorkspacePage state={state} onAction={onAction} />
-          )}
+          <PageComponent state={state} onAction={onAction} />
         </Box>
       </Box>
     </Box>
   );
+}
+
+function toHubPageId(activePage: string): HubPageId | undefined {
+  return activePage in pageRoutes ? (activePage as HubPageId) : undefined;
 }

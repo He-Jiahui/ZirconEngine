@@ -1,4 +1,4 @@
-use crate::ui::{layout::virtual_window_for_scrollable_box};
+use crate::ui::layout::virtual_window_for_scrollable_box;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{

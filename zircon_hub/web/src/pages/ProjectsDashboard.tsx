@@ -1,14 +1,13 @@
 import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import GridViewIcon from "@mui/icons-material/GridView";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import { Box, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { EmptyStateBlock, HubPanel, ProjectCard, ProjectTable, QuickActions } from "../components/data";
-import { HubDialog } from "../components/overlays";
-import { HubButton, HubComboBox, HubSearchField, HubSelect, HubTextField, HubToggle } from "../components/inputs";
+import { EmptyStateBlock, HubPanel, ProjectCard, ProjectCardRail, ProjectTable, QuickActions } from "../components/data";
+import { CreateProjectDialog, HubMenu, type HubMenuItem } from "../components/overlays";
+import { HubStatusBanner } from "../components/feedback";
+import { HubButton, ProjectsToolbar } from "../components/inputs";
 import { quickActionProjectTargetPayload } from "../tauri/projectTarget";
 import { hubTokens } from "../theme/tokens";
 import type { HubActionHandler, HubProjectSummary, HubRecentProject, HubShellState } from "../types/hub";
@@ -35,10 +34,7 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
   const [filter, setFilter] = useState(state.projectFilter);
   const [sort, setSort] = useState(state.projectSort);
   const [viewMode, setViewMode] = useState(state.projectViewMode);
-  const [projectName, setProjectName] = useState("");
-  const [projectLocation, setProjectLocation] = useState(state.settings.defaultProjectDir);
-  const [template, setTemplate] = useState("renderable-empty");
-  const [engineId, setEngineId] = useState(state.activeSourceEngineId ?? state.sourceEngines[0]?.id ?? "");
+  const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; project: HubRecentProject } | null>(null);
   const quickActionProjectTarget = quickActionProjectTargetPayload(state.selectedProject);
 
   useEffect(() => {
@@ -47,29 +43,6 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
     setSort(state.projectSort);
     setViewMode(state.projectViewMode);
   }, [state.projectFilter, state.projectSort, state.projectViewMode, state.searchQuery]);
-
-  useEffect(() => {
-    setProjectLocation(state.settings.defaultProjectDir);
-  }, [state.settings.defaultProjectDir]);
-
-  useEffect(() => {
-    setEngineId((currentEngineId) => {
-      if (state.sourceEngines.some((engine) => engine.id === currentEngineId)) {
-        return currentEngineId;
-      }
-      return state.activeSourceEngineId ?? state.sourceEngines[0]?.id ?? "";
-    });
-  }, [state.activeSourceEngineId, state.sourceEngines]);
-
-  useEffect(() => {
-    if (state.projectTemplates.some((projectTemplate) => projectTemplate.id === template && projectTemplate.enabled)) {
-      return;
-    }
-    const firstEnabled = state.projectTemplates.find((projectTemplate) => projectTemplate.enabled);
-    if (firstEnabled) {
-      setTemplate(firstEnabled.id);
-    }
-  }, [state.projectTemplates, template]);
 
   const visibleProjects = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -84,18 +57,25 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
   const handleOpenProject = (project: HubProjectSummary) => {
     void onAction(HUB_ACTION.openProjectDetail, project.id);
   };
-  const selectedTemplate = state.projectTemplates.find((projectTemplate) => projectTemplate.id === template);
-  const createDisabled = projectName.trim().length === 0 || projectLocation.trim().length === 0 || !selectedTemplate?.enabled;
-  const createProject = () => {
-    if (createDisabled) {
+
+  const rowMenuItems = (project: HubRecentProject): HubMenuItem[] => [
+    { id: HUB_ACTION.openProjectDetail, label: text.openProjectDetailsLabel },
+    project.pinned
+      ? { id: HUB_ACTION.unpinProject, label: actionText.unpinProject }
+      : { id: HUB_ACTION.pinProject, label: actionText.pinProject },
+    { id: HUB_ACTION.requestDelete, label: actionText.requestDelete },
+  ];
+
+  const handleRowMenuSelect = (project: HubRecentProject, itemId: string) => {
+    if (itemId === HUB_ACTION.openProjectDetail) {
+      void onAction(HUB_ACTION.openProjectDetail, project.id);
       return;
     }
-    void onAction(HUB_ACTION.createProject, undefined, {
-      name: projectName,
-      location: projectLocation,
-      template,
-      engineId: engineId || null,
-    });
+    if (itemId === HUB_ACTION.pinProject || itemId === HUB_ACTION.unpinProject) {
+      void onAction(itemId, undefined, { projectId: project.id });
+      return;
+    }
+    void onAction(HUB_ACTION.requestDelete, undefined, { projectId: project.id });
   };
 
   const visibleRows = useMemo<HubRecentProject[]>(() => {
@@ -145,67 +125,33 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "minmax(260px, 307px) 1fr auto auto auto",
-            alignItems: "center",
-            gap: 1.2,
-            mt: 2,
-            "@media (max-width: 1180px)": {
-              gridTemplateColumns: "minmax(240px, 1fr) auto auto",
-            },
-            "@media (max-width: 760px)": {
-              gridTemplateColumns: "1fr",
-            },
-          }}
-        >
-          <HubSearchField
-            value={search}
-            placeholder={text.searchPlaceholder}
-            onChange={(value) => {
-              setSearch(value);
-              void onAction(HUB_ACTION.searchProjects, undefined, { query: value });
-            }}
-          />
-          <Box sx={{ minWidth: 0 }} />
-          <HubSelect
-            value={filter}
-            minWidth={183}
-            options={[
-              { value: "all", label: text.filterAll },
-              { value: "existing", label: text.filterExisting },
-              { value: "missing", label: text.filterMissing },
-            ]}
-            onChange={(value) => {
-              setFilter(value);
-              void onAction(HUB_ACTION.setProjectFilter, value);
-            }}
-          />
-          <HubSelect
-            value={sort}
-            minWidth={190}
-            options={[
-              { value: "last-modified", label: text.sortLastModified },
-              { value: "name", label: text.sortName },
-            ]}
-            onChange={(value) => {
-              setSort(value);
-              void onAction(HUB_ACTION.setProjectSort, value);
-            }}
-          />
-          <HubToggle
-            value={viewMode}
-            onChange={(value) => {
-              setViewMode(value);
-              void onAction(HUB_ACTION.setProjectViewMode, value);
-            }}
-            options={[
-              { value: "grid", label: text.gridView, icon: <GridViewIcon /> },
-              { value: "list", label: text.listView, icon: <FormatListBulletedIcon /> },
-            ]}
-          />
+        <Box sx={{ mb: 1.4 }}>
+          <HubStatusBanner task={state.taskSummary} />
         </Box>
+
+        <ProjectsToolbar
+          search={search}
+          filter={filter}
+          sort={sort}
+          viewMode={viewMode}
+          text={text}
+          onSearch={(value) => {
+            setSearch(value);
+            void onAction(HUB_ACTION.searchProjects, undefined, { query: value });
+          }}
+          onFilter={(value) => {
+            setFilter(value);
+            void onAction(HUB_ACTION.setProjectFilter, value);
+          }}
+          onSort={(value) => {
+            setSort(value);
+            void onAction(HUB_ACTION.setProjectSort, value);
+          }}
+          onViewMode={(value) => {
+            setViewMode(value);
+            void onAction(HUB_ACTION.setProjectViewMode, value);
+          }}
+        />
 
         {(viewMode === "list" ? visibleRows.length === 0 : visibleProjects.length === 0) ? (
           <Box sx={{ mt: 2.3 }}>
@@ -224,36 +170,27 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
                 labels={tableLabels}
                 onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}
                 onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}
+                onRowMenu={(project, anchor) => setRowMenu({ anchor, project })}
               />
             </HubPanel>
           </Box>
         ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, minmax(220px, 296px))",
-              gap: 2,
-              mt: 2.3,
-              "@media (max-width: 1360px)": {
-                gridTemplateColumns: "repeat(3, minmax(220px, 1fr))",
-              },
-              "@media (max-width: 1080px)": {
-                gridTemplateColumns: "repeat(2, minmax(220px, 1fr))",
-              },
-              "@media (max-width: 760px)": {
-                gridTemplateColumns: "1fr",
-              },
-            }}
-          >
-            {dashboardProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                selected={project.id === state.selectedProjectId}
-                openDetailsLabel={text.openProjectDetailsLabel}
-                onOpen={handleOpenProject}
-              />
-            ))}
+          <Box sx={{ mt: 2.3 }}>
+            <ProjectCardRail
+              moreLabel={actionText.viewAllProjects}
+              hasMore={visibleProjects.length > dashboardProjects.length}
+              onMore={() => void onAction(HUB_ACTION.viewAllProjects)}
+            >
+              {dashboardProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  selected={project.id === state.selectedProjectId}
+                  openDetailsLabel={text.openProjectDetailsLabel}
+                  onOpen={handleOpenProject}
+                />
+              ))}
+            </ProjectCardRail>
           </Box>
         )}
 
@@ -286,6 +223,7 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
               labels={tableLabels}
               onSelect={(project) => void onAction(HUB_ACTION.selectProject, project.id)}
               onOpenDetail={(project) => void onAction(HUB_ACTION.openProjectDetail, project.id)}
+              onRowMenu={(project, anchor) => setRowMenu({ anchor, project })}
             />
           </HubPanel>
 
@@ -295,47 +233,26 @@ export function ProjectsDashboard({ state, onAction }: ProjectsDashboardProps) {
         </Box>
       </Box>
 
-      <HubDialog
+      <CreateProjectDialog
         open={state.projectSubpage === "new-project"}
-        title={text.newProjectDialog}
+        templates={state.projectTemplates}
+        sourceEngines={state.sourceEngines}
+        activeSourceEngineId={state.activeSourceEngineId}
+        defaultProjectDir={state.settings.defaultProjectDir}
+        text={text}
+        actionText={actionText}
         onClose={() => void onAction(HUB_ACTION.viewAllProjects)}
-        actions={
-          <>
-            <HubButton onClick={() => void onAction(HUB_ACTION.viewAllProjects)}>{actionText.close}</HubButton>
-            <HubButton tone="primary" disabled={createDisabled} onClick={createProject}>
-              {actionText.createProject}
-            </HubButton>
-          </>
-        }
-      >
-        <Box sx={{ display: "grid", gap: 1.4, pt: 0.5 }}>
-          <HubTextField label={text.projectName} value={projectName} onChange={(event) => setProjectName(event.target.value)} />
-          <HubTextField label={text.location} value={projectLocation} onChange={(event) => setProjectLocation(event.target.value)} />
-          <HubComboBox
-            value={engineId}
-            minWidth={0}
-            placeholder={text.sourceEngine}
-            options={state.sourceEngines.map((engine) => ({
-              value: engine.id,
-              label: engine.name,
-              detail: engine.sourcePath,
-            }))}
-            onChange={setEngineId}
-          />
-          <HubComboBox
-            value={template}
-            minWidth={0}
-            placeholder={text.template}
-            options={state.projectTemplates.map((projectTemplate) => ({
-              value: projectTemplate.id,
-              label: projectTemplate.optionLabel,
-              detail: projectTemplate.disabledReason ?? projectTemplate.description,
-              disabled: !projectTemplate.enabled,
-            }))}
-            onChange={setTemplate}
-          />
-        </Box>
-      </HubDialog>
+        onCreate={(payload) => void onAction(HUB_ACTION.createProject, undefined, payload)}
+      />
+      {rowMenu ? (
+        <HubMenu
+          anchorEl={rowMenu.anchor}
+          open
+          items={rowMenuItems(rowMenu.project)}
+          onClose={() => setRowMenu(null)}
+          onSelect={(itemId) => handleRowMenuSelect(rowMenu.project, itemId)}
+        />
+      ) : null}
     </Box>
   );
 }

@@ -136,6 +136,101 @@ corner_radius = 6.0
     );
 }
 
+#[test]
+fn render_extract_loading_button_and_icon_button_use_unavailable_visuals() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.loading"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 260.0, 120.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Button",
+        UiFrame::new(12.0, 16.0, 132.0, 30.0),
+        r##"
+text = "Compile"
+icon = "play"
+button_color = "primary"
+loading = true
+hovered = true
+focused = true
+pressed = true
+background_color = "#32b8c5"
+border_color = "#249aa6"
+foreground_color = "#08181b"
+layout_padding_left = 12.0
+layout_padding_right = 12.0
+layout_spacing = 7.0
+layout_icon_size = 16.0
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "IconButton",
+        UiFrame::new(160.0, 16.0, 40.0, 40.0),
+        r##"
+icon = "trash"
+selected = true
+checked = true
+loading = true
+hovered = true
+focused = true
+pressed = true
+background_color = "#14373c"
+border_color = "#35c7d0"
+icon_color = "#ef7066"
+selected_icon_color = "#35c7d0"
+layout_icon_size = 18.0
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Button
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("play".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Compile")
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::IconButton
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.background_color.as_deref() == Some("#252c31")
+            && command.style.border_color.as_deref() == Some("#343f47")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Image
+            && command.image.as_ref() == Some(&UiVisualAssetRef::Icon("trash".to_string()))
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,

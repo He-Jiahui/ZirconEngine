@@ -2,6 +2,7 @@ use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {
     match value {
+        "empty" => Some(NodeKind::Empty),
         "camera" => Some(NodeKind::Camera),
         "cube" => Some(NodeKind::Cube),
         "mesh" => Some(NodeKind::Mesh),
@@ -16,6 +17,7 @@ pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {
 
 pub(super) fn node_kind_from_control_id(value: &str) -> Option<NodeKind> {
     match value {
+        "Empty" => Some(NodeKind::Empty),
         "Camera" => Some(NodeKind::Camera),
         "Cube" => Some(NodeKind::Cube),
         "Mesh" => Some(NodeKind::Mesh),

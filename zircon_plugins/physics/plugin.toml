@@ -46,6 +46,8 @@ kind = "runtime"
 crate_name = "zircon_plugin_physics_runtime"
 target_modes = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.physics", "runtime.capability.physics.raycast", "runtime.capability.physics.overlap", "runtime.capability.physics.shape_cast", "runtime.capability.physics.trigger_events", "runtime.capability.physics.constraints", "runtime.capability.physics.skeletal_joints"]
+system_sets = ["physics.simulation"]
+system_anchors = ["physics.step"]
 
 [[modules]]
 name = "physics.editor"

@@ -3,7 +3,7 @@ use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialValidationError,
 };
 
-use super::{AlphaMode, MaterialAsset};
+use super::{is_standard_texture_slot_alias, AlphaMode, MaterialAsset};
 
 pub fn validate_alpha_mode(alpha_mode: &AlphaMode) -> Vec<RenderMaterialValidationError> {
     match alpha_mode {
@@ -52,6 +52,9 @@ pub fn validate_shader_contract(
     }
 
     for slot in material.texture_slots.keys() {
+        if is_standard_texture_slot_alias(slot) {
+            continue;
+        }
         if !shader
             .texture_slots
             .iter()

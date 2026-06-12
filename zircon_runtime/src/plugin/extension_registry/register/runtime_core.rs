@@ -12,16 +12,16 @@ impl RuntimeExtensionRegistry {
     ) -> Result<(), RuntimeExtensionRegistryError> {
         let plugin_id = plugin_id.into();
         validate_manager_plugin_id(&plugin_id)?;
-        if self
-            .managers
-            .iter()
-            .any(|existing| existing.name == descriptor.name)
-        {
+        let manager_name = descriptor.name.to_string();
+        if self.managers.contains_key(&manager_name) {
             return Err(RuntimeExtensionRegistryError::DuplicateManager(
                 descriptor.name.to_string(),
             ));
         }
-        self.managers.push(descriptor);
+        let owner = self.intern_runtime_owner(&plugin_id)?;
+        self.managers
+            .register(owner, manager_name, descriptor)
+            .expect("manager duplicate was prechecked");
         Ok(())
     }
 
@@ -30,16 +30,15 @@ impl RuntimeExtensionRegistry {
         descriptor: ModuleDescriptor,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         validate_module_descriptor(&descriptor)?;
-        if self
-            .modules
-            .iter()
-            .any(|existing| existing.name == descriptor.name)
-        {
+        if self.modules.contains_key(&descriptor.name) {
             return Err(RuntimeExtensionRegistryError::DuplicateModule(
                 descriptor.name,
             ));
         }
-        self.modules.push(descriptor);
+        let owner = self.intern_plugin_module(format!("{}.runtime", descriptor.name))?;
+        self.modules
+            .register(owner, descriptor.name.clone(), descriptor)
+            .expect("module duplicate was prechecked");
         Ok(())
     }
 }

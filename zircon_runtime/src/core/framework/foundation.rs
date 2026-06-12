@@ -1,4 +1,6 @@
-use crate::core::{ChannelReceiver, CoreError, EngineEvent};
+use crate::core::framework::channel::ChannelReceiver;
+use crate::core::framework::events::EngineEvent;
+use crate::core::CoreError;
 use serde_json::Value;
 
 pub trait ConfigManager: Send + Sync {

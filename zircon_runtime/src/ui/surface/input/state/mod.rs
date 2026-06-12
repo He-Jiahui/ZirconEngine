@@ -2,6 +2,7 @@ mod analog;
 mod drag_drop;
 mod pointer_capture;
 mod pointer_drag;
+mod pointer_position;
 mod popup_tooltip;
 
 use std::collections::BTreeMap;
@@ -16,6 +17,7 @@ pub use analog::{UiSurfaceAnalogControlState, UiSurfaceAnalogNavigationState};
 pub use drag_drop::UiSurfaceDragDropState;
 pub use pointer_capture::UiSurfacePointerCaptureState;
 pub use pointer_drag::UiSurfacePointerDragState;
+pub use pointer_position::UiSurfacePointerPositionState;
 pub use popup_tooltip::{UiSurfacePopupState, UiSurfaceTooltipState};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -32,6 +34,7 @@ pub struct UiSurfaceInputState {
     pub tooltip: Option<UiSurfaceTooltipState>,
     pub drag_drop: Option<UiSurfaceDragDropState>,
     pub pointer_drags: BTreeMap<UiNodeId, UiSurfacePointerDragState>,
+    pub last_cursor_point: Option<UiSurfacePointerPositionState>,
     pub analog_controls: BTreeMap<String, UiSurfaceAnalogControlState>,
     pub analog_navigation: BTreeMap<String, UiSurfaceAnalogNavigationState>,
 }

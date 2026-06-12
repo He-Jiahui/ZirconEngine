@@ -2,7 +2,10 @@ mod action_policy;
 mod binding;
 mod compiler;
 mod component_contract;
+mod dependency_index;
 mod document;
+mod hot_reload_executor;
+mod hot_reload_plan;
 mod invalidation;
 mod loader;
 mod localization;
@@ -11,16 +14,25 @@ mod prototype_store;
 mod resource_ref;
 mod schema;
 mod style;
+mod surface_index;
+mod watch_invalidation;
 
 pub use action_policy::validate_document_action_policy;
 pub use binding::{collect_asset_binding_report, validate_asset_bindings};
 pub use compiler::{
     compile_cache_key_from_compiler, compiled_asset_package_manifest_from_artifact_bytes,
-    UiAssetCompileCache, UiCompileCacheOutcome, UiCompiledDocument, UiDocumentCompiler,
-    UiRuntimeCompiledAssetArtifact, UiStyleResolver,
+    UiAssetCompileCache, UiAssetCompileCacheEvictionReport, UiCompileCacheOutcome,
+    UiCompiledArtifactKey, UiCompiledArtifactStore, UiCompiledArtifactStoreEvictionReport,
+    UiCompiledDocument, UiDocumentCompiler, UiRuntimeCompiledAssetArtifact, UiStyleResolver,
 };
 pub use component_contract::component_contract_diagnostic;
+pub use dependency_index::{UiAssetDependencyIndex, UiAssetDependencyQueryReport};
 pub use document::{UiAssetDocumentRuntimeExt, UiAssetNodeIter, UiNodeParent};
+pub use hot_reload_executor::{UiAssetHotReloadExecutionReport, UiAssetHotReloadExecutor};
+pub use hot_reload_plan::{
+    classify_ui_hot_reload_asset, UiAssetHotReloadPlan, UiAssetHotReloadSurfaceDirtyReport,
+    UiHotReloadAssetKind,
+};
 pub use invalidation::{
     collect_invalidation_diagnostics, component_contract_fingerprint, declared_imports_fingerprint,
     document_import_fingerprints, fingerprint_document, resource_dependencies_fingerprint,
@@ -37,9 +49,17 @@ pub use prototype_file_cache::{UiPrototypeStoreFileCache, UiPrototypeStoreLoadOu
 pub use prototype_store::{UiPrototypeStore, UiPrototypeStoreBuilder};
 pub use resource_ref::{
     collect_document_resource_dependencies, validate_resource_dependency_files,
-    UiResourcePathResolver,
+    UiResolvedResourceDependency, UiResolvedUiResource, UiResourcePathResolver,
+    UiResourceResolutionReport, UiResourceResolveDiagnostic, UiResourceResolveDiagnosticCode,
+    UiResourceResolver, UiResourceResolverCacheInvalidationReport,
 };
 pub use schema::{
     UiAssetSchemaMigrator, UiAssetSchemaVersionPolicy, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
     UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
 };
+pub use surface_index::{
+    UiAssetHotReloadNodeDirtyReport, UiAssetNodeHotReloadTargets, UiAssetNodeTarget,
+    UiAssetSurfaceHotReloadApplyReport, UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,
+    UiAssetSurfaceNodeResourceRegistrationReport,
+};
+pub use watch_invalidation::UiAssetWatchInvalidationReport;

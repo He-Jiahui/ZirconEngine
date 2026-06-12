@@ -71,7 +71,9 @@ fn collect_off_mesh_bridges(world: &World, agent_type: &str) -> Vec<NavMeshLinkA
         .node_records()
         .into_iter()
         .flat_map(|node| {
-            let Some(value) = world.dynamic_component(node.id, NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE) else {
+            let Some(value) =
+                world.dynamic_component(node.id, NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE)
+            else {
                 return Vec::new();
             };
             let bridge = parse_component::<NavMeshOffMeshBridgeDescriptor>(value);
@@ -100,9 +102,7 @@ fn expand_bridge_lanes(
         bridge.end_entity,
         bridge.end_local_point,
     ));
-    let lane_count = bridge
-        .lane_count
-        .clamp(1, MAX_OFF_MESH_BRIDGE_LANES) as usize;
+    let lane_count = bridge.lane_count.clamp(1, MAX_OFF_MESH_BRIDGE_LANES) as usize;
     let width = bridge.width.max(0.0);
     let lane_width = if lane_count > 0 {
         width / lane_count as Real

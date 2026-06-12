@@ -1,0 +1,32 @@
+format_version = 6
+uuid = "601addb9-b346-4941-bd3b-df1c34e110fa"
+url = "res://materials/ghost_mist.zmaterial"
+asset_kind = "Material"
+unit = "single"
+included_files = []
+artifact_locator = "lib://materials/b1271707-2b27-df45-a1d9-4abe91e98572.zasset"
+importer_id = "zircon.builtin.zmaterial"
+config_hash = "bd60acb658c79e45"
+source_mtime_unix_ms = 1781125689603
+source_hash = "63c932546bacd452"
+preview_state = "ready"
+importer_version = 1
+migration_summary = ""
+dependencies = [
+    "res://shaders/vampire_effect",
+    "res://models/kenney_graveyard/character-ghost.glb#Texture0",
+    "res://models/kenney_graveyard/character-ghost.glb#Texture0",
+]
+
+[import_settings]
+
+[[entries]]
+uuid = "601addb9-b346-4941-bd3b-df1c34e110fa"
+url = "res://materials/ghost_mist.zmaterial"
+asset_kind = "Material"
+artifact_locator = "lib://materials/b1271707-2b27-df45-a1d9-4abe91e98572.zasset"
+dependencies = [
+    "res://shaders/vampire_effect",
+    "res://models/kenney_graveyard/character-ghost.glb#Texture0",
+    "res://models/kenney_graveyard/character-ghost.glb#Texture0",
+]

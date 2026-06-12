@@ -78,7 +78,8 @@ pub(in crate::scene::viewport) fn build_scene_gizmos(
             NodeKind::DirectionalLight => {
                 build_directional_light_gizmo(scene, entity, is_selected, camera)
             }
-            NodeKind::Cube
+            NodeKind::Empty
+            | NodeKind::Cube
             | NodeKind::Mesh
             | NodeKind::AmbientLight
             | NodeKind::PointLight

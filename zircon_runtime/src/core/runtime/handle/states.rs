@@ -1,4 +1,4 @@
-use crate::core::state::{
+use crate::core::framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
 
@@ -22,7 +22,11 @@ impl CoreHandle {
             return event;
         }
 
-        StateTransitionEvent::new(None, self.state::<T>().map(State::into_inner), true)
+        let entered = match self.state::<T>() {
+            Some(state) => Some(state.into_inner()),
+            None => None,
+        };
+        StateTransitionEvent::new(None, entered, true)
     }
 
     pub fn insert_state<T: StateSpec>(&self, state: T) -> StateTransitionEvent<T> {

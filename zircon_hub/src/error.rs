@@ -10,6 +10,11 @@ pub enum HubError {
     Json(#[from] serde_json::Error),
     #[error("Tauri error: {0}")]
     Tauri(#[from] tauri::Error),
+    #[error("{}", detail.render(crate::settings::HubLanguage::English))]
+    Status {
+        detail: Box<crate::state::HubMessage>,
+        recovery: Option<Box<crate::state::HubMessage>>,
+    },
     #[error("{0}")]
     Message(String),
 }
@@ -17,5 +22,24 @@ pub enum HubError {
 impl HubError {
     pub fn message(message: impl Into<String>) -> Self {
         Self::Message(message.into())
+    }
+
+    pub fn status(
+        detail: crate::state::HubMessage,
+        recovery: Option<crate::state::HubMessage>,
+    ) -> Self {
+        Self::Status {
+            detail: Box::new(detail),
+            recovery: recovery.map(Box::new),
+        }
+    }
+
+    pub fn into_status_messages(
+        self,
+    ) -> (crate::state::HubMessage, Option<crate::state::HubMessage>) {
+        match self {
+            Self::Status { detail, recovery } => (*detail, recovery.map(|message| *message)),
+            other => (crate::state::HubMessage::legacy(other.to_string()), None),
+        }
     }
 }

@@ -92,6 +92,7 @@ fn project_modules_expose_one_shared_path_key_and_validation_surface() {
             "Valid",
             "MissingRoot",
             "MissingManifest",
+            "InvalidManifest",
             "pub fn validate_project_root(path: impl AsRef<Path>) -> ProjectValidation",
             "path.join(\"zircon-project.toml\").is_file()",
         ],
@@ -236,7 +237,7 @@ fn tauri_runtime_selected_project_paths_use_shared_matching() {
         &[
             "selected_or_latest_recent_project_for_named_action",
             "validate_project_root(&project.path)",
-            "Project root is not valid",
+            "HubMessageId::Project(ProjectMessageId::RootInvalid)",
         ],
     );
 }
@@ -305,7 +306,7 @@ fn view_model_and_types_project_paths_as_display_dtos() {
             "outputPath: string;",
             "repositoryPath: string;",
             "repositoryAvailable: boolean;",
-            "outputDir?: string | null;",
+            "outputDir: string | null;",
             "defaultProjectDir: string;",
             "defaultBuildOutputDir: string;",
             "defaultDeviceInstallDir: string;",
@@ -316,11 +317,14 @@ fn view_model_and_types_project_paths_as_display_dtos() {
 #[test]
 fn react_components_display_paths_from_dtos_without_path_normalization_helpers() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
+    let create_dialog = read_crate_file("web/src/components/overlays/CreateProjectDialog.tsx");
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
+    let metrics = read_crate_file("web/src/components/data/ProjectMetricsGrid.tsx");
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
     let settings = read_crate_file("web/src/pages/SettingsPage.tsx");
+    let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
     let project_card = read_crate_file("web/src/components/data/ProjectCard.tsx");
     let project_table = read_crate_file("web/src/components/data/ProjectTable.tsx");
     let source_engine_list = read_crate_file("web/src/components/data/SourceEngineList.tsx");
@@ -329,11 +333,18 @@ fn react_components_display_paths_from_dtos_without_path_normalization_helpers()
         "ProjectsDashboard.tsx",
         &dashboard,
         &[
-            "const [projectLocation, setProjectLocation] = useState(state.settings.defaultProjectDir);",
-            "setProjectLocation(state.settings.defaultProjectDir);",
             "const tableProjects = state.browserProjects.length > 0 ? state.browserProjects : state.recentProjects;",
             "return tableProjects.filter((project) => `${project.name} ${project.location}`.toLowerCase().includes(query));",
             "projects={visibleRows}",
+            "<CreateProjectDialog",
+        ],
+    );
+    assert_contains_all(
+        "CreateProjectDialog.tsx",
+        &create_dialog,
+        &[
+            "const [projectLocation, setProjectLocation] = useState(defaultProjectDir);",
+            "setProjectLocation(defaultProjectDir);",
             "HubTextField label={text.location} value={projectLocation}",
         ],
     );
@@ -350,8 +361,13 @@ fn react_components_display_paths_from_dtos_without_path_normalization_helpers()
             "{ id: \"project-id\", title: text.projectId, detail: project.id }",
             "detail: project.path",
             "{project?.path ?? state.pageSubtitle}",
-            "detail={project.exists ? text.ready : text.pathUnavailable}",
+            "<ProjectMetricsGrid",
         ],
+    );
+    assert_contains_all(
+        "ProjectMetricsGrid.tsx",
+        &metrics,
+        &["detail={project.exists ? text.ready : text.pathUnavailable}"],
     );
     assert_contains_all(
         "BuildsPage.tsx",
@@ -381,6 +397,13 @@ fn react_components_display_paths_from_dtos_without_path_normalization_helpers()
         &settings,
         &[
             "{ id: \"projects\", label: labels.defaultProjectDir, detail: draft.defaultProjectDir }",
+            "<SettingsSection",
+        ],
+    );
+    assert_contains_all(
+        "SettingsSection.tsx",
+        &settings_section,
+        &[
             "label={labels.defaultProjectDir}",
             "label={labels.defaultBuildOutputDir}",
             "label={labels.defaultDeviceInstallDir}",

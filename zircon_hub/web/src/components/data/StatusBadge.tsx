@@ -68,7 +68,7 @@ export function StatusBadge({ label, tone }: StatusBadgeProps) {
         {label}
       </Typography>
       {tone === "running" ? (
-        <Box sx={{ width: 6, height: 6, borderRadius: 999, backgroundColor: toneStyle.color }} />
+        <Box sx={{ width: 6, height: 6, borderRadius: hubTokens.radius.pill, backgroundColor: toneStyle.color }} />
       ) : null}
     </Box>
   );

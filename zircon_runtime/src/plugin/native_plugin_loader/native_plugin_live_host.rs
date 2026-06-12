@@ -21,7 +21,7 @@ use crate::plugin::PluginModuleKind;
 #[cfg(test)]
 use diagnostics::diagnostics_from_behavior_report;
 #[cfg(test)]
-use hot_reload::NativePluginHotReloadState;
+use hot_reload::{restore_runtime_snapshot, NativePluginHotReloadState};
 #[cfg(test)]
 use keys::live_key;
 #[cfg(test)]
