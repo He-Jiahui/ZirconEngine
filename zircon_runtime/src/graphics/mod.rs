@@ -9,6 +9,7 @@ pub(crate) mod hybrid_gi_runtime_provider;
 pub(crate) mod material;
 pub(crate) mod particle_runtime_provider;
 pub(crate) mod pipeline;
+pub(crate) mod resource_limits;
 pub(crate) mod runtime;
 mod runtime_prepare_collector;
 pub(crate) mod scene;
@@ -78,9 +79,9 @@ pub use visibility::{
     VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,
     VisibilityHistoryEntry, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
     VisibilityHybridGiProbe, VisibilityHybridGiUpdatePlan, VisibilityInstanceUploadPlan,
-    VisibilityParticleUploadPlan, VisibilityViewKey, VisibilityVirtualGeometryCluster,
-    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
-    VisibilityVirtualGeometryPageUploadPlan,
+    VisibilityParticleUploadPlan, VisibilityStaticIndexReport, VisibilityViewKey,
+    VisibilityVirtualGeometryCluster, VisibilityVirtualGeometryDrawSegment,
+    VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
 };
 
 #[cfg(test)]

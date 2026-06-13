@@ -621,9 +621,12 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     let viewport_size = UVec2::new(160, 120);
     let lights = vec![RenderDirectionalLightSnapshot {
         node_id: 7,
+        light_id: 7,
+        layer_mask: default_render_layer_mask(),
         direction: Vec3::new(-0.65, -0.35, -1.0).normalize_or_zero(),
         color: Vec3::new(1.0, 0.48, 0.2),
         intensity: 3.5,
+        shadow: None,
     }];
     let snapshot = build_snapshot(
         vec![RenderMeshSnapshot {
@@ -683,7 +686,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     let has_clustered_executor = |executor_ids: &[String]| {
         executor_ids
             .iter()
-            .any(|executor_id| executor_id == "lighting.clustered-cull")
+            .any(|executor_id| executor_id == "lighting.light-grid")
     };
 
     assert!(
@@ -898,8 +901,6 @@ fn write_flat_green_wgsl(path: PathBuf) {
     let shader_body = r#"
 struct SceneUniform {
     view_proj: mat4x4<f32>,
-    light_dir: vec4<f32>,
-    light_color: vec4<f32>,
 };
 
 struct MaterialPropertyUniform {
@@ -961,9 +962,6 @@ fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
                 r#"
 struct SceneUniform {{
     view_proj: mat4x4<f32>,
-    light_dir: vec4<f32>,
-    light_color: vec4<f32>,
-    ambient_color: vec4<f32>,
 }};
 
 struct MaterialPropertyUniform {{

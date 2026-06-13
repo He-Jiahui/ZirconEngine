@@ -44,7 +44,11 @@ pub use archetype_id::ArchetypeId;
 pub use archetype_index::{ArchetypeIndex, ArchetypeMove, ArchetypeRecord};
 pub use archetype_signature::ArchetypeSignature;
 pub use bundle::Bundle;
-pub use change_detection::{ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref};
+pub use change_detection::{
+    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref,
+    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+};
 pub use commands::{
     Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
     DeferredCommandReport, EntityCommands, FnCommand,
@@ -56,7 +60,11 @@ pub use despawned_entity::DespawnedEntity;
 pub use entity_location::EntityLocation;
 pub use entity_registry::EntityRegistry;
 pub use entity_registry_error::EntityRegistryError;
-pub use events::{Event, EventCursor, EventReadIter, EventStore, Events};
+pub use events::{
+    Event, EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage,
+    EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
+    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
+};
 pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
@@ -68,7 +76,9 @@ pub use query::{
     QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
     QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
     QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
-    Without,
+    Without, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
@@ -94,13 +104,13 @@ pub use storage::{
 };
 pub use storage_type::StorageType;
 pub use system::{
-    BoxedRuntimeSceneSystem, BoxedSceneSystem, EventReader, EventReaderParam, EventWriter,
-    EventWriterParam, FunctionRuntimeSceneSystem, FunctionSceneSystem, IntoSceneSystem, Local,
-    LocalParam, MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet,
-    ParamSetItem, ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut,
-    ResMutParam, ResParam, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem,
-    SceneSystemMetadata, SystemParam, SystemParamAccess, SystemParamConflictKind, SystemParamError,
-    SystemState,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, EventReader, EventReaderParam, EventReaderState,
+    EventWriter, EventWriterParam, EventWriterState, FunctionRuntimeSceneSystem,
+    FunctionSceneSystem, IntoSceneSystem, Local, LocalParam, MessageReader, MessageReaderParam,
+    MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam, Query,
+    RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam,
+    RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemMetadata, SystemParam,
+    SystemParamAccess, SystemParamConflictKind, SystemParamError, SystemState,
 };
 pub use system_set::{SystemSetId, SystemSetRegistry};
 pub use system_stage::SystemStage;

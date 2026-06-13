@@ -1,19 +1,23 @@
 ---
 related_code:
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/ui/surface/input/dispatch.rs
-  - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
   - zircon_runtime/src/asset/assets/scene.rs
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
-  - zircon_hub/src/app/runtime.rs
-  - zircon_hub/src/app/view_model.rs
+  - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
+  - zircon_hub/src/tauri_app/view_model.rs
+  - zircon_hub/src/tauri_app/runtime_state.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
 implementation_files:
@@ -54,7 +58,7 @@ The structural audit now reports `large_file_ownership_gate.m1_gate_status`. Cur
 Current evidence:
 
 - `threshold = 1000`
-- `hotspot_count = 33`
+- `hotspot_count = 41`
 - `classification_count = 5`
 - `decision_group_count = 5`
 - `large_file_migration_debt_count = 5`
@@ -67,11 +71,13 @@ Current classification:
 
 - `editor-retained-host = 11`
 - `editor-ui = 8`
-- `runtime-framework-render = 1`
-- `runtime-other = 10`
+- `runtime-framework-render = 2`
+- `runtime-other = 17`
 - `support-hub = 3`
 
 The classification means every current hotspot has an owner bucket. It does not mean the file is converged.
+
+The 2026-06-14 drift sync records growth from 33 to 41 hotspots while active render, UI, plugin, and Hub work continues. No production split was made in this slice; the important gate fact is that `unclassified_hotspot_count = 0` and all new hotspots still resolve to an owner bucket before Runtime 07 M2 optimization work can use them.
 
 ## M1 Decision Rules
 
@@ -85,15 +91,15 @@ Any future `unclassified_hotspots` entry is a review blocker. Classify it with a
 
 ## Owner Decisions
 
-`runtime-framework-render` currently contains `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs`. This belongs to the M6 render/framework slice; split debug snapshot DTOs, projections, and diagnostic reports only after the active WGPU/RHI session settles.
+`runtime-framework-render` currently contains `zircon_runtime/src/core/framework/render/backend_types.rs` and `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs`. This belongs to the M6 render/framework slice; split backend DTOs, debug snapshot DTOs, projections, and diagnostic reports only after the active WGPU/RHI session settles.
 
-`runtime-other` currently includes runtime UI input/surface, RHI/WGPU UI surface, UI catalog/accessibility extract, asset scene/animation, and graphics UI render hotspots. These should be split by runtime module owner before any M5 performance work claims improvements in allocation, clone behavior, or dispatch cost.
+`runtime-other` currently includes render stats product diagnostics, asset scene/animation assets, render graph execution record/resources, script gameplay host, scene project IO, render pipeline asset compile, dynamic API session, runtime UI surface/style/catalog/accessibility extract, RHI/WGPU UI surface, graphics UI render, and frame-extract virtual-geometry snapshot/update-stats helpers. These should be split by runtime module owner before any M5/M7 performance work claims improvements in allocation, clone behavior, or dispatch cost.
 
 `editor-retained-host` currently includes painter workbench, host lifecycle, native pointer, pane conversion, apply presentation, asset editor host, window contract, and template node hotspots. These belong to M7 editor/UI and should wait for the active host-editor UI session to quiet down.
 
 `editor-ui` currently includes workbench host window projection, asset editor theme/binding/session/preview, animation editor session, editor manager asset editor, and template showcase state. Split by authoring workflow and template-runtime owner.
 
-`support-hub` currently includes Hub runtime, view-model, and project-workspace files. Coordinate with active Hub sessions before touching those files.
+`support-hub` currently includes Hub `tauri_app` runtime-state project actions, view-model, and runtime-state root files. Coordinate with active Hub sessions before touching those files.
 
 ## Required Follow-Up
 

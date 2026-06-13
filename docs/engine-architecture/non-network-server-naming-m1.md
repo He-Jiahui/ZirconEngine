@@ -6,6 +6,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
+  - zircon_hub/src/projects/metadata.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
   - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
@@ -68,20 +69,20 @@ The structural audit now reports `non_network_server_references.m1_gate_status`.
 
 Current evidence:
 
-- `count = 58` suspect non-network references;
+- `count = 59` suspect non-network references;
 - `sample_location_count = 20`;
-- `reference_decision_count = 58`;
+- `reference_decision_count = 59`;
 - `reference_decision_group_count = 2`;
 - `classification_count = 2`;
-- `observer_false_positive_count = 72`, because `observer` contains the letters `server` but is not server vocabulary;
-- `allowed_context_count = 93` for real network, target-runtime, dev-server, UNC fixture, and external UI API contexts;
+- `observer_false_positive_count = 87`, because `observer` contains the letters `server` but is not server vocabulary;
+- `allowed_context_count = 94` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
 - `non_network_server_migration_debt_count = 2`;
 - `unclassified_location_count = 0`;
 - `unclassified_locations = []`.
 
 Current classification:
 
-- `graphics-render-framework-debt = 57`
+- `graphics-render-framework-debt = 58`
 - `editor-workbench-authority-label-debt = 1`
 
 The classification means every current suspect reference has an explicit migration owner. It does not mean the naming is converged.
@@ -90,7 +91,9 @@ The classification means every current suspect reference has an explicit migrati
 
 `observer` and `Observer*` are not server naming. The audit ignores them so ECS observer work is not blocked by a substring false positive.
 
-Real target or network vocabulary remains allowed: `ServerRuntime`, `RuntimeProfileId::Server`, dedicated/listen server modes, network feature target rows, export target profiles, browser dev-server config, UNC path fixtures, and third-party UI API values that literally use `"server"`.
+Real target or network vocabulary remains allowed: `ServerRuntime`, `RuntimeProfileId::Server`, dedicated/listen server modes, network feature target rows, export target profiles, browser dev-server config, Windows UNC path fixtures, and third-party UI API values that literally use `"server"`.
+
+The Hub project metadata test literals `\\?\UNC\server\share\Game` and `\\server\share\Game` are allowed fixture paths. Their `server` segment names the conventional UNC host component, not a Zircon runtime owner.
 
 `graphics-render-framework-debt` belongs to the M6 graphics/RHI public-surface slice. The target names should describe the actual owner, for example render framework, render context, state owner, or submit context.
 

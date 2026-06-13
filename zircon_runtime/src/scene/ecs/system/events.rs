@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, EventCursor, EventReadIter, EventStore, Events, SystemParam,
+    ChangeTickWindow, EventCursor, EventReadIter, EventStore, EventTypeId, Events, SystemParam,
     SystemParamAccess, SystemParamError,
 };
 use crate::scene::World;
@@ -17,6 +17,7 @@ pub struct EventReader<'world, T> {
 
 pub struct EventWriter<'world, T> {
     store: &'world mut EventStore,
+    event_type_id: EventTypeId,
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -46,15 +47,16 @@ impl<T> EventWriter<'_, T>
 where
     T: 'static + Send + Sync,
 {
-    pub fn send(&mut self, event: T) {
-        self.store.send(event);
+    pub fn send(&mut self, event: T) -> bool {
+        self.store.send_by_id(self.event_type_id, event)
     }
 
     pub fn send_batch<I>(&mut self, events: I) -> usize
     where
         I: IntoIterator<Item = T>,
     {
-        self.store.send_batch::<T, I>(events)
+        self.store
+            .send_batch_by_id::<T, I>(self.event_type_id, events)
     }
 }
 
@@ -62,15 +64,18 @@ impl<T> SystemParam for EventReaderParam<T>
 where
     T: 'static + Send + Sync,
 {
-    type State = EventCursor<T>;
+    type State = EventReaderState<T>;
     type Item<'world> = EventReader<'world, T>;
 
     fn init_state(
-        _world: &mut World,
+        world: &mut World,
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         access.add_event_read::<T>()?;
-        Ok(EventCursor::default())
+        Ok(EventReaderState {
+            cursor: EventCursor::default(),
+            event_type_id: world.event_store_mut().register_reader::<T>(),
+        })
     }
 
     unsafe fn get_param<'world>(
@@ -80,8 +85,8 @@ where
     ) -> Self::Item<'world> {
         let world = &*world;
         EventReader {
-            cursor: state,
-            events: world.events::<T>(),
+            cursor: &mut state.cursor,
+            events: world.event_store().events_by_id::<T>(state.event_type_id),
         }
     }
 }
@@ -90,26 +95,38 @@ impl<T> SystemParam for EventWriterParam<T>
 where
     T: 'static + Send + Sync,
 {
-    type State = ();
+    type State = EventWriterState;
     type Item<'world> = EventWriter<'world, T>;
 
     fn init_state(
-        _world: &mut World,
+        world: &mut World,
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         access.add_event_write::<T>()?;
-        Ok(())
+        Ok(EventWriterState {
+            event_type_id: world.event_store_mut().register::<T>(),
+        })
     }
 
     unsafe fn get_param<'world>(
         world: *mut World,
-        _state: &'world mut Self::State,
+        state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
         let world = &mut *world;
         EventWriter {
             store: world.event_store_mut(),
+            event_type_id: state.event_type_id,
             _marker: PhantomData,
         }
     }
+}
+
+pub struct EventReaderState<T> {
+    cursor: EventCursor<T>,
+    event_type_id: EventTypeId,
+}
+
+pub struct EventWriterState {
+    event_type_id: EventTypeId,
 }

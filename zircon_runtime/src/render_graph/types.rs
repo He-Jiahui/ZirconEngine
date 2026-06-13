@@ -165,6 +165,7 @@ pub enum RenderGraphComputeDispatchExtent {
     Viewport,
     ClusterGrid,
     HzbFurthest,
+    IndirectArgs,
     Fixed([u32; 3]),
 }
 
@@ -211,6 +212,14 @@ impl RenderGraphComputeWorkload {
             pipeline_label,
             workgroup_size,
             RenderGraphComputeDispatchExtent::HzbFurthest,
+        )
+    }
+
+    pub fn indirect_args(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::IndirectArgs,
         )
     }
 

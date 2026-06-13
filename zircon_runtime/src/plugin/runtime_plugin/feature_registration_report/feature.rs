@@ -11,7 +11,7 @@ impl RuntimePluginFeatureRegistrationReport {
         let mut diagnostics = Vec::new();
         let manifest = feature.manifest();
         validate_runtime_plugin_feature_manifest(&manifest, &mut diagnostics);
-        if let Err(error) = feature.register_runtime_extensions(&mut extensions) {
+        if let Err(error) = feature.register(&mut extensions) {
             diagnostics.push(error.to_string());
         }
         Self {

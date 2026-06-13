@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::state::StateRegistry;
+use crate::plugin::RuntimePluginBridgeLifecycleState;
 
 use super::super::config_store::ConfigStore;
 use super::super::descriptors::RegistryName;
@@ -25,4 +26,5 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) states: Mutex<StateRegistry>,
     pub(crate) scene_hooks: Mutex<SceneRuntimeHookSet>,
     pub(crate) world_extensions: Mutex<WorldRuntimeExtensionSet>,
+    pub(crate) plugin_bridge_lifecycle: Mutex<Option<RuntimePluginBridgeLifecycleState>>,
 }

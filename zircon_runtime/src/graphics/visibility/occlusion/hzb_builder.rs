@@ -38,6 +38,13 @@ impl HzbBuildPlan {
     pub const fn max_mips_per_reduce_pass() -> u32 {
         MAX_MIPS_PER_REDUCE_PASS
     }
+
+    pub fn mip_size(self, mip_level: u32) -> UVec2 {
+        UVec2::new(
+            self.hzb_size.x.checked_shr(mip_level).unwrap_or(0).max(1),
+            self.hzb_size.y.checked_shr(mip_level).unwrap_or(0).max(1),
+        )
+    }
 }
 
 fn hzb_size_for_view(view_size: UVec2) -> UVec2 {
@@ -95,5 +102,15 @@ mod tests {
             (plan.reduce_pass_count - 1) * HzbBuildPlan::max_mips_per_reduce_pass()
                 < plan.mip_count
         );
+    }
+
+    #[test]
+    fn hzb_build_plan_reports_each_mip_extent() {
+        let plan = HzbBuilder::new(UVec2::new(1923, 1081)).build_plan();
+
+        assert_eq!(plan.mip_size(0), UVec2::new(1024, 1024));
+        assert_eq!(plan.mip_size(1), UVec2::new(512, 512));
+        assert_eq!(plan.mip_size(10), UVec2::new(1, 1));
+        assert_eq!(plan.mip_size(11), UVec2::new(1, 1));
     }
 }

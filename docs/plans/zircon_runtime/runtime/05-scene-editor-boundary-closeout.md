@@ -9,17 +9,26 @@ related_code:
   - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime/src/ui/surface/input/navigation.rs
   - zircon_editor/src/scene
+  - zircon_hub/src/projects/metadata.rs
+  - docs/engine-architecture/non-network-server-naming-m1.md
+  - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/runtime-architecture-review-m0.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
-status: completed
-last_refined: 2026-06-12
+status: in_progress
+last_refined: 2026-06-14
 ---
 
 # 05 scene/editor 边界收尾
@@ -181,6 +190,12 @@ last_refined: 2026-06-12
 | M1 | 1.4 守卫机器化 | 完成 | 2026-06-12 | 新增 `runtime_absorption::naming_boundary` 与 `runtime_structure_audits/runtime_naming_boundary.py`；`cargo test -p zircon_runtime --lib naming_boundary --locked` 1 passed |
 | M2 | 2.1 覆盖矩阵 | 完成 | 2026-06-12 | `docs/zircon_runtime/scene/inspection.md` 记录 world project / dynamic scene / asset scene / inspection JSON 覆盖矩阵；`cargo test -p zircon_runtime --lib authoring --locked` 17 passed；`cargo test -p zircon_runtime --lib inspection --locked` 6 passed |
 | M2 | 2.2 维护公约 | 完成 | 2026-06-12 | `authoring_token_tables_stay_sorted_and_deduplicated` 固化 token 表排序去重；token 表 smoke check: serialized 19 / source 25；`inspection.md` 记录 editor authoring 类型新增时的同步规则；authoring/inspection Cargo 过滤测试通过 |
+| M3 | 3.1 legacy debt bucket 移交确认 | 状态复核完成 | 2026-06-13 | `runtime_naming_boundary` 当前 gate status 为 `classified`：editor 1363 locations / 237 files / 0 unclassified；legacy 518 locations / 101 files / 0 unclassified；legacy 仍为 10 个 debt owner bucket，并已在 runtime 总览 P9 以 runtime UI input/render、graphics、DDS、UI template/layout、input、asset、dynamic API、scene schema owner 分派口径同步；未改行为代码。 |
+| M3 | 3.1 non-network server gate fixture sync | 静态复核完成 | 2026-06-14 | `non_network_server_naming` 现在把 Hub UNC path fixture（`\\?\UNC\server\share\Game` / `\\server\share\Game`）列为允许上下文，而不是 runtime owner debt；当前审计：count 59、graphics-render-framework-debt 58、editor-workbench-authority-label-debt 1、allowed_context_count 94、observer_false_positive_count 87、unclassified 0、`risks` 仅剩已分类 owner migration debt；未改 Hub/Runtime 生产代码。 |
+| M3 | 3.1 hard-cutover migration-smell owner sync | 静态复核完成 | 2026-06-14 | `hard_cutover_migration_smells` 当前审计：source_file_count 5839、legacy_reference_count 212、compat/shim 0、allowed_business_bridge_reference_count 300、migration_bridge_smell_count 0、classification groups 7、unclassified 0；新增/确认 runtime UI input 63、hybrid GI render 56、runtime graphics 30、Hub archived text 58、DDS 1、Net hyper client API 1、editor UI fixture 3。该切片只更新审计归类和文档证据，未改 UI/Hub/Net/graphics 生产行为代码。 |
+| M3 | 3.2 状态闭环 | pending_full_scene_cargo | — | 本计划 frontmatter 从 `completed` 修正为 `in_progress`，因为计划 DoD 要求 `cargo test -p zircon_runtime --lib scene:: --locked` 全族无回归后才能最终关账；当前只有 `naming_boundary`、`authoring`、`inspection` scoped Cargo 通过记录。新增 `runtime_plan_last_refined_covers_latest_recorded_date`、`runtime_plan_status_does_not_claim_completed_while_validation_is_pending`、`runtime_plan_frontmatter_status_uses_known_lifecycle_values`、`runtime_index_status_map_matches_subplan_frontmatter`、`runtime_index_subplan_map_covers_existing_plan_files_without_stale_rows`、`runtime_index_problem_rows_reference_existing_subplans`、`runtime_index_execution_dependencies_reference_existing_subplans`、`runtime_index_in_progress_rows_record_remaining_gate`、`runtime_known_backlog_gaps_keep_owner_and_trigger_columns`、`runtime_subplans_keep_status_and_evidence_tables`、`runtime_subplan_status_records_keep_non_empty_evidence`、`runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs`、`runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation`、`runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation`、`runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation`、`runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation`、`runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation`、`runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation`、`runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation`、`runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation`、`runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation`、`runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff`、`runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass`、`runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`、`runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass`、`runtime_14_module_family_cargo_gate_stays_visible_until_filters_pass`、`runtime_architecture_review_documents_all_absorption_guards` 与 `runtime_05_closeout_status_waits_for_full_scene_cargo_gate`，防止待验证计划误标 completed，并锁定 last_refined 覆盖最新状态日期、总表状态必须跟随子计划 frontmatter、总索引子计划地图必须精确覆盖 01-14 子计划文件、问题清单与执行依赖列必须指向现有子计划、所有 in_progress 总表行必须说明剩余 gate 或 blocker、总索引已知 backlog 缺口必须保留现状依据与 owner/触发条件、所有子计划必须保留状态/证据表且已启动记录必须写入具体证据、Runtime 01-14 近期静态/待验证守卫必须同步到计划/镜像文档/评审/索引（Runtime 02 `core/root/generated/export_build_plan/app/editor/plugin` gate 必须保持可见，Runtime 06 `script::vm/vampire_project_session/plugin/native_plugin/app/plugins` gate 必须保持可见，Runtime 09 `ui/input/naming_boundary/layout/template` owner/Cargo gate 必须保持可见，Runtime 07 覆盖 `runtime_07_hotspot_inventory_requires_counted_evidence_before_m2`、`runtime_frame_schedule_stage.<SystemStage>` 与 `runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation`，Runtime 10 同时覆盖 `runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces`、`runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge` 与 Runtime 10 UI 镜像契约 M2 owner/Cargo gate，且 M1.3 在 `dynamic_api` Cargo 通过前保持 `code_static_passed_cargo_pending`，M2 在 Runtime 09/editor UI owner 交接与 interface/ui/editor Cargo 通过前保持 pending，Runtime 11 `tasks/ecs_schedule/worker_pool/rayon` Cargo gate 必须保持可见，Runtime 12 在 input/action_map/gamepad/app Cargo 通过前保持 pending gate 可见，Runtime 13 在 script filters Cargo 通过前保持 `code_static_pending_cargo`，Runtime 14 模块族守卫必须覆盖四族镜像文档，Runtime 05 closeout 必须保持 `pending_full_scene_cargo`）、Runtime 01 `tech_stack/text_shaper/plugin physics` Cargo gate、Runtime 02 `core/root/generated/export_build_plan/app/editor/plugin` gate、Runtime 03 `ecs_schedule/time/session/schedule_parallel` Cargo gate、Runtime 04 broader `asset::` / `worker_pool` Cargo gate、Runtime 06 `script::vm/vampire_project_session/plugin/native_plugin/app/plugins` Cargo/native gate、Runtime 07 `extract/ecs_query/performance profiling/FPS` Cargo gate、Runtime 08 ECS 数据面 Cargo gate、Runtime 09 `ui/input/naming_boundary/layout/template` owner/Cargo gate、Runtime 10 UI 镜像契约 M2 owner/Cargo gate、Runtime 05 `scene::` Cargo closeout gate、Runtime 11 `tasks/ecs_schedule/worker_pool/rayon` Cargo gate 与 Runtime 14 模块族 Cargo/rustc gate 必须保持可见，以及 M0 评审必须覆盖 `runtime_absorption/mod.rs` 和所有已挂载 guard。 |
+
+计划状态镜像（2026-06-14）：新增 `runtime_plan_status_boundary` 并接入总结构审计，覆盖 plan-status support files 6/6、runtime subplans 14/14、runtime index subplan rows 14/14、problem rows 17/17、known backlog rows 7/7、status counts `in_progress=14`、core guard anchors 13/13、pending Cargo gate anchors 15/15、doc anchors 8/8、Runtime 05 closeout status `in_progress`、closeout anchors present、`risks = []`。这仍是静态结构证据，最终 closeout 继续等待 `pending_full_scene_cargo` 与 `cargo test -p zircon_runtime --lib scene:: --locked`。
 
 基线数值（开工首日记录）：
 
@@ -188,9 +203,12 @@ last_refined: 2026-06-12
 - "editor" 命中基线：224 文件（2026-06-12 PowerShell `Select-String` 重核）
 - "legacy" 命中基线：500 处 / 98 文件（2026-06-12 PowerShell `Select-String` 重核）
 - 命名守卫重核：editor 1260 locations / 0 unclassified；legacy 516 locations / 0 unclassified；legacy debt bucket 10（2026-06-12 `runtime_naming_boundary` JSON）
+- 命名守卫复核：editor 1363 locations / 237 files / 0 unclassified；legacy 518 locations / 101 files / 0 unclassified；legacy debt bucket 10（2026-06-13 `runtime_naming_boundary_audit` 当前工作区）
+- 非网络 server 命名门禁复核：count 59 / classification groups 2 / allowed contexts 94 / observer false positives 87 / unclassified 0（2026-06-14 `non_network_server_references` 当前工作区；Hub UNC fixture 已允许）
+- 硬切换 migration-smell 门禁复核：source_file_count 5839 / legacy_reference_count 212 / allowed_business_bridge_reference_count 300 / classification groups 7 / unclassified 0（2026-06-14 `hard_cutover_migration_smells` 当前工作区；Hub archived text 与 Net hyper client API 已归类为非 Runtime 05 生产改动 owner debt）
 - token 表基线：SERIALIZED 19 词 / SOURCE 25 词（authoring_boundary.rs:1-49）
 - 守卫测试基线：authoring_boundary 2 + inspection 2 + serialization 出口消费文件 4（world_basics / dynamic_scene / asset_scene / inspection）+ source guard 1（component_structure）
-- 验证记录：`cargo check -p zircon_runtime --lib --locked` 通过；`cargo test -p zircon_runtime --lib naming_boundary --locked` 1 passed；`cargo test -p zircon_runtime --lib authoring --locked` 17 passed；`cargo test -p zircon_runtime --lib inspection --locked` 6 passed（均使用 `E:\cargo-targets\zircon-runtime-naming-boundary-0612`）。
+- 验证记录：`cargo check -p zircon_runtime --lib --locked` 通过；`cargo test -p zircon_runtime --lib naming_boundary --locked` 1 passed；`cargo test -p zircon_runtime --lib authoring --locked` 17 passed；`cargo test -p zircon_runtime --lib inspection --locked` 6 passed（均使用 `E:\cargo-targets\zircon-runtime-naming-boundary-0612`）。`cargo test -p zircon_runtime --lib scene:: --locked` 全族闭环仍待干净 Cargo 通道。
 
 ## 风险与协调
 

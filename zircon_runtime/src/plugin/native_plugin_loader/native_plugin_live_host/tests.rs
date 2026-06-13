@@ -1,11 +1,18 @@
 use super::*;
 
+use crate::core::framework::bridge::{BridgeError, PluginInterface};
 use crate::plugin::{
-    NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    BridgeOwnerTransitionMode, ExportPackagingStrategy, NativeBridgeCall,
+    NativeBridgeMethodBinding, NativeBridgeMethodFn, NativePluginBehaviorValidationReport,
+    NativePluginDescriptor, NativePluginEntryReport, NativePluginLoadReport,
+    PluginDependencyManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
+    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginRegistrationReport, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
+use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusCode};
 
 use super::super::behavior_calls::NativePluginBehavior;
 
@@ -312,6 +319,417 @@ fn native_live_host_loads_runtime_export_diagnostics_without_handles() {
 }
 
 #[test]
+fn native_live_host_load_report_applies_runtime_bridge_lifecycle_state() {
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let bridge = state
+        .bridge_table()
+        .resolve_weak::<dyn NativeLiveHostBridge>();
+    let disabled = state.apply_provider_lifecycle_event(
+        RuntimePluginBridgeLifecycleEvent::disable_provider("physics"),
+    );
+    assert!(disabled.is_applied());
+    assert_eq!(
+        bridge.call(|provider| provider.sample_count()),
+        Err(BridgeError::NotEnabled)
+    );
+    let mut report = NativePluginLiveHostLoadReport {
+        module_kind: PluginModuleKind::Runtime,
+        loaded_plugin_ids: vec!["physics".to_string()],
+        runtime_plugin_registration_reports: Vec::new(),
+        runtime_plugin_feature_registration_reports: Vec::new(),
+        bridge_lifecycle_reports: Vec::new(),
+        diagnostics: Vec::new(),
+    };
+
+    report.apply_runtime_bridge_lifecycle(&state);
+
+    assert_eq!(report.bridge_lifecycle_reports.len(), 1);
+    assert_eq!(
+        report.bridge_lifecycle_reports[0].event.mode,
+        BridgeOwnerTransitionMode::Activate
+    );
+    assert!(report.bridge_lifecycle_reports[0].is_applied());
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("native.live_host.bridge_lifecycle")));
+    assert_eq!(bridge.call(|provider| provider.sample_count()), Ok(7));
+}
+
+#[test]
+fn native_live_host_unload_runtime_plugin_applies_bridge_lifecycle_state() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let bridge = state
+        .bridge_table()
+        .resolve_weak::<dyn NativeLiveHostBridge>();
+    assert_eq!(bridge.call(|provider| provider.sample_count()), Ok(7));
+
+    let outcome = host
+        .unload_runtime_plugin_with_bridge_lifecycle("physics", &state)
+        .expect("optional dependents should allow bridge provider unload");
+
+    let bridge_report = outcome
+        .bridge_lifecycle_report
+        .expect("unload outcome should retain bridge lifecycle report");
+    assert_eq!(
+        bridge_report.event.mode,
+        BridgeOwnerTransitionMode::Deactivate
+    );
+    assert!(bridge_report.is_applied());
+    assert_eq!(
+        bridge.call(|provider| provider.sample_count()),
+        Err(BridgeError::NotEnabled)
+    );
+    assert!(host
+        .loaded_plugin_ids(PluginModuleKind::Runtime)
+        .expect("loaded ids")
+        .is_empty());
+}
+
+#[test]
+fn native_live_host_unload_runtime_plugin_is_blocked_by_strong_bridge_dependents() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(true);
+    let bridge = state
+        .bridge_table()
+        .resolve_weak::<dyn NativeLiveHostBridge>();
+
+    let error = host
+        .unload_runtime_plugin_with_bridge_lifecycle("physics", &state)
+        .unwrap_err();
+
+    assert!(error.contains("bridge.provider_lifecycle_blocked"));
+    assert_eq!(bridge.call(|provider| provider.sample_count()), Ok(7));
+    assert_eq!(
+        host.loaded_plugin_ids(PluginModuleKind::Runtime)
+            .expect("loaded ids should still be readable"),
+        vec!["physics".to_string()]
+    );
+}
+
+#[test]
+fn native_live_host_builds_bridge_call_scope_from_loaded_manifest() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let slot = state
+        .bridge_table()
+        .resolve_slot(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID)
+        .expect("test bridge interface slot");
+
+    let scope = host
+        .runtime_bridge_call_scope_from_loaded_manifest(
+            "physics",
+            &state,
+            [NativeBridgeMethodBinding::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                "sample_count",
+                NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+            )],
+        )
+        .expect("loaded manifest should build native bridge call scope");
+    let api = scope.api();
+    let payload = b"ping";
+
+    let status = unsafe {
+        (api.bridge.call.unwrap())(
+            scope.handle(),
+            slot.raw(),
+            7,
+            payload.as_ptr(),
+            payload.len(),
+            ZrByteBufferRef::empty(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::CapabilityDenied);
+}
+
+#[test]
+fn native_live_host_reuses_installed_bridge_bindings_for_loaded_manifest_scopes() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    host.install_runtime_bridge_method_bindings(
+        "physics",
+        [NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+        )],
+    )
+    .expect("loaded manifest should validate installed bridge bindings");
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let slot = state
+        .bridge_table()
+        .resolve_slot(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID)
+        .expect("test bridge interface slot");
+
+    let scope = host
+        .runtime_bridge_call_scope_from_installed_bindings("physics", &state)
+        .expect("installed bindings should build native bridge call scope");
+    let api = scope.api();
+    let payload = b"ping";
+    let status = unsafe {
+        (api.bridge.call.unwrap())(
+            scope.handle(),
+            slot.raw(),
+            7,
+            payload.as_ptr(),
+            payload.len(),
+            ZrByteBufferRef::empty(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::CapabilityDenied);
+}
+
+#[test]
+fn native_live_host_auto_installs_discovered_bridge_bindings_from_load_report() {
+    let host = NativePluginLiveHost::default();
+    let load_report = NativePluginLoadReport {
+        discovered: Vec::new(),
+        loaded: vec![native_live_host_test_plugin_with_discovered_bridge_table(
+            "physics",
+        )],
+        diagnostics: Vec::new(),
+    };
+
+    let report = host
+        .load_reported_plugins(load_report, PluginModuleKind::Runtime)
+        .expect("runtime load report should install discovered bridge bindings");
+
+    assert_eq!(report.loaded_plugin_ids, vec!["physics".to_string()]);
+    assert!(report.diagnostics.iter().any(|diagnostic: &String| {
+        diagnostic.contains("native.live_host.bridge_bindings_discovered")
+            && diagnostic.contains("installed 1 bridge method")
+    }));
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let slot = state
+        .bridge_table()
+        .resolve_slot(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID)
+        .expect("test bridge interface slot");
+    let scope = host
+        .runtime_bridge_call_scope_from_installed_bindings("physics", &state)
+        .expect("discovered bindings should be available through installed binding scope");
+    let api = scope.api();
+    let payload = b"ping";
+    let status = unsafe {
+        (api.bridge.call.unwrap())(
+            scope.handle(),
+            slot.raw(),
+            7,
+            payload.as_ptr(),
+            payload.len(),
+            ZrByteBufferRef::empty(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::CapabilityDenied);
+}
+
+#[test]
+fn native_live_host_rebuilds_bridge_scope_from_reloaded_manifest_and_installed_bindings() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    host.install_runtime_bridge_method_bindings(
+        "physics",
+        [NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+        )],
+    )
+    .expect("initial manifest should validate installed bridge bindings");
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest_slot("physics", 9),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let slot = state
+        .bridge_table()
+        .resolve_slot(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID)
+        .expect("test bridge interface slot");
+
+    let scope = host
+        .runtime_bridge_call_scope_from_installed_bindings("physics", &state)
+        .expect("reloaded manifest should rebuild descriptors from installed bindings");
+    let api = scope.api();
+    let payload = b"ping";
+    let status = unsafe {
+        (api.bridge.call.unwrap())(
+            scope.handle(),
+            slot.raw(),
+            9,
+            payload.as_ptr(),
+            payload.len(),
+            ZrByteBufferRef::empty(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::CapabilityDenied);
+}
+
+#[test]
+fn native_live_host_reloads_bridge_lifecycle_and_installed_binding_scope() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    host.install_runtime_bridge_method_bindings(
+        "physics",
+        [NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+        )],
+    )
+    .expect("initial manifest should validate installed bridge bindings");
+    let state = native_live_host_bridge_lifecycle_state(false);
+    let slot = state
+        .bridge_table()
+        .resolve_slot(<dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID)
+        .expect("test bridge interface slot");
+    let original_generation = state.bridge_table().entry(slot).unwrap().generation();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest_slot("physics", 9),
+        );
+    }
+
+    let reload = host
+        .reload_runtime_bridge_provider_and_scope_from_installed_bindings("physics", &state)
+        .expect("hot reload should refresh lifecycle and bridge call descriptors");
+
+    assert_eq!(
+        reload.bridge_lifecycle_report.event.mode,
+        BridgeOwnerTransitionMode::Reload
+    );
+    assert_eq!(reload.bridge_lifecycle_report.outcome.is_applied(), true);
+    assert_eq!(reload.bridge_call_scope.method_count(), 1);
+    assert_eq!(
+        state.bridge_table().entry(slot).unwrap().generation(),
+        original_generation + 2
+    );
+    let api = reload.bridge_call_scope.api();
+    let payload = b"ping";
+    let status = unsafe {
+        (api.bridge.call.unwrap())(
+            reload.bridge_call_scope.handle(),
+            slot.raw(),
+            9,
+            payload.as_ptr(),
+            payload.len(),
+            ZrByteBufferRef::empty(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::CapabilityDenied);
+    assert!(reload
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("native.live_host.bridge_scope_reloaded")));
+}
+
+#[test]
+fn native_live_host_rejects_installed_bridge_bindings_without_loaded_manifest() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+
+    let result = host.install_runtime_bridge_method_bindings(
+        "physics",
+        [NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+        )],
+    );
+
+    assert!(matches!(
+        result,
+        Err(message) if message == "runtime plugin physics has no package manifest"
+    ));
+}
+
+#[test]
+fn native_live_host_rejects_loaded_manifest_bridge_method_without_binding() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(false);
+
+    let error = match host.runtime_bridge_call_scope_from_loaded_manifest("physics", &state, []) {
+        Ok(_) => panic!("missing native bridge method binding should be rejected"),
+        Err(error) => error,
+    };
+
+    assert!(error.contains("native bridge method `native.live_host.bridge.v1.sample_count`"));
+    assert!(error.contains("is declared but has no binding"));
+}
+
+#[test]
 fn native_live_host_treats_missing_unload_hook_as_noop_unload() {
     let report = allow_missing_unload_callback_to_drop_handle(NativePluginBehaviorCallReport {
         status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -511,6 +929,161 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
     );
 }
 
+#[test]
+fn hot_reload_failure_rolls_back_to_snapshot() {
+    restored_payloads().lock().unwrap().clear();
+    let existing = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 7,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: Some(hot_reload_save_state),
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+    let mut reload_state = NativePluginHotReloadState::new(
+        PluginModuleKind::Runtime,
+        "runtime:physics".to_string(),
+        Some(existing),
+    );
+    let snapshot = reload_state
+        .save_existing_runtime_snapshot("physics")
+        .expect("stateful plugin snapshot should save")
+        .expect("stateful plugin should produce a snapshot")
+        .clone();
+    let existing = reload_state
+        .take_existing_for_unload()
+        .expect("existing plugin should be held for rollback restore");
+    let replacement = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 8,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            invoke_command: None,
+            save_state: None,
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+
+    let replacement_error = restore_runtime_snapshot(&snapshot, &replacement).unwrap_err();
+    let rollback_diagnostics =
+        restore_runtime_snapshot(&snapshot, &existing).expect("old snapshot should restore");
+
+    assert!(replacement_error
+        .contains("snapshot state schema Some(7) does not match loaded state schema Some(8)"));
+    assert!(rollback_diagnostics.is_empty());
+    assert_eq!(
+        restored_payloads().lock().unwrap().as_slice(),
+        &[b"state:physics".to_vec()]
+    );
+}
+
+fn native_live_host_bridge_lifecycle_state(
+    include_required_dependent: bool,
+) -> RuntimePluginBridgeLifecycleState {
+    let mut extensions = RuntimeExtensionRegistry::default();
+    let owner = extensions
+        .intern_plugin_module("physics.runtime")
+        .expect("test runtime module owner");
+    extensions
+        .export_interface::<dyn NativeLiveHostBridge>(owner, Arc::new(NativeLiveHostBridgeProvider))
+        .expect("test bridge export");
+    let mut registrations = vec![native_bridge_registration_with_extensions(
+        native_live_host_bridge_manifest(),
+        extensions,
+    )];
+    if include_required_dependent {
+        registrations.push(
+            RuntimePluginRegistrationReport::from_native_package_manifest(
+                PluginPackageManifest::new("weather", "Weather").with_dependency(
+                    PluginDependencyManifest::new("physics", true).with_interface(
+                        <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                    ),
+                ),
+            ),
+        );
+    }
+    let catalog = RuntimePluginCatalog::from_registration_reports(registrations, []);
+    RuntimePluginBridgeLifecycleState::from_catalog(catalog)
+}
+
+fn native_live_host_bridge_manifest() -> PluginPackageManifest {
+    native_live_host_bridge_manifest_with_method_slot(7)
+}
+
+fn native_live_host_bridge_manifest_with_method_slot(method_slot: u32) -> PluginPackageManifest {
+    PluginPackageManifest::new("physics", "Physics")
+        .with_runtime_crate("physics_runtime")
+        .with_provided_interface(
+            PluginInterfaceManifest::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            )
+            .with_method(PluginInterfaceMethodManifest::new(
+                "sample_count",
+                method_slot,
+            )),
+        )
+}
+
+fn native_bridge_registration_with_extensions(
+    manifest: PluginPackageManifest,
+    extensions: RuntimeExtensionRegistry,
+) -> RuntimePluginRegistrationReport {
+    let project_selection = ProjectPluginSelection {
+        id: manifest.id.clone(),
+        enabled: true,
+        required: false,
+        target_modes: Vec::new(),
+        packaging: ExportPackagingStrategy::SourceTemplate,
+        runtime_crate: None,
+        editor_crate: None,
+        features: Vec::new(),
+    };
+    RuntimePluginRegistrationReport {
+        package_manifest: manifest,
+        project_selection,
+        extensions,
+        diagnostics: Vec::new(),
+    }
+}
+
+trait NativeLiveHostBridge: Send + Sync {
+    fn sample_count(&self) -> u32;
+}
+
+impl PluginInterface for dyn NativeLiveHostBridge {
+    const INTERFACE_ID: &'static str = "native.live_host.bridge.v1";
+}
+
+#[derive(Debug)]
+struct NativeLiveHostBridgeProvider;
+
+impl NativeLiveHostBridge for NativeLiveHostBridgeProvider {
+    fn sample_count(&self) -> u32 {
+        7
+    }
+}
+
+fn native_live_host_bridge_method(call: NativeBridgeCall) -> ZrStatus {
+    let payload = unsafe { call.payload.as_slice() };
+    if call.interface_slot == 0 && matches!(call.method_slot, 7 | 9) && payload == b"ping" {
+        ZrStatus::new(ZrStatusCode::CapabilityDenied, ZrByteSlice::empty())
+    } else {
+        ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())
+    }
+}
+
 fn native_live_host_test_plugin(
     plugin_id: &str,
     _module_kind: PluginModuleKind,
@@ -533,6 +1106,7 @@ fn native_live_host_test_plugin(
             package_manifest: None,
             diagnostics: Vec::new(),
             negotiated_capabilities: Vec::new(),
+            bridge_method_bindings: Vec::new(),
             behavior: None,
             behavior_validation: NativePluginBehaviorValidationReport::from_behavior(
                 plugin_id,
@@ -544,6 +1118,41 @@ fn native_live_host_test_plugin(
         editor_entry_report: None,
         library: this_process_library(),
     }
+}
+
+fn native_live_host_test_plugin_with_bridge_manifest(plugin_id: &str) -> LoadedNativePlugin {
+    native_live_host_test_plugin_with_bridge_manifest_slot(plugin_id, 7)
+}
+
+fn native_live_host_test_plugin_with_discovered_bridge_table(
+    plugin_id: &str,
+) -> LoadedNativePlugin {
+    let mut plugin = native_live_host_test_plugin_with_bridge_manifest(plugin_id);
+    if let Some(report) = plugin.runtime_entry_report.as_mut() {
+        report
+            .bridge_method_bindings
+            .push(NativeBridgeMethodBinding::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                "sample_count",
+                NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+            ));
+    }
+    plugin
+}
+
+fn native_live_host_test_plugin_with_bridge_manifest_slot(
+    plugin_id: &str,
+    method_slot: u32,
+) -> LoadedNativePlugin {
+    let manifest = native_live_host_bridge_manifest_with_method_slot(method_slot);
+    let mut plugin = native_live_host_test_plugin(plugin_id, PluginModuleKind::Runtime);
+    if let Some(descriptor) = plugin.descriptor.as_mut() {
+        descriptor.package_manifest = Some(manifest.clone());
+    }
+    if let Some(report) = plugin.runtime_entry_report.as_mut() {
+        report.package_manifest = Some(manifest);
+    }
+    plugin
 }
 
 fn native_live_host_test_plugin_with_behavior(
@@ -574,6 +1183,7 @@ fn native_live_host_test_plugin_with_behavior(
             package_manifest: None,
             diagnostics: Vec::new(),
             negotiated_capabilities: Vec::new(),
+            bridge_method_bindings: Vec::new(),
             behavior: Some(behavior),
             behavior_validation,
         }),

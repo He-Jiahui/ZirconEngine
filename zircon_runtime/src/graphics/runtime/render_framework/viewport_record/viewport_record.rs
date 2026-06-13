@@ -4,6 +4,7 @@ use crate::core::framework::render::{
 };
 use crate::graphics::ViewportMotionVectorObjectHistory;
 
+use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::{
     graphics::backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
     HybridGiRuntimeState, VirtualGeometryRuntimeState,
@@ -19,6 +20,7 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
     pub(super) virtual_geometry_runtime: Option<Box<dyn VirtualGeometryRuntimeState>>,
     pub(super) last_capture: Option<CapturedFrame>,
     pub(super) history: Option<ViewportFrameHistory>,
+    pub(super) visibility_static_index: Option<VisibilityStaticIndex>,
     pub(super) motion_vector_camera: Option<ViewportCameraSnapshot>,
     pub(super) motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
     pub(super) surface: Option<ViewportSurface>,

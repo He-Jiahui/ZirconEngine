@@ -226,3 +226,14 @@ impl UiCompiledArtifactStore {
 - 资产 IO 全部经 asset facade；UI 模块不直接读文件系统（watch 也经 asset watch）。
 - 不为 UI 资产新建独立缓存目录方案，复用工作区资产缓存约定。
 - 占位资源必须视觉可辨（如品红方块 + 诊断角标），禁止静默空白。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| 资产 handle/事件/热重载架构 | `dev/bevy/crates/bevy_asset/src` | — | AssetServer 的 handle 生命周期、AssetEvent 分发、热重载与依赖加载（Bevy-Style Asset Stack 计划同源参照） |
+| UI 资产加载器形态 | `dev/Fyrox/fyrox-ui/src/loader.rs` | — | UI 专属资产（字体/纹理）经引擎资源管线加载的接口边界 |
+| atlas/纹理资源管理 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Textures` | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Brushes` | Slate 的 atlas slot 分配与 brush 引用解析（UiResourceResolver 的消费级对照） |
+| 图标素材 | `dev/ionicons.designerpack` | `docs/ui-and-layout/ai-workbench-style/component-prototype`（内联 SVG 现状） | 默认图标包的素材来源与 SVG 子集范围评估 |

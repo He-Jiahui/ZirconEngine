@@ -53,9 +53,7 @@ fn module_descriptor_with_asset_importers(
         StartupMode::Immediate,
         Vec::new(),
         factory(move |_| {
-            let manager = ProjectAssetManager::new(
-                std::thread::available_parallelism().map_or(2, |n| n.get().max(2) - 1),
-            );
+            let manager = ProjectAssetManager::default();
             for importer in manager_asset_importers.importers() {
                 manager.register_asset_importer_arc(importer)?;
             }

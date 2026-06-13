@@ -3,6 +3,7 @@ use crate::rhi::{AccelerationStructureCaps, RenderBackendCaps, RenderQueueClass}
 pub fn wgpu_backend_caps(
     backend_name: impl Into<String>,
     features: wgpu::Features,
+    limits: wgpu::Limits,
     supports_surface: bool,
 ) -> RenderBackendCaps {
     RenderBackendCaps::new(backend_name)
@@ -14,6 +15,7 @@ pub fn wgpu_backend_caps(
         .with_async_copy(true)
         .with_pipeline_cache(false)
         .with_storage_buffers(true)
+        .with_max_storage_buffers_per_shader_stage(limits.max_storage_buffers_per_shader_stage)
         .with_indirect_draw(true)
         .with_multi_draw_indirect(features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT))
         .with_indirect_first_instance(features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE))

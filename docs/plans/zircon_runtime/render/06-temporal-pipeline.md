@@ -2,6 +2,12 @@
 related_code:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_camera/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_tile_max/mod.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
@@ -11,6 +17,13 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/MotionVectorRenderPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/MotionVectors.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/TemporalAntiAliasingPostProcessPass.cs
+  - dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs
+  - dev/bevy/crates/bevy_anti_alias/src/taa/taa.wgsl
+  - dev/bevy/crates/bevy_render/src/camera.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/prepass/mod.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/prepass/background_motion_vectors.wgsl
+  - dev/bevy/crates/bevy_pbr/src/prepass/prepass.wgsl
+  - dev/bevy/crates/bevy_pbr/src/render/skin.rs
 plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
@@ -42,6 +55,20 @@ plan_sources:
 | `dev/Graphics/.../Runtime/Passes/MotionVectorRenderPass.cs` + `MotionVectors.cs` | URP 的 per-object motion vector pass 组织与 prev 矩阵管理(`previousLocalToWorld`),数据面与本引擎规模匹配 |
 | `dev/Graphics/.../Runtime/Passes/PostProcess/TemporalAntiAliasingPostProcessPass.cs` | TAA 与后处理链的插入位置、history RT 的分配与失效(分辨率/相机切换) |
 
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs` | jitter 注入与 `TemporalHistoryStore` | `prepare_taa_jitter`(Halton 序列写 `TemporalJitter`)、`prepare_taa_history_textures`/`TemporalAntiAliasHistoryTextures`(read/write 双缓冲)、`reset` 失效语义 |
+| `dev/bevy/crates/bevy_anti_alias/src/taa/taa.wgsl` | `taa_resolve.wgsl` 全套算法 | `RGB_to_YCoCg`/`YCoCg_to_RGB`、`clip_towards_aabb_center`(AABB 中心线 clip)、history 置信度与 blend rate(`DEFAULT_HISTORY_BLEND_RATE`) |
+| `dev/bevy/crates/bevy_render/src/camera.rs` | `ViewProjectionMatrixPair` 的 jitter 注入 | `TemporalJitter::jitter_projection`:像素偏移 → clip 空间投影矩阵修改的精确公式(含正交/透视分支) |
+| `dev/bevy/crates/bevy_core_pipeline/src/prepass/mod.rs` | velocity prepass 组织与 prev 矩阵管理 | `MotionVectorPrepass` 组件、`PreviousViewData`/`PreviousViewUniforms`(上帧 unjittered 矩阵跨帧持有) |
+| `dev/bevy/crates/bevy_core_pipeline/src/prepass/background_motion_vectors.wgsl` | `velocity_camera.wgsl` 相机重投影补底 | 全屏 pass:`previous_view.clip_from_world` 重投影差 `(curr - prev) * vec2(0.5, -0.5)` 的编码约定 |
+| `dev/bevy/crates/bevy_pbr/src/prepass/prepass.wgsl` | `velocity_object.wgsl` 对象 velocity | 顶点双位置变换出 motion vector;`morph_prev_vertex`/`skin_prev_model` 即 prev 形变位置(衔接计划 08 `fetch_prev_position`) |
+| `dev/bevy/crates/bevy_pbr/src/render/skin.rs` | prev skinning palette 双缓冲 | `SkinUniforms` 的 `current_buffer`/`prev_buffer` 双 buffer 滚动,即 `flip_skinned_prev_palettes` 的 Rust 同构 |
+
+Fyrox 无 TAA/velocity/jitter 时域管线(仅 FXAA),bevy 是唯一 Rust/wgpu 同类参照;disocclusion 权重与 responsive AA 细节仍以 UE `TemporalAA.cpp` 为准,按 index §8 第 8 条配对拍测试先行。
+
 ## 目标架构
 
 归属:velocity 与 TAA 作为内建 RenderFeature 在 `scene_renderer/` 下新增 `temporal/` 模块;history 资源管理收口到计划 01 的持久资源;相机 jitter 进 `core/framework/render/camera.rs` 契约。
@@ -57,6 +84,26 @@ plan_sources:
 ## 里程碑
 
 ### TP-M1 对象级 velocity 全覆盖
+
+进度(2026-06-14):
+- 已完成 TP-M1 第一段 GPUScene previous-transform 数据面(GPUScene previous-transform data surface):`graphics/scene/gpu_scene/prev_transform.rs`
+  新增 `roll_prev_transforms_after_success()` 与 `previous_world_from_local(...)`。compiled-scene 与 legacy
+  render_scene 两条提交成功路径在 `queue.submit(...)` 之后滚动当前 `GpuInstanceData.world_from_local` 到
+  `prev_world_from_local`,并只在 previous 矩阵实际变化时把 instance span 标记为下一帧上传。`GpuSceneEntry`
+  记录 `has_rolled_previous_transform`,所以新注册对象首帧不会伪造 velocity,下一帧才可被视为具备 previous。
+- `mesh/build_mesh_draws/build.rs` 的 GPUScene 同步阶段已改为双来源 previous:旧
+  `ViewportMotionVectorObjectHistory` 命中时仍优先使用 CPU previous,缺失时读取 GPUScene 已滚动的
+  previous transform 并将 `GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM`、motion params 与 MeshDraw 的
+  `has_previous_motion_vector_transform` 一并置为有效。这样 TP-M1 后续删除 CPU object-history 路径前,
+  unskinned 动态对象已经具备 GPUScene fallback;skinned GPU motion vector 仍要求 previous palette 存在。
+- 仍未完成:旧 `ViewportMotionVectorObjectHistory` 字段、`update_motion_vector_history_after_success`、
+  post_process 下的 motion-vector 三 pass、以及 velocity pass executor id 迁移仍保留到 TP-M1 后续硬切片;
+  本切片不声称对象级 velocity 全覆盖已完成。
+- 校验(2026-06-14):scoped `rustfmt --edition 2021 --check`、8 文件 source-contract scan、
+  scoped tracked `git diff --check` 与未跟踪/忽略文件 trailing-whitespace scan 均通过
+  (`git diff --check` 仅报告 LF/CRLF 提示)。锁定
+  `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-prev-roll-0614 --message-format short --color never`
+  在编译前被根 `Cargo.lock` 需要刷新阻塞;本切片未修改 lockfile。
 
 实施切片:
 1. GpuScene prev transform 滚动写入;骨骼 prev palette 槽位。
@@ -138,6 +185,9 @@ plan_sources:
 | `zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs` + `from_frame.rs` | `view_proj` 改为 jittered;新增 `view_proj_unjittered`、`previous_view_proj_unjittered`(替代 `previous_view_proj`)、`jitter_params: [f32; 4]`(xy=本帧像素 jitter,zw=上帧) |
 | `zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs` + `new.rs` | 增加 `temporal_frame_index: u64` 与 `previous_unjittered_view_proj`;`motion_vector_object_history` 字段删除 |
 | `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs` | jitter 注入与帧末翻转调用点(见"帧时序与集成点") |
+| `zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs` + `prev_transform.rs` | `GpuSceneEntry` 记录已滚动 previous 状态;帧末把 current transform 滚动到 `prev_world_from_local`,并把变更 span 留给下一帧上传 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs` + `scene_renderer_core_render_scene/render_scene.rs` | 成功 `queue.submit(...)` 后触发 GPUScene previous-transform 滚动,保持当帧 velocity 读取旧 previous、下一帧读取本帧 current |
+| `zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs` | pending draw 同步 GPUScene 时优先使用 CPU previous history,缺失时 fallback 到 GPUScene rolled previous,并把有效 previous 传播到 primitive flags、motion params 与 MeshDraw |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_motion_vector_pipeline.rs` | 重命名/迁移为 temporal velocity pipeline 缓存,改用 GpuScene instance index ABI |
 
 ### 核心类型与接口
@@ -365,6 +415,8 @@ jitter 注入点:`build_frame_submission_context` 在 `apply_viewport_size` 同�
 | 测试函数 | 位置 | 断言 |
 |---|---|---|
 | `render_velocity_prev_transform_rolls_after_present` | `gpu_scene/prev_transform.rs` `#[cfg(test)]` | 帧 N 写入的 transform 在帧 N+1 readback 出现在 prev 槽;新注册条目 prev==current |
+| `render_gpu_scene_rolls_current_transform_into_previous_after_success` | `gpu_scene/prev_transform.rs` `#[cfg(test)]` | 成功提交后的 roll 把 current transform 写入 previous 槽,标记下一帧 instance span 上传,并让 entry 的 previous 状态变为有效 |
+| `render_gpu_scene_roll_marks_previous_valid_without_dirty_upload_when_unchanged` | `gpu_scene/prev_transform.rs` `#[cfg(test)]` | current 与 previous 已一致时只标记 previous 可用,不产生下一帧脏上传 |
 | `render_velocity_skinned_prev_palette_flips_at_frame_end` | 同上 | palette 双缓冲翻转后 read 面等于上帧 write 面 |
 | `render_velocity_object_nonzero_for_moving_mesh` | `graphics/tests/render_product_temporal.rs` | 移动 Dynamic mesh 中心像素 readback `|velocity| > 0`;静止 Dynamic mesh 为 0(对齐 UE 0.0001 容差跳过) |
 | `render_velocity_camera_matches_reprojection_for_static_scene` | 同上 | 移动相机+静止物体:velocity 等于双矩阵重投影差(readback 与 CPU 参考值逐像素容差 1e-3) |

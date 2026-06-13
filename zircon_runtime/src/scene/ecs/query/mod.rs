@@ -31,7 +31,11 @@ pub use query_many_mut_iter::QueryManyMutIter;
 pub use query_many_unique_mut_iter::QueryManyUniqueMutIter;
 pub use query_mut_iter::QueryMutIter;
 pub use query_single_error::QuerySingleError;
-pub use query_state::{QueryState, QueryStateCacheStats};
+pub use query_state::{
+    QueryState, QueryStateCacheStats, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+};
 pub use unique_entities::UniqueEntityArray;
 
 pub(crate) use query_single_error::single_from_iter;

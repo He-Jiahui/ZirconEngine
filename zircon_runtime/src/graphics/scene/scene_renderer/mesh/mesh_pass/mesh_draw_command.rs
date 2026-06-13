@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::RenderPhase;
+use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{GpuMeshResource, PipelineKey};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -195,6 +196,7 @@ impl DrawInstanceSource {
 
 #[derive(Clone)]
 pub(crate) struct MeshDrawCommand {
+    pub(crate) source_entity: EntityId,
     pub(crate) source_draw_index: usize,
     pub(crate) phase: RenderPhase,
     pub(crate) pipeline_kind: MeshPassPipelineKind,
@@ -223,6 +225,7 @@ impl MeshDrawCommand {
         draw_args: MeshDrawArgs,
     ) -> Self {
         Self {
+            source_entity: 0,
             source_draw_index: 0,
             phase,
             pipeline_kind,
@@ -246,6 +249,11 @@ impl MeshDrawCommand {
 
     pub(crate) fn with_source_draw_index(mut self, source_draw_index: usize) -> Self {
         self.source_draw_index = source_draw_index;
+        self
+    }
+
+    pub(crate) fn with_source_entity(mut self, source_entity: EntityId) -> Self {
+        self.source_entity = source_entity;
         self
     }
 

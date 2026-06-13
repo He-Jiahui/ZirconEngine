@@ -11,7 +11,10 @@ mod system_param_access;
 mod system_param_error;
 mod system_state;
 
-pub use events::{EventReader, EventReaderParam, EventWriter, EventWriterParam};
+pub use events::{
+    EventReader, EventReaderParam, EventReaderState, EventWriter, EventWriterParam,
+    EventWriterState,
+};
 pub use local::{Local, LocalParam};
 pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam};
 pub use native::{

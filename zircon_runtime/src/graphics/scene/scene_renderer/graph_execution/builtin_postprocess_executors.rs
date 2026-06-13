@@ -126,6 +126,7 @@ pub(super) fn ssao_executor(context: &mut RenderPassExecutionContext<'_>) -> Res
         &executor_id,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
         PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
     )
 }
@@ -139,7 +140,9 @@ pub(super) fn clustered_lighting_executor(
     gpu.record_clustered_lighting_to_resources(
         &pass_name,
         &executor_id,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        PostProcessGraphResourceNames::LIGHT_ZBINS,
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
         PostProcessGraphResourceNames::LIGHT_LIST,
     )
 }
@@ -155,6 +158,19 @@ pub(super) fn hzb_build_executor(
         &executor_id,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         PostProcessGraphResourceNames::HZB_FURTHEST,
+    )
+}
+
+pub(super) fn hzb_occlusion_cull_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let pass_name = context.pass_name.clone();
+    let executor_id = context.executor_id.as_str().to_string();
+    let gpu = context.require_gpu()?;
+    gpu.record_hzb_occlusion_cull_to_indirect_args(
+        &pass_name,
+        &executor_id,
+        PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
     )
 }
 
@@ -301,54 +317,11 @@ pub(super) fn screen_space_reflection_resolve_executor(
         PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
-        attachment_ops,
-    )
-}
-
-pub(super) fn screen_space_reflection_depth_pyramid_executor(
-    context: &mut RenderPassExecutionContext<'_>,
-) -> Result<(), String> {
-    if !frame_uses_screen_space_reflection(context)? {
-        return Ok(());
-    }
-    let attachment_ops = context
-        .attachment_ops_for_write(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        )
-        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
-    let pass_name = context.pass_name.clone();
-    let gpu = context.require_gpu()?;
-    gpu.record_screen_space_reflection_depth_pyramid_to_resource(
-        &pass_name,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        attachment_ops,
-    )
-}
-
-pub(super) fn screen_space_reflection_depth_pyramid_coarse_executor(
-    context: &mut RenderPassExecutionContext<'_>,
-) -> Result<(), String> {
-    if !frame_uses_screen_space_reflection(context)? {
-        return Ok(());
-    }
-    let attachment_ops = context
-        .attachment_ops_for_write(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-        )
-        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
-    let pass_name = context.pass_name.clone();
-    let gpu = context.require_gpu()?;
-    gpu.record_screen_space_reflection_depth_pyramid_coarse_to_resource(
-        &pass_name,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
         attachment_ops,
     )
 }

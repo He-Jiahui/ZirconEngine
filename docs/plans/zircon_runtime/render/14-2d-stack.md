@@ -16,6 +16,9 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Fonts/FontCacheHarfBuzz.cpp
   - dev/bevy/crates/bevy_text/src/pipeline.rs
   - dev/bevy/crates/bevy_text/src/font_atlas.rs
+  - dev/bevy/crates/bevy_sprite/src/texture_slice/slicer.rs
+  - dev/bevy/crates/bevy_sprite_render/src/texture_slice/computed_slices.rs
+  - dev/bevy/crates/bevy_sprite_render/src/tilemap_chunk/mod.rs
 plan_sources:
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
@@ -48,6 +51,14 @@ plan_sources:
 | `dev/bevy/crates/bevy_text/src/pipeline.rs` + `font_atlas.rs` | Rust 文本管线:cosmic-text/parley 风格 shaping → 字形图集 → mesh 生成的完整链路,落地首选参照 |
 
 次参考:`dev/slint/internal/renderers/femtovg/font_cache.rs`(轻量字体缓存);既有 `.codex/plans/UI SDF 字体真实 Bake 收束计划.md` 的 SDF 产物格式。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_sprite/src/texture_slice/slicer.rs` | TD-M2 nine-slice:`TextureSlicer` 的 corner/side/center 切片与 `SliceScaleMode::{Stretch,Tile}` | `corner_slices` 的角尺寸钳制(对照本计划断点表的 k 系数)、tile 模式按 stretch 比例重复切分 |
+| `dev/bevy/crates/bevy_sprite_render/src/texture_slice/computed_slices.rs` | nine-slice 切片到渲染侧 extract 快照的投影 | `compute_sprite_slices`(Sliced/Tiled 双模式分流)与 `extract_slices` 的 flip/anchor 偏移处理 |
+| `dev/bevy/crates/bevy_sprite_render/src/tilemap_chunk/mod.rs` | TD-M3 tilemap chunk 渲染的 Rust 实绩:chunk mesh 缓存 + tile 数据驱动重建 | `TilemapChunkMeshCache`(同尺寸 chunk 共享 mesh)、`TileData`/`TilemapChunkTileData` 变更触发的重建路径 |
 
 ## 目标架构
 

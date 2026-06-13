@@ -2,11 +2,13 @@ use crate::graphics::scene::gpu_scene::GpuScene;
 
 use super::super::super::deferred::DeferredSceneResources;
 use super::super::super::graph_execution::TransientResourcePool;
+use super::super::super::hzb::HzbOcclusionCuller;
 use super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
 use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
 use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::sprite::SpriteRenderer;
 use super::super::super::ui::ScreenSpaceUiRenderer;
@@ -24,8 +26,14 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) cached_mesh_draw_commands:
         CachedMeshDrawCommands,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_scene: GpuScene,
+    pub(in crate::graphics::scene::scene_renderer::core) hzb_occlusion_culler:
+        Option<HzbOcclusionCuller>,
     pub(in crate::graphics::scene::scene_renderer::core) normal_prepass: NormalPrepassPipeline,
     pub(in crate::graphics::scene::scene_renderer::core) shadow_map_renderer: ShadowMapRenderer,
+    pub(in crate::graphics::scene::scene_renderer::core) shadow_atlas_allocator:
+        ShadowAtlasAllocator,
+    pub(in crate::graphics::scene::scene_renderer::core) shadow_atlas_resources:
+        ShadowAtlasResources,
     pub(in crate::graphics::scene::scene_renderer::core) deferred: DeferredSceneResources,
     pub(in crate::graphics::scene::scene_renderer::core) particle_renderer: ParticleRenderer,
     pub(in crate::graphics::scene::scene_renderer::core) sprite_renderer: SpriteRenderer,

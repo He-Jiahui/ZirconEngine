@@ -36,6 +36,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
             u32::from(features.history_resolve_enabled && history_available),
             reflection_probe_count,
         ],
+        lighting_flags: [u32::from(features.contact_shadow_enabled), 0, 0, 0],
         hybrid_gi_counts: [
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
@@ -296,6 +297,32 @@ mod tests {
             params.blends[2], 0.0,
             "cluster buffer color must not create visible viewport tile bands"
         );
+    }
+
+    #[test]
+    fn contact_shadow_runtime_flag_is_encoded_separately_from_ssao() {
+        let params = build_post_process_params(
+            UVec2::new(128, 96),
+            UVec2::new(8, 6),
+            &RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            SceneRuntimeFeatureFlags {
+                contact_shadow_enabled: true,
+                ..SceneRuntimeFeatureFlags::default()
+            },
+            false,
+            0,
+            0,
+            0,
+        );
+
+        assert_eq!(
+            params.feature_flags[0], 0,
+            "contact shadows must not masquerade as SSAO"
+        );
+        assert_eq!(params.lighting_flags[0], 1);
     }
 
     #[test]

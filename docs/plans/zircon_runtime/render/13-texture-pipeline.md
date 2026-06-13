@@ -10,6 +10,12 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTexturePhysicalSpace.cpp
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/MipGen/MipGenerator.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Textures/RTHandleSystem.cs
+  - dev/bevy/crates/bevy_image/src/image.rs
+  - dev/bevy/crates/bevy_image/src/ktx2.rs
+  - dev/bevy/crates/bevy_image/src/basis.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/downsample.wgsl
+  - dev/Fyrox/fyrox-texture/src/lib.rs
 plan_sources:
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
   - .codex/plans/Asset Importer 插件化补齐计划.md
@@ -43,6 +49,19 @@ plan_sources:
 | `dev/Graphics/.../core/Runtime/Textures/RTHandleSystem.cs` | RT 类纹理的统一句柄与缩放管理(与计划 01 池、计划 07 动态分辨率呼应) |
 
 次参考:`dev/learn-wgpu-zh`(wgpu 纹理上传/mip 写入的基础范式);`dev/bevy/crates/bevy_image`(导入元数据与 `is_srgb` 的资产表达)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_image/src/image.rs` | TX-M1 色彩空间元数据:unorm↔srgb 格式变体的权威映射(R11 规则的格式表来源) | `TextureSrgbViewFormats::srgb_view_formats` 的逐格式映射(含 BC1-7/ETC2 的 srgb 变体有无) |
+| `dev/bevy/crates/bevy_image/src/ktx2.rs` | KTX2 容器装载与 supercompression 解包(importer 插件 `container/ktx/ktx2` 的同类实现) | supercompression(zstd/zlib)逐 mip 解压分支;`FormatRequiresTranscodingError` 转 transcode 的分流 |
+| `dev/bevy/crates/bevy_image/src/basis.rs` | TX-M2 BasisU→BC transcode(插件 `transcode.rs` 直接对应) | `Transcoder` 校验→`image_info`→按 `supported_compressed_formats` + `is_srgb` 选目标族 |
+| `dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs` | TX-M2 运行期 MipGenPass:Rust/wgpu 的 mip 生成 compute 组织 | `MipGenerationJobs`/`MipGenerationPhase`(phase 锚点注册)、`DownsamplingConstants`、shader 模板文本替换手法 |
+| `dev/bevy/crates/bevy_core_pipeline/src/mip_generation/downsample.wgsl` | mip 降采样 kernel 的 WGSL 实绩(AMD SPD 移植) | 多 mip storage 绑定布局与 FIRST/SECOND_PASS 拆分;注意本计划取舍是 4-mip/dispatch 而非完整 SPD(见精读笔记 Unity 节) |
+| `dev/Fyrox/fyrox-texture/src/lib.rs` | TX-M2 离线 mip 与纹理资产元数据:`MipFilter`(Nearest/Bilinear/CatmullRom/Hamming/Lanczos)即 kaiser/box kernel 选择的 Rust 同类 | `MipFilter` 到重采样 FilterType 的映射、`mip_count`/采样器字段随资产序列化 |
+
+`SVT(页表 + feedback + 物理页池)` 无 Rust 同类参照,实现时以 UE 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

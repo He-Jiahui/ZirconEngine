@@ -14,7 +14,9 @@ use super::{
     navigation::dispatch_navigation_input,
     pointer::dispatch_pointer_input,
     popup::dispatch_popup_input,
+    submenu_hover_timer::dispatch_submenu_hover_timer_input,
     tooltip_timer::dispatch_tooltip_timer_input,
+    typeahead_timer::dispatch_typeahead_timer_input,
 };
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 
@@ -50,6 +52,12 @@ pub(crate) fn dispatch_input_event(
         UiInputEvent::DragDrop(drag_drop) => Ok(dispatch_drag_drop_input(surface, drag_drop)),
         UiInputEvent::Popup(popup) => Ok(dispatch_popup_input(surface, popup)),
         UiInputEvent::TooltipTimer(tooltip) => Ok(dispatch_tooltip_timer_input(surface, tooltip)),
+        UiInputEvent::TypeaheadTimer(typeahead) => {
+            Ok(dispatch_typeahead_timer_input(surface, typeahead))
+        }
+        UiInputEvent::SubmenuHoverTimer(submenu_hover) => {
+            Ok(dispatch_submenu_hover_timer_input(surface, submenu_hover))
+        }
         UiInputEvent::Accessibility(accessibility) => {
             Ok(dispatch_accessibility_input(surface, accessibility))
         }

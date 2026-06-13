@@ -1,4 +1,7 @@
-use crate::plugin::PluginModuleKind;
+use crate::plugin::{
+    NativeHostBridgeCallScope, PluginModuleKind, RuntimePluginBridgeLifecycleEvent,
+    RuntimePluginBridgeLifecycleOutcome,
+};
 
 use super::super::super::runtime_plugin::{
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -8,14 +11,41 @@ use super::super::{
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::diagnostics::{combine_diagnostics, report_diagnostics, sorted_unique_diagnostics};
+use super::keys::module_kind_label;
 
 pub const NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND: &str = "play-mode.enter";
 pub const NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND: &str = "play-mode.exit";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativePluginLiveHostCommand {
+    Load,
     Unload,
     HotReload,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativePluginLiveHostBridgeLifecycleReport {
+    pub plugin_id: String,
+    pub module_kind: PluginModuleKind,
+    pub command: NativePluginLiveHostCommand,
+    pub event: RuntimePluginBridgeLifecycleEvent,
+    pub outcome: RuntimePluginBridgeLifecycleOutcome,
+}
+
+impl NativePluginLiveHostBridgeLifecycleReport {
+    pub fn is_applied(&self) -> bool {
+        self.outcome.is_applied()
+    }
+
+    pub fn diagnostic(&self) -> String {
+        format!(
+            "native.live_host.bridge_lifecycle: {:?} {} plugin `{}` -> {}",
+            self.command,
+            module_kind_label(self.module_kind),
+            self.plugin_id,
+            self.outcome.diagnostic()
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,7 +53,29 @@ pub struct NativePluginLiveHostOutcome {
     pub plugin_id: String,
     pub module_kind: PluginModuleKind,
     pub command: NativePluginLiveHostCommand,
+    pub bridge_lifecycle_report: Option<NativePluginLiveHostBridgeLifecycleReport>,
     pub diagnostics: Vec<String>,
+}
+
+pub struct NativePluginLiveHostBridgeReloadReport {
+    pub plugin_id: String,
+    pub module_kind: PluginModuleKind,
+    pub command: NativePluginLiveHostCommand,
+    pub bridge_lifecycle_report: NativePluginLiveHostBridgeLifecycleReport,
+    pub bridge_call_scope: NativeHostBridgeCallScope,
+    pub diagnostics: Vec<String>,
+}
+
+impl NativePluginLiveHostBridgeReloadReport {
+    pub fn diagnostic(&self) -> String {
+        format!(
+            "native.live_host.bridge_scope_reloaded: {:?} {} plugin `{}` rebuilt {} bridge method(s)",
+            self.command,
+            module_kind_label(self.module_kind),
+            self.plugin_id,
+            self.bridge_call_scope.method_count()
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -32,6 +84,7 @@ pub struct NativePluginLiveHostLoadReport {
     pub loaded_plugin_ids: Vec<String>,
     pub runtime_plugin_registration_reports: Vec<RuntimePluginRegistrationReport>,
     pub runtime_plugin_feature_registration_reports: Vec<RuntimePluginFeatureRegistrationReport>,
+    pub bridge_lifecycle_reports: Vec<NativePluginLiveHostBridgeLifecycleReport>,
     pub diagnostics: Vec<String>,
 }
 

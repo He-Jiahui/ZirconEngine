@@ -17,8 +17,9 @@ pub use input::{
     UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerId, UiPointerInputEvent,
     UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind, UiPopupInputEvent,
     UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit,
-    UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-    UiTooltipTimerInputEventKind, UiTransientDismissalReason, UiTransientDismissalTarget, UiUserId,
+    UiSubmenuHoverTimerInputEvent, UiSurfaceId, UiTextByteRange, UiTextInputEvent,
+    UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+    UiTransientDismissalReason, UiTransientDismissalTarget, UiTypeaheadTimerInputEvent, UiUserId,
     UiWindowId,
 };
 pub use navigation::{

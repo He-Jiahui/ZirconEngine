@@ -31,6 +31,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         ))
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
         .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
     )
 }

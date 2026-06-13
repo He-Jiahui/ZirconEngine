@@ -7,9 +7,12 @@ related_code:
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/module.rs
+  - zircon_runtime/src/script/vm/host/script_call_table.rs
+  - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
   - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
@@ -22,9 +25,12 @@ implementation_files:
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/mod.rs
+  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/compiler.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/module.rs
+  - zircon_runtime/src/script/vm/host/script_call_table.rs
+  - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/backend/zr_vm_project_fallback_backend.rs
   - ../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs
 plan_sources:
@@ -34,6 +40,7 @@ tests:
   - cargo check -p zircon_runtime --lib --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
   - cargo test -p zircon_runtime --lib fallback_project_backend_does_not_claim_real_zr_vm_selector --message-format short --color never
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_w_key_moves_player_before_input_clear --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
@@ -58,6 +65,10 @@ The real backend is feature gated through `zircon_runtime/zr-vm-real-backend`. `
 
 The selected backend compiles or reuses cached project modules, creates a runtime plugin instance, and provides the same lifecycle surface expected by `VmPluginManager`: `activate`, `deactivate`, `save_state`, `restore_state`, and exported scene callbacks such as `onStart` and `onUpdate`.
 
+## Host Callback Call Table
+
+Before registering host modules into `zr_vm`, the real backend now snapshots `HostExportRegistry` into a dense `ScriptCallTable`. Each generated native host function captures a pre-resolved `ScriptCallSite`, so the callback path keeps arity/capability validation but skips repeated module/function name lookup. This also covers the dynamic `zr.zircon.bridge` module because bridge methods are registered through the same host export ledger before backend module registration. `bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites` keeps that as an executable structure guard by requiring registration-time resolution before `build_native_function(...)` and forbidding callback-time `resolve(...)` or `call_with_capabilities(...)`.
+
 ## Lifecycle Export Boundary
 
 `ZrVmPluginInstance` calls entry lifecycle exports through the ZrVM session path. `activate`, `deactivate`, and `saveState` intentionally pass zero script arguments; `restoreState` passes one serialized state string. The zero-argument calls must remain count `0`, not a synthetic `null` value, because the script function signatures are no-argument lifecycle hooks.
@@ -75,6 +86,10 @@ Local run validation exposed two real-VM script constraints while bringing up th
 This means the runtime can now host and render a simple 3D game package through the real project backend, but script authoring should stay inside the validated subset until script-to-script helper calls and numeric expression typing are fixed in the VM boundary. The vampire scene keeps the real VM hot path to the player plus three active enemy bindings; additional visible enemies are authored with disabled bindings so they remain rendered content without becoming callback targets.
 
 ## Validation Notes
+
+On 2026-06-13, the VM host callback table slice passed two focused runtime tests against `D:\cargo-targets\zircon-plugin-architecture-bridge-0613`: `script_call_table_pre_resolves_host_export_callbacks` and `zr_vm_real_backend_uses_script_call_table_for_host_callbacks`. The same slice also passed `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-bridge-0613 --message-format short --color never` with existing warning noise.
+
+On 2026-06-14, the plugin bridge performance baseline added `bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites` as a source-structure guard for the same real-backend callback path. The independent source-structure check passed, proving the current source still resolves call sites before callback construction and keeps callback dispatch on `ScriptCallSite::call(...)`. It is a performance-regression guard, not a replacement for the runtime behavior tests above; Cargo lib-test validation is currently blocked before target execution by unrelated render call-arity errors.
 
 On 2026-06-12, the lower binding regression tests passed against `E:\Git\zr_vm\build-msvc\bin\Release` / `lib\Release`: `call_module_export_accepts_empty_argument_slice` and `project_session_preserves_module_state_between_export_calls` both completed with one passing test. This proves the binding no longer turns empty export argument slices into a native null argument pointer for workspace or session export calls.
 

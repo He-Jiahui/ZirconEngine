@@ -33,6 +33,10 @@ impl InterfaceExport {
     pub(crate) fn interface_id(&self) -> &str {
         &self.interface_id
     }
+
+    pub(crate) fn provider(&self) -> Arc<dyn Any + Send + Sync> {
+        self.provider.clone()
+    }
 }
 
 impl fmt::Debug for InterfaceExport {
@@ -51,6 +55,16 @@ pub enum BridgeInterfaceStatus {
     Disabled,
 }
 
+impl BridgeInterfaceStatus {
+    fn from_installed_entry(generation: u32, provider_installed: bool) -> Self {
+        if generation % 2 == 0 && provider_installed {
+            Self::Enabled
+        } else {
+            Self::Disabled
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BridgeInterfaceSnapshot {
     pub slot: InterfaceSlot,
@@ -60,6 +74,96 @@ pub struct BridgeInterfaceSnapshot {
     pub provider_installed: bool,
     pub status: BridgeInterfaceStatus,
     pub diagnostics: BridgeDiagnosticsSnapshot,
+}
+
+impl BridgeInterfaceSnapshot {
+    pub fn diagnostic(&self) -> String {
+        format!(
+            "bridge.interface: slot={} interface=`{}` owner_module_slot={} generation={} provider_installed={} status={:?} enabled_calls={} not_enabled_calls={}",
+            self.slot.raw(),
+            self.interface_id,
+            self.owner.raw(),
+            self.generation,
+            self.provider_installed,
+            self.status,
+            self.diagnostics.enabled_calls,
+            self.diagnostics.not_enabled_calls
+        )
+    }
+}
+
+/// Aggregate bridge-table state for lifecycle logs and editor diagnostics.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct BridgeTableDiagnosticsSummary {
+    pub total_interfaces: usize,
+    pub enabled_interfaces: usize,
+    pub disabled_interfaces: usize,
+    pub installed_providers: usize,
+    pub missing_providers: usize,
+    pub enabled_calls: u64,
+    pub not_enabled_calls: u64,
+}
+
+impl BridgeTableDiagnosticsSummary {
+    pub fn diagnostic(&self) -> String {
+        format!(
+            "bridge.table_summary: total={} enabled={} disabled={} providers_installed={} providers_missing={} enabled_calls={} not_enabled_calls={}",
+            self.total_interfaces,
+            self.enabled_interfaces,
+            self.disabled_interfaces,
+            self.installed_providers,
+            self.missing_providers,
+            self.enabled_calls,
+            self.not_enabled_calls
+        )
+    }
+
+    fn from_snapshots<'snapshot>(
+        snapshots: impl IntoIterator<Item = &'snapshot BridgeInterfaceSnapshot>,
+    ) -> Self {
+        let mut summary = Self::default();
+        for snapshot in snapshots {
+            summary.record_snapshot(snapshot);
+        }
+        summary
+    }
+
+    fn record_snapshot(&mut self, snapshot: &BridgeInterfaceSnapshot) {
+        self.total_interfaces += 1;
+        match snapshot.status {
+            BridgeInterfaceStatus::Enabled => self.enabled_interfaces += 1,
+            BridgeInterfaceStatus::Disabled => self.disabled_interfaces += 1,
+            BridgeInterfaceStatus::Absent => {}
+        }
+        if snapshot.provider_installed {
+            self.installed_providers += 1;
+        } else {
+            self.missing_providers += 1;
+        }
+        self.enabled_calls += snapshot.diagnostics.enabled_calls;
+        self.not_enabled_calls += snapshot.diagnostics.not_enabled_calls;
+    }
+}
+
+/// Editor-facing bridge diagnostics matrix: one summary row plus deterministic interface rows.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BridgeDiagnosticsMatrix {
+    pub summary: BridgeTableDiagnosticsSummary,
+    pub rows: Vec<BridgeInterfaceSnapshot>,
+}
+
+impl BridgeDiagnosticsMatrix {
+    fn from_rows(rows: Vec<BridgeInterfaceSnapshot>) -> Self {
+        let summary = BridgeTableDiagnosticsSummary::from_snapshots(&rows);
+        Self { summary, rows }
+    }
+
+    pub fn diagnostic_lines(&self) -> Vec<String> {
+        let mut lines = Vec::with_capacity(self.rows.len() + 1);
+        lines.push(self.summary.diagnostic());
+        lines.extend(self.rows.iter().map(BridgeInterfaceSnapshot::diagnostic));
+        lines
+    }
 }
 
 /// Post-operation diagnostics for batch bridge changes owned by one plugin module.
@@ -99,6 +203,7 @@ pub enum BridgeOwnerTransitionMode {
     Activate,
     Disable,
     Deactivate,
+    Reload,
 }
 
 #[derive(Debug)]
@@ -140,7 +245,7 @@ impl BridgeEntry {
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.generation() % 2 == 0 && self.provider_installed()
+        self.snapshot_state().status == BridgeInterfaceStatus::Enabled
     }
 
     pub fn provider_installed(&self) -> bool {
@@ -152,11 +257,7 @@ impl BridgeEntry {
     }
 
     pub fn status(&self) -> BridgeInterfaceStatus {
-        if self.is_enabled() {
-            BridgeInterfaceStatus::Enabled
-        } else {
-            BridgeInterfaceStatus::Disabled
-        }
+        self.snapshot_state().status
     }
 
     pub(crate) fn record_enabled_call(&self) {
@@ -218,11 +319,38 @@ impl BridgeEntry {
     where
         T: PluginInterface + ?Sized,
     {
-        *self.provider.lock().unwrap() = Some(Arc::new(provider));
+        self.replace_erased_provider(Arc::new(provider));
+    }
+
+    fn replace_erased_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
+        *self.provider.lock().unwrap() = Some(provider);
         if self.generation() % 2 == 0 {
             self.generation.fetch_add(2, Ordering::AcqRel);
         }
     }
+
+    fn restore_provider(&self, provider: Arc<dyn Any + Send + Sync>) {
+        *self.provider.lock().unwrap() = Some(provider);
+        self.set_enabled(true);
+    }
+
+    fn snapshot_state(&self) -> BridgeEntrySnapshotState {
+        let generation = self.generation();
+        let provider_installed = self.provider_installed();
+        let status = BridgeInterfaceStatus::from_installed_entry(generation, provider_installed);
+        BridgeEntrySnapshotState {
+            generation,
+            provider_installed,
+            status,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct BridgeEntrySnapshotState {
+    generation: u32,
+    provider_installed: bool,
+    status: BridgeInterfaceStatus,
 }
 
 #[derive(Clone, Debug)]
@@ -314,6 +442,31 @@ impl FrozenBridgeTable {
             .collect()
     }
 
+    pub fn diagnostics_summary(&self) -> BridgeTableDiagnosticsSummary {
+        self.summarize_entries(self.inner.entries.iter().enumerate())
+    }
+
+    pub fn diagnostics_summary_owned_by(
+        &self,
+        owner: PluginModuleId,
+    ) -> BridgeTableDiagnosticsSummary {
+        self.summarize_entries(
+            self.inner
+                .entries
+                .iter()
+                .enumerate()
+                .filter(move |(_, entry)| entry.owner() == owner),
+        )
+    }
+
+    pub fn diagnostics_matrix(&self) -> BridgeDiagnosticsMatrix {
+        BridgeDiagnosticsMatrix::from_rows(self.interface_snapshots())
+    }
+
+    pub fn diagnostics_matrix_owned_by(&self, owner: PluginModuleId) -> BridgeDiagnosticsMatrix {
+        BridgeDiagnosticsMatrix::from_rows(self.interface_snapshots_owned_by(owner))
+    }
+
     pub fn resolve_strong<T>(&self) -> Result<StrongBridge<T>, RuntimeExtensionRegistryError>
     where
         T: PluginInterface + ?Sized,
@@ -389,6 +542,56 @@ impl FrozenBridgeTable {
         self.set_owner_enabled_with_report(owner, true)
     }
 
+    pub(crate) fn restore_owner_exports_with_report(
+        &self,
+        owner: PluginModuleId,
+        exports: impl IntoIterator<Item = (String, InterfaceExport)>,
+    ) -> BridgeOwnerTransitionReport {
+        let mut affected_slots = Vec::new();
+        for (interface_id, export) in exports {
+            let Some(slot) = self.resolve_slot(&interface_id) else {
+                continue;
+            };
+            let Some(entry) = self.entry(slot) else {
+                continue;
+            };
+            if entry.owner() != owner {
+                continue;
+            }
+
+            entry.restore_provider(export.provider());
+            affected_slots.push(slot);
+        }
+        affected_slots.sort_by_key(|slot| slot.raw());
+        affected_slots.dedup();
+        self.owner_transition_report(owner, BridgeOwnerTransitionMode::Activate, affected_slots)
+    }
+
+    pub(crate) fn reload_owner_exports_with_report(
+        &self,
+        owner: PluginModuleId,
+        exports: impl IntoIterator<Item = (String, InterfaceExport)>,
+    ) -> BridgeOwnerTransitionReport {
+        let mut affected_slots = Vec::new();
+        for (interface_id, export) in exports {
+            let Some(slot) = self.resolve_slot(&interface_id) else {
+                continue;
+            };
+            let Some(entry) = self.entry(slot) else {
+                continue;
+            };
+            if entry.owner() != owner {
+                continue;
+            }
+
+            entry.replace_erased_provider(export.provider());
+            affected_slots.push(slot);
+        }
+        affected_slots.sort_by_key(|slot| slot.raw());
+        affected_slots.dedup();
+        self.owner_transition_report(owner, BridgeOwnerTransitionMode::Reload, affected_slots)
+    }
+
     pub fn deactivate_owner(&self, owner: PluginModuleId) -> Vec<InterfaceSlot> {
         self.deactivate_owner_slots(owner)
     }
@@ -460,15 +663,27 @@ impl FrozenBridgeTable {
     }
 
     fn snapshot_for_entry(&self, index: usize, entry: &BridgeEntry) -> BridgeInterfaceSnapshot {
+        let state = entry.snapshot_state();
         BridgeInterfaceSnapshot {
             slot: InterfaceSlot::from_raw(index as u32),
             interface_id: entry.interface_id().to_string(),
             owner: entry.owner(),
-            generation: entry.generation(),
-            provider_installed: entry.provider_installed(),
-            status: entry.status(),
+            generation: state.generation,
+            provider_installed: state.provider_installed,
+            status: state.status,
             diagnostics: entry.diagnostics(),
         }
+    }
+
+    fn summarize_entries<'a>(
+        &self,
+        entries: impl IntoIterator<Item = (usize, &'a BridgeEntry)>,
+    ) -> BridgeTableDiagnosticsSummary {
+        let mut summary = BridgeTableDiagnosticsSummary::default();
+        for (index, entry) in entries {
+            summary.record_snapshot(&self.snapshot_for_entry(index, entry));
+        }
+        summary
     }
 
     fn owner_transition_report(

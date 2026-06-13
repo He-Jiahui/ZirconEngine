@@ -220,6 +220,54 @@ fn modified_virtual_accept_still_routes_to_default_activation() {
     assert!(surface.focus.focused_inputs[0].accepted);
 }
 
+#[test]
+fn unified_keyboard_default_activation_prefers_semantic_keyboard_action_binding() {
+    let mut surface = semantic_keyboard_activation_route_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_activation_event("Enter", 13),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.component_action")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_component_action=Activate"));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::KeyboardAction {
+            action: UiComponentKeyboardAction::Activate,
+        }
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(2))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+}
+
 fn keyboard_activation_route_surface() -> UiSurface {
     let mut surface = route_surface();
     let target = surface.tree.nodes.get_mut(&UiNodeId::new(2)).unwrap();
@@ -227,6 +275,19 @@ fn keyboard_activation_route_surface() -> UiSurface {
         component: "MaterialButton".to_string(),
         control_id: Some("KeyboardButton".to_string()),
         bindings: vec![binding("KeyboardButton/Activate", UiEventKind::Click)],
+        ..Default::default()
+    });
+    surface.rebuild();
+    surface
+}
+
+fn semantic_keyboard_activation_route_surface() -> UiSurface {
+    let mut surface = route_surface();
+    let target = surface.tree.nodes.get_mut(&UiNodeId::new(2)).unwrap();
+    target.template_metadata = Some(UiTemplateNodeMetadata {
+        component: "MaterialButton".to_string(),
+        control_id: Some("KeyboardButton".to_string()),
+        bindings: vec![binding("KeyboardButton/KeyboardAction", UiEventKind::Click)],
         ..Default::default()
     });
     surface.rebuild();

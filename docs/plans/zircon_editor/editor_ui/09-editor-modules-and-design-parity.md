@@ -202,3 +202,17 @@ pub struct HierarchyViewModel {                    // 新增（workbench/model/ 
 - 不为单个模块发明专属控件——缺组件先回计划 06 补清单。
 - 数据接线只经 EditorRuntimeClient / interface 契约；禁止新私有通道。
 - 验收始终是「可见、可布局、可点击、可聚焦、可输入、数据真实」，像素级修正只允许出现在 M5 审查后的明确差异项里。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现模块接线前先读对应锚点，不确定的交互语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 模块/设计点 | 主参考 | 次参考 | 参考什么 |
+|------------|--------|--------|---------|
+| Inspector 反射属性编辑 | `dev/Fyrox/fyrox-ui/src/inspector/{mod.rs, editors}` | `dev/Fyrox/editor`（inspector 面板接线） | 反射驱动的 property editor 注册表、值变更消息回流——与 09 的 UiReflectionSnapshot/Diff 链直接对应 |
+| 场景树/Hierarchy | `dev/Fyrox/editor`（world viewer/scene graph 面板） | `dev/godot/editor`（scene tree dock） | 树与选中同步、重排/重命名命令化、多选语义 |
+| 资产浏览器 | `dev/godot/editor`（filesystem dock） | `dev/Fyrox/editor`（asset browser） | 目录树 + 网格/列表 + 缩略图生成 + 双击打开编辑器的组织 |
+| undo/redo 命令栈 | `dev/godot/editor`（undo_redo 用法） | `zircon_editor/src/ui/asset_editor/session/command_entry.rs`（仓内样板） | 命令带旧值快照、合并策略（拖拽连续改值合并为一条） |
+| Console/日志面板 | `dev/godot/editor`（log/output 面板） | `dev/Fyrox/fyrox-ui/src/log.rs` | 级别过滤、详情区、虚拟滚动日志的交互组织 |
+| 时间轴模块 | `dev/theatre/packages/studio` | `dev/godot/editor`（animation 面板） | keyframe 编辑交互（协同 07 M4） |
+| 图编辑画布（Material Editor） | `dev/godot/scene/gui/{graph_edit.cpp, graph_edit_arranger.cpp}` | — | 节点图画布的平移/缩放/连线/框选语义（Canvas 容器 + 节点组合的行为标准） |

@@ -384,7 +384,7 @@ impl RuntimePlugin for WeatherRuntimePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {
@@ -429,9 +429,9 @@ impl RuntimePlugin for WeatherRuntimePlugin {
         registry.register_event::<WeatherChanged>(
             owner,
             PluginEventManifest {
-                id: "weather.changed".to_string(),
+                id: "weather.events.changed".to_string(),
                 display_name: "Weather Changed".to_string(),
-                payload_schema: "WeatherChanged".to_string(),
+                payload_schema: "weather.schemas.changed.v1".to_string(),
             },
         )?;
         registry

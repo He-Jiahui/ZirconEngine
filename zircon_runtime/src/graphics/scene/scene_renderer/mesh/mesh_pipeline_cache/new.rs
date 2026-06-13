@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use super::forward_shadow_receiver::{
-    create_fallback_shadow_map_view, create_forward_shadow_compare_sampler,
-    create_forward_shadow_receiver_layout, create_forward_shadow_receiver_uniform_buffer,
+    create_fallback_shadow_atlas_view, create_forward_light_grid_empty_tile_masks_buffer,
+    create_forward_light_grid_empty_zbins_buffer, create_forward_light_grid_params_buffer,
+    create_forward_shadow_atlas_fallback_globals_buffer,
+    create_forward_shadow_atlas_fallback_slot_buffer, create_forward_shadow_compare_sampler,
+    create_forward_shadow_receiver_layout,
 };
 use super::{MeshPipelineCache, MeshPipelineVariantRegistry};
 
@@ -25,25 +28,28 @@ impl MeshPipelineCache {
             ],
             immediate_size: 0,
         });
-        let forward_shadow_receiver_uniform_buffer = create_forward_shadow_receiver_uniform_buffer(
-            device,
-            "zircon-forward-shadow-receiver-uniform",
-        );
-        let forward_shadow_receiver_disabled_uniform_buffer =
-            create_forward_shadow_receiver_uniform_buffer(
-                device,
-                "zircon-forward-shadow-receiver-disabled-uniform",
-            );
         let forward_shadow_compare_sampler = create_forward_shadow_compare_sampler(device);
-        let fallback_shadow_map_view = create_fallback_shadow_map_view(device);
+        let forward_light_grid_params_buffer = create_forward_light_grid_params_buffer(device);
+        let forward_light_grid_empty_zbins_buffer =
+            create_forward_light_grid_empty_zbins_buffer(device);
+        let forward_light_grid_empty_tile_masks_buffer =
+            create_forward_light_grid_empty_tile_masks_buffer(device);
+        let forward_shadow_atlas_fallback_slot_buffer =
+            create_forward_shadow_atlas_fallback_slot_buffer(device);
+        let forward_shadow_atlas_fallback_globals_buffer =
+            create_forward_shadow_atlas_fallback_globals_buffer(device);
+        let fallback_shadow_atlas_view = create_fallback_shadow_atlas_view(device);
         Self {
             target_format,
             mesh_pipeline_layout,
             forward_shadow_receiver_layout,
-            forward_shadow_receiver_uniform_buffer,
-            forward_shadow_receiver_disabled_uniform_buffer,
             forward_shadow_compare_sampler,
-            fallback_shadow_map_view,
+            forward_light_grid_params_buffer,
+            forward_light_grid_empty_zbins_buffer,
+            forward_light_grid_empty_tile_masks_buffer,
+            forward_shadow_atlas_fallback_slot_buffer,
+            forward_shadow_atlas_fallback_globals_buffer,
+            fallback_shadow_atlas_view,
             shader_modules: HashMap::new(),
             mesh_pipelines: HashMap::new(),
             motion_vector_mesh_pipelines: HashMap::new(),

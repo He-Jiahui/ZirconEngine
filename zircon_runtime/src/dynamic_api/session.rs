@@ -45,7 +45,7 @@ use crate::core::framework::input::{
     FileDragDropEvent, GamepadConnectionInfo, GamepadId, ImeDeleteSurrounding, ImeEvent,
     ImeHostRequest, ImePreedit, InputEvent, InputManager, MouseWheelEvent, WindowStatusEvent,
 };
-use crate::core::framework::render::{RenderFrameExtract, RenderViewportSurfaceDescriptor};
+use crate::core::framework::render::RenderViewportSurfaceDescriptor;
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
@@ -65,6 +65,8 @@ use super::frame::{
 use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
 use super::surface::render_surface_descriptor;
 
+mod extract;
+mod extract_stats;
 mod host_requests;
 mod hud;
 mod input_events;
@@ -76,15 +78,12 @@ mod status;
 mod tests;
 
 pub(super) use host_requests::{runtime_gamepad_rumble_request, runtime_ime_host_request};
-use hud::runtime_session_hud_extract;
 use input_events::{
     gamepad_axis, gamepad_button, ime_cursor, ime_cursor_area, ime_surrounding_text, input_button,
     keyboard_logical_key, mouse_scroll_unit, nonzero_u16, touch_phase, window_bool,
     window_scale_factor, window_theme,
 };
-use menu::{
-    runtime_session_menu_action_at, runtime_session_menu_extract, write_runtime_menu_action,
-};
+use menu::{runtime_session_menu_action_at, write_runtime_menu_action};
 use preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
 use project::RuntimeProjectConfig;
 use status::{error_status, invalid_argument, not_found, unsupported_version};
@@ -114,7 +113,7 @@ impl Default for SessionRegistry {
     }
 }
 
-pub(super) unsafe extern "C" fn create_session(
+pub(super) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV1,
     out_session: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
@@ -148,7 +147,7 @@ pub(super) unsafe extern "C" fn create_session(
     }
 }
 
-pub(super) unsafe extern "C" fn destroy_session(handle: ZrRuntimeSessionHandle) -> ZrStatus {
+pub(super) unsafe fn destroy_session(handle: ZrRuntimeSessionHandle) -> ZrStatus {
     if !handle.is_valid() {
         return invalid_argument(b"invalid runtime session handle");
     }
@@ -159,7 +158,7 @@ pub(super) unsafe extern "C" fn destroy_session(handle: ZrRuntimeSessionHandle) 
     ZrStatus::ok()
 }
 
-pub(super) unsafe extern "C" fn handle_event(
+pub(super) unsafe fn handle_event(
     handle: ZrRuntimeSessionHandle,
     event: ZrRuntimeEventV1,
 ) -> ZrStatus {
@@ -170,7 +169,7 @@ pub(super) unsafe extern "C" fn handle_event(
     with_session(handle, |session| session.handle_event(event))
 }
 
-pub(super) unsafe extern "C" fn capture_frame(
+pub(super) unsafe fn capture_frame(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
     out_frame: *mut ZrRuntimeFrameV1,
@@ -189,7 +188,7 @@ pub(super) unsafe extern "C" fn capture_frame(
     })
 }
 
-pub(super) unsafe extern "C" fn capture_accessibility_tree(
+pub(super) unsafe fn capture_accessibility_tree(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeAccessibilityTreeRequestV1,
     out_tree: *mut ZrOwnedByteBuffer,
@@ -216,7 +215,7 @@ pub(super) unsafe extern "C" fn capture_accessibility_tree(
     })
 }
 
-pub(super) unsafe extern "C" fn bind_viewport_surface(
+pub(super) unsafe fn bind_viewport_surface(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeBindViewportSurfaceRequestV1,
 ) -> ZrStatus {
@@ -242,7 +241,7 @@ pub(super) unsafe extern "C" fn bind_viewport_surface(
     })
 }
 
-pub(super) unsafe extern "C" fn unbind_viewport_surface(
+pub(super) unsafe fn unbind_viewport_surface(
     handle: ZrRuntimeSessionHandle,
     viewport: ZrRuntimeViewportHandle,
 ) -> ZrStatus {
@@ -256,7 +255,7 @@ pub(super) unsafe extern "C" fn unbind_viewport_surface(
     })
 }
 
-pub(super) unsafe extern "C" fn present_viewport(
+pub(super) unsafe fn present_viewport(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
 ) -> ZrStatus {
@@ -274,7 +273,7 @@ pub(super) unsafe extern "C" fn present_viewport(
     })
 }
 
-pub(super) unsafe extern "C" fn profile_control(
+pub(super) unsafe fn profile_control(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
     out_json: *mut ZrOwnedByteBuffer,
@@ -298,7 +297,7 @@ pub(super) unsafe extern "C" fn profile_control(
     })
 }
 
-pub(super) unsafe extern "C" fn tick_frame(handle: ZrRuntimeSessionHandle) -> ZrStatus {
+pub(super) unsafe fn tick_frame(handle: ZrRuntimeSessionHandle) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "tick_frame");
     with_session(handle, |session| match session.tick_frame() {
         Ok(()) => ZrStatus::ok(),
@@ -306,7 +305,7 @@ pub(super) unsafe extern "C" fn tick_frame(handle: ZrRuntimeSessionHandle) -> Zr
     })
 }
 
-pub(super) unsafe extern "C" fn drain_host_requests(
+pub(super) unsafe fn drain_host_requests(
     handle: ZrRuntimeSessionHandle,
     out_requests: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
@@ -557,12 +556,17 @@ impl RuntimeDynamicSession {
     }
 
     fn tick_frame(&mut self) -> Result<(), String> {
-        let advance = self
-            .runtime
-            .tick_time(self.profile.max_fixed_steps_per_frame());
-        self.level
-            .tick(&self.runtime.handle(), advance)
-            .map_err(|error| error.to_string())?;
+        let advance = {
+            crate::profile_scope!("runtime", "frame", "runtime_frame_time_update");
+            self.runtime
+                .tick_time(self.profile.max_fixed_steps_per_frame())
+        };
+        {
+            crate::profile_scope!("runtime", "frame", "runtime_frame_update");
+            self.level
+                .tick(&self.runtime.handle(), advance)
+                .map_err(|error| error.to_string())?;
+        }
         self.input_manager.begin_frame();
         if self.diagnostic_log_schedule.tick(advance.real_delta()) {
             let snapshot = collect_runtime_diagnostics(&self.runtime.handle()).store;
@@ -713,26 +717,6 @@ impl RuntimeDynamicSession {
         not_found(
             b"runtime UI surface accessibility action dispatch unavailable in dynamic preview",
         )
-    }
-
-    fn current_extract(&self) -> RenderFrameExtract {
-        self.level.with_world(|world| {
-            world
-                .to_render_frame_extract()
-                .with_viewport_size(self.camera_controller.viewport_size())
-        })
-    }
-
-    fn current_ui_extract(&self) -> Option<zircon_runtime_interface::ui::surface::UiRenderExtract> {
-        let viewport_size = self.camera_controller.viewport_size();
-        self.level.with_world(|world| {
-            runtime_session_menu_extract(world, viewport_size)
-                .or_else(|| runtime_session_hud_extract(world, viewport_size))
-        })
-    }
-
-    fn resize_viewport(&mut self, size: UVec2) {
-        self.camera_controller.resize(size);
     }
 
     fn handle_cursor_moved(&mut self, position: Vec2) {

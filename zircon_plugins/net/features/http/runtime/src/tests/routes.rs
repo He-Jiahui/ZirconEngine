@@ -10,7 +10,7 @@ use crate::backend::HTTP_ROUTE_REQUEST_BODY_LIMIT_BYTES;
 use crate::http_runtime_manager;
 
 #[test]
-fn http_feature_manager_serves_registered_route_over_real_socket() {
+fn http_round_trip_against_local_hyper_server() {
     let net = http_runtime_manager();
     assert!(net.backend_name().contains("+http"));
     net.register_http_route(
@@ -33,6 +33,48 @@ fn http_feature_manager_serves_registered_route_over_real_socket() {
     assert_eq!(response.request, NetRequestId::new(17));
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body, b"socket-ok");
+}
+
+#[test]
+fn range_request_returns_partial() {
+    let net = http_runtime_manager();
+    let saw_range = Arc::new(AtomicBool::new(false));
+    let saw_range_for_handler = saw_range.clone();
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/chunks/range", [NetHttpMethod::Get]),
+        move |request| {
+            saw_range_for_handler.store(
+                request.headers.iter().any(|(name, value)| {
+                    name.eq_ignore_ascii_case("range") && value == "bytes=4-8"
+                }),
+                Ordering::SeqCst,
+            );
+            NetHttpResponseDescriptor::new(request.request, 206, b"45678".to_vec())
+                .with_header("content-range", "bytes 4-8/10")
+        },
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(18),
+                NetHttpMethod::Get,
+                format!("http://{}:{}/chunks/range", endpoint.host, endpoint.port),
+            )
+            .with_byte_range(4, 8),
+        )
+        .unwrap();
+
+    assert_eq!(response.request, NetRequestId::new(18));
+    assert_eq!(response.status_code, 206);
+    assert_eq!(response.body, b"45678");
+    assert!(response.headers.iter().any(|(name, value)| {
+        name.eq_ignore_ascii_case("content-range") && value == "bytes 4-8/10"
+    }));
+    assert!(saw_range.load(Ordering::SeqCst));
 }
 
 #[test]

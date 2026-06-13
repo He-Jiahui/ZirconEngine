@@ -25,6 +25,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(array_prop("hovered_options"))
             .with_prop(array_prop("pressed_options"))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::Focus,
                 UiComponentEventKind::OpenPopup,
                 UiComponentEventKind::SelectOption,
@@ -39,7 +40,10 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         )
         .with_prop(options_prop())
         .with_prop(value_text_prop())
-        .event(UiComponentEventKind::ValueChanged),
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::ValueChanged,
+        ]),
         composite(
             "Autocomplete",
             "Autocomplete",
@@ -93,6 +97,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .slot(UiSlotSchema::new("groupLabel").multiple(true))
         .slot(UiSlotSchema::new("groupUl").multiple(true))
         .events([
+            UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::Focus,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::OpenPopup,
@@ -108,9 +113,21 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             "toggle-button-group",
         )
         .with_prop(enum_prop("selection_state", "exclusive"))
+        .with_prop(options_prop())
+        .with_prop(default_string_prop("value", ""))
         .with_prop(value_text_prop())
+        .with_prop(int_prop("selected_index", 0))
+        .with_prop(int_prop("focused_index", 0))
+        .with_prop(array_prop("disabled_options"))
+        .with_prop(bool_prop("selection_follows_focus", false))
+        .with_prop(bool_prop("keyboard_navigation", true))
         .slot(UiSlotSchema::new("buttons").multiple(true))
-        .event(UiComponentEventKind::SelectOption),
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::Focus,
+            UiComponentEventKind::SelectOption,
+            UiComponentEventKind::ValueChanged,
+        ]),
     ]
 }
 

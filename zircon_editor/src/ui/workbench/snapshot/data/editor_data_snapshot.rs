@@ -5,7 +5,9 @@ use zircon_runtime_interface::math::UVec2;
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 use super::super::asset::AssetWorkspaceSnapshot;
-use super::{InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry};
+use super::{
+    EditorBridgeDiagnosticsSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
+};
 
 #[derive(Clone, Debug)]
 pub struct EditorDataSnapshot {
@@ -25,4 +27,5 @@ pub struct EditorDataSnapshot {
     pub project_open: bool,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub bridge_diagnostics: EditorBridgeDiagnosticsSnapshot,
 }

@@ -8,6 +8,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutorRegistry, RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
@@ -15,6 +16,7 @@ use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::mesh::MeshPipelineCache;
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
+use super::super::super::super::shadow::atlas::ShadowAtlasResources;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::scene_renderer_core::SceneRendererCore;
 use super::super::render::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
@@ -51,8 +53,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Deferred,
+                self.hzb_occlusion_culler.as_ref(),
                 None,
                 None,
+                Some(&self.shadow_atlas_resources),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -85,8 +89,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Opaque3d,
+                self.hzb_occlusion_culler.as_ref(),
                 None,
                 Some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -118,8 +124,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::AlphaMask3d,
+                self.hzb_occlusion_culler.as_ref(),
                 None,
                 Some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -151,8 +159,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Transparent3d,
+                self.hzb_occlusion_culler.as_ref(),
                 Some(&self.particle_renderer),
                 Some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -195,8 +205,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Lighting,
+                self.hzb_occlusion_culler.as_ref(),
                 Some(post_process_stack),
                 Some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
             );
             pop_group(encoder);
             deferred_lighting_result?;
@@ -214,8 +226,10 @@ impl SceneRendererCore {
                 graph_execution,
                 &mut self.screen_space_ui_renderer,
                 RenderPassStage::Transparent3d,
+                self.hzb_occlusion_culler.as_ref(),
                 Some(&self.particle_renderer),
                 Some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
             )?;
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
@@ -270,8 +284,10 @@ fn execute_mesh_graph_stage(
     graph_execution: &mut RenderGraphStageExecution<'_>,
     screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
+    hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     particle_renderer: Option<&ParticleRenderer>,
     shadow_map_renderer: Option<&crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer>,
+    shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) -> Result<(), GraphicsError> {
     push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
     let result = execute_graph_stage(
@@ -294,7 +310,10 @@ fn execute_mesh_graph_stage(
         Some(streamer),
         Some(mesh_pipelines),
         Some(mesh_draw_lists),
+        hzb_occlusion_culler,
         shadow_map_renderer,
+        shadow_atlas_resources,
+        None,
         graph_execution,
     );
     pop_group(encoder);
@@ -315,8 +334,10 @@ fn execute_deferred_graph_stage(
     graph_execution: &mut RenderGraphStageExecution<'_>,
     screen_space_ui_renderer: &mut crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer,
     stage: RenderPassStage,
+    hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
     shadow_map_renderer: Option<&crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer>,
+    shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) -> Result<(), GraphicsError> {
     let pushes_main_scene_group = matches!(stage, RenderPassStage::Deferred);
     if pushes_main_scene_group {
@@ -342,7 +363,10 @@ fn execute_deferred_graph_stage(
         None,
         None,
         Some(mesh_draw_lists),
+        hzb_occlusion_culler,
         shadow_map_renderer,
+        shadow_atlas_resources,
+        None,
         graph_execution,
     );
     if pushes_main_scene_group {
@@ -385,6 +409,9 @@ fn execute_sprite_graph_stage(
         None,
         Some(renderer),
         Some(streamer),
+        None,
+        None,
+        None,
         None,
         None,
         None,

@@ -247,8 +247,9 @@ fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
         entity
     });
 
+    let mut event_subscription = subscribe_animation_clip_events(&level);
     tick_level(&runtime, &level, 0.1);
-    let events = drain_animation_clip_events(&level);
+    let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].entity, entity);
@@ -360,8 +361,9 @@ fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
         entity
     });
 
+    let mut event_subscription = subscribe_animation_clip_events(&level);
     tick_level(&runtime, &level, 0.3);
-    let events = drain_animation_clip_events(&level);
+    let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].entity, entity);
@@ -438,8 +440,9 @@ fn state_machine_player_emits_active_graph_clip_events() {
         entity
     });
 
+    let mut event_subscription = subscribe_animation_clip_events(&level);
     tick_level(&runtime, &level, 0.5);
-    let events = drain_animation_clip_events(&level);
+    let events = drain_animation_clip_events(&level, &mut event_subscription);
 
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].entity, entity);
@@ -546,8 +549,9 @@ fn state_machine_transition_emits_from_and_to_graph_clip_events() {
         entity
     });
 
+    let mut event_subscription = subscribe_animation_clip_events(&level);
     tick_level(&runtime, &level, 0.1);
-    let mut events = drain_animation_clip_events(&level);
+    let mut events = drain_animation_clip_events(&level, &mut event_subscription);
     events.sort_by(|a, b| a.event.cmp(&b.event));
 
     assert_eq!(events.len(), 2);
@@ -607,15 +611,31 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
     assert!(level.animation_pose(cube).is_none());
 }
 
+fn subscribe_animation_clip_events(
+    level: &zircon_runtime::scene::LevelSystem,
+) -> zircon_runtime::scene::EventSubscription<zircon_plugin_animation_runtime::AnimationClipEvent> {
+    level.with_world_mut(|world| {
+        let mut subscription = world
+            .register_dormant_event_subscription::<
+                zircon_plugin_animation_runtime::AnimationClipEvent,
+            >();
+        assert!(world.connect_event_subscription(&mut subscription));
+        subscription
+    })
+}
+
 fn drain_animation_clip_events(
     level: &zircon_runtime::scene::LevelSystem,
+    subscription: &mut zircon_runtime::scene::EventSubscription<
+        zircon_plugin_animation_runtime::AnimationClipEvent,
+    >,
 ) -> Vec<zircon_plugin_animation_runtime::AnimationClipEvent> {
     level.with_world_mut(|world| {
         world.update_events::<zircon_plugin_animation_runtime::AnimationClipEvent>();
         world
-            .events::<zircon_plugin_animation_runtime::AnimationClipEvent>()
-            .map(|events| events.iter().cloned().collect())
-            .unwrap_or_default()
+            .read_event_subscription(subscription)
+            .cloned()
+            .collect()
     })
 }
 

@@ -9,6 +9,7 @@ use crate::scene::World;
 
 use super::super::owner::PluginModuleId;
 use super::super::typed_extension_point::ExtensionSlot;
+use super::super::validation::validate_plugin_event_catalog_manifest;
 use super::super::RuntimeExtensionRegistry;
 
 #[derive(Clone)]
@@ -67,14 +68,13 @@ impl RuntimeExtensionRegistry {
         let namespace = self
             .plugin_modules
             .name(owner)
-            .and_then(plugin_namespace_from_module)
+            .and_then(plugin_event_catalog_namespace_from_module)
             .ok_or_else(|| {
                 RuntimeExtensionRegistryError::InvalidPluginModule(format!(
                     "unknown plugin module owner {}",
                     owner.raw()
                 ))
-            })?
-            .to_string();
+            })?;
         validate_event_manifest(&namespace, &manifest)?;
         let registration = EventRegistration::new::<E>(manifest.clone());
         if self.plugin_events.contains_key(&registration.type_id) {
@@ -148,21 +148,21 @@ impl RuntimeExtensionRegistry {
     }
 }
 
-fn plugin_namespace_from_module(module_name: &str) -> Option<&str> {
-    module_name.split('.').next()
+fn plugin_event_catalog_namespace_from_module(module_name: &str) -> Option<String> {
+    let plugin_id = module_name.split('.').next()?;
+    if plugin_id.is_empty() {
+        return None;
+    }
+    Some(format!("{plugin_id}.events"))
 }
 
 fn validate_event_manifest(
     namespace: &str,
     manifest: &PluginEventManifest,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    if manifest.id.trim().is_empty()
-        || manifest.id.trim() != manifest.id
-        || !manifest.id.starts_with(namespace)
-    {
-        return Err(RuntimeExtensionRegistryError::InvalidPluginEventCatalog(
-            manifest.id.clone(),
-        ));
-    }
-    Ok(())
+    validate_plugin_event_catalog_manifest(&PluginEventCatalogManifest {
+        namespace: namespace.to_string(),
+        version: 1,
+        events: vec![manifest.clone()],
+    })
 }

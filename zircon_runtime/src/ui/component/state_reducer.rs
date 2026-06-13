@@ -7,10 +7,13 @@ mod button;
 mod collection;
 mod disclosure;
 mod interaction;
+mod keyboard;
 mod numeric;
 mod overlay;
 mod reference;
 mod selection;
+mod slider;
+mod text_input;
 mod windowing;
 mod world;
 
@@ -33,14 +36,52 @@ pub fn apply_component_event(
         event
     };
 
+    let event_manages_validation = text_input::event_manages_validation(descriptor, &event);
     let result = match event {
-        UiComponentEvent::ValueChanged { property, value }
-        | UiComponentEvent::Commit { property, value } => {
-            apply_value(state, descriptor, property, value)
+        UiComponentEvent::ValueChanged { property, value } => {
+            if text_input::is_text_input_control(descriptor) {
+                text_input::apply_value_event(
+                    state,
+                    descriptor,
+                    property,
+                    value,
+                    text_input::TextInputValidationTrigger::Change,
+                )
+            } else {
+                let changed_property = property.clone();
+                apply_value(state, descriptor, property, value)?;
+                keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+            }
         }
+        UiComponentEvent::Commit { property, value } => {
+            if text_input::is_text_input_control(descriptor) {
+                text_input::apply_value_event(
+                    state,
+                    descriptor,
+                    property,
+                    value,
+                    text_input::TextInputValidationTrigger::Commit,
+                )
+            } else {
+                let changed_property = property.clone();
+                apply_value(state, descriptor, property, value)?;
+                keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+            }
+        }
+        UiComponentEvent::KeyboardAction { action } => {
+            keyboard::apply_keyboard_action(state, descriptor, action)
+        }
+        UiComponentEvent::KeyboardText { text } => {
+            keyboard::apply_keyboard_text(state, descriptor, &text)
+        }
+        UiComponentEvent::TypeaheadExpired => keyboard::apply_typeahead_expired(state, descriptor),
         UiComponentEvent::Focus { focused } => {
             interaction::focus(state, focused);
-            Ok(())
+            if text_input::is_text_input_control(descriptor) {
+                text_input::apply_focus_event(state, descriptor, focused)
+            } else {
+                Ok(())
+            }
         }
         UiComponentEvent::Hover { hovered } => {
             interaction::hover(state, hovered);
@@ -158,7 +199,7 @@ pub fn apply_component_event(
         ),
     };
 
-    if result.is_ok() {
+    if result.is_ok() && !event_manages_validation {
         state.validation = UiValidationState::normal();
     }
     result
@@ -182,14 +223,16 @@ impl UiComponentStateRuntimeExt for UiComponentState {
     }
 }
 
-fn apply_value(
+pub(super) fn apply_value(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
     property: String,
     value: UiValue,
 ) -> Result<(), UiComponentEventError> {
     let Some(schema) = descriptor.prop(&property) else {
+        let changed_property = property.clone();
         set_value(state, property, value);
+        slider::sync_after_value_change(state, descriptor, &changed_property);
         return Ok(());
     };
     let normalized = match schema.value_kind {
@@ -205,10 +248,8 @@ fn apply_value(
             })?;
             numeric_value(
                 schema.value_kind,
-                clamp_numeric(
-                    numeric,
-                    optional_numeric_setting(state, descriptor, "min", schema.min),
-                    optional_numeric_setting(state, descriptor, "max", schema.max),
+                clamp_component_numeric_value(
+                    state, descriptor, &property, schema.min, schema.max, numeric,
                 ),
             )
         }
@@ -226,7 +267,9 @@ fn apply_value(
             });
         }
     };
+    let changed_property = property.clone();
     set_value(state, property, normalized);
+    slider::sync_after_value_change(state, descriptor, &changed_property);
     Ok(())
 }
 
@@ -260,11 +303,58 @@ fn clamp_numeric(value: f64, min: Option<f64>, max: Option<f64>) -> f64 {
     )
 }
 
+pub(super) fn clamp_component_numeric_value(
+    state: &UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    property: &str,
+    schema_min: Option<f64>,
+    schema_max: Option<f64>,
+    value: f64,
+) -> f64 {
+    let mut min = optional_numeric_setting(state, descriptor, "min", schema_min);
+    let mut max = optional_numeric_setting(state, descriptor, "max", schema_max);
+
+    if descriptor.role == "range-slider" {
+        match property {
+            "range_min" => {
+                if let Some(upper) = numeric_component_value(state, descriptor, "value") {
+                    max = Some(max.map_or(upper, |current| current.min(upper)));
+                }
+            }
+            "value" => {
+                if let Some(lower) = numeric_component_value(state, descriptor, "range_min") {
+                    min = Some(min.map_or(lower, |current| current.max(lower)));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    clamp_numeric(value, min, max)
+}
+
 fn numeric_value(kind: UiValueKind, value: f64) -> UiValue {
     match kind {
         UiValueKind::Int => UiValue::Int(value.round() as i64),
         _ => UiValue::Float(value),
     }
+}
+
+fn numeric_component_value(
+    state: &UiComponentState,
+    descriptor: &UiComponentDescriptor,
+    property: &str,
+) -> Option<f64> {
+    state
+        .values
+        .get(property)
+        .and_then(UiValue::as_f64)
+        .or_else(|| {
+            descriptor
+                .prop(property)
+                .and_then(|schema| schema.default_value.as_ref())
+                .and_then(UiValue::as_f64)
+        })
 }
 
 fn optional_numeric_setting(

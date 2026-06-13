@@ -1,7 +1,9 @@
+use std::collections::BTreeSet;
+
 use bytemuck::bytes_of;
 
-use crate::core::framework::render::RenderDirectionalLightSnapshot;
-use crate::core::math::{is_finite_mat4, is_finite_vec3, view_matrix, Mat4, Real, Transform, Vec3};
+use crate::core::framework::scene::EntityId;
+use crate::core::math::{is_finite_mat4, Mat4};
 use crate::graphics::scene::resources::GpuMeshVertex;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -10,22 +12,12 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 };
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::visibility::VisibilityViewKey;
 use crate::render_graph::RenderGraphAttachmentOps;
 
+use super::plan::ShadowAtlasSlotPass;
 use super::shadow_map_shader_source::SHADOW_MAP_SHADER;
 
-const DEFAULT_SHADOW_LIGHT_DIRECTION_COMPONENTS: [Real; 3] = [-0.4, -1.0, -0.25];
-const DEFAULT_SHADOW_LIGHT_COLOR_INTENSITY: Real = 1.8;
-pub(crate) const SHADOW_RECEIVER_DEPTH_BIAS: f32 = 0.003;
-pub(crate) const SHADOW_RECEIVER_MIN_VISIBILITY: f32 = 0.38;
-pub(crate) const DEFERRED_SHADOW_RECEIVER_DEPTH_BIAS: f32 = SHADOW_RECEIVER_DEPTH_BIAS;
-pub(crate) const DEFERRED_SHADOW_RECEIVER_MIN_VISIBILITY: f32 = SHADOW_RECEIVER_MIN_VISIBILITY;
-const MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT: Real = 4.0;
-const SHADOW_CAMERA_DISTANCE_SCALE: Real = 2.0;
-const SHADOW_CAMERA_FAR_PADDING: Real = 64.0;
-const SHADOW_CAMERA_NEAR_PLANE: Real = 0.1;
-const SHADOW_CAMERA_MIN_FAR_PLANE: Real = 1.0;
-const SHADOW_UP_ALIGNMENT_LIMIT: Real = 0.95;
 const SHADOW_DEPTH_BIAS_CONSTANT: i32 = 2;
 const SHADOW_DEPTH_BIAS_SLOPE_SCALE: f32 = 2.0;
 const SHADOW_DEPTH_BIAS_CLAMP: f32 = 0.0;
@@ -144,41 +136,99 @@ impl ShadowMapRenderer {
         }
     }
 
-    pub(crate) fn record_commands_with_attachment_ops<'a>(
+    pub(crate) fn record_atlas_commands_with_attachment_ops<'a>(
         &self,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         pass_name: &str,
-        shadow_map_view: &wgpu::TextureView,
+        atlas_view: &wgpu::TextureView,
+        slot_passes: &[ShadowAtlasSlotPass],
         frame: &ViewportRenderFrame,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
         mesh_draw_commands: MeshDrawCommandStream<'a>,
         attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats {
-        let scene_uniform = self.scene_uniform_for_frame(frame);
-        if let Some(scene_uniform) = scene_uniform {
-            queue.write_buffer(&self.scene_uniform_buffer, 0, bytes_of(&scene_uniform));
-        }
-
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some(pass_name),
-            color_attachments: &[],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: shadow_map_view,
-                depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
-                stencil_ops: None,
-            }),
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        if scene_uniform.is_none() {
+        if slot_passes.is_empty() || mesh_draw_commands.is_empty() {
+            record_depth_only_pass(encoder, pass_name, atlas_view, attachment_ops);
             return MeshDrawReplayStats::default();
         }
-        pass.set_bind_group(0, &self.scene_bind_group, &[]);
+
+        let mut wrote_first_slot = false;
+        let mut combined = MeshDrawReplayStats::default();
+        for slot_pass in slot_passes {
+            if slot_pass.rect.width == 0 || slot_pass.rect.height == 0 {
+                continue;
+            }
+            let scene_uniform = scene_uniform_for_view_projection(slot_pass.view_proj);
+            queue.write_buffer(&self.scene_uniform_buffer, 0, bytes_of(&scene_uniform));
+
+            let atlas_attachment_ops = if wrote_first_slot {
+                RenderGraphAttachmentOps::load_store()
+            } else {
+                attachment_ops
+            };
+            wrote_first_slot = true;
+            let slot_pass_name = format!("{pass_name}.atlas-slot-{}", slot_pass.slot_index);
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some(&slot_pass_name),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                    view: atlas_view,
+                    depth_ops: Some(depth_attachment_operations(atlas_attachment_ops, 1.0)),
+                    stencil_ops: None,
+                }),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            pass.set_viewport(
+                slot_pass.rect.x as f32,
+                slot_pass.rect.y as f32,
+                slot_pass.rect.width as f32,
+                slot_pass.rect.height as f32,
+                0.0,
+                1.0,
+            );
+            pass.set_scissor_rect(
+                slot_pass.rect.x,
+                slot_pass.rect.y,
+                slot_pass.rect.width,
+                slot_pass.rect.height,
+            );
+            pass.set_bind_group(0, &self.scene_bind_group, &[]);
+            let visible_entities = slot_pass
+                .view_key
+                .and_then(|view_key| visible_shadow_entities_for_view(frame, &view_key));
+            add_replay_stats(
+                &mut combined,
+                self.replay_shadow_command_stream(
+                    &mut pass,
+                    gpu_scene_bind_group,
+                    mesh_draw_commands,
+                    visible_entities.as_ref(),
+                ),
+            );
+        }
+
+        if !wrote_first_slot {
+            record_depth_only_pass(encoder, pass_name, atlas_view, attachment_ops);
+        }
+        combined
+    }
+
+    fn replay_shadow_command_stream<'pass>(
+        &self,
+        pass: &mut wgpu::RenderPass<'pass>,
+        gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'pass>>,
+        mesh_draw_commands: MeshDrawCommandStream<'pass>,
+        visible_entities: Option<&BTreeSet<EntityId>>,
+    ) -> MeshDrawReplayStats {
         let mut replayer = MeshDrawCommandReplayer::default();
         let fixed_shadow_variant = MeshPipelineVariantId::new(0);
-        replayer.replay_command_stream(&mut pass, mesh_draw_commands, |replayer, pass, command| {
+        replayer.replay_command_stream(pass, mesh_draw_commands, |replayer, pass, command| {
+            if visible_entities.is_some_and(|entities| !entities.contains(&command.source_entity)) {
+                return false;
+            }
             match command.pipeline_kind {
                 MeshPassPipelineKind::ShadowDepthAlphaMask => {
                     if replayer.should_set_pipeline(command.pipeline_kind, fixed_shadow_variant) {
@@ -199,134 +249,67 @@ impl ShadowMapRenderer {
         });
         replayer.stats()
     }
-
-    pub(crate) fn scene_uniform_for_frame(
-        &self,
-        frame: &ViewportRenderFrame,
-    ) -> Option<SceneUniform> {
-        shadow_light(frame).map(|light| shadow_scene_uniform(frame, light))
-    }
 }
 
-#[derive(Clone, Copy)]
-struct ShadowLight {
-    direction: Vec3,
-    color: Vec3,
+fn visible_shadow_entities_for_view(
+    frame: &ViewportRenderFrame,
+    view_key: &VisibilityViewKey,
+) -> Option<BTreeSet<EntityId>> {
+    let frame_visibility = frame.frame_visibility()?;
+    frame_visibility.view(view_key)?;
+    Some(frame_visibility.visible_entity_set_for_view(view_key))
 }
 
-fn shadow_light(frame: &ViewportRenderFrame) -> Option<ShadowLight> {
-    if !frame.preview().lighting_enabled {
-        return None;
-    }
-    frame
-        .directional_lights()
-        .first()
-        .map(shadow_light_from_directional)
-        .or_else(|| {
-            Some(ShadowLight {
-                direction: default_shadow_light_direction(),
-                color: Vec3::splat(DEFAULT_SHADOW_LIGHT_COLOR_INTENSITY),
-            })
-        })
+#[cfg(test)]
+fn filter_shadow_commands_for_visible_entities(
+    commands: &[crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommand],
+    visible_entities: &BTreeSet<EntityId>,
+) -> Vec<crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommand> {
+    commands
+        .iter()
+        .filter(|command| visible_entities.contains(&command.source_entity))
+        .cloned()
+        .collect()
 }
 
-fn shadow_light_from_directional(light: &RenderDirectionalLightSnapshot) -> ShadowLight {
-    ShadowLight {
-        direction: sanitize_direction(light.direction),
-        color: sanitize_color(light.color * light.intensity),
-    }
-}
-
-fn shadow_scene_uniform(frame: &ViewportRenderFrame, light: ShadowLight) -> SceneUniform {
-    let view_proj = shadow_view_projection(frame, light.direction);
+fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
     let view_proj = finite_mat4_or_identity(view_proj);
     let view_proj_cols = view_proj.to_cols_array_2d();
     SceneUniform {
         view_proj: view_proj_cols,
         inverse_view_proj: finite_mat4_or_identity(view_proj.inverse()).to_cols_array_2d(),
-        light_dir: light.direction.extend(0.0).to_array(),
-        light_color: light.color.extend(1.0).to_array(),
-        ambient_color: Vec3::ZERO.extend(1.0).to_array(),
+        ambient_color: [0.0, 0.0, 0.0, 1.0],
         previous_view_proj: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
-        ..SceneUniform::default()
     }
 }
 
-fn shadow_view_projection(frame: &ViewportRenderFrame, direction: Vec3) -> Mat4 {
-    let (center, radius) = shadow_bounds_from_frame(frame).unwrap_or_else(|| {
-        let center = finite_vec3_or(frame.camera().transform.translation, Vec3::ZERO);
-        (center, MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT)
+fn record_depth_only_pass(
+    encoder: &mut wgpu::CommandEncoder,
+    pass_name: &str,
+    depth_view: &wgpu::TextureView,
+    attachment_ops: RenderGraphAttachmentOps,
+) {
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some(pass_name),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
+            stencil_ops: None,
+        }),
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
     });
-    let half_extent = radius.max(MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT);
-    let distance = half_extent * SHADOW_CAMERA_DISTANCE_SCALE + SHADOW_CAMERA_FAR_PADDING;
-    let far_plane = (distance + half_extent + SHADOW_CAMERA_FAR_PADDING)
-        .max(SHADOW_CAMERA_NEAR_PLANE + SHADOW_CAMERA_MIN_FAR_PLANE);
-    let eye = center - direction * distance;
-    let transform = Transform::looking_at(eye, center, stable_shadow_up(direction));
-    let view = view_matrix(transform);
-    let projection = Mat4::orthographic_rh(
-        -half_extent,
-        half_extent,
-        -half_extent,
-        half_extent,
-        SHADOW_CAMERA_NEAR_PLANE,
-        far_plane,
-    );
-    projection * view
 }
 
-fn shadow_bounds_from_frame(frame: &ViewportRenderFrame) -> Option<(Vec3, Real)> {
-    let mut center = Vec3::ZERO;
-    let mut count = 0usize;
-    for mesh in frame.meshes() {
-        let translation = mesh.transform.translation;
-        if is_finite_vec3(translation) {
-            center += translation;
-            count += 1;
-        }
-    }
-    if count == 0 {
-        return None;
-    }
-    center /= count as Real;
-
-    let mut radius: Real = 0.0;
-    for mesh in frame.meshes() {
-        let translation = mesh.transform.translation;
-        if is_finite_vec3(translation) {
-            radius = radius.max((translation - center).length());
-        }
-    }
-    Some((center, radius.max(MIN_SHADOW_ORTHOGRAPHIC_HALF_EXTENT)))
-}
-
-fn stable_shadow_up(direction: Vec3) -> Vec3 {
-    if direction.dot(Vec3::Y).abs() > SHADOW_UP_ALIGNMENT_LIMIT {
-        Vec3::X
-    } else {
-        Vec3::Y
-    }
-}
-
-fn sanitize_direction(direction: Vec3) -> Vec3 {
-    if is_finite_vec3(direction) && direction.length_squared() > f32::EPSILON {
-        direction.normalize_or_zero()
-    } else {
-        default_shadow_light_direction()
-    }
-}
-
-fn sanitize_color(color: Vec3) -> Vec3 {
-    finite_vec3_or(color, Vec3::splat(DEFAULT_SHADOW_LIGHT_COLOR_INTENSITY))
-}
-
-fn finite_vec3_or(value: Vec3, fallback: Vec3) -> Vec3 {
-    if is_finite_vec3(value) {
-        value
-    } else {
-        fallback
-    }
+fn add_replay_stats(total: &mut MeshDrawReplayStats, next: MeshDrawReplayStats) {
+    total.draw_call_count = total.draw_call_count.saturating_add(next.draw_call_count);
+    total.state_change_count = total
+        .state_change_count
+        .saturating_add(next.state_change_count);
+    total.bind_skip_count = total.bind_skip_count.saturating_add(next.bind_skip_count);
 }
 
 fn finite_mat4_or_identity(value: Mat4) -> Mat4 {
@@ -337,28 +320,16 @@ fn finite_mat4_or_identity(value: Mat4) -> Mat4 {
     }
 }
 
-fn default_shadow_light_direction() -> Vec3 {
-    Vec3::from_array(DEFAULT_SHADOW_LIGHT_DIRECTION_COMPONENTS).normalize_or_zero()
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_direction, stable_shadow_up};
-    use crate::core::math::Vec3;
+    use std::collections::BTreeSet;
 
-    #[test]
-    fn shadow_direction_falls_back_when_invalid() {
-        let direction = sanitize_direction(Vec3::new(f32::NAN, 0.0, 0.0));
-
-        assert!(direction.is_finite());
-        assert!(direction.length_squared() > 0.9);
-    }
-
-    #[test]
-    fn shadow_up_avoids_parallel_light_axis() {
-        assert_eq!(stable_shadow_up(Vec3::Y), Vec3::X);
-        assert_eq!(stable_shadow_up(Vec3::Z), Vec3::Y);
-    }
+    use crate::core::framework::render::RenderPhase;
+    use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+        DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
+        MeshPassPipelineKind, MeshPipelineVariantId,
+    };
 
     #[test]
     fn shadow_map_shader_keeps_opaque_depth_path_and_alpha_mask_cutoff_path() {
@@ -373,5 +344,39 @@ mod tests {
         ));
         assert!(super::SHADOW_MAP_SHADER.contains("discard"));
         assert!(super::SHADOW_MAP_SHADER.contains("shadow_params.y"));
+    }
+
+    #[test]
+    fn shadow_atlas_view_filter_keeps_only_visible_source_entities() {
+        let commands = vec![test_command(11), test_command(22), test_command(33)];
+        let visible_entities = [22, 33].into_iter().collect::<BTreeSet<_>>();
+
+        let filtered =
+            super::filter_shadow_commands_for_visible_entities(&commands, &visible_entities);
+
+        assert_eq!(
+            filtered
+                .iter()
+                .map(|command| command.source_entity)
+                .collect::<Vec<_>>(),
+            vec![22, 33]
+        );
+    }
+
+    fn test_command(source_entity: u64) -> MeshDrawCommand {
+        MeshDrawCommand::new(
+            RenderPhase::Shadow,
+            MeshPassPipelineKind::ShadowDepth,
+            default_pipeline_key(),
+            MeshPipelineVariantId::new(0),
+            source_entity,
+            DrawInstanceSource::GpuSceneInstance {
+                first_instance_index: 0,
+                instance_count: 1,
+            },
+            MeshGeometryHandle::test(source_entity),
+            MeshDrawArgs::direct_indexed(0, 3),
+        )
+        .with_source_entity(source_entity)
     }
 }

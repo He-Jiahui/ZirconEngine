@@ -10,7 +10,9 @@ use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
 };
-use zircon_runtime::plugin::{RuntimePluginAvailabilityReport, RuntimeProfileId};
+use zircon_runtime::plugin::{
+    RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimeProfileId,
+};
 use zircon_runtime::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
@@ -161,6 +163,7 @@ pub struct BuiltinEngineEntry {
     profile: EntryProfile,
     plugin_group: ResolvedPluginGroup,
     runtime_plugin_availability: RuntimePluginAvailabilityReport,
+    plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
 }
 
 impl BuiltinEngineEntry {
@@ -175,6 +178,7 @@ impl BuiltinEngineEntry {
             profile: config.profile,
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
+            plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
         })
     }
 
@@ -205,6 +209,7 @@ impl BuiltinEngineEntry {
             profile: config.profile,
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
+            plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
         })
     }
 
@@ -225,6 +230,7 @@ impl BuiltinEngineEntry {
             profile: config.profile,
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
+            plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
         })
     }
 
@@ -242,6 +248,7 @@ impl BuiltinEngineEntry {
             profile: config.profile,
             plugin_group: plugin_group_for_config(config, selection.modules)?,
             runtime_plugin_availability: selection.runtime_plugin_availability,
+            plugin_bridge_lifecycle_state: selection.plugin_bridge_lifecycle_state,
         })
     }
 
@@ -324,6 +331,9 @@ impl EngineEntry for BuiltinEngineEntry {
         let descriptors = self.module_descriptors();
 
         self.store_entry_config(&runtime);
+        if let Some(state) = self.plugin_bridge_lifecycle_state.clone() {
+            runtime.install_plugin_bridge_lifecycle_state(state);
+        }
         for descriptor in &descriptors {
             runtime.register_module(descriptor.clone())?;
         }

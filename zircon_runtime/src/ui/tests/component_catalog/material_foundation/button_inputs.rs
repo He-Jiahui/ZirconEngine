@@ -175,6 +175,7 @@ fn assert_button_interaction_events(
         UiComponentEventKind::Hover,
         UiComponentEventKind::Press,
         UiComponentEventKind::Commit,
+        UiComponentEventKind::KeyboardAction,
     ] {
         assert_has_event(descriptor, event);
     }

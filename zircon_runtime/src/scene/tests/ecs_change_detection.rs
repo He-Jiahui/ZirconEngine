@@ -1,7 +1,9 @@
+use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks, QueryState,
-    RemovedComponentsParam, SystemState,
+    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks,
+    QueryState, RemovedComponentsParam, SystemState, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
 };
 use crate::scene::{EntityId, World};
 
@@ -9,6 +11,14 @@ use crate::scene::{EntityId, World};
 struct Health(u32);
 
 impl Component for Health {}
+
+fn diagnostic_current(snapshot: &DiagnosticStoreSnapshot, path: &str) -> Option<f64> {
+    snapshot
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+        .and_then(|series| series.current)
+}
 
 #[test]
 fn changed_filter_includes_newly_added_components() {
@@ -54,6 +64,85 @@ fn tick_window_clamps_stale_ticks() {
 
     let fresh_tick = ChangeTick::new(this_run.get().wrapping_sub(7));
     assert!(ComponentTicks::new(fresh_tick).is_changed(window));
+}
+
+#[test]
+fn change_detection_scan_stats_record_mark_checks_and_diagnostics() {
+    let window = ChangeTickWindow::new(ChangeTick::new(10), ChangeTick::new(20));
+    let added_now = ComponentTicks::new(ChangeTick::new(19));
+    let mut changed_now = ComponentTicks::new(ChangeTick::new(2));
+    changed_now.set_changed(ChangeTick::new(18));
+    let unchanged = ComponentTicks::new(ChangeTick::new(4));
+
+    let mut added_stats = ChangeDetectionScanStats::default();
+    assert!(added_stats.scan_added(added_now, window));
+    assert!(!added_stats.scan_added(unchanged, window));
+    assert_eq!(added_stats.scanned_marks, 2);
+    assert_eq!(added_stats.added_matches, 1);
+    assert_eq!(added_stats.changed_matches, 0);
+
+    let mut changed_stats = ChangeDetectionScanStats::default();
+    assert!(changed_stats.scan_changed(changed_now, window));
+    assert!(!changed_stats.scan_changed(unchanged, window));
+    assert_eq!(changed_stats.scanned_marks, 2);
+    assert_eq!(changed_stats.changed_matches, 1);
+
+    added_stats.merge(changed_stats);
+    assert_eq!(added_stats.scanned_marks, 4);
+    assert_eq!(added_stats.added_matches, 1);
+    assert_eq!(added_stats.changed_matches, 1);
+
+    let mut diagnostics = DiagnosticStore::default();
+    added_stats.record_diagnostics(&mut diagnostics, 7);
+    let snapshot = diagnostics.snapshot();
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC),
+        Some(4.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC),
+        Some(1.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC),
+        Some(1.0)
+    );
+}
+
+#[test]
+fn change_detection_scan_skips_unmarked_archetypes() {
+    let window = ChangeTickWindow::new(ChangeTick::new(10), ChangeTick::new(20));
+    let unmarked = [
+        ComponentTicks::new(ChangeTick::new(1)),
+        ComponentTicks::new(ChangeTick::new(3)),
+        ComponentTicks::new(ChangeTick::new(9)),
+    ];
+    let mut stats = ChangeDetectionScanStats::default();
+
+    for ticks in unmarked.iter().copied() {
+        assert!(!stats.scan_added(ticks, window));
+        assert!(!stats.scan_changed(ticks, window));
+    }
+
+    assert_eq!(stats.scanned_marks, unmarked.len() as u64 * 2);
+    assert_eq!(stats.added_matches, 0);
+    assert_eq!(stats.changed_matches, 0);
+
+    let mut diagnostics = DiagnosticStore::default();
+    stats.record_diagnostics(&mut diagnostics, 8);
+    let snapshot = diagnostics.snapshot();
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC),
+        Some((unmarked.len() * 2) as f64)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC),
+        Some(0.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC),
+        Some(0.0)
+    );
 }
 
 #[test]

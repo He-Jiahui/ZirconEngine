@@ -50,4 +50,41 @@ impl RuntimeExtensionRegistry {
             .iter()
             .map(|(owner, _, export)| (owner, export))
     }
+
+    pub(crate) fn interface_exports_owned_by(
+        &self,
+        owner: PluginModuleId,
+    ) -> Vec<(String, InterfaceExport)> {
+        self.plugin_interfaces
+            .iter()
+            .filter_map(|(candidate, interface_id, export)| {
+                (candidate == owner).then(|| (interface_id.clone(), export.clone()))
+            })
+            .collect()
+    }
+
+    pub fn interface_owners_for_runtime_modules<I, S>(&self, module_names: I) -> Vec<PluginModuleId>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let module_names = module_names
+            .into_iter()
+            .map(|module_name| module_name.as_ref().to_string())
+            .collect::<Vec<_>>();
+        let mut owners = self
+            .plugin_interfaces
+            .iter()
+            .filter_map(|(owner, _, _)| {
+                let module_name = self.plugin_module_name(owner)?;
+                module_names
+                    .iter()
+                    .any(|candidate| candidate == module_name)
+                    .then_some(owner)
+            })
+            .collect::<Vec<_>>();
+        owners.sort_by_key(|owner| owner.raw());
+        owners.dedup();
+        owners
+    }
 }

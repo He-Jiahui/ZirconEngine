@@ -431,6 +431,122 @@ fn gameplay_host_damage_report_preserves_death_position() {
 }
 
 #[test]
+fn script_held_entity_handle_reports_invalid_after_despawn() {
+    let core = CoreRuntime::new();
+    let mut world = World::empty();
+    let entity = world.spawn_node(NodeKind::Empty);
+    world
+        .update_transform(
+            entity,
+            Transform::from_translation(Vec3::new(2.0, 0.0, -1.0)),
+        )
+        .unwrap();
+    let level = LevelSystem::new(
+        WorldHandle::new(50),
+        Arc::new(Mutex::new(world)),
+        LevelMetadata::default(),
+    );
+    let exports = HostExportRegistry::new(HostRegistry::default());
+    register_gameplay_host_module(&exports).unwrap();
+    let capabilities = CapabilitySet::default().with("gameplay.entity");
+
+    let before = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "position_json",
+                    vec![ScriptHostValue::Int(entity as i64)],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    let ScriptHostValue::String(before) = before else {
+        panic!("position_json should return JSON text before despawn");
+    };
+    assert!(
+        serde_json::from_str::<serde_json::Value>(&before)
+            .unwrap()
+            .is_array(),
+        "live script-held entity id should resolve to a position array"
+    );
+
+    let removed = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "despawn",
+                    vec![ScriptHostValue::Int(entity as i64)],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    assert_eq!(removed, ScriptHostValue::Bool(true));
+    assert!(!level.with_world(|world| world.contains_entity(entity)));
+
+    let after = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "position_json",
+                    vec![ScriptHostValue::Int(entity as i64)],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    assert_eq!(after, ScriptHostValue::String("null".to_string()));
+
+    let stale_write = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "set_position",
+                vec![
+                    ScriptHostValue::Int(entity as i64),
+                    ScriptHostValue::Float(5.0),
+                    ScriptHostValue::Float(0.0),
+                    ScriptHostValue::Float(0.0),
+                ],
+                &capabilities,
+            )
+        },
+    );
+    assert!(
+        format!("{}", stale_write.unwrap_err()).contains("missing node"),
+        "stale script-held entity id should not be accepted by write access"
+    );
+}
+
+#[test]
 fn gameplay_host_damage_entity_reports_hit_before_death() {
     let core = CoreRuntime::new();
     let mut world = World::empty();

@@ -337,7 +337,7 @@ mod tests {
             Default::default(),
             vec![
                 RenderGraphPassResourceAccess {
-                    name: "shadow-map".to_string(),
+                    name: "shadow-atlas".to_string(),
                     kind: RenderGraphResourceKind::TransientTexture,
                     access: RenderGraphResourceAccessKind::Read,
                     attachment_ops: None,
@@ -351,8 +351,8 @@ mod tests {
             ],
         );
 
-        assert!(context.reads_texture("shadow-map"));
-        assert!(context.reads_transient_texture("shadow-map"));
+        assert!(context.reads_texture("shadow-atlas"));
+        assert!(context.reads_transient_texture("shadow-atlas"));
         assert!(!context.reads_texture("scene-color"));
     }
 
@@ -364,15 +364,15 @@ mod tests {
             QueueLane::Graphics,
             Default::default(),
             vec![RenderGraphPassResourceAccess {
-                name: "shadow-map".to_string(),
+                name: "shadow-atlas".to_string(),
                 kind: RenderGraphResourceKind::External,
                 access: RenderGraphResourceAccessKind::Read,
                 attachment_ops: None,
             }],
         );
 
-        assert!(context.reads_texture("shadow-map"));
-        assert!(!context.reads_transient_texture("shadow-map"));
+        assert!(context.reads_texture("shadow-atlas"));
+        assert!(!context.reads_transient_texture("shadow-atlas"));
     }
 
     #[test]

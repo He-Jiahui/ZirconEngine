@@ -95,17 +95,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "screen-space-reflection-depth-pyramid",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.screen-space-reflection-depth-pyramid")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
                 "screen-space-reflection-reflection-pyramid",
                 QueueLane::Graphics,
             )
@@ -113,17 +102,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "screen-space-reflection-depth-pyramid-coarse",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.screen-space-reflection-depth-pyramid-coarse")
-            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
                 RenderGraphAttachmentOps::clear_store(),
             ),
             RenderFeaturePassDescriptor::new(
@@ -160,10 +138,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
-            .read_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-            )
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
             .read_texture(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
@@ -185,6 +160,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
             .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .read_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION)
             .read_external(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)

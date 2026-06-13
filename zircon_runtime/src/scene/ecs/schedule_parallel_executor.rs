@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-
-use crate::core::{CoreHandle, JobScheduler};
+use crate::core::{CoreHandle, JobHandle, JobScheduler};
 
 use super::ScheduleParallelBatch;
 
@@ -14,8 +16,12 @@ pub struct ScheduleParallelExecutor {
     parallel_enabled: bool,
 }
 
+type ScheduleParallelTask<E> = Arc<dyn Fn() -> Result<(), E> + Send + Sync + 'static>;
+type ScheduleParallelBatchResult<E> = Result<(), ScheduleParallelExecutorError<E>>;
+type ScheduleParallelBatchSlot<E> = Arc<Mutex<Option<ScheduleParallelBatchResult<E>>>>;
+
 pub struct ScheduleParallelTaskRegistry<E> {
-    tasks: HashMap<String, Box<dyn Fn() -> Result<(), E> + Send + Sync>>,
+    tasks: HashMap<String, ScheduleParallelTask<E>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -59,7 +65,7 @@ impl ScheduleParallelExecutor {
         registry: &ScheduleParallelTaskRegistry<E>,
     ) -> Result<(), ScheduleParallelExecutorError<E>>
     where
-        E: Send,
+        E: Send + 'static,
     {
         self.run_batches_with_report(batches, registry).map(|_| ())
     }
@@ -70,143 +76,69 @@ impl ScheduleParallelExecutor {
         registry: &ScheduleParallelTaskRegistry<E>,
     ) -> Result<ScheduleParallelExecutionReport, ScheduleParallelExecutorError<E>>
     where
-        E: Send,
+        E: Send + 'static,
     {
         let mut report = ScheduleParallelExecutionReport::default();
+        let aborted = Arc::new(AtomicBool::new(false));
+        let mut previous_batch = JobHandle::completed();
+        let mut scheduled_batches: Vec<ScheduleParallelBatchSlot<E>> =
+            Vec::with_capacity(batches.len());
+
         for batch in batches {
             let system_ids = batch.system_ids();
             if !self.parallel_enabled {
                 report.record_serial_batch(system_ids.len(), system_ids.len() > 1);
-                run_serial_batch(system_ids, registry)?;
-                continue;
-            }
-
-            if let [system_id] = system_ids {
+            } else if let [_] = system_ids {
                 report.record_serial_batch(1, false);
-                let task = registry.task_for_system(system_id)?;
-                run_task(system_id, task)?;
-                continue;
+            } else {
+                report.record_parallel_batch(system_ids.len());
             }
 
-            if let [first_system_id, second_system_id] = system_ids {
-                report.record_parallel_batch(2);
-                let first_task = registry.task_for_system(first_system_id)?;
-                let second_task = registry.task_for_system(second_system_id)?;
-                let (first_result, second_result) = self
-                    .scheduler
-                    .install(|| rayon::join(first_task, second_task));
-                run_task_result(first_system_id, first_result)?;
-                run_task_result(second_system_id, second_result)?;
-                continue;
-            }
+            let batch_result = Arc::new(Mutex::new(None));
+            let batch_result_for_task = Arc::clone(&batch_result);
+            let registry_for_task = registry.clone();
+            let scheduler_for_task = self.scheduler.clone();
+            let aborted_for_task = Arc::clone(&aborted);
+            let batch_system_ids = system_ids.to_vec();
+            let dependency = previous_batch.clone();
+            let parallel_enabled = self.parallel_enabled;
 
-            if let [first_system_id, second_system_id, third_system_id] = system_ids {
-                report.record_parallel_batch(3);
-                let first_task = registry.task_for_system(first_system_id)?;
-                let second_task = registry.task_for_system(second_system_id)?;
-                let third_task = registry.task_for_system(third_system_id)?;
-                let ((first_result, second_result), third_result) = self
-                    .scheduler
-                    .install(|| rayon::join(|| rayon::join(first_task, second_task), third_task));
-                run_task_result(first_system_id, first_result)?;
-                run_task_result(second_system_id, second_result)?;
-                run_task_result(third_system_id, third_result)?;
-                continue;
-            }
-
-            if let [first_system_id, second_system_id, third_system_id, fourth_system_id] =
-                system_ids
-            {
-                report.record_parallel_batch(4);
-                let first_task = registry.task_for_system(first_system_id)?;
-                let second_task = registry.task_for_system(second_system_id)?;
-                let third_task = registry.task_for_system(third_system_id)?;
-                let fourth_task = registry.task_for_system(fourth_system_id)?;
-                let ((first_result, second_result), (third_result, fourth_result)) =
-                    self.scheduler.install(|| {
-                        rayon::join(
-                            || rayon::join(first_task, second_task),
-                            || rayon::join(third_task, fourth_task),
-                        )
-                    });
-                run_task_result(first_system_id, first_result)?;
-                run_task_result(second_system_id, second_result)?;
-                run_task_result(third_system_id, third_result)?;
-                run_task_result(fourth_system_id, fourth_result)?;
-                continue;
-            }
-
-            if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id] =
-                system_ids
-            {
-                report.record_parallel_batch(5);
-                let first_task = registry.task_for_system(first_system_id)?;
-                let second_task = registry.task_for_system(second_system_id)?;
-                let third_task = registry.task_for_system(third_system_id)?;
-                let fourth_task = registry.task_for_system(fourth_system_id)?;
-                let fifth_task = registry.task_for_system(fifth_system_id)?;
-                let ((first_result, second_result), ((third_result, fourth_result), fifth_result)) =
-                    self.scheduler.install(|| {
-                        rayon::join(
-                            || rayon::join(first_task, second_task),
-                            || rayon::join(|| rayon::join(third_task, fourth_task), fifth_task),
-                        )
-                    });
-                run_task_result(first_system_id, first_result)?;
-                run_task_result(second_system_id, second_result)?;
-                run_task_result(third_system_id, third_result)?;
-                run_task_result(fourth_system_id, fourth_result)?;
-                run_task_result(fifth_system_id, fifth_result)?;
-                continue;
-            }
-
-            if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id, sixth_system_id] =
-                system_ids
-            {
-                report.record_parallel_batch(6);
-                let first_task = registry.task_for_system(first_system_id)?;
-                let second_task = registry.task_for_system(second_system_id)?;
-                let third_task = registry.task_for_system(third_system_id)?;
-                let fourth_task = registry.task_for_system(fourth_system_id)?;
-                let fifth_task = registry.task_for_system(fifth_system_id)?;
-                let sixth_task = registry.task_for_system(sixth_system_id)?;
-                let (
-                    ((first_result, second_result), (third_result, fourth_result)),
-                    (fifth_result, sixth_result),
-                ) = self.scheduler.install(|| {
-                    rayon::join(
-                        || {
-                            rayon::join(
-                                || rayon::join(first_task, second_task),
-                                || rayon::join(third_task, fourth_task),
+            let batch_handle =
+                self.scheduler
+                    .schedule_after(std::slice::from_ref(&dependency), move || {
+                        let result = if aborted_for_task.load(Ordering::Acquire) {
+                            Ok(())
+                        } else {
+                            run_scheduled_batch(
+                                &scheduler_for_task,
+                                &batch_system_ids,
+                                &registry_for_task,
+                                parallel_enabled,
                             )
-                        },
-                        || rayon::join(fifth_task, sixth_task),
-                    )
-                });
-                run_task_result(first_system_id, first_result)?;
-                run_task_result(second_system_id, second_result)?;
-                run_task_result(third_system_id, third_result)?;
-                run_task_result(fourth_system_id, fourth_result)?;
-                run_task_result(fifth_system_id, fifth_result)?;
-                run_task_result(sixth_system_id, sixth_result)?;
-                continue;
-            }
+                        };
 
-            report.record_parallel_batch(system_ids.len());
-            let tasks = registry.tasks_for_batch(system_ids)?;
-            let mut results = Vec::with_capacity(tasks.len());
-            self.scheduler.install(|| {
-                tasks
-                    .into_par_iter()
-                    .map(|task| task())
-                    .collect_into_vec(&mut results);
-            });
-            for (system_id, result) in system_ids.iter().zip(results) {
-                run_task_result(system_id, result)?;
-            }
+                        if result.is_err() {
+                            aborted_for_task.store(true, Ordering::Release);
+                        }
+
+                        *batch_result_for_task
+                            .lock()
+                            .expect("scheduled batch result lock poisoned") = Some(result);
+                    });
+            previous_batch = batch_handle;
+            scheduled_batches.push(batch_result);
         }
 
+        previous_batch.wait();
+        for batch_result in scheduled_batches {
+            batch_result
+                .lock()
+                .expect("scheduled batch result lock poisoned")
+                .take()
+                .expect(
+                    "scheduled batch should publish a result before the tail handle completes",
+                )?;
+        }
         Ok(report)
     }
 }
@@ -267,7 +199,15 @@ impl<E> Default for ScheduleParallelTaskRegistry<E> {
     }
 }
 
-impl<E> ScheduleParallelTaskRegistry<E> {
+impl<E> Clone for ScheduleParallelTaskRegistry<E> {
+    fn clone(&self) -> Self {
+        Self {
+            tasks: self.tasks.clone(),
+        }
+    }
+}
+
+impl<E: 'static> ScheduleParallelTaskRegistry<E> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -276,8 +216,8 @@ impl<E> ScheduleParallelTaskRegistry<E> {
         &mut self,
         system_id: impl Into<String>,
         task: impl Fn() -> Result<(), E> + Send + Sync + 'static,
-    ) -> Option<Box<dyn Fn() -> Result<(), E> + Send + Sync>> {
-        self.tasks.insert(system_id.into(), Box::new(task))
+    ) -> Option<Arc<dyn Fn() -> Result<(), E> + Send + Sync + 'static>> {
+        self.tasks.insert(system_id.into(), Arc::new(task))
     }
 
     pub fn contains(&self, system_id: &str) -> bool {
@@ -287,25 +227,19 @@ impl<E> ScheduleParallelTaskRegistry<E> {
     fn task_for_system<'registry>(
         &'registry self,
         system_id: &str,
-    ) -> Result<
-        &'registry (dyn Fn() -> Result<(), E> + Send + Sync),
-        ScheduleParallelExecutorError<E>,
-    > {
+    ) -> Result<ScheduleParallelTask<E>, ScheduleParallelExecutorError<E>> {
         let Some(task) = self.tasks.get(system_id) else {
             return Err(ScheduleParallelExecutorError::MissingTask {
                 system_id: system_id.to_string(),
             });
         };
-        Ok(task.as_ref())
+        Ok(Arc::clone(task))
     }
 
     fn tasks_for_batch<'registry>(
         &'registry self,
         system_ids: &'registry [String],
-    ) -> Result<
-        Vec<&'registry (dyn Fn() -> Result<(), E> + Send + Sync)>,
-        ScheduleParallelExecutorError<E>,
-    > {
+    ) -> Result<Vec<ScheduleParallelTask<E>>, ScheduleParallelExecutorError<E>> {
         let mut tasks = Vec::with_capacity(system_ids.len());
         for system_id in system_ids {
             tasks.push(self.task_for_system(system_id)?);
@@ -314,22 +248,191 @@ impl<E> ScheduleParallelTaskRegistry<E> {
     }
 }
 
+fn run_scheduled_batch<E>(
+    scheduler: &JobScheduler,
+    system_ids: &[String],
+    registry: &ScheduleParallelTaskRegistry<E>,
+    parallel_enabled: bool,
+) -> Result<(), ScheduleParallelExecutorError<E>>
+where
+    E: Send + 'static,
+{
+    if !parallel_enabled {
+        return run_serial_batch(system_ids, registry);
+    }
+
+    if let [system_id] = system_ids {
+        let task = registry.task_for_system(system_id)?;
+        return run_task(system_id, &task);
+    }
+
+    if let [first_system_id, second_system_id] = system_ids {
+        let first_task = registry.task_for_system(first_system_id)?;
+        let second_task = registry.task_for_system(second_system_id)?;
+        let (first_result, second_result) =
+            scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()());
+        run_task_result(first_system_id, first_result)?;
+        run_task_result(second_system_id, second_result)?;
+        return Ok(());
+    }
+
+    if let [first_system_id, second_system_id, third_system_id] = system_ids {
+        let first_task = registry.task_for_system(first_system_id)?;
+        let second_task = registry.task_for_system(second_system_id)?;
+        let third_task = registry.task_for_system(third_system_id)?;
+        let nested_scheduler = scheduler.clone();
+        let ((first_result, second_result), third_result) = scheduler.join(
+            move || nested_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()()),
+            || third_task.as_ref()(),
+        );
+        run_task_result(first_system_id, first_result)?;
+        run_task_result(second_system_id, second_result)?;
+        run_task_result(third_system_id, third_result)?;
+        return Ok(());
+    }
+
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id] = system_ids {
+        let first_task = registry.task_for_system(first_system_id)?;
+        let second_task = registry.task_for_system(second_system_id)?;
+        let third_task = registry.task_for_system(third_system_id)?;
+        let fourth_task = registry.task_for_system(fourth_system_id)?;
+        let left_scheduler = scheduler.clone();
+        let right_scheduler = scheduler.clone();
+        let ((first_result, second_result), (third_result, fourth_result)) = scheduler.join(
+            move || left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()()),
+            move || right_scheduler.join(|| third_task.as_ref()(), || fourth_task.as_ref()()),
+        );
+        run_task_result(first_system_id, first_result)?;
+        run_task_result(second_system_id, second_result)?;
+        run_task_result(third_system_id, third_result)?;
+        run_task_result(fourth_system_id, fourth_result)?;
+        return Ok(());
+    }
+
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id] =
+        system_ids
+    {
+        let first_task = registry.task_for_system(first_system_id)?;
+        let second_task = registry.task_for_system(second_system_id)?;
+        let third_task = registry.task_for_system(third_system_id)?;
+        let fourth_task = registry.task_for_system(fourth_system_id)?;
+        let fifth_task = registry.task_for_system(fifth_system_id)?;
+        let left_scheduler = scheduler.clone();
+        let right_scheduler = scheduler.clone();
+        let nested_scheduler = scheduler.clone();
+        let ((first_result, second_result), ((third_result, fourth_result), fifth_result)) =
+            scheduler.join(
+                move || left_scheduler.join(|| first_task.as_ref()(), || second_task.as_ref()()),
+                move || {
+                    right_scheduler.join(
+                        move || {
+                            nested_scheduler
+                                .join(|| third_task.as_ref()(), || fourth_task.as_ref()())
+                        },
+                        || fifth_task.as_ref()(),
+                    )
+                },
+            );
+        run_task_result(first_system_id, first_result)?;
+        run_task_result(second_system_id, second_result)?;
+        run_task_result(third_system_id, third_result)?;
+        run_task_result(fourth_system_id, fourth_result)?;
+        run_task_result(fifth_system_id, fifth_result)?;
+        return Ok(());
+    }
+
+    if let [first_system_id, second_system_id, third_system_id, fourth_system_id, fifth_system_id, sixth_system_id] =
+        system_ids
+    {
+        let first_task = registry.task_for_system(first_system_id)?;
+        let second_task = registry.task_for_system(second_system_id)?;
+        let third_task = registry.task_for_system(third_system_id)?;
+        let fourth_task = registry.task_for_system(fourth_system_id)?;
+        let fifth_task = registry.task_for_system(fifth_system_id)?;
+        let sixth_task = registry.task_for_system(sixth_system_id)?;
+        let left_scheduler = scheduler.clone();
+        let right_scheduler = scheduler.clone();
+        let first_pair_scheduler = scheduler.clone();
+        let second_pair_scheduler = scheduler.clone();
+        let (
+            ((first_result, second_result), (third_result, fourth_result)),
+            (fifth_result, sixth_result),
+        ) = scheduler.join(
+            move || {
+                left_scheduler.join(
+                    move || {
+                        first_pair_scheduler
+                            .join(|| first_task.as_ref()(), || second_task.as_ref()())
+                    },
+                    move || {
+                        second_pair_scheduler
+                            .join(|| third_task.as_ref()(), || fourth_task.as_ref()())
+                    },
+                )
+            },
+            move || right_scheduler.join(|| fifth_task.as_ref()(), || sixth_task.as_ref()()),
+        );
+        run_task_result(first_system_id, first_result)?;
+        run_task_result(second_system_id, second_result)?;
+        run_task_result(third_system_id, third_result)?;
+        run_task_result(fourth_system_id, fourth_result)?;
+        run_task_result(fifth_system_id, fifth_result)?;
+        run_task_result(sixth_system_id, sixth_result)?;
+        return Ok(());
+    }
+
+    let tasks = registry.tasks_for_batch(system_ids)?;
+    let results = run_parallel_tasks(scheduler, &tasks);
+    for (system_id, result) in system_ids.iter().zip(results) {
+        run_task_result(system_id, result)?;
+    }
+    Ok(())
+}
+
+fn run_parallel_tasks<E>(
+    scheduler: &JobScheduler,
+    tasks: &[ScheduleParallelTask<E>],
+) -> Vec<Result<(), E>>
+where
+    E: Send + 'static,
+{
+    match tasks {
+        [] => Vec::new(),
+        [task] => vec![task.as_ref()()],
+        _ => {
+            let midpoint = tasks.len() / 2;
+            let (left_tasks, right_tasks) = tasks.split_at(midpoint);
+            let left_scheduler = scheduler.clone();
+            let right_scheduler = scheduler.clone();
+            let (mut left_results, right_results) = scheduler.join(
+                move || run_parallel_tasks(&left_scheduler, left_tasks),
+                move || run_parallel_tasks(&right_scheduler, right_tasks),
+            );
+            left_results.extend(right_results);
+            left_results
+        }
+    }
+}
+
 fn run_serial_batch<E>(
     system_ids: &[String],
     registry: &ScheduleParallelTaskRegistry<E>,
-) -> Result<(), ScheduleParallelExecutorError<E>> {
+) -> Result<(), ScheduleParallelExecutorError<E>>
+where
+    E: 'static,
+{
     for system_id in system_ids {
         let task = registry.task_for_system(system_id)?;
-        run_task(system_id, task)?;
+        run_task(system_id, &task)?;
     }
     Ok(())
 }
 
 fn run_task<E>(
     system_id: &str,
-    task: &(dyn Fn() -> Result<(), E> + Send + Sync),
+    task: &ScheduleParallelTask<E>,
 ) -> Result<(), ScheduleParallelExecutorError<E>> {
-    run_task_result(system_id, task())
+    run_task_result(system_id, task.as_ref()())
 }
 
 fn run_task_result<E>(

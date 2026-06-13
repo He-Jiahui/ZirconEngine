@@ -1,7 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use super::binding::{create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout};
+use crate::core::framework::render::GpuLightData;
+use wgpu::util::DeviceExt;
+
+use super::binding::{
+    create_gpu_scene_bind_group, create_gpu_scene_bind_group_layout,
+    GpuSceneVisibleInstanceRemapParams,
+};
 use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
     GpuInstanceData, GpuPrimitiveData, GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE,
@@ -13,7 +19,7 @@ pub(crate) const GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_INSTANCE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_LIGHT_CAPACITY: u32 = 1;
 
-const GPU_SCENE_LIGHT_FALLBACK_BYTES: u64 = 16;
+const GPU_SCENE_VISIBLE_INSTANCE_REMAP_FALLBACK_BYTES: u64 = 4;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneEntry {
@@ -21,12 +27,14 @@ pub(crate) struct GpuSceneEntry {
     pub(crate) first_instance_index: u32,
     pub(crate) instance_count: u32,
     pub(crate) last_transform_revision: u64,
+    pub(crate) has_rolled_previous_transform: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneStats {
     pub(crate) primitive_count: u32,
     pub(crate) instance_count: u32,
+    pub(crate) light_count: u32,
     pub(crate) dirty_entry_count: usize,
     pub(crate) uploaded_bytes: u64,
     pub(crate) primitive_capacity: u32,
@@ -55,6 +63,7 @@ pub(crate) struct GpuSceneUploadReport {
     pub(crate) uploaded_bytes: u64,
     pub(crate) primitive_upload_range_count: usize,
     pub(crate) instance_upload_range_count: usize,
+    pub(crate) light_upload_range_count: usize,
 }
 
 /// Owns the GPUScene storage buffers and CPU mirrors before frame-path wiring.
@@ -65,25 +74,31 @@ pub(crate) struct GpuSceneUploadReport {
 /// entries.
 pub(crate) struct GpuScene {
     primitive_buffer: wgpu::Buffer,
-    instance_buffer: wgpu::Buffer,
+    pub(super) instance_buffer: wgpu::Buffer,
     light_buffer: wgpu::Buffer,
     /// Non-skinned draws share fallback palette slots until GS-M2 creates
     /// per-skinned-draw object groups with real current/previous palettes.
     fallback_skinned_joint_palette_buffer: Arc<wgpu::Buffer>,
+    direct_visible_instance_remap_buffer: wgpu::Buffer,
+    direct_visible_instance_remap_params_buffer: wgpu::Buffer,
+    remapped_visible_instance_remap_params_buffer: wgpu::Buffer,
     scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_bind_group: wgpu::BindGroup,
     primitive_shadow: Vec<GpuPrimitiveData>,
-    instance_shadow: Vec<GpuInstanceData>,
+    pub(super) instance_shadow: Vec<GpuInstanceData>,
+    light_shadow: Vec<GpuLightData>,
     primitive_ids: GpuSceneIdAllocator,
     instance_ids: GpuSceneIdAllocator,
-    entries: HashMap<u64, GpuSceneEntry>,
-    updates: GpuSceneUpdateQueue,
+    pub(super) entries: HashMap<u64, GpuSceneEntry>,
+    pub(super) updates: GpuSceneUpdateQueue,
     stats: GpuSceneStats,
     primitive_capacity: u32,
     instance_capacity: u32,
     light_capacity: u32,
     force_full_primitive_upload: bool,
     force_full_instance_upload: bool,
+    force_full_light_upload: bool,
+    uploaded_light_count_params: Option<u32>,
 }
 
 impl GpuScene {
@@ -104,8 +119,23 @@ impl GpuScene {
         );
         let light_buffer = create_storage_buffer(
             device,
-            "zircon-gpu-scene-light-data-fallback",
-            GPU_SCENE_LIGHT_FALLBACK_BYTES,
+            "zircon-gpu-scene-light-data",
+            u64::from(GPU_SCENE_INITIAL_LIGHT_CAPACITY) * GpuLightData::STRIDE as u64,
+        );
+        let direct_visible_instance_remap_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-visible-instance-remap-fallback",
+            GPU_SCENE_VISIBLE_INSTANCE_REMAP_FALLBACK_BYTES,
+        );
+        let direct_visible_instance_remap_params_buffer = create_remap_params_buffer(
+            device,
+            "zircon-gpu-scene-visible-instance-remap-direct-params",
+            GpuSceneVisibleInstanceRemapParams::direct(),
+        );
+        let remapped_visible_instance_remap_params_buffer = create_remap_params_buffer(
+            device,
+            "zircon-gpu-scene-visible-instance-remap-enabled-params",
+            GpuSceneVisibleInstanceRemapParams::remapped(),
         );
         let scene_bind_group_layout =
             create_gpu_scene_bind_group_layout(device, skinned_joint_palette_min_binding_size);
@@ -117,16 +147,22 @@ impl GpuScene {
             &light_buffer,
             &fallback_skinned_joint_palette_buffer,
             &fallback_skinned_joint_palette_buffer,
+            &direct_visible_instance_remap_buffer,
+            &direct_visible_instance_remap_params_buffer,
         );
         Self {
             primitive_buffer,
             instance_buffer,
             light_buffer,
             fallback_skinned_joint_palette_buffer,
+            direct_visible_instance_remap_buffer,
+            direct_visible_instance_remap_params_buffer,
+            remapped_visible_instance_remap_params_buffer,
             scene_bind_group_layout,
             scene_bind_group,
             primitive_shadow: Vec::new(),
             instance_shadow: Vec::new(),
+            light_shadow: Vec::new(),
             primitive_ids: GpuSceneIdAllocator::new(),
             instance_ids: GpuSceneIdAllocator::new(),
             entries: HashMap::new(),
@@ -142,6 +178,8 @@ impl GpuScene {
             light_capacity: GPU_SCENE_INITIAL_LIGHT_CAPACITY,
             force_full_primitive_upload: true,
             force_full_instance_upload: true,
+            force_full_light_upload: true,
+            uploaded_light_count_params: None,
         }
     }
 
@@ -176,6 +214,7 @@ impl GpuScene {
             first_instance_index: instance_span.start,
             instance_count,
             last_transform_revision: 0,
+            has_rolled_previous_transform: false,
         };
         self.primitive_shadow[primitive_index as usize] =
             GpuPrimitiveData::with_instance_span(entry.first_instance_index, entry.instance_count);
@@ -259,6 +298,19 @@ impl GpuScene {
         self.refresh_stats(0, self.updates.dirty_entry_count());
     }
 
+    pub(crate) fn write_lights(&mut self, device: &wgpu::Device, lights: &[GpuLightData]) {
+        self.ensure_light_capacity(device, lights.len() as u32);
+        if self.light_shadow == lights {
+            self.refresh_stats(0, self.updates.dirty_entry_count());
+            return;
+        }
+
+        self.light_shadow.clear();
+        self.light_shadow.extend_from_slice(lights);
+        self.force_full_light_upload = true;
+        self.refresh_stats(0, self.updates.dirty_entry_count());
+    }
+
     pub(crate) fn flush_updates(&mut self, queue: &wgpu::Queue) -> GpuSceneUploadReport {
         let dirty_entry_count = self.updates.dirty_entry_count();
         let mut report = GpuSceneUploadReport::default();
@@ -315,8 +367,23 @@ impl GpuScene {
                 write_upload_ranges(queue, &self.instance_buffer, &self.instance_shadow, &ranges);
         }
 
+        if self.force_full_light_upload {
+            let uploaded = write_full_pod_buffer(
+                queue,
+                &self.light_buffer,
+                &self.light_shadow,
+                self.light_shadow.len(),
+            );
+            if uploaded > 0 {
+                report.light_upload_range_count = 1;
+                report.uploaded_bytes += uploaded;
+            }
+        }
+        self.write_light_count_params_if_needed(queue);
+
         self.force_full_primitive_upload = false;
         self.force_full_instance_upload = false;
+        self.force_full_light_upload = false;
         self.primitive_ids.commit_pending_frees();
         self.instance_ids.commit_pending_frees();
         self.refresh_stats(report.uploaded_bytes, dirty_entry_count);
@@ -358,6 +425,26 @@ impl GpuScene {
             skinned_joint_palette_buffer.unwrap_or(&self.fallback_skinned_joint_palette_buffer),
             previous_skinned_joint_palette_buffer
                 .unwrap_or(&self.fallback_skinned_joint_palette_buffer),
+            &self.direct_visible_instance_remap_buffer,
+            &self.direct_visible_instance_remap_params_buffer,
+        )
+    }
+
+    pub(crate) fn create_scene_bind_group_for_visible_instance_remap(
+        &self,
+        device: &wgpu::Device,
+        visible_instance_remap_buffer: &wgpu::Buffer,
+    ) -> wgpu::BindGroup {
+        create_gpu_scene_bind_group(
+            device,
+            &self.scene_bind_group_layout,
+            &self.primitive_buffer,
+            &self.instance_buffer,
+            &self.light_buffer,
+            &self.fallback_skinned_joint_palette_buffer,
+            &self.fallback_skinned_joint_palette_buffer,
+            visible_instance_remap_buffer,
+            &self.remapped_visible_instance_remap_params_buffer,
         )
     }
 
@@ -406,6 +493,23 @@ impl GpuScene {
         }
     }
 
+    fn ensure_light_capacity(&mut self, device: &wgpu::Device, required_light_count: u32) {
+        let required_light_capacity = required_light_count.max(1);
+        if required_light_capacity <= self.light_capacity {
+            return;
+        }
+
+        self.light_capacity =
+            grow_capacity(required_light_capacity, GPU_SCENE_INITIAL_LIGHT_CAPACITY);
+        self.light_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-light-data",
+            u64::from(self.light_capacity) * GpuLightData::STRIDE as u64,
+        );
+        self.force_full_light_upload = true;
+        self.rebuild_scene_bind_group(device);
+    }
+
     fn rebuild_scene_bind_group(&mut self, device: &wgpu::Device) {
         self.scene_bind_group = create_gpu_scene_bind_group(
             device,
@@ -415,6 +519,8 @@ impl GpuScene {
             &self.light_buffer,
             &self.fallback_skinned_joint_palette_buffer,
             &self.fallback_skinned_joint_palette_buffer,
+            &self.direct_visible_instance_remap_buffer,
+            &self.direct_visible_instance_remap_params_buffer,
         );
     }
 
@@ -432,10 +538,34 @@ impl GpuScene {
         }
     }
 
+    fn write_light_count_params_if_needed(&mut self, queue: &wgpu::Queue) {
+        let light_count = self.light_shadow.len() as u32;
+        if self.uploaded_light_count_params == Some(light_count) {
+            return;
+        }
+
+        queue.write_buffer(
+            &self.direct_visible_instance_remap_params_buffer,
+            0,
+            bytemuck::bytes_of(
+                &GpuSceneVisibleInstanceRemapParams::direct_with_light_count(light_count),
+            ),
+        );
+        queue.write_buffer(
+            &self.remapped_visible_instance_remap_params_buffer,
+            0,
+            bytemuck::bytes_of(
+                &GpuSceneVisibleInstanceRemapParams::remapped_with_light_count(light_count),
+            ),
+        );
+        self.uploaded_light_count_params = Some(light_count);
+    }
+
     fn refresh_stats(&mut self, uploaded_bytes: u64, dirty_entry_count: usize) {
         self.stats = GpuSceneStats {
             primitive_count: self.primitive_ids.live(),
             instance_count: self.instance_ids.live(),
+            light_count: self.light_shadow.len() as u32,
             dirty_entry_count,
             uploaded_bytes,
             primitive_capacity: self.primitive_capacity,
@@ -455,6 +585,18 @@ fn create_storage_buffer(device: &wgpu::Device, label: &'static str, size: u64) 
             | wgpu::BufferUsages::COPY_DST
             | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
+    })
+}
+
+fn create_remap_params_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+    params: GpuSceneVisibleInstanceRemapParams,
+) -> wgpu::Buffer {
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: bytemuck::bytes_of(&params),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     })
 }
 
@@ -532,6 +674,32 @@ mod tests {
         assert_eq!(moving_report.instance_upload_range_count, 1);
     }
 
+    #[test]
+    fn render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads() {
+        let Some(backend) = test_backend() else {
+            return;
+        };
+        let mut scene = test_gpu_scene(&backend.device);
+        let lights = vec![test_light_data(1), test_light_data(2), test_light_data(3)];
+
+        scene.write_lights(&backend.device, &lights);
+        let first_report = scene.flush_updates(&backend.queue);
+
+        assert_eq!(scene.stats().light_count, 3);
+        assert!(scene.stats().light_capacity >= 4);
+        assert_eq!(first_report.light_upload_range_count, 1);
+        assert_eq!(
+            first_report.uploaded_bytes,
+            (lights.len() * GpuLightData::STRIDE) as u64
+        );
+
+        scene.write_lights(&backend.device, &lights);
+        let unchanged_report = scene.flush_updates(&backend.queue);
+
+        assert_eq!(unchanged_report.uploaded_bytes, 0);
+        assert_eq!(unchanged_report.light_upload_range_count, 0);
+    }
+
     fn test_backend() -> Option<crate::graphics::backend::RenderBackend> {
         crate::graphics::backend::RenderBackend::new_offscreen()
             .inspect_err(|error| eprintln!("skipping gpu scene upload test: {error:?}"))
@@ -599,6 +767,14 @@ mod tests {
             flags: 0,
             payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
             _pad0: 0,
+        }
+    }
+
+    fn test_light_data(light_id: u32) -> GpuLightData {
+        GpuLightData {
+            color_intensity: [1.0, 0.5, 0.25, 2.0],
+            shadow_slot_layer: [u32::MAX, 1, light_id, 0],
+            ..GpuLightData::default()
         }
     }
 

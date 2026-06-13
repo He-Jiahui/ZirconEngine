@@ -13,14 +13,18 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutorRegistry, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::{
     build_mesh_pass_command_buffers_cached, prepare_mesh_queue, MeshDrawReplayStatsAccumulator,
-    MeshPassIndirectDrawExecutions,
+    MeshIndirectArgsReadback, MeshPassIndirectDrawExecutions,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{
     GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
+};
+use crate::graphics::visibility::{
+    HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
 use crate::render_graph::RenderGraphResourceAccessKind;
 use crate::CompiledRenderPipeline;
@@ -75,6 +79,20 @@ impl SceneRendererCore {
             .validate_compiled_pipeline(pipeline)
             .map_err(GraphicsError::Asset)?;
         self.write_scene_uniform(queue, frame);
+        let shadow_frame_plan =
+            crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
+                &mut self.shadow_atlas_allocator,
+                frame,
+                self.shadow_atlas_resources.config(),
+            );
+        let _shadow_atlas_upload_report = self
+            .shadow_atlas_resources
+            .upload_frame(
+                queue,
+                shadow_frame_plan.slots(),
+                shadow_frame_plan.globals(),
+            )
+            .map_err(GraphicsError::Asset)?;
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-compiled-scene-encoder"),
         });
@@ -90,6 +108,7 @@ impl SceneRendererCore {
             streamer,
             frame,
             runtime_features.virtual_geometry_enabled,
+            Some(shadow_frame_plan.light_slots()),
         );
         let _execution_args_buffer = assign_execution_owned_indirect_args(
             device,
@@ -109,8 +128,9 @@ impl SceneRendererCore {
         self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
         let mesh_pass_command_stats =
             mesh_pass_command_buffers.stats_with_indirect_batches(capabilities);
-        let mesh_pass_indirect_draws =
+        let mut mesh_pass_indirect_draws =
             MeshPassIndirectDrawExecutions::build(device, capabilities, &mesh_pass_command_buffers);
+        mesh_pass_indirect_draws.attach_visible_remap_scene_bind_groups(device, &self.gpu_scene);
         let prepared_mesh_queue_stats = prepared_mesh_queue
             .stats()
             .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats);
@@ -118,25 +138,27 @@ impl SceneRendererCore {
             prepared_mesh_queue_stats.draw_count,
             compiled_scene_draws.draws().len()
         );
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.depth_prepass_command_count,
-            prepared_mesh_queue_stats.early_z_draw_count
+        // Draw counts are the extracted source census; command counts are pruned by visibility
+        // and per-phase relevance before submission.
+        debug_assert!(
+            prepared_mesh_queue_stats.depth_prepass_command_count
+                <= prepared_mesh_queue_stats.early_z_draw_count
         );
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.shadow_command_count,
-            prepared_mesh_queue_stats.shadow_caster_draw_count
+        debug_assert!(
+            prepared_mesh_queue_stats.shadow_command_count
+                <= prepared_mesh_queue_stats.shadow_caster_draw_count
         );
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.opaque_command_count,
-            prepared_mesh_queue_stats.opaque_draw_count
+        debug_assert!(
+            prepared_mesh_queue_stats.opaque_command_count
+                <= prepared_mesh_queue_stats.opaque_draw_count
         );
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.alpha_mask_command_count,
-            prepared_mesh_queue_stats.alpha_mask_draw_count
+        debug_assert!(
+            prepared_mesh_queue_stats.alpha_mask_command_count
+                <= prepared_mesh_queue_stats.alpha_mask_draw_count
         );
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.transparent_command_count,
-            prepared_mesh_queue_stats.transparent_draw_count
+        debug_assert!(
+            prepared_mesh_queue_stats.transparent_command_count
+                <= prepared_mesh_queue_stats.transparent_draw_count
         );
         debug_assert_eq!(
             prepared_mesh_queue_stats.velocity_command_count,
@@ -201,7 +223,12 @@ impl SceneRendererCore {
                 .map(|resource| RenderGraphImportedFinalTarget {
                     view: resource.view(),
                 });
-        import_frame_targets(&mut graph_resources, target, imported_final_target);
+        import_frame_targets(
+            &mut graph_resources,
+            target,
+            imported_final_target,
+            Some(&self.shadow_atlas_resources),
+        );
         let direct_import_report = direct_imported_final_target
             .as_ref()
             .map(|resource| RenderCameraTargetGraphImportReport::direct_imported(resource.size()));
@@ -285,7 +312,10 @@ impl SceneRendererCore {
                 None,
                 None,
                 (is_depth_prepass || is_shadow).then_some(mesh_draw_lists),
+                self.hzb_occlusion_culler.as_ref(),
                 is_shadow.then_some(&self.shadow_map_renderer),
+                Some(&self.shadow_atlas_resources),
+                is_shadow.then_some(&shadow_frame_plan),
                 &mut graph_execution,
             );
             if is_depth_prepass {
@@ -305,15 +335,18 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                None, // overlay renderer
+                None, // prepared overlays
+                None, // prepass
+                None, // deferred resources
+                None, // particle renderer
+                None, // sprite renderer
+                None, // resource streamer
+                None, // mesh pipeline cache
+                None, // mesh draw lists
+                None, // HZB occlusion culler
+                None, // shadow map renderer
+                Some(&self.shadow_atlas_resources),
                 None,
                 &mut graph_execution,
             )?;
@@ -373,6 +406,9 @@ impl SceneRendererCore {
             Some(streamer),
             Some(&mut self.mesh_pipelines),
             Some(mesh_draw_lists),
+            self.hzb_occlusion_culler.as_ref(),
+            None,
+            Some(&self.shadow_atlas_resources),
             None,
             &mut graph_execution,
         )?;
@@ -419,19 +455,36 @@ impl SceneRendererCore {
                 None,
                 overlay_renderer,
                 prepared_overlay_buffers,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                None, // prepass
+                None, // deferred resources
+                None, // particle renderer
+                None, // sprite renderer
+                None, // resource streamer
+                None, // mesh pipeline cache
+                None, // mesh draw lists
+                None, // HZB occlusion culler
+                None, // shadow map renderer
+                Some(&self.shadow_atlas_resources),
                 None,
                 &mut graph_execution,
             )?;
         }
         drop(graph_execution);
+        let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
+            device,
+            &mut encoder,
+            &mesh_pass_indirect_draws,
+            &graph_execution_record,
+        );
         queue.submit([encoder.finish()]);
+        if let Some(hzb_occlusion_culler) = self.hzb_occlusion_culler.as_ref() {
+            attach_hzb_occlusion_readback_stats(
+                hzb_occlusion_culler,
+                device,
+                hzb_occlusion_indirect_args_readbacks,
+                &mut graph_execution_record,
+            );
+        }
         graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
         self.transient_resource_pool.end_frame();
         graph_execution_record.set_resource_report(
@@ -454,11 +507,79 @@ impl SceneRendererCore {
             prepared_mesh_queue_stats,
             prepared_sprite_queue_stats,
         );
+        let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
         Ok(match direct_import_report {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,
         })
     }
+}
+
+fn attach_hzb_occlusion_readback_stats(
+    culler: &HzbOcclusionCuller,
+    device: &wgpu::Device,
+    indirect_args_readbacks: Vec<MeshIndirectArgsReadback>,
+    graph_execution_record: &mut RenderGraphExecutionRecord,
+) {
+    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
+        return;
+    };
+    let mut report = if report.dispatched_phase_count == 0 {
+        report
+            .with_readback_stats(HzbOcclusionCullReadbackStats::default())
+            .with_indirect_args_readback(HzbOcclusionIndirectArgsReadbackSummary::default())
+    } else {
+        if let Some(readback_stats) = culler.collect_last_readback_stats(device) {
+            report.with_readback_stats(readback_stats)
+        } else {
+            report
+        }
+    };
+    if report.dispatched_phase_count > 0 {
+        if let Some(summary) =
+            collect_hzb_occlusion_indirect_args_readback_summary(device, indirect_args_readbacks)
+        {
+            report = report.with_indirect_args_readback(summary);
+        }
+    }
+    graph_execution_record.set_hzb_occlusion_cull_report(report);
+}
+
+fn encode_hzb_occlusion_indirect_args_readbacks(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    indirect_draws: &MeshPassIndirectDrawExecutions,
+    graph_execution_record: &RenderGraphExecutionRecord,
+) -> Vec<MeshIndirectArgsReadback> {
+    let Some(report) = graph_execution_record.hzb_occlusion_cull_report() else {
+        return Vec::new();
+    };
+    if report.dispatched_phase_count == 0 {
+        return Vec::new();
+    }
+
+    indirect_draws.copy_hzb_occlusion_args_to_readbacks(
+        device,
+        encoder,
+        "zircon-hzb-occlusion-indirect-args-readback",
+    )
+}
+
+fn collect_hzb_occlusion_indirect_args_readback_summary(
+    device: &wgpu::Device,
+    readbacks: Vec<MeshIndirectArgsReadback>,
+) -> Option<HzbOcclusionIndirectArgsReadbackSummary> {
+    let mut summary = HzbOcclusionIndirectArgsReadbackSummary::default();
+    for readback in readbacks {
+        let snapshot = readback.collect(device)?;
+        summary.add_assign(HzbOcclusionIndirectArgsReadbackSummary::new(
+            snapshot.args_count(),
+            snapshot.compacted_draw_count(),
+            snapshot.zero_instance_arg_count(),
+            snapshot.remaining_instance_count(),
+        ));
+    }
+    Some(summary)
 }
 
 fn direct_imported_final_target(

@@ -52,6 +52,8 @@ pub enum CoreError {
     Initialization(String, String),
     #[error("service unload blocked for {0}; still referenced by {1:?}")]
     UnloadBlocked(String, Vec<String>),
+    #[error("plugin bridge lifecycle blocked: {0}")]
+    PluginBridgeLifecycleBlocked(String),
     #[error("service downcast failed for {0}")]
     ServiceDowncast(String),
     #[error("config missing: {0}")]

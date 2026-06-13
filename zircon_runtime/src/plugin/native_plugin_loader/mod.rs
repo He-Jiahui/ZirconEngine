@@ -1,6 +1,8 @@
 mod abi_declarations;
 mod behavior_calls;
 mod behavior_validation;
+mod bridge_method_abi;
+mod bridge_method_bindings;
 mod candidate_from_manifest;
 mod collect_manifests;
 mod discover;
@@ -20,27 +22,33 @@ mod native_strings;
 
 pub use abi_declarations::{
     NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3, NativePluginBehaviorV2,
-    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginByteSliceV3,
-    NativePluginCallbackStatusV2, NativePluginCallbackStatusV3, NativePluginEntryReportV1,
-    NativePluginEntryReportV2, NativePluginEntryReportV3, NativePluginHostFunctionTableV2,
-    NativePluginHostFunctionTableV3, NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3,
-    NativePluginSchemaVersionsV3, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    NativePluginBehaviorV3, NativePluginBridgeMethodCallV3, NativePluginBridgeMethodFnV3,
+    NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3, NativePluginByteSliceV2,
+    NativePluginByteSliceV3, NativePluginCallbackStatusV2, NativePluginCallbackStatusV3,
+    NativePluginEntryReportV1, NativePluginEntryReportV2, NativePluginEntryReportV3,
+    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
+    NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3, NativePluginSchemaVersionsV3,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 pub use behavior_calls::NativePluginBehaviorCallReport;
 pub use behavior_validation::{NativePluginBehaviorHealth, NativePluginBehaviorValidationReport};
-pub use host_api_adapter::NativeHostApiV3RegistrationScope;
+pub use bridge_method_bindings::{
+    native_bridge_method_descriptors_from_manifest, NativeBridgeCall, NativeBridgeMethodBinding,
+    NativeBridgeMethodDescriptor, NativeBridgeMethodFn, NativeBridgeMethodManifestError,
+};
+pub use host_api_adapter::{NativeHostApiV3RegistrationScope, NativeHostBridgeCallScope};
 pub use loaded_native_plugin::LoadedNativePlugin;
 pub use native_plugin_abi::{NativePluginDescriptor, NativePluginEntryReport};
 pub use native_plugin_candidate::NativePluginCandidate;
 pub use native_plugin_live_host::{
-    NativePluginLiveHost, NativePluginLiveHostCommand, NativePluginLiveHostLoadReport,
-    NativePluginLiveHostOutcome, NativePluginRuntimeBehaviorCall,
+    NativePluginLiveHost, NativePluginLiveHostBridgeLifecycleReport,
+    NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,
+    NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome, NativePluginRuntimeBehaviorCall,
     NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
     NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
     NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,

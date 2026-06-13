@@ -6,15 +6,13 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 
 use super::super::super::culling::{
-    mesh_bounds::mesh_bounds,
-    parallel_frustum::{mesh_frustum_visibility, MeshFrustumCandidate},
+    mesh_bounds::mesh_bounds, parallel_frustum::MeshFrustumCandidate,
     visibility_entries::visibility_entries,
 };
 use super::super::super::declarations::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBvhInstance, VisibilityHistoryEntry,
     VisibilityRelevanceEntry,
 };
-use super::super::super::view_context::FrameVisibility;
 use super::batching_result::BatchingResult;
 
 pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingResult {
@@ -48,17 +46,9 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
         .iter()
         .map(|candidate| (candidate.entity, candidate.bounds))
         .collect::<HashMap<_, _>>();
-    let frustum_visibility_by_entity =
-        mesh_frustum_visibility(&frustum_candidates, &value.view.camera)
-            .into_iter()
-            .map(|entry| (entry.entity, entry.visible))
-            .collect::<HashMap<_, _>>();
-
     let mut renderable_entities = BTreeSet::new();
     let mut static_entities = BTreeSet::new();
     let mut dynamic_entities = BTreeSet::new();
-    let mut visible_entities = BTreeSet::new();
-    let mut culled_entities = BTreeSet::new();
     let mut primitive_relevance = Vec::new();
     let mut batches = BTreeMap::<VisibilityBatchKey, Vec<_>>::new();
     let mut bvh_instances = Vec::new();
@@ -111,33 +101,12 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
             bounds,
         });
         batches.entry(key).or_default().push(entity);
-        if relevance.main_view()
-            && frustum_visibility_by_entity
-                .get(&entity)
-                .copied()
-                .unwrap_or(false)
-        {
-            visible_entities.insert(entity);
-        } else {
-            culled_entities.insert(entity);
-        }
     }
 
-    let frame_visibility = FrameVisibility::from_frame_views(
-        &value.view.camera,
-        &value.lighting.directional_lights,
-        &bvh_instances,
-        &primitive_relevance,
-        &visible_entities,
-    );
-
     BatchingResult {
-        frame_visibility,
         renderable_entities,
         static_entities,
         dynamic_entities,
-        visible_entities,
-        culled_entities,
         primitive_relevance,
         batches: batches
             .into_iter()

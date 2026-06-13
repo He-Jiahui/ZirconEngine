@@ -481,7 +481,7 @@ impl RuntimePluginFeature for FeatureManifestFixture {
         self.manifest.clone()
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         _registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

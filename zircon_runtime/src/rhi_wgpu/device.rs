@@ -162,7 +162,12 @@ impl PipelineResourceLookup for WgpuRenderDeviceState {
 impl WgpuRenderDevice {
     pub fn new_headless() -> Self {
         Self {
-            caps: wgpu_backend_caps("wgpu", wgpu::Features::empty(), false),
+            caps: wgpu_backend_caps(
+                "wgpu",
+                wgpu::Features::empty(),
+                wgpu::Limits::default(),
+                false,
+            ),
             state: Arc::new(Mutex::new(WgpuRenderDeviceState {
                 next_handle: 1,
                 next_fence: 1,
@@ -173,7 +178,12 @@ impl WgpuRenderDevice {
 
     pub fn new_with_surface_support() -> Self {
         Self {
-            caps: wgpu_backend_caps("wgpu", wgpu::Features::empty(), true),
+            caps: wgpu_backend_caps(
+                "wgpu",
+                wgpu::Features::empty(),
+                wgpu::Limits::default(),
+                true,
+            ),
             state: Arc::new(Mutex::new(WgpuRenderDeviceState {
                 next_handle: 1,
                 next_fence: 1,

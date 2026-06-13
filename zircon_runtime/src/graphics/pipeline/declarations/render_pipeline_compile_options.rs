@@ -10,6 +10,7 @@ pub struct RenderPipelineCompileOptions {
     pub disabled_plugin_features: BTreeSet<String>,
     pub enabled_capabilities: BTreeSet<RenderFeatureCapabilityRequirement>,
     pub allow_async_compute: bool,
+    pub enable_hzb_occlusion_culling: bool,
     pub graph_msaa_sample_count: Option<u32>,
     pub post_process_stack: Option<PostProcessStackDescriptor>,
 }

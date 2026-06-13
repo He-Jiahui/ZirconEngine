@@ -73,6 +73,7 @@ fn welcome_startup_projects_into_exclusive_page_model() {
             project_open: false,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &WorkbenchLayout {
             active_main_page: MainPageId::new("page:welcome"),

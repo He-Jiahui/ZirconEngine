@@ -10,7 +10,8 @@ related_code:
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_editor/src/ui/animation_editor/session.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
-  - dev/theatre/theatre
+  - dev/theatre/packages/core/src
+  - dev/theatre/packages/studio
 plan_sources:
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
@@ -203,3 +204,16 @@ input pump → dispatch → state reduce
 - transform 动画走渲染期覆盖，不污染 arranged geometry；命中默认用布局几何（动画期间命中策略显式声明）。
 - 不复制 theatre 的运行时/前端代码，只对齐数据模型与编辑交互。
 - spring 缓动为后置项，第一版枚举不承诺其语义。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| sheet/object/track/keyframe 数据模型 | `dev/theatre/packages/core/src`（projects/ 下 sheet/sequence 模型，TS 源） | — | `UiMotionDocument` 的概念对齐：对象绑定路径、轨道、keyframe handle（只对齐数据模型，不复制代码） |
+| 时间轴编辑交互 | `dev/theatre/packages/studio` | — | 播放头/框选/拖 keyframe/改 easing 的编辑器交互范式（M4 面板） |
+| UI 侧曲线动画 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Animation` | — | FCurveSequence/FCurveHandle：UI 动画句柄、播放控制与 widget 生命周期的关系 |
+| 曲线采样架构 | `dev/bevy/crates/bevy_animation` | `zircon_runtime/src/animation/sequence/`（仓内场景动画） | 通用曲线/采样器的 Rust 形态；与仓内 sequence 设施的取舍对照 |
+| UI 动画/状态机 | `dev/Fyrox/fyrox-ui/src/{animation.rs, absm.rs}` | `dev/Fyrox/fyrox-animation` | UI 属性动画与动画状态机在 UI crate 内的组织 |
+| 补间/过渡语义 | `dev/godot/scene/animation`（Tween 等） | `dev/material-ui/packages/mui-material/src/Collapse`（及 Fade/Grow/Slide/Zoom 目录） | Tween 的属性通道与缓动组合；MUI transition 组件的 enter/exit 语义（M2.S3 的行为标准） |

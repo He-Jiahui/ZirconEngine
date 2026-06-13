@@ -249,3 +249,17 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 - Taffy 仍是直接依赖（非插件）；不引入其他布局库。
 - 布局结果只经 `UiArrangedTree` 对外暴露；hit/render 不得另行计算几何。
 - `UiLayoutStyle` 进 interface 层即受 ABI 约束：字段增删走 serde 默认值兼容，集中在 M1.S1 定稿。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| 属性 → taffy::Style 唯一映射 | `dev/bevy/crates/bevy_ui/src/layout/convert.rs` | `dev/bevy/crates/bevy_ui/src/layout/{mod.rs, ui_surface.rs}` | bevy 的「声明属性 → taffy::Style」逐字段折算是 style_mapping 的直接样板（含 percent/auto 边界处理） |
+| 布局调试导出 | `dev/bevy/crates/bevy_ui/src/layout/debug.rs` | — | debug packet 的节点几何/树形 dump 形态 |
+| arranged geometry 概念 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/{Geometry.h, ArrangedChildren.h, ArrangedWidget.h}` | `LayoutUtils.h`、`Visibility.h`、`Clipping.h`（同目录） | arranged tree 为唯一空间事实、可见性/裁剪如何影响排列与命中（不取手写 OnArrangeChildren） |
+| 增量失效 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/FastUpdate` | — | Slate invalidation 系统的脏域划分（layout/paint/volatility） |
+| 自有容器（Canvas/Grid） | `dev/Fyrox/fyrox-ui/src/canvas.rs`、`grid.rs` | `dev/slint/internal/core/layout.rs` | 绝对定位容器与 Rust 端布局求解器的接口形态 |
+| 嵌套滚动/容器语义 | `dev/godot/scene/gui/{container.cpp, box_container.cpp, scroll_bar.cpp}` | `dev/godot/scene/gui/split_container.cpp` | 容器 re-sort 时机、滚动条合成、splitter 拖拽几何 |
+| docking 接缝 | `dev/Fyrox/fyrox-ui/src/dock/{tile.rs, config.rs}` | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking` | docking 树与内容区约束的分界（框架几何 vs 内容布局） |

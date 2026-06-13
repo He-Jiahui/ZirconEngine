@@ -36,6 +36,10 @@ doc_type: module-detail
 
 This document is the runtime-side dependency authority for `zirconEngine`. It separates dependencies that are part of the runtime product surface from editor-only candidates, plugin-owned stacks, and future backlog decisions. Manifest changes that alter these decisions must update this document and the matching source guard in `zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs`.
 
+## Executable Guard Anchors
+
+Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_is_documented_without_manifest_container_dependency`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
+
 ## Dependency Matrix
 
 | Dependency / area | Current version or state | Owner crate | Feature gate | Upgrade or replacement gate |

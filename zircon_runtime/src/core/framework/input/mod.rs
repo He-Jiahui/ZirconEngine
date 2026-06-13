@@ -4,6 +4,10 @@ mod button_input_state;
 mod file_drag_drop;
 mod gamepad;
 mod ime;
+mod input_action;
+mod input_action_map;
+mod input_action_state;
+mod input_binding;
 mod input_button;
 mod input_event;
 mod input_event_record;
@@ -27,6 +31,10 @@ pub use ime::{
     ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit,
     ImeSurroundingText,
 };
+pub use input_action::InputAction;
+pub use input_action_map::InputActionMap;
+pub use input_action_state::InputActionState;
+pub use input_binding::InputBinding;
 pub use input_button::InputButton;
 pub use input_event::InputEvent;
 pub use input_event_record::InputEventRecord;

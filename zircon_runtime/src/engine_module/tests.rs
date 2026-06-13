@@ -189,3 +189,44 @@ fn driver_contract_preserves_descriptor_metadata() {
     assert_eq!(contract.startup_mode(), StartupMode::Lazy);
     assert!(contract.dependencies().is_empty());
 }
+
+#[test]
+fn engine_module_declared_layer_does_not_own_runtime_lifecycle() {
+    let root_source = include_str!("mod.rs");
+    for required_reexport in [
+        "ModuleDescriptor",
+        "ServiceFactory",
+        "PluginFactory",
+        "LifecycleState",
+    ] {
+        assert!(
+            root_source.contains(required_reexport),
+            "engine_module should expose core runtime contract `{required_reexport}` without reimplementing it"
+        );
+    }
+
+    let declared_layer_sources = [
+        ("contexts.rs", include_str!("contexts.rs")),
+        ("descriptors/names.rs", include_str!("descriptors/names.rs")),
+        ("engine_module.rs", include_str!("engine_module.rs")),
+        ("engine_service.rs", include_str!("engine_service.rs")),
+        ("service_factory.rs", include_str!("service_factory.rs")),
+    ];
+    for (file, source) in declared_layer_sources {
+        for forbidden_runtime_owner in [
+            "register_module",
+            "activate_module",
+            "shutdown_module",
+            "LifecycleState",
+            "CoreRuntime",
+            "std::collections::HashMap",
+            "std::sync::Mutex",
+            ".inner",
+        ] {
+            assert!(
+                !source.contains(forbidden_runtime_owner),
+                "engine_module declaration file `{file}` should not own runtime lifecycle or registry behavior `{forbidden_runtime_owner}`"
+            );
+        }
+    }
+}

@@ -1,26 +1,36 @@
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Real, Vec2, Vec3};
 
+use super::shadow_settings::LightShadowSettings;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderDirectionalLightSnapshot {
     pub node_id: EntityId,
+    pub light_id: u64,
+    pub layer_mask: u32,
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
+    pub shadow: Option<LightShadowSettings>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderPointLightSnapshot {
     pub node_id: EntityId,
+    pub light_id: u64,
+    pub layer_mask: u32,
     pub position: Vec3,
     pub color: Vec3,
     pub intensity: Real,
     pub range: Real,
+    pub shadow: Option<LightShadowSettings>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderSpotLightSnapshot {
     pub node_id: EntityId,
+    pub light_id: u64,
+    pub layer_mask: u32,
     pub position: Vec3,
     pub direction: Vec3,
     pub color: Vec3,
@@ -28,6 +38,7 @@ pub struct RenderSpotLightSnapshot {
     pub range: Real,
     pub inner_angle_radians: Real,
     pub outer_angle_radians: Real,
+    pub shadow: Option<LightShadowSettings>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -54,12 +65,15 @@ impl Default for RenderAmbientLightSnapshot {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderRectLightSnapshot {
     pub node_id: EntityId,
+    pub light_id: u64,
+    pub layer_mask: u32,
     pub position: Vec3,
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
     pub range: Real,
     pub size: Vec2,
+    pub shadow: Option<LightShadowSettings>,
     pub renderer_degraded: bool,
     pub degradation_reason: Option<String>,
 }

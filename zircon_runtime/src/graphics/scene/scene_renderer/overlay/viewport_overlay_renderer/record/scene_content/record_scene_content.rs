@@ -2,6 +2,7 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshSceneDataBindHandle;
 use crate::graphics::scene::scene_renderer::mesh::{MeshDraw, MeshPipelineCache};
 use crate::graphics::scene::scene_renderer::overlay::ViewportOverlayRenderer;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
@@ -18,6 +19,7 @@ impl ViewportOverlayRenderer {
         mesh_pipelines: &mut MeshPipelineCache,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
     ) {
         self.record_preview_sky(encoder, color_view, depth_view, scene_bind_group, frame);
         self.record_meshes(
@@ -31,6 +33,7 @@ impl ViewportOverlayRenderer {
             mesh_pipelines,
             streamer,
             frame,
+            shadow_atlas_resources,
         );
     }
 }

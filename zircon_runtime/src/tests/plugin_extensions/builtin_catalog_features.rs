@@ -52,6 +52,7 @@ fn builtin_rendering_optional_features_declare_editor_capabilities() {
     for suffix in [
         "post_process",
         "ssao",
+        "contact_shadow",
         "decals",
         "reflection_probes",
         "baked_lighting",
@@ -219,6 +220,7 @@ fn rendering_features_are_blocked_on_server_target() {
 
     assert!(blocked.contains(&("rendering.post_process", true)));
     assert!(blocked.contains(&("rendering.ssao", true)));
+    assert!(blocked.contains(&("rendering.contact_shadow", true)));
     assert!(blocked.contains(&("rendering.reflection_probes", true)));
     assert!(blocked.contains(&("rendering.baked_lighting", true)));
 }

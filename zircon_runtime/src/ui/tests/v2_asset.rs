@@ -1814,6 +1814,216 @@ fn ui_v2_surface_rangefield_drag_captures_pointer_and_updates_value_outside_hit(
 }
 
 #[test]
+fn ui_v2_surface_rangeslider_click_targets_nearest_thumb() {
+    let (mut surface, root_size) = runtime_range_slider_surface(
+        "asset://ui/tests/runtime_rangeslider_click.v2.ui",
+        "runtime.ui.v2.runtime_rangeslider_click",
+        None,
+    );
+
+    let node_id = node_id_by_control_id(&surface, "RuntimeRangeSlider");
+    let dispatcher = crate::ui::dispatch::UiPointerDispatcher::default();
+    let frame = surface.arranged_tree.get(node_id).unwrap().frame;
+    let lower_point = UiPoint::new(frame.x + frame.width * 0.3, frame.y + frame.height * 0.5);
+    let upper_point = UiPoint::new(frame.x + frame.width * 0.9, frame.y + frame.height * 0.5);
+    let lower_down = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Down, lower_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(lower_down.captured_by, Some(node_id));
+    assert!(lower_down.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragBegin"
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::BeginDrag { property } if property == "range_min"
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let lower_drag = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Move, upper_point),
+        )
+        .unwrap();
+
+    assert_eq!(lower_drag.handled_by, Some(node_id));
+    assert_eq!(surface.focus.captured, Some(node_id));
+    assert_range_property_value(&surface, node_id, "range_min", 80.0);
+    assert_range_value(&surface, node_id, 80.0);
+    assert!(lower_drag.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragDelta"
+            && event.reason == UiPointerComponentEventReason::DirectBinding
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::DragDelta { property, .. } if property == "range_min"
+            )
+    }));
+    assert!(lower_drag.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/ValueChanged"
+            && event.reason == UiPointerComponentEventReason::DirectBinding
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "range_min" && value == &UiValue::Float(80.0)
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let lower_up = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Up, upper_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(lower_up.released_capture, Some(node_id));
+    assert_range_property_value(&surface, node_id, "range_min", 80.0);
+    assert_range_value(&surface, node_id, 80.0);
+    assert!(lower_up.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragEnd"
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::EndDrag { property } if property == "range_min"
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let upper_down = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Down, upper_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    assert_eq!(upper_down.captured_by, Some(node_id));
+    assert!(upper_down.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragBegin"
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::BeginDrag { property } if property == "value"
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let upper_up = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Up, upper_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(upper_up.released_capture, Some(node_id));
+    assert_range_property_value(&surface, node_id, "range_min", 80.0);
+    assert_range_value(&surface, node_id, 90.0);
+    assert!(upper_up.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/ValueChanged"
+            && event.reason == UiPointerComponentEventReason::DefaultClick
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "value" && value == &UiValue::Float(90.0)
+            )
+    }));
+}
+
+#[test]
+fn ui_v2_surface_rangeslider_swap_policy_can_switch_active_thumb() {
+    let (mut surface, root_size) = runtime_range_slider_surface(
+        "asset://ui/tests/runtime_rangeslider_swap.v2.ui",
+        "runtime.ui.v2.runtime_rangeslider_swap",
+        Some(false),
+    );
+
+    let node_id = node_id_by_control_id(&surface, "RuntimeRangeSlider");
+    let dispatcher = crate::ui::dispatch::UiPointerDispatcher::default();
+    let frame = surface.arranged_tree.get(node_id).unwrap().frame;
+    let lower_point = UiPoint::new(frame.x + frame.width * 0.3, frame.y + frame.height * 0.5);
+    let upper_point = UiPoint::new(frame.x + frame.width * 0.9, frame.y + frame.height * 0.5);
+    let lower_down = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Down, lower_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(lower_down.captured_by, Some(node_id));
+    assert!(lower_down.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragBegin"
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::BeginDrag { property } if property == "range_min"
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let lower_drag = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Move, upper_point),
+        )
+        .unwrap();
+
+    assert_eq!(lower_drag.handled_by, Some(node_id));
+    assert_range_property_value(&surface, node_id, "range_min", 80.0);
+    assert_range_value(&surface, node_id, 90.0);
+    assert!(lower_drag.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/ValueChanged"
+            && event.reason == UiPointerComponentEventReason::DirectBinding
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "range_min" && value == &UiValue::Float(80.0)
+            )
+    }));
+    assert!(lower_drag.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/ValueChanged"
+            && event.reason == UiPointerComponentEventReason::DirectBinding
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "value" && value == &UiValue::Float(90.0)
+            )
+    }));
+    assert!(lower_drag.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragDelta"
+            && event.reason == UiPointerComponentEventReason::DirectBinding
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::DragDelta { property, delta }
+                    if property == "value" && (*delta - 10.0).abs() < f64::EPSILON
+            )
+    }));
+    surface.rebuild_dirty(root_size).unwrap();
+
+    let lower_up = surface
+        .dispatch_pointer_event(
+            &dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Up, upper_point)
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert_eq!(lower_up.released_capture, Some(node_id));
+    assert_range_property_value(&surface, node_id, "range_min", 80.0);
+    assert_range_value(&surface, node_id, 90.0);
+    assert!(lower_up.component_events.iter().any(|event| {
+        event.binding_id == "RuntimeRangeSlider/DragEnd"
+            && matches!(
+                &event.envelope.event,
+                UiComponentEvent::EndDrag { property } if property == "value"
+            )
+    }));
+}
+
+#[test]
 fn ui_v2_surface_rangefield_keyboard_navigation_steps_value_render_only() {
     let mut document = v2_document("asset://ui/tests/runtime_rangefield_keyboard.v2.ui", "root");
     document.nodes.insert(
@@ -3182,6 +3392,78 @@ set = {{ self = {{ foreground_color = "{color}" }} }}
     )
 }
 
+fn runtime_range_slider_surface(
+    asset_id: &str,
+    tree_id: &str,
+    disable_swap: Option<bool>,
+) -> (UiSurface, UiSize) {
+    let mut props = BTreeMap::from([
+        ("range_min".to_string(), Value::Float(20.0)),
+        ("value".to_string(), Value::Float(80.0)),
+        ("min".to_string(), Value::Float(0.0)),
+        ("max".to_string(), Value::Float(100.0)),
+        ("step".to_string(), Value::Float(5.0)),
+    ]);
+    if let Some(disable_swap) = disable_swap {
+        props.insert("disable_swap".to_string(), Value::Boolean(disable_swap));
+    }
+
+    let mut document = v2_document(asset_id, "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "RangeSlider".to_string(),
+            control_id: Some("RuntimeRangeSlider".to_string()),
+            classes: vec!["material-range".to_string()],
+            props,
+            layout: Some(fixed_size_layout(100.0, 24.0)),
+            events: vec![
+                UiBindingRef {
+                    id: "RuntimeRangeSlider/ValueChanged".to_string(),
+                    event: UiEventKind::Change,
+                    route: Some("RuntimeRangeSlider.ValueChanged".to_string()),
+                    action: None,
+                    targets: Vec::new(),
+                },
+                UiBindingRef {
+                    id: "RuntimeRangeSlider/DragBegin".to_string(),
+                    event: UiEventKind::DragBegin,
+                    route: Some("RuntimeRangeSlider.BeginDrag".to_string()),
+                    action: None,
+                    targets: Vec::new(),
+                },
+                UiBindingRef {
+                    id: "RuntimeRangeSlider/DragDelta".to_string(),
+                    event: UiEventKind::DragUpdate,
+                    route: Some("RuntimeRangeSlider.DragDelta".to_string()),
+                    action: None,
+                    targets: Vec::new(),
+                },
+                UiBindingRef {
+                    id: "RuntimeRangeSlider/DragEnd".to_string(),
+                    event: UiEventKind::DragEnd,
+                    route: Some("RuntimeRangeSlider.EndDrag".to_string()),
+                    action: None,
+                    targets: Vec::new(),
+                },
+            ],
+            ..Default::default()
+        },
+    );
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new(tree_id),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let root_size = UiSize::new(160.0, 80.0);
+    surface.compute_layout(root_size).unwrap();
+    surface.clear_dirty_flags();
+    (surface, root_size)
+}
+
 fn fixed_size_layout(width: f64, height: f64) -> BTreeMap<String, Value> {
     BTreeMap::from([
         (
@@ -3255,6 +3537,15 @@ fn runtime_style_token<'a>(
 }
 
 fn assert_range_value(surface: &crate::ui::surface::UiSurface, node_id: UiNodeId, expected: f64) {
+    assert_range_property_value(surface, node_id, "value", expected);
+}
+
+fn assert_range_property_value(
+    surface: &crate::ui::surface::UiSurface,
+    node_id: UiNodeId,
+    property: &str,
+    expected: f64,
+) {
     let value = surface
         .tree
         .nodes
@@ -3264,12 +3555,12 @@ fn assert_range_value(surface: &crate::ui::surface::UiSurface, node_id: UiNodeId
         .as_ref()
         .unwrap()
         .attributes
-        .get("value")
+        .get(property)
         .and_then(Value::as_float)
         .unwrap();
     assert!(
         (value - expected).abs() < f64::EPSILON,
-        "expected range value {expected}, got {value}"
+        "expected range property {property} value {expected}, got {value}"
     );
 }
 

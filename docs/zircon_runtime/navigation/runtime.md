@@ -19,10 +19,15 @@ implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
 plan_sources:
   - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
+  - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
+  - dev/godot/modules/navigation_2d
+  - dev/godot/modules/navigation_3d
 tests:
   - cargo check -p zircon_runtime --lib --message-format short --color never
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
+  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_navigation_boundary_file_set_requires_doc_update
+  - "pending: cargo test -p zircon_runtime --lib navigation --locked"
 doc_type: module-detail
 ---
 
@@ -57,3 +62,18 @@ Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agen
 This module is a runtime-owned bridge for project examples and standalone gameplay validation. The fuller Recast-backed plugin stack under `zircon_plugins/navigation` remains the long-term owner for advanced baking, Detour/TileCache integration, editor authoring, and plugin catalog capability reporting.
 
 The current runtime navigation module does not replace that plugin. It gives `zircon_runtime` an independent, minimal, testable pathfinding capability so examples such as `examples/vampire` can run without requiring plugin-workspace runtime composition.
+
+## Runtime 14 Boundary Judgment
+
+Runtime 14 corrected the earlier "thin navigation module" assumption. The module still has only three Rust files, but `runtime.rs` owns real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance.
+
+The crate-root seat remains intentional. `core::framework::navigation` owns contracts and DTOs, while `zircon_runtime::navigation` owns the built-in fallback implementation used when the external Recast-backed plugin stack is not linked into the process.
+
+Godot remains a useful layering reference, but the verified source paths are `dev/godot/modules/navigation_2d` and `dev/godot/modules/navigation_3d`, not a single `modules/navigation` directory. Zircon should also avoid adopting "server" terminology here because this module is not a network service.
+
+The Runtime 14 judgement is:
+
+- Keep `navigation` at crate root as a self-contained runtime fallback.
+- Do not split behavior into more root-level navigation families unless baking/editor/Recast ownership moves into `zircon_runtime`, which is currently a non-goal.
+- If future code adds new navigation behavior files, document whether they extend the fallback runtime or belong in `zircon_plugins/navigation`.
+`runtime_navigation_boundary_file_set_requires_doc_update` asserts the current file set and forces new behavior files to update this document before expanding the fallback runtime.

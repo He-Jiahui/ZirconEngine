@@ -36,6 +36,7 @@ impl PreviewEditorData {
             project_open: self.project_open,
             can_undo: self.can_undo,
             can_redo: self.can_redo,
+            bridge_diagnostics: Default::default(),
         }
     }
 }

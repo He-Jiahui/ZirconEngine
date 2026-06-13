@@ -425,7 +425,7 @@ impl RuntimePlugin for ShadowedInvalidComponentRuntimePlugin {
             ))
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

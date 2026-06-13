@@ -4,6 +4,7 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
     device: &wgpu::Device,
     scene_layout: &wgpu::BindGroupLayout,
     lighting_bind_group_layout: &wgpu::BindGroupLayout,
+    gpu_scene_layout: &wgpu::BindGroupLayout,
     target_format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
     let lighting_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -12,7 +13,12 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
     });
     let lighting_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-deferred-lighting-layout"),
-        bind_group_layouts: &[Some(scene_layout), Some(lighting_bind_group_layout)],
+        bind_group_layouts: &[
+            Some(scene_layout),
+            Some(lighting_bind_group_layout),
+            None,
+            Some(gpu_scene_layout),
+        ],
         immediate_size: 0,
     });
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {

@@ -5,14 +5,18 @@ related_code:
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
+  - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
 implementation_files:
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
+  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
+  - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - docs/plans/zircon_runtime/runtime/index.md
 tests:
   - rustfmt --edition 2021 zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs zircon_runtime/src/scene/ecs/mod.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph.rs zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
@@ -21,15 +25,19 @@ tests:
   - schedule_parallel_execution_report_records_diagnostic_counts
   - representative_schedule_produces_multi_system_parallel_batches
   - parallel_and_serial_execution_reach_identical_world_state
+  - executor_batches_are_chained_through_job_dependencies
   - schedule_parallel_report_keeps_run_batches_compatible
   - schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts
+  - schedule_parallel_batches_chain_through_job_handles
+  - schedule_parallel_executor_does_not_call_rayon_directly
+  - rayon_is_only_reachable_through_core_task_primitives_or_tracked_render_exception
   - cargo test -p zircon_runtime --lib ecs_schedule --locked --target-dir E:/cargo-targets/zircon-runtime-03-0612 -- --nocapture --test-threads=1 failed before executing schedule tests on unrelated unresolved import `crate::asset::ui_v2_asset_references` in zircon_runtime/src/ui/tests/asset_dependency_index.rs
 doc_type: module-detail
 ---
 
 # Schedule Parallel Executor
 
-This document records the runtime 03 M3.1 schedule-executor observability slice. The executor still owns only batch execution over already-built `ScheduleParallelBatch` values; conflict detection and batch construction remain in `schedule_conflict_graph.rs`.
+This document records the runtime 03 M3 schedule-executor observability slice and the runtime 11 M2.3/M2.2 task-model integration. The executor still owns only batch execution over already-built `ScheduleParallelBatch` values; conflict detection and batch construction remain in `schedule_conflict_graph.rs`.
 
 ## Owner Contract
 
@@ -46,6 +54,14 @@ The report exposes these counters:
 - `executed_systems`: total systems reached by completed batches.
 
 The executor also exposes `parallel_enabled()` and `with_parallel_enabled(false)`. The default remains parallel execution enabled.
+
+## Batch Dependency Chain
+
+`run_batches_with_report(...)` now submits each batch as a `JobScheduler::schedule_after(...)` task. The first batch depends on a completed handle; every following batch depends on the previous batch handle. The caller waits only on the tail handle before replaying batch results in original batch order.
+
+The task registry stores registered system tasks behind `Arc`, so the scheduled batch closure can move a clone into the runtime task pool without borrowing the registry across threads. Batch-local execution now uses `JobScheduler::join(...)` for fixed two-through-six system paths and a balanced recursive `run_parallel_tasks(...)` helper for larger batches. The executor no longer imports or calls Rayon directly; Rayon remains reachable only through the core task primitives.
+
+If a batch returns a missing-task or task-failed error, a shared abort flag is set. Later scheduled batches complete as no-ops, and `run_batches_with_report(...)` returns the first error in batch order. This preserves the previous failure contract while expressing batch order through `JobHandle` dependencies.
 
 ## Diagnostics
 
@@ -70,7 +86,7 @@ This preserves deterministic task lookup and task-failure reporting:
 
 ## Validation Status
 
-Source-level validation pins the compatibility wrapper, report fields, disabled serial path, and diagnostic constants in `ecs_schedule_parallel_executor_structure.rs`.
+Source-level validation pins the compatibility wrapper, report fields, disabled serial path, diagnostic constants, JobHandle batch chain, and the no-direct-Rayon executor boundary in `ecs_schedule_parallel_executor_structure.rs`. `runtime_absorption::rayon_boundary` also scans production runtime sources so direct Rayon usage stays limited to `core/runtime/tasks/{pool,parallel_for}.rs`, plus the tracked render-owned `graphics/visibility/culling/parallel_frustum.rs` exception pending Runtime 11 M2.1.
 
 Behavior coverage in `ecs_schedule/parallel_executor.rs` covers:
 
@@ -79,5 +95,6 @@ Behavior coverage in `ecs_schedule/parallel_executor.rs` covers:
 - report diagnostics publish the current parallel-batch and serial-fallback values to `CoreRuntime` diagnostics.
 - a representative mixed read/write schedule produces 3 two-system batches;
 - default parallel execution and disabled serial execution reach the same representative world state for that schedule.
+- `executor_batches_are_chained_through_job_dependencies` asserts the second and third batches can only observe earlier batch completion, and that the scheduler reports one scheduled/completed job per batch.
 
 Cargo validation is pending. The focused `ecs_schedule` run compiled until an unrelated UI test import error in `zircon_runtime/src/ui/tests/asset_dependency_index.rs`, so these schedule tests did not execute.

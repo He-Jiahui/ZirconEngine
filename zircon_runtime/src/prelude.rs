@@ -30,8 +30,11 @@ pub use crate::core::runtime::modules::{
     LOG_MODULE_NAME, TASKS_MODULE_NAME, TIME_MODULE_NAME,
 };
 pub use crate::core::runtime::tasks::{
-    TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
-    TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools,
+    parallel_for, JobHandle, JobSchedulerReport, TaskPool, TaskPoolDescriptor, TaskPoolKind,
+    TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy,
+    TaskPoolThreadCounts, TaskPools, TASKS_COMPLETED_DIAGNOSTIC,
+    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC,
+    TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use crate::core::{
     CoreError, CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, EngineEvent,
@@ -59,7 +62,8 @@ pub use crate::input::{
     GamepadAxisState, GamepadButton, GamepadButtonAxisSettings, GamepadButtonSettings,
     GamepadButtonValueState, GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity,
     GamepadRumbleRequest, ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent,
-    ImeHostRequest, ImePreedit, ImeSurroundingText, InputButton, InputConfig, InputDriver,
+    ImeHostRequest, ImePreedit, ImeSurroundingText, InputAction, InputActionEvaluator,
+    InputActionMap, InputActionState, InputBinding, InputButton, InputConfig, InputDriver,
     InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputSnapshot, MouseScrollUnit,
     MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent, WindowTheme,
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER,

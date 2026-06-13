@@ -8,7 +8,8 @@ pub use diagnostics::BridgeDiagnosticsSnapshot;
 pub use interface_id::InterfaceSlot;
 pub use strong::StrongBridge;
 pub use table::{
-    BridgeEntry, BridgeInterfaceSnapshot, BridgeInterfaceStatus, BridgeOwnerTransitionMode,
-    BridgeOwnerTransitionReport, FrozenBridgeTable, InterfaceExport,
+    BridgeDiagnosticsMatrix, BridgeEntry, BridgeInterfaceSnapshot, BridgeInterfaceStatus,
+    BridgeOwnerTransitionMode, BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary,
+    FrozenBridgeTable, InterfaceExport,
 };
 pub use weak::{BridgeGuard, WeakBridge};

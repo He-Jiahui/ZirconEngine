@@ -131,13 +131,16 @@ fn render_framework_stats_report_graph_stage_execution() {
 }
 
 #[test]
-fn render_framework_stats_report_shadow_map_graph_execution() {
+fn render_framework_stats_report_shadow_atlas_graph_execution() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
+    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let pipeline = server.register_pipeline_asset(pipeline).unwrap();
+    server.set_pipeline_asset(viewport, pipeline).unwrap();
     let mut extract = test_extract();
     extract.apply_viewport_size(viewport_size);
 
@@ -148,16 +151,16 @@ fn render_framework_stats_report_shadow_map_graph_execution() {
         stats
             .last_graph_executed_passes
             .iter()
-            .any(|pass| pass == "shadow-map"),
-        "shadow-map should execute through the RenderFramework graph path; executed={:?}",
+            .any(|pass| pass == "shadow-atlas"),
+        "shadow-atlas should execute through the RenderFramework graph path; executed={:?}",
         stats.last_graph_executed_passes
     );
     assert!(
         stats
             .last_graph_executed_executor_ids
             .iter()
-            .any(|executor_id| executor_id == "shadow.map"),
-        "shadow.map executor should be recorded by RenderFramework stats; executors={:?}",
+            .any(|executor_id| executor_id == "shadow.atlas"),
+        "shadow.atlas executor should be recorded by RenderFramework stats; executors={:?}",
         stats.last_graph_executed_executor_ids
     );
     assert_eq!(stats.last_shadow_graph_executed_pass_count, 1);
@@ -165,8 +168,8 @@ fn render_framework_stats_report_shadow_map_graph_execution() {
         stats
             .last_graph_executed_debug_markers
             .iter()
-            .any(|marker| marker == &debug_markers::marker_for_render_graph_pass("shadow-map")),
-        "shadow-map should emit a graph debug marker; markers={:?}",
+            .any(|marker| marker == &debug_markers::marker_for_render_graph_pass("shadow-atlas")),
+        "shadow-atlas should emit a graph debug marker; markers={:?}",
         stats.last_graph_executed_debug_markers
     );
 }

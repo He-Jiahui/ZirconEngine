@@ -90,10 +90,11 @@ pub use image::{
     RenderSamplerFilter,
 };
 pub use light::{
-    RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,
-    RenderLightFamilyReadiness, RenderLightReadinessReport, RenderPointLightSnapshot,
-    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderSpotLightSnapshot,
-    BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT,
+    GpuLightData, GpuLightType, LightShadowSettings, RenderAmbientLightSnapshot,
+    RenderBakedLightingExtract, RenderDirectionalLightSnapshot, RenderLightFamilyReadiness,
+    RenderLightReadinessReport, RenderPointLightSnapshot, RenderRectLightSnapshot,
+    RenderReflectionProbeSnapshot, RenderSpotLightSnapshot, ShadowPcfQuality, ShadowResolutionTier,
+    GPU_LIGHT_DATA_STRIDE, SHADOW_SLOT_NONE,
 };
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,

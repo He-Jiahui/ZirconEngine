@@ -22,6 +22,7 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_async_copy: caps.supports_async_copy,
         supports_pipeline_cache: caps.supports_pipeline_cache,
         supports_storage_buffers: caps.supports_storage_buffers,
+        max_storage_buffers_per_shader_stage: caps.max_storage_buffers_per_shader_stage,
         supports_indirect_draw: caps.supports_indirect_draw,
         supports_multi_draw_indirect: caps.supports_multi_draw_indirect,
         supports_indirect_first_instance: caps.supports_indirect_first_instance,

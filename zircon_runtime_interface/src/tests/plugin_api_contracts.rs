@@ -1,8 +1,16 @@
 use crate::{
-    ZrByteBufferRef, ZrComponentDescV1, ZrHostApiV3, ZrHostAssetApiV1, ZrHostDiagnosticsApiV1,
-    ZrHostEcsApiV1, ZrHostEventApiV1, ZrPluginStateSnapshotApiV1, ZrSystemRegistrationV1,
-    ZR_PLUGIN_ENTRY_SYMBOL_V3,
+    ZrByteBufferRef, ZrComponentDescV1, ZrHostApiV3, ZrHostAssetApiV1, ZrHostBridgeApiV1,
+    ZrHostDiagnosticsApiV1, ZrHostEcsApiV1, ZrHostEventApiV1, ZrPluginStateSnapshotApiV1,
+    ZrStatusCode, ZrSystemRegistrationV1, ZR_PLUGIN_ENTRY_SYMBOL_V3,
 };
+
+#[test]
+fn abi_v3_layout_is_stable() {
+    host_api_v3_table_records_domain_tables_and_size();
+    host_api_v3_ecs_registration_dtos_have_stable_layout();
+    plugin_snapshot_api_and_buffer_ref_are_abi_plain_data();
+    host_api_v3_domain_table_sizes_are_pointer_dense();
+}
 
 #[test]
 fn host_api_v3_table_records_domain_tables_and_size() {
@@ -11,7 +19,7 @@ fn host_api_v3_table_records_domain_tables_and_size() {
     assert_eq!(ZR_PLUGIN_ENTRY_SYMBOL_V3, b"zircon_plugin_entry_v3\0");
     assert_eq!(api.abi_version, 3);
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrHostApiV3>());
-    assert_eq!(core::mem::size_of::<ZrHostApiV3>(), 80);
+    assert_eq!(core::mem::size_of::<ZrHostApiV3>(), 88);
     assert_eq!(core::mem::offset_of!(ZrHostApiV3, ecs), 16);
     assert_eq!(
         core::mem::offset_of!(ZrHostApiV3, asset),
@@ -22,8 +30,12 @@ fn host_api_v3_table_records_domain_tables_and_size() {
         core::mem::offset_of!(ZrHostApiV3, asset) + core::mem::size_of::<ZrHostAssetApiV1>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrHostApiV3, diagnostics),
+        core::mem::offset_of!(ZrHostApiV3, bridge),
         core::mem::offset_of!(ZrHostApiV3, event) + core::mem::size_of::<ZrHostEventApiV1>()
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrHostApiV3, diagnostics),
+        core::mem::offset_of!(ZrHostApiV3, bridge) + core::mem::size_of::<ZrHostBridgeApiV1>()
     );
     assert!(api.ecs.register_system.is_none());
     assert!(api.ecs.register_component.is_none());
@@ -31,6 +43,7 @@ fn host_api_v3_table_records_domain_tables_and_size() {
     assert!(api.asset.request.is_none());
     assert!(api.event.emit.is_none());
     assert!(api.event.drain.is_none());
+    assert!(api.bridge.call.is_none());
     assert!(api.diagnostics.emit.is_none());
     assert!(api.diagnostics.metric.is_none());
 }
@@ -87,5 +100,12 @@ fn host_api_v3_domain_table_sizes_are_pointer_dense() {
     assert_eq!(core::mem::size_of::<ZrHostEcsApiV1>(), 24);
     assert_eq!(core::mem::size_of::<ZrHostAssetApiV1>(), 8);
     assert_eq!(core::mem::size_of::<ZrHostEventApiV1>(), 16);
+    assert_eq!(core::mem::size_of::<ZrHostBridgeApiV1>(), 8);
     assert_eq!(core::mem::size_of::<ZrHostDiagnosticsApiV1>(), 16);
+}
+
+#[test]
+fn bridge_not_enabled_status_code_is_stable() {
+    assert_eq!(ZrStatusCode::BridgeNotEnabled.as_raw(), 7);
+    assert_eq!(ZrStatusCode::from_raw(7), ZrStatusCode::BridgeNotEnabled);
 }

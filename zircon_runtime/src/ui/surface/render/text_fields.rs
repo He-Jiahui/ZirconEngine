@@ -4,13 +4,16 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiStateFlags},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
+    surface::{
+        UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiResolvedStyle,
+        UiResolvedTextLayout,
+    },
     tree::UiTemplateNodeMetadata,
     widget::UiWidgetBehavior,
 };
 
 use super::painter_state::UiRenderPainterStateSource;
-use crate::ui::text::layout_text;
+use crate::ui::text::{resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest};
 
 const DEFAULT_PADDING_X: f32 = 10.0;
 const DEFAULT_PADDING_Y: f32 = 4.0;
@@ -176,7 +179,8 @@ fn text_command(
         .and_then(|clip| clip.intersection(text_frame))
         .unwrap_or(text_frame);
     let mut style = text_style(metadata, state, base_style, visible_text);
-    let mut layout = layout_text(visible_text, &style, text_frame, Some(text_clip));
+    let mut layout =
+        resolve_text_field_layout(visible_text, &style, text_frame, text_clip, editable);
     if state.focused() && !state.unavailable() {
         layout.editable = editable.cloned();
     }
@@ -193,6 +197,24 @@ fn text_command(
         image: None,
         opacity,
     }
+}
+
+fn resolve_text_field_layout(
+    visible_text: &str,
+    style: &UiResolvedStyle,
+    text_frame: UiFrame,
+    text_clip: UiFrame,
+    editable: Option<&UiEditableTextState>,
+) -> UiResolvedTextLayout {
+    let request = UiTextLayoutRequest::new(visible_text, style, text_frame, Some(text_clip));
+    let Some(composition) = editable.and_then(|editable| editable.composition.as_ref()) else {
+        return resolve_text_layout(&request).layout;
+    };
+    let preedit = UiPreeditSpan {
+        range: composition.range,
+        text: composition.text.clone(),
+    };
+    resolve_text_layout(&request.with_preedit(&preedit)).layout
 }
 
 fn text_frame(metadata: &UiTemplateNodeMetadata, frame: UiFrame) -> UiFrame {

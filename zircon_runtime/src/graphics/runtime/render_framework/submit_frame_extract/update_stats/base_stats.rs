@@ -7,7 +7,10 @@ use crate::core::framework::render::{
     RenderShadowExecutionReport, RenderStats,
 };
 use crate::graphics::pipeline::RenderPassStage;
-use crate::graphics::visibility::{FrameVisibility, HzbBuilder};
+use crate::graphics::scene::RenderGraphLightGridReport;
+use crate::graphics::visibility::{
+    FrameVisibility, HzbBuilder, HzbOcclusionCullReport, VisibilityStaticIndexReport,
+};
 use crate::graphics::ViewportMotionVectorObjectHistory;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
@@ -44,6 +47,10 @@ pub(super) fn update_base_stats(
     update_visibility_stats(
         &mut state.stats,
         &context.visibility_context().frame_visibility,
+    );
+    update_visibility_static_index_stats(
+        &mut state.stats,
+        &context.visibility_context().static_index_report,
     );
     let compiled_pipeline = context.compiled_pipeline();
     state.stats.last_effective_features = compiled_feature_names(compiled_pipeline);
@@ -174,6 +181,11 @@ pub(super) fn update_base_stats(
         &state.stats.last_graph_executed_executor_ids,
         "visibility.hzb-",
     );
+    update_hzb_occlusion_stats(
+        &mut state.stats,
+        state.renderer.last_hzb_occlusion_cull_report(),
+    );
+    update_light_grid_stats(&mut state.stats, state.renderer.last_light_grid_report());
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();
@@ -187,16 +199,16 @@ pub(super) fn update_base_stats(
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
     state.stats.last_shadow_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "shadow.");
-    let shadow_map_write_count = state
+    let shadow_atlas_write_count = state
         .renderer
         .last_render_graph_executed_resource_access_count_for(
-            PostProcessGraphResourceNames::SHADOW_MAP,
+            PostProcessGraphResourceNames::SHADOW_ATLAS,
             RenderGraphResourceAccessKind::Write,
         );
-    let shadow_map_read_count = state
+    let shadow_atlas_read_count = state
         .renderer
         .last_render_graph_executed_resource_access_count_for(
-            PostProcessGraphResourceNames::SHADOW_MAP,
+            PostProcessGraphResourceNames::SHADOW_ATLAS,
             RenderGraphResourceAccessKind::Read,
         );
     state.stats.last_transparent_graph_executed_pass_count = state
@@ -339,8 +351,8 @@ pub(super) fn update_base_stats(
     state.stats.last_rect_light_degraded_count = light_readiness.rect.degraded_count;
     state.stats.last_shadow_execution_report = RenderShadowExecutionReport::new(
         state.stats.last_shadow_graph_executed_pass_count,
-        shadow_map_write_count,
-        shadow_map_read_count,
+        shadow_atlas_write_count,
+        shadow_atlas_read_count,
         state.stats.last_mesh_shadow_caster_draw_count,
         state.stats.last_mesh_alpha_mask_shadow_caster_draw_count,
         state.stats.last_directional_light_ready_count,
@@ -381,6 +393,113 @@ fn update_visibility_stats(stats: &mut RenderStats, frame_visibility: &FrameVisi
         .iter()
         .map(|view| view.stats.visible_count)
         .sum();
+}
+
+fn update_visibility_static_index_stats(
+    stats: &mut RenderStats,
+    report: &VisibilityStaticIndexReport,
+) {
+    stats.last_visibility_static_index_full_rebuild_count =
+        report.frame_full_rebuild_count as usize;
+    stats.last_visibility_static_index_incremental_update_count =
+        report.frame_incremental_update_count as usize;
+    stats.last_visibility_static_index_inserted_count = report.inserted_count;
+    stats.last_visibility_static_index_updated_count = report.updated_count;
+    stats.last_visibility_static_index_removed_count = report.removed_count;
+    stats.last_visibility_static_index_indexed_entity_count = report.indexed_entity_count;
+    stats.last_visibility_static_index_occupied_cell_count = report.occupied_cell_count;
+    stats.last_visibility_static_index_main_view_prefilter_used = report.main_view_prefilter_used;
+    stats.last_visibility_static_index_main_view_static_input_count =
+        report.main_view_static_input_count;
+    stats.last_visibility_static_index_main_view_static_candidate_count =
+        report.main_view_static_candidate_count;
+}
+
+fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusionCullReport>) {
+    let Some(report) = report else {
+        stats.last_hzb_occlusion_reported = false;
+        stats.last_hzb_occlusion_candidate_arg_count = 0;
+        stats.last_hzb_occlusion_candidate_instance_count = 0;
+        stats.last_hzb_occlusion_dispatch_group_count = 0;
+        stats.last_hzb_occlusion_dispatched_phase_count = 0;
+        stats.last_hzb_occlusion_history_available = false;
+        stats.last_hzb_occlusion_readback_available = false;
+        stats.last_hzb_occlusion_tested_arg_count = 0;
+        stats.last_hzb_occlusion_tested_instance_count = 0;
+        stats.last_hzb_occlusion_culled_arg_count = 0;
+        stats.last_hzb_occlusion_culled_instance_count = 0;
+        stats.last_hzb_occlusion_indirect_args_readback_available = false;
+        stats.last_hzb_occlusion_readback_arg_count = 0;
+        stats.last_hzb_occlusion_compacted_draw_count = 0;
+        stats.last_hzb_occlusion_zero_instance_arg_count = 0;
+        stats.last_hzb_occlusion_remaining_instance_count = 0;
+        return;
+    };
+
+    stats.last_hzb_occlusion_reported = true;
+    stats.last_hzb_occlusion_candidate_arg_count = report.candidate_arg_count as usize;
+    stats.last_hzb_occlusion_candidate_instance_count = report.candidate_instance_count as usize;
+    stats.last_hzb_occlusion_dispatch_group_count = report.dispatch_group_count as usize;
+    stats.last_hzb_occlusion_dispatched_phase_count = report.dispatched_phase_count as usize;
+    stats.last_hzb_occlusion_history_available = report.history_available;
+    if let Some(indirect_args_readback) = report.indirect_args_readback {
+        stats.last_hzb_occlusion_indirect_args_readback_available = true;
+        stats.last_hzb_occlusion_readback_arg_count =
+            indirect_args_readback.readback_arg_count as usize;
+        stats.last_hzb_occlusion_compacted_draw_count =
+            indirect_args_readback.compacted_draw_count as usize;
+        stats.last_hzb_occlusion_zero_instance_arg_count =
+            indirect_args_readback.zero_instance_arg_count as usize;
+        stats.last_hzb_occlusion_remaining_instance_count =
+            indirect_args_readback.remaining_instance_count as usize;
+    } else {
+        stats.last_hzb_occlusion_indirect_args_readback_available = false;
+        stats.last_hzb_occlusion_readback_arg_count = 0;
+        stats.last_hzb_occlusion_compacted_draw_count = 0;
+        stats.last_hzb_occlusion_zero_instance_arg_count = 0;
+        stats.last_hzb_occlusion_remaining_instance_count = 0;
+    }
+    let Some(readback_stats) = report.readback_stats else {
+        stats.last_hzb_occlusion_readback_available = false;
+        stats.last_hzb_occlusion_tested_arg_count = 0;
+        stats.last_hzb_occlusion_tested_instance_count = 0;
+        stats.last_hzb_occlusion_culled_arg_count = 0;
+        stats.last_hzb_occlusion_culled_instance_count = 0;
+        return;
+    };
+
+    stats.last_hzb_occlusion_readback_available = true;
+    stats.last_hzb_occlusion_tested_arg_count = readback_stats.tested_arg_count as usize;
+    stats.last_hzb_occlusion_tested_instance_count = readback_stats.tested_instance_count as usize;
+    stats.last_hzb_occlusion_culled_arg_count = readback_stats.culled_arg_count as usize;
+    stats.last_hzb_occlusion_culled_instance_count = readback_stats.culled_instance_count as usize;
+    stats.last_visibility_occlusion_culled_count = readback_stats.culled_instance_count as usize;
+}
+
+fn update_light_grid_stats(stats: &mut RenderStats, report: Option<RenderGraphLightGridReport>) {
+    let Some(report) = report else {
+        stats.last_light_grid_reported = false;
+        stats.last_light_grid_light_count = 0;
+        stats.last_light_grid_tile_count = 0;
+        stats.last_light_grid_zbin_count = 0;
+        stats.last_light_grid_non_empty_tile_count = 0;
+        stats.last_light_grid_non_empty_zbin_count = 0;
+        stats.last_light_grid_non_empty_cluster_count = 0;
+        stats.last_light_grid_peak_lights_per_cluster = 0;
+        stats.last_light_grid_average_lights_per_cluster_milli = 0;
+        return;
+    };
+
+    stats.last_light_grid_reported = true;
+    stats.last_light_grid_light_count = report.light_count;
+    stats.last_light_grid_tile_count = report.tile_count;
+    stats.last_light_grid_zbin_count = report.zbin_count;
+    stats.last_light_grid_non_empty_tile_count = report.non_empty_tile_count;
+    stats.last_light_grid_non_empty_zbin_count = report.non_empty_zbin_count;
+    stats.last_light_grid_non_empty_cluster_count = report.non_empty_cluster_count;
+    stats.last_light_grid_peak_lights_per_cluster = report.peak_lights_per_cluster;
+    stats.last_light_grid_average_lights_per_cluster_milli =
+        report.average_lights_per_cluster_milli;
 }
 
 fn graph_execution_coverage_report(
@@ -524,13 +643,18 @@ fn runtime_ui_graph_pass_order(
 mod tests {
     use super::{
         effect_stack_resource_status, graph_execution_coverage_report_from_names,
-        runtime_ui_graph_pass_order, update_visibility_stats,
+        runtime_ui_graph_pass_order, update_hzb_occlusion_stats, update_light_grid_stats,
+        update_visibility_static_index_stats, update_visibility_stats,
     };
     use crate::core::framework::render::{
         MotionVectorCameraStatus, PostProcessEffectKind, PostProcessGraphResourceNames,
         PostProcessPassGraph, PostProcessPassNode, RenderStats,
     };
-    use crate::graphics::visibility::{FrameVisibility, ViewCullingStats, ViewVisibilityContext};
+    use crate::graphics::scene::RenderGraphLightGridReport;
+    use crate::graphics::visibility::{
+        FrameVisibility, HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, ViewCullingStats,
+        ViewVisibilityContext, VisibilityStaticIndexReport,
+    };
 
     #[test]
     fn graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passes() {
@@ -591,6 +715,188 @@ mod tests {
         assert_eq!(stats.last_visibility_frustum_culled_count, 3);
         assert_eq!(stats.last_visibility_occlusion_culled_count, 1);
         assert_eq!(stats.last_visibility_visible_count, 3);
+    }
+
+    #[test]
+    fn update_visibility_static_index_stats_records_latest_report() {
+        let mut stats = RenderStats::default();
+        let report = VisibilityStaticIndexReport {
+            frame_full_rebuild_count: 0,
+            frame_incremental_update_count: 1,
+            inserted_count: 2,
+            updated_count: 3,
+            removed_count: 4,
+            indexed_entity_count: 10,
+            occupied_cell_count: 7,
+            main_view_prefilter_used: true,
+            main_view_static_input_count: 12,
+            main_view_static_candidate_count: 5,
+            ..VisibilityStaticIndexReport::default()
+        };
+
+        update_visibility_static_index_stats(&mut stats, &report);
+
+        assert_eq!(stats.last_visibility_static_index_full_rebuild_count, 0);
+        assert_eq!(
+            stats.last_visibility_static_index_incremental_update_count,
+            1
+        );
+        assert_eq!(stats.last_visibility_static_index_inserted_count, 2);
+        assert_eq!(stats.last_visibility_static_index_updated_count, 3);
+        assert_eq!(stats.last_visibility_static_index_removed_count, 4);
+        assert_eq!(stats.last_visibility_static_index_indexed_entity_count, 10);
+        assert_eq!(stats.last_visibility_static_index_occupied_cell_count, 7);
+        assert!(stats.last_visibility_static_index_main_view_prefilter_used);
+        assert_eq!(
+            stats.last_visibility_static_index_main_view_static_input_count,
+            12
+        );
+        assert_eq!(
+            stats.last_visibility_static_index_main_view_static_candidate_count,
+            5
+        );
+    }
+
+    #[test]
+    fn update_hzb_occlusion_stats_records_latest_cull_report() {
+        let mut stats = RenderStats::default();
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 1, true);
+
+        update_hzb_occlusion_stats(&mut stats, Some(report));
+
+        assert!(stats.last_hzb_occlusion_reported);
+        assert_eq!(stats.last_hzb_occlusion_candidate_arg_count, 6);
+        assert_eq!(stats.last_hzb_occlusion_candidate_instance_count, 42);
+        assert_eq!(stats.last_hzb_occlusion_dispatch_group_count, 2);
+        assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 1);
+        assert!(stats.last_hzb_occlusion_history_available);
+        assert!(!stats.last_hzb_occlusion_readback_available);
+    }
+
+    #[test]
+    fn update_hzb_occlusion_stats_records_readback_and_overrides_visibility_occlusion_count() {
+        let mut stats = RenderStats {
+            last_visibility_occlusion_culled_count: 3,
+            ..RenderStats::default()
+        };
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 1, true)
+            .with_readback_stats(HzbOcclusionCullReadbackStats::new(6, 42, 2, 18))
+            .with_indirect_args_readback(
+                crate::graphics::visibility::HzbOcclusionIndirectArgsReadbackSummary::new(
+                    6, 4, 2, 24,
+                ),
+            );
+
+        update_hzb_occlusion_stats(&mut stats, Some(report));
+
+        assert!(stats.last_hzb_occlusion_readback_available);
+        assert_eq!(stats.last_hzb_occlusion_tested_arg_count, 6);
+        assert_eq!(stats.last_hzb_occlusion_tested_instance_count, 42);
+        assert_eq!(stats.last_hzb_occlusion_culled_arg_count, 2);
+        assert_eq!(stats.last_hzb_occlusion_culled_instance_count, 18);
+        assert!(stats.last_hzb_occlusion_indirect_args_readback_available);
+        assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 6);
+        assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 4);
+        assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 2);
+        assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 24);
+        assert_eq!(stats.last_visibility_occlusion_culled_count, 18);
+    }
+
+    #[test]
+    fn update_hzb_occlusion_stats_resets_when_no_report() {
+        let mut stats = RenderStats {
+            last_hzb_occlusion_reported: true,
+            last_hzb_occlusion_candidate_arg_count: 6,
+            last_hzb_occlusion_candidate_instance_count: 42,
+            last_hzb_occlusion_dispatch_group_count: 2,
+            last_hzb_occlusion_dispatched_phase_count: 1,
+            last_hzb_occlusion_history_available: true,
+            last_hzb_occlusion_readback_available: true,
+            last_hzb_occlusion_tested_arg_count: 6,
+            last_hzb_occlusion_tested_instance_count: 42,
+            last_hzb_occlusion_culled_arg_count: 2,
+            last_hzb_occlusion_culled_instance_count: 18,
+            last_hzb_occlusion_indirect_args_readback_available: true,
+            last_hzb_occlusion_readback_arg_count: 6,
+            last_hzb_occlusion_compacted_draw_count: 4,
+            last_hzb_occlusion_zero_instance_arg_count: 2,
+            last_hzb_occlusion_remaining_instance_count: 24,
+            ..RenderStats::default()
+        };
+
+        update_hzb_occlusion_stats(&mut stats, None);
+
+        assert!(!stats.last_hzb_occlusion_reported);
+        assert_eq!(stats.last_hzb_occlusion_candidate_arg_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_candidate_instance_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_dispatch_group_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 0);
+        assert!(!stats.last_hzb_occlusion_history_available);
+        assert!(!stats.last_hzb_occlusion_readback_available);
+        assert_eq!(stats.last_hzb_occlusion_tested_arg_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_tested_instance_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_culled_arg_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_culled_instance_count, 0);
+        assert!(!stats.last_hzb_occlusion_indirect_args_readback_available);
+        assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 0);
+        assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 0);
+    }
+
+    #[test]
+    fn update_light_grid_stats_records_latest_grid_report() {
+        let mut stats = RenderStats::default();
+        let report = RenderGraphLightGridReport {
+            light_count: 9,
+            tile_count: 64,
+            zbin_count: 32,
+            non_empty_tile_count: 11,
+            non_empty_zbin_count: 7,
+            non_empty_cluster_count: 23,
+            peak_lights_per_cluster: 5,
+            average_lights_per_cluster_milli: 375,
+        };
+
+        update_light_grid_stats(&mut stats, Some(report));
+
+        assert!(stats.last_light_grid_reported);
+        assert_eq!(stats.last_light_grid_light_count, 9);
+        assert_eq!(stats.last_light_grid_tile_count, 64);
+        assert_eq!(stats.last_light_grid_zbin_count, 32);
+        assert_eq!(stats.last_light_grid_non_empty_tile_count, 11);
+        assert_eq!(stats.last_light_grid_non_empty_zbin_count, 7);
+        assert_eq!(stats.last_light_grid_non_empty_cluster_count, 23);
+        assert_eq!(stats.last_light_grid_peak_lights_per_cluster, 5);
+        assert_eq!(stats.last_light_grid_average_lights_per_cluster_milli, 375);
+    }
+
+    #[test]
+    fn update_light_grid_stats_resets_when_no_report() {
+        let mut stats = RenderStats {
+            last_light_grid_reported: true,
+            last_light_grid_light_count: 9,
+            last_light_grid_tile_count: 64,
+            last_light_grid_zbin_count: 32,
+            last_light_grid_non_empty_tile_count: 11,
+            last_light_grid_non_empty_zbin_count: 7,
+            last_light_grid_non_empty_cluster_count: 23,
+            last_light_grid_peak_lights_per_cluster: 5,
+            last_light_grid_average_lights_per_cluster_milli: 375,
+            ..RenderStats::default()
+        };
+
+        update_light_grid_stats(&mut stats, None);
+
+        assert!(!stats.last_light_grid_reported);
+        assert_eq!(stats.last_light_grid_light_count, 0);
+        assert_eq!(stats.last_light_grid_tile_count, 0);
+        assert_eq!(stats.last_light_grid_zbin_count, 0);
+        assert_eq!(stats.last_light_grid_non_empty_tile_count, 0);
+        assert_eq!(stats.last_light_grid_non_empty_zbin_count, 0);
+        assert_eq!(stats.last_light_grid_non_empty_cluster_count, 0);
+        assert_eq!(stats.last_light_grid_peak_lights_per_cluster, 0);
+        assert_eq!(stats.last_light_grid_average_lights_per_cluster_milli, 0);
     }
 
     #[test]

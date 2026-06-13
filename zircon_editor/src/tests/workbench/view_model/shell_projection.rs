@@ -539,6 +539,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             project_open: true,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &layout,
         vec![scene_instance, hierarchy_instance, asset_browser_instance],

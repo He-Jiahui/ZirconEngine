@@ -3,6 +3,11 @@ use std::path::Path;
 use crate::plugin::PluginModuleKind;
 
 use super::super::{NativePluginLoadReport, NativePluginLoader};
+use super::bridge_methods::{
+    discovered_runtime_bridge_method_binding_diagnostics,
+    discovered_runtime_bridge_method_binding_error_diagnostic,
+    discovered_runtime_bridge_method_bindings,
+};
 use super::diagnostics::{
     diagnostics_for_plugin, diagnostics_from_behavior_report, load_report_diagnostics,
     unloaded_plugin_error,
@@ -59,12 +64,19 @@ impl NativePluginLiveHost {
             &format!("{} unload", module_kind_label(module_kind)),
             unload_behavior(&plugin, module_kind),
         ) {
-            Ok(diagnostics) => Ok(NativePluginLiveHostOutcome {
-                plugin_id: plugin_id.to_string(),
-                module_kind,
-                command: NativePluginLiveHostCommand::Unload,
-                diagnostics,
-            }),
+            Ok(diagnostics) => {
+                drop(loaded);
+                if module_kind == PluginModuleKind::Runtime {
+                    self.replace_runtime_bridge_method_bindings(plugin_id, None)?;
+                }
+                Ok(NativePluginLiveHostOutcome {
+                    plugin_id: plugin_id.to_string(),
+                    module_kind,
+                    command: NativePluginLiveHostCommand::Unload,
+                    bridge_lifecycle_report: None,
+                    diagnostics,
+                })
+            }
             Err(error) => {
                 loaded.insert(key, plugin);
                 Err(error)
@@ -176,11 +188,35 @@ impl NativePluginLiveHost {
                 }
             }
         }
+        let bridge_binding_update = if module_kind == PluginModuleKind::Runtime {
+            match discovered_runtime_bridge_method_bindings(&plugin) {
+                Ok(Some(bindings)) => {
+                    diagnostics.push(discovered_runtime_bridge_method_binding_diagnostics(
+                        plugin_id, &bindings,
+                    ));
+                    Some(Some(bindings))
+                }
+                Ok(None) => Some(None),
+                Err(error) => {
+                    diagnostics.push(discovered_runtime_bridge_method_binding_error_diagnostic(
+                        plugin_id, &error,
+                    ));
+                    Some(None)
+                }
+            }
+        } else {
+            None
+        };
         loaded.insert(reload_state.key, plugin);
+        drop(loaded);
+        if let Some(bindings) = bridge_binding_update {
+            self.replace_runtime_bridge_method_bindings(plugin_id, bindings)?;
+        }
         Ok(NativePluginLiveHostOutcome {
             plugin_id: plugin_id.to_string(),
             module_kind,
             command: NativePluginLiveHostCommand::HotReload,
+            bridge_lifecycle_report: None,
             diagnostics,
         })
     }

@@ -84,6 +84,56 @@ pub(super) fn status_message(status: ZrStatus) -> String {
     String::from_utf8(unsafe { status.diagnostics.as_slice() }.to_vec()).unwrap()
 }
 
+pub(super) fn assert_session_status(
+    status: ZrStatus,
+    expected_code: ZrStatusCode,
+    expected_message: &str,
+) {
+    assert_eq!(status.status_code(), expected_code, "{status:?}");
+    assert_eq!(status_message(status), expected_message);
+}
+
+pub(super) fn valid_viewport_resize_event() -> ZrRuntimeEventV1 {
+    ZrRuntimeEventV1::viewport_resized(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        default_viewport(),
+        valid_viewport_size(),
+    )
+}
+
+pub(super) fn valid_frame_request() -> ZrRuntimeFrameRequestV1 {
+    ZrRuntimeFrameRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        default_viewport(),
+        valid_viewport_size(),
+    )
+}
+
+pub(super) fn valid_bind_viewport_surface_request() -> ZrRuntimeBindViewportSurfaceRequestV1 {
+    ZrRuntimeBindViewportSurfaceRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        default_viewport(),
+        valid_viewport_size(),
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 1, 0),
+    )
+}
+
+pub(super) fn valid_profile_control_request_bytes() -> Vec<u8> {
+    serde_json::to_vec(&zircon_runtime_interface::ProfileControlRequest {
+        command: zircon_runtime_interface::ProfileControlCommand::Snapshot,
+        config: None,
+    })
+    .unwrap()
+}
+
+pub(super) fn default_viewport() -> ZrRuntimeViewportHandle {
+    ZrRuntimeViewportHandle::new(1)
+}
+
+pub(super) fn valid_viewport_size() -> ZrRuntimeViewportSizeV1 {
+    ZrRuntimeViewportSizeV1::new(64, 48)
+}
+
 pub(super) fn host_request_batch_from_output(
     output: ZrOwnedByteBuffer,
 ) -> ZrRuntimeHostRequestBatchV1 {

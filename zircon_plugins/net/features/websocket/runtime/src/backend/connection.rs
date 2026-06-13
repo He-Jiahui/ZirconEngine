@@ -1,9 +1,12 @@
 use std::collections::VecDeque;
+use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use futures_util::stream::SplitSink;
 use futures_util::SinkExt;
 use tokio::runtime::Runtime;
+use tokio::sync::mpsc;
+use tokio_tungstenite::WebSocketStream;
 use zircon_plugin_net_runtime::WebSocketRuntimeConnection;
 use zircon_runtime::core::framework::net::{NetConnectionState, NetError, NetWebSocketFrame};
 
@@ -12,17 +15,26 @@ use super::stream::{
     ClientWebSocketStream, ServerWebSocketStream, TungsteniteMessage, TungsteniteWebSocketReadHalf,
 };
 
+const WEBSOCKET_EGRESS_QUEUE_CAPACITY: usize = 64;
+
 #[derive(Debug)]
 pub(super) struct TungsteniteWebSocketConnection {
     pub(super) state: Arc<Mutex<NetConnectionState>>,
-    outbound: TungsteniteWebSocketSink,
+    outbound: WebSocketFrameSender,
     pub(super) inbound: Arc<Mutex<VecDeque<NetWebSocketFrame>>>,
 }
 
-#[derive(Debug)]
-enum TungsteniteWebSocketSink {
-    Client(Arc<Mutex<SplitSink<ClientWebSocketStream, TungsteniteMessage>>>),
-    Server(Arc<Mutex<SplitSink<ServerWebSocketStream, TungsteniteMessage>>>),
+#[derive(Clone)]
+struct WebSocketFrameSender {
+    queue: mpsc::Sender<NetWebSocketFrame>,
+}
+
+impl fmt::Debug for WebSocketFrameSender {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("WebSocketFrameSender")
+            .finish_non_exhaustive()
+    }
 }
 
 impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
@@ -40,8 +52,16 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             .expect("net WebSocket state mutex poisoned") = state;
     }
 
-    fn send(&self, runtime: &Runtime, frame: NetWebSocketFrame) -> Result<(), NetError> {
-        runtime.block_on(self.send_async(frame))
+    fn send(&self, _runtime: &Runtime, frame: NetWebSocketFrame) -> Result<(), NetError> {
+        let closing = matches!(frame, NetWebSocketFrame::Close(_));
+        self.outbound
+            .queue
+            .try_send(frame)
+            .map_err(|error| NetError::Io(format!("websocket send queue unavailable: {error}")))?;
+        if closing {
+            self.set_state(NetConnectionState::Closing);
+        }
+        Ok(())
     }
 
     fn drain_frames(&self, max_frames: usize) -> Vec<NetWebSocketFrame> {
@@ -69,15 +89,17 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
 
 impl TungsteniteWebSocketConnection {
     pub(super) fn client(
+        runtime: &Runtime,
         sink: SplitSink<ClientWebSocketStream, TungsteniteMessage>,
         stream: futures_util::stream::SplitStream<ClientWebSocketStream>,
     ) -> (Self, TungsteniteWebSocketReadHalf) {
         let state = Arc::new(Mutex::new(NetConnectionState::Open));
         let inbound = Arc::new(Mutex::new(VecDeque::new()));
+        let outbound = spawn_writer(runtime, state.clone(), sink);
         (
             Self {
                 state,
-                outbound: TungsteniteWebSocketSink::Client(Arc::new(Mutex::new(sink))),
+                outbound,
                 inbound,
             },
             TungsteniteWebSocketReadHalf::Client(stream),
@@ -85,44 +107,49 @@ impl TungsteniteWebSocketConnection {
     }
 
     pub(super) fn server(
+        runtime: &Runtime,
         sink: SplitSink<ServerWebSocketStream, TungsteniteMessage>,
         stream: futures_util::stream::SplitStream<ServerWebSocketStream>,
     ) -> (Self, TungsteniteWebSocketReadHalf) {
         let state = Arc::new(Mutex::new(NetConnectionState::Open));
         let inbound = Arc::new(Mutex::new(VecDeque::new()));
+        let outbound = spawn_writer(runtime, state.clone(), sink);
         (
             Self {
                 state,
-                outbound: TungsteniteWebSocketSink::Server(Arc::new(Mutex::new(sink))),
+                outbound,
                 inbound,
             },
             TungsteniteWebSocketReadHalf::Server(stream),
         )
     }
+}
 
-    async fn send_async(&self, frame: NetWebSocketFrame) -> Result<(), NetError> {
-        let message = frame_to_message(frame.clone());
-        match &self.outbound {
-            TungsteniteWebSocketSink::Client(sink) => {
-                let mut sink = sink
-                    .lock()
-                    .expect("net WebSocket client sink mutex poisoned");
-                sink.send(message)
-                    .await
-                    .map_err(|error| NetError::Io(error.to_string()))?;
+fn spawn_writer<S>(
+    runtime: &Runtime,
+    state: Arc<Mutex<NetConnectionState>>,
+    sink: SplitSink<WebSocketStream<S>, TungsteniteMessage>,
+) -> WebSocketFrameSender
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
+    let (sender, mut receiver) =
+        mpsc::channel::<NetWebSocketFrame>(WEBSOCKET_EGRESS_QUEUE_CAPACITY);
+    runtime.spawn(async move {
+        let mut sink = sink;
+        while let Some(frame) = receiver.recv().await {
+            let closing = matches!(frame, NetWebSocketFrame::Close(_));
+            if sink.send(frame_to_message(frame)).await.is_err() {
+                *state.lock().expect("net WebSocket state mutex poisoned") =
+                    NetConnectionState::Failed;
+                return;
             }
-            TungsteniteWebSocketSink::Server(sink) => {
-                let mut sink = sink
-                    .lock()
-                    .expect("net WebSocket server sink mutex poisoned");
-                sink.send(message)
-                    .await
-                    .map_err(|error| NetError::Io(error.to_string()))?;
+            if closing {
+                *state.lock().expect("net WebSocket state mutex poisoned") =
+                    NetConnectionState::Closing;
+                return;
             }
         }
-        if matches!(frame, NetWebSocketFrame::Close(_)) {
-            self.set_state(NetConnectionState::Closing);
-        }
-        Ok(())
-    }
+    });
+    WebSocketFrameSender { queue: sender }
 }

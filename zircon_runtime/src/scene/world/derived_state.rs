@@ -27,11 +27,16 @@ impl World {
             self.apply_deferred();
             return;
         }
+        if system == InternalSceneSystem::UpdateEvents {
+            self.update_all_events();
+            return;
+        }
         if !self.derived_state_dirty.should_run(system) {
             return;
         }
         match system {
             InternalSceneSystem::ApplyDeferred => unreachable!("ApplyDeferred is handled above"),
+            InternalSceneSystem::UpdateEvents => unreachable!("UpdateEvents is handled above"),
             InternalSceneSystem::HierarchyValidity => self.rebuild_hierarchy_validity(),
             InternalSceneSystem::ActiveHierarchy => self.rebuild_active_in_hierarchy(),
             InternalSceneSystem::WorldTransform => self.rebuild_world_matrices(),

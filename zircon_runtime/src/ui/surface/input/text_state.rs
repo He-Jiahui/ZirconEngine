@@ -73,6 +73,8 @@ pub(super) fn editable_value_property(surface: &UiSurface, target: UiNodeId) -> 
         .as_ref()?;
     if let Some(property) = metadata.widget.value_property.as_ref() {
         Some(property.clone())
+    } else if is_query_text_value_property(metadata) {
+        Some("query".to_string())
     } else if metadata.attributes.contains_key("value") {
         Some("value".to_string())
     } else if metadata.attributes.contains_key("text") {
@@ -112,6 +114,21 @@ fn is_editable_text_component(
                 | "TextareaAutosize"
                 | "Autocomplete"
         )
+}
+
+fn is_query_text_value_property(
+    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+) -> bool {
+    if !metadata.attributes.contains_key("query") {
+        return false;
+    }
+    if matches!(
+        metadata.component.as_str(),
+        "Autocomplete" | "SearchField" | "SearchInput"
+    ) {
+        return true;
+    }
+    !metadata.attributes.contains_key("value") && !metadata.attributes.contains_key("text")
 }
 
 fn string_attribute(

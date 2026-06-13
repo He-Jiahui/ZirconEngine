@@ -14,6 +14,8 @@ use super::abi_declarations::{
 };
 use super::behavior_calls::NativePluginBehavior;
 use super::behavior_validation::NativePluginBehaviorValidationReport;
+use super::bridge_method_abi::bridge_method_bindings_from_abi_v3;
+use super::bridge_method_bindings::NativeBridgeMethodBinding;
 use super::host_callbacks::{
     granted_capabilities_for_entry, native_host_abi_version_v2, native_host_abi_version_v3,
     native_host_diagnostic_v3, native_host_has_capability_v2, native_host_has_capability_v3,
@@ -42,6 +44,7 @@ pub struct NativePluginEntryReport {
     pub package_manifest: Option<PluginPackageManifest>,
     pub diagnostics: Vec<String>,
     pub negotiated_capabilities: Vec<String>,
+    pub bridge_method_bindings: Vec<NativeBridgeMethodBinding>,
     pub(super) behavior: Option<NativePluginBehavior>,
     pub behavior_validation: NativePluginBehaviorValidationReport,
 }
@@ -256,6 +259,7 @@ impl NativePluginEntryReport {
             )?,
             diagnostics: entry_diagnostics(abi.diagnostics),
             negotiated_capabilities: Vec::new(),
+            bridge_method_bindings: Vec::new(),
             behavior,
             behavior_validation,
         })
@@ -294,6 +298,7 @@ impl NativePluginEntryReport {
             negotiated_capabilities: parse_native_string_list(
                 &read_optional_c_string(abi.negotiated_capabilities).unwrap_or_default(),
             ),
+            bridge_method_bindings: Vec::new(),
             behavior_validation,
             behavior,
         })
@@ -332,6 +337,7 @@ impl NativePluginEntryReport {
             negotiated_capabilities: parse_native_string_list(
                 &read_optional_c_string(abi.negotiated_capabilities).unwrap_or_default(),
             ),
+            bridge_method_bindings: bridge_method_bindings_from_abi_v3(abi.bridge_methods)?,
             behavior_validation,
             behavior,
         })

@@ -2,6 +2,7 @@ use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::gpu_scene::GpuSceneUploadReport;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{BuiltMeshDraws, MeshDraw};
+use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResources;
@@ -107,6 +108,7 @@ pub(super) fn build_compiled_scene_draws(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
+    shadow_light_slots: Option<&ShadowLightSlotAssignments>,
 ) -> CompiledSceneDraws {
     let built_mesh_draws = advanced_plugin_resources.build_mesh_draws(
         device,
@@ -117,6 +119,7 @@ pub(super) fn build_compiled_scene_draws(
         streamer,
         frame,
         virtual_geometry_enabled,
+        shadow_light_slots,
     );
 
     CompiledSceneDraws::from_built_mesh_draws(built_mesh_draws)

@@ -180,6 +180,7 @@ fn capabilities_for_component_event(event: UiComponentEventKind) -> InferredInpu
     match event {
         UiComponentEventKind::ValueChanged
         | UiComponentEventKind::Commit
+        | UiComponentEventKind::KeyboardAction
         | UiComponentEventKind::Press
         | UiComponentEventKind::OpenPopup
         | UiComponentEventKind::OpenPopupAt
@@ -203,6 +204,13 @@ fn capabilities_for_component_event(event: UiComponentEventKind) -> InferredInpu
             focusable: true,
             ..InferredInputCapabilities::default()
         },
+        UiComponentEventKind::KeyboardText | UiComponentEventKind::TypeaheadExpired => {
+            InferredInputCapabilities {
+                receives_input: true,
+                focusable: true,
+                ..InferredInputCapabilities::default()
+            }
+        }
         UiComponentEventKind::Hover => InferredInputCapabilities {
             receives_input: true,
             hoverable: true,

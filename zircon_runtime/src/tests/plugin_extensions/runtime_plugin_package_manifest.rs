@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::bridge::PluginInterface;
+use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginInterfaceManifest, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
+    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleManifest,
+    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
+    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
 use crate::{RuntimePluginId, RuntimeTargetMode};
 
@@ -116,6 +117,42 @@ fn native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_de
         && diagnostic.contains("unique")));
     assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
         .contains("dependency interface id `physics.Bad.v1`")
+        && diagnostic.contains("lowercase ASCII")));
+}
+
+#[test]
+fn native_runtime_plugin_registration_report_rejects_invalid_bridge_method_metadata() {
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(
+        PluginPackageManifest::new("weather", "Weather")
+            .with_capability("runtime.plugin.weather")
+            .with_default_packaging([ExportPackagingStrategy::SourceTemplate])
+            .with_provided_interface(
+                PluginInterfaceManifest::new("weather.query.v1")
+                    .with_method(
+                        PluginInterfaceMethodManifest::new("SampleTemperature", 0)
+                            .with_parameter(ScriptHostParameterDescriptor::new(
+                                "Region",
+                                ScriptHostValueKind::String,
+                            ))
+                            .with_required_capability("Runtime.Plugin.Weather.Query"),
+                    )
+                    .with_method(PluginInterfaceMethodManifest::new("sample_temperature", 0)),
+            ),
+    );
+
+    assert!(!registration.is_success());
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("provided interface method name `SampleTemperature`")
+        && diagnostic.contains("lowercase ASCII")));
+    assert!(registration
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("method slot 0") && diagnostic.contains("unique")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("method parameter name `Region`")
+        && diagnostic.contains("lowercase ASCII")));
+    assert!(registration.diagnostics.iter().any(|diagnostic| diagnostic
+        .contains("required capability `Runtime.Plugin.Weather.Query`")
         && diagnostic.contains("lowercase ASCII")));
 }
 

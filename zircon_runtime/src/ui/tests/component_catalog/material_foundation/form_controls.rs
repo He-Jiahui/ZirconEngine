@@ -30,6 +30,7 @@ fn assert_button_base(registry: &UiComponentDescriptorRegistry) {
     }
     assert!(descriptor.slot_schema("touchRipple").is_some());
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::Press,
         UiComponentEventKind::Commit,
@@ -61,6 +62,7 @@ fn assert_text_input_variants(registry: &UiComponentDescriptorRegistry) {
         }
         assert!(descriptor.slot_schema("input").is_some());
         assert_has_event(descriptor, UiComponentEventKind::Focus);
+        assert_has_event(descriptor, UiComponentEventKind::KeyboardText);
         assert_has_event(descriptor, UiComponentEventKind::ValueChanged);
         assert_has_event(descriptor, UiComponentEventKind::Commit);
         assert!(descriptor
@@ -199,10 +201,24 @@ fn assert_radio_group(registry: &UiComponentDescriptorRegistry) {
     let descriptor = registry
         .descriptor("RadioGroup")
         .expect("RadioGroup descriptor");
-    for prop in ["options", "value", "defaultValue", "name", "row"] {
+    for prop in [
+        "options",
+        "value",
+        "value_text",
+        "defaultValue",
+        "name",
+        "row",
+        "selected_index",
+        "focused_index",
+        "disabled_options",
+        "selection_follows_focus",
+        "keyboard_navigation",
+    ] {
         assert_has_prop(descriptor, prop);
     }
     assert!(descriptor.slot_schema("items").is_some());
+    assert_has_event(descriptor, UiComponentEventKind::KeyboardAction);
+    assert_has_event(descriptor, UiComponentEventKind::Focus);
     assert_has_event(descriptor, UiComponentEventKind::SelectOption);
     assert_has_event(descriptor, UiComponentEventKind::ValueChanged);
 }

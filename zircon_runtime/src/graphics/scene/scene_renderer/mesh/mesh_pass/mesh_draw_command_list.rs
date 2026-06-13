@@ -584,6 +584,7 @@ mod tests {
     #[test]
     fn mesh_batch_ref_emits_gpu_scene_instance_command() {
         let command = batch(MeshDrawQueuePhase::Opaque, 10)
+            .with_cache_identity(42, 0)
             .with_gpu_scene_instance_span(7, 2)
             .command(
                 RenderPhase::Opaque3d,
@@ -611,6 +612,7 @@ mod tests {
             }
             MeshDrawArgs::IndexedIndirect { .. } => panic!("expected direct indexed draw args"),
         }
+        assert_eq!(command.source_entity, 42);
     }
 
     #[test]

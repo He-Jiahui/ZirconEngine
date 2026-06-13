@@ -1,4 +1,69 @@
-use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiKeyboardInputState};
+use zircon_runtime_interface::ui::{
+    component::UiComponentKeyboardAction,
+    dispatch::{UiKeyboardInputEvent, UiKeyboardInputState},
+};
+
+pub(super) fn keyboard_component_action(
+    keyboard: &UiKeyboardInputEvent,
+) -> Option<UiComponentKeyboardAction> {
+    if keyboard.state != UiKeyboardInputState::Pressed {
+        return None;
+    }
+
+    let normalized = normalized_key_name(keyboard.logical_key.as_str());
+    if is_activation_key(keyboard, normalized.as_str()) {
+        return Some(UiComponentKeyboardAction::Activate);
+    }
+    if is_cancel_key(keyboard, normalized.as_str()) {
+        return Some(UiComponentKeyboardAction::Cancel);
+    }
+
+    match normalized.as_str() {
+        "arrowright" | "right" | "arrowdown" | "down" | "gamepaddpadright" | "gamepaddpaddown" => {
+            Some(UiComponentKeyboardAction::Next)
+        }
+        "arrowleft" | "left" | "arrowup" | "up" | "gamepaddpadleft" | "gamepaddpadup" => {
+            Some(UiComponentKeyboardAction::Previous)
+        }
+        "home" => Some(UiComponentKeyboardAction::First),
+        "end" => Some(UiComponentKeyboardAction::Last),
+        "pageup" => Some(UiComponentKeyboardAction::LargeIncrement),
+        "pagedown" => Some(UiComponentKeyboardAction::LargeDecrement),
+        _ => match keyboard.key_code {
+            39 | 40 => Some(UiComponentKeyboardAction::Next),
+            37 | 38 => Some(UiComponentKeyboardAction::Previous),
+            36 => Some(UiComponentKeyboardAction::First),
+            35 => Some(UiComponentKeyboardAction::Last),
+            33 => Some(UiComponentKeyboardAction::LargeIncrement),
+            34 => Some(UiComponentKeyboardAction::LargeDecrement),
+            _ => None,
+        },
+    }
+}
+
+pub(super) fn keyboard_component_text(keyboard: &UiKeyboardInputEvent) -> Option<&str> {
+    if !matches!(
+        keyboard.state,
+        UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated
+    ) {
+        return None;
+    }
+    if keyboard.metadata.modifiers.alt
+        || keyboard.metadata.modifiers.control
+        || keyboard.metadata.modifiers.super_key
+    {
+        return None;
+    }
+
+    let text = keyboard.text.as_deref()?;
+    if text.is_empty()
+        || text.chars().any(char::is_control)
+        || text.chars().all(char::is_whitespace)
+    {
+        return None;
+    }
+    Some(text)
+}
 
 pub(super) fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEvent) -> bool {
     if keyboard.state != UiKeyboardInputState::Pressed {
@@ -6,11 +71,7 @@ pub(super) fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEve
     }
 
     let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    matches!(
-        normalized.as_str(),
-        "enter" | "space" | "spacebar" | "virtualaccept"
-    ) || keyboard.logical_key == " "
-        || matches!(keyboard.key_code, 13 | 32)
+    is_activation_key(keyboard, normalized.as_str())
 }
 
 pub(super) fn keyboard_requests_popup_dismissal(keyboard: &UiKeyboardInputEvent) -> bool {
@@ -19,7 +80,17 @@ pub(super) fn keyboard_requests_popup_dismissal(keyboard: &UiKeyboardInputEvent)
     }
 
     let normalized = normalized_key_name(keyboard.logical_key.as_str());
-    matches!(normalized.as_str(), "escape" | "esc" | "virtualback") || keyboard.key_code == 27
+    is_cancel_key(keyboard, normalized.as_str())
+}
+
+fn is_activation_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
+    matches!(normalized, "enter" | "space" | "spacebar" | "virtualaccept")
+        || keyboard.logical_key == " "
+        || matches!(keyboard.key_code, 13 | 32)
+}
+
+fn is_cancel_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
+    matches!(normalized, "escape" | "esc" | "virtualback") || keyboard.key_code == 27
 }
 
 fn normalized_key_name(key: &str) -> String {

@@ -44,9 +44,11 @@ plan_sources:
   - dev/bevy/crates/bevy_log/src/lib.rs
   - dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs
   - docs/superpowers/plans/2026-05-04-build-asset-staging.md
+  - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
 tests:
   - zircon_app/src/plugins/tests.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
+  - zircon_runtime/src/diagnostic_log/diagnostics.rs::diagnostic_log_snapshot_bridge_stays_single_owner
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib diagnostic_log --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-runtime-test --message-format short --color never
@@ -140,3 +142,20 @@ That evidence rules out staged asset-root failure, missing built-in imports, emp
 The 2026-05-04 exported runtime smoke run from `E:\zircon-build\ZirconEngine` wrote `C:\Users\HeJiahui\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\2026-05-04-15-57-47\runtime.log`. That log selected `source=unity-compatible-user-log-directory` and mirrored the same startup lines to stderr.
 
 The runtime process was still running when stopped by the smoke harness, so the forced `-1` exit code only records test termination. The log location evidence confirms that standalone runtime startup uses the Unity-compatible user log path unless `ZIRCON_LOG_ROOT` overrides it.
+
+## Runtime 14 Boundary Judgment
+
+Runtime 14 keeps `diagnostic_log` as a crate-root process diagnostics family. It is the text/logging surface: severity filters, scoped filters, startup argument mapping, console/file sinks, log-directory policy, and explicit write helpers.
+
+`core::diagnostics` remains the numeric diagnostics surface: series storage, samples, smoothing, snapshots, profiling, and runtime-owned collection. The bridge is intentionally narrow and lives in `diagnostic_log/diagnostics.rs`: it formats a `DiagnosticStoreSnapshot`, writes the formatted lines through the process log sink, and provides `DiagnosticStoreLogSchedule` so runtime owners can decide when to emit snapshots.
+
+This mirrors the Bevy split between `bevy_log` and `bevy_diagnostic`: one layer owns logging/tracing output, the other owns diagnostic values. Zircon does not install Bevy's global tracing subscriber, but the ownership split is the same.
+
+The Runtime 14 judgement is:
+
+- Keep `diagnostic_log` at crate root.
+- Keep `core::diagnostics` inside the core spine.
+- Keep `diagnostic_log/diagnostics.rs` as the only bridge from numeric snapshots to process text output.
+- Do not move sink initialization or startup log-level parsing into `core::diagnostics`.
+
+Runtime 14 M1 adds `diagnostic_log_snapshot_bridge_stays_single_owner` to guard this boundary: non-bridge `diagnostic_log` files must not import `core::diagnostics` store/snapshot types, and `core::runtime::diagnostics` files must not depend on the process log sink.

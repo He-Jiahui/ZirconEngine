@@ -1,6 +1,10 @@
 pub(in crate::graphics::scene::scene_renderer::mesh) const FALLBACK_MESH_SHADER: &str = concat!(
     include_str!("../shaders/zr_gpu_scene.wgsl"),
     "\n",
+    include_str!("../../lighting/shaders/zr_light_grid.wgsl"),
+    "\n",
+    include_str!("../../shadow/shaders/zr_shadow.wgsl"),
+    "\n",
     include_str!("../shaders/fallback_mesh.wgsl")
 );
 
@@ -14,11 +18,15 @@ mod tests {
             .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data"));
         assert!(FALLBACK_MESH_SHADER
             .contains("@group(3) @binding(1) var<storage, read> zr_instance_data"));
+        assert!(
+            FALLBACK_MESH_SHADER.contains("@group(3) @binding(2) var<storage, read> zr_light_data")
+        );
         assert!(FALLBACK_MESH_SHADER
             .contains("@group(3) @binding(3) var<uniform> zr_skinned_joint_palette"));
         assert!(FALLBACK_MESH_SHADER
             .contains("@group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_world_from_local(instance_index: u32)"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_gpu_scene_light_count() -> u32"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_skinned_joint_count() -> u32"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_previous_skinned_joint_count() -> u32"));
     }
@@ -42,17 +50,43 @@ mod tests {
     }
 
     #[test]
-    fn fallback_mesh_shader_receives_forward_shadow_map_resources() {
-        assert!(FALLBACK_MESH_SHADER.contains("struct ShadowReceiverUniform"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;"));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;"
-        ));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;"));
-        assert!(FALLBACK_MESH_SHADER.contains("textureSampleCompare("));
-        assert!(FALLBACK_MESH_SHADER.contains("if (shadow_params.z <= 0.5)"));
+    fn fallback_mesh_shader_receives_shadow_atlas_resources() {
+        for expected in [
+            "@group(1) @binding(8) var zr_shadow_atlas: texture_depth_2d;",
+            "@group(1) @binding(9) var zr_shadow_sampler: sampler_comparison;",
+            "@group(1) @binding(10) var<storage, read> zr_shadow_slots",
+            "@group(1) @binding(11) var<uniform> zr_shadow_globals",
+            "fn zr_gpu_light_shadow_visibility",
+            "fn zr_sample_shadow_slot",
+            "fn zr_shadow_slot_pcf_quality",
+            "ZR_SHADOW_PCF_QUALITY_MEDIUM",
+        ] {
+            assert!(
+                FALLBACK_MESH_SHADER.contains(expected),
+                "fallback mesh shader should expose shadow atlas resource `{expected}`"
+            );
+        }
+        assert!(!FALLBACK_MESH_SHADER.contains("struct ShadowReceiverUniform"));
+        assert!(!FALLBACK_MESH_SHADER.contains("shadow_map_tex"));
+        assert!(!FALLBACK_MESH_SHADER.contains("shadow_compare_sampler"));
+        assert!(!FALLBACK_MESH_SHADER.contains("sample_shadow_visibility"));
+        assert!(!FALLBACK_MESH_SHADER.contains("world_to_shadow_coord"));
+    }
+
+    #[test]
+    fn fallback_mesh_shader_receives_light_grid_resources() {
+        for expected in [
+            "@group(1) @binding(20) var<uniform> zr_light_grid_params",
+            "@group(1) @binding(21) var<storage, read> zr_light_zbins",
+            "@group(1) @binding(22) var<storage, read> zr_light_tile_masks",
+            "fn zr_light_mask_word",
+            "fn zr_light_zbin_header",
+        ] {
+            assert!(
+                FALLBACK_MESH_SHADER.contains(expected),
+                "fallback mesh shader should declare or use `{expected}` for light-grid lighting"
+            );
+        }
     }
 
     #[test]
@@ -70,23 +104,30 @@ mod tests {
     }
 
     #[test]
-    fn fallback_mesh_shader_applies_shadow_visibility_to_directional_light_and_adds_point_lights() {
+    fn fallback_mesh_shader_reads_gpu_light_buffer_for_all_builtin_light_types() {
         assert!(FALLBACK_MESH_SHADER.contains("@location(2) world_position: vec3<f32>"));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);"
-        ));
         assert!(FALLBACK_MESH_SHADER
             .contains("let ambient = scene.ambient_color.rgb * material.occlusion;"));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "let direct = scene.light_color.rgb * lambert * direct_visibility * material.occlusion;"
-        ));
-        assert!(FALLBACK_MESH_SHADER.contains(
-            "scene.light_color.rgb * specular_intensity * direct_visibility * material.occlusion"
-        ));
-        assert!(FALLBACK_MESH_SHADER.contains("point_light_position_range"));
-        assert!(FALLBACK_MESH_SHADER.contains("fn point_light_lighting"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn gpu_light_lighting"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn shade_gpu_light_index"));
+        assert!(FALLBACK_MESH_SHADER.contains("if (light_index >= zr_gpu_scene_light_count())"));
+        assert!(FALLBACK_MESH_SHADER.contains("let light = zr_gpu_light(light_index);"));
         assert!(FALLBACK_MESH_SHADER
-            .contains("let point_lights = point_light_lighting(input.world_position"));
+            .contains("zr_light_mask_word(tile_base, bin, word, zr_light_grid_params)"));
+        assert!(FALLBACK_MESH_SHADER.contains("firstTrailingBit(mask)"));
+        assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_DIRECTIONAL"));
+        assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_POINT"));
+        assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_SPOT"));
+        assert!(FALLBACK_MESH_SHADER.contains("ZR_GPU_LIGHT_TYPE_RECT"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("let direct_lights = gpu_light_lighting(input.clip_position.xy"));
+        assert!(!FALLBACK_MESH_SHADER.contains("for (var i = 0u; i < light_count; i = i + 1u)"));
+        assert!(!FALLBACK_MESH_SHADER.contains("point_light_position_range"));
+        assert!(!FALLBACK_MESH_SHADER.contains("point_light_color_intensity"));
+        assert!(!FALLBACK_MESH_SHADER.contains("point_light_params"));
+        assert!(!FALLBACK_MESH_SHADER.contains("scene.light_color"));
     }
 
     #[test]
@@ -139,9 +180,8 @@ mod tests {
         ));
         assert!(FALLBACK_MESH_SHADER.contains("let bitangent = normalize_or_zero(cross(geometric_normal, tangent) * input.tangent_handedness);"));
         assert!(FALLBACK_MESH_SHADER.contains("let world_normal = sampled_world_normal(input);"));
-        assert!(
-            FALLBACK_MESH_SHADER.contains("let lambert = max(dot(light_dir, world_normal), 0.0);")
-        );
+        assert!(FALLBACK_MESH_SHADER
+            .contains("let lambert = max(dot(world_normal, light_vector), 0.0);"));
     }
 
     #[test]

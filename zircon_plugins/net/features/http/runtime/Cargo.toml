@@ -7,9 +7,16 @@ description = "HTTP runtime feature package for Zircon networking."
 
 [dependencies]
 http-body-util = "0.1"
-hyper = { version = "1", features = ["http1", "server"] }
-hyper-util = { version = "0.1", features = ["http1", "server", "tokio"] }
+hyper = { version = "1", features = ["client", "http1", "server"] }
+hyper-util = { version = "0.1", features = ["client", "client-legacy", "http1", "server", "tokio"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
-tokio = { version = "1", features = ["net", "rt"] }
+ring = "0.17"
+tokio = { version = "1", features = ["io-util", "net", "rt", "time"] }
 zircon_plugin_net_runtime = { path = "../../../runtime" }
 zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+base64 = "0.22"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rustls-pki-types = "1"
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }

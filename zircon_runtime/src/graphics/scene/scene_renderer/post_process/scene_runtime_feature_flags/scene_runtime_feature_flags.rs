@@ -2,6 +2,7 @@
 pub(crate) struct SceneRuntimeFeatureFlags {
     pub(crate) deferred_lighting_enabled: bool,
     pub(crate) ssao_enabled: bool,
+    pub(crate) contact_shadow_enabled: bool,
     pub(crate) clustered_lighting_enabled: bool,
     pub(crate) hybrid_global_illumination_enabled: bool,
     pub(crate) history_resolve_enabled: bool,

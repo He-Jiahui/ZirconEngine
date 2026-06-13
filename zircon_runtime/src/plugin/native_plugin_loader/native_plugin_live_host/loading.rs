@@ -4,6 +4,11 @@ use std::sync::{Mutex, MutexGuard};
 use crate::plugin::PluginModuleKind;
 
 use super::super::{LoadedNativePlugin, NativePluginLoadReport};
+use super::bridge_methods::{
+    discovered_runtime_bridge_method_binding_diagnostics,
+    discovered_runtime_bridge_method_binding_error_diagnostic,
+    discovered_runtime_bridge_method_bindings,
+};
 use super::diagnostics::{diagnostics_from_behavior_report, load_report_diagnostics};
 use super::keys::{live_key, live_key_prefix, module_kind_label};
 use super::reports::NativePluginLiveHostLoadReport;
@@ -53,7 +58,7 @@ impl NativePluginLiveHost {
             .collect())
     }
 
-    fn load_reported_plugins(
+    pub(super) fn load_reported_plugins(
         &self,
         mut report: NativePluginLoadReport,
         module_kind: PluginModuleKind,
@@ -73,10 +78,32 @@ impl NativePluginLiveHost {
         let mut diagnostics = load_report_diagnostics(&report);
         let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
         let mut loaded_plugin_ids = Vec::new();
+        let mut bridge_binding_updates = Vec::new();
 
         for plugin in std::mem::take(&mut report.loaded) {
             let plugin_id = plugin.plugin_id.clone();
             let key = live_key(module_kind, &plugin_id);
+            let bridge_binding_update = if module_kind == PluginModuleKind::Runtime {
+                match discovered_runtime_bridge_method_bindings(&plugin) {
+                    Ok(Some(bindings)) => {
+                        diagnostics.push(discovered_runtime_bridge_method_binding_diagnostics(
+                            &plugin_id, &bindings,
+                        ));
+                        Some((plugin_id.clone(), Some(bindings)))
+                    }
+                    Ok(None) => Some((plugin_id.clone(), None)),
+                    Err(error) => {
+                        diagnostics.push(
+                            discovered_runtime_bridge_method_binding_error_diagnostic(
+                                &plugin_id, &error,
+                            ),
+                        );
+                        Some((plugin_id.clone(), None))
+                    }
+                }
+            } else {
+                None
+            };
             if let Some(existing) = loaded.remove(&key) {
                 match diagnostics_from_behavior_report(
                     &format!("{} unload before reload", module_kind_label(module_kind)),
@@ -91,6 +118,14 @@ impl NativePluginLiveHost {
             }
             loaded.insert(key, plugin);
             loaded_plugin_ids.push(plugin_id);
+            if let Some(update) = bridge_binding_update {
+                bridge_binding_updates.push(update);
+            }
+        }
+        drop(loaded);
+
+        for (plugin_id, bindings) in bridge_binding_updates {
+            self.replace_runtime_bridge_method_bindings(&plugin_id, bindings)?;
         }
 
         loaded_plugin_ids.sort();
@@ -102,6 +137,7 @@ impl NativePluginLiveHost {
             loaded_plugin_ids,
             runtime_plugin_registration_reports,
             runtime_plugin_feature_registration_reports,
+            bridge_lifecycle_reports: Vec::new(),
             diagnostics,
         })
     }

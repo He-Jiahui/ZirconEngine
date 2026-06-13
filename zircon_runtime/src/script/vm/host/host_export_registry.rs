@@ -8,6 +8,7 @@ use crate::core::framework::script::{
 };
 
 use super::super::{CapabilitySet, HostHandle, VmError};
+use super::script_call_table::{ScriptCallTable, ScriptCallTableBuilder};
 use super::HostRegistry;
 
 pub type HostExportCallback =
@@ -129,6 +130,37 @@ impl HostExportRegistry {
             .collect::<Vec<_>>();
         records.sort_by(|left, right| left.descriptor.name.cmp(&right.descriptor.name));
         records
+    }
+
+    pub fn script_call_table(&self) -> Result<ScriptCallTable, VmError> {
+        let modules = self.modules.lock().unwrap();
+        let mut module_names = modules.keys().cloned().collect::<Vec<_>>();
+        module_names.sort();
+
+        let mut builder = ScriptCallTableBuilder::new();
+        for module_name in module_names {
+            let entry = modules.get(&module_name).ok_or_else(|| {
+                VmError::Operation(format!(
+                    "host export module disappeared while building script call table: {module_name}"
+                ))
+            })?;
+            let module_name = Arc::<str>::from(module_name.as_str());
+            for function in &entry.record.descriptor.functions {
+                let callback = entry
+                    .callbacks
+                    .get(&function.name)
+                    .cloned()
+                    .ok_or_else(|| {
+                        VmError::Operation(format!(
+                            "host export callback missing while building script call table: {}.{}",
+                            entry.record.descriptor.name, function.name
+                        ))
+                    })?;
+                builder.add(module_name.clone(), function.clone(), callback);
+            }
+        }
+
+        Ok(builder.build())
     }
 
     pub fn call(

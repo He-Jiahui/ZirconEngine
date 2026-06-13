@@ -292,13 +292,44 @@ pub(super) fn button_icon_placement_prop(default: &str) -> UiPropSchema {
 }
 
 pub(super) fn with_text_input_events(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
-    descriptor
+    with_text_input_state_props(descriptor)
         .events([
             UiComponentEventKind::Focus,
+            UiComponentEventKind::KeyboardText,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ])
         .requires_host_capability(UiHostCapability::TextInput)
+}
+
+pub(super) fn with_text_input_state_props(
+    descriptor: UiComponentDescriptor,
+) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(bool_prop("required", false))
+        .with_prop(int_prop("min_length", 0))
+        .with_prop(int_prop("max_length", 0))
+        .with_prop(text_validation_timing_prop())
+        .with_prop(default_string_prop("validation_message", ""))
+        .with_prop(bool_prop("validation_dirty", false))
+        .with_prop(bool_prop("validation_touched", false))
+        .with_prop(int_prop("caret_offset", 0))
+        .with_prop(int_prop("selection_anchor", 0))
+        .with_prop(int_prop("selection_focus", 0))
+        .with_prop(int_prop("composition_start", 0))
+        .with_prop(int_prop("composition_end", 0))
+        .with_prop(string_prop("composition_text"))
+        .with_prop(string_prop("composition_restore_text"))
+}
+
+fn text_validation_timing_prop() -> UiPropSchema {
+    enum_prop_with_options(
+        "validation_timing",
+        "commit",
+        ["change", "commit", "blur"]
+            .into_iter()
+            .map(enum_option_descriptor),
+    )
 }
 
 fn enum_options<const N: usize>(options: [&'static str; N]) -> Vec<UiOptionDescriptor> {

@@ -16,6 +16,9 @@ pub use registration_report::RuntimePluginRegistrationReport;
 pub use runtime_plugin::RuntimePlugin;
 pub use runtime_plugin::RuntimePluginFeature;
 pub use runtime_plugin_catalog::{
-    RuntimeExtensionCatalogReport, RuntimePluginCatalog, RuntimePluginFeatureBlock,
-    RuntimePluginFeatureDependencyReport,
+    RuntimeExtensionCatalogReport, RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
+    RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
+    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
+    RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
 };

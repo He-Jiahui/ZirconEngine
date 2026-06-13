@@ -41,6 +41,7 @@ pub(super) fn record_history(
         }
         (None, None) => unreachable!("rotation is required when no history exists"),
     };
+    record.replace_visibility_static_index(context.visibility_context().static_index().clone());
 
     let previous_available = previous_handle.is_some()
         && allocated_history.is_none()

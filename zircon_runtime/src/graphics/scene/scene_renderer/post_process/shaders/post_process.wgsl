@@ -1,6 +1,7 @@
 struct PostProcessParams {
     viewport_and_clusters: vec4<u32>,
     feature_flags: vec4<u32>,
+    lighting_flags: vec4<u32>,
     hybrid_gi_counts: vec4<u32>,
     anti_alias: vec4<u32>,
     blends: vec4<f32>,
@@ -71,6 +72,7 @@ struct HybridGiTraceRegion {
 @group(0) @binding(24) var screen_space_reflection_reflection_pyramid_tex: texture_2d<f32>;
 @group(0) @binding(25) var screen_space_reflection_depth_pyramid_coarse_tex: texture_2d<f32>;
 @group(0) @binding(26) var screen_space_reflection_reflection_pyramid_coarse_tex: texture_2d<f32>;
+@group(0) @binding(27) var contact_shadow_tex: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -583,10 +585,17 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     let scene_color = textureLoad(scene_color_tex, coord_i32, 0);
     var color = scene_color.rgb;
 
-    if (params.feature_flags.x != 0u) {
-        let ao = textureLoad(ambient_occlusion_tex, coord_i32, 0).r;
-        let ao_factor = max(ao * ao, 0.12);
-        color = color * ao_factor;
+    if (params.feature_flags.x != 0u || params.lighting_flags.x != 0u) {
+        var occlusion_factor = 1.0;
+        if (params.feature_flags.x != 0u) {
+            let ao = textureLoad(ambient_occlusion_tex, coord_i32, 0).r;
+            occlusion_factor = occlusion_factor * max(ao * ao, 0.12);
+        }
+        if (params.lighting_flags.x != 0u) {
+            let contact_shadow = textureLoad(contact_shadow_tex, coord_i32, 0).r;
+            occlusion_factor = occlusion_factor * max(contact_shadow, 0.18);
+        }
+        color = color * occlusion_factor;
     }
 
     if (params.feature_flags.y != 0u) {

@@ -1,9 +1,4 @@
-use std::io::ErrorKind;
-
-use tokio::net::UdpSocket;
-use zircon_runtime::core::framework::net::{
-    NetEndpoint, NetError, NetEvent, NetPacket, NetSocketId,
-};
+use zircon_runtime::core::framework::net::{NetEndpoint, NetError, NetPacket, NetSocketId};
 
 use crate::runtime_state::ManagedUdpSocket;
 
@@ -14,17 +9,8 @@ impl DefaultNetManager {
         &self,
         bind: &NetEndpoint,
     ) -> Result<NetSocketId, NetError> {
-        let bind_addr = bind.to_socket_addr()?;
-        let socket = self
-            .state
-            .runtime
-            .block_on(UdpSocket::bind(bind_addr))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = socket
-            .local_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
         let socket_id = self.next_socket_id();
+        let local_endpoint = self.state.worker.bind_udp(socket_id, bind.clone())?;
         self.state
             .udp_sockets
             .lock()
@@ -32,14 +18,9 @@ impl DefaultNetManager {
             .insert(
                 socket_id,
                 ManagedUdpSocket {
-                    socket,
                     local_endpoint: local_endpoint.clone(),
                 },
             );
-        self.state.push_event(NetEvent::UdpSocketBound {
-            socket: socket_id,
-            endpoint: local_endpoint,
-        });
         Ok(socket_id)
     }
 
@@ -62,19 +43,9 @@ impl DefaultNetManager {
         destination: &NetEndpoint,
         payload: &[u8],
     ) -> Result<usize, NetError> {
-        let destination = destination.to_socket_addr()?;
-        let sockets = self
-            .state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned");
-        let entry = sockets
-            .get(&socket)
-            .ok_or(NetError::UnknownSocket { socket })?;
-        entry
-            .socket
-            .try_send_to(payload, destination)
-            .map_err(|error| NetError::Io(error.to_string()))
+        self.state
+            .worker
+            .send_udp(socket, destination.clone(), payload.to_vec())
     }
 
     pub(in crate::service_types) fn poll_udp_impl(
@@ -86,47 +57,29 @@ impl DefaultNetManager {
             return Ok(Vec::new());
         }
 
-        let sockets = self
-            .state
-            .udp_sockets
-            .lock()
-            .expect("net UDP sockets mutex poisoned");
-        let entry = sockets
-            .get(&socket)
-            .ok_or(NetError::UnknownSocket { socket })?;
-
-        let mut packets = Vec::new();
-        let mut buffer = vec![0_u8; u16::MAX as usize];
-        while packets.len() < max_packets {
-            match entry.socket.try_recv_from(&mut buffer) {
-                Ok((received, source)) => packets.push(NetPacket {
-                    source: Self::endpoint_from_addr(source),
-                    payload: buffer[..received].to_vec(),
-                }),
-                Err(error) if error.kind() == ErrorKind::WouldBlock => break,
-                Err(error) => return Err(NetError::Io(error.to_string())),
-            }
-        }
-
-        Ok(packets)
+        self.state.worker.poll_udp(socket, max_packets)
     }
 
     pub(in crate::service_types) fn close_socket_impl(
         &self,
         socket: NetSocketId,
     ) -> Result<(), NetError> {
-        let removed = self
+        if !self
             .state
             .udp_sockets
             .lock()
             .expect("net UDP sockets mutex poisoned")
-            .remove(&socket)
-            .is_some();
-        if !removed {
+            .contains_key(&socket)
+        {
             return Err(NetError::UnknownSocket { socket });
         }
 
-        self.state.push_event(NetEvent::UdpSocketClosed { socket });
+        self.state.worker.close_udp(socket)?;
+        self.state
+            .udp_sockets
+            .lock()
+            .expect("net UDP sockets mutex poisoned")
+            .remove(&socket);
         Ok(())
     }
 }

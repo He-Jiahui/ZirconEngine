@@ -6,6 +6,8 @@ use crate::core::framework::render::{
     RenderHistoryCopyReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
+use crate::graphics::visibility::HzbOcclusionCullReport;
 use crate::render_graph::{
     QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
     RenderGraphPassResourceAccess, RenderGraphResourceAccessKind, RenderPassId,
@@ -52,6 +54,7 @@ pub struct RenderGraphComputeWorkloadDispatchContext {
     pub viewport_size: [u32; 2],
     pub cluster_grid_size: [u32; 2],
     pub hzb_furthest_size: [u32; 2],
+    pub indirect_args_count: u32,
 }
 
 impl RenderGraphComputeWorkloadDispatchContext {
@@ -59,11 +62,13 @@ impl RenderGraphComputeWorkloadDispatchContext {
         viewport_size: [u32; 2],
         cluster_grid_size: [u32; 2],
         hzb_furthest_size: [u32; 2],
+        indirect_args_count: u32,
     ) -> Self {
         Self {
             viewport_size: [viewport_size[0].max(1), viewport_size[1].max(1)],
             cluster_grid_size: [cluster_grid_size[0].max(1), cluster_grid_size[1].max(1)],
             hzb_furthest_size: [hzb_furthest_size[0].max(1), hzb_furthest_size[1].max(1)],
+            indirect_args_count,
         }
     }
 
@@ -78,9 +83,20 @@ impl RenderGraphComputeWorkloadDispatchContext {
             RenderGraphComputeDispatchExtent::HzbFurthest => {
                 dispatch_groups_for_2d_extent(self.hzb_furthest_size, workload.workgroup_size)
             }
+            RenderGraphComputeDispatchExtent::IndirectArgs => {
+                dispatch_groups_for_1d_extent(self.indirect_args_count, workload.workgroup_size)
+            }
             RenderGraphComputeDispatchExtent::Fixed(groups) => *groups,
         }
     }
+}
+
+fn dispatch_groups_for_1d_extent(extent: u32, workgroup_size: [u32; 3]) -> [u32; 3] {
+    [
+        dispatch_group_count_allow_zero(extent, workgroup_size[0]),
+        dispatch_group_count(1, workgroup_size[1]),
+        dispatch_group_count(1, workgroup_size[2]),
+    ]
 }
 
 fn dispatch_groups_for_2d_extent(extent: [u32; 2], workgroup_size: [u32; 3]) -> [u32; 3] {
@@ -93,6 +109,14 @@ fn dispatch_groups_for_2d_extent(extent: [u32; 2], workgroup_size: [u32; 3]) -> 
 
 fn dispatch_group_count(extent: u32, workgroup_size: u32) -> u32 {
     extent.max(1).div_ceil(workgroup_size.max(1))
+}
+
+fn dispatch_group_count_allow_zero(extent: u32, workgroup_size: u32) -> u32 {
+    if extent == 0 {
+        0
+    } else {
+        extent.div_ceil(workgroup_size.max(1))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -194,6 +218,35 @@ impl RenderGraphComputeWorkloadAuditRecord {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphLightGridReport {
+    pub light_count: usize,
+    pub tile_count: usize,
+    pub zbin_count: usize,
+    pub non_empty_tile_count: usize,
+    pub non_empty_zbin_count: usize,
+    pub non_empty_cluster_count: usize,
+    pub peak_lights_per_cluster: usize,
+    pub average_lights_per_cluster_milli: usize,
+}
+
+impl RenderGraphLightGridReport {
+    pub(crate) fn from_stats(stats: &LightGridStats) -> Self {
+        Self {
+            light_count: stats.light_count as usize,
+            tile_count: stats.tile_count as usize,
+            zbin_count: stats.zbin_count as usize,
+            non_empty_tile_count: stats.non_empty_tile_count as usize,
+            non_empty_zbin_count: stats.non_empty_zbin_count as usize,
+            non_empty_cluster_count: stats.non_empty_cluster_count as usize,
+            peak_lights_per_cluster: stats.peak_lights_per_cluster as usize,
+            average_lights_per_cluster_milli: (stats.average_lights_per_cluster * 1000.0)
+                .round()
+                .max(0.0) as usize,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderGraphExecutionRecord {
     executed_passes: Vec<String>,
@@ -211,6 +264,8 @@ pub struct RenderGraphExecutionRecord {
     motion_vector_camera_status: MotionVectorCameraStatus,
     resource_report: RenderGraphExecutionResourceReport,
     history_copy_report: RenderHistoryCopyReport,
+    hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
+    light_grid_report: Option<RenderGraphLightGridReport>,
 }
 
 impl RenderGraphExecutionRecord {
@@ -344,6 +399,14 @@ impl RenderGraphExecutionRecord {
         self.history_copy_report = report;
     }
 
+    pub fn set_hzb_occlusion_cull_report(&mut self, report: HzbOcclusionCullReport) {
+        self.hzb_occlusion_cull_report = Some(report);
+    }
+
+    pub fn set_light_grid_report(&mut self, report: RenderGraphLightGridReport) {
+        self.light_grid_report = Some(report);
+    }
+
     pub fn push_compute_dispatch(&mut self, dispatch: RenderGraphComputeDispatchRecord) {
         self.compute_dispatches.push(dispatch);
     }
@@ -472,6 +535,14 @@ impl RenderGraphExecutionRecord {
 
     pub fn history_copy_report(&self) -> RenderHistoryCopyReport {
         self.history_copy_report
+    }
+
+    pub fn hzb_occlusion_cull_report(&self) -> Option<HzbOcclusionCullReport> {
+        self.hzb_occlusion_cull_report
+    }
+
+    pub fn light_grid_report(&self) -> Option<RenderGraphLightGridReport> {
+        self.light_grid_report
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -608,6 +679,7 @@ mod tests {
     };
     use crate::core::math::UVec2;
     use crate::graphics::pipeline::RenderPassStage;
+    use crate::graphics::visibility::HzbOcclusionCullReport;
     use crate::render_graph::RenderPassId;
     use crate::render_graph::{
         QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
@@ -617,10 +689,11 @@ mod tests {
     use super::{
         RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadAuditStatus,
         RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord,
+        RenderGraphLightGridReport,
     };
 
     fn dispatch_context() -> RenderGraphComputeWorkloadDispatchContext {
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024])
+        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 130)
     }
 
     #[test]
@@ -651,6 +724,35 @@ mod tests {
 
         assert_eq!(record.history_copy_report(), report);
         assert!(record.history_copy_report().debug_marker_emitted);
+    }
+
+    #[test]
+    fn execution_record_preserves_hzb_occlusion_cull_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 3, true);
+
+        record.set_hzb_occlusion_cull_report(report);
+
+        assert_eq!(record.hzb_occlusion_cull_report(), Some(report));
+    }
+
+    #[test]
+    fn execution_record_preserves_light_grid_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = RenderGraphLightGridReport {
+            light_count: 9,
+            tile_count: 64,
+            zbin_count: 32,
+            non_empty_tile_count: 11,
+            non_empty_zbin_count: 7,
+            non_empty_cluster_count: 23,
+            peak_lights_per_cluster: 5,
+            average_lights_per_cluster_milli: 375,
+        };
+
+        record.set_light_grid_report(report);
+
+        assert_eq!(record.light_grid_report(), Some(report));
     }
 
     #[test]
@@ -708,7 +810,7 @@ mod tests {
 
         record.push_executed_pass_with_declared_queue_dependencies_and_resources(
             "lighting",
-            "lighting.clustered-cull",
+            "lighting.light-grid",
             QueueLane::Graphics,
             QueueLane::Graphics,
             dependencies.clone(),
@@ -791,14 +893,14 @@ mod tests {
     fn execution_record_counts_named_resource_accesses() {
         let mut record = RenderGraphExecutionRecord::default();
         let shadow_write = RenderGraphPassResourceAccess {
-            name: "shadow-map".to_string(),
-            kind: crate::render_graph::RenderGraphResourceKind::TransientTexture,
+            name: "shadow-atlas".to_string(),
+            kind: crate::render_graph::RenderGraphResourceKind::External,
             access: RenderGraphResourceAccessKind::Write,
             attachment_ops: None,
         };
         let shadow_read = RenderGraphPassResourceAccess {
-            name: "shadow-map".to_string(),
-            kind: crate::render_graph::RenderGraphResourceKind::TransientTexture,
+            name: "shadow-atlas".to_string(),
+            kind: crate::render_graph::RenderGraphResourceKind::External,
             access: RenderGraphResourceAccessKind::Read,
             attachment_ops: None,
         };
@@ -810,8 +912,8 @@ mod tests {
         };
 
         record.push_executed_pass_with_resources(
-            "shadow-map",
-            "shadow.map",
+            "shadow-atlas",
+            "shadow.atlas",
             QueueLane::Graphics,
             vec![shadow_write],
         );
@@ -824,14 +926,14 @@ mod tests {
 
         assert_eq!(
             record.executed_resource_access_count_for(
-                "shadow-map",
+                "shadow-atlas",
                 RenderGraphResourceAccessKind::Write,
             ),
             1
         );
         assert_eq!(
             record.executed_resource_access_count_for(
-                "shadow-map",
+                "shadow-atlas",
                 RenderGraphResourceAccessKind::Read
             ),
             1
@@ -870,8 +972,8 @@ mod tests {
         record.push_executed_pass("legacy-gap", "legacy.gap", QueueLane::Graphics);
         record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
             Some(RenderPassStage::Shadow),
-            "shadow-map",
-            "shadow.map",
+            "shadow-atlas",
+            "shadow.atlas",
             QueueLane::Graphics,
             QueueLane::Graphics,
             Vec::new(),
@@ -892,7 +994,7 @@ mod tests {
             .push_executed_pass_with_stage_declared_queue_dependencies_resources_and_debug_marker(
                 Some(RenderPassStage::PostProcess),
                 "clustered-lighting",
-                "lighting.clustered-cull",
+                "lighting.light-grid",
                 QueueLane::Graphics,
                 QueueLane::AsyncCompute,
                 Vec::new(),
@@ -920,8 +1022,8 @@ mod tests {
             vec!["ambient-occlusion".to_string()],
         ));
         record.push_compute_dispatch(RenderGraphComputeDispatchRecord::new(
-            "clustered-light-culling",
-            "lighting.clustered-cull",
+            "light-grid-build",
+            "lighting.light-grid",
             "zircon-cluster-pipeline",
             [8, 8, 1],
             [5, 4, 1],
@@ -1005,8 +1107,25 @@ mod tests {
             )],
         );
         record.audit_compute_workload(
-            "clustered-light-culling",
-            "lighting.clustered-cull",
+            "hzb-occlusion-cull",
+            "visibility.hzb-occlusion-cull",
+            Some(&RenderGraphComputeWorkload::indirect_args(
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+            )),
+            dispatch_context(),
+            &[RenderGraphComputeDispatchRecord::new(
+                "hzb-occlusion-cull",
+                "visibility.hzb-occlusion-cull",
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+                [3, 1, 1],
+                vec!["mesh.indirect-args".to_string()],
+            )],
+        );
+        record.audit_compute_workload(
+            "light-grid-build",
+            "lighting.light-grid",
             Some(&RenderGraphComputeWorkload::new(
                 "zircon-cluster-pipeline",
                 [8, 8, 1],
@@ -1023,8 +1142,8 @@ mod tests {
             &[unexpected],
         );
 
-        assert_eq!(record.compute_workload_planned_count(), 4);
-        assert_eq!(record.compute_workload_matched_count(), 3);
+        assert_eq!(record.compute_workload_planned_count(), 5);
+        assert_eq!(record.compute_workload_matched_count(), 4);
         assert_eq!(record.compute_workload_missing_dispatch_count(), 1);
         assert_eq!(record.compute_workload_unexpected_dispatch_count(), 1);
         assert_eq!(record.compute_workload_mismatch_count(), 0);
@@ -1042,10 +1161,14 @@ mod tests {
         );
         assert_eq!(
             record.compute_workload_audit()[3].status,
-            RenderGraphComputeWorkloadAuditStatus::MissingDispatch
+            RenderGraphComputeWorkloadAuditStatus::Matched
         );
         assert_eq!(
             record.compute_workload_audit()[4].status,
+            RenderGraphComputeWorkloadAuditStatus::MissingDispatch
+        );
+        assert_eq!(
+            record.compute_workload_audit()[5].status,
             RenderGraphComputeWorkloadAuditStatus::UnexpectedDispatch
         );
         assert_eq!(
@@ -1062,11 +1185,49 @@ mod tests {
         );
         assert_eq!(
             record.compute_workload_audit()[3].planned_dispatch_groups,
+            Some([3, 1, 1])
+        );
+        assert_eq!(
+            record.compute_workload_audit()[4].planned_dispatch_groups,
             Some([5, 4, 1])
         );
         assert_eq!(
-            record.compute_workload_audit()[4].actual_dispatch_groups,
+            record.compute_workload_audit()[5].actual_dispatch_groups,
             Some([1, 1, 1])
+        );
+    }
+
+    #[test]
+    fn execution_record_audits_zero_indirect_arg_workload_as_zero_groups() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let context =
+            RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 0);
+
+        record.audit_compute_workload(
+            "hzb-occlusion-cull",
+            "visibility.hzb-occlusion-cull",
+            Some(&RenderGraphComputeWorkload::indirect_args(
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+            )),
+            context,
+            &[RenderGraphComputeDispatchRecord::new(
+                "hzb-occlusion-cull",
+                "visibility.hzb-occlusion-cull",
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+                [0, 1, 1],
+                Vec::new(),
+            )],
+        );
+
+        assert_eq!(
+            record.compute_workload_audit()[0].planned_dispatch_groups,
+            Some([0, 1, 1])
+        );
+        assert_eq!(
+            record.compute_workload_audit()[0].status,
+            RenderGraphComputeWorkloadAuditStatus::Matched
         );
     }
 

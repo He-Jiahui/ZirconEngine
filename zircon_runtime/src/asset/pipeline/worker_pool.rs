@@ -7,7 +7,7 @@ use std::thread::JoinHandle;
 
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::runtime::tasks::spawn_named_thread;
+use crate::core::runtime::tasks::{spawn_named_thread, TaskPoolOptions};
 use crate::core::ZirconError;
 
 use crate::asset::load::{mesh, texture};
@@ -17,6 +17,7 @@ pub const ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC: &str = "asset.worker.in_flight";
 pub const ASSET_WORKER_COMPLETED_DIAGNOSTIC: &str = "asset.worker.completed";
 pub const ASSET_WORKER_FAILED_DIAGNOSTIC: &str = "asset.worker.failed";
 pub const ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC: &str = "asset.worker.queue_peak";
+pub const ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC: &str = "asset.worker.budgeted_threads";
 
 pub struct AssetWorkerPool {
     options: AssetWorkerPoolOptions,
@@ -32,14 +33,33 @@ pub struct AssetWorkerPool {
     joins: Vec<JoinHandle<()>>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum AssetWorkerThreadBudgetSource {
+    #[default]
+    Explicit,
+    TaskPoolIo,
+}
+
+impl AssetWorkerThreadBudgetSource {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Explicit => "explicit",
+            Self::TaskPoolIo => "task_pool_io",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AssetWorkerPoolOptions {
     pub worker_count: usize,
     pub queue_depth: Option<usize>,
+    pub thread_budget_source: AssetWorkerThreadBudgetSource,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AssetWorkerPoolDiagnostics {
+    pub thread_budget_source: AssetWorkerThreadBudgetSource,
+    pub budgeted_threads: usize,
     pub in_flight: usize,
     pub completed: u64,
     pub failed: u64,
@@ -51,22 +71,71 @@ impl AssetWorkerPoolOptions {
         Self {
             worker_count: worker_count.max(1),
             queue_depth: None,
+            thread_budget_source: AssetWorkerThreadBudgetSource::Explicit,
         }
+    }
+
+    pub fn from_task_pool_options(
+        task_pool_options: &TaskPoolOptions,
+        available_parallelism: usize,
+    ) -> Self {
+        let thread_counts = task_pool_options.resolve_thread_counts(available_parallelism);
+        Self::new(thread_counts.io_threads)
+            .with_thread_budget_source(AssetWorkerThreadBudgetSource::TaskPoolIo)
     }
 
     pub fn with_queue_depth(mut self, queue_depth: usize) -> Self {
         self.queue_depth = Some(queue_depth);
         self
     }
+
+    pub fn with_thread_budget_source(
+        mut self,
+        thread_budget_source: AssetWorkerThreadBudgetSource,
+    ) -> Self {
+        self.thread_budget_source = thread_budget_source;
+        self
+    }
+
+    fn normalized(mut self) -> Self {
+        self.worker_count = self.worker_count.max(1);
+        self
+    }
+}
+
+impl Default for AssetWorkerPoolDiagnostics {
+    fn default() -> Self {
+        Self {
+            thread_budget_source: AssetWorkerThreadBudgetSource::Explicit,
+            budgeted_threads: 0,
+            in_flight: 0,
+            completed: 0,
+            failed: 0,
+            queue_peak: 0,
+        }
+    }
+}
+
+impl AssetWorkerPoolDiagnostics {
+    fn for_options(options: &AssetWorkerPoolOptions) -> Self {
+        Self {
+            thread_budget_source: options.thread_budget_source,
+            budgeted_threads: options.worker_count,
+            ..Self::default()
+        }
+    }
 }
 
 impl AssetWorkerPool {
     pub fn new(options: AssetWorkerPoolOptions) -> Result<Self, ZirconError> {
-        let worker_count = options.worker_count.max(1);
+        let options = options.normalized();
+        let worker_count = options.worker_count;
         let (request_tx, request_rx) = request_channel(options.queue_depth);
         let (completion_tx, completion_rx) = unbounded();
         let in_flight = Arc::new(Mutex::new(HashMap::new()));
-        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::default()));
+        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_options(
+            &options,
+        )));
         let mut joins = Vec::with_capacity(worker_count);
 
         for worker_index in 0..worker_count {
@@ -100,15 +169,19 @@ impl AssetWorkerPool {
 
     #[cfg(test)]
     pub(crate) fn new_without_workers_for_test(options: AssetWorkerPoolOptions) -> Self {
+        let options = options.normalized();
         let (request_tx, request_rx) = request_channel(options.queue_depth);
         let (_completion_tx, completion_rx) = unbounded();
+        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_options(
+            &options,
+        )));
 
         Self {
             options,
             request_tx: Some(request_tx),
             request_rx_guard: Some(request_rx),
             in_flight: Arc::new(Mutex::new(HashMap::new())),
-            diagnostics: Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::default())),
+            diagnostics,
             completion_tx: _completion_tx,
             completion_rx,
             joins: Vec::new(),
@@ -198,6 +271,18 @@ impl AssetWorkerPool {
                 ["asset", "worker"],
             );
         }
+        store.record(
+            ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
+            frame_index,
+            diagnostics.budgeted_threads as f64,
+            Some("thread"),
+            [
+                "asset",
+                "worker",
+                "budget",
+                diagnostics.thread_budget_source.as_str(),
+            ],
+        );
     }
 
     #[cfg(test)]

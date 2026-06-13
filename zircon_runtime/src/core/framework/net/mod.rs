@@ -55,7 +55,9 @@ pub use sync::{
     SyncReplicationScheduleReport, SYNC_DEFAULT_COMPONENT_UPDATE_HZ,
     SYNC_DEFAULT_REPLICATION_PRIORITY, SYNC_REPLICATION_UNBOUNDED_BUDGET,
 };
-pub use transport::{NetCertificatePin, NetConnectionState, NetSecurityPolicy, NetTransportKind};
+pub use transport::{
+    NetCertificatePin, NetCertificateRoot, NetConnectionState, NetSecurityPolicy, NetTransportKind,
+};
 pub use websocket::{
     NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
     NetWebSocketListenerDescriptor,

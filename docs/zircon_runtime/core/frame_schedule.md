@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/menu.rs
@@ -12,6 +13,8 @@ related_code:
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/scene_system_descriptor.rs
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
   - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/runtime/frame_clock.rs
@@ -20,20 +23,28 @@ related_code:
 implementation_files:
   - docs/zircon_runtime/core/frame_schedule.md
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
   - docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/zircon_runtime/runtime/index.md
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - source scans for retired raw-delta level tick and world-driver second advance paths
+  - schedule_frame_loop_boundary targeted audit: source files 18/18, guard files 7/7, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, guard anchors 13/13, risks = []
   - schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration
   - session_ui_extract_remains_documented_dynamic_session_side_path
+  - world_driver_consumes_runtime_time_advance_without_advancing_clocks_again
+  - level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps
+  - level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained
+  - level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance
+  - fixed_step_plan_reports_overstep_fraction_in_unit_range
   - schedule_parallel_executor_can_run_parallel_batches_serially_with_report
   - schedule_parallel_execution_report_records_diagnostic_counts
   - representative_schedule_produces_multi_system_parallel_batches
@@ -46,7 +57,7 @@ doc_type: module-detail
 
 # Runtime Frame Schedule
 
-This document is the runtime-owned frame-loop record for plan 03. It records the current frame path after the M2.1 single-time-advance handoff and the M2.2 fixed overstep interpolation accessor.
+This document is the runtime-owned frame-loop record for plan 03. It records the current frame path after the M2.1 single-time-advance handoff, the M2.2 fixed overstep interpolation accessor, and the 2026-06-13 schedule/frame-loop structural audit owner.
 
 ## Current Conclusion
 
@@ -56,13 +67,13 @@ The remaining higher-level design choice is whether a future UI/render plan want
 
 ## Current Frame Chain
 
-1. The dynamic ABI entry `zircon_runtime/src/dynamic_api/session.rs:301` exposes `tick_frame(handle)`.
-2. `RuntimeDynamicSession::tick_frame` at `zircon_runtime/src/dynamic_api/session.rs:548` calls `self.runtime.tick_time(self.profile.max_fixed_steps_per_frame())`.
-3. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8` at `zircon_runtime/src/dynamic_api/session.rs:93`, returned through `max_fixed_steps_per_frame()` at `zircon_runtime/src/dynamic_api/session.rs:359`.
+1. The dynamic ABI entry `zircon_runtime/src/dynamic_api/session.rs` exposes `tick_frame(handle)`.
+2. `RuntimeDynamicSession::tick_frame` calls `self.runtime.tick_time(self.profile.max_fixed_steps_per_frame())`.
+3. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8`, returned through `max_fixed_steps_per_frame()`.
 4. `CoreHandle::tick_time(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:43` samples `FrameClock::tick()` and delegates to `advance_time_by(...)`.
 5. `CoreHandle::advance_time_by(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:29` advances `RuntimeTimeClocks`, then records time diagnostics at `record_time_diagnostics(...)` around `zircon_runtime/src/core/runtime/handle/time.rs:77`.
 6. `RuntimeTimeClocks::advance_by(...)` at `zircon_runtime/src/core/runtime/time.rs:45` advances real time, virtual time, fixed overstep, and drains a `FixedStepPlan`.
-7. `RuntimeDynamicSession::tick_frame` passes the full `RuntimeTimeAdvance` into `LevelSystem::tick(...)` at `zircon_runtime/src/dynamic_api/session.rs:553`.
+7. `RuntimeDynamicSession::tick_frame` passes the full `RuntimeTimeAdvance` into `LevelSystem::tick(...)`.
 8. `LevelSystem::tick(...)` at `zircon_runtime/src/scene/level_system.rs:103` resolves `WorldDriver` and calls `driver.tick_level(core, self, advance)`.
 9. `WorldDriver::tick_level(...)` at `zircon_runtime/src/scene/module/world_driver.rs:11` converts `advance.real_delta()` and the fixed timestep to `Real`, then consumes `advance.fixed_step_plan()`.
 10. `WorldDriver` consumes that single `FixedStepPlan`: when the schedule reaches `SystemStage::FixedFirst`, it runs every stage in `SystemStage::FIXED_LOOP` once per drained step, then skips fixed-loop stages in the outer stage iteration.
@@ -98,9 +109,10 @@ The authority points are:
 
 Scene extraction is currently pull-based from the dynamic session, not proven to be produced by a scheduled `RenderExtract` system:
 
-- `capture_frame(...)` builds a `RenderFrameExtract` and optional UI extract at `zircon_runtime/src/dynamic_api/session.rs:638` and `:639`, then submits through `submit_extract_with_ui(...)` at `:642`.
-- `present_viewport(...)` builds the same two extracts at `zircon_runtime/src/dynamic_api/session.rs:667` and `:668`, then presents through `present_extract_with_ui(...)` at `:670`.
-- `current_extract(...)` at `zircon_runtime/src/dynamic_api/session.rs:695` reads the world and calls `world.to_render_frame_extract().with_viewport_size(...)`.
+- `capture_frame(...)` builds a `RenderFrameExtract` and optional UI extract in `zircon_runtime/src/dynamic_api/session.rs`, then submits through `submit_extract_with_ui(...)`.
+- `present_viewport(...)` builds the same two extracts in `zircon_runtime/src/dynamic_api/session.rs`, then presents through `present_extract_with_ui(...)`.
+- `current_extract(...)` in `zircon_runtime/src/dynamic_api/session/extract.rs` reads the world and calls `world.to_render_frame_extract().with_viewport_size(...)`.
+- `current_ui_extract(...)` in `zircon_runtime/src/dynamic_api/session/extract.rs` chooses `runtime_session_menu_extract(...)` first, then falls back to `runtime_session_hud_extract(...)`.
 - `RuntimeRenderBridge::submit_extract_with_ui(...)` and `present_extract_with_ui(...)` in `zircon_runtime/src/dynamic_api/runtime_loop.rs` apply viewport size and forward the extract to the resolved render framework.
 
 Current verdict: the UI extract path is a documented legal side path, not part of the scheduled `RenderExtract` stage. `session_ui_extract_remains_documented_dynamic_session_side_path` guards the current contract by checking both capture/present consumers and the menu-then-HUD producer order.
@@ -109,7 +121,7 @@ The side-path inventory is:
 
 | Producer or consumer | Current role | M0 verdict |
 |---|---|---|
-| `RuntimeDynamicSession::current_ui_extract` at `session.rs:703` | Chooses menu extract first, HUD extract second | Legal side path, owner is dynamic session |
+| `RuntimeDynamicSession::current_ui_extract` in `session/extract.rs` | Chooses menu extract first, HUD extract second | Legal side path, owner is dynamic session |
 | `runtime_session_menu_extract` at `session/menu.rs:47` | Builds menu UI commands from runtime menu state | Legal side path, not a schedule stage producer |
 | `runtime_session_hud_extract` at `session/hud.rs:19` | Builds text HUD UI commands from world text state | Legal side path, not a schedule stage producer |
 | `RuntimeRenderBridge::*_with_ui` in `runtime_loop.rs` | Submits optional UI extract beside scene extract | Legal consumer; render internals untouched by this plan |
@@ -133,6 +145,8 @@ The owner wiring is now:
 - `LevelSystem::tick(...)` accepts `RuntimeTimeAdvance`, not raw seconds.
 - `WorldDriver::tick_level(...)` consumes that plan and no longer owns a local fixed-step cap.
 - Time diagnostics are recorded by the time owner, not by world scheduling.
+
+The fixed-loop behavior has targeted owner tests in `zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs`: `level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps`, `level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained`, and `level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance`. They are code-present but remain under the Runtime 03 Cargo gate until `ecs_schedule/time/session/schedule_parallel` validation runs.
 
 ## Stage Ordering Inventory
 
@@ -167,6 +181,10 @@ Runtime 03 M3.1 adds executor-level observability without changing the frame own
 The diagnostic write remains report-owned. A future frame owner can call it at the point it considers authoritative for a frame without making the executor depend on dynamic session or scene-level state.
 
 Detailed owner notes live in `docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md`.
+
+## Structural Audit Mirror
+
+`schedule_frame_loop_boundary` mirrors this document without running Cargo. Current static evidence reports source files 18/18, guard files 7/7, `SystemStage` count and declared variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 13/13, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`.
 
 ## Follow-Up Work
 

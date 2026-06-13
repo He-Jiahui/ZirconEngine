@@ -21,6 +21,7 @@ pub(crate) struct IndirectDrawBatch {
     pub(crate) first_command_index: usize,
     pub(crate) first_args: u32,
     pub(crate) args_count: u32,
+    pub(crate) draw_count_index: u32,
     pub(crate) total_instances: u32,
 }
 
@@ -79,6 +80,7 @@ impl IndirectDrawBatcher {
                 batch.args_count += 1;
                 batch.total_instances = batch.total_instances.saturating_add(args.instance_count);
             } else {
+                let draw_count_index = batcher.batches.len() as u32;
                 batcher.batches.push(IndirectDrawBatch {
                     phase: key.phase,
                     pipeline_kind: key.pipeline_kind,
@@ -88,6 +90,7 @@ impl IndirectDrawBatcher {
                     first_command_index: command_index,
                     first_args: next_arg_index,
                     args_count: 1,
+                    draw_count_index,
                     total_instances: args.instance_count,
                 });
                 active_key = Some(key);
@@ -143,6 +146,10 @@ impl IndirectDrawBatchKey {
 }
 
 fn indirect_args_for_command(command: &MeshDrawCommand) -> Option<IndexedIndirectArgs> {
+    if command.gpu_scene_bind_group.is_some() {
+        return None;
+    }
+
     match command.draw_args {
         MeshDrawArgs::DirectIndexed {
             first_index,
@@ -187,10 +194,12 @@ mod tests {
         assert_eq!(batcher.batches()[0].first_command_index, 0);
         assert_eq!(batcher.batches()[0].first_args, 0);
         assert_eq!(batcher.batches()[0].args_count, 2);
+        assert_eq!(batcher.batches()[0].draw_count_index, 0);
         assert_eq!(batcher.batches()[0].total_instances, 5);
         assert_eq!(batcher.batches()[1].first_command_index, 2);
         assert_eq!(batcher.batches()[1].first_args, 2);
         assert_eq!(batcher.batches()[1].args_count, 1);
+        assert_eq!(batcher.batches()[1].draw_count_index, 1);
         assert_eq!(batcher.batches()[1].total_instances, 1);
         assert_eq!(
             batcher.args_cpu()[1],
@@ -257,6 +266,22 @@ mod tests {
         assert_eq!(batcher.args_cpu().len(), 1);
         assert_eq!(batcher.batches().len(), 1);
         assert_eq!(batcher.fallback_draw_count(), 1);
+    }
+
+    #[test]
+    fn render_gpu_scene_indirect_batcher_keeps_command_local_gpu_scene_groups_on_direct_path() {
+        let commands = vec![
+            command(10, 1, 2, 1).with_gpu_scene_bind_group(MeshBindHandle::test(401)),
+            command(20, 2, 3, 1),
+        ];
+
+        let batcher = IndirectDrawBatcher::build(&commands, &gpu_driven_capabilities());
+
+        assert_eq!(batcher.args_cpu().len(), 1);
+        assert_eq!(batcher.batches().len(), 1);
+        assert_eq!(batcher.fallback_draw_count(), 1);
+        assert_eq!(batcher.batches()[0].first_command_index, 1);
+        assert_eq!(batcher.batches()[0].draw_count_index, 0);
     }
 
     fn command(

@@ -25,39 +25,48 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 .slot(UiSlotSchema::new("endAdornment")),
         ),
         textarea_autosize_descriptor(),
-        editor_panel_component(
-            "SearchField",
-            "Search Field",
-            UiComponentCategory::Input,
-            "search-field",
+        with_text_input_state_props(
+            editor_panel_component(
+                "SearchField",
+                "Search Field",
+                UiComponentCategory::Input,
+                "search-field",
+            )
+            .with_prop(string_prop("query")),
         )
-        .with_prop(string_prop("query"))
         .events([
+            UiComponentEventKind::KeyboardText,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ])
         .requires_host_capability(UiHostCapability::TextInput),
-        editor_panel_component(
-            "FieldEditor",
-            "Field Editor",
-            UiComponentCategory::Container,
-            "field-editor",
+        with_text_input_state_props(
+            editor_panel_component(
+                "FieldEditor",
+                "Field Editor",
+                UiComponentCategory::Container,
+                "field-editor",
+            )
+            .with_prop(text_prop())
+            .with_prop(value_text_prop())
+            .slot(UiSlotSchema::new("field").required(true)),
         )
-        .with_prop(text_prop())
-        .with_prop(value_text_prop())
-        .slot(UiSlotSchema::new("field").required(true))
         .events([
+            UiComponentEventKind::KeyboardText,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ]),
-        editor_panel_component(
-            "SourceEditor",
-            "Source Editor",
-            UiComponentCategory::Input,
-            "source-editor",
+        with_text_input_state_props(
+            editor_panel_component(
+                "SourceEditor",
+                "Source Editor",
+                UiComponentCategory::Input,
+                "source-editor",
+            )
+            .with_prop(text_prop()),
         )
-        .with_prop(text_prop())
         .events([
+            UiComponentEventKind::KeyboardText,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ])

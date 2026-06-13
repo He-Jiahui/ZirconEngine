@@ -3,6 +3,7 @@
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
 > 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/animation/runtime.md`
 > 参考实现：Bevy `bevy_animation`（AnimationGraph/AnimationTarget/mask 位掩码）、Fyrox ABSM（多层状态机 + Layer Mask）、Unreal AnimGraph（蒙太奇/同步组仅作形态参考）
+> 最新进度（2026-06-14 00:21 +08:00）：`runtime_physics_animation_tick_contract` 通过临时 manifest 与外部 target-dir 复跑，16 项全通过。timeline event 相关测试已在 tick 前显式连接 `EventSubscription<AnimationClipEvent>`，与 [11](11-plugin-call-bridge.md) M2 dormant event channel 语义一致：无订阅者不写缓冲，有订阅者时 clip/graph/state-machine/transition 事件均可观测。
 
 ## 1. 目标
 
@@ -209,3 +210,14 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_
 - M1 重构触及 scene_hook 9 个文件，与 01-M1 调度迁移叠加——两者必须同一里程碑窗口完成，避免两次迁移成本（01-M1-T5 即本计划 M1-T3）。
 - GPU skinning 依赖 render framework 的 storage buffer 与 shader 接缝；若 mesh 特性侧接口不足，先在 render framework 补 skinning palette 描述符（与 `docs/plans/zircon_runtime/render` 计划集协调），M4-T3 单列其后。
 - 字符串寻址 → dense 化会改变 clip 资产加载产物；`.zranim` 格式不动，仅运行期表示变更，重导入稳定规则不受影响。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，混合数学与状态机语义对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| AnimationTarget 稳定寻址/graph/mask | `dev/bevy/crates/bevy_animation/src/` | AnimationTargetId 哈希派生、AnimationGraph 节点权重传播、mask 位掩码求值 |
+| 多层状态机（ABSM）/pose/track | `dev/Fyrox/fyrox-animation/src/`（`machine/`、`pose.rs`、`track.rs`） | 层混合（含 LayerMask）、迁移交叉淡化、BlendSpace 采样点加权 |
+| 状态机迁移/中断/同步组语义 | `dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/`、`AnimationCore/` | transition interruption 模式、additive 差分姿态数学、IK（TwoBone/LookAt 节点实现） |
+| GPU skinning buffer 布局 | `dev/bevy/crates/bevy_pbr/`（mesh skinning 路径）与 `dev/bevy/crates/bevy_mesh/` | joint matrices buffer 双缓冲与 motion vector 上一帧矩阵的传递 |

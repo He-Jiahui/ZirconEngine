@@ -19,13 +19,13 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
             RenderPassStage::Shadow,
-            "shadow-map",
+            "shadow-atlas",
             QueueLane::Graphics,
         )
-        .with_executor_id("shadow.map")
+        .with_executor_id("shadow.atlas")
         .with_side_effects()
-        .write_texture_with_ops(
-            PostProcessGraphResourceNames::SHADOW_MAP,
+        .write_external_with_ops(
+            PostProcessGraphResourceNames::SHADOW_ATLAS,
             RenderGraphAttachmentOps::clear_store(),
         )],
     )

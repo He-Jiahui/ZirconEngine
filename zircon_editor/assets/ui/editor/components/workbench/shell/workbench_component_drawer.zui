@@ -12,18 +12,26 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
+  "res://ui/editor/components/workbench/primitives/data/workbench_icon.zui#WorkbenchIcon",
+  "res://ui/editor/components/workbench/primitives/data/workbench_divider.zui#WorkbenchDivider",
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui#WorkbenchPopupMenu",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_radio.zui#WorkbenchRadio",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui#WorkbenchSegmentedControl",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui#WorkbenchSkeleton",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui#WorkbenchRangeSlider",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_slider.zui#WorkbenchSlider",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui#WorkbenchTabStrip",
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_toast.zui#WorkbenchToast",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_tooltip.zui#WorkbenchTooltip",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui#WorkbenchToggle",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui#WorkbenchNumberField",
 ]
 styles = []
 
@@ -370,10 +378,10 @@ layout = { width = { min = 95.0, preferred = 95.0, max = 95.0, stretch = "Fixed"
 events = [{ id = "ComponentLab/InputDropdownOpen", event = "Click", route = "component_lab.open_popup.input_dropdown" }, { id = "ComponentLab/InputDropdownSelect", event = "Change", route = "component_lab.select_option.input_dropdown" }]
 
 [nodes.input_stepper]
-component = "WorkbenchField"
+component = "WorkbenchNumberField"
 control_id = "WorkbenchInputStepper"
-classes = ["workbench-field", "workbench-component-field"]
-props = { value = "42", placeholder = "0", layout_width = 67.0, layout_stepper = true, layout_offset_x = -4.0, layout_offset_y = 8.0 }
+classes = ["workbench-field", "workbench-number-field", "workbench-component-field"]
+props = { value = 42.0, value_text = "42", placeholder = "0", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, precision = 0.0, layout_width = 67.0, layout_stepper = true, layout_offset_x = -4.0, layout_offset_y = 8.0 }
 layout = { width = { min = 67.0, preferred = 67.0, max = 67.0, stretch = "Fixed" }, height = { min = 30.5, preferred = 30.5, max = 30.5, stretch = "Fixed" } }
 
 [nodes.input_slider]
@@ -384,10 +392,10 @@ props = { label_text = "Value", value = 75.0, value_text = "0.75", min = 0.0, ma
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
 [nodes.input_slider_range]
-component = "WorkbenchSlider"
+component = "WorkbenchRangeSlider"
 control_id = "WorkbenchInputRangeSlider"
 classes = ["workbench-slider", "workbench-slider-range"]
-props = { label_text = "Range", range_min = 20.0, value = 80.0, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, layout_offset_x = -18.0, layout_offset_y = 1.0, layout_icon_size = 9.0, label_color = "#889399", background_color = "#2a3338", track_fill_color = "#2099a2", thumb_color = "#b7f1f8", thumb_outline_color = "#2ab1bc33", thumb_halo_color = "#32d3de3d", track_offset_x = -10.0, track_width_delta = 18.0 }
+props = { label_text = "Range", range_min = 20.0, value = 80.0, range_min_percent = 0.2, value_percent = 0.8, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, layout_offset_x = -18.0, layout_offset_y = 1.0, layout_icon_size = 9.0, label_color = "#889399", background_color = "#2a3338", track_fill_color = "#2099a2", thumb_color = "#b7f1f8", thumb_outline_color = "#2ab1bc33", thumb_halo_color = "#32d3de3d", track_offset_x = -10.0, track_width_delta = 18.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
 
 [nodes.input_slider_steps]
@@ -479,7 +487,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentLabs"
 classes = ["workbench-panel"]
 layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 236.0, preferred = 236.0, max = 236.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "labs_title" }, { node = "labs_tabs" }, { node = "input_segmented" }, { node = "toggle_on" }]
+children = [{ node = "labs_title" }, { node = "labs_tabs" }, { node = "input_segmented" }, { node = "visual_atom_row" }, { node = "visual_divider" }, { node = "toggle_on" }]
 
 [nodes.labs_title]
 component = "WorkbenchSectionTitle"
@@ -489,12 +497,40 @@ props = { text = "Labs" }
 layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 
 [nodes.labs_tabs]
-component = "HorizontalGroup"
+component = "WorkbenchTabStrip"
 control_id = "WorkbenchLabsTabs"
-classes = ["workbench-tabs"]
-props = { background_color = "#1c2226" }
+classes = ["workbench-tabs", "workbench-tab-strip"]
+props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single", background_color = "#1c2226" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 216.0, preferred = 216.0, max = 216.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 children = [{ node = "labs_tab_one" }, { node = "labs_tab_two" }, { node = "labs_tab_three" }]
+
+[nodes.visual_atom_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchVisualAtomRow"
+props = { layout_gap = 8.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "visual_label" }, { node = "visual_icon" }]
+
+[nodes.visual_label]
+component = "WorkbenchLabel"
+control_id = "WorkbenchVisualLabel"
+classes = ["workbench-label", "workbench-muted"]
+props = { text = "Label atom", foreground_color = "#aeb9be" }
+layout = { width = { min = 174.0, preferred = 174.0, max = 174.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.visual_icon]
+component = "WorkbenchIcon"
+control_id = "WorkbenchVisualIcon"
+classes = ["workbench-icon"]
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", icon_size = 18.0, layout_icon_size = 18.0 }
+layout = { width = { min = 26.0, preferred = 26.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.visual_divider]
+component = "WorkbenchDivider"
+control_id = "WorkbenchVisualDivider"
+classes = ["workbench-divider"]
+props = { orientation = "horizontal", separator_color = "#2b343a", thickness = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 4.0, stretch = "Fixed" } }
 
 [nodes.labs_tab_one]
 component = "WorkbenchTab"
@@ -574,14 +610,28 @@ component = "VerticalGroup"
 control_id = "WorkbenchFeedbackToastColumn"
 classes = ["workbench-feedback-toast-column"]
 layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 390.0, preferred = 390.0, max = 390.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "feedback_toast_spacer" }, { node = "feedback_toast" }]
+children = [{ node = "feedback_progress" }, { node = "feedback_skeleton" }, { node = "feedback_toast_spacer" }, { node = "feedback_toast" }]
+
+[nodes.feedback_progress]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchFeedbackProgress"
+classes = ["workbench-progress-bar"]
+props = { value = 64.0, value_percent = 0.64, label_text = "Progress", track_fill_color = "#2099a2" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.feedback_skeleton]
+component = "WorkbenchSkeleton"
+control_id = "WorkbenchFeedbackSkeleton"
+classes = ["workbench-skeleton"]
+props = { variant = "rounded", animation = "pulse", loading = true, background_color = "#252c31", highlight_color = "#323b42" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.feedback_toast_spacer]
 component = "Container"
 control_id = "WorkbenchFeedbackToastOffset"
 classes = ["workbench-feedback-toast-offset"]
 props = { background_color = "#00000000", border_width = 0.0, corner_radius = 0.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 103.0, preferred = 103.0, max = 103.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 49.0, preferred = 49.0, max = 49.0, stretch = "Fixed" } }
 
 [nodes.feedback_toast]
 component = "WorkbenchToast"

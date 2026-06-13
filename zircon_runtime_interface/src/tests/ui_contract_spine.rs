@@ -447,6 +447,10 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
         UiWidgetBehavior::RadioGroup
     );
     assert_eq!(
+        UiWidgetContract::default().resolved_behavior("RangeSlider"),
+        UiWidgetBehavior::Range
+    );
+    assert_eq!(
         UiWidgetContract::default().resolved_behavior("ScrollBar"),
         UiWidgetBehavior::Scrollbar
     );

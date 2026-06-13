@@ -9,6 +9,7 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     assert_checkbox(registry);
     assert_radio(registry);
     assert_switch(registry);
+    assert_range_slider(registry);
     assert_toggle_button(registry);
 }
 
@@ -40,6 +41,7 @@ fn assert_number_field(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::BeginDrag,
         UiComponentEventKind::DragDelta,
@@ -84,6 +86,7 @@ fn assert_checkbox(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::ValueChanged,
     ] {
@@ -141,6 +144,7 @@ fn assert_radio(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::SelectOption,
         UiComponentEventKind::ValueChanged,
@@ -165,6 +169,7 @@ fn assert_toggle_button(registry: &UiComponentDescriptorRegistry) {
         "ToggleButton should default to exclusive selection semantics"
     );
     assert_has_prop(toggle_button, "checked");
+    assert_has_event(toggle_button, UiComponentEventKind::KeyboardAction);
     assert_has_event(toggle_button, UiComponentEventKind::ValueChanged);
 }
 
@@ -198,9 +203,88 @@ fn assert_switch(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::ValueChanged,
     ] {
         assert_has_event(switch, event);
+    }
+}
+
+fn assert_range_slider(registry: &UiComponentDescriptorRegistry) {
+    let range_slider = registry
+        .descriptor("RangeSlider")
+        .expect("RangeSlider descriptor");
+    assert_eq!(range_slider.role, "range-slider");
+    for prop in [
+        "value",
+        "range_min",
+        "min",
+        "max",
+        "step",
+        "large_step",
+        "value_percent",
+        "range_min_percent",
+        "focused_thumb",
+        "disable_swap",
+        "show_value_label",
+        "marks",
+        "validation_level",
+    ] {
+        assert_has_prop(range_slider, prop);
+    }
+    assert_enum_options(range_slider, "focused_thumb", &["lower", "upper"]);
+    assert_eq!(
+        range_slider
+            .default_props
+            .iter()
+            .find(|(name, _)| name == "disable_swap")
+            .map(|(_, value)| value),
+        Some(&UiValue::Bool(true)),
+        "RangeSlider should preserve the existing no-swap pointer default"
+    );
+    for prop in ["value", "range_min"] {
+        let schema = range_slider.prop(prop).unwrap();
+        assert_eq!(schema.min, Some(0.0));
+        assert_eq!(schema.max, Some(100.0));
+        assert_eq!(schema.step, Some(1.0));
+    }
+    for prop in ["value_percent", "range_min_percent"] {
+        let schema = range_slider.prop(prop).unwrap();
+        assert_eq!(schema.min, Some(0.0));
+        assert_eq!(schema.max, Some(1.0));
+        assert_eq!(schema.step, Some(0.01));
+    }
+    for (prop, expected) in [
+        ("range_min", 20.0),
+        ("value", 80.0),
+        ("min", 0.0),
+        ("max", 100.0),
+        ("step", 1.0),
+        ("large_step", 10.0),
+        ("range_min_percent", 0.2),
+        ("value_percent", 0.8),
+    ] {
+        assert_eq!(
+            range_slider
+                .default_props
+                .iter()
+                .find(|(name, _)| name == prop)
+                .map(|(_, value)| value),
+            Some(&UiValue::Float(expected)),
+            "RangeSlider should declare numeric default `{prop}`"
+        );
+    }
+    for event in [
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::BeginDrag,
+        UiComponentEventKind::DragDelta,
+        UiComponentEventKind::LargeDragDelta,
+        UiComponentEventKind::EndDrag,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+    ] {
+        assert_has_event(range_slider, event);
     }
 }

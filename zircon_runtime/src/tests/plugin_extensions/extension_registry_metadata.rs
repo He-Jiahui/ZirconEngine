@@ -142,7 +142,7 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
         .register_event::<WeatherRegistryEvent>(
             weather,
             PluginEventManifest {
-                id: "weather.changed".to_string(),
+                id: "weather.events.changed".to_string(),
                 display_name: "Weather Changed".to_string(),
                 payload_schema: "weather.schemas.changed.v1".to_string(),
             },
@@ -217,6 +217,11 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
             .with_source_extensions(["weather"]),
         )
         .unwrap();
+}
+
+#[test]
+fn failed_registration_revoked_via_ownership() {
+    runtime_extension_registry_revokes_owner_tracked_contributions();
 }
 
 #[derive(Debug, PartialEq, Eq)]

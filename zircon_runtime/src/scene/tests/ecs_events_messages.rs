@@ -1,6 +1,6 @@
 use crate::scene::ecs::{
     EventReaderParam, EventWriterParam, Message, MessageReaderParam, MessageWriterParam,
-    SystemState,
+    SystemStage, SystemState,
 };
 use crate::scene::World;
 
@@ -41,6 +41,24 @@ fn events_require_explicit_update_and_keep_next_queue_hidden() {
         events.iter().map(|event| event.0).collect::<Vec<_>>()
     });
     assert_eq!(next_generation, vec![2]);
+}
+
+#[test]
+fn first_stage_updates_all_registered_event_channels() {
+    let mut world = World::empty();
+    let mut reader = SystemState::<EventReaderParam<FrameEvent>>::new(&mut world).unwrap();
+
+    assert!(world.send_event(FrameEvent(11)));
+    let before_first = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert!(before_first.is_empty());
+
+    world.run_internal_scene_systems_for_stage(SystemStage::First);
+    let after_first = reader.run(&mut world, |mut events| {
+        events.iter().map(|event| event.0).collect::<Vec<_>>()
+    });
+    assert_eq!(after_first, vec![11]);
 }
 
 #[test]
@@ -123,6 +141,7 @@ fn messages_are_retained_until_explicit_clear_independent_of_event_updates() {
 #[test]
 fn event_and_message_clear_boundaries_do_not_cross_channels() {
     let mut world = World::empty();
+    let _event_reader = SystemState::<EventReaderParam<FrameEvent>>::new(&mut world).unwrap();
 
     world.send_event(FrameEvent(1));
     world.send_message(RetainedMessage(9));

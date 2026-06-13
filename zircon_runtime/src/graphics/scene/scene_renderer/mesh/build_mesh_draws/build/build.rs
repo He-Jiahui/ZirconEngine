@@ -12,6 +12,8 @@ use crate::graphics::scene::gpu_scene::{
     GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
 use crate::graphics::scene::resources::{GpuMeshResource, ResourceStreamer};
+use crate::graphics::scene::scene_renderer::lighting::light_buffer::pack_lighting_extract;
+use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::primitives::render_vec4_or;
@@ -82,6 +84,7 @@ pub(crate) fn build_mesh_draws(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
+    shadow_light_slots: Option<&ShadowLightSlotAssignments>,
 ) -> BuiltMeshDraws {
     let build_context = build_mesh_draw_build_context(frame, virtual_geometry_enabled);
     let mut pending_draws = Vec::new();
@@ -94,6 +97,13 @@ pub(crate) fn build_mesh_draws(
             mesh_instance,
         );
     }
+    let mut packed_lights =
+        pack_lighting_extract(&frame.extract.lighting, frame.preview().lighting_enabled);
+    if let Some(shadow_light_slots) = shadow_light_slots {
+        shadow_light_slots
+            .apply_to_packed_lights(&frame.extract.lighting, &mut packed_lights.lights);
+    }
+    gpu_scene.write_lights(device, &packed_lights.lights);
     let (gpu_scene_upload_report, gpu_scene_entries) =
         sync_gpu_scene_pending_draws(device, queue, gpu_scene, &pending_draws);
     let visibility_states = mesh_visibility_states(frame);
@@ -144,13 +154,16 @@ pub(crate) fn build_mesh_draws(
             .into_iter()
             .map(
                 |(indirect_args_offset, original_index, submission_detail, pending_draw)| {
-                    let gpu_scene_instance_span = gpu_scene_entries
+                    let synced_gpu_scene_entry = gpu_scene_entries
                         .get(&render_mesh_stable_instance_key(
                             pending_draw.source_entity,
                             pending_draw.source_draw_ordinal,
                         ))
-                        .map(|entry| (entry.first_instance_index, entry.instance_count))
                         .expect("pending mesh draw must have a synchronized GPUScene entry");
+                    let gpu_scene_instance_span = (
+                        synced_gpu_scene_entry.entry.first_instance_index,
+                        synced_gpu_scene_entry.entry.instance_count,
+                    );
                     let supports_skinned_gpu_skinning =
                         pending_draw.pipeline_key.uses_fallback_shader();
                     let skinned_gpu_source = pending_draw.skinned_gpu_source;
@@ -200,7 +213,7 @@ pub(crate) fn build_mesh_draws(
                     } else {
                         None
                     };
-                    let has_previous_motion_vector_transform = pending_draw
+                    let has_previous_motion_vector_transform = synced_gpu_scene_entry
                         .has_previous_motion_vector_transform
                         && (!skinned_gpu_skinning_enabled
                             || previous_skinned_joint_palette.is_some());
@@ -319,12 +332,18 @@ fn mesh_visibility_states(frame: &ViewportRenderFrame) -> HashMap<EntityId, Mesh
         .collect()
 }
 
+#[derive(Clone, Copy)]
+struct SyncedGpuSceneEntry {
+    entry: GpuSceneEntry,
+    has_previous_motion_vector_transform: bool,
+}
+
 fn sync_gpu_scene_pending_draws(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     gpu_scene: &mut GpuScene,
     pending_draws: &[super::pending_mesh_draw::PendingMeshDraw],
-) -> (GpuSceneUploadReport, HashMap<u64, GpuSceneEntry>) {
+) -> (GpuSceneUploadReport, HashMap<u64, SyncedGpuSceneEntry>) {
     let mut live_keys = HashSet::new();
     let mut entries = HashMap::new();
     for pending_draw in pending_draws {
@@ -334,13 +353,32 @@ fn sync_gpu_scene_pending_draws(
         );
         live_keys.insert(stable_instance_key);
         let entry = gpu_scene.register(device, stable_instance_key, 1);
-        gpu_scene.write_primitive(entry, primitive_data_for_pending_draw(pending_draw, entry));
+        let (previous_model_matrix, has_previous_motion_vector_transform) =
+            previous_model_matrix_for_gpu_scene_entry(gpu_scene, pending_draw, entry);
+        gpu_scene.write_primitive(
+            entry,
+            primitive_data_for_pending_draw(
+                pending_draw,
+                entry,
+                has_previous_motion_vector_transform,
+            ),
+        );
         gpu_scene.write_instances(
             entry,
-            &[instance_data_for_pending_draw(pending_draw, entry)],
+            &[instance_data_for_pending_draw(
+                pending_draw,
+                entry,
+                previous_model_matrix,
+            )],
         );
         gpu_scene.set_transform_revision(stable_instance_key, pending_draw.transform_revision);
-        entries.insert(stable_instance_key, entry);
+        entries.insert(
+            stable_instance_key,
+            SyncedGpuSceneEntry {
+                entry,
+                has_previous_motion_vector_transform,
+            },
+        );
     }
     gpu_scene.retain_registered_keys(&live_keys);
     (gpu_scene.flush_updates(queue), entries)
@@ -349,12 +387,13 @@ fn sync_gpu_scene_pending_draws(
 fn primitive_data_for_pending_draw(
     pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
     entry: GpuSceneEntry,
+    has_previous_motion_vector_transform: bool,
 ) -> GpuPrimitiveData {
     let mut flags = GPU_PRIMITIVE_FLAG_VISIBLE;
     if pending_draw.cast_shadows {
         flags |= GPU_PRIMITIVE_FLAG_CAST_SHADOWS;
     }
-    if pending_draw.has_previous_motion_vector_transform {
+    if has_previous_motion_vector_transform {
         flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
     }
 
@@ -367,7 +406,10 @@ fn primitive_data_for_pending_draw(
         bounds_radius: approximate_transform_radius(&pending_draw.model_matrix),
         tint: render_vec4_or(pending_draw.draw_tint, RenderVec4::ONE).to_array(),
         shadow_params: shadow_params_from_pending_draw(pending_draw),
-        motion_params: motion_params_from_pending_draw(pending_draw),
+        motion_params: motion_params_from_pending_draw(
+            pending_draw,
+            has_previous_motion_vector_transform,
+        ),
         flags,
         first_instance_index: entry.first_instance_index,
         instance_count: entry.instance_count,
@@ -378,15 +420,31 @@ fn primitive_data_for_pending_draw(
 fn instance_data_for_pending_draw(
     pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
     entry: GpuSceneEntry,
+    previous_model_matrix: [[f32; 4]; 4],
 ) -> GpuInstanceData {
     GpuInstanceData {
         world_from_local: pending_draw.model_matrix,
-        prev_world_from_local: pending_draw.previous_model_matrix,
+        prev_world_from_local: previous_model_matrix,
         primitive_index: entry.primitive_index,
         flags: 0,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
         _pad0: 0,
     }
+}
+
+fn previous_model_matrix_for_gpu_scene_entry(
+    gpu_scene: &GpuScene,
+    pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
+    entry: GpuSceneEntry,
+) -> ([[f32; 4]; 4], bool) {
+    if pending_draw.has_previous_motion_vector_transform {
+        return (pending_draw.previous_model_matrix, true);
+    }
+
+    gpu_scene
+        .previous_world_from_local(entry)
+        .map(|previous| (previous, true))
+        .unwrap_or((pending_draw.model_matrix, false))
 }
 
 fn shadow_params_from_pending_draw(
@@ -418,16 +476,17 @@ fn shadow_params_from_pending_draw(
 
 fn motion_params_from_pending_draw(
     pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
+    has_previous_motion_vector_transform: bool,
 ) -> [f32; 4] {
     [
-        if pending_draw.has_previous_motion_vector_transform {
+        if has_previous_motion_vector_transform {
             1.0
         } else {
             0.0
         },
         if pending_draw.skinned { 1.0 } else { 0.0 },
         if pending_draw.skinned
-            && pending_draw.has_previous_motion_vector_transform
+            && has_previous_motion_vector_transform
             && pending_draw.previous_skinned_joint_palette.is_some()
         {
             1.0
@@ -613,14 +672,19 @@ fn submission_detail_from_draw_ref(
 mod tests {
     use super::{phase_ordered_meshes_with_material_offsets, MaterialPhaseSortOffsets};
     use crate::core::framework::render::{
-        FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput, PreviewEnvironmentExtract,
-        RenderFrameExtract, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+        CorePipelineKind, FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput,
+        PreviewEnvironmentExtract, PrimitiveRelevance, RenderFrameExtract, RenderLayerSet,
+        RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
         ViewportCameraSnapshot,
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Transform, UVec2, Vec4};
     use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+    use crate::graphics::visibility::{
+        FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
+        VisibilityViewKey,
+    };
     use crate::graphics::ViewportRenderFrame;
 
     #[test]
@@ -725,6 +789,78 @@ mod tests {
         );
     }
 
+    #[test]
+    fn mesh_visibility_states_preserve_shadow_only_casters() {
+        let frame = ViewportRenderFrame::from_extract(
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(11),
+                RenderSceneSnapshot {
+                    scene: RenderSceneGeometryExtract {
+                        camera: ViewportCameraSnapshot::default(),
+                        meshes: Vec::new(),
+                        directional_lights: Vec::new(),
+                        point_lights: Vec::new(),
+                        spot_lights: Vec::new(),
+                        ambient_lights: Vec::new(),
+                        rect_lights: Vec::new(),
+                    },
+                    overlays: RenderOverlayExtract::default(),
+                    preview: PreviewEnvironmentExtract {
+                        lighting_enabled: true,
+                        skybox_enabled: false,
+                        fallback_skybox: FallbackSkyboxKind::None,
+                        clear_color: Vec4::ZERO,
+                    },
+                    virtual_geometry_debug: None,
+                },
+            ),
+            UVec2::new(320, 240),
+        )
+        .with_frame_visibility(FrameVisibility {
+            entities: vec![1, 2],
+            bounds: vec![
+                VisibilityBounds {
+                    center: crate::core::math::Vec3::new(0.0, 0.0, -5.0),
+                    radius: 1.0,
+                },
+                VisibilityBounds {
+                    center: crate::core::math::Vec3::new(0.0, 8.0, -5.0),
+                    radius: 1.0,
+                },
+            ],
+            relevance: vec![opaque_shadow_relevance(), opaque_shadow_relevance()],
+            relevance_generation: 0,
+            views: vec![
+                ViewVisibilityContext {
+                    view: VisibilityViewKey::MainCamera,
+                    camera: ViewportCameraSnapshot::default(),
+                    visible: vec![0],
+                    stats: ViewCullingStats::default(),
+                },
+                ViewVisibilityContext {
+                    view: VisibilityViewKey::ShadowCascade {
+                        light: 99,
+                        cascade: 0,
+                    },
+                    camera: ViewportCameraSnapshot::default(),
+                    visible: vec![1],
+                    stats: ViewCullingStats::default(),
+                },
+            ],
+        });
+
+        let states = super::mesh_visibility_states(&frame);
+
+        let main_receiver = states.get(&1).expect("main-view receiver state");
+        assert!(main_receiver.main_view_visible);
+        assert!(!main_receiver.shadow_view_visible);
+
+        let shadow_only_caster = states.get(&2).expect("shadow-only caster state");
+        assert!(!shadow_only_caster.main_view_visible);
+        assert!(shadow_only_caster.shadow_view_visible);
+        assert!(shadow_only_caster.relevance.shadow_caster());
+    }
+
     fn test_mesh(node_id: u64) -> RenderMeshSnapshot {
         RenderMeshSnapshot {
             node_id,
@@ -745,5 +881,15 @@ mod tests {
             static_state: Default::default(),
             render_layer_mask: u32::MAX,
         }
+    }
+
+    fn opaque_shadow_relevance() -> PrimitiveRelevance {
+        PrimitiveRelevance::for_mesh_view(
+            &RenderLayerSet::layer(0),
+            CorePipelineKind::Core3d,
+            1,
+            Mobility::Static,
+            RenderMaterialAlphaMode::Opaque,
+        )
     }
 }

@@ -14,6 +14,14 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Public/MeshMaterialShader.h
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/GlobalShader.h
   - dev/Graphics/Packages/com.unity.shadergraph
+  - dev/bevy/crates/bevy_pbr/src/render/mesh.rs
+  - dev/bevy/crates/bevy_mesh/src/lib.rs
+  - dev/bevy/crates/bevy_material/src/specialize.rs
+  - dev/bevy/crates/bevy_shader/src/shader.rs
+  - dev/bevy/crates/bevy_shader/src/shader_cache.rs
+  - dev/bevy/crates/bevy_pbr/src/render/skin.rs
+  - dev/bevy/crates/bevy_pbr/src/render/morph.rs
+  - dev/Fyrox/fyrox-material/src/shader/mod.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
@@ -45,6 +53,21 @@ plan_sources:
 | `dev/Graphics/Packages/com.unity.shadergraph` | shader graph → 模板代码生成:graph 输出函数 + 管线模板拼接(本引擎 zshader/shader_graph 插件的生成式参考);Unity 的 multi_compile/shader_feature 即变体开关先例 |
 
 次参考:`dev/bevy/crates/bevy_pbr`(`MeshPipelineKey` 位打包变体键的 Rust 表达;`StandardMaterial` 的 shader defs 注入)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_pbr/src/render/mesh.rs` | `ShaderVariantKey` 位打包与 pipeline specialization(重点) | `MeshPipelineKey: u64` bitflags 全集与 `MeshPipeline::specialize`(键 → shader defs → pipeline descriptor 的完整链);`ViewKeyCache` 的 per-view 键缓存 |
+| `dev/bevy/crates/bevy_mesh/src/lib.rs` | 变体键维度分段 | `BaseMeshPipelineKey`:几何属性位段独立定义、高位保留给上层键合成(与 `packed_dims` 分段思路同构) |
+| `dev/bevy/crates/bevy_material/src/specialize.rs` | 材质维度进变体键 | `ErasedMaterialPipelineKey` + specializer 函数指针表:材质类型擦除后统一走 `SpecializedMeshPipelines::specialize` |
+| `dev/bevy/crates/bevy_shader/src/shader.rs` | defines header 注入 | `Shader.shader_defs`/`ShaderDefVal`(Bool/Int/UInt 值型 define,等价本计划 `RenderShaderDefinitionValue`) |
+| `dev/bevy/crates/bevy_shader/src/shader_cache.rs` | 模板拼接器 + 变体缓存 | `naga_oil::compose::Composer` 的 include 组合与去重、`global_shader_defs`(平台 capability → define,即 `platform_token` 语义)、编译产物缓存键 |
+| `dev/bevy/crates/bevy_pbr/src/render/skin.rs` | `SkinnedMesh` 几何源(storage palette) | `SkinUniforms::current_buffer/prev_buffer`:palette 升 storage buffer 与 prev palette 双缓冲(配 `skinning.wgsl` 的 uniform/storage 双形态) |
+| `dev/bevy/crates/bevy_pbr/src/render/morph.rs` | `MorphedMesh` 几何源 | morph 权重双帧映射(`prev` 表)与 GPU 权重 buffer 布局(配 `morph.wgsl` 的 `prev_weight_at`) |
+| `dev/Fyrox/fyrox-material/src/shader/mod.rs` | zshader 资产形态与 pass 集合 | `ShaderDefinition`:RON 数据驱动 shader(passes/properties/draw_parameters/disabled_passes),封闭 pass 枚举先例 |
+
+`GeometrySource` × 材质 surface 函数的模板拼接(改名注入 `zr_material_surface`、pass 特化裁剪)无完整 Rust 同类参照(bevy 用 naga_oil import 组合而非 surface 函数模板),实现时以 UE `VertexFactory.h`/`MeshMaterialShader.h` 为唯一样板,按 index §8 第 8 条配对拍测试先行;磁盘变体缓存 + 离线预热同样无 Rust 同类参照(bevy 仅内存缓存),以 UE DDC 思路为样板。
 
 ## 目标架构
 

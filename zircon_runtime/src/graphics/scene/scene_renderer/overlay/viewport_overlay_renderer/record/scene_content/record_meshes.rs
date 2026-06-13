@@ -6,6 +6,7 @@ use crate::graphics::scene::scene_renderer::mesh::{
     build_mesh_pass_command_buffers, MeshDraw, MeshPipelineCache,
 };
 use crate::graphics::scene::scene_renderer::overlay::ViewportOverlayRenderer;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
@@ -22,6 +23,7 @@ impl ViewportOverlayRenderer {
         mesh_pipelines: &mut MeshPipelineCache,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
     ) {
         let command_buffers = build_mesh_pass_command_buffers(mesh_draws, mesh_pipelines);
         let commands = [
@@ -40,6 +42,7 @@ impl ViewportOverlayRenderer {
             mesh_pipelines,
             streamer,
             frame,
+            shadow_atlas_resources,
             None,
             None,
             None,

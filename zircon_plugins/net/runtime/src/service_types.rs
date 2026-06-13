@@ -6,7 +6,6 @@ mod tcp;
 mod udp;
 mod websocket;
 
-use std::net::SocketAddr;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
@@ -65,20 +64,21 @@ impl DefaultNetManager {
     }
 
     pub(in crate::service_types) fn next_connection_id(&self) -> NetConnectionId {
-        NetConnectionId::new(
-            self.state
-                .next_connection_id
-                .fetch_add(1, Ordering::Relaxed)
-                + 1,
-        )
+        self.state.next_connection_id()
     }
 
     pub(in crate::service_types) fn next_route_id(&self) -> NetRouteId {
         NetRouteId::new(self.state.next_route_id.fetch_add(1, Ordering::Relaxed) + 1)
     }
 
-    pub(in crate::service_types) fn endpoint_from_addr(addr: SocketAddr) -> NetEndpoint {
-        NetEndpoint::from(addr)
+    #[cfg(test)]
+    pub(crate) fn shutdown_worker_for_tests(&self) -> crate::worker::NetWorkerShutdownReport {
+        self.state.shutdown_worker_for_tests()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn worker_is_shutdown_for_tests(&self) -> bool {
+        self.state.worker.is_shutdown()
     }
 }
 

@@ -131,6 +131,9 @@ fn query_state_stays_folder_backed_by_query_owner() {
     assert!(
         stats_text.contains("pub struct QueryStateCacheStats")
             && stats_text.contains("pub fn cache_stats(&self) -> QueryStateCacheStats")
+            && stats_text.contains("pub fn record_diagnostics(")
+            && stats_text.contains("ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC")
+            && stats_text.contains("\"ecs.query.archetype_cache_hits\"")
             && stats_text.contains("cache_hits: self.cache_hits")
             && stats_text.contains("candidate_entity_count: self.last_candidate_entity_count"),
         "query_state/stats.rs must expose the Runtime 07 cache telemetry snapshot without moving cache ownership"

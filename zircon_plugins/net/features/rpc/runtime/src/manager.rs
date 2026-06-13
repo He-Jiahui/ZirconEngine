@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use zircon_runtime::core::framework::net::RpcInvocationDescriptor;
 
+pub use handshake::{NetRpcHandshakeFrame, RPC_HANDSHAKE_CAPABILITY_NET_RPC, RPC_HANDSHAKE_MAGIC};
 pub use state::NetRpcRuntimeManager;
 
 const RPC_PROTOCOL_VERSION: u32 = 1;

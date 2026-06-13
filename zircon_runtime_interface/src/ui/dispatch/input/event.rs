@@ -21,6 +21,8 @@ pub enum UiInputEvent {
     DragDrop(UiDragDropInputEvent),
     Popup(UiPopupInputEvent),
     TooltipTimer(UiTooltipTimerInputEvent),
+    TypeaheadTimer(UiTypeaheadTimerInputEvent),
+    SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent),
     Accessibility(UiAccessibilityInputEvent),
 }
 
@@ -194,6 +196,19 @@ pub struct UiTooltipTimerInputEvent {
     pub tooltip_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub owner: Option<UiNodeId>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiTypeaheadTimerInputEvent {
+    pub metadata: UiInputEventMetadata,
+    pub target: UiNodeId,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiSubmenuHoverTimerInputEvent {
+    pub metadata: UiInputEventMetadata,
+    pub target: UiNodeId,
+    pub option_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

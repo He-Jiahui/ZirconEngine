@@ -333,9 +333,9 @@ fn event_and_message_batch_writers_preallocate_from_size_hint() {
 #[test]
 fn event_and_message_type_name_lists_preallocate_from_registered_type_count() {
     let events_source = include_str!("../ecs/events.rs");
-    assert!(events_source.contains("let mut names = Vec::with_capacity(self.type_names.len());"));
-    assert!(events_source.contains("for name in self.type_names.values()"));
-    assert!(events_source.contains("names.push(*name);"));
+    assert!(events_source.contains("let mut names = Vec::with_capacity(self.channels.len());"));
+    assert!(events_source.contains("for channel in &self.channels"));
+    assert!(events_source.contains("names.push(channel.type_name);"));
     assert!(!events_source.contains("self.type_names.values().copied().collect::<Vec<_>>()"));
 
     let messages_source = include_str!("../ecs/messages.rs");
@@ -373,12 +373,9 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
         })
         .expect("read EventCursor::unread_count body");
     let event_store_lookup_source = events_source
-        .split("pub fn events<T: 'static + Send + Sync>(&self) -> Option<&Events<T>>")
+        .split("pub fn events<T: Event>(&self) -> Option<&Events<T>>")
         .nth(1)
-        .and_then(|text| {
-            text.split("pub fn events_mut<T: 'static + Send + Sync>")
-                .next()
-        })
+        .and_then(|text| text.split("pub fn events_by_id<T: Event>").next())
         .expect("read EventStore::events body");
 
     assert!(event_unread_source.contains("let Some(events) = events else"));
@@ -390,8 +387,13 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
     assert!(event_unread_source.contains("events.len()"));
     assert!(!event_unread_source.contains(".map(|events|"));
     assert!(!event_unread_source.contains(".unwrap_or_default()"));
-    assert!(event_store_lookup_source.contains("let store = self.stores.get(&TypeId::of::<T>())?;"));
-    assert!(event_store_lookup_source.contains("store.downcast_ref::<Events<T>>()"));
+    assert!(event_store_lookup_source.contains("let event_type_id = self.event_type_id::<T>()?;"));
+    assert!(event_store_lookup_source.contains("self.events_by_id(event_type_id)"));
+    assert!(
+        events_source.contains("pub fn events_by_id<T: Event>(&self, event_type_id: EventTypeId)")
+    );
+    assert!(events_source.contains("let channel = self.channel(event_type_id)?;"));
+    assert!(events_source.contains("channel.events.as_any().downcast_ref::<Events<T>>()"));
     assert!(
         !event_store_lookup_source.contains(".and_then(|store| store.downcast_ref::<Events<T>>())")
     );

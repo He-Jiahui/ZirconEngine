@@ -719,6 +719,7 @@ mod tests {
             GpuSceneStats {
                 primitive_count: 5,
                 instance_count: 7,
+                light_count: 11,
                 dirty_entry_count: 3,
                 uploaded_bytes: 99,
                 primitive_capacity: 1024,

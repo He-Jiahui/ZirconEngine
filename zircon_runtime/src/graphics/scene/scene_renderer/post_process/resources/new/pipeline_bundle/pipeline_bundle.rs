@@ -13,10 +13,6 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_neighbor_max_pipeline:
         wgpu::RenderPipeline,
-    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) screen_space_reflection_depth_pyramid_pipeline:
-        wgpu::RenderPipeline,
-    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) screen_space_reflection_depth_pyramid_coarse_pipeline:
-        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) screen_space_reflection_reflection_pyramid_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) screen_space_reflection_reflection_pyramid_coarse_pipeline:

@@ -150,3 +150,15 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_bui
 - macOS 签名/公证与 Linux 打包格式各有平台债：M3 先交付"未签名可运行 bundle"，签名链路单列后续项。
 - 资产依赖闭包要求 importer 输出完整引用图；缺口由 asset 管线侧（`docs/zircon_runtime/asset/management.md` 体系）补齐，导出侧只消费——M2-T3 前需确认引用图覆盖（gltf 子资产/材质纹理引用为高风险点）。
 - 确定性 pack 的双跑比对对压缩器版本敏感；压缩算法与版本锁进 `format_version`。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，导出流程与平台胶水对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| 导出 preset/平台导出器/模板注入（最重要） | `dev/godot/editor/export/`（`editor_export_platform.*`、`editor_export.cpp`、`codesign.*`） | per-platform preset 字段、模板版本匹配校验、pck 注入流程、签名链路的阶段划分——M1/M3 的判例 |
+| 各平台打包胶水（bundle 格式/图标/启动器） | `dev/godot/platform/`（windows/linuxbsd/macos 子目录的 export 部分） | 平台 bundle 目录布局、可执行重命名与资源嵌入方式 |
+| pck/资产包格式 | `dev/godot/core/io/`（pck_packer/file_access_pack 相关） | 索引+偏移的包布局、运行期挂载——zrpack 自有格式（内容寻址）但挂载形态可借鉴 |
+| 模块化目标/构建编排 | `dev/UnrealEngine/Engine/Source/Runtime/`（模块划分形态）+ 仓内 `tools/zircon_build.py` | target×platform 维度的构建矩阵组织 |
+

@@ -264,3 +264,18 @@ winit EventLoop（editor UiHostWindow / runtime preview window）
 - `interaction_gate`（disabled 判定）保持唯一守门员；input manager 不绕过它。
 - 本计划不改 viewport 内 3D 交互（picking/gizmo 归 scene 路径），只保证 viewport 节点能拿到原始指针事件并声明 capture。
 - interface 层 DTO 变更集中在 M1.S4 一次完成，禁止里程碑间反复改 ABI。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| 统一入口与路由次序 | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h` | `dev/UnrealEngine/Engine/Source/Runtime/ApplicationCore/Public/GenericPlatform/GenericApplicationMessageHandler.h` | RoutePointerDownEvent 等的 capture/preview(tunnel)/bubble 路由编排、合成 click/double-click 规则 |
+| Reply 副作用模型 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/Reply.h` | — | CaptureMouse/SetUserFocus/BeginDragDrop/ReleaseMouseCapture 的声明式副作用集合与互斥规则 |
+| 命中/焦点路径 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/WidgetPath.h`（+ .inl） | `dev/slint/internal/core/item_focus.rs` | widget path 的构建/失效与按路径派发；Slint 的焦点链遍历 |
+| winit 事件翻译单实现 | `dev/bevy/crates/bevy_winit` | `dev/bevy/crates/bevy_input` | winit → 引擎事件的归一化分层（converters）、设备 id/触摸 phase 处理 |
+| Tab/方向键导航 | `dev/bevy/crates/bevy_input_focus` | `dev/Fyrox/fyrox-ui/src/navigation.rs` | 焦点遍历策略与可聚焦判定 |
+| 消息式 UI 事件对照 | `dev/Fyrox/fyrox-ui/src/message.rs`、`input.rs`、`key.rs` | — | Fyrox 的 routed message（Direction::FromWidget/ToWidget）与本计划 preview/bubble 的对应关系 |
+| popup 外点关闭/菜单 | `dev/godot/scene/gui/popup.cpp`、`popup_menu.cpp` | `dev/Fyrox/fyrox-ui/src/dropdown_menu.rs` | 瞬态层关闭判定、菜单键盘导航与 hover 展开 |
+| 拖拽阈值/延迟拖拽 | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/DelayedDrag.h` | `dev/godot/scene/gui/control.cpp` | 按下后位移阈值才进入 drag 的标准行为 |

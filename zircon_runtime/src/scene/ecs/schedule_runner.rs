@@ -19,6 +19,12 @@ impl SceneScheduleRunner {
         native_steps: &[ScheduledSceneStep],
         hooks: &[SceneRuntimeHookRegistration],
     ) -> Result<(), CoreError> {
+        crate::profile_dynamic_scope!(
+            "runtime",
+            "frame",
+            format!("runtime_frame_schedule_stage.{stage:?}"),
+        );
+
         level.with_world_mut(|world| world.set_scene_system_flush_deferred(true));
 
         let result = (|| {
@@ -33,7 +39,10 @@ impl SceneScheduleRunner {
                         level.with_world_mut(|world| {
                             world.run_internal_scene_system(system.system())
                         });
-                        if system.system() != InternalSceneSystem::ApplyDeferred {
+                        if !matches!(
+                            system.system(),
+                            InternalSceneSystem::ApplyDeferred | InternalSceneSystem::UpdateEvents
+                        ) {
                             level.with_world_mut(|world| world.apply_deferred());
                         }
                     }

@@ -9,6 +9,11 @@ related_code:
   - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeRDG/Shaders/Private/NNEHlslShaders/NNEHlslShadersGemm.usf
   - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeBasicCpu/Source/NNERuntimeBasicCpu/Private/NNERuntimeBasicCpuModel.h
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/MipGen/MipGenerator.cs
+  - dev/bevy/crates/bevy_render/src/gpu_readback.rs
+  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs
+  - dev/learn-wgpu-zh/code/utils/src/node/compute_node.rs
+  - dev/learn-wgpu-zh/code/intermediate/compute-pipeline/src/blur_node.rs
 plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/多插件组合可选功能规则设计.md
@@ -37,6 +42,18 @@ plan_sources:
 | `dev/Graphics/.../Runtime/MipGen/MipGenerator.cs` | 通用 compute pass 封装的最小形态(绑定/dispatch/链式 reduce) |
 
 次参考:`dev/learn-wgpu-zh` compute 章节(wgpu compute 基础范式);wgpu `Limits`(workgroup 尺寸/storage 大小约束进 capability gate)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/gpu_readback.rs` | `GpuReadbackQueue` 直接对应:buffer/texture 异步回读的完整 Rust/wgpu 实绩(staging 池、`map_async` 收口、跨帧回调) | `GpuReadbackBufferPool`(按帧计数复用/`max_unused_frames` 过期)、readback 生命周期 prepare→copy→map→事件派发;对照差异:bevy 按 ECS 组件驱动,Zircon 走 ticket + 回调 |
+| `dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs` | `compute_pipeline_cache.rs` 对应:compute pipeline 的缓存键控与异步创建状态机 | `Pipeline::ComputePipeline` 分支、`CachedPipelineState::{Queued,Creating,Ok}`、`create_pipeline_task` 与同步编译回落开关 |
+| `dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs` | CN-M1 迁移示范同型:内建 reduce 系统经统一 compute 组织(job 注册 → pipeline 特化 → dispatch) | `MipGenerationJobs`/`MipGenerationPhaseId`(phase 锚点)、`SpecializedComputePipelines` 特化键控、WGSL 模板文本替换(与 `shader_templates.rs` 同手法) |
+| `dev/learn-wgpu-zh/code/utils/src/node/compute_node.rs` | 通用 compute pass 最小封装:`ComputeNode`(pipeline + bind groups + dispatch 四元组) | `wgpu::ComputePipelineDescriptor` 创建、`dispatch_by_offsets` 的 dynamic uniform offset 与 workgroup 计数 —— `"compute.generic"` executor 录制路径的最小对照 |
+| `dev/learn-wgpu-zh/code/intermediate/compute-pipeline/src/blur_node.rs` | compute pass 链(横/纵两 dispatch 交替读写)的教学级实绩 | ping-pong 绑定组织与 `dispatch_workgroups` 的 div_ceil 计算(对照 `PerPixel` 变体) |
+
+`NN 算子库(GEMM/Conv2d/池化/归一化的 compute 化)` 无 Rust 渲染内嵌同类参照,实现时以 UE NNERuntimeRDG 为唯一样板,按 index §8 第 8 条配对拍测试先行(CPU 解释档即对拍基准)。
 
 ## 目标架构
 

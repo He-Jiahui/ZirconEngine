@@ -94,8 +94,30 @@ fn menu() -> UiComponentDescriptor {
                 composite("Menu", "Menu", UiComponentCategory::Input, "menu")
                     .with_prop(bool_prop("open", false)),
                 [
+                    options_prop(),
+                    int_prop("focused_index", 0),
+                    array_prop("disabled_options"),
+                    bool_prop("keyboard_navigation", true),
+                    default_string_prop("typeahead_buffer", ""),
+                    bool_prop("typeahead_buffer_expired", false),
+                    int_prop("typeahead_timeout_ms", 500),
+                    bool_prop("allow_search", true),
+                    int_prop("search_bar_enabled_on_item_count", 0),
+                    default_string_prop("search_query", ""),
+                    array_prop("filtered_option_ids"),
+                    bool_prop("filter_no_results", false),
+                    default_string_prop("hovered_option_id", ""),
+                    default_string_prop("submenu_pending_option_id", ""),
+                    default_string_prop("submenu_open_option_id", ""),
+                    bool_prop("submenu_hover_ready", false),
+                    int_prop("submenu_hover_delay_ms", 300),
+                    default_string_prop("submenu_focus_scope", "root"),
+                    int_prop("submenu_active_parent_index", -1),
+                    bool_prop("submenu_focus_loop", true),
                     bool_prop("autoFocus", true),
                     bool_prop("disableAutoFocusItem", false),
+                    bool_prop("disabledItemsFocusable", false),
+                    bool_prop("disableListWrap", false),
                     default_string_prop("transitionDuration", "auto"),
                     mui_enum_prop("variant", "selectedMenu", ["menu", "selectedMenu"]),
                 ],
@@ -105,7 +127,14 @@ fn menu() -> UiComponentDescriptor {
         ["paper", "list", "transition"],
     )
     .slot(multi_slot("items"))
-    .event(UiComponentEventKind::Commit)
+    .events([
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::KeyboardText,
+        UiComponentEventKind::TypeaheadExpired,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::Commit,
+    ])
 }
 
 fn menubar() -> UiComponentDescriptor {
@@ -181,12 +210,16 @@ fn tabs() -> UiComponentDescriptor {
             composite("Tabs", "Tabs", UiComponentCategory::Container, "tabs"),
             [
                 value_text_prop(),
+                options_prop(),
+                int_prop("selected_index", 0),
+                int_prop("focused_index", 0),
                 default_string_prop("component", "div"),
                 bool_prop("centered", false),
                 bool_prop("allowScrollButtonsMobile", false),
                 mui_enum_prop("indicatorColor", "primary", ["primary", "secondary"]),
                 mui_enum_prop("orientation", "horizontal", ORIENTATIONS),
                 mui_enum_prop("scrollButtons", "auto", ["auto", "false", "true"]),
+                bool_prop("selection_follows_focus", false),
                 bool_prop("selectionFollowsFocus", false),
                 mui_enum_prop("textColor", "primary", ["inherit", "primary", "secondary"]),
                 mui_enum_prop(
@@ -208,7 +241,10 @@ fn tabs() -> UiComponentDescriptor {
     )
     .slot(multi_slot("tabs"))
     .slot(multi_slot("panels"))
-    .event(UiComponentEventKind::ValueChanged)
+    .events([
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::ValueChanged,
+    ])
 }
 
 fn add_props<const N: usize>(

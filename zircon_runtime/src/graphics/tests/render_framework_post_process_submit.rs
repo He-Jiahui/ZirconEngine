@@ -136,6 +136,14 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
             stats.last_graph_executed_executor_ids
         );
     }
+    assert!(
+        !stats
+            .last_graph_executed_passes
+            .iter()
+            .any(|pass| pass == "hzb-occlusion-cull"),
+        "headless WGPU lacks gpu-driven submission, so HZB occlusion should fall back to CPU visibility; executed={:?}",
+        stats.last_graph_executed_passes
+    );
     assert_eq!(
         stats
             .last_graph_execution_coverage_report
@@ -148,6 +156,22 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
             .unexpected_executed_pass_count,
         0
     );
+    assert!(!stats.last_hzb_occlusion_reported);
+    assert_eq!(stats.last_hzb_occlusion_candidate_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_candidate_instance_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_dispatch_group_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 0);
+    assert!(!stats.last_hzb_occlusion_history_available);
+    assert!(!stats.last_hzb_occlusion_readback_available);
+    assert_eq!(stats.last_hzb_occlusion_tested_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_tested_instance_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_culled_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_culled_instance_count, 0);
+    assert!(!stats.last_hzb_occlusion_indirect_args_readback_available);
+    assert_eq!(stats.last_hzb_occlusion_readback_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 0);
     assert!(stats
         .last_post_process_graph_executed_nodes
         .contains(&"effect-stack".to_string()));
@@ -194,16 +218,8 @@ const ADVANCED_POST_PROCESS_GRAPH_PASSES: &[(&str, &str)] = &[
     ),
     ("depth-of-field-prepare", "post.depth-of-field-prepare"),
     (
-        "screen-space-reflection-depth-pyramid",
-        "post.screen-space-reflection-depth-pyramid",
-    ),
-    (
         "screen-space-reflection-reflection-pyramid",
         "post.screen-space-reflection-reflection-pyramid",
-    ),
-    (
-        "screen-space-reflection-depth-pyramid-coarse",
-        "post.screen-space-reflection-depth-pyramid-coarse",
     ),
     (
         "screen-space-reflection-reflection-pyramid-coarse",

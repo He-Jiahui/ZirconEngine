@@ -50,6 +50,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
   - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/resolver.rs
   - zircon_runtime/src/asset/pipeline/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
@@ -476,7 +477,7 @@ runtime sidecar meta 文件当前固定为 `foo.ext.zmeta`，至少记录：
 
 - 基于 project scan 建 catalog
 - 载入 runtime `*.zmeta`，同时保留 editor-owned `*.editor.meta.toml`
-- 解析 material/scene 直接引用
+- 解析 material/scene/UI icon 直接引用；`UiTheme` 作为自包含 theme document 不产生直接依赖，`UiIcon` 的外部 SVG/bitmap source URI 进入引用图
 - 维护“谁引用我 / 我引用谁”的直接引用图
 - 管理 `library/editor-previews/` 的缓存路径和 dirty/visible refresh 策略
 

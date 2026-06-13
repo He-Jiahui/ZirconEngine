@@ -2,9 +2,14 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::bridge::PluginInterface;
 use crate::core::CoreHandle;
-use crate::plugin::{CapabilityStatus, RuntimeExtensionRegistry};
+use crate::plugin::{
+    CapabilityStatus, PluginFeatureBundleManifest, PluginModuleManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry,
+};
 use crate::plugin::{RuntimeExtensionRegistryError, StrongBridge, WeakBridge};
 use crate::scene::World;
+
+use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 #[derive(Clone, Debug, Default)]
 pub struct CapabilityView {
@@ -20,6 +25,24 @@ impl CapabilityView {
         }
     }
 
+    /// Builds the finish-phase view from registered plugin and feature reports only.
+    ///
+    /// Feature declarations embedded in a package manifest are intentionally omitted here until
+    /// they become concrete feature registration reports.
+    pub fn from_registration_reports<'a>(
+        registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = &'a RuntimePluginFeatureRegistrationReport>,
+    ) -> Self {
+        let mut view = Self::default();
+        for registration in registrations {
+            view.extend_package_manifest(&registration.package_manifest);
+        }
+        for feature_registration in feature_registrations {
+            view.extend_feature_manifest(&feature_registration.manifest);
+        }
+        view
+    }
+
     pub fn has(&self, capability: &str) -> bool {
         self.provided.contains(capability)
     }
@@ -33,6 +56,35 @@ impl CapabilityView {
         self.provided.insert(capability.clone());
         self.statuses.insert(capability, status);
         self
+    }
+
+    fn extend_package_manifest(&mut self, manifest: &PluginPackageManifest) {
+        self.extend_capabilities(manifest.capabilities.iter());
+        self.extend_module_capabilities(manifest.modules.iter());
+        for status in &manifest.capability_statuses {
+            self.provided.insert(status.capability.clone());
+            self.statuses
+                .entry(status.capability.clone())
+                .or_insert(status.status);
+        }
+    }
+
+    fn extend_feature_manifest(&mut self, manifest: &PluginFeatureBundleManifest) {
+        self.extend_capabilities(manifest.capabilities.iter());
+        self.extend_module_capabilities(manifest.modules.iter());
+    }
+
+    fn extend_module_capabilities<'a>(
+        &mut self,
+        modules: impl IntoIterator<Item = &'a PluginModuleManifest>,
+    ) {
+        for module in modules {
+            self.extend_capabilities(module.capabilities.iter());
+        }
+    }
+
+    fn extend_capabilities<'a>(&mut self, capabilities: impl IntoIterator<Item = &'a String>) {
+        self.provided.extend(capabilities.into_iter().cloned());
     }
 }
 

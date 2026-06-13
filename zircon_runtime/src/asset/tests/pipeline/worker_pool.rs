@@ -1,12 +1,15 @@
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::pipeline::types::{
     AssetRequest, CpuAssetPayload, CpuTexturePayload, TextureSource,
 };
 use crate::asset::pipeline::worker_pool::{
-    AssetWorkerPool, AssetWorkerPoolOptions, ASSET_WORKER_COMPLETED_DIAGNOSTIC,
+    AssetWorkerPool, AssetWorkerPoolOptions, AssetWorkerThreadBudgetSource,
+    ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC, ASSET_WORKER_COMPLETED_DIAGNOSTIC,
     ASSET_WORKER_FAILED_DIAGNOSTIC, ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
     ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
 };
 use crate::core::diagnostics::DiagnosticStore;
+use crate::core::runtime::tasks::TaskPoolOptions;
 
 #[test]
 fn worker_pool_completes_builtin_texture_requests() {
@@ -36,6 +39,48 @@ fn worker_pool_unbounded_mode_is_explicit_opt_in() {
 
     assert_eq!(pool.options(), &options);
     assert_eq!(pool.options().queue_depth, None);
+    assert_eq!(
+        pool.options().thread_budget_source,
+        AssetWorkerThreadBudgetSource::Explicit
+    );
+}
+
+#[test]
+fn worker_pool_options_can_derive_threads_from_runtime_io_budget() {
+    let options =
+        AssetWorkerPoolOptions::from_task_pool_options(&TaskPoolOptions::with_num_threads(8), 8);
+
+    assert_eq!(options.worker_count, 2);
+    assert_eq!(
+        options.thread_budget_source,
+        AssetWorkerThreadBudgetSource::TaskPoolIo
+    );
+}
+
+#[test]
+fn project_asset_manager_default_workers_use_runtime_io_budget_source() {
+    let manager = ProjectAssetManager::default();
+    let available_parallelism = std::thread::available_parallelism().map_or(1, |value| value.get());
+    let expected_options = AssetWorkerPoolOptions::from_task_pool_options(
+        &TaskPoolOptions::default(),
+        available_parallelism,
+    );
+
+    assert_eq!(
+        manager.default_worker_count(),
+        expected_options.worker_count
+    );
+    assert_eq!(
+        manager.default_worker_budget_source(),
+        AssetWorkerThreadBudgetSource::TaskPoolIo
+    );
+
+    let explicit_manager = ProjectAssetManager::new(3);
+    assert_eq!(explicit_manager.default_worker_count(), 3);
+    assert_eq!(
+        explicit_manager.default_worker_budget_source(),
+        AssetWorkerThreadBudgetSource::Explicit
+    );
 }
 
 #[test]
@@ -108,6 +153,11 @@ fn worker_pool_diagnostics_track_in_flight_and_failure_counts() {
         message: "decode failed".to_string(),
     });
     let diagnostics = pool.diagnostics();
+    assert_eq!(
+        diagnostics.thread_budget_source,
+        AssetWorkerThreadBudgetSource::Explicit
+    );
+    assert_eq!(diagnostics.budgeted_threads, 1);
     assert_eq!(diagnostics.in_flight, 0);
     assert_eq!(diagnostics.completed, 1);
     assert_eq!(diagnostics.failed, 1);
@@ -131,6 +181,10 @@ fn worker_pool_diagnostics_track_in_flight_and_failure_counts() {
     );
     assert_eq!(
         diagnostic_current(&snapshot, ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC),
+        Some(1.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC),
         Some(1.0)
     );
 }

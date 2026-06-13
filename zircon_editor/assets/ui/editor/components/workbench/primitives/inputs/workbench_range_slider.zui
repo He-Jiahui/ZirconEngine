@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui"
+version = 2
+display_name = "Workbench Range Slider"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchRangeSlider]
+root = "root"
+default_classes = ["workbench-slider", "workbench-range-slider", "workbench-primitive"]
+
+[nodes.root]
+component = "RangeSlider"
+control_id = "WorkbenchRangeSliderRoot"
+classes = ["workbench-slider", "workbench-range-slider"]
+props = { label_text = "Range", range_min = 20.0, value = 80.0, range_min_percent = 0.2, value_percent = 0.8, value_text = "0.80", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, validation_level = "normal", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0, layout_min_height = 42.0, layout_icon_size = 11.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 46.0, max = 50.0, stretch = "Fixed" } }

@@ -131,6 +131,7 @@ fn editor_data_fixture() -> EditorDataSnapshot {
         project_open: true,
         can_undo: true,
         can_redo: false,
+        bridge_diagnostics: Default::default(),
     }
 }
 

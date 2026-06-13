@@ -1,8 +1,14 @@
 use std::time::Instant;
 
+use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::Name;
-use crate::scene::ecs::{Changed, Component, InternalSceneSystem, QueryState, SystemState};
+use crate::scene::ecs::{
+    Changed, Component, InternalSceneSystem, QueryState, SystemState,
+    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+};
 use crate::scene::{EntityId, NodeKind, World};
 
 const ENTITY_COUNT: usize = 128;
@@ -29,6 +35,14 @@ fn expected_health_sum(count: usize, offset: u32) -> u64 {
     (0..count)
         .map(|index| u64::from(offset + index as u32))
         .sum()
+}
+
+fn diagnostic_current(snapshot: &DiagnosticStoreSnapshot, path: &str) -> Option<f64> {
+    snapshot
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+        .and_then(|series| series.current)
 }
 
 #[test]
@@ -132,6 +146,54 @@ fn query_state_cache_stats_record_reuse_and_rebuild_counts() {
     assert_eq!(rebuilt.candidate_entity_count, ENTITY_COUNT + 1);
     assert_eq!(rebuilt.matched_entity_count, ENTITY_COUNT + 1);
     assert!(rebuilt.cached_revision > reused.cached_revision);
+
+    let mut diagnostics = DiagnosticStore::default();
+    rebuilt.record_diagnostics(&mut diagnostics, 42);
+    let snapshot = diagnostics.snapshot();
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC),
+        Some(REPEATED_QUERY_RUNS as f64)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC),
+        Some(2.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC),
+        Some(2.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC),
+        Some((ENTITY_COUNT + 1) as f64)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC),
+        Some((ENTITY_COUNT + 1) as f64)
+    );
+}
+
+#[test]
+fn query_state_reuses_archetype_matches_across_unchanged_frames() {
+    let mut world = World::empty();
+    spawn_health_entities(&mut world, ENTITY_COUNT);
+
+    type HealthQuery = QueryState<(EntityId, &'static Health)>;
+    let mut system = SystemState::<HealthQuery>::new(&mut world).unwrap();
+    let initial = system.state().cache_stats();
+    assert_eq!(initial.cache_rebuilds, 1);
+
+    for _ in 0..REPEATED_QUERY_RUNS {
+        let count = system.run(&mut world, |query| query.count());
+        assert_eq!(count, ENTITY_COUNT);
+    }
+
+    let reused = system.state().cache_stats();
+    assert_eq!(reused.cache_hits, REPEATED_QUERY_RUNS as u64);
+    assert_eq!(reused.cache_misses, 1);
+    assert_eq!(reused.cache_rebuilds, initial.cache_rebuilds);
+    assert_eq!(reused.cached_revision, initial.cached_revision);
+    assert_eq!(reused.candidate_entity_count, ENTITY_COUNT);
+    assert_eq!(reused.matched_entity_count, ENTITY_COUNT);
 }
 
 #[test]

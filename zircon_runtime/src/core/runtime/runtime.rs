@@ -48,6 +48,7 @@ impl CoreRuntime {
                 states: Default::default(),
                 scene_hooks: Default::default(),
                 world_extensions: Default::default(),
+                plugin_bridge_lifecycle: Default::default(),
             }),
         }
     }
@@ -205,6 +206,56 @@ impl CoreRuntime {
         extensions: &RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         self.handle().install_world_runtime_extensions(extensions)
+    }
+
+    pub fn install_plugin_bridge_lifecycle_state(
+        &self,
+        state: crate::plugin::RuntimePluginBridgeLifecycleState,
+    ) {
+        self.handle().install_plugin_bridge_lifecycle_state(state);
+    }
+
+    pub fn clear_plugin_bridge_lifecycle_state(
+        &self,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleState> {
+        self.handle().clear_plugin_bridge_lifecycle_state()
+    }
+
+    pub fn plugin_bridge_lifecycle_state(
+        &self,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleState> {
+        self.handle().plugin_bridge_lifecycle_state()
+    }
+
+    pub fn apply_plugin_bridge_lifecycle_event(
+        &self,
+        event: crate::plugin::RuntimePluginBridgeLifecycleEvent,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
+        self.handle().apply_plugin_bridge_lifecycle_event(event)
+    }
+
+    pub fn activate_plugin_bridge_provider_at_frame_boundary(
+        &self,
+        provider_package_id: impl Into<String>,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
+        self.handle()
+            .activate_plugin_bridge_provider_at_frame_boundary(provider_package_id)
+    }
+
+    pub fn disable_plugin_bridge_provider_at_frame_boundary(
+        &self,
+        provider_package_id: impl Into<String>,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
+        self.handle()
+            .disable_plugin_bridge_provider_at_frame_boundary(provider_package_id)
+    }
+
+    pub fn deactivate_plugin_bridge_provider_at_frame_boundary(
+        &self,
+        provider_package_id: impl Into<String>,
+    ) -> Option<crate::plugin::RuntimePluginBridgeLifecycleOutcome> {
+        self.handle()
+            .deactivate_plugin_bridge_provider_at_frame_boundary(provider_package_id)
     }
 
     pub fn init_state<T>(&self) -> StateTransitionEvent<T>

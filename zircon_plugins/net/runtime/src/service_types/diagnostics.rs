@@ -27,6 +27,7 @@ impl DefaultNetManager {
     }
 
     pub(in crate::service_types) fn drain_events_impl(&self, max_events: usize) -> Vec<NetEvent> {
+        self.state.poll_worker_ingress(max_events);
         let mut events = self.state.events.lock().expect("net events mutex poisoned");
         let mut drained = Vec::new();
         while drained.len() < max_events {
@@ -39,6 +40,7 @@ impl DefaultNetManager {
     }
 
     pub(in crate::service_types) fn diagnostics_impl(&self) -> NetDiagnostics {
+        self.state.poll_worker_ingress(usize::MAX);
         NetDiagnostics {
             backend_name: self.backend_name_impl(),
             mode: self.state.mode,

@@ -186,6 +186,60 @@ fn export_archive_policy_is_documented_without_manifest_container_dependency() {
 }
 
 #[test]
+fn physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned() {
+    let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
+    let physics_manifest = read_repo_file("zircon_plugins/physics/runtime/Cargo.toml");
+    let physics_backend = read_repo_file("zircon_plugins/physics/runtime/src/backend.rs");
+    let physics_options = read_repo_file("docs/zircon_plugins/physics-plugin-options.md");
+    let physics_runtime_doc = read_repo_file("docs/zircon_plugins/physics/runtime.md");
+    let manifests = all_manifest_sources();
+
+    let jolt_feature_slots = manifests
+        .iter()
+        .map(|source| source.matches("jolt = []").count())
+        .sum::<usize>();
+    assert_eq!(
+        jolt_feature_slots, 2,
+        "Runtime 01 M3 expects exactly two visible-but-unavailable jolt feature slots"
+    );
+    assert!(
+        runtime_manifest.contains("jolt = []")
+            && physics_manifest.contains("jolt = []"),
+        "the jolt feature slots should stay in the runtime profile and physics plugin manifests until the plugin-owned bridge lands"
+    );
+    assert!(
+        physics_backend.contains("const JOLT_BACKEND_AVAILABLE: bool = false")
+            && physics_backend.contains("PhysicsRuntimeBackend::Unavailable")
+            && physics_backend
+                .contains("feature `jolt` is enabled, but no runtime Jolt backend is linked"),
+        "physics backend source should keep jolt unavailable instead of downgrading it to builtin"
+    );
+    assert!(
+        physics_options.contains("only executable V1 backend")
+            && physics_options.contains("Jolt as the future native backend direction")
+            && physics_options.contains("No Rapier dependency is introduced")
+            && physics_options.contains("never become a `zircon_runtime` dependency")
+            && physics_options.contains("JOLT_BACKEND_AVAILABLE = false"),
+        "physics option decision should keep builtin executable, jolt future/plugin-owned, and rapier out of the primary path"
+    );
+    assert!(
+        physics_runtime_doc.contains("builtin remains the only executable V1 backend")
+            && physics_runtime_doc.contains("Jolt is the future native backend direction")
+            && physics_runtime_doc.contains("Rapier is not introduced on the primary path"),
+        "physics runtime doc should cross-reference the Runtime 01 backend option ruling"
+    );
+
+    for dependency in ["rapier2d", "rapier3d", "avian2d", "avian3d"] {
+        assert!(
+            manifests
+                .iter()
+                .all(|source| !manifest_declares_dependency(source, dependency)),
+            "{dependency} should not enter manifests without a new physics backend decision"
+        );
+    }
+}
+
+#[test]
 fn editor_only_dependency_candidates_have_editor_backlog_owner() {
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
     let backlog =

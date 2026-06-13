@@ -99,13 +99,21 @@ pub(super) fn execute_menu_action(
                     .runtime_play_mode_backend
                     .enter_play_mode(project_root.as_deref())
                 {
-                    Ok(report) if report.is_clean() => {}
-                    Ok(report) => inner.state.set_status_line(format!(
-                        "Entered play mode; native runtime diagnostics: {}",
-                        report.diagnostics.join("; ")
-                    )),
+                    Ok(report) => {
+                        let is_clean = report.is_clean();
+                        inner
+                            .state
+                            .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
+                        if !is_clean {
+                            inner.state.set_status_line(format!(
+                                "Entered play mode; native runtime diagnostics: {}",
+                                report.diagnostics.join("; ")
+                            ));
+                        }
+                    }
                     Err(error) => {
                         let _ = inner.state.exit_play_mode();
+                        inner.state.sync_bridge_diagnostics_matrix(None);
                         return Err(format!("Failed to enter runtime play mode: {error}"));
                     }
                 }
@@ -119,14 +127,24 @@ pub(super) fn execute_menu_action(
             let changed = inner.state.exit_play_mode()?;
             if changed {
                 match inner.runtime_play_mode_backend.exit_play_mode() {
-                    Ok(report) if report.is_clean() => {}
-                    Ok(report) => inner.state.set_status_line(format!(
-                        "Exited play mode; native runtime diagnostics: {}",
-                        report.diagnostics.join("; ")
-                    )),
-                    Err(error) => inner.state.set_status_line(format!(
-                        "Exited play mode; native runtime exit failed: {error}"
-                    )),
+                    Ok(report) => {
+                        let is_clean = report.is_clean();
+                        inner
+                            .state
+                            .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
+                        if !is_clean {
+                            inner.state.set_status_line(format!(
+                                "Exited play mode; native runtime diagnostics: {}",
+                                report.diagnostics.join("; ")
+                            ));
+                        }
+                    }
+                    Err(error) => {
+                        inner.state.sync_bridge_diagnostics_matrix(None);
+                        inner.state.set_status_line(format!(
+                            "Exited play mode; native runtime exit failed: {error}"
+                        ));
+                    }
                 }
             }
             Ok(ExecutionOutcome {

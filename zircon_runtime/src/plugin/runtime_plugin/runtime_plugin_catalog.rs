@@ -2,6 +2,8 @@ use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationRep
 
 mod access;
 mod bridge_dependencies;
+mod bridge_lifecycle;
+mod bridge_lifecycle_state;
 mod contributions;
 mod descriptor_contributions;
 mod diagnostics;
@@ -21,6 +23,7 @@ mod feature_status;
 mod feature_status_record;
 mod feature_support;
 mod features;
+mod lifecycle;
 mod package_feature_definitions;
 mod project;
 mod project_extension_report;
@@ -32,6 +35,14 @@ mod runtime_feature_definitions;
 mod status;
 
 pub use bridge_dependencies::{RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker};
+pub use bridge_lifecycle::{
+    RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
+    RuntimePluginBridgeLifecycleReport,
+};
+pub use bridge_lifecycle_state::{
+    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
+    RuntimePluginBridgeLifecycleState,
+};
 pub use extension_report::RuntimeExtensionCatalogReport;
 pub use feature_report::{RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport};
 

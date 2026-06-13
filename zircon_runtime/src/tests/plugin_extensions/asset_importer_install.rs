@@ -238,7 +238,7 @@ impl RuntimePlugin for WeatherImporterRuntimePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
@@ -282,7 +282,7 @@ impl RuntimePlugin for ShadowedInvalidImporterRuntimePlugin {
             ))
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

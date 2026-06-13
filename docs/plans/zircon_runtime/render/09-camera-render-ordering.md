@@ -11,6 +11,14 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/UniversalAdditionalCameraData.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ScriptableRenderer.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/UniversalRenderPipelineCore.cs
+  - dev/bevy/crates/bevy_camera/src/camera.rs
+  - dev/bevy/crates/bevy_camera/src/clear_color.rs
+  - dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs
+  - dev/bevy/crates/bevy_render/src/camera.rs
+  - dev/bevy/crates/bevy_render/src/render_phase/mod.rs
+  - dev/bevy/crates/bevy_render/src/render_phase/rangefinder.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/core_2d/mod.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -43,6 +51,21 @@ plan_sources:
 | `dev/Graphics/.../Runtime/UniversalRenderPipelineCore.cs` | `CameraData`/`SortingCriteria` 的组织:排序准则位组合(深度、queue、材质 id) |
 
 次参考:`dev/bevy/crates/bevy_render/src/camera/`(`RenderTarget`/`Viewport`/`ClearColorConfig` 的 Rust 契约表达)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_camera/src/camera.rs` | `CameraRenderDescriptor`(order/target/viewport/clear) | `Camera` 组件的 `order: isize`(:355)/`viewport: Option<Viewport>`/`clear_color` 字段与 `RenderTarget`(窗口 / Image / TextureView)枚举 —— 相机契约字段的 Rust 形态 |
+| `dev/bevy/crates/bevy_camera/src/clear_color.rs` | `RenderCameraClear` | `ClearColorConfig`(Default/Custom/None)三态枚举的契约表达 |
+| `dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs` | `RenderLayerSet` 四方共用 mask | `RenderLayers` 以 SmallVec 位集支持 ≥32 layer、`intersects` 过滤 —— 与既有 `RenderLayerSet` 同构,定稿时对照其 API 面 |
+| `dev/bevy/crates/bevy_render/src/camera.rs` | `resolve_camera_sequence` + camera_loop | `sort_cameras`(:674):按 order→target 排序、同 order 同 target 发 ambiguity 警告;`SortedCameras` 驱动逐相机执行的 Rust 同型 |
+| `dev/bevy/crates/bevy_render/src/render_phase/mod.rs` | `phase_queue.rs`/`phase_sort.rs` 改造 | `PhaseItem::sort_key()`(:2091)+ `sort_phase_system`(:2173);Sorted/Binned 双形态 —— 域 A"聚簇优先"即 bin key 思路的单键化 |
+| `dev/bevy/crates/bevy_render/src/render_phase/rangefinder.rs` | 域 A/B 的 effective_depth 来源 | `ViewRangefinder3d::distance`:view 矩阵 row2 点积取 view-space z 作距离键(深度量化的输入定义) |
+| `dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs` | 域 A 不透明聚簇 / 域 B 透明深度 | `Opaque3dBatchSetKey`/`Opaque3dBinKey`(:186/:221,pipeline+material 聚簇键)与 `Transparent3d` 的 `FloatOrd` 距离键(:422)对照 |
+| `dev/bevy/crates/bevy_core_pipeline/src/core_2d/mod.rs` | 域 C 2D 排序 | `Transparent2d.sort_key: FloatOrd`(:312)与 2D phase 划分 —— 单 f32 键与本计划三级字典序(sorting_layer/order/y)的差距即扩展点 |
+
+`RenderQueueValue` 材质 queue 数值段/覆写与相机栈 Base/Overlay 显式契约(bevy 仅有 order + `ClearColorConfig::None` 的隐式叠加拼法,无栈结构)无 Rust 同类参照,实现时以 UE/URP 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

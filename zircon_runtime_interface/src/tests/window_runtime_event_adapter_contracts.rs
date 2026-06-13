@@ -326,6 +326,10 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
         1,
         4,
     ));
+    let ime_cancel = adapt(ZrRuntimeEventV1::ime_disabled(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport(),
+    ));
     let file = adapt(ZrRuntimeEventV1::file_dropped(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport(),
@@ -401,6 +405,15 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
             cursor_range: Some(range),
             ..
         })) if text == "draft" && range.start_byte == 1 && range.end_byte == 4
+    ));
+    assert!(matches!(
+        ime_cancel,
+        UiWindowInputPumpEvent::Input(UiInputEvent::Ime(UiImeInputEvent {
+            kind: UiImeInputEventKind::Cancel,
+            ref text,
+            cursor_range: None,
+            ..
+        })) if text.is_empty()
     ));
     assert!(matches!(
         file,

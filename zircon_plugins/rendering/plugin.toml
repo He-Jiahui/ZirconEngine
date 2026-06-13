@@ -2,7 +2,7 @@ id = "rendering"
 version = "0.1.0"
 display_name = "Rendering"
 category = "rendering"
-description = "Optional rendering feature owner package for post process, SSAO, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
+description = "Optional rendering feature owner package for post process, SSAO, contact shadows, decals, probes, baked lighting, ray tracing policy, shader graph, and VFX graph."
 sdk_api_version = "0.1.0"
 maturity = "stable"
 supported_targets = ["client_runtime", "editor_host"]
@@ -80,6 +80,33 @@ kind = "editor"
 crate_name = "zircon_plugin_rendering_ssao_editor"
 target_modes = ["editor_host"]
 capabilities = ["editor.feature.rendering.ssao"]
+
+[[optional_features]]
+id = "rendering.contact_shadow"
+display_name = "Contact Shadow"
+owner_plugin_id = "rendering"
+capabilities = ["runtime.feature.rendering.contact_shadow"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.plugin.rendering"
+primary = true
+
+[[optional_features.modules]]
+name = "rendering.contact_shadow.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_rendering_contact_shadow_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.rendering.contact_shadow"]
+
+[[optional_features.modules]]
+name = "rendering.contact_shadow.editor"
+kind = "editor"
+crate_name = "zircon_plugin_rendering_contact_shadow_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.feature.rendering.contact_shadow"]
 
 [[optional_features]]
 id = "rendering.decals"

@@ -44,6 +44,8 @@ fn plugin_feature_insert_index(
             index_before_feature_name(features, "clustered_lighting")
                 .or_else(|| index_after_feature_name(features, "shadows"))
         }
+        "contact_shadow" => index_before_feature_name(features, "clustered_lighting")
+            .or_else(|| index_after_feature_name(features, "hzb")),
         "reflection_probes" => index_after_feature_name(features, "bloom"),
         "baked_lighting" => {
             index_after_last_feature_name(features, &["reflection_probes", "bloom"])

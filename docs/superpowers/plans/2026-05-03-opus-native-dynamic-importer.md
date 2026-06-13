@@ -192,7 +192,7 @@ Introduce the split Opus importer package and prove its manifest, registration, 
   pub fn plugin_registration() -> RuntimePluginRegistrationReport {
       let mut extensions = RuntimeExtensionRegistry::default();
       let mut diagnostics = Vec::new();
-      if let Err(error) = register_runtime_extensions(&mut extensions) {
+      if let Err(error) = register(&mut extensions) {
           diagnostics.push(error.to_string());
       }
       RuntimePluginRegistrationReport {
@@ -203,7 +203,7 @@ Introduce the split Opus importer package and prove its manifest, registration, 
       }
   }
 
-  pub fn register_runtime_extensions(
+  pub fn register(
       registry: &mut RuntimeExtensionRegistry,
   ) -> Result<(), RuntimeExtensionRegistryError> {
       registry.register_module(module_descriptor())?;

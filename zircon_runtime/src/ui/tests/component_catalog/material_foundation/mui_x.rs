@@ -21,6 +21,11 @@ fn assert_tree_view(registry: &UiComponentDescriptorRegistry) {
         "checkboxSelection",
         "multiSelect",
         "disabledItemsFocusable",
+        "focused_index",
+        "selected_index",
+        "disabled_options",
+        "selection_follows_focus",
+        "keyboard_navigation",
         "defaultExpandedItems",
         "selectedItems",
         "itemChildrenIndentation",
@@ -30,6 +35,7 @@ fn assert_tree_view(registry: &UiComponentDescriptorRegistry) {
     for slot in ["items", "item", "content", "label", "icon", "checkbox"] {
         assert_has_slot(tree, slot);
     }
+    assert_has_event(tree, UiComponentEventKind::KeyboardAction);
 }
 
 fn assert_data_grid(registry: &UiComponentDescriptorRegistry) {
@@ -52,6 +58,11 @@ fn assert_data_grid(registry: &UiComponentDescriptorRegistry) {
         "hideFooterSelectedRowCount",
         "showCellVerticalBorder",
         "showColumnVerticalBorder",
+        "focused_index",
+        "selected_index",
+        "disabled_options",
+        "selection_follows_focus",
+        "keyboard_navigation",
         "rowSpacingType",
         "scrollbarSize",
         "label",
@@ -82,6 +93,7 @@ fn assert_data_grid(registry: &UiComponentDescriptorRegistry) {
         assert_has_slot(grid, slot);
     }
     assert_has_event(grid, UiComponentEventKind::SetVisibleRange);
+    assert_has_event(grid, UiComponentEventKind::KeyboardAction);
 }
 
 fn assert_date_time_pickers(registry: &UiComponentDescriptorRegistry) {

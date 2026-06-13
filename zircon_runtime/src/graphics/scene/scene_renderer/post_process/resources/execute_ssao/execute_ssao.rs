@@ -39,6 +39,7 @@ impl ScenePostProcessResources {
         viewport_size: UVec2,
         depth_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
+        hzb_furthest_view: &wgpu::TextureView,
         previous_ao_view: Option<&wgpu::TextureView>,
         ao_view: &wgpu::TextureView,
         enabled: bool,
@@ -90,6 +91,10 @@ impl ScenePostProcessResources {
                 wgpu::BindGroupEntry {
                     binding: 4,
                     resource: wgpu::BindingResource::TextureView(ao_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(hzb_furthest_view),
                 },
             ],
         });

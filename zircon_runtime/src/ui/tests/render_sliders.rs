@@ -141,6 +141,86 @@ drop_hovered = true
 }
 
 #[test]
+fn render_extract_expands_range_slider_dual_thumb_primitives() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.range-sliders"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/range-slider"))
+                .with_frame(UiFrame::new(8.0, 12.0, 260.0, 46.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RangeSlider".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+label_text = "Range"
+range_min_percent = 0.2
+value_percent = 0.8
+value_text = "0.80"
+tick_count = 5
+thumb_size = 11.0
+track_color = "#364046"
+value_color = "#35c7d0"
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Range")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(78.0, 33.5, 128.0, 3.0)
+            && command.style.background_color.as_deref() == Some("#364046")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && frame_approx(command.frame, 103.6, 33.5, 76.8, 3.0)
+            && command.style.background_color.as_deref() == Some("#35c7d0")
+    }));
+    assert_eq!(
+        commands
+            .iter()
+            .filter(|command| {
+                command.node_id == UiNodeId::new(2)
+                    && command.kind == UiRenderCommandKind::Quad
+                    && command.frame.width == 11.0
+                    && command.frame.height == 11.0
+                    && command.style.background_color.as_deref() == Some("#c9f2f6")
+            })
+            .count(),
+        2
+    );
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("0.20")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("0.80")
+    }));
+}
+
+#[test]
 fn render_extract_loading_slider_uses_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.sliders.loading"));
     surface.tree.insert_root(
@@ -266,4 +346,11 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn frame_approx(actual: UiFrame, x: f32, y: f32, width: f32, height: f32) -> bool {
+    (actual.x - x).abs() < 0.01
+        && (actual.y - y).abs() < 0.01
+        && (actual.width - width).abs() < 0.01
+        && (actual.height - height).abs() < 0.01
 }

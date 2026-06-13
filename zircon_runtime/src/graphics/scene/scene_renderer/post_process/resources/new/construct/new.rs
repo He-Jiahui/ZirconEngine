@@ -16,6 +16,7 @@ impl ScenePostProcessResources {
         let bloom_bind_group_layout = bind_group_layouts::bloom(device);
         let ssao_bind_group_layout = bind_group_layouts::ssao(device);
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
+        let hzb_bind_group_layout = bind_group_layouts::hzb(device);
         let depth_of_field_prepare_bind_group_layout =
             bind_group_layouts::depth_of_field_prepare(device, depth_sampling_mode);
         let motion_vector_camera_bind_group_layout =
@@ -31,6 +32,7 @@ impl ScenePostProcessResources {
             target_format,
             &bloom_bind_group_layout,
             &cluster_bind_group_layout,
+            &hzb_bind_group_layout,
             &depth_of_field_prepare_bind_group_layout,
             &motion_vector_camera_bind_group_layout,
             &motion_vector_tile_max_bind_group_layout,
@@ -46,6 +48,7 @@ impl ScenePostProcessResources {
             bloom_bind_group_layout,
             ssao_bind_group_layout,
             cluster_bind_group_layout,
+            hzb_bind_group_layout,
             depth_of_field_prepare_bind_group_layout,
             motion_vector_camera_bind_group_layout,
             motion_vector_tile_max_bind_group_layout,
@@ -54,15 +57,12 @@ impl ScenePostProcessResources {
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
             ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
+            hzb_pipeline: pipeline_bundle.hzb_pipeline,
             depth_of_field_prepare_pipeline: pipeline_bundle.depth_of_field_prepare_pipeline,
             motion_vector_camera_pipeline: pipeline_bundle.motion_vector_camera_pipeline,
             motion_vector_tile_max_pipeline: pipeline_bundle.motion_vector_tile_max_pipeline,
             motion_vector_neighbor_max_pipeline: pipeline_bundle
                 .motion_vector_neighbor_max_pipeline,
-            screen_space_reflection_depth_pyramid_pipeline: pipeline_bundle
-                .screen_space_reflection_depth_pyramid_pipeline,
-            screen_space_reflection_depth_pyramid_coarse_pipeline: pipeline_bundle
-                .screen_space_reflection_depth_pyramid_coarse_pipeline,
             screen_space_reflection_reflection_pyramid_pipeline: pipeline_bundle
                 .screen_space_reflection_reflection_pyramid_pipeline,
             screen_space_reflection_reflection_pyramid_coarse_pipeline: pipeline_bundle
@@ -75,6 +75,7 @@ impl ScenePostProcessResources {
             bloom_params_buffer: buffer_bundle.bloom_params_buffer,
             ssao_params_buffer: buffer_bundle.ssao_params_buffer,
             cluster_params_buffer: buffer_bundle.cluster_params_buffer,
+            hzb_params_buffer: buffer_bundle.hzb_params_buffer,
             depth_of_field_prepare_params_buffer: buffer_bundle
                 .depth_of_field_prepare_params_buffer,
             motion_vector_camera_params_buffer: buffer_bundle.motion_vector_camera_params_buffer,
@@ -85,6 +86,7 @@ impl ScenePostProcessResources {
             reflection_probe_buffer: buffer_bundle.reflection_probe_buffer,
             black_texture_view: fallback_texture_views.black_texture_view,
             white_texture_view: fallback_texture_views.white_texture_view,
+            hzb_source_texture_view: fallback_texture_views.hzb_source_texture_view,
             effect_lut_texture_view: fallback_texture_views.effect_lut_texture_view,
             effect_lut_texture_3d_view: fallback_texture_views.effect_lut_texture_3d_view,
             effect_lut_sampler: effect_lut_sampler(device),

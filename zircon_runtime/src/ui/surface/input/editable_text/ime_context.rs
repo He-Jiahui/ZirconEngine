@@ -50,6 +50,8 @@ fn input_event_refreshes_context(event: &UiInputEvent) -> bool {
         | UiInputEvent::DragDrop(_)
         | UiInputEvent::Popup(_)
         | UiInputEvent::TooltipTimer(_)
+        | UiInputEvent::TypeaheadTimer(_)
+        | UiInputEvent::SubmenuHoverTimer(_)
         | UiInputEvent::Accessibility(_) => false,
     }
 }
@@ -61,7 +63,9 @@ fn cursor_rect_for_state(
 ) -> Option<UiFrame> {
     let text_frame = text_frame_for_node(surface, target)?;
     let font_metrics = font_metrics_for_node(surface, target);
-    let (line, column) = line_column_for_offset(&state.text, state.caret.offset);
+    let wrap_columns = wrap_columns_for_node(surface, target, text_frame, font_metrics);
+    let (line, column) =
+        visual_line_column_for_offset(&state.text, state.caret.offset, wrap_columns);
     Some(UiFrame::new(
         text_frame.x + column as f32 * font_metrics.char_advance,
         text_frame.y + line as f32 * font_metrics.line_height,
@@ -85,12 +89,14 @@ fn composition_rects_for_state(
         return Vec::new();
     };
     let font_metrics = font_metrics_for_node(surface, target);
-    vec![range_rect_for_text(
+    let wrap_columns = wrap_columns_for_node(surface, target, text_frame, font_metrics);
+    range_rects_for_text(
         &state.text,
         composition.range,
         text_frame,
         font_metrics,
-    )]
+        wrap_columns,
+    )
 }
 
 fn surrounding_text_for_state(state: &UiEditableTextState) -> Option<UiInputMethodSurroundingText> {
@@ -178,16 +184,111 @@ fn text_frame_for_node(surface: &UiSurface, target: UiNodeId) -> Option<UiFrame>
     ))
 }
 
-fn range_rect_for_text(
+fn range_rects_for_text(
     text: &str,
     range: UiTextRange,
     text_frame: UiFrame,
     font_metrics: FontMetrics,
-) -> UiFrame {
+    wrap_columns: Option<usize>,
+) -> Vec<UiFrame> {
     let start = clamp_text_boundary(text, range.start);
     let end = clamp_text_boundary(text, range.end).max(start);
-    let (line, start_column) = line_column_for_offset(text, start);
-    let (_, end_column) = line_column_for_offset(text, end);
+    let (mut line, mut column) = visual_line_column_for_offset(text, start, wrap_columns);
+    let mut segment_line = line;
+    let mut segment_start_column = column;
+    let mut rects = Vec::new();
+
+    if start == end {
+        rects.push(line_segment_rect(
+            text_frame,
+            font_metrics,
+            line,
+            column,
+            column,
+        ));
+        return rects;
+    }
+
+    for ch in text[start..end].chars() {
+        if ch == '\n' {
+            push_line_segment_rect(
+                &mut rects,
+                text_frame,
+                font_metrics,
+                segment_line,
+                segment_start_column,
+                column,
+            );
+            line += 1;
+            column = 0;
+            segment_line = line;
+            segment_start_column = column;
+            continue;
+        }
+        if wrap_columns.is_some_and(|columns| column >= columns) {
+            push_line_segment_rect(
+                &mut rects,
+                text_frame,
+                font_metrics,
+                segment_line,
+                segment_start_column,
+                column,
+            );
+            line += 1;
+            column = 0;
+            segment_line = line;
+            segment_start_column = column;
+        }
+        column += 1;
+    }
+
+    push_line_segment_rect(
+        &mut rects,
+        text_frame,
+        font_metrics,
+        segment_line,
+        segment_start_column,
+        column,
+    );
+    if rects.is_empty() {
+        rects.push(line_segment_rect(
+            text_frame,
+            font_metrics,
+            segment_line,
+            segment_start_column,
+            column,
+        ));
+    }
+    rects
+}
+
+fn push_line_segment_rect(
+    rects: &mut Vec<UiFrame>,
+    text_frame: UiFrame,
+    font_metrics: FontMetrics,
+    line: usize,
+    start_column: usize,
+    end_column: usize,
+) {
+    if start_column == end_column {
+        return;
+    }
+    rects.push(line_segment_rect(
+        text_frame,
+        font_metrics,
+        line,
+        start_column,
+        end_column,
+    ));
+}
+
+fn line_segment_rect(
+    text_frame: UiFrame,
+    font_metrics: FontMetrics,
+    line: usize,
+    start_column: usize,
+    end_column: usize,
+) -> UiFrame {
     let x = text_frame.x + start_column as f32 * font_metrics.char_advance;
     let width = ((end_column.saturating_sub(start_column)) as f32 * font_metrics.char_advance)
         .max(CARET_WIDTH);
@@ -202,19 +303,60 @@ fn range_rect_for_text(
     )
 }
 
-fn line_column_for_offset(text: &str, offset: usize) -> (usize, usize) {
+fn visual_line_column_for_offset(
+    text: &str,
+    offset: usize,
+    wrap_columns: Option<usize>,
+) -> (usize, usize) {
     let offset = clamp_text_boundary(text, offset);
-    let before = &text[..offset];
-    let line = before
-        .as_bytes()
-        .iter()
-        .filter(|byte| **byte == b'\n')
-        .count();
-    let column_text = before
-        .rsplit_once('\n')
-        .map(|(_, tail)| tail)
-        .unwrap_or(before);
-    (line, column_text.chars().count())
+    let mut line = 0;
+    let mut column = 0;
+    for ch in text[..offset].chars() {
+        if ch == '\n' {
+            line += 1;
+            column = 0;
+        } else {
+            if wrap_columns.is_some_and(|columns| column >= columns) {
+                line += 1;
+                column = 0;
+            }
+            column += 1;
+        }
+    }
+    (line, column)
+}
+
+fn wrap_columns_for_node(
+    surface: &UiSurface,
+    target: UiNodeId,
+    text_frame: UiFrame,
+    font_metrics: FontMetrics,
+) -> Option<usize> {
+    let metadata = surface
+        .tree
+        .nodes
+        .get(&target)
+        .and_then(|node| node.template_metadata.as_ref());
+    let Some(metadata) = metadata else {
+        return None;
+    };
+    let wrap_enabled = metadata
+        .attributes
+        .get("wrap")
+        .and_then(toml::Value::as_str)
+        .map(|wrap| !wrap.eq_ignore_ascii_case("none"))
+        .or_else(|| {
+            metadata
+                .attributes
+                .get("multiline")
+                .and_then(toml::Value::as_bool)
+        })
+        .unwrap_or(false);
+    wrap_enabled.then(|| {
+        (text_frame.width / font_metrics.char_advance)
+            .floor()
+            .max(1.0) as usize
+    })
 }
 
 fn number_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<f32> {

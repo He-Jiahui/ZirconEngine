@@ -198,18 +198,7 @@ fn load_screen_space_reflection_depth_pyramid_coarse(
     if (textureNumLevels(screen_space_reflection_depth_pyramid_tex) > 1u) {
         return load_screen_space_reflection_depth_pyramid_mip(coord, 1u);
     }
-    let source_size = screen_space_reflection_depth_pyramid_size(viewport_size);
-    let target_size = screen_space_reflection_downsampled_size(source_size);
-    let coarse_coord = min(
-        screen_space_reflection_mip_coord(coord, 1u),
-        target_size - vec2<u32>(1u, 1u)
-    );
-    let range = textureLoad(
-        screen_space_reflection_depth_pyramid_coarse_tex,
-        vec2<i32>(coarse_coord),
-        0
-    ).rg;
-    return vec2<f32>(min(range.x, range.y), max(range.x, range.y));
+    return load_screen_space_reflection_depth_pyramid_mip(coord, 0u);
 }
 
 fn screen_space_reflection_depth_pyramid_trace_mip(

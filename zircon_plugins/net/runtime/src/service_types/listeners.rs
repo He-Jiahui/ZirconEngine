@@ -49,13 +49,14 @@ impl DefaultNetManager {
             .tcp_listeners
             .lock()
             .expect("net TCP listeners mutex poisoned")
-            .remove(&listener)
-            .is_some()
+            .contains_key(&listener)
         {
-            self.state.push_event(NetEvent::ListenerClosed {
-                listener,
-                transport: NetTransportKind::Tcp,
-            });
+            self.state.worker.close_tcp_listener(listener)?;
+            self.state
+                .tcp_listeners
+                .lock()
+                .expect("net TCP listeners mutex poisoned")
+                .remove(&listener);
             return Ok(());
         }
 

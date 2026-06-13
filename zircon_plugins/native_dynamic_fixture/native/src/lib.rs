@@ -184,6 +184,7 @@ pub struct NativePluginEntryReportV3 {
     pub diagnostics: *const c_char,
     pub negotiated_capabilities: *const c_char,
     pub behavior: *const NativePluginBehaviorV3,
+    pub bridge_methods: *const NativePluginBridgeMethodTableV3,
 }
 
 #[repr(C)]
@@ -272,6 +273,42 @@ pub struct NativePluginBehaviorV3 {
     pub unload: Option<NativePluginUnloadFnV2>,
 }
 
+#[repr(C)]
+pub struct NativePluginBridgeMethodTableV3 {
+    pub abi_version: u32,
+    pub methods: *const NativePluginBridgeMethodV3,
+    pub method_count: usize,
+}
+
+#[repr(C)]
+pub struct NativePluginBridgeMethodV3 {
+    pub interface_id: *const c_char,
+    pub method_name: *const c_char,
+    pub method: Option<NativePluginBridgeMethodFnV3>,
+    pub user_data: u64,
+}
+
+#[repr(C)]
+pub struct NativePluginBridgeMethodCallV3 {
+    pub interface_slot: u32,
+    pub method_slot: u32,
+    pub payload: NativePluginByteSliceV2,
+    pub output: NativePluginByteBufferRefV3,
+    pub user_data: u64,
+}
+
+#[repr(C)]
+pub struct NativePluginByteBufferRefV3 {
+    pub data: *mut u8,
+    pub len: usize,
+}
+
+#[repr(C)]
+pub struct NativePluginHostStatusV3 {
+    pub code: u32,
+    pub diagnostics: NativePluginByteSliceV2,
+}
+
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
@@ -284,6 +321,8 @@ pub type NativePluginSaveStateFnV2 =
 pub type NativePluginRestoreStateFnV2 =
     unsafe extern "C" fn(NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallbackStatusV2;
+pub type NativePluginBridgeMethodFnV3 =
+    unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> NativePluginHostStatusV3;
 
 struct SyncDescriptorV1(NativePluginAbiV1);
 struct SyncDescriptorV2(NativePluginAbiV2);
@@ -437,6 +476,7 @@ static RUNTIME_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntr
         .cast(),
     negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
     behavior: &RUNTIME_BEHAVIOR_V3.0,
+    bridge_methods: std::ptr::null(),
 });
 
 #[cfg(not(feature = "abi_v2_only"))]
@@ -446,6 +486,7 @@ static EDITOR_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntry
     diagnostics: EDITOR_DIAGNOSTICS_V3.as_ptr().cast(),
     negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
     behavior: &EDITOR_BEHAVIOR_V3.0,
+    bridge_methods: std::ptr::null(),
 });
 
 #[cfg(not(feature = "abi_v2_only"))]
@@ -455,6 +496,7 @@ static MISSING_HOST_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePlugi
     diagnostics: MISSING_HOST_DIAGNOSTICS_V3.as_ptr().cast(),
     negotiated_capabilities: b"\0".as_ptr().cast(),
     behavior: std::ptr::null(),
+    bridge_methods: std::ptr::null(),
 });
 
 #[no_mangle]

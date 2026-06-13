@@ -1,5 +1,7 @@
 use std::ffi::c_char;
 
+use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
+
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
@@ -83,6 +85,7 @@ pub struct NativePluginEntryReportV3 {
     pub diagnostics: *const c_char,
     pub negotiated_capabilities: *const c_char,
     pub behavior: *const NativePluginBehaviorV3,
+    pub bridge_methods: *const NativePluginBridgeMethodTableV3,
 }
 
 #[repr(C)]
@@ -171,6 +174,33 @@ pub struct NativePluginBehaviorV3 {
     pub unload: Option<NativePluginUnloadFnV3>,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBridgeMethodTableV3 {
+    pub abi_version: u32,
+    pub methods: *const NativePluginBridgeMethodV3,
+    pub method_count: usize,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBridgeMethodV3 {
+    pub interface_id: *const c_char,
+    pub method_name: *const c_char,
+    pub method: Option<NativePluginBridgeMethodFnV3>,
+    pub user_data: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBridgeMethodCallV3 {
+    pub interface_slot: u32,
+    pub method_slot: u32,
+    pub payload: ZrByteSlice,
+    pub output: ZrByteBufferRef,
+    pub user_data: u64,
+}
+
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
@@ -190,6 +220,8 @@ pub type NativePluginInvokeCommandFnV3 = NativePluginInvokeCommandFnV2;
 pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV2;
 pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV2;
 pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV2;
+pub type NativePluginBridgeMethodFnV3 =
+    unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> ZrStatus;
 pub type NativePluginHostHasCapabilityFnV3 =
     unsafe extern "C" fn(*const NativePluginHostFunctionTableV3, *const c_char) -> u32;
 pub type NativePluginHostLogFnV3 = unsafe extern "C" fn(

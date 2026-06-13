@@ -10,6 +10,7 @@ mod render_debugger_and_history;
 mod render_framework_bridge;
 mod render_framework_graph_stats;
 mod render_framework_post_process_submit;
+mod render_framework_visibility_submit;
 mod render_product_advanced;
 mod render_product_anti_alias;
 mod render_product_shadows;

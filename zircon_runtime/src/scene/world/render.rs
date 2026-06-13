@@ -398,9 +398,14 @@ impl World {
             })
             .map(|(entity, light)| RenderDirectionalLightSnapshot {
                 node_id: *entity,
+                light_id: *entity,
+                layer_mask: self
+                    .render_layer_mask(*entity)
+                    .unwrap_or(default_render_layer_mask()),
                 direction: light.direction,
                 color: light.color,
                 intensity: light.intensity,
+                shadow: None,
             })
             .collect::<Vec<_>>();
         directional_lights.sort_by_key(|light| light.node_id);
@@ -420,6 +425,10 @@ impl World {
             })
             .map(|(entity, light)| RenderPointLightSnapshot {
                 node_id: *entity,
+                light_id: *entity,
+                layer_mask: self
+                    .render_layer_mask(*entity)
+                    .unwrap_or(default_render_layer_mask()),
                 position: self
                     .world_transform(*entity)
                     .unwrap_or_default()
@@ -427,6 +436,7 @@ impl World {
                 color: light.color,
                 intensity: light.intensity,
                 range: light.range,
+                shadow: None,
             })
             .collect::<Vec<_>>();
         point_lights.sort_by_key(|light| light.node_id);
@@ -445,12 +455,17 @@ impl World {
                 let transform = self.world_transform(*entity).unwrap_or_default();
                 RenderRectLightSnapshot {
                     node_id: *entity,
+                    light_id: *entity,
+                    layer_mask: self
+                        .render_layer_mask(*entity)
+                        .unwrap_or(default_render_layer_mask()),
                     position: transform.translation,
                     direction: transform.forward(),
                     color: light.color,
                     intensity: light.intensity,
                     range: light.range,
                     size: light.size,
+                    shadow: None,
                     renderer_degraded: true,
                     degradation_reason: Some(
                         "rect light renderer shading is not implemented yet".to_string(),
@@ -472,6 +487,10 @@ impl World {
             })
             .map(|(entity, light)| RenderSpotLightSnapshot {
                 node_id: *entity,
+                light_id: *entity,
+                layer_mask: self
+                    .render_layer_mask(*entity)
+                    .unwrap_or(default_render_layer_mask()),
                 position: self
                     .world_transform(*entity)
                     .unwrap_or_default()
@@ -482,6 +501,7 @@ impl World {
                 range: light.range,
                 inner_angle_radians: light.inner_angle_radians,
                 outer_angle_radians: light.outer_angle_radians,
+                shadow: None,
             })
             .collect::<Vec<_>>();
         spot_lights.sort_by_key(|light| light.node_id);

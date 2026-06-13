@@ -77,7 +77,7 @@ impl zircon_runtime::plugin::RuntimePlugin for NavigationRuntimePlugin {
         manifest.with_event_catalog(navigation_event_catalog())
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {

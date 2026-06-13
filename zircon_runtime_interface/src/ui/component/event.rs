@@ -7,6 +7,9 @@ use super::{UiDragPayload, UiValue, UiValueKind};
 pub enum UiComponentEventKind {
     ValueChanged,
     Commit,
+    KeyboardAction,
+    KeyboardText,
+    TypeaheadExpired,
     Focus,
     Hover,
     Press,
@@ -39,6 +42,20 @@ pub enum UiComponentEventKind {
     SetWorldSurface,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum UiComponentKeyboardAction {
+    Activate,
+    Cancel,
+    Next,
+    Previous,
+    First,
+    Last,
+    Increment,
+    Decrement,
+    LargeIncrement,
+    LargeDecrement,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiComponentEvent {
     ValueChanged {
@@ -49,6 +66,13 @@ pub enum UiComponentEvent {
         property: String,
         value: UiValue,
     },
+    KeyboardAction {
+        action: UiComponentKeyboardAction,
+    },
+    KeyboardText {
+        text: String,
+    },
+    TypeaheadExpired,
     Focus {
         focused: bool,
     },
@@ -170,6 +194,9 @@ impl UiComponentEvent {
         match self {
             Self::ValueChanged { .. } => UiComponentEventKind::ValueChanged,
             Self::Commit { .. } => UiComponentEventKind::Commit,
+            Self::KeyboardAction { .. } => UiComponentEventKind::KeyboardAction,
+            Self::KeyboardText { .. } => UiComponentEventKind::KeyboardText,
+            Self::TypeaheadExpired => UiComponentEventKind::TypeaheadExpired,
             Self::Focus { .. } => UiComponentEventKind::Focus,
             Self::Hover { .. } => UiComponentEventKind::Hover,
             Self::Press { .. } => UiComponentEventKind::Press,

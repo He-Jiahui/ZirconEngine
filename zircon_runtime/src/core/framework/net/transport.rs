@@ -40,10 +40,22 @@ impl NetCertificatePin {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetCertificateRoot {
+    pub der: Vec<u8>,
+}
+
+impl NetCertificateRoot {
+    pub fn from_der(der: impl Into<Vec<u8>>) -> Self {
+        Self { der: der.into() }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NetSecurityPolicy {
     pub tls_required: bool,
     pub certificate_pinning: bool,
     pub certificate_pins: Vec<NetCertificatePin>,
+    pub certificate_roots: Vec<NetCertificateRoot>,
     pub allow_insecure_loopback: bool,
 }
 
@@ -53,6 +65,7 @@ impl NetSecurityPolicy {
             tls_required: false,
             certificate_pinning: false,
             certificate_pins: Vec::new(),
+            certificate_roots: Vec::new(),
             allow_insecure_loopback: true,
         }
     }
@@ -62,6 +75,7 @@ impl NetSecurityPolicy {
             tls_required: true,
             certificate_pinning: false,
             certificate_pins: Vec::new(),
+            certificate_roots: Vec::new(),
             allow_insecure_loopback: false,
         }
     }
@@ -77,10 +91,20 @@ impl NetSecurityPolicy {
         self
     }
 
+    pub fn with_certificate_root_der(mut self, der: impl Into<Vec<u8>>) -> Self {
+        self.certificate_roots
+            .push(NetCertificateRoot::from_der(der));
+        self
+    }
+
     pub fn has_pin_for_host(&self, host: &str) -> bool {
         self.certificate_pins
             .iter()
             .any(|pin| pin.host.eq_ignore_ascii_case(host) && !pin.sha256.trim().is_empty())
+    }
+
+    pub fn has_certificate_roots(&self) -> bool {
+        !self.certificate_roots.is_empty()
     }
 }
 

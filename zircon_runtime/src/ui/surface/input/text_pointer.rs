@@ -9,7 +9,10 @@ use zircon_runtime_interface::ui::{
     surface::{UiPointerActivationPhase, UiPointerEventKind, UiPointerRoute, UiTextEditAction},
 };
 
-use crate::ui::text::{apply_text_edit_action, hit_test_text_layout, word_range_at};
+use crate::ui::text::{
+    apply_text_edit_action, hit_test_text_layout, line_end_boundary, line_start_boundary,
+    word_range_at,
+};
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
 use super::super::surface::UiSurface;
@@ -35,11 +38,17 @@ pub(super) fn dispatch_pointer_text_edit(
     let editable = editable_text_state_for_node(surface, target)?;
     let primary_press = route.activation_phase == UiPointerActivationPhase::PrimaryPress;
     let secondary_press = route.activation_phase == UiPointerActivationPhase::SecondaryPress;
+    let is_triple_click =
+        primary_press && pointer.event.click_count >= 3 && !pointer.metadata.modifiers.shift;
     let is_double_click =
         primary_press && pointer.event.click_count >= 2 && !pointer.metadata.modifiers.shift;
     let mut phase = pointer_text_phase(route.kind);
     let mut selection_note = None;
-    let next = if is_double_click {
+    let next = if is_triple_click {
+        let anchor = line_start_boundary(&editable.text, source_offset);
+        let focus = line_end_boundary(&editable.text, source_offset);
+        apply_text_edit_action(editable, UiTextEditAction::SetSelection { anchor, focus })
+    } else if is_double_click {
         let (anchor, focus) =
             word_range_at(&editable.text, source_offset).unwrap_or((source_offset, source_offset));
         apply_text_edit_action(editable, UiTextEditAction::SetSelection { anchor, focus })
@@ -99,7 +108,12 @@ pub(super) fn dispatch_pointer_text_edit(
         .diagnostics
         .notes
         .push(format!("text_pointer_offset={source_offset}"));
-    if is_double_click {
+    if is_triple_click {
+        result
+            .diagnostics
+            .notes
+            .push("text_pointer_line_selection".to_string());
+    } else if is_double_click {
         result
             .diagnostics
             .notes

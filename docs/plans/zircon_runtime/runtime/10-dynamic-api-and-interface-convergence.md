@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_runtime/src/dynamic_api/surface.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
   - zircon_runtime_interface/src/runtime_api/api_table.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/handles.rs
@@ -18,11 +19,12 @@ related_code:
   - zircon_runtime_interface/src/ui
   - docs/engine-architecture/runtime-interface-cdylib-loader.md
   - docs/engine-architecture/runtime-interface-convergence.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/engine-architecture/runtime-interface-convergence.md
 status: in_progress
-last_refined: 2026-06-13
+last_refined: 2026-06-14
 ---
 
 # 10 dynamic_api 与 runtime_interface 收敛线
@@ -31,13 +33,17 @@ last_refined: 2026-06-13
 
 ## 现状与证据（2026-06-12 实仓盘点）
 
-- **C 出口单点**：`dynamic_api/exports.rs` 仅 1 个 `#[no_mangle] pub unsafe extern "C" fn zircon_runtime_get_api_v1(`（:25-26）——出口面已极窄（健康项）。session 级 C ABI 函数（如 `tick_frame` :301）经函数表分发而非独立符号。
-- **函数表双族、版本不同步**：`runtime_api/api_table.rs` 有 `ZrHostApiV1`（:43，宿主回调面）与 `ZrRuntimeApiV1`（:63，runtime 服务面）；`plugin_api.rs` 有 `ZrHostApiV3`（:41）+ 子 API `ZrHostEcsApiV1`/`ZrHostAssetApiV1`/`ZrHostEventApiV1`/`ZrHostDiagnosticsApiV1`（:65/:83/:95/:111）+ `ZrPluginStateSnapshotApiV1`（:207）+ `ZrPluginApiV1`（:227）——**runtime 表 V1 与 plugin 宿主表 V3 并存，子 API 各自 V1**，版本演进规则（何时 bump、矩阵谁维护）未定稿。
+- **C 出口单点**：`dynamic_api/exports.rs` 仅 1 个 `#[no_mangle] pub unsafe extern "C" fn zircon_runtime_get_api_v1(`（:25-26）——出口面已极窄（健康项）。2026-06-13 M1.3 后，函数表实际指向 `exports.rs` 的 `_ffi` wrappers；`session.rs` owner 函数保持私有 Rust ABI `unsafe fn`，避免 panic 先跨 `extern "C"` 边界再被捕获。
+- **函数表双族、版本不同步**：`runtime_api/api_table.rs` 有 `ZrHostApiV1`（宿主回调面）与 `ZrRuntimeApiV1`（runtime 服务面）；`plugin_api.rs` 有 `ZrHostApiV3` + 子 API `ZrHostEcsApiV1`/`ZrHostAssetApiV1`/`ZrHostEventApiV1`/`ZrHostBridgeApiV1`/`ZrHostDiagnosticsApiV1` + `ZrPluginStateSnapshotApiV1` + `ZrPluginApiV1`——**runtime 表 V1 与 plugin 宿主表 V3 并存，子 API 各自 V1**，版本演进规则已在 M0 定稿，当前机器清册由 `dynamic_runtime_api_boundary` 复核为函数表 10/10、字段数漂移 0、缺失 `#[repr(C)]` 0。
 - **interface 依赖面已纯净**（01 计划核实）：`zircon_runtime_interface` 依赖仅 glam/serde/serde_json/thiserror/toml/unicode-segmentation/uuid，无 wgpu/winit——守卫已由 01-M1 切片 1.4 锁定。
 - **UI 镜像契约面巨大**：`zircon_runtime_interface/src/ui/` 22 条目（含 `v2/`、`template/asset/component_contract/api_version.rs` 的 `UiComponentApiVersion` :8 带 parse error 类型 :80），与 `zircon_runtime/src/ui/` 同构——共享 DTO 与重复定义的甄别、同步规则与漂移守卫缺失（09 计划的 runtime 侧形状收束后，移交清单落到本计划 M2）。
 - **支撑件**：`handles.rs`（句柄）、`buffer.rs`（状态/缓冲契约）、`status.rs`、`version.rs`（版本常量）、`reflect/`、`resource/`、`profiling.rs`、`plugin_events.rs`、`plugin_diagnostics.rs`、`manifest.rs`、`math.rs`。
 - 加载侧锚：`zircon_app` 经 libloading 动态加载 runtime 并经本 interface 对话（CLAUDE.md；`runtime-interface-cdylib-loader.md`）。
 - 参考锚点（每点一行）：Fyrox dylib 插件函数边界 — `dev/Fyrox/fyrox-impl/src/plugin/dylib.rs`；本仓 native 插件 ABI 版本协商（06 计划已细化）作同构参照。
+
+补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
+
+- Godot GDExtension：C ABI 函数表注册/装载/版本协商的成熟实现（M0 版本矩阵、M3 装载失败路径对照）— `dev/godot/core/extension/{gdextension.{h,cpp},gdextension_function_loader.{h,cpp}}`；API 面 dump/版本化 — `extension_api_dump.cpp`
 
 ## 目标
 
@@ -112,6 +118,14 @@ last_refined: 2026-06-13
 - 验收（测试名草案）：`destroy_session_reports_explicit_not_found_for_missing_nonzero_handle`、`session_destroy_reports_explicit_not_found_after_headless_destroy`、`destroyed_headless_session_entry_points_reject_old_handle`、`all_session_entry_points_reject_invalid_handle`、`missing_session_entry_points_reject_nonzero_handle`。
 - DoD：清册 (c) 的每个入口至少有一条坏句柄或销毁后旧句柄测试覆盖；destroy 入口的 registry removal 契约有守卫；headless/minimal profile 明确跳过 render bridge。
 
+#### 切片 1.3 FFI panic 边界
+
+- 目标文件：`zircon_runtime/src/dynamic_api/exports.rs`、`zircon_runtime/src/dynamic_api/tests/api_table.rs`、`docs/zircon_runtime/dynamic_api/session.md`。
+- 改动形态：`zircon_runtime_get_api_v1` 与 `ZrRuntimeApiV1` 函数表入口增加最终 `catch_unwind` containment；函数表仍只暴露同一批 ABI entry points，但每个 entry point 先经过 `exports.rs` 的 `_ffi` wrapper，再委派到 `session.rs` 内部 Rust-ABI owner 函数。
+- 调用方迁移：无 ABI 字段变化；加载方仍按 `zircon_runtime_get_api_v1` 获取同一 `ZrRuntimeApiV1` 表。
+- 验收：`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` 锁定函数表不得直接指向 session owner 函数；panic 被转换为 `ZrStatusCode::Panic` 与稳定诊断；`zircon_runtime_get_api_v1` 获取表期间的 panic 返回 null 指针。
+- DoD：panic containment 不扩大公共 Rust API，不移动 session 正常错误校验 owner；session owner 函数不得保留 `extern "C"`；rustfmt、源码锚点、冲突标记/尾随空白、scoped diff 检查通过；Cargo 在编译通道空闲后补跑 `dynamic_api`。
+
 #### M1 测试阶段（milestone-first）
 
 - `cargo check -p zircon_runtime --lib --locked`；`cargo test -p zircon_runtime_interface --locked`
@@ -162,19 +176,24 @@ last_refined: 2026-06-13
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
-| M0 | 0.1 ABI 清册 | completed | 2026-06-12 | `docs/engine-architecture/runtime-interface-convergence.md#runtime-10-abi-inventory` 新增函数表族、跨界 DTO 域、session 操作面三张清册；源码扫描确认函数表 9 个、`ZrRuntimeApiV1` 13 字段，其中函数指针 11 个，session 操作面 11 项 |
+| M0 | 0.1 ABI 清册 | completed | 2026-06-12 | `docs/engine-architecture/runtime-interface-convergence.md#runtime-10-abi-inventory` 新增函数表族、跨界 DTO 域、session 操作面三张清册；2026-06-14 `dynamic_runtime_api_boundary` 复核源码清册为函数表 10 个（api_table.rs 2 + plugin_api.rs 8，含 `ZrHostBridgeApiV1`）、`ZrRuntimeApiV1` 13 字段，其中函数指针 11 个，session 操作面 11 项 |
 | M0 | 0.2 版本矩阵 | completed | 2026-06-12 | 同一文档新增 Version Strategy：函数表任意字段增删/重排/类型/语义变化均 bump 新表版本；`size_bytes` 仅作显式协商/诊断字段；动态 runtime DTO 由 `ZIRCON_RUNTIME_ABI_VERSION_V1` 统管，plugin host 子表按窄表 bump |
-| M1 | 1.1 repr(C) 与 ABI 清册守卫 | full_interface_package_passed | 2026-06-12 | 新增 `zircon_runtime_interface/src/tests/abi_safety_contracts.rs` 并接入 `tests/mod.rs`；`function_table_structs_are_all_repr_c` 锁定 9 个 `Zr*Api*` 函数表结构；`interface_public_signatures_stay_free_of_dynamic_object_exports` 扫描公开签名禁入词；`repr_c_guard_fails_on_missing_local_attribute` 与 `public_signature_guard_fails_on_dynamic_object_export` 提供负例自检；`function_table_field_counts_match_runtime_10_inventory` 锁定 M0 ABI 清册字段数矩阵（`ZrRuntimeApiV1` 13 字段及 plugin/host 表字段数），`runtime_api_session_operation_surface_matches_inventory` 锁定 `ZrRuntimeApiV1` 的 11 个 session 操作字段顺序，`runtime_10_version_strategy_rejects_in_place_table_shape_changes` 锁定保守版本策略与 `ZIRCON_RUNTIME_ABI_VERSION_V1` 常量 owner；`docs/engine-architecture/runtime-interface-convergence.md` 已同步命名字段数/操作面守卫；`rustfmt --edition 2021 --check zircon_runtime_interface\src\tests\abi_safety_contracts.rs` 通过；`cargo test -p zircon_runtime_interface inventory --locked --message-format short --color never` 通过 2/2；`cargo test -p zircon_runtime_interface version_strategy --locked --message-format short --color never` 通过 1/1；`cargo test -p zircon_runtime_interface abi_safety_contracts --locked --message-format short --color never` 通过 7/7；`cargo test -p zircon_runtime_interface --locked --message-format short --color never` 通过 165/165，doc-test 0/0 |
-| M1 | 1.2 session 失败路径 | code_complete_static_passed_cargo_timeout | 2026-06-12 | `RuntimeDynamicSession.render_bridge` 改为 `Option<RuntimeRenderBridge>`；`minimal`/`headless` profile 通过 `uses_render_bridge()` 跳过 render bridge，capture 返回空帧，surface bind/present 为 no-op；`create_test_session` 现在显式创建 headless session；新增 `session_destroy_reports_explicit_not_found_after_headless_destroy`、`destroyed_headless_session_entry_points_reject_old_handle`、`create_session_accepts_named_headless_profile_without_render_bridge`、`minimal_and_headless_profiles_skip_render_bridge_bootstrap`，并保留缺失非零句柄/坏句柄/registry removal 守卫；`rustfmt --edition 2021 --check zircon_runtime\src\dynamic_api\session.rs zircon_runtime\src\dynamic_api\tests\session_lifecycle.rs zircon_runtime\src\dynamic_api\tests\support.rs` 通过；`git diff --check` 对动态 API 代码/计划/会话文档通过（仅 LF-to-CRLF warning）；冲突标记/尾随空白扫描通过；optional render bridge/source-token 扫描通过；首次 `cargo test -p zircon_runtime --lib destroy_session --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-10-headless-0612 --message-format short --color never -- --nocapture` 在另一条 `zircon_runtime` cargo lane 活跃时 904s 超时，孤立验证进程已停止；第二次在通道清空后启动同一命令，仍在测试二进制编译阶段 904s 超时，期间 render 检查 lane 又启动，本会话启动的孤立验证进程已停止；未声明 Cargo pass |
-| M2 | 2.1 重复定义消化 | 待开始 | — | — |
-| M2 | 2.2 v2 契约同步 | 待开始 | — | — |
+| M1 | 1.1 repr(C) 与 ABI 清册守卫 | full_interface_package_passed | 2026-06-12 | 新增 `zircon_runtime_interface/src/tests/abi_safety_contracts.rs` 并接入 `tests/mod.rs`；`function_table_structs_are_all_repr_c` 锁定 10 个 `Zr*Api*` 函数表结构；`interface_public_signatures_stay_free_of_dynamic_object_exports` 扫描公开签名禁入词；`repr_c_guard_fails_on_missing_local_attribute` 与 `public_signature_guard_fails_on_dynamic_object_export` 提供负例自检；`function_table_field_counts_match_runtime_10_inventory` 锁定 M0 ABI 清册字段数矩阵（`ZrRuntimeApiV1` 13 字段及 plugin/host 表字段数），`runtime_api_session_operation_surface_matches_inventory` 锁定 `ZrRuntimeApiV1` 的 11 个 session 操作字段顺序，`runtime_10_version_strategy_rejects_in_place_table_shape_changes` 锁定保守版本策略与 `ZIRCON_RUNTIME_ABI_VERSION_V1` 常量 owner；`docs/engine-architecture/runtime-interface-convergence.md` 已同步命名字段数/操作面守卫；`rustfmt --edition 2021 --check zircon_runtime_interface\src\tests\abi_safety_contracts.rs` 通过；`cargo test -p zircon_runtime_interface inventory --locked --message-format short --color never` 通过 2/2；`cargo test -p zircon_runtime_interface version_strategy --locked --message-format short --color never` 通过 1/1；`cargo test -p zircon_runtime_interface abi_safety_contracts --locked --message-format short --color never` 通过 7/7；`cargo test -p zircon_runtime_interface --locked --message-format short --color never` 通过 165/165，doc-test 0/0 |
+| M1 | 1.2 session 失败路径 | code_complete_static_passed_cargo_timeout | 2026-06-12 | `RuntimeDynamicSession.render_bridge` 改为 `Option<RuntimeRenderBridge>`；`minimal`/`headless` profile 通过 `uses_render_bridge()` 跳过 render bridge，capture 返回空帧，surface bind/unbind/present 为 no-op；`create_test_session` 现在显式创建 headless session；新增 `session_destroy_reports_explicit_not_found_after_headless_destroy`、`destroyed_headless_session_entry_points_reject_old_handle`、`create_session_accepts_named_headless_profile_without_render_bridge`、`minimal_and_headless_profiles_skip_render_bridge_bootstrap`，并保留缺失非零句柄/坏句柄/registry removal 守卫；2026-06-13 追加 `runtime_absorption::dynamic_api_session::runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces`，以源码/测试/模块文档/Runtime 10 计划/总表五点锁定 optional render bridge、headless/minimal 跳过 bridge、capture 空帧 fallback 与 bind/unbind/present no-op；新增守卫的 `rustfmt --edition 2021 --check zircon_runtime\src\tests\runtime_absorption\dynamic_api_session.rs zircon_runtime\src\tests\runtime_absorption\mod.rs` 通过，冲突标记/尾随空白/锚点扫描与 scoped `git diff --check` 通过（仅 LF-to-CRLF warning）；`rustfmt --edition 2021 --check zircon_runtime\src\dynamic_api\session.rs zircon_runtime\src\dynamic_api\tests\session_lifecycle.rs zircon_runtime\src\dynamic_api\tests\support.rs` 通过；`git diff --check` 对动态 API 代码/计划/会话文档通过（仅 LF-to-CRLF warning）；冲突标记/尾随空白扫描通过；optional render bridge/source-token 扫描通过；首次 `cargo test -p zircon_runtime --lib destroy_session --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-10-headless-0612 --message-format short --color never -- --nocapture` 在另一条 `zircon_runtime` cargo lane 活跃时 904s 超时，孤立验证进程已停止；第二次在通道清空后启动同一命令，仍在测试二进制编译阶段 904s 超时，期间 render 检查 lane 又启动，本会话启动的孤立验证进程已停止；未声明 Cargo pass |
+| M1 | 1.2 Dynamic API 测试边界拆分 | structure_audit_static_passed_cargo_pending | 2026-06-13 | `session_lifecycle.rs` 拆出 `session_entry_points.rs`（跨入口坏句柄/旧句柄/缺失句柄覆盖）与 `session_profiles.rs`（headless/minimal/profile/source-shape 守卫），共享 ABI 请求构造器提升到 `support.rs`；`dynamic_api/tests/structure.rs` 与 `dynamic_api_test_boundary.py` 已更新到 11 个 owner modules。定向结构审计事实：`expected_module_count = 11`、`session_entry_points.rs = 145`、`session_lifecycle.rs = 136`、`session_profiles.rs = 112`、`oversized_modules = []`、`risks = []`；`docs/zircon_runtime/dynamic_api/session.md`、`runtime-interface-convergence.md` 与 M0 review 同步。Cargo 仍待 active lanes 清空后随 M1.2/M1.3 `dynamic_api` gate 补跑。 |
+| M1 | 1.3 FFI panic 边界 | code_static_passed_cargo_pending | 2026-06-13 | `zircon_runtime/src/dynamic_api/exports.rs` 将 `zircon_runtime_get_api_v1` 与 11 个 `ZrRuntimeApiV1` 函数表入口收束到 `catch_unwind` 边界；函数表指向 `_ffi` wrappers，wrappers 将意外 unwind 转为 `ZrStatusCode::Panic` 与 `runtime dynamic API panic caught at FFI boundary`，表获取期间 panic 返回 null；`session.rs` owner 函数改为私有 Rust ABI `unsafe fn`，避免 panic 先跨 `extern "C"` 边界；新增 `runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` 源码守卫并拒绝 private session owner 重新声明 `extern "C"`；新增 `runtime_absorption::dynamic_api_session::runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge`，把 exports/session/API-table test/模块文档/Runtime 10/总索引串成常驻架构守卫；`docs/zircon_runtime/dynamic_api/session.md` 已同步 FFI Panic Boundary 分工；`rustfmt --edition 2021 --check zircon_runtime\src\tests\runtime_absorption\dynamic_api_session.rs zircon_runtime\src\tests\runtime_absorption\plan_status.rs` 通过，FFI wrapper 源码锚点扫描、冲突标记/尾随空白扫描与 scoped `git diff --check` 通过（仅 LF-to-CRLF warning）；Cargo 待当前 runtime 编译通道空闲后补跑 `dynamic_api` |
+| M2 | 2.1 重复定义消化 | 待开始，Runtime 09/editor UI owner handoff pending | — | 等 Runtime 09/editor UI owner 清空后输入 `interface/ui` 与 `runtime/ui` 重复定义清单；本轮只记录 owner/Cargo gate，不修改 UI/interface 生产类型 |
+| M2 | 2.2 v2 契约同步 | 待开始，Runtime 09/editor UI owner handoff pending | — | 依赖 Runtime 09 `v2-replacement-mainline` 裁决与 editor UI owner 窗口；后续补 `UiComponentApiVersion` mismatch 测试，M2 Cargo lane 仍为 interface/ui/editor |
+| 横切 | M2 UI 镜像契约 pending gate | code_static_pending_owner_cargo | 2026-06-13 | 新增 `runtime_absorption::plan_status::cargo_gates::runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff`，锁定 Runtime 10 M2 UI 镜像契约在 Runtime 09/editor UI owner 交接、`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib ui --locked` 与 `cargo check -p zircon_editor --lib --locked` 通过前保持 pending；未修改 UI/interface 生产类型 |
 | M3 | 3.1 重载失败注入 | scoped_cargo_passed_pending_full_package | 2026-06-12 | `LoadedRuntime` 新增私有 `validate_runtime_api_pointer(...)` 表校验入口；`runtime_api_pointer_rejects_null_from_entry_symbol`、`runtime_api_pointer_rejects_version_mismatch_before_session_creation`、`runtime_api_pointer_rejects_missing_required_functions_before_session_creation`、`runtime_library_loader_reports_missing_entry_symbol_source_path`、`runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library`、`runtime_session_create_reports_first_call_failure_context` 已补入 `zircon_app/src/entry/runtime_library/tests.rs`；首次 `cargo test -p zircon_app --lib runtime_api_pointer_rejects --locked --message-format short --color never` 超时 304s 未返回结果，后续重跑通过 3/3；`cargo test -p zircon_app --lib runtime_library_loader_reports_missing_entry_symbol_source_path --locked --message-format short --color never` 通过 1/1；`cargo test -p zircon_app --lib runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library --locked --message-format short --color never` 通过 1/1；`cargo test -p zircon_app --lib runtime_session_create_reports_first_call_failure_context --locked --message-format short --color never` 通过 1/1；完整 `cargo test -p zircon_app --locked` 仍待测试窗口 |
+| 横切 | Dynamic runtime API 结构镜像 | structure_audit_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_structure_audits/dynamic_runtime_api_boundary.py` 并接入 `audit_runtime_structure.py`；当前静态事实：`expected_source_file_count = 14`、`function_table_structs = 10/10`、`field_count_mismatches = 0`、`missing_repr_c_tables = 0`、`runtime_session_ffi_wrappers = 11/11`、`direct_session_table_entry_bypasses = 0`、`session_owner_extern_c_present = false`、`headless_lifecycle_anchors = 12/12`、`ffi_panic_anchors = 9/9`、`loader_failure_anchors = 10/10`、`ui_pending_gate_anchors = 8/8`、`pending_cargo_gate_anchors = 5/5`、`doc_anchors = 7/7`、`mirror_docs_guard_present = true`、`risks = []`；这仍是静态结构证据，`dynamic_api`、完整 app loader 与 UI contract owner/Cargo gates 待 active lanes 清空后补跑 |
+| 横切 | Dynamic runtime API 镜像文档守卫 | mirror_docs_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_absorption::dynamic_api_session::runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`，锁定 14 个 Runtime 10 source owner、10 个 `#[repr(C)]` function table field-count、11 个 runtime session FFI wrapper、private Rust ABI session owner、6 份镜像文档字段，以及 `dynamic_runtime_api_boundary` 的 `doc_anchors = 7/7` 与 `mirror_docs_guard_present = true`；独立 rustc/rustfmt/结构审计通过后才能把这些静态事实继续作为 Runtime 10 证据引用，Cargo gates 仍 pending |
 
 基线数值（开工首日记录）：
 
 - C 出口基线：1（`zircon_runtime_get_api_v1`，exports.rs:25-26）
-- 函数表基线：Zr*Api* 结构 9 个（api_table.rs 2 + plugin_api.rs 7）
-- `repr(C)` 覆盖基线：14（`runtime_api/api_table.rs` + `plugin_api.rs`，其中 `Zr*Api*` 函数表结构 9/9 由 `abi_safety_contracts` 守卫）
+- 函数表基线：Zr*Api* 结构 10 个（api_table.rs 2 + plugin_api.rs 8，含 `ZrHostBridgeApiV1`）
+- `repr(C)` 覆盖基线：14（`runtime_api/api_table.rs` + `plugin_api.rs`，其中 `Zr*Api*` 函数表结构 10/10 由 `abi_safety_contracts` 与 `dynamic_runtime_api_boundary` 守卫）
 - interface `ui/` 条目基线：22；重复定义候选数：__（M2 输入）
 - `cargo test -p zircon_runtime_interface --locked` 通过数基线：__
 

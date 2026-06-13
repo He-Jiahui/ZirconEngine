@@ -1,7 +1,9 @@
 use crate::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime_interface::ui::component::{UiComponentDescriptor, UiValue};
+use zircon_runtime_interface::ui::component::{
+    UiComponentDescriptor, UiComponentEventKind, UiValue,
+};
 
-use super::super::assert_has_prop;
+use super::super::{assert_has_event, assert_has_prop};
 use super::assert_enum_options;
 
 pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
@@ -215,6 +217,11 @@ fn assert_list(registry: &UiComponentDescriptorRegistry) {
         assert_has_prop(list, prop);
     }
     assert_has_slot(list, "subheader");
+
+    let list_view = registry
+        .descriptor("ListView")
+        .expect("ListView descriptor");
+    assert_indexed_keyboard_collection_contract(list_view);
 }
 
 fn assert_image_list(registry: &UiComponentDescriptorRegistry) {
@@ -237,10 +244,29 @@ fn assert_table(registry: &UiComponentDescriptorRegistry) {
     let table = registry.descriptor("Table").expect("Table descriptor");
     assert_enum_options(table, "padding", &["checkbox", "none", "normal"]);
     assert_enum_options(table, "size", &["medium", "small"]);
-    for prop in ["component", "stickyHeader"] {
+    for prop in ["component", "stickyHeader", "rows"] {
         assert_has_prop(table, prop);
     }
+    assert_indexed_keyboard_collection_contract(table);
     assert_default_value(table, "size", UiValue::Enum("medium".to_string()));
+
+    let tree = registry
+        .descriptor("TreeView")
+        .expect("TreeView descriptor");
+    assert_indexed_keyboard_collection_contract(tree);
+}
+
+fn assert_indexed_keyboard_collection_contract(descriptor: &UiComponentDescriptor) {
+    for prop in [
+        "focused_index",
+        "selected_index",
+        "disabled_options",
+        "selection_follows_focus",
+        "keyboard_navigation",
+    ] {
+        assert_has_prop(descriptor, prop);
+    }
+    assert_has_event(descriptor, UiComponentEventKind::KeyboardAction);
 }
 
 fn assert_has_slot(descriptor: &UiComponentDescriptor, slot_name: &str) {

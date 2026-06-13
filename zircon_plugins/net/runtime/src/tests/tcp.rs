@@ -24,6 +24,22 @@ fn net_runtime_manager_accepts_tcp_client_and_echoes_payloads() {
             ..
         } if *accepted_listener == listener && *connection == server && transport.is_tcp()
     )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionStateChanged {
+            connection,
+            transport,
+            state: NetConnectionState::Open,
+        } if *connection == client && transport.is_tcp()
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionStateChanged {
+            connection,
+            transport,
+            state: NetConnectionState::Open,
+        } if *connection == server && transport.is_tcp()
+    )));
 
     assert_eq!(
         net.connection_state(client).unwrap(),
@@ -51,9 +67,25 @@ fn net_runtime_manager_accepts_tcp_client_and_echoes_payloads() {
     )));
     assert!(events.iter().any(|event| matches!(
         event,
+        NetEvent::ConnectionStateChanged {
+            connection,
+            transport,
+            state: NetConnectionState::Closed,
+        } if *connection == client && transport.is_tcp()
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
         NetEvent::ConnectionClosed {
             connection,
             transport,
+        } if *connection == server && transport.is_tcp()
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        NetEvent::ConnectionStateChanged {
+            connection,
+            transport,
+            state: NetConnectionState::Closed,
         } if *connection == server && transport.is_tcp()
     )));
 }

@@ -81,8 +81,19 @@ fn assert_menu(registry: &UiComponentDescriptorRegistry) {
     assert_enum_options(menu, "variant", &["menu", "selectedMenu"]);
     for prop in [
         "open",
+        "options",
+        "focused_index",
+        "disabled_options",
+        "keyboard_navigation",
+        "allow_search",
+        "search_bar_enabled_on_item_count",
+        "search_query",
+        "filtered_option_ids",
+        "filter_no_results",
         "autoFocus",
         "disableAutoFocusItem",
+        "disabledItemsFocusable",
+        "disableListWrap",
         "transitionDuration",
     ] {
         assert_has_prop(menu, prop);
@@ -91,6 +102,12 @@ fn assert_menu(registry: &UiComponentDescriptorRegistry) {
         assert_has_slot(menu, slot);
     }
     assert_default_value(menu, "variant", UiValue::Enum("selectedMenu".to_string()));
+    assert_has_event(menu, UiComponentEventKind::KeyboardAction);
+    assert_has_event(menu, UiComponentEventKind::KeyboardText);
+    assert_has_event(menu, UiComponentEventKind::TypeaheadExpired);
+    assert_has_event(menu, UiComponentEventKind::ValueChanged);
+    assert_has_event(menu, UiComponentEventKind::Focus);
+    assert_has_event(menu, UiComponentEventKind::Commit);
 
     let item = registry
         .descriptor("MenuItem")
@@ -207,10 +224,14 @@ fn assert_tabs_family(registry: &UiComponentDescriptorRegistry) {
     assert_enum_options(tabs, "textColor", &["inherit", "primary", "secondary"]);
     assert_enum_options(tabs, "variant", &["fullWidth", "scrollable", "standard"]);
     for prop in [
+        "options",
+        "selected_index",
+        "focused_index",
         "component",
         "centered",
         "allowScrollButtonsMobile",
         "indicatorColor",
+        "selection_follows_focus",
         "selectionFollowsFocus",
         "visibleScrollbar",
     ] {
@@ -228,6 +249,8 @@ fn assert_tabs_family(registry: &UiComponentDescriptorRegistry) {
     ] {
         assert_has_slot(tabs, slot);
     }
+    assert_has_event(tabs, UiComponentEventKind::KeyboardAction);
+    assert_has_event(tabs, UiComponentEventKind::ValueChanged);
 
     let tab = registry.descriptor("Tab").expect("Tab descriptor");
     assert_enum_options(tab, "iconPosition", &["bottom", "end", "start", "top"]);
@@ -245,6 +268,8 @@ fn assert_tabs_family(registry: &UiComponentDescriptorRegistry) {
     for slot in ["icon", "indicator"] {
         assert_has_slot(tab, slot);
     }
+    assert_has_event(tab, UiComponentEventKind::KeyboardAction);
+    assert_has_event(tab, UiComponentEventKind::ValueChanged);
 }
 
 fn assert_has_slot(descriptor: &UiComponentDescriptor, slot_name: &str) {

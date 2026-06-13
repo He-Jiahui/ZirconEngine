@@ -17,7 +17,7 @@ impl zircon_runtime::plugin::RuntimePluginFeature for RenderingSsaoRuntimeFeatur
         feature_manifest()
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {

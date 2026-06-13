@@ -113,6 +113,41 @@ const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
         sampled_in_component_drawer: true,
     },
     WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/inputs/workbench_range_slider.zui",
+        component_name: "WorkbenchRangeSlider",
+        root_component: "RangeSlider",
+        interactive: true,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/inputs/workbench_number_field.zui",
+        component_name: "WorkbenchNumberField",
+        root_component: "NumberField",
+        interactive: true,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/inputs/workbench_tab_strip.zui",
+        component_name: "WorkbenchTabStrip",
+        root_component: "Tabs",
+        interactive: true,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/data/workbench_label.zui",
+        component_name: "WorkbenchLabel",
+        root_component: "Label",
+        interactive: false,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/data/workbench_icon.zui",
+        component_name: "WorkbenchIcon",
+        root_component: "Icon",
+        interactive: false,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
         file_name: "workbench/primitives/data/workbench_list_row.zui",
         component_name: "WorkbenchListRow",
         root_component: "ListRow",
@@ -134,10 +169,31 @@ const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
         sampled_in_component_drawer: true,
     },
     WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/data/workbench_divider.zui",
+        component_name: "WorkbenchDivider",
+        root_component: "Divider",
+        interactive: false,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
         file_name: "workbench/primitives/feedback/workbench_popup_menu.zui",
         component_name: "WorkbenchPopupMenu",
         root_component: "ContextActionMenu",
         interactive: true,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_progress_bar.zui",
+        component_name: "WorkbenchProgressBar",
+        root_component: "Progress",
+        interactive: false,
+        sampled_in_component_drawer: true,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_skeleton.zui",
+        component_name: "WorkbenchSkeleton",
+        root_component: "Skeleton",
+        interactive: false,
         sampled_in_component_drawer: true,
     },
     WorkbenchPrimitiveContract {
@@ -474,7 +530,7 @@ fn workbench_primitive_component_assets_keep_native_component_contract() {
     }
 
     assert!(
-        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 24,
+        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 32,
         "workbench primitive contract should cover the low-level atom/collection/property/shell-leaf set"
     );
     assert!(

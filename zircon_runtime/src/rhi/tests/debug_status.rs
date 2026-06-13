@@ -17,8 +17,18 @@ fn wgpu_rhi_reports_debug_instrumentation_status_at_device_boundary() {
 
 #[test]
 fn wgpu_capability_mapping_keeps_debug_hooks_independent_from_surface_support() {
-    let headless_caps = wgpu_backend_caps("wgpu-headless", wgpu::Features::empty(), false);
-    let surface_caps = wgpu_backend_caps("wgpu-surface", wgpu::Features::empty(), true);
+    let headless_caps = wgpu_backend_caps(
+        "wgpu-headless",
+        wgpu::Features::empty(),
+        wgpu::Limits::default(),
+        false,
+    );
+    let surface_caps = wgpu_backend_caps(
+        "wgpu-surface",
+        wgpu::Features::empty(),
+        wgpu::Limits::default(),
+        true,
+    );
 
     assert!(!headless_caps.supports_surface);
     assert!(surface_caps.supports_surface);

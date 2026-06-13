@@ -10,15 +10,17 @@ use zircon_runtime::builtin::{
 use zircon_runtime::core::{CoreError, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::plugin::{
-    RuntimePluginAvailabilityReport, RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport,
-    RuntimePluginRegistrationReport,
+    ProjectPluginManifest, RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState,
+    RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
+use zircon_runtime::RuntimeTargetMode;
 
 use super::{entry_profile::EntryProfile, EntryConfig};
 
 pub(super) struct BuiltinModuleSelection {
     pub modules: Vec<Arc<dyn EngineModule>>,
     pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
+    pub plugin_bridge_lifecycle_state: Option<RuntimePluginBridgeLifecycleState>,
 }
 
 pub(super) fn builtin_modules_for_config(
@@ -57,6 +59,7 @@ pub(super) fn builtin_modules_for_config(
     Ok(BuiltinModuleSelection {
         modules,
         runtime_plugin_availability,
+        plugin_bridge_lifecycle_state: None,
     })
 }
 
@@ -65,14 +68,11 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_registrations(
     registrations: &[RuntimePluginRegistrationReport],
 ) -> Result<BuiltinModuleSelection, CoreError> {
     let manifest = config.project_plugin_manifest();
+    let effective_manifest = project_manifest_for_plugin_selection(config, &manifest);
     let report = if let Some(runtime_profile) = config.runtime_profile() {
-        let manifest = manifest.unwrap_or_else(|| {
-            zircon_runtime::plugin::RuntimeProfileDescriptor::for_id(runtime_profile)
-                .project_manifest()
-        });
         runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports(
             runtime_profile,
-            &manifest,
+            &effective_manifest,
             registrations,
         )
     } else {
@@ -129,10 +129,17 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_registrations(
             )));
         }
     }
+    let plugin_bridge_lifecycle_state = Some(plugin_bridge_lifecycle_state_for_selection(
+        registrations,
+        std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        &effective_manifest,
+        config.target_mode,
+    ));
 
     Ok(BuiltinModuleSelection {
         modules,
         runtime_plugin_availability,
+        plugin_bridge_lifecycle_state,
     })
 }
 
@@ -142,14 +149,11 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
     feature_registrations: &[RuntimePluginFeatureRegistrationReport],
 ) -> Result<BuiltinModuleSelection, CoreError> {
     let manifest = config.project_plugin_manifest();
+    let effective_manifest = project_manifest_for_plugin_selection(config, &manifest);
     let report = if let Some(runtime_profile) = config.runtime_profile() {
-        let manifest = manifest.clone().unwrap_or_else(|| {
-            zircon_runtime::plugin::RuntimeProfileDescriptor::for_id(runtime_profile)
-                .project_manifest()
-        });
         runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports(
             runtime_profile,
-            &manifest,
+            &effective_manifest,
             registrations,
             feature_registrations,
         )
@@ -220,12 +224,7 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
         registrations.iter().cloned(),
         feature_registrations.iter().cloned(),
     );
-    let feature_report = catalog.feature_dependency_report(
-        manifest
-            .as_ref()
-            .unwrap_or(&zircon_runtime::plugin::ProjectPluginManifest::default()),
-        config.target_mode,
-    );
+    let feature_report = catalog.feature_dependency_report(&effective_manifest, config.target_mode);
     for registration in feature_registrations.iter().filter(|registration| {
         feature_report
             .available_features
@@ -244,10 +243,16 @@ pub(super) fn builtin_modules_for_config_with_runtime_plugin_and_feature_registr
             )));
         }
     }
+    let extension_report =
+        catalog.runtime_extensions_for_project(&effective_manifest, config.target_mode);
+    let plugin_bridge_lifecycle_state = Some(
+        RuntimePluginBridgeLifecycleState::from_extension_report(catalog, extension_report),
+    );
 
     Ok(BuiltinModuleSelection {
         modules,
         runtime_plugin_availability,
+        plugin_bridge_lifecycle_state,
     })
 }
 
@@ -292,6 +297,36 @@ pub(super) fn builtin_modules_for_config_with_available_runtime_plugins(
     Ok(BuiltinModuleSelection {
         modules,
         runtime_plugin_availability,
+        plugin_bridge_lifecycle_state: None,
+    })
+}
+
+fn plugin_bridge_lifecycle_state_for_selection(
+    registrations: &[RuntimePluginRegistrationReport],
+    feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+    manifest: &ProjectPluginManifest,
+    target: RuntimeTargetMode,
+) -> RuntimePluginBridgeLifecycleState {
+    let catalog = RuntimePluginCatalog::from_registration_reports(
+        registrations.iter().cloned(),
+        feature_registrations,
+    );
+    let extension_report = catalog.runtime_extensions_for_project(manifest, target);
+    RuntimePluginBridgeLifecycleState::from_extension_report(catalog, extension_report)
+}
+
+fn project_manifest_for_plugin_selection(
+    config: &EntryConfig,
+    manifest: &Option<ProjectPluginManifest>,
+) -> ProjectPluginManifest {
+    manifest.clone().unwrap_or_else(|| {
+        config
+            .runtime_profile()
+            .map(|runtime_profile| {
+                zircon_runtime::plugin::RuntimeProfileDescriptor::for_id(runtime_profile)
+                    .project_manifest()
+            })
+            .unwrap_or_default()
     })
 }
 

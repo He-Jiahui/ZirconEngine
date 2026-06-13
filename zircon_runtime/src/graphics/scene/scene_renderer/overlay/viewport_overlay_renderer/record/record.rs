@@ -2,6 +2,7 @@ use super::super::super::PreparedOverlayBuffers;
 use super::super::viewport_overlay_renderer::ViewportOverlayRenderer;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshSceneDataBindHandle;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
@@ -19,6 +20,7 @@ impl ViewportOverlayRenderer {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         prepared: &PreparedOverlayBuffers,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
     ) {
         self.record_scene_content(
             encoder,
@@ -31,6 +33,7 @@ impl ViewportOverlayRenderer {
             mesh_pipelines,
             streamer,
             frame,
+            shadow_atlas_resources,
         );
         self.record_overlays(
             encoder,

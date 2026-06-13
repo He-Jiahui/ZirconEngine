@@ -17,6 +17,7 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_radio.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui
@@ -24,10 +25,18 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_slider.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_icon.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_tooltip.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_toast.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui
@@ -294,7 +303,7 @@ The accepted shell direction remains the shared workbench shell represented by `
 
 ## Component Family Handoff
 
-The native component contract now checks 23 declarative `.zui` component assets before module assembly: `workbench/primitives/inputs/workbench_button.zui`, `workbench/primitives/inputs/workbench_icon_button.zui`, `workbench/primitives/chrome/workbench_rail_button.zui`, `workbench/primitives/inputs/workbench_field.zui`, `workbench/primitives/inputs/workbench_checkbox.zui`, `workbench/primitives/inputs/workbench_radio.zui`, `workbench/primitives/inputs/workbench_toggle.zui`, `workbench/primitives/inputs/workbench_tab.zui`, `workbench/primitives/inputs/workbench_segmented_control.zui`, `workbench/primitives/inputs/workbench_dropdown.zui`, `workbench/primitives/inputs/workbench_slider.zui`, `workbench/primitives/data/workbench_list_row.zui`, `workbench/primitives/data/workbench_tree_row.zui`, `workbench/primitives/data/workbench_table_row.zui`, `workbench/primitives/feedback/workbench_popup_menu.zui`, `workbench/primitives/feedback/workbench_tooltip.zui`, `workbench/primitives/feedback/workbench_toast.zui`, `workbench/primitives/data/workbench_property_row.zui`, `workbench/primitives/data/workbench_component_property_row.zui`, `workbench/primitives/chrome/workbench_chip.zui`, `workbench/primitives/chrome/workbench_axis_value_field.zui`, `workbench/primitives/chrome/workbench_section_title.zui`, and `workbench/primitives/feedback/workbench_status_item.zui`. Each asset must stay a component asset with a `Workbench*` root, `workbench-primitive` default class, explicit width/height layout constraints, and input semantics on interactive controls. `workbench/shell/workbench_component_drawer.zui` must keep composing the representative low-level controls from these assets so the native sample surface remains component-built rather than page-specific.
+The native component contract now checks 32 declarative `.zui` component assets before module assembly: `workbench/primitives/inputs/workbench_button.zui`, `workbench/primitives/inputs/workbench_icon_button.zui`, `workbench/primitives/chrome/workbench_rail_button.zui`, `workbench/primitives/inputs/workbench_field.zui`, `workbench/primitives/inputs/workbench_search_input.zui`, `workbench/primitives/inputs/workbench_checkbox.zui`, `workbench/primitives/inputs/workbench_radio.zui`, `workbench/primitives/inputs/workbench_toggle.zui`, `workbench/primitives/inputs/workbench_tab.zui`, `workbench/primitives/inputs/workbench_segmented_control.zui`, `workbench/primitives/inputs/workbench_dropdown.zui`, `workbench/primitives/inputs/workbench_slider.zui`, `workbench/primitives/inputs/workbench_range_slider.zui`, `workbench/primitives/inputs/workbench_number_field.zui`, `workbench/primitives/inputs/workbench_tab_strip.zui`, `workbench/primitives/data/workbench_label.zui`, `workbench/primitives/data/workbench_icon.zui`, `workbench/primitives/data/workbench_divider.zui`, `workbench/primitives/data/workbench_list_row.zui`, `workbench/primitives/data/workbench_tree_row.zui`, `workbench/primitives/data/workbench_table_row.zui`, `workbench/primitives/feedback/workbench_popup_menu.zui`, `workbench/primitives/feedback/workbench_progress_bar.zui`, `workbench/primitives/feedback/workbench_skeleton.zui`, `workbench/primitives/feedback/workbench_tooltip.zui`, `workbench/primitives/feedback/workbench_toast.zui`, `workbench/primitives/data/workbench_property_row.zui`, `workbench/primitives/data/workbench_component_property_row.zui`, `workbench/primitives/chrome/workbench_chip.zui`, `workbench/primitives/chrome/workbench_axis_value_field.zui`, `workbench/primitives/chrome/workbench_section_title.zui`, and `workbench/primitives/feedback/workbench_status_item.zui`. Each asset must stay a component asset with a `Workbench*` root, `workbench-primitive` default class, explicit width/height layout constraints, and input semantics on interactive controls. `workbench/shell/workbench_component_drawer.zui` must keep composing the representative low-level controls from these assets so the native sample surface remains component-built rather than page-specific.
 
 The `zircon_editor/assets/ui/editor/components/` root is a component namespace only. Native Workbench assets must stay grouped by functional folder: `showcase/`, `workbench/primitives/{inputs,data,feedback,chrome}/`, `workbench/shell/`, and `workbench/modules/{core,extensions,generated}/`. `verify-native-component-contract.mjs` rejects flat root-level `.zui` files and rejects assets outside those folders so new components cannot drift back into a catch-all directory.
 

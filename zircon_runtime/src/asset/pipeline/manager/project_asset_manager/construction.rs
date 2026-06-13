@@ -7,16 +7,21 @@ use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
-use crate::asset::worker_pool::{AssetWorkerPool, AssetWorkerPoolOptions};
+use crate::asset::worker_pool::{
+    AssetWorkerPool, AssetWorkerPoolOptions, AssetWorkerThreadBudgetSource,
+};
 use crate::asset::{
     AssetId, AssetImportError, AssetImporter, AssetImporterCapabilityReport, AssetImporterHandler,
     AssetImporterRegistry, AssetUri, ShaderAsset,
 };
+use crate::core::runtime::tasks::TaskPoolOptions;
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
+        let default_worker_options = default_worker_options_for_system();
         Self {
-            default_worker_count: default_worker_count_for_system(),
+            default_worker_count: default_worker_options.worker_count,
+            default_worker_budget_source: default_worker_options.thread_budget_source,
             project: Arc::new(RwLock::new(None)),
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
@@ -31,6 +36,7 @@ impl ProjectAssetManager {
     pub fn new(default_worker_count: usize) -> Self {
         Self {
             default_worker_count: default_worker_count.max(1),
+            default_worker_budget_source: AssetWorkerThreadBudgetSource::Explicit,
             project: Arc::new(RwLock::new(None)),
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
@@ -41,11 +47,18 @@ impl ProjectAssetManager {
     }
 
     pub fn spawn_worker_pool(&self) -> Result<AssetWorkerPool, crate::core::ZirconError> {
-        AssetWorkerPool::new(AssetWorkerPoolOptions::new(self.default_worker_count))
+        AssetWorkerPool::new(
+            AssetWorkerPoolOptions::new(self.default_worker_count)
+                .with_thread_budget_source(self.default_worker_budget_source),
+        )
     }
 
     pub fn default_worker_count(&self) -> usize {
         self.default_worker_count
+    }
+
+    pub fn default_worker_budget_source(&self) -> AssetWorkerThreadBudgetSource {
+        self.default_worker_budget_source
     }
 
     pub fn resource_manager(&self) -> ResourceManager {
@@ -158,6 +171,13 @@ impl ProjectAssetManager {
     }
 }
 
-fn default_worker_count_for_system() -> usize {
-    std::thread::available_parallelism().map_or(2, |n| n.get().max(2) - 1)
+fn default_worker_options_for_system() -> AssetWorkerPoolOptions {
+    AssetWorkerPoolOptions::from_task_pool_options(
+        &TaskPoolOptions::default(),
+        available_parallelism_for_system(),
+    )
+}
+
+fn available_parallelism_for_system() -> usize {
+    std::thread::available_parallelism().map_or(1, |value| value.get())
 }

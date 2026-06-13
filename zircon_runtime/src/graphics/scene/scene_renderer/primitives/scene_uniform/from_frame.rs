@@ -5,7 +5,7 @@ use crate::graphics::scene::scene_renderer::post_process::MotionVectorCameraPara
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::fallback::{render_mat4_or, render_vec3_or};
-use super::{SceneUniform, SCENE_UNIFORM_POINT_LIGHT_LIMIT};
+use super::SceneUniform;
 
 impl SceneUniform {
     pub(crate) fn from_frame(frame: &ViewportRenderFrame, aspect: Real) -> Self {
@@ -31,60 +31,23 @@ impl SceneUniform {
             }
         };
         let view = view_matrix(camera.transform);
-        let (light_dir, light_color, ambient_color) = if frame.preview().lighting_enabled {
-            if let Some(light) = frame.directional_lights().first() {
-                (
-                    render_vec3_or(
-                        light.direction,
-                        RenderVec3::new(-0.4, -1.0, -0.25).normalize_or_zero(),
-                    )
-                    .extend(0.0)
-                    .to_array(),
-                    render_vec3_or(light.color * light.intensity, RenderVec3::splat(1.8))
-                        .extend(1.0)
-                        .to_array(),
-                    authored_ambient_color(frame, RenderVec3::splat(0.22)),
-                )
-            } else {
-                (
-                    RenderVec3::new(-0.4, -1.0, -0.25)
-                        .normalize_or_zero()
-                        .extend(0.0)
-                        .to_array(),
-                    RenderVec3::splat(1.8).extend(1.0).to_array(),
-                    authored_ambient_color(frame, RenderVec3::splat(0.2)),
-                )
-            }
+        let ambient_color = if frame.preview().lighting_enabled {
+            authored_ambient_color(frame, RenderVec3::splat(0.2))
         } else {
-            (
-                RenderVec3::new(0.0, -1.0, 0.0).extend(0.0).to_array(),
-                RenderVec3::ZERO.extend(1.0).to_array(),
-                RenderVec3::splat(0.55).extend(1.0).to_array(),
-            )
+            RenderVec3::splat(0.55).extend(1.0).to_array()
         };
 
         let view_proj = projection * view;
         let (previous_view_proj, motion_params) =
             previous_motion_view_projection(frame, camera, view_proj);
-        let (point_light_position_range, point_light_color_intensity, point_light_params) =
-            if frame.preview().lighting_enabled {
-                authored_point_light_data(frame)
-            } else {
-                empty_point_light_data()
-            };
 
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
             inverse_view_proj: render_mat4_or(view_proj.inverse(), RenderMat4::IDENTITY)
                 .to_cols_array_2d(),
-            light_dir,
-            light_color,
             ambient_color,
             previous_view_proj,
             motion_params,
-            point_light_position_range,
-            point_light_color_intensity,
-            point_light_params,
         }
     }
 }
@@ -130,61 +93,13 @@ fn authored_ambient_color(
         .to_array()
 }
 
-fn authored_point_light_data(
-    frame: &ViewportRenderFrame,
-) -> (
-    [[f32; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-    [[f32; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-    [f32; 4],
-) {
-    let mut position_range = [[0.0; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT];
-    let mut color_intensity = [[0.0; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT];
-    let point_light_count = frame
-        .point_lights()
-        .len()
-        .min(SCENE_UNIFORM_POINT_LIGHT_LIMIT);
-
-    for (slot, light) in frame
-        .point_lights()
-        .iter()
-        .take(point_light_count)
-        .enumerate()
-    {
-        position_range[slot] = render_vec3_or(light.position, RenderVec3::ZERO)
-            .extend(light.range.max(0.0))
-            .to_array();
-        color_intensity[slot] = render_vec3_or(light.color, RenderVec3::ZERO)
-            .extend(light.intensity.max(0.0))
-            .to_array();
-    }
-
-    (
-        position_range,
-        color_intensity,
-        [point_light_count as f32, 0.0, 0.0, 0.0],
-    )
-}
-
-fn empty_point_light_data() -> (
-    [[f32; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-    [[f32; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-    [f32; 4],
-) {
-    (
-        [[0.0; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-        [[0.0; 4]; SCENE_UNIFORM_POINT_LIGHT_LIMIT],
-        [0.0; 4],
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::SceneUniform;
     use crate::core::framework::render::{
         FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
-        RenderFrameExtract, RenderOverlayExtract, RenderPointLightSnapshot,
-        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
-        ViewportCameraSnapshot, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT,
+        RenderFrameExtract, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::graphics::types::ViewportRenderFrame;
@@ -239,45 +154,6 @@ mod tests {
 
         assert_eq!(uniform.motion_params, [1.0, 0.0, 0.0, 0.0]);
         assert_ne!(uniform.previous_view_proj, uniform.view_proj);
-    }
-
-    #[test]
-    fn scene_uniform_packs_authored_point_lights() {
-        let mut extract = RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(8),
-            empty_scene_snapshot(),
-        );
-        extract.post_process.preview.lighting_enabled = true;
-        for slot in 0..(BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT + 1) {
-            extract
-                .lighting
-                .point_lights
-                .push(RenderPointLightSnapshot {
-                    node_id: slot as u64,
-                    position: Vec3::new(slot as f32, 1.0, -2.0),
-                    color: Vec3::new(1.0, 0.5, 0.25),
-                    intensity: 2.0 + slot as f32,
-                    range: 3.0 + slot as f32,
-                });
-        }
-        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
-
-        let uniform = SceneUniform::from_frame(&frame, 1.0);
-
-        assert_eq!(
-            uniform.point_light_params[0],
-            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT as f32
-        );
-        assert_eq!(uniform.point_light_position_range[0], [0.0, 1.0, -2.0, 3.0]);
-        assert_eq!(
-            uniform.point_light_color_intensity[0],
-            [1.0, 0.5, 0.25, 2.0]
-        );
-        let last_slot = BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT - 1;
-        assert_eq!(
-            uniform.point_light_position_range[last_slot],
-            [last_slot as f32, 1.0, -2.0, 3.0 + last_slot as f32]
-        );
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

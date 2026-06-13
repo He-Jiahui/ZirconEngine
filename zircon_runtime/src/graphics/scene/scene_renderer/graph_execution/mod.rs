@@ -11,7 +11,7 @@ mod transient_resource_pool;
 
 pub use render_graph_execution_record::{
     RenderGraphComputeDispatchRecord, RenderGraphComputeWorkloadDispatchContext,
-    RenderGraphExecutionRecord,
+    RenderGraphExecutionRecord, RenderGraphLightGridReport,
 };
 pub use render_graph_execution_resources::RenderGraphExecutionResources;
 pub(in crate::graphics::scene::scene_renderer) use render_graph_execution_resources::RenderGraphImportedFinalTarget;

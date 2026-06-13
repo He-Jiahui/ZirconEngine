@@ -911,6 +911,99 @@ fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity()
 }
 
 #[test]
+fn play_mode_backend_bridge_matrix_projects_to_editor_snapshot() {
+    use std::path::Path;
+    use std::sync::Arc;
+
+    use crate::core::editor_event::{
+        EditorRuntimePlayModeBackend, EditorRuntimePlayModeBackendReport,
+    };
+    use zircon_runtime::plugin::{
+        BridgeDiagnosticsMatrix, BridgeDiagnosticsSnapshot, BridgeInterfaceSnapshot,
+        BridgeInterfaceStatus, BridgeTableDiagnosticsSummary, InterfaceSlot, PluginModuleId,
+    };
+
+    struct BridgeMatrixBackend;
+
+    impl EditorRuntimePlayModeBackend for BridgeMatrixBackend {
+        fn enter_play_mode(
+            &self,
+            _project_root: Option<&Path>,
+        ) -> Result<EditorRuntimePlayModeBackendReport, String> {
+            Ok(EditorRuntimePlayModeBackendReport {
+                diagnostics: Vec::new(),
+                bridge_diagnostics: Some(BridgeDiagnosticsMatrix {
+                    summary: BridgeTableDiagnosticsSummary {
+                        total_interfaces: 1,
+                        enabled_interfaces: 1,
+                        disabled_interfaces: 0,
+                        installed_providers: 1,
+                        missing_providers: 0,
+                        enabled_calls: 3,
+                        not_enabled_calls: 1,
+                    },
+                    rows: vec![BridgeInterfaceSnapshot {
+                        slot: InterfaceSlot::from_raw(7),
+                        interface_id: "physics.query.v1".to_string(),
+                        owner: PluginModuleId::from_raw(2),
+                        generation: 4,
+                        provider_installed: true,
+                        status: BridgeInterfaceStatus::Enabled,
+                        diagnostics: BridgeDiagnosticsSnapshot {
+                            enabled_calls: 3,
+                            not_enabled_calls: 1,
+                        },
+                    }],
+                }),
+            })
+        }
+
+        fn exit_play_mode(&self) -> Result<EditorRuntimePlayModeBackendReport, String> {
+            Ok(EditorRuntimePlayModeBackendReport::default())
+        }
+    }
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_bridge_matrix_backend");
+    runtime
+        .runtime
+        .set_runtime_play_mode_backend(Arc::new(BridgeMatrixBackend));
+
+    runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::RetainedHost,
+            EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
+        )
+        .expect("enter play mode");
+
+    let bridge = runtime.runtime.editor_snapshot().bridge_diagnostics;
+    assert_eq!(bridge.summary.total_interfaces, 1);
+    assert_eq!(bridge.summary.enabled_calls, 3);
+    assert_eq!(bridge.rows[0].interface_id, "physics.query.v1");
+    assert_eq!(bridge.rows[0].owner_module_slot, 2);
+    assert_eq!(bridge.rows[0].status, "Enabled");
+    assert!(bridge
+        .diagnostic_lines
+        .iter()
+        .any(|line| line.contains("bridge.interface")));
+
+    runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::RetainedHost,
+            EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
+        )
+        .expect("exit play mode");
+    assert!(runtime
+        .runtime
+        .editor_snapshot()
+        .bridge_diagnostics
+        .rows
+        .is_empty());
+}
+
+#[test]
 fn inspector_field_apply_batch_records_undoable_operation_stack_entry() {
     use crate::core::editor_operation::{
         EditorOperationInvocation, EditorOperationPath, EditorOperationSource,

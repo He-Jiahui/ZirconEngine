@@ -15,7 +15,7 @@ use crate::core::framework::render::{
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteAnchor,
     RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
     RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SolariRuntimeStatus,
-    SpriteExtract, ViewportCameraSnapshot,
+    SpriteExtract, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -178,15 +178,21 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     extract.lighting.directional_lights.extend([
         RenderDirectionalLightSnapshot {
             node_id: 701,
+            light_id: 701,
+            layer_mask: DEFAULT_RENDER_LAYER_MASK,
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 4.0,
+            shadow: None,
         },
         RenderDirectionalLightSnapshot {
             node_id: 702,
+            light_id: 702,
+            layer_mask: DEFAULT_RENDER_LAYER_MASK,
             direction: Vec3::new(1.0, -1.0, 0.0),
             color: Vec3::new(0.6, 0.7, 1.0),
             intensity: 2.0,
+            shadow: None,
         },
     ]);
     extract
@@ -194,13 +200,18 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         .point_lights
         .push(RenderPointLightSnapshot {
             node_id: 703,
+            light_id: 703,
+            layer_mask: DEFAULT_RENDER_LAYER_MASK,
             position: Vec3::new(-1.0, 1.0, 0.5),
             color: Vec3::new(0.9, 0.8, 1.0),
             intensity: 6.0,
             range: 8.0,
+            shadow: None,
         });
     extract.lighting.spot_lights.push(RenderSpotLightSnapshot {
         node_id: 704,
+        light_id: 704,
+        layer_mask: DEFAULT_RENDER_LAYER_MASK,
         position: Vec3::new(0.0, 3.0, 2.0),
         direction: Vec3::new(0.0, -1.0, -0.5),
         color: Vec3::new(1.0, 0.95, 0.75),
@@ -208,15 +219,19 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
         range: 10.0,
         inner_angle_radians: 0.35,
         outer_angle_radians: 0.75,
+        shadow: None,
     });
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 700,
+        light_id: 700,
+        layer_mask: DEFAULT_RENDER_LAYER_MASK,
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
         intensity: 4.0,
         range: 12.0,
         size: Vec2::new(2.0, 0.5),
+        shadow: None,
         renderer_degraded: true,
         degradation_reason: Some("rect light renderer path is deferred after M5A".to_string()),
     });
@@ -229,14 +244,14 @@ fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
     assert_eq!(stats.last_material_fallback_count, 1);
     assert_eq!(stats.last_material_validation_error_count, 1);
     assert_eq!(stats.last_directional_light_count, 2);
-    assert_eq!(stats.last_directional_light_ready_count, 1);
-    assert_eq!(stats.last_directional_light_degraded_count, 1);
+    assert_eq!(stats.last_directional_light_ready_count, 2);
+    assert_eq!(stats.last_directional_light_degraded_count, 0);
     assert_eq!(stats.last_point_light_count, 1);
     assert_eq!(stats.last_point_light_ready_count, 1);
     assert_eq!(stats.last_point_light_degraded_count, 0);
     assert_eq!(stats.last_spot_light_count, 1);
-    assert_eq!(stats.last_spot_light_ready_count, 0);
-    assert_eq!(stats.last_spot_light_degraded_count, 1);
+    assert_eq!(stats.last_spot_light_ready_count, 1);
+    assert_eq!(stats.last_spot_light_degraded_count, 0);
     assert_eq!(stats.last_ambient_light_count, 1);
     assert_eq!(stats.last_ambient_light_ready_count, 1);
     assert_eq!(stats.last_ambient_light_degraded_count, 0);

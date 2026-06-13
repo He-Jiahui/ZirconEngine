@@ -108,7 +108,7 @@ impl RuntimePlugin for ManagerRuntimePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

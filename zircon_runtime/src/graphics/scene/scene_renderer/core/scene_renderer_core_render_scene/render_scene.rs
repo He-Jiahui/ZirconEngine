@@ -17,6 +17,19 @@ impl SceneRendererCore {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-scene-encoder"),
         });
+        let shadow_frame_plan =
+            crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
+                &mut self.shadow_atlas_allocator,
+                frame,
+                self.shadow_atlas_resources.config(),
+            );
+        self.shadow_atlas_resources
+            .upload_frame(
+                queue,
+                shadow_frame_plan.slots(),
+                shadow_frame_plan.globals(),
+            )
+            .map_err(GraphicsError::Asset)?;
         let built_mesh_draws = self.advanced_plugin_resources.build_mesh_draws(
             device,
             queue,
@@ -26,6 +39,7 @@ impl SceneRendererCore {
             streamer,
             frame,
             false,
+            Some(shadow_frame_plan.light_slots()),
         );
         let mesh_draws = built_mesh_draws.into_draws();
         let gpu_scene_bind_group = self.gpu_scene.scene_bind_group().clone();
@@ -52,6 +66,7 @@ impl SceneRendererCore {
             streamer,
             frame,
             &prepared_overlays,
+            Some(&self.shadow_atlas_resources),
         );
         self.screen_space_ui_renderer.record(
             device,
@@ -62,6 +77,7 @@ impl SceneRendererCore {
             crate::render_graph::RenderGraphAttachmentOps::load_store(),
         );
         queue.submit([encoder.finish()]);
+        let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
         Ok(())
     }
 }

@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/workbench_label.zui"
+version = 2
+display_name = "Workbench Label"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchLabel]
+root = "root"
+default_classes = ["workbench-label", "workbench-primitive"]
+
+[nodes.root]
+component = "Label"
+control_id = "WorkbenchLabelRoot"
+classes = ["workbench-label"]
+props = { text = "Label", font_size = 12.0, font_weight = 500, text_tone = "primary", foreground_color = "#c6d2d7", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 2.0, layout_padding_bottom = 2.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }

@@ -111,7 +111,7 @@ impl RuntimePlugin for LinkedSoundPlugin {
         })
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {

@@ -86,6 +86,16 @@ mod tests {
     }
 
     #[test]
+    fn post_process_shader_samples_bound_contact_shadow_occlusion_texture() {
+        assert!(POST_PROCESS_SHADER.contains("lighting_flags: vec4<u32>"));
+        assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(27) var contact_shadow_tex"));
+        assert!(POST_PROCESS_SHADER.contains("params.lighting_flags.x != 0u"));
+        assert!(POST_PROCESS_SHADER.contains("textureLoad(contact_shadow_tex"));
+        assert!(POST_PROCESS_SHADER
+            .contains("occlusion_factor = occlusion_factor * max(contact_shadow"));
+    }
+
+    #[test]
     fn post_process_shader_samples_bound_effect_lut_texture_3d() {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(12) var effect_lut_3d_tex"));
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(13) var effect_lut_sampler"));
@@ -345,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn post_process_shader_samples_full_mip_ssr_pyramids_with_coarse_fallbacks() {
+    fn post_process_shader_samples_shared_hzb_and_reflection_pyramids_with_coarse_fallbacks() {
         assert!(POST_PROCESS_SHADER
             .contains("@group(0) @binding(23) var screen_space_reflection_depth_pyramid_tex"));
         assert!(POST_PROCESS_SHADER
@@ -371,7 +381,7 @@ mod tests {
         assert!(POST_PROCESS_SHADER
             .contains("return load_screen_space_reflection_reflection_pyramid_mip(coord, 1u)"));
         assert!(POST_PROCESS_SHADER
-            .contains("textureLoad(\n        screen_space_reflection_depth_pyramid_coarse_tex"));
+            .contains("return load_screen_space_reflection_depth_pyramid_mip(coord, 0u)"));
         assert!(POST_PROCESS_SHADER.contains(
             "textureLoad(\n        screen_space_reflection_reflection_pyramid_coarse_tex"
         ));

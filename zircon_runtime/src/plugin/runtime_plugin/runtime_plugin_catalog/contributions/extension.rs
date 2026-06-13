@@ -41,6 +41,12 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
+    for (owner, export) in extensions.plugin_interfaces() {
+        let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
+            registry.register_interface_export(target_owner, export.clone())
+        });
+        push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
+    }
     merge_render_extension_registry_contributions(
         extensions,
         registry,

@@ -209,3 +209,15 @@ impl UiV2StyleResolver {
 - 不新增公开 DTO 字段超出状态集与 theme 文档所需；`TemplatePaneNodeData` 既有字段约束沿用。
 - 浅色主题暂不实现，但 `UiThemeDocument` 结构必须可表达第二主题（id 区分、结构预留、内容后置）。
 - 优先级表只存在于 interface selector 一处；v2/painter/任何新消费方只许调用、不许复制。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| theme 结构与命名权威 | `dev/material-ui/packages/mui-material/src/styles` | — | createTheme 的 palette/typography/shape/spacing/transitions 字段组织——`UiThemeDocument` 字段命名以此对齐 |
+| 组件 variant/状态样式 | `dev/material-ui/packages/mui-material/src/Button`（及任一组件目录） | `dev/material-ui/packages/mui-material/src/Collapse` | ownerState → 样式折叠的模式、状态类（Mui-disabled 等）与本计划伪状态的对应 |
+| 注册式样式集 | `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Styling` | — | FSlateStyleSet/Brush 注册表：token id → 视觉资源的回溯链样板 |
+| 控件主题查询链 | `dev/godot/scene/gui/control.cpp` | — | Godot theme 项的 control → theme owner → default 级联查找（token source-chain 对照） |
+| 状态装饰器 | `dev/Fyrox/fyrox-ui/src/{decorator.rs, brush.rs}` | — | hover/pressed/selected 的装饰器切换实现（selector 的另一种形态，对照取舍） |

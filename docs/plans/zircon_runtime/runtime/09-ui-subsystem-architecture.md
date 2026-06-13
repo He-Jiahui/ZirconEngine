@@ -15,11 +15,13 @@ related_code:
   - zircon_runtime/src/ui/dispatch
   - zircon_runtime_interface/src/ui
   - zircon_runtime/src/ui/surface/input/navigation.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/ui-and-layout/shared-ui-template-runtime.md
-status: planned
-last_refined: 2026-06-12
+status: in_progress
+last_refined: 2026-06-14
 ---
 
 # 09 UI 子系统架构收束
@@ -28,13 +30,19 @@ last_refined: 2026-06-12
 
 ## 现状与证据（2026-06-12 实仓盘点）
 
-- **模块树**（`ui/` 实测 17 条目）：`layout/`（constraints、pass/、scroll、style_mapping、taffy_bridge、virtualization）、`surface/`（21 条目：input/、pointer/、navigation/、render/、ecs_projection、focus、frame_hit_test、interaction_gate、popup_stack、node_pool、property_mutation、reflection_snapshot、slots、timeline、diagnostics、arranged、component_state、surface(.rs+/)）、`template/`（asset/build/instance/loader/validate）、`dispatch/`、`binding/`、`component/`、`tree/`、`text/`（归 01-M2）、`theme/`、`event_ui/`、`accessibility/`、`runtime_ui/`、`v2/`、`module.rs`、`style.rs`。
+- **模块树**（`ui/` 实测 17 条目）：`layout/`（constraints、pass/、scroll、style_mapping、taffy_bridge、virtualization）、`surface/`（2026-06-13 current scan 为 20 条目；2026-06-12 旧盘点为 21 条目：input/、pointer/、navigation/、render/、ecs_projection、focus、frame_hit_test、interaction_gate、popup_stack、node_pool、property_mutation、reflection_snapshot、slots、timeline、diagnostics、arranged、component_state、surface(.rs+/)）、`template/`（asset/build/instance/loader/validate）、`dispatch/`、`binding/`、`component/`、`tree/`、`text/`（归 01-M2）、`theme/`、`event_ui/`、`accessibility/`、`runtime_ui/`、`v2/`、`module.rs`、`style.rs`。
 - **双代并存**：`ui/v2/` 与非 v2 路径并存；`zircon_runtime_interface/src/ui/` 同样有 `v2/`——v2 的定位（替代中 / 实验 / 并行契约）未在计划层文档化，是首要裁决项。
 - **镜像契约面**：`zircon_runtime_interface/src/ui/` 有 22 条目（accessibility/binding/component/dispatch/ecs/event_ui/focus/layout/navigation/picking/pipeline/skin/style/surface/template/text/tree/v2/widget/window…），与 runtime `ui/` 高度同构——哪些是共享 DTO（合法镜像）、哪些是重复定义（漂移风险）未盘点；镜像同步规则归子计划 10 的契约守卫，本计划负责 runtime 侧形状。
 - **legacy 集中区实证**（05 计划继承）：`surface/input/navigation.rs:22-54` 的 `legacy` 路由回复变量承载真实运行语义（route/focus/diagnostics 取值源）；`runtime_naming_boundary` 审计的 legacy debt bucket 中 runtime UI input/render、UI template/layout、input 三桶归本计划裁决处置。
 - **既有测试基建**：`ui/tests/`（注意：`ui/tests/runtime_input_manager.rs`、`ui/tests/style_mapping.rs` 在 05 执行期曾出现编译错误，归活动 editor UI 会话——本计划动工前必须确认其已修复）。
 - 职责声明锚（CLAUDE.md）：共享 UI 契约类型住 `zircon_runtime_interface::ui`；layout pass、dispatch、render extraction、text/layout 引擎、template 编译、surface/tree 突变住 `zircon_runtime::ui`——本计划以此为合法性判据。
 - 参考锚点（每点一行）：bevy_ui taffy 集成 — `dev/bevy/crates/bevy_ui/src/layout/`；Fyrox retained UI（widget 树 + 消息路由）— `dev/Fyrox/fyrox-ui/src`；UE Slate/UMG 分层（不在 dev/ 则仅作概念对照）。
+
+补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
+
+- Fyrox retained 控件树 + 消息路由的完整 Rust 实现（M1 路由单点对照首选）— `dev/Fyrox/fyrox-ui/src/{control.rs,canvas.rs,button.rs}` 及同目录控件族
+- Godot Control/Container 布局族 C++ 实现（M2 布局/容器语义第二对照）— `dev/godot/scene/gui/`
+- bevy_ui 的 taffy 桥接实现细节（M2.1 单后端入口对照）— `dev/bevy/crates/bevy_ui/src/layout/{mod.rs,ui_surface.rs}`
 
 ## 目标
 
@@ -92,6 +100,7 @@ last_refined: 2026-06-12
 
 - 目标文件：`ui/surface/input/`、`ui/surface/pointer/`、`ui/surface/navigation/`、`ui/dispatch/`（路由汇聚点执行时核验：Grep `dispatch_navigation_event|dispatch_pointer`，path `zircon_runtime/src/ui`）。
 - 改动形态：定稿"一次输入事件的权威路径"（platform/input → surface 命中（frame_hit_test）→ interaction_gate → dispatch → 组件/焦点/popup_stack），文档化 + 对越权直连（绕过 dispatch 的旁路）列违规清单逐项收束。
+- 与 12-M0.2 互引：12 定义全局输入消费边界为 UI surface/capture/popup/focus 优先、玩法/action mapping 只消费 UI 未处理或无 UI/headless 输入；本切片只收束 UI 内部 `interaction_gate` / dispatch 权威路径，不把全局 action mapping 逻辑并入 UI。
 - 调用方迁移：按违规清单（M0 越界边 + 本切片盘点，预计 ≤10 全列）。
 - 验收：`ui_input_events_route_through_single_dispatch_authority`（结构/行为测试，归属 `ui/tests/` 既有树）。
 - DoD：旁路清单清零或每条带 owner 判词。
@@ -153,24 +162,28 @@ last_refined: 2026-06-12
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
-| M0 | 0.1 模块边界图 | 待开始 | — | — |
-| M0 | 0.2 v2 裁决 | 待开始 | — | — |
+| M0 | 0.1 模块边界图 | completed_static_passed | 2026-06-13 | `docs/zircon_runtime/ui/architecture.md` 记录 `runtime_09_m0_ui_architecture_static_passed`：覆盖当前 17 个 `ui/` 顶层条目、20 个 `surface/` 条目、owner/dependency map 与 M1-M3 工作集；新增 `runtime_absorption::ui_architecture::runtime_09_ui_architecture_doc_records_current_boundaries` 静态守卫；本切片无 UI 生产代码改动，Cargo 未启动（已有 active lanes）。 |
+| M0 | 0.2 v2 裁决 | completed_static_passed | 2026-06-13 | `docs/zircon_runtime/ui/architecture.md` 记录 `v2-replacement-mainline`：v2 是替代主线；`.zui` 是生产 component suffix，`.v2.ui.toml` 保留为 v2 view/style/runtime fixture/editor chrome profile；old recursive template 路径为 migration/test-only，删除条件移交 M3；新增 `runtime_absorption::ui_architecture::runtime_09_v2_verdict_matches_runtime_and_interface_modules`；调用方盘点覆盖 `zircon_runtime/src`、`zircon_editor/src`、`zircon_app/src`。 |
+| 横切 | UI architecture 结构镜像 | structure_audit_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_structure_audits/ui_architecture_boundary.py` 并接入 `audit_runtime_structure.py`；当前静态事实：source/doc files 11/11、`ui/` entries 17/17、`surface/` entries 20/20、UI legacy full-tree hits 167/167、UI legacy production hits 102/102、UI legacy production files 12/12、UI taffy production hits 161/161、UI taffy production files 7/7、runtime `ui::v2` anchors 10/10、interface `ui::v2` anchors 9/9、guard anchors 4/4、pending UI owner/Cargo gate anchors 7/7、doc anchors 10/10、`risks = []`；这仍是静态结构证据，M1-M3 源码切片与 UI Cargo 仍等待 editor UI owner/Cargo lanes 空窗。 |
 | M1 | 1.1 路由单点 | 待开始 | — | — |
 | M1 | 1.2 legacy 处置 | 待开始 | — | — |
 | M2 | 2.1 taffy 单入口 | 待开始 | — | — |
 | M2 | 2.2 虚拟化边界 | 待开始 | — | — |
 | M3 | 3.1 模板边界 | 待开始 | — | — |
+| 横切 | UI owner/Cargo pending gate | code_static_pending_owner_cargo | 2026-06-13 | 新增 `runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation`，保持 Runtime 09 在 `ui/input/naming_boundary/layout/template` 验证线通过前为 `in_progress`：M0.1/M0.2 仅为静态文档/守卫证据，`runtime_absorption::ui_architecture` Cargo 尚未运行；M1 输入路由、M1 legacy 处置、M2 taffy/layout、M3 template generated/failure-path 仍等待 editor UI owner 与 Cargo lanes 空窗。 |
 
 基线数值（开工首日记录）：
 
-- `ui/` 模块条目基线：17；`surface/` 条目：21（2026-06-12 ls）
-- UI 区 legacy 命中基线：__（执行前检查清单命令）
-- taffy 引用文件基线：__（应收敛到 1）
-- `cargo test -p zircon_runtime --lib ui --locked` 通过数基线：__
+- `ui/` 模块条目基线：17；`surface/` 条目：20（2026-06-13 current scan；2026-06-12 旧 ls 为 21）
+- UI 区 legacy 命中基线：`ui_legacy_hits=167`（full `zircon_runtime/src/ui/**/*.rs`，含 tests/fixtures）；生产代码基线：`ui_legacy_production_hits=102` / `ui_legacy_production_files=12`
+- taffy 引用文件基线：`ui_taffy_production_hits=161` / `ui_taffy_production_files=7`（排除 tests/fixtures；M2.1 应收敛到单一 owner 或更新 owner 判词）
+- 基线守卫：`runtime_absorption::ui_architecture::runtime_09_ui_architecture_baselines_match_current_source_scan`
+- `cargo test -p zircon_runtime --lib ui --locked` 通过数基线：未记录，本轮 M0 不启动 Cargo，因为已有 active `cargo`/`rustc` lanes；后续源码切片开工前重跑。
 
 ## 风险与协调
 
 - **editor UI 活动会话是本计划最大冲突源**（`ui/tests/` 两文件曾编译错误即其工作区）：每个切片动工前 `git status` 核 `ui/**` 脏区，脏文件先避让；禁止回退其改动。
 - v2 裁决若判"替代代"，迁移路线横跨 editor（workbench 模板消费方）——路线图必须与 editor 计划/会话共定，本计划不单方面删非 v2。
 - 输入路由收束与 03 的 UI extract 旁路归一（03-M1 切片 1.2）相邻：dispatch 改动错峰执行，先开工者在状态节登记。
+- 与 12 的交接面：12-M0.2 已裁决 UI 命中事件优先进入本计划的 interaction_gate/dispatch，action mapping 只处理 UI 未处理输入；后续 09 切片不得重复定义 gameplay 动作绑定。
 - interface::ui 镜像契约的同步守卫归 10 计划——本计划发现的重复定义类型清单移交 10 的 M2 工作集，不在本计划修。

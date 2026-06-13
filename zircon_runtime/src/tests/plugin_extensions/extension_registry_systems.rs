@@ -41,9 +41,9 @@ fn plugin_resource_event_and_system_registrations_apply_to_world() {
         .register_event::<WeatherChanged>(
             owner,
             PluginEventManifest {
-                id: "weather.changed".to_string(),
+                id: "weather.events.changed".to_string(),
                 display_name: "Weather Changed".to_string(),
-                payload_schema: "WeatherChanged".to_string(),
+                payload_schema: "weather.schemas.changed.v1".to_string(),
             },
         )
         .unwrap();
@@ -79,11 +79,11 @@ fn plugin_resource_event_and_system_registrations_apply_to_world() {
     assert!(registry
         .plugin_event_catalogs()
         .iter()
-        .any(|catalog| catalog.namespace == "weather"
+        .any(|catalog| catalog.namespace == "weather.events"
             && catalog
                 .events
                 .iter()
-                .any(|event| event.id == "weather.changed")));
+                .any(|event| event.id == "weather.events.changed")));
 }
 
 #[test]

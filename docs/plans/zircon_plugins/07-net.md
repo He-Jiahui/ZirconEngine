@@ -130,6 +130,14 @@ zircon_plugins/net/features/
 | M1-T3 | poll_ingress/flush_egress 锚点 + register_event | lib.rs | 01-M1/M2、M1-T1 | `ingress_anchor_in_first_egress_in_last` |
 | M1-T4 | 重连 backoff + 状态机驱动 | transport/* | M1-T2 | `reconnect_backoff_timing_sequence`、`state_changes_emit_events` |
 
+#### M1 当前进度（2026-06-14）
+
+- M1-T1 已落地：新增 `runtime/src/worker/{mod,ingress,egress,shutdown}.rs`，`NetWorker` 在插件自有线程内持有 Tokio runtime，并通过有界 `std::sync::mpsc::sync_channel` egress/ingress 队列执行 TCP/UDP 命令；`worker_shutdown_leaves_no_tasks` 覆盖 UDP/TCP listener 未关闭句柄统计、worker 关停状态和关停后的错误返回。
+- M1-T2 已落地到基础 TCP/UDP：`service_types/{tcp,udp}.rs` 不再直接调用 `.block_on(...)`，bind/listen/connect/send/poll/close 转交 worker；既有 `net_runtime_manager_accepts_tcp_client_and_echoes_payloads` 与 `default_net_manager_sends_udp_packet_to_bound_socket` 继续覆盖 loopback 行为，`tcp_udp_service_paths_do_not_block_on_tokio_runtime` 增加源码结构守卫。
+- M1-T3 已落地：`runtime_system.rs` 注册 `net.transport`、`net.poll_ingress`（`SystemStage::First`）、`net.flush_egress`（`SystemStage::Last`）和类型化 `NetEvent`；`plugin.toml` 与 runtime package manifest 同步声明 system set/anchors，`ingress_anchor_in_first_egress_in_last` 覆盖注册报告。
+- M1-T4 已落地基础层：新增 `transport/{mod,reconnect,state_machine}.rs`，`ReconnectPolicy` 提供确定性指数退避序列，`TransportStateMachine` 负责 `Connecting/Open/Closing/Closed/Failed` 状态转换并产出 `ConnectionStateChanged` 事件；TCP worker 接入 connect/open/close/failed 状态事件。TLS policy/rustls 接入仍按 M2-T2 推进，不混入 M1。
+- 验证记录：`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked` 仍被插件 workspace `Cargo.lock` 排序漂移阻止进入编译；本次使用锁文件备份保护的 `--offline` scoped 检查通过，并在还原锁文件后直接运行 warmed lib-test 二进制，`zircon_plugin_net_runtime` 18 个测试全通过。
+
 ### M2 HTTP / WebSocket / TLS
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
@@ -137,6 +145,17 @@ zircon_plugins/net/features/
 | M2-T1 | HTTP 客户端（hyper + range） | http/client.rs | M1 | `http_round_trip_against_local_hyper_server`、`range_request_returns_partial` |
 | M2-T2 | rustls 接入（客户端 roots/pin、服务端注入） | transport/tls.rs | M2-T1 | `self_signed_cert_rejected_then_pinned_accepted` |
 | M2-T3 | WebSocket 收编 worker | websocket/* | M1 | `ws_frame_order_preserved` |
+
+#### M2 当前进度（2026-06-14）
+
+- M2-T1 已落地到 HTTP feature：`features/http/runtime/src/backend/client.rs` 对 `http://` 请求走 hyper client，保留现有 reqwest/rustls HTTPS 路径给 M2-T2 收束；`Cargo.toml` 打开 hyper/hyper-util client 特性和 Tokio time，用统一超时包裹 hyper 请求。
+- M2-T1 Range 契约已落地：`NetHttpRequestDescriptor::with_byte_range(start, end_inclusive)` 生成并替换标准 `Range: bytes=start-end` 请求头，`content_download/runtime/src/manager/http_fetch.rs` 改为复用该契约入口，避免下载层继续手写 Range 头格式。
+- M2-T1 测试已补齐：HTTP feature 测试树新增计划命名覆盖 `http_round_trip_against_local_hyper_server` 与 `range_request_returns_partial`；内容下载既有 `content_download_manager_fetches_resumed_http_range_with_existing_prefix` 继续覆盖上层 Range 续传复用。
+- 验证记录：使用锁文件备份保护的 `--offline` 检查通过 `zircon_plugin_net_http_runtime --tests` 与 `zircon_plugin_net_content_download_runtime --tests`；直接运行 warmed 测试二进制分别通过 HTTP feature 10 个测试和 content_download 13 个测试。`zircon_runtime` 公共契约焦点测试构建两次超时于冷目标目录编译/链接阶段，已停止残留进程并还原根/插件锁文件，未声明该测试执行通过。
+- M2-T2 已落地到共享 TLS helper 与 HTTP feature：`NetSecurityPolicy` 增加自定义 root DER 列表，`runtime/src/transport/tls.rs` 提供 certificate SHA-256 pin 计算、pin 匹配、rustls root store、client config 和 `TlsServerIdentity`/server config 注入；HTTP HTTPS 路径开启 `tls_info`，pinning 时允许握手拿证书但在读取响应体前强制校验证书 SHA-256。
+- M2-T2 测试已补齐：`self_signed_cert_rejected_then_pinned_accepted` 使用内联测试证书和 `tokio-rustls` 本地 HTTPS fixture，证明未 pin 的自签证书被 rustls 拒绝，配置正确 host pin 后可返回 `tls-ok`；HTTP feature warmed 测试二进制 11 个测试全通过。WSS 连接路径未纳入本次 HTTP/TLS 切片。
+- M2-T3 已落地到 WebSocket feature 发送侧：`backend/connection.rs` 以 `tokio::sync::mpsc` 有界队列衔接 `send_websocket_frame`，客户端和服务端连接创建时把 Tungstenite sink 移入 runtime writer task；调用线程只负责入队，close frame 入队后同步标记 `Closing`，不再在发送路径执行 `runtime.block_on(...)`。
+- M2-T3 测试已补齐：`ws_frame_order_preserved` 覆盖真实 WebSocket 握手后的双向多帧顺序，`websocket_connection_send_path_is_queue_driven` 源码守卫防止发送路径退回调用线程 `block_on`；本切片 `rustfmt --edition 2021 --check`、冲突标记/行尾空白扫描和发送路径防回退扫描已通过。锁文件备份保护的 `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_websocket_runtime --tests --offline --jobs 1 --target-dir D:\cargo-targets\zircon-net-ws-m2-0614 --message-format short --color never` 被活跃渲染会话持有的 `zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs` 初始化缺 `has_rolled_previous_transform` 字段阻塞于依赖编译阶段，根/插件锁文件已还原，未声明 WebSocket Cargo 通过。
 
 ### M3 Session / RPC
 
@@ -187,3 +206,15 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtim
 - M1 的 block_on → worker 迁移改变全部现有调用方语义（同步返回 → 命令+事件）；features 六 crate 同窗口适配，借既有 loopback 测试兜底。
 - replication 依赖 01-M1/M2 的 change detection 访问声明与事件总线；RPC/replication 的 schema 序列化器与 ZrVM 反射统一（避免两套 schema）必须在 M3 前与 [08](08-zr-vm.md) 对齐 DTO。
 - rustls/hyper/tungstenite 版本组合锁定在 workspace 层，避免 features 间依赖漂移。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，复制语义与可靠 UDP 协议细节对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| 状态复制（authority/relevancy/delta） | `dev/UnrealEngine/Engine/Source/Runtime/Net/`、`Networking/` | 属性复制的 dirty 收集与条件复制、relevancy 裁剪形态（我们 v1 只取 OnChange/Interval/Once 子集） |
+| 可靠 UDP（ack 位图/fragment/channel） | `dev/godot/modules/enet/`（及其 vendored ENet 源码） | seq/ack 滑窗、fragment 重组、channel 隔离——§3.6 包头设计的判例 |
+| WebSocket 服务端/客户端生命周期 | `dev/godot/modules/websocket/` | 握手、分帧、关闭码处理 |
+| TLS 接入形态 | `dev/godot/modules/mbedtls/` | 证书校验策略注入点（我们用 rustls，仅取结构形态） |
+| WebRTC 形态（后续池参考，不在 v1） | `dev/godot/modules/webrtc/` | data channel 抽象与 Transport 对齐方式 |

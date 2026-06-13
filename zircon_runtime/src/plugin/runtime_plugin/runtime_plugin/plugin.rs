@@ -38,13 +38,6 @@ pub trait RuntimePlugin {
     }
 
     fn deactivate(&self, _context: &mut PluginRuntimeContext<'_>) {}
-
-    fn register_runtime_extensions(
-        &self,
-        registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.register(registry)
-    }
 }
 
 impl RuntimePlugin for RuntimePluginDescriptor {

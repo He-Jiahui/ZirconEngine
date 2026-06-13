@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui"
+version = 2
+display_name = "Workbench Tab Strip"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchTabStrip]
+root = "root"
+default_classes = ["workbench-tab-strip", "workbench-primitive"]
+
+[nodes.root]
+component = "Tabs"
+control_id = "WorkbenchTabStripRoot"
+classes = ["workbench-tabs", "workbench-tab-strip"]
+props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single", selection_follows_focus = true, background_color = "#1c2226", layout_gap = 0.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 34.0, stretch = "Fixed" } }

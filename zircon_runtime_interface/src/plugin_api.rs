@@ -27,6 +27,14 @@ pub type ZrHostEventEmitFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, ZrEventTypeId, *const u8, usize) -> ZrStatus;
 pub type ZrHostEventDrainFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, ZrEventTypeId, ZrByteBufferRef) -> ZrStatus;
+pub type ZrHostBridgeCallFnV1 = unsafe extern "C" fn(
+    ZrRuntimePluginHandle,
+    u32,
+    u32,
+    *const u8,
+    usize,
+    ZrByteBufferRef,
+) -> ZrStatus;
 pub type ZrHostDiagnosticsEmitFnV1 =
     unsafe extern "C" fn(ZrRuntimePluginHandle, ZrByteSlice, ZrByteSlice) -> ZrStatus;
 pub type ZrHostDiagnosticsMetricFnV1 =
@@ -44,6 +52,7 @@ pub struct ZrHostApiV3 {
     pub ecs: ZrHostEcsApiV1,
     pub asset: ZrHostAssetApiV1,
     pub event: ZrHostEventApiV1,
+    pub bridge: ZrHostBridgeApiV1,
     pub diagnostics: ZrHostDiagnosticsApiV1,
 }
 
@@ -55,6 +64,7 @@ impl ZrHostApiV3 {
             ecs: ZrHostEcsApiV1::empty(),
             asset: ZrHostAssetApiV1::empty(),
             event: ZrHostEventApiV1::empty(),
+            bridge: ZrHostBridgeApiV1::empty(),
             diagnostics: ZrHostDiagnosticsApiV1::empty(),
         }
     }
@@ -103,6 +113,18 @@ impl ZrHostEventApiV1 {
             emit: None,
             drain: None,
         }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ZrHostBridgeApiV1 {
+    pub call: Option<ZrHostBridgeCallFnV1>,
+}
+
+impl ZrHostBridgeApiV1 {
+    pub const fn empty() -> Self {
+        Self { call: None }
     }
 }
 

@@ -1,6 +1,9 @@
 //! Runtime-owned task helpers and execution primitives.
 
+mod diagnostics;
+mod job_handle;
 mod job_scheduler;
+mod parallel_for;
 mod pool;
 mod pools;
 mod report;
@@ -11,10 +14,17 @@ use std::thread::{self, JoinHandle};
 use crate::core::ZirconError;
 
 pub use crate::core::framework::tasks::{TaskPoolDescriptor, TaskPoolKind};
+use diagnostics::JobSchedulerDiagnosticsState;
+pub use diagnostics::{
+    TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC,
+    TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC, TASKS_SCHEDULED_DIAGNOSTIC,
+};
+pub use job_handle::JobHandle;
 pub use job_scheduler::JobScheduler;
+pub use parallel_for::parallel_for;
 pub use pool::TaskPool;
 pub use pools::{TaskPoolThreadCounts, TaskPools};
-pub use report::{TaskPoolReport, TaskPoolReportEntry};
+pub use report::{JobSchedulerReport, TaskPoolReport, TaskPoolReportEntry};
 pub use thread_assignment::{TaskPoolOptions, TaskPoolThreadAssignmentPolicy};
 
 pub fn spawn_named_thread<F, T>(

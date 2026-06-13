@@ -1,18 +1,9 @@
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
-    light_dir: vec4<f32>,
-    light_color: vec4<f32>,
     ambient_color: vec4<f32>,
     previous_view_proj: mat4x4<f32>,
     motion_params: vec4<f32>,
-    point_light_position_range: array<vec4<f32>, 8>,
-    point_light_color_intensity: array<vec4<f32>, 8>,
-    point_light_params: vec4<f32>,
-};
-struct ShadowReceiverUniform {
-    light_view_proj: mat4x4<f32>,
-    params: vec4<f32>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -36,9 +27,6 @@ struct MaterialPropertyUniform {
 @group(2) @binding(8) var emissive_tex: texture_2d<f32>;
 @group(2) @binding(9) var emissive_sampler: sampler;
 @group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
-@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;
-@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;
-@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -86,7 +74,6 @@ struct SampledMaterial {
 };
 
 const EPSILON: f32 = 0.000001;
-const POINT_LIGHT_UNIFORM_LIMIT: u32 = 8u;
 
 fn skin_weight(joint_index: u32, weight: f32) -> f32 {
     if (weight <= EPSILON || joint_index >= zr_skinned_joint_count()) {
@@ -296,61 +283,6 @@ fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> 
     return output;
 }
 
-fn world_to_shadow_coord(world_position: vec3<f32>) -> vec4<f32> {
-    let light_clip = shadow_receiver.light_view_proj * vec4<f32>(world_position, 1.0);
-    if (abs(light_clip.w) <= EPSILON) {
-        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    }
-
-    let light_ndc = light_clip.xyz / light_clip.w;
-    if (any(light_ndc.xy < vec2<f32>(-1.0, -1.0)) || light_ndc.z < 0.0 || any(light_ndc > vec3<f32>(1.0, 1.0, 1.0))) {
-        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
-    }
-
-    let shadow_uv = light_ndc.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
-    return vec4<f32>(shadow_uv, light_ndc.z, 1.0);
-}
-
-fn sample_shadow_visibility(shadow_uv: vec2<f32>, receiver_depth: f32, offset: vec2<i32>) -> f32 {
-    let shadow_size = max(textureDimensions(shadow_map_tex), vec2<u32>(1u, 1u));
-    let shadow_texel = vec2<f32>(1.0, 1.0) / vec2<f32>(shadow_size);
-    let sample_uv = clamp(shadow_uv + vec2<f32>(offset) * shadow_texel, vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 1.0));
-    return textureSampleCompare(shadow_map_tex, shadow_compare_sampler, sample_uv, receiver_depth);
-}
-
-fn shadow_visibility(world_position: vec3<f32>, shadow_params: vec4<f32>) -> f32 {
-    if (shadow_receiver.params.x <= 0.5) {
-        return 1.0;
-    }
-    if (shadow_params.z <= 0.5) {
-        return 1.0;
-    }
-
-    let shadow_coord = world_to_shadow_coord(world_position);
-    if (shadow_coord.w <= 0.0) {
-        return 1.0;
-    }
-
-    let receiver_depth = clamp(shadow_coord.z - shadow_receiver.params.y, 0.0, 1.0);
-    let offsets = array<vec2<i32>, 9>(
-        vec2<i32>(-1, -1),
-        vec2<i32>(0, -1),
-        vec2<i32>(1, -1),
-        vec2<i32>(-1, 0),
-        vec2<i32>(0, 0),
-        vec2<i32>(1, 0),
-        vec2<i32>(-1, 1),
-        vec2<i32>(0, 1),
-        vec2<i32>(1, 1),
-    );
-    var lit = 0.0;
-    for (var i = 0u; i < 9u; i = i + 1u) {
-        lit = lit + sample_shadow_visibility(shadow_coord.xy, receiver_depth, offsets[i]);
-    }
-
-    return mix(clamp(shadow_receiver.params.z, 0.0, 1.0), 1.0, lit / 9.0);
-}
-
 fn sampled_world_normal(input: VertexOutput) -> vec3<f32> {
     let geometric_normal = normalize_or_zero(input.world_normal);
     if (input.motion_params.w <= 0.5 || length(geometric_normal) <= EPSILON) {
@@ -400,36 +332,111 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
     return SampledMaterial(albedo, metallic, roughness, occlusion, emissive, material_properties.data0.w);
 }
 
-fn point_light_lighting(world_position: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
-    let light_count = min(u32(max(scene.point_light_params.x, 0.0)), POINT_LIGHT_UNIFORM_LIMIT);
+fn light_radiance(light: ZrGpuLightData) -> vec3<f32> {
+    return max(light.color_intensity.rgb, vec3<f32>(0.0, 0.0, 0.0)) * max(light.color_intensity.w, 0.0);
+}
+
+fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
+    let lambert = max(dot(world_normal, light_vector), 0.0);
+    let half_dir = normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
+    let specular_power = mix(64.0, 4.0, material.roughness);
+    let specular_intensity = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * mix(0.04, 1.0, material.metallic);
+    return diffuse_color * radiance * lambert + radiance * specular_intensity;
+}
+
+fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
+    let range = max(light.position_range.w, EPSILON);
+    if (distance_to_light >= range) {
+        return 0.0;
+    }
+
+    var visibility = pow(clamp(1.0 - distance_to_light / range, 0.0, 1.0), 2.0);
+    if (light_type == ZR_GPU_LIGHT_TYPE_SPOT) {
+        let light_to_surface = normalize_or_zero(world_position - light.position_range.xyz);
+        let cone = dot(normalize_or_zero(light.direction_type.xyz), light_to_surface);
+        let inner = light.spot_angles_size.x;
+        let outer = light.spot_angles_size.y;
+        visibility = visibility * clamp((cone - outer) / max(inner - outer, EPSILON), 0.0, 1.0);
+    } else if (light_type == ZR_GPU_LIGHT_TYPE_RECT) {
+        let light_to_surface = normalize_or_zero(world_position - light.position_range.xyz);
+        visibility = visibility * max(dot(normalize_or_zero(light.direction_type.xyz), light_to_surface), 0.0);
+    }
+    return visibility;
+}
+
+fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>, shadow_params: vec4<f32>, view_z: f32) -> vec3<f32> {
+    if (light_index >= zr_gpu_scene_light_count()) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+
+    let light = zr_gpu_light(light_index);
+    let light_type = zr_gpu_light_type(light);
+    let base_radiance = light_radiance(light);
+    if (length(base_radiance) <= EPSILON) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+
+    if (light_type == ZR_GPU_LIGHT_TYPE_DIRECTIONAL) {
+        let light_vector = normalize_or_zero(-light.direction_type.xyz);
+        var direct_visibility = 1.0;
+        if (shadow_params.z > 0.5) {
+            direct_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
+        }
+        let radiance = base_radiance * direct_visibility * material.occlusion;
+        return shade_light_vector(light_vector, radiance, world_normal, material, diffuse_color);
+    }
+
+    let to_light = light.position_range.xyz - world_position;
+    let distance_to_light = length(to_light);
+    let light_vector = to_light / max(distance_to_light, EPSILON);
+    let visibility = punctual_light_visibility(light, light_type, world_position, distance_to_light);
+    if (visibility <= 0.0) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+
+    var shadow_visibility = 1.0;
+    if (shadow_params.z > 0.5) {
+        shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
+    }
+    return shade_light_vector(
+        light_vector,
+        base_radiance * visibility * shadow_visibility * material.occlusion,
+        world_normal,
+        material,
+        diffuse_color,
+    );
+}
+
+fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>, shadow_params: vec4<f32>) -> vec3<f32> {
+    if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+
+    let view_z = zr_light_view_z(world_position, zr_light_grid_params);
+    let bin = zr_light_zbin_index(view_z, zr_light_grid_params);
+    let header = zr_light_zbin_header(bin, zr_light_grid_params);
+    if (header.x == 0xFFFFu || header.x > header.y) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+
+    let tile_base = zr_light_tile_base(frag_coord, zr_light_grid_params);
     var accumulated = vec3<f32>(0.0, 0.0, 0.0);
-
-    for (var i = 0u; i < POINT_LIGHT_UNIFORM_LIMIT; i = i + 1u) {
-        if (i >= light_count) {
-            break;
+    for (var word = header.x / 32u; word <= header.y / 32u; word = word + 1u) {
+        var mask = zr_light_mask_word(tile_base, bin, word, zr_light_grid_params);
+        while (mask != 0u) {
+            let bit_index = firstTrailingBit(mask);
+            let light_index = word * 32u + bit_index;
+            accumulated = accumulated + shade_gpu_light_index(
+                light_index,
+                world_position,
+                world_normal,
+                material,
+                diffuse_color,
+                shadow_params,
+                view_z,
+            );
+            mask = mask & (mask - 1u);
         }
-        let position_range = scene.point_light_position_range[i];
-        let color_intensity = scene.point_light_color_intensity[i];
-        let range = max(position_range.w, EPSILON);
-        let intensity = max(color_intensity.w, 0.0);
-        if (intensity <= 0.0) {
-            continue;
-        }
-
-        let to_light = position_range.xyz - world_position;
-        let distance_to_light = length(to_light);
-        if (distance_to_light >= range) {
-            continue;
-        }
-
-        let light_vector = to_light / max(distance_to_light, EPSILON);
-        let attenuation = pow(clamp(1.0 - distance_to_light / range, 0.0, 1.0), 2.0);
-        let lambert = max(dot(world_normal, light_vector), 0.0);
-        let radiance = color_intensity.rgb * intensity * attenuation * material.occlusion;
-        let half_dir = normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
-        let specular_power = mix(64.0, 4.0, material.roughness);
-        let specular_intensity = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * mix(0.04, 1.0, material.metallic);
-        accumulated = accumulated + diffuse_color * radiance * lambert + radiance * specular_intensity;
     }
 
     return accumulated;
@@ -437,19 +444,12 @@ fn point_light_lighting(world_position: vec3<f32>, world_normal: vec3<f32>, mate
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let light_dir = normalize(-scene.light_dir.xyz);
     let world_normal = sampled_world_normal(input);
-    let lambert = max(dot(light_dir, world_normal), 0.0);
-    let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);
     let material = sampled_material(input);
     let ambient = scene.ambient_color.rgb * material.occlusion;
-    let direct = scene.light_color.rgb * lambert * direct_visibility * material.occlusion;
-    let half_dir = normalize_or_zero(light_dir + vec3<f32>(0.0, 0.0, 1.0));
-    let specular_power = mix(64.0, 4.0, material.roughness);
-    let specular_intensity = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * mix(0.04, 1.0, material.metallic);
     let diffuse_color = material.albedo.rgb * (1.0 - material.metallic * 0.45);
-    let point_lights = point_light_lighting(input.world_position, world_normal, material, diffuse_color);
-    let lit = diffuse_color * (ambient + direct) + scene.light_color.rgb * specular_intensity * direct_visibility * material.occlusion + point_lights;
+    let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params);
+    let lit = diffuse_color * ambient + direct_lights;
     let shaded = mix(lit, material.albedo.rgb, clamp(material.unlit, 0.0, 1.0)) + material.emissive;
     return vec4<f32>(shaded, material.albedo.a);
 }

@@ -171,3 +171,14 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 - `fallback_query/`（纯 Rust 退化查询）与 native 路径的行为一致性需要对照测试守护；fallback 仅保证功能正确，不保证与 Detour 路径逐点一致（容差断言）。
 - crowd FFI 每 tick 批量交换的数据布局要一次定准（`#[repr(C)]` 数组），中途改动会破坏 native bridge 版本（`zr_nav_recast_bridge_version` 现有版本号机制递增守护）。
 - v1 仅 3D（维持既定范围）；2D 导航与 world-partition streaming 留在后续池。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，烘焙参数语义与 crowd 调参对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| Recast/Detour/Crowd/TileCache 权威用法 | 仓内 vendored：`zircon_plugins/navigation/native/vendor/recastnavigation`（含官方 RecastDemo 用例） | rcConfig 参数推导、tile 烘焙调用序列、dtCrowd 参数与 obstacle avoidance 档位、dtTileCache obstacle 流程——M1–M4 的第一参考 |
+| tiled 异步重建编排 | `dev/UnrealEngine/Engine/Source/Runtime/NavigationSystem/`、`Navmesh/` | dirty area 聚合、tile 重建任务切分与收割时序、NavModifier 区域语义 |
+| Server 形态（map/region/agent/obstacle/link） | `dev/godot/servers/navigation_3d/`、`dev/godot/modules/navigation_3d/` | RID API 面、agent 回调模型、off-mesh link 双向语义 |
+

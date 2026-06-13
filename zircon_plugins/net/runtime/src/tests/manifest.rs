@@ -1,6 +1,6 @@
 use zircon_runtime::plugin::{CapabilityStatus, PluginMaturity, RuntimePlugin};
 
-use crate::runtime_plugin;
+use crate::{runtime_plugin, NET_FLUSH_EGRESS_SYSTEM, NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET};
 
 #[test]
 fn net_plugin_manifest_advertises_layered_optional_features() {
@@ -58,6 +58,17 @@ fn net_plugin_manifest_advertises_layered_optional_features() {
             "net.runtime_events.connection_state_changed",
             "net.runtime_events.http_route_registered",
             "net.runtime_events.websocket_frame_queued",
+        ]
+    );
+    assert_eq!(
+        manifest.modules[0].system_sets,
+        vec![NET_SYSTEM_SET.to_string()]
+    );
+    assert_eq!(
+        manifest.modules[0].system_anchors,
+        vec![
+            NET_POLL_INGRESS_SYSTEM.to_string(),
+            NET_FLUSH_EGRESS_SYSTEM.to_string()
         ]
     );
 

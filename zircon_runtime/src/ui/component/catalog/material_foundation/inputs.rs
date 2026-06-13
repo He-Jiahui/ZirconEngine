@@ -20,6 +20,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .default_prop("step", UiValue::Float(1.0))
         .default_prop("large_step", UiValue::Float(10.0))
         .events([
+            UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::Focus,
             UiComponentEventKind::BeginDrag,
             UiComponentEventKind::DragDelta,
@@ -42,6 +43,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .default_prop("text", UiValue::String("Checkbox".to_string()))
         .state(bool_prop("indeterminate", false))
         .events([
+            UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::Focus,
             UiComponentEventKind::ValueChanged,
         ]),
@@ -57,6 +59,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(bool_prop("keyboard_navigation", true))
             .default_prop("text", UiValue::String("Radio".to_string()))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::Focus,
                 UiComponentEventKind::SelectOption,
                 UiComponentEventKind::ValueChanged,
@@ -81,6 +84,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(bool_prop("thumb_draggable", false))
             .default_prop("text", UiValue::String("Switch".to_string()))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::Focus,
                 UiComponentEventKind::ValueChanged,
             ]),
@@ -89,12 +93,55 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(bool_prop("show_value_label", true))
             .with_prop(array_prop("marks"))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::Focus,
                 UiComponentEventKind::BeginDrag,
                 UiComponentEventKind::DragDelta,
                 UiComponentEventKind::EndDrag,
                 UiComponentEventKind::ValueChanged,
             ]),
+        primitive(
+            "RangeSlider",
+            "Range Slider",
+            UiComponentCategory::Numeric,
+            "range-slider",
+        )
+        .with_prop(range_slider_value_prop("value", 80.0))
+        .with_prop(range_slider_value_prop("range_min", 20.0))
+        .with_prop(float_prop("min", 0.0))
+        .with_prop(float_prop("max", 100.0))
+        .with_prop(float_prop("step", 1.0))
+        .with_prop(float_prop("large_step", 10.0))
+        .with_prop(range_slider_percent_prop("value_percent", 0.8))
+        .with_prop(range_slider_percent_prop("range_min_percent", 0.2))
+        .with_prop(enum_prop_with_options(
+            "focused_thumb",
+            "upper",
+            ["lower", "upper"].into_iter().map(enum_option_descriptor),
+        ))
+        .with_prop(bool_prop("disable_swap", true))
+        .with_prop(bool_prop("show_value_label", true))
+        .with_prop(array_prop("marks"))
+        .default_prop("value", UiValue::Float(80.0))
+        .default_prop("range_min", UiValue::Float(20.0))
+        .default_prop("min", UiValue::Float(0.0))
+        .default_prop("max", UiValue::Float(100.0))
+        .default_prop("step", UiValue::Float(1.0))
+        .default_prop("large_step", UiValue::Float(10.0))
+        .default_prop("value_percent", UiValue::Float(0.8))
+        .default_prop("range_min_percent", UiValue::Float(0.2))
+        .default_prop("focused_thumb", UiValue::Enum("upper".to_string()))
+        .default_prop("disable_swap", UiValue::Bool(true))
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::Focus,
+            UiComponentEventKind::BeginDrag,
+            UiComponentEventKind::DragDelta,
+            UiComponentEventKind::LargeDragDelta,
+            UiComponentEventKind::EndDrag,
+            UiComponentEventKind::ValueChanged,
+            UiComponentEventKind::Commit,
+        ]),
         with_button_variant_default(
             primitive(
                 "ToggleButton",
@@ -121,7 +168,10 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .default_prop("button_size", UiValue::Enum("medium".to_string()))
         .default_prop("icon_placement", UiValue::Enum("none".to_string()))
         .default_prop("selection_state", UiValue::Enum("exclusive".to_string()))
-        .event(UiComponentEventKind::ValueChanged),
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::ValueChanged,
+        ]),
         primitive("Rating", "Rating", UiComponentCategory::Numeric, "rating")
             .with_prop(number_value_prop())
             .with_prop(int_prop("max", 5))
@@ -140,6 +190,20 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::SetWorldTransform,
         ]),
     ]
+}
+
+fn range_slider_value_prop(name: &str, default: f64) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Float)
+        .default_value(UiValue::Float(default))
+        .range(0.0, 100.0)
+        .step(1.0)
+}
+
+fn range_slider_percent_prop(name: &str, default: f64) -> UiPropSchema {
+    UiPropSchema::new(name, UiValueKind::Float)
+        .default_value(UiValue::Float(default))
+        .range(0.0, 1.0)
+        .step(0.01)
 }
 
 fn radio_options_prop() -> UiPropSchema {

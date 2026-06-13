@@ -18,6 +18,49 @@ fn runtime_extension_registry_accepts_valid_plugin_event_catalog() {
 }
 
 #[test]
+fn typed_event_registration_derives_schema_valid_event_catalog() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("weather.runtime")
+        .expect("plugin module id");
+
+    registry
+        .register_event::<WeatherRegistryEvent>(
+            owner,
+            PluginEventManifest {
+                id: "weather.events.changed".to_string(),
+                display_name: "Weather Changed".to_string(),
+                payload_schema: "weather.schemas.changed.v1".to_string(),
+            },
+        )
+        .expect("typed event should register");
+
+    assert_eq!(registry.plugin_event_catalogs(), &[typed_event_catalog()]);
+}
+
+#[test]
+fn typed_event_registration_rejects_event_id_outside_derived_catalog_namespace() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("weather.runtime")
+        .expect("plugin module id");
+
+    let error = registry
+        .register_event::<WeatherRegistryEvent>(
+            owner,
+            PluginEventManifest {
+                id: "weather.changed".to_string(),
+                display_name: "Weather Changed".to_string(),
+                payload_schema: "weather.schemas.changed.v1".to_string(),
+            },
+        )
+        .unwrap_err()
+        .to_string();
+
+    assert!(error.contains("catalog namespace `weather.events`"));
+}
+
+#[test]
 fn runtime_plugin_registration_report_validates_shadowed_manifest_event_catalogs() {
     let plugin = ShadowedInvalidEventCatalogRuntimePlugin {
         descriptor: RuntimePluginDescriptor::new(
@@ -167,6 +210,18 @@ fn valid_event_catalog() -> PluginEventCatalogManifest {
     }
 }
 
+fn typed_event_catalog() -> PluginEventCatalogManifest {
+    PluginEventCatalogManifest {
+        namespace: "weather.events".to_string(),
+        version: 1,
+        events: vec![PluginEventManifest {
+            id: "weather.events.changed".to_string(),
+            display_name: "Weather Changed".to_string(),
+            payload_schema: "weather.schemas.changed.v1".to_string(),
+        }],
+    }
+}
+
 fn register_error(catalog: PluginEventCatalogManifest) -> String {
     let mut registry = RuntimeExtensionRegistry::default();
     registry
@@ -174,6 +229,9 @@ fn register_error(catalog: PluginEventCatalogManifest) -> String {
         .unwrap_err()
         .to_string()
 }
+
+#[derive(Debug)]
+struct WeatherRegistryEvent;
 
 #[derive(Debug)]
 struct ShadowedInvalidEventCatalogRuntimePlugin {
@@ -193,7 +251,7 @@ impl RuntimePlugin for ShadowedInvalidEventCatalogRuntimePlugin {
             .with_event_catalog(catalog)
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

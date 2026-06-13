@@ -61,6 +61,7 @@ impl ScenePostProcessResources {
             scene_normal_view,
             scene_material_view,
             ao_view,
+            self.white_texture_view(),
             previous_scene_color_view,
             previous_global_illumination_view,
             previous_screen_space_reflection_history_view,

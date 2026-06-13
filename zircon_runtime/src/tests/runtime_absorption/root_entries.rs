@@ -331,3 +331,221 @@ fn core_module_tree_matches_decided_spine_shape() {
         "core root should contain only the decided spine directories plus mod.rs"
     );
 }
+
+#[test]
+fn runtime_navigation_boundary_file_set_requires_doc_update() {
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let navigation_dir = manifest_dir.join("src").join("navigation");
+    let actual_entries = std::fs::read_dir(&navigation_dir)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", navigation_dir.display()))
+        .map(|entry| {
+            entry
+                .unwrap_or_else(|error| panic!("failed to read navigation entry: {error}"))
+                .file_name()
+                .into_string()
+                .unwrap_or_else(|name| panic!("non-utf8 navigation entry name: {name:?}"))
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    let expected_entries = ["mod.rs", "module.rs", "runtime.rs"]
+        .into_iter()
+        .map(String::from)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(
+        actual_entries, expected_entries,
+        "runtime navigation fallback changed file shape; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
+    );
+
+    let module_source = include_str!("../../navigation/module.rs");
+    assert!(
+        module_source
+            .contains("Built-in baked navmesh pathfinding and lightweight agent avoidance"),
+        "navigation module descriptor should keep fallback runtime scope explicit"
+    );
+
+    let boundary_doc = include_str!("../../../../docs/zircon_runtime/navigation/runtime.md");
+    for required_anchor in [
+        "Runtime 14 Boundary Judgment",
+        "built-in fallback implementation",
+        "zircon_plugins/navigation",
+        "runtime_navigation_boundary_file_set_requires_doc_update",
+    ] {
+        assert!(
+            boundary_doc.contains(required_anchor),
+            "navigation boundary doc should record `{required_anchor}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_animation_backlog_boundary_requires_doc_update() {
+    let animation_source = include_str!("../../animation/mod.rs");
+    assert!(
+        animation_source.contains("pub use sequence::apply_sequence_to_world;"),
+        "animation root should keep the public sequence application hook explicit"
+    );
+
+    let sequence_tests = include_str!("../../animation/sequence/tests.rs");
+    for required_sequence_anchor in [
+        "sequence_applies_mesh_renderer_morph_weight_track",
+        "MeshRenderer.morph_weights.1",
+    ] {
+        assert!(
+            sequence_tests.contains(required_sequence_anchor),
+            "animation sequence tests should keep morph-weight property-track evidence `{required_sequence_anchor}`"
+        );
+    }
+
+    let boundary_doc = include_str!("../../../../docs/zircon_runtime/animation/runtime.md");
+    for required_anchor in [
+        "Runtime Animation Module",
+        "Root motion",
+        "Backlog debt",
+        "Morph targets",
+        "asset/scene property/sequence tracks",
+        "not as a dedicated animation-system morph solver",
+        "`render` and `graphics` own GPU skinning and draw submission",
+        "Editor authoring tools",
+        "future expansion must coordinate asset, render, and graphics owners",
+        "runtime_animation_backlog_boundary_requires_doc_update",
+    ] {
+        assert!(
+            boundary_doc.contains(required_anchor),
+            "animation runtime doc should record `{required_anchor}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_14_module_family_root_seats_match_documented_judgements() {
+    let crate_root = include_str!("../../lib.rs");
+
+    for module_name in ["animation", "navigation", "diagnostic_log", "engine_module"] {
+        let declaration = format!("pub mod {module_name};");
+        assert!(
+            crate_root.contains(&declaration),
+            "Runtime 14 keeps `{module_name}` as a crate-root module family; update docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md before moving it"
+        );
+
+        let flattened_reexport = format!("pub use {module_name}::{{");
+        assert!(
+            !crate_root.contains(&flattened_reexport),
+            "Runtime 14 should keep `{module_name}` behind its namespace instead of flattening the family at crate root"
+        );
+    }
+
+    let plan_doc = include_str!(
+        "../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
+    );
+    for required_anchor in [
+        "animation / navigation / diagnostic_log / engine_module",
+        "四族在 crate 根的席位与判词一致",
+        "runtime_14_module_family_root_seats_match_documented_judgements",
+    ] {
+        assert!(
+            plan_doc.contains(required_anchor),
+            "Runtime 14 plan should record the crate-root family judgement anchor `{required_anchor}`"
+        );
+    }
+
+    let animation_doc = include_str!("../../../../docs/zircon_runtime/animation/runtime.md");
+    assert!(
+        animation_doc.contains("should keep its crate-root seat"),
+        "animation runtime doc should keep the crate-root seat judgement"
+    );
+
+    let navigation_doc = include_str!("../../../../docs/zircon_runtime/navigation/runtime.md");
+    assert!(
+        navigation_doc.contains("built-in fallback implementation"),
+        "navigation runtime doc should keep the fallback root-seat judgement"
+    );
+
+    let diagnostic_log_doc = include_str!("../../../../docs/zircon_runtime/diagnostic_log/mod.md");
+    assert!(
+        diagnostic_log_doc.contains("Keep `diagnostic_log` at crate root."),
+        "diagnostic_log doc should keep the crate-root process diagnostics judgement"
+    );
+
+    let engine_module_doc =
+        include_str!("../../../../docs/zircon_runtime/engine_module/relationship.md");
+    assert!(
+        engine_module_doc.contains("Keep `engine_module` as a crate-root declaration family."),
+        "engine_module relationship doc should keep the declared-layering root-seat judgement"
+    );
+}
+
+#[test]
+fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
+    fn count_rust_files(path: &std::path::Path) -> usize {
+        std::fs::read_dir(path)
+            .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
+            .map(|entry| {
+                entry
+                    .unwrap_or_else(|error| panic!("failed to read directory entry: {error}"))
+                    .path()
+            })
+            .map(|path| {
+                if path.is_dir() {
+                    count_rust_files(&path)
+                } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+                    1
+                } else {
+                    0
+                }
+            })
+            .sum()
+    }
+
+    let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    for (family, expected_count) in [
+        ("animation", 27usize),
+        ("navigation", 3),
+        ("diagnostic_log", 7),
+        ("engine_module", 8),
+    ] {
+        let family_dir = runtime_root.join("src").join(family);
+        assert_eq!(
+            count_rust_files(&family_dir),
+            expected_count,
+            "Runtime 14 module family `{family}` changed file count; update module_family_boundary and mirror docs before changing the root-seat judgement"
+        );
+    }
+
+    let mirror_docs = [
+        (
+            "Runtime 14 plan",
+            include_str!("../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"),
+        ),
+        (
+            "runtime index",
+            include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md"),
+        ),
+        (
+            "M0 review",
+            include_str!("../../../../docs/engine-architecture/runtime-architecture-review-m0.md"),
+        ),
+        (
+            "interface convergence",
+            include_str!("../../../../docs/engine-architecture/runtime-interface-convergence.md"),
+        ),
+    ];
+
+    for (doc_name, doc_source) in mirror_docs {
+        for required_anchor in [
+            "module_family_boundary",
+            "expected_family_count = 4",
+            "animation = 27",
+            "navigation = 3",
+            "diagnostic_log = 7",
+            "engine_module = 8",
+            "root_seat_guard_present = true",
+            "risks = []",
+            "runtime_14_module_family_mirror_docs_match_structure_audit_counts",
+        ] {
+            assert!(
+                doc_source.contains(required_anchor),
+                "{doc_name} should mirror Runtime 14 module-family audit anchor `{required_anchor}`"
+            );
+        }
+    }
+}

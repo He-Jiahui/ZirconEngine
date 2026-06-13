@@ -105,7 +105,7 @@ impl RuntimePlugin for InvalidModulePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

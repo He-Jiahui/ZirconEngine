@@ -56,6 +56,8 @@ members = [
     "rendering/features/post_process/editor",
     "rendering/features/ssao/runtime",
     "rendering/features/ssao/editor",
+    "rendering/features/contact_shadow/runtime",
+    "rendering/features/contact_shadow/editor",
     "rendering/features/decals/runtime",
     "rendering/features/decals/editor",
     "rendering/features/reflection_probes/runtime",

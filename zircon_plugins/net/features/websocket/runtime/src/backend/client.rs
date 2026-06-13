@@ -52,7 +52,7 @@ pub(super) fn connect_websocket(
         .map_err(|_| NetError::Io("websocket connect timed out".to_string()))?
         .map_err(|error| NetError::Io(error.to_string()))?;
     let (sink, stream) = stream.split();
-    let (network, read_half) = TungsteniteWebSocketConnection::client(sink, stream);
+    let (network, read_half) = TungsteniteWebSocketConnection::client(runtime, sink, stream);
     spawn_reader(runtime, connection, &network, read_half, events);
     Ok(Box::new(network))
 }

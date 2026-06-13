@@ -59,6 +59,7 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::OpenPopup,
         UiComponentEventKind::SelectOption,
@@ -67,6 +68,12 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     ] {
         assert_has_event(select, event);
     }
+
+    let dropdown = registry
+        .descriptor("Dropdown")
+        .expect("Dropdown descriptor");
+    assert_has_event(dropdown, UiComponentEventKind::KeyboardAction);
+    assert_has_event(dropdown, UiComponentEventKind::ValueChanged);
 
     let autocomplete = registry
         .descriptor("Autocomplete")
@@ -170,6 +177,7 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
         );
     }
     for event in [
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::ValueChanged,
         UiComponentEventKind::OpenPopup,
@@ -182,4 +190,33 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     assert!(autocomplete
         .required_host_capabilities
         .contains(&UiHostCapability::TextInput));
+
+    let toggle_button_group = registry
+        .descriptor("ToggleButtonGroup")
+        .expect("ToggleButtonGroup descriptor");
+    for prop in [
+        "selection_state",
+        "options",
+        "value",
+        "value_text",
+        "selected_index",
+        "focused_index",
+        "disabled_options",
+        "selection_follows_focus",
+        "keyboard_navigation",
+    ] {
+        assert_has_prop(toggle_button_group, prop);
+    }
+    assert!(
+        toggle_button_group.slot_schema("buttons").is_some(),
+        "ToggleButtonGroup should expose its grouped buttons slot"
+    );
+    for event in [
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::SelectOption,
+        UiComponentEventKind::ValueChanged,
+    ] {
+        assert_has_event(toggle_button_group, event);
+    }
 }

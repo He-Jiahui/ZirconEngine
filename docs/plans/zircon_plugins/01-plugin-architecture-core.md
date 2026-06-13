@@ -4,6 +4,14 @@
 > 关联计划：`.codex/plans/Runtime_Editor 插件注册与 EditorOperation 设计计划.md`、`.codex/plans/多插件组合可选功能规则设计.md`、`.codex/plans/ZirconEngine 周边设施与插件能力完善计划.md`
 > 本文档为 02–10 各插件计划的上游：§3.1 调度锚点表、§3.2 注册 API、§3.4 生命周期 trait、§3.7 ABI v3 中的命名为**定稿名**，下游文档逐字引用。
 
+> 最新进度（2026-06-13）：01-M3-T1/T2/T3 已推进。`RuntimePlugin` / `RuntimePluginFeature` 只保留 `register(...)`，注册报告直接调用新入口，第一方 `zircon_plugins/*/runtime` 与相关测试实现已同步改名；`runtime_plugin_lifecycle_hard_cuts_to_register_hook` 守护旧符号不得回流。01-M3-T2 新增 `CapabilityView::from_registration_reports(...)`，从已收集的 plugin / feature 注册报告聚合主包 capability、runtime module capability、feature capability 与 `capability_statuses`，并明确不会把仅声明但尚未注册的 `optional_features` 提前暴露给 `finish`。01-M3-T3 新增 `RuntimePluginCatalog::from_lifecycle_plugins(...)`，在 native 生命周期构造路径中固定 `plugin.register -> feature.register -> plugin.finish -> feature.finish`，并把 plugin / feature finish 阶段注册项分别写回对应 report registry。01-M4-T3 新增 `declared_system_anchors_are_registered` 静态契约守护，把 plugin.toml runtime module 的 `system_anchors` 与对应 crate 源码中的 runtime system 注册路径绑定。`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-capability-view-coremin-0613 --message-format short --color never` 已通过（仅既有 warning 噪声）；`cargo test -p zircon_runtime --lib runtime_plugin_lifecycle --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-capability-view-coremin-0613 --message-format short --color never -- --test-threads=1 --nocapture` 已通过 3 项生命周期 focused 测试。`declared_system_anchors_are_registered` 已在 warmed `zircon_runtime` lib-test 二进制中直接执行通过 1 项测试，覆盖 animation/physics manifest anchor 与 runtime-system 注册源绑定。`zircon_plugins` workspace `--locked` 检查仍因 `zircon_plugins/Cargo.lock` 需要更新而未进入编译，本次未修改锁文件。无关图形导入阻断已通过 `build_mesh_draws/build.rs` 的绝对 lighting 路径最小修正解除，以便共享 `zircon_runtime` lib 编译继续进行。
+> 01-M5-T1 已新增 `abi_v3_layout_is_stable` 聚合守护，直接绑定本计划要求的 ZrHostApiV3 域表尺寸、offset、pointer-dense 子表、snapshot API 与 buffer ref ABI 布局。`cargo test -p zircon_runtime_interface --lib abi_v3_layout_is_stable --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-interface-abi-v3-0613 --message-format short --color never -- --test-threads=1 --nocapture` 已通过 1 项 focused 测试；`cargo test -p zircon_runtime_interface --lib plugin_api_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-interface-contracts-0613b --message-format short --color never -- --test-threads=1 --nocapture` 已在新增别名后通过 6 项全量契约测试。
+> 01-M5-T2 已把 `NativeHostApiV3RegistrationScope` 的 `register_system` 映射到 `NativeDynamicAccess`，通过 `SystemParamAccess::add_conservative_world_access()` 让 ABI native 系统在调度冲突图中以全世界写入节点参与排序。`native_system_enters_schedule_as_conservative_node` 已写入 `host_api_adapter.rs`；`rustfmt --edition 2021 --check zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` 已通过。`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b --message-format short --color never` 已通过（70 个既有 warning）。旧 target-dir 曾出现 dep-info/fingerprint 缺失、lib-test 编译超时、进程 `-1` 与渲染会话 lib-test 编译错误等非断言阻断；19:40 复用 `D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b` 重跑 `cargo test -p zircon_runtime --lib native_system_enters_schedule_as_conservative_node --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b --message-format short --color never -- --test-threads=1 --nocapture` 已通过 1 项 focused 测试。
+> 01-M5-T3 已补齐计划命名测试别名：`hot_reload_failure_rolls_back_to_snapshot` 覆盖替换插件恢复失败后用旧快照恢复旧句柄，`failed_registration_revoked_via_ownership` 绑定 owner-tracked 撤销路径。`rustfmt --edition 2021 --check zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs` 已通过。`cargo test -p zircon_runtime --lib hot_reload_failure_rolls_back_to_snapshot --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b --message-format short --color never -- --test-threads=1 --nocapture` 曾以进程 `-1` 停止且日志只有 warning、无 Rust error；随后直接执行 warmed `zircon_runtime` lib-test 二进制，`hot_reload_failure_rolls_back_to_snapshot` 与 `failed_registration_revoked_via_ownership` 均已各通过 1 项测试。
+> 01-M5-T4 已核对 `zircon_plugins/native_dynamic_fixture` 默认 ABI v3 行为夹具：真实动态库测试断言 descriptor ABI=3、runtime/editor entry 名为 v3、runtime/editor 行为健康为 `NativePluginBehaviorHealth::Clean`、editor 诊断来自 v3 host ABI table，并通过 `abi_v2_only` 覆盖无 v3 descriptor 时回退到 v2。`native_loader_calls_real_fixture_descriptor_and_entries` 已补行为健康断言；测试辅助构建现在通过临时隔离 `Cargo.toml` 离线编译真实 fixture 源文件，避免 runtime tests 修改 `zircon_plugins/Cargo.lock`。`rustfmt --edition 2021 --check zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs` 已通过；`cargo test -p zircon_runtime --lib native_loader_calls_real_fixture_descriptor_and_entries --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b --message-format short --color never -- --test-threads=1 --nocapture` 已通过 1 项 focused 测试，warmed lib-test 二进制直接执行 `native_loader_falls_back_to_v2_when_v3_descriptor_is_absent` 也已通过 1 项测试。`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-native-fixture-0613 --message-format short --color never` 仍因 `zircon_plugins/Cargo.lock` 需要更新而在编译前停止，本次不修改锁文件。
+> Descriptor 投影/注册报告校验已补焦点证据：直接执行 warmed `zircon_runtime` lib-test 二进制通过 `plugin_extensions::runtime_plugin_descriptor` 过滤组 9 项测试，并通过 `runtime_plugin_descriptor_projects_maturity_and_statuses_to_manifest` 1 项 maturity/status 投影测试；此项从会话开放验证清单移除。
+> 01-M2 typed event 派生规则已修正并验证：`register_event(...)` 现在从 runtime module owner 派生 `<package>.events` catalog namespace，并复用 `PluginEventCatalogManifest` 校验，旧式 `weather.changed` 会在注册阶段拒绝而不是延迟到 catalog merge。`cargo test -p zircon_runtime --lib typed_event_registration --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-next-coremin-0613 --message-format short --color never -- --test-threads=1 --nocapture` 已通过 2 项低层回归；warmed lib-test 二进制直接执行 `plugin_extensions::extension_registry_event_catalogs` 12 项、`plugin_resource_event_and_system_registrations_apply_to_world`、`runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions`、`runtime_plugin_catalog_merges_module_and_render_feature_contributions` 均已通过，catalog merge 开放验证项移除。
+
 ## 1. 目标
 
 把 `zircon_runtime` 的插件接口从"描述符 + Module 间接包装"升级为一套**完备、类型化、ECS 深度集成、零运行期开销**的插件架构，使 Sound / Physics / Animation / Navigation / AI / Net / VM 等周边设施插件可以：
@@ -206,7 +214,7 @@ impl<K: ExtensionKey, V> FrozenExtensionTable<K, V> {
 // plugin/runtime_plugin/runtime_plugin/plugin.rs [改造，方法改名硬切]
 pub trait RuntimePlugin {
     fn descriptor(&self) -> &RuntimePluginDescriptor;
-    /// 原 register_runtime_extensions 改名。所有注册仅进 registry，不触碰 World。
+    /// 所有注册仅进 registry，不触碰 World；旧注册入口已硬切到 register。
     fn register(&self, registry: &mut RuntimeExtensionRegistry)
         -> Result<(), RuntimeExtensionRegistryError> { Ok(()) }
     /// 所有插件 register 完成后调用：可选依赖探测（capability 查询）、跨插件解析。
@@ -293,7 +301,7 @@ pub struct ZrHostEventApiV1 {
 // ZrHostAssetApiV1 / ZrHostDiagnosticsApiV1 同构：函数指针 + handle + byte payload。
 ```
 
-- host-side adapter（`plugin/native_plugin_loader/host_callbacks.rs` [改造]）把 C 注册映射为 §3.2 的正规 `register_system` / `register_event`，owner 为该 native 插件的 `PluginModuleId`。
+- host-side adapter（`plugin/native_plugin_loader/host_api_adapter.rs` [改造]）把 C 注册映射为 §3.2 的正规 `register_system` / `register_event`，owner 为该 native 插件的 `PluginModuleId`。
 - 热重载（解决 G8）：`native_plugin_live_host/hot_reload.rs` [改造] 增加快照协议：
 
 ```rust
@@ -372,9 +380,9 @@ zircon_editor/src/core/
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M3-T1 | 四阶段 trait 改名硬切 + 上下文类型；全插件 crate 同步改名 | plugin.rs、lifecycle_context.rs、zircon_plugins 各 runtime crate | M2 | `lifecycle_phases_run_in_documented_order` |
-| M3-T2 | CapabilityView + finish 期可选依赖探测 | lifecycle_context.rs | M3-T1 | `optional_dependency_probe_sees_all_registered_capabilities` |
-| M3-T3 | optional_features register 时序 + plugin.toml 新字段解析 | package_manifest/*、feature.rs | M3-T1 | `feature_register_runs_before_finish` |
+| M3-T1 | 四阶段 trait 改名硬切 + 上下文类型；全插件 crate 同步改名；旧注册入口已删除，注册报告直接调用 `register(...)` | plugin.rs、feature.rs、registration_report/*、lifecycle_context.rs、zircon_plugins 各 runtime crate | M2 | `lifecycle_phases_run_in_documented_order`、`runtime_plugin_lifecycle_hard_cuts_to_register_hook` |
+| M3-T2 | CapabilityView + finish 期可选依赖探测；已新增从 plugin/feature 注册报告聚合能力的入口，`finish` 可读取所有已注册 capability 与主包 status，未注册 optional feature 不提前暴露 | lifecycle_context.rs、runtime_plugin_lifecycle.rs | M3-T1 | `optional_dependency_probe_sees_all_registered_capabilities` |
+| M3-T3 | optional_features register 时序 + plugin.toml 新字段解析；新增 `RuntimePluginCatalog::from_lifecycle_plugins(...)`，在 feature `register` 后构造 finish `CapabilityView`，并把 plugin / feature finish 注册项写回对应 report registry | runtime_plugin_catalog/lifecycle.rs、runtime_plugin_lifecycle.rs、package_manifest/*、feature.rs | M3-T1/T2 | `feature_register_runs_before_finish` |
 
 ### M4 Editor 对称化与 manifest 单源
 
@@ -382,16 +390,16 @@ zircon_editor/src/core/
 |------|------|---------|------|---------|
 | M4-T1 | RegistrationDiagnostic 下沉 interface；editor 验证管线 | plugin_diagnostics.rs、editor_plugin.rs | — | `missing_capability_produces_structured_diagnostic` |
 | M4-T2 | builtin catalog 由 plugin.toml 派生；删除手写表 | editor_plugin_catalog_gen.rs、editor_plugin.rs | M4-T1 | `derived_catalog_matches_plugin_toml_editor_modules` |
-| M4-T3 | system_anchors 契约：manifest 声明 vs 实际注册核对 | static manifest contract tests | M3-T3 | `declared_system_anchors_are_registered` |
+| M4-T3 | system_anchors 契约：manifest 声明 vs 实际注册核对；新增静态守护，要求声明 anchor 的 runtime module 对应 crate 源码保留 runtime system 注册路径与 anchor id | static_manifest_contracts/modules/system_anchors.rs | M3-T3 | `declared_system_anchors_are_registered`（2026-06-13 warmed lib-test 二进制直接执行通过 1 项） |
 
 ### M5 Native ABI v3 与热重载快照
 
 | 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
 |------|------|---------|------|---------|
-| M5-T1 | ZrHostApiV3 域函数表 + interface 类型 | plugin_api.rs | M1/M2 | `abi_v3_layout_is_stable`（size/offset 断言） |
-| M5-T2 | host adapter：C 注册 → 正规 register_*（dynamic access） | host_callbacks.rs | M5-T1 | `native_system_enters_schedule_as_conservative_node` |
-| M5-T3 | PluginStateSnapshot + 回滚流程 | hot_reload.rs、lifecycle.rs | M5-T2 | `hot_reload_failure_rolls_back_to_snapshot`、`failed_registration_revoked_via_ownership` |
-| M5-T4 | native_dynamic_fixture 升级为 v3 行为夹具 | zircon_plugins/native_dynamic_fixture | M5-T3 | 既有 live host 行为测试改 v3 |
+| M5-T1 | ZrHostApiV3 域函数表 + interface 类型；新增计划聚合别名守护 | plugin_api.rs、plugin_api_contracts.rs | M1/M2 | `abi_v3_layout_is_stable`（size/offset 断言；2026-06-13 focused run passed；`plugin_api_contracts` 新别名后 6 项全量通过） |
+| M5-T2 | host adapter：C 注册 → 正规 register_*（dynamic access）；ABI native 系统进入 conservative world-access 调度节点 | host_api_adapter.rs | M5-T1 | `native_system_enters_schedule_as_conservative_node`（2026-06-13 core-min `cargo check` 与 focused Cargo 均通过；旧失败均为 target/进程/render 编译阻断，无断言失败） |
+| M5-T3 | PluginStateSnapshot + 回滚流程；补齐计划命名别名，覆盖失败 restore 后旧快照恢复与失败注册 owner 撤销 | hot_reload.rs、lifecycle.rs、native_plugin_live_host/tests.rs、extension_registry_metadata.rs | M5-T2 | `hot_reload_failure_rolls_back_to_snapshot`、`failed_registration_revoked_via_ownership`（2026-06-13 warmed lib-test 二进制直接执行均通过） |
+| M5-T4 | native_dynamic_fixture 升级为 v3 行为夹具；默认 descriptor/entry/行为 schema/host 诊断走 v3，`abi_v2_only` 仅保留回退覆盖；新增 Clean 行为健康断言；runtime test helper 通过隔离临时 manifest 离线构建真实 fixture 源，避免改动 `zircon_plugins/Cargo.lock` | zircon_plugins/native_dynamic_fixture、native_plugin_loader.rs | M5-T3 | `native_loader_calls_real_fixture_descriptor_and_entries`、`native_loader_falls_back_to_v2_when_v3_descriptor_is_absent`（2026-06-13 default fixture focused Cargo 通过，v2 fallback warmed lib-test 直接执行通过；fixture workspace `--locked` 仍被 stale lockfile 阻止） |
 
 ## 6. 验收命令
 
@@ -407,3 +415,15 @@ cargo fmt --all --check
 - M1 触及 `Schedule` 核心，physics/animation/sound 的 scene hook 全部需要同步迁移——按硬切原则一次换血，借助现有 scene hook 契约测试兜底；迁移完成前不删 `scene_hook` 模块，M1-T5 验收后整体删除。
 - `SystemParamAccess` 自动推导依赖 `SystemParam::init_state` 的元数据完整性；现有 tuple impl 已携带访问集（`system_param_access.rs` 实查），但 M1-T4 需补"事件读写进访问集"的端到端断言。
 - 序列化场景文档中的 stage 字段随枚举扩容而变；开发期硬切，但需在 M1-T1 同步更新所有内置场景 fixture。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，接口形态与边界用例对照真实代码核对，禁止凭记忆/凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| 调度标签/SystemSet/拓扑排序/环检测 | `dev/bevy/crates/bevy_ecs/src/schedule/` | ScheduleGraph 的约束展开与环报告、SystemSet 嵌套语义、ambiguity 检测形态 |
+| Plugin 生命周期（build/finish/cleanup） | `dev/bevy/crates/bevy_app/src/plugin.rs`、`app.rs` | finish 的调用时机与重入保护、PluginGroup 组合 |
+| 动态插件容器与热重载 | `dev/Fyrox/fyrox-impl/src/plugin/` | Plugin 容器 Static/Dynamic 双形态、重载时实体状态保持 |
+| Native ABI/初始化分级/函数表 | `dev/godot/core/extension/gdextension_interface.cpp`、`gdextension.cpp`、`gdextension_manager.cpp` | initialization level 分阶段、C 函数表版本化与兼容策略（我们硬切版本但形态可借鉴） |
+| 事件双缓冲与 cursor | `dev/bevy/crates/bevy_ecs/src/event/` | Events 双缓冲 update 时序、EventReader 漏读语义 |

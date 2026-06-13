@@ -1,8 +1,7 @@
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::runtime::{Builder, Runtime};
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEndpoint, NetEvent, NetListenerId, NetRouteId,
@@ -13,34 +12,31 @@ use crate::http::{ManagedHttpListener, ManagedHttpRoute};
 use crate::websocket::{
     ManagedWebSocketConnection, WebSocketRuntimeBackend, WebSocketRuntimeListener,
 };
+use crate::worker::{NetWorker, NetWorkerShutdownReport};
 use crate::HttpRuntimeBackend;
 
 #[derive(Debug)]
 pub(crate) struct ManagedUdpSocket {
-    pub(crate) socket: UdpSocket,
     pub(crate) local_endpoint: NetEndpoint,
 }
 
 #[derive(Debug)]
 pub(crate) struct ManagedTcpListener {
-    pub(crate) listener: TcpListener,
     pub(crate) local_endpoint: NetEndpoint,
 }
 
 #[derive(Debug)]
 pub(crate) struct ManagedTcpConnection {
-    pub(crate) stream: TcpStream,
-    pub(crate) _local_endpoint: NetEndpoint,
-    pub(crate) _remote_endpoint: NetEndpoint,
     pub(crate) state: NetConnectionState,
 }
 
 pub(crate) struct NetRuntimeState {
     pub(crate) runtime: Runtime,
+    pub(crate) worker: NetWorker,
     pub(crate) mode: NetRuntimeMode,
     pub(crate) next_socket_id: AtomicU64,
     pub(crate) next_listener_id: AtomicU64,
-    pub(crate) next_connection_id: AtomicU64,
+    pub(crate) next_connection_id: Arc<AtomicU64>,
     pub(crate) next_route_id: AtomicU64,
     pub(crate) udp_sockets: Mutex<HashMap<NetSocketId, ManagedUdpSocket>>,
     pub(crate) tcp_listeners: Mutex<HashMap<NetListenerId, ManagedTcpListener>>,
@@ -57,6 +53,7 @@ pub(crate) struct NetRuntimeState {
 
 impl NetRuntimeState {
     pub(crate) fn new(mode: NetRuntimeMode) -> Self {
+        let next_connection_id = Arc::new(AtomicU64::new(0));
         Self {
             runtime: Builder::new_multi_thread()
                 .enable_io()
@@ -64,10 +61,12 @@ impl NetRuntimeState {
                 .thread_name("zircon-net-runtime")
                 .build()
                 .expect("failed to create net Tokio runtime"),
+            worker: NetWorker::spawn(next_connection_id.clone())
+                .expect("failed to create net worker"),
             mode,
             next_socket_id: AtomicU64::new(0),
             next_listener_id: AtomicU64::new(0),
-            next_connection_id: AtomicU64::new(0),
+            next_connection_id,
             next_route_id: AtomicU64::new(0),
             udp_sockets: Mutex::new(HashMap::new()),
             tcp_listeners: Mutex::new(HashMap::new()),
@@ -82,10 +81,33 @@ impl NetRuntimeState {
         }
     }
 
+    pub(crate) fn next_connection_id(&self) -> NetConnectionId {
+        NetConnectionId::new(self.next_connection_id.fetch_add(1, Ordering::Relaxed) + 1)
+    }
+
     pub(crate) fn push_event(&self, event: NetEvent) {
         self.events
             .lock()
             .expect("net events mutex poisoned")
             .push_back(event);
+    }
+
+    pub(crate) fn poll_worker_ingress(&self, max_events: usize) -> usize {
+        let events = self.worker.drain_ingress(max_events);
+        let count = events.len();
+        if count == 0 {
+            return 0;
+        }
+
+        let mut queue = self.events.lock().expect("net events mutex poisoned");
+        queue.extend(events);
+        count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn shutdown_worker_for_tests(&self) -> NetWorkerShutdownReport {
+        self.worker
+            .shutdown()
+            .expect("net worker shutdown should succeed")
     }
 }

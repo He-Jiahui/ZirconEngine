@@ -70,9 +70,14 @@ impl FrameVisibility {
     }
 
     pub fn shadow_views(&self) -> impl Iterator<Item = &ViewVisibilityContext> {
-        self.views
-            .iter()
-            .filter(|view| matches!(view.view, VisibilityViewKey::ShadowCascade { .. }))
+        self.views.iter().filter(|view| {
+            matches!(
+                view.view,
+                VisibilityViewKey::ShadowCascade { .. }
+                    | VisibilityViewKey::ShadowPointFace { .. }
+                    | VisibilityViewKey::ShadowSpot { .. }
+            )
+        })
     }
 
     pub fn visible_entities_for_view(&self, key: &VisibilityViewKey) -> Vec<EntityId> {
@@ -169,13 +174,20 @@ impl Default for ViewVisibilityContext {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VisibilityViewKey {
     #[default]
     MainCamera,
     ShadowCascade {
         light: EntityId,
         cascade: u8,
+    },
+    ShadowPointFace {
+        light: EntityId,
+        face: u8,
+    },
+    ShadowSpot {
+        light: EntityId,
     },
     CustomTarget {
         camera: EntityId,

@@ -12,7 +12,7 @@ pub struct PostProcessGraphResourceNames;
 impl PostProcessGraphResourceNames {
     pub const SCENE_COLOR: &'static str = "scene-color";
     pub const SCENE_DEPTH: &'static str = "scene-depth";
-    pub const SHADOW_MAP: &'static str = "shadow-map";
+    pub const SHADOW_ATLAS: &'static str = "shadow-atlas";
     pub const SCENE_MOTION_VECTOR: &'static str = "scene-motion-vector";
     pub const MOTION_VECTOR_TILE_MAX: &'static str = "postprocess.motion-vector.tile-max";
     pub const MOTION_VECTOR_TILE_MAX_COARSE: &'static str =
@@ -22,8 +22,12 @@ impl PostProcessGraphResourceNames {
     pub const GBUFFER_NORMAL: &'static str = "gbuffer-normal";
     pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
+    pub const CONTACT_SHADOW_OCCLUSION: &'static str = "contact-shadow-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
     pub const LIGHT_LIST: &'static str = "light-list";
+    pub const LIGHT_GRID_PARAMS: &'static str = "light-grid-params";
+    pub const LIGHT_ZBINS: &'static str = "light-zbins";
+    pub const LIGHT_TILE_MASKS: &'static str = "light-tile-masks";
     pub const HZB_FURTHEST: &'static str = "hzb-furthest";
     // Temporal resources use distinct names so a pass cannot silently read and overwrite the same history slot.
     pub const HISTORY_PREVIOUS_SCENE_COLOR: &'static str = "history.previous.scene-color";
@@ -37,10 +41,6 @@ impl PostProcessGraphResourceNames {
     pub const EFFECT_STACKED: &'static str = "postprocess.effect-stacked";
     pub const DEPTH_OF_FIELD_COC: &'static str = "postprocess.depth-of-field.coc";
     pub const DEPTH_OF_FIELD_BOKEH: &'static str = "postprocess.depth-of-field.bokeh";
-    pub const SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID: &'static str =
-        "postprocess.screen-space-reflection.depth-pyramid";
-    pub const SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE: &'static str =
-        "postprocess.screen-space-reflection.depth-pyramid.coarse";
     pub const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID: &'static str =
         "postprocess.screen-space-reflection.reflection-pyramid";
     pub const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE: &'static str =
@@ -137,6 +137,7 @@ impl PostProcessStackDescriptor {
             initial_resources.push(PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string());
             initial_resources.push(PostProcessGraphResourceNames::GBUFFER_MATERIAL.to_string());
             initial_resources.push(PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string());
+            initial_resources.push(PostProcessGraphResourceNames::HZB_FURTHEST.to_string());
         }
         if motion_vector_effects_enabled {
             initial_resources.push(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string());
@@ -237,16 +238,6 @@ impl PostProcessStackDescriptor {
         if ssr_enabled {
             effects.push(
                 PostProcessEffectSettings::new(
-                    PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid,
-                )
-                .with_required_inputs(screen_space_reflection_depth_pyramid_inputs())
-                .with_produced_outputs([
-                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-                ])
-                .with_after(effect_stack_after.clone()),
-            );
-            effects.push(
-                PostProcessEffectSettings::new(
                     PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid,
                 )
                 .with_required_inputs(screen_space_reflection_reflection_pyramid_inputs())
@@ -254,16 +245,6 @@ impl PostProcessStackDescriptor {
                     PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
                 ])
                 .with_after(effect_stack_after.clone()),
-            );
-            effects.push(
-                PostProcessEffectSettings::new(
-                    PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse,
-                )
-                .with_required_inputs(screen_space_reflection_depth_pyramid_coarse_inputs())
-                .with_produced_outputs([
-                    PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-                ])
-                .with_after([PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid]),
             );
             effects.push(
                 PostProcessEffectSettings::new(
@@ -286,9 +267,7 @@ impl PostProcessStackDescriptor {
                 .with_after(effect_stack_after.clone()),
             );
             let mut resolve_after = effect_stack_after.clone();
-            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid);
             resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid);
-            resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse);
             resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse);
             resolve_after.push(PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion);
             effects.push(
@@ -383,16 +362,8 @@ fn screen_space_reflection_specular_occlusion_inputs() -> Vec<&'static str> {
     ]
 }
 
-fn screen_space_reflection_depth_pyramid_inputs() -> Vec<&'static str> {
-    vec![PostProcessGraphResourceNames::SCENE_DEPTH]
-}
-
 fn screen_space_reflection_reflection_pyramid_inputs() -> Vec<&'static str> {
     vec![PostProcessGraphResourceNames::SCENE_COLOR]
-}
-
-fn screen_space_reflection_depth_pyramid_coarse_inputs() -> Vec<&'static str> {
-    vec![PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID]
 }
 
 fn screen_space_reflection_reflection_pyramid_coarse_inputs() -> Vec<&'static str> {
@@ -403,8 +374,7 @@ fn screen_space_reflection_resolve_inputs(ssr_temporal_enabled: bool) -> Vec<&'s
     let mut inputs = vec![
         PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
@@ -467,18 +437,9 @@ mod tests {
             &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION.to_string()
         ));
 
-        let depth_pyramid = stack
-            .effects
-            .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid)
-            .expect("SSR should enable the screen-space reflection depth pyramid node");
-
-        assert!(depth_pyramid
-            .required_inputs
-            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-        assert!(depth_pyramid.produced_outputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
-        ));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::HZB_FURTHEST.to_string()));
 
         let reflection_pyramid = stack
             .effects
@@ -494,25 +455,6 @@ mod tests {
         assert!(reflection_pyramid.produced_outputs.contains(
             &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
         ));
-
-        let depth_pyramid_coarse = stack
-            .effects
-            .iter()
-            .find(|effect| {
-                effect.kind == PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse
-            })
-            .expect("SSR should enable the coarse screen-space reflection depth pyramid node");
-
-        assert!(depth_pyramid_coarse.required_inputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
-        ));
-        assert!(depth_pyramid_coarse.produced_outputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
-                .to_string()
-        ));
-        assert!(depth_pyramid_coarse
-            .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
 
         let reflection_pyramid_coarse = stack
             .effects
@@ -545,13 +487,9 @@ mod tests {
         assert!(resolve
             .required_inputs
             .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
-        assert!(resolve.required_inputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
-        ));
-        assert!(resolve.required_inputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
-                .to_string()
-        ));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::HZB_FURTHEST.to_string()));
         assert!(resolve.required_inputs.contains(
             &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
         ));
@@ -576,13 +514,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
         assert!(resolve
             .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
-        assert!(resolve
-            .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
-        assert!(resolve
-            .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
         assert!(resolve
             .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));
@@ -656,13 +588,9 @@ mod tests {
         assert!(resolve.required_inputs.contains(
             &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION.to_string()
         ));
-        assert!(resolve.required_inputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID.to_string()
-        ));
-        assert!(resolve.required_inputs.contains(
-            &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
-                .to_string()
-        ));
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::HZB_FURTHEST.to_string()));
         assert!(resolve.required_inputs.contains(
             &PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID.to_string()
         ));
@@ -756,13 +684,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
         assert!(resolve
             .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
-        assert!(resolve
-            .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
-        assert!(resolve
-            .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
         assert!(resolve
             .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));
@@ -793,13 +715,7 @@ mod tests {
             .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
         assert!(graph_resolve
             .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid));
-        assert!(graph_resolve
-            .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid));
-        assert!(graph_resolve
-            .after
-            .contains(&PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse));
         assert!(graph_resolve
             .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse));

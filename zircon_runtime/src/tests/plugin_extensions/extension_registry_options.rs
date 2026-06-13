@@ -291,7 +291,7 @@ impl RuntimePlugin for ShadowedInvalidOptionRuntimePlugin {
             ))
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {

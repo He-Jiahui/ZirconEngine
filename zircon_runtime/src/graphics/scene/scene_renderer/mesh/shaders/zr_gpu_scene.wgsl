@@ -19,16 +19,53 @@ struct ZrGpuInstanceData {
     _pad0: u32,
 };
 
+struct ZrGpuLightData {
+    position_range: vec4<f32>,
+    color_intensity: vec4<f32>,
+    direction_type: vec4<f32>,
+    spot_angles_size: vec4<f32>,
+    shadow_slot_layer: vec4<u32>,
+    shadow_params: vec4<f32>,
+};
+
 struct ZrSkinnedJointPaletteUniform {
     joint_matrices: array<mat4x4<f32>, 256>,
     params: vec4<u32>,
 };
 
+struct ZrGpuSceneVisibleInstanceRemapParams {
+    values: vec4<u32>,
+};
+
 @group(3) @binding(0) var<storage, read> zr_primitive_data: array<ZrGpuPrimitiveData>;
 @group(3) @binding(1) var<storage, read> zr_instance_data: array<ZrGpuInstanceData>;
-@group(3) @binding(2) var<storage, read> zr_light_data: array<vec4<f32>>;
+@group(3) @binding(2) var<storage, read> zr_light_data: array<ZrGpuLightData>;
 @group(3) @binding(3) var<uniform> zr_skinned_joint_palette: ZrSkinnedJointPaletteUniform;
 @group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteUniform;
+@group(3) @binding(5) var<storage, read> zr_visible_instance_remap: array<u32>;
+@group(3) @binding(6) var<uniform> zr_visible_instance_remap_params: ZrGpuSceneVisibleInstanceRemapParams;
+
+const ZR_GPU_LIGHT_TYPE_DIRECTIONAL: u32 = 0u;
+const ZR_GPU_LIGHT_TYPE_POINT: u32 = 1u;
+const ZR_GPU_LIGHT_TYPE_SPOT: u32 = 2u;
+const ZR_GPU_LIGHT_TYPE_RECT: u32 = 3u;
+const ZR_GPU_LIGHT_FLAG_CASTS_SHADOW: u32 = 1u;
+
+fn zr_gpu_scene_light_count() -> u32 {
+    return min(zr_visible_instance_remap_params.values.y, arrayLength(&zr_light_data));
+}
+
+fn zr_gpu_light(light_index: u32) -> ZrGpuLightData {
+    return zr_light_data[light_index];
+}
+
+fn zr_gpu_light_type(light: ZrGpuLightData) -> u32 {
+    return bitcast<u32>(light.direction_type.w);
+}
+
+fn zr_gpu_light_casts_shadow(light: ZrGpuLightData) -> bool {
+    return (light.shadow_slot_layer.w & ZR_GPU_LIGHT_FLAG_CASTS_SHADOW) != 0u;
+}
 
 fn zr_skinned_joint_count() -> u32 {
     return zr_skinned_joint_palette.params.x;
@@ -46,8 +83,15 @@ fn zr_previous_skinned_joint_matrix(joint_index: u32) -> mat4x4<f32> {
     return zr_previous_skinned_joint_palette.joint_matrices[joint_index];
 }
 
+fn zr_gpu_scene_resolve_instance_index(instance_index: u32) -> u32 {
+    if (zr_visible_instance_remap_params.values.x != 0u) {
+        return zr_visible_instance_remap[instance_index];
+    }
+    return instance_index;
+}
+
 fn zr_gpu_scene_instance(instance_index: u32) -> ZrGpuInstanceData {
-    return zr_instance_data[instance_index];
+    return zr_instance_data[zr_gpu_scene_resolve_instance_index(instance_index)];
 }
 
 fn zr_gpu_scene_primitive(instance: ZrGpuInstanceData) -> ZrGpuPrimitiveData {

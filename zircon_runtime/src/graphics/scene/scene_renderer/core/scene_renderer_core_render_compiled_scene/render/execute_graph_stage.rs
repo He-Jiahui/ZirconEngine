@@ -17,6 +17,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutorId, RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
+use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
     PreparedOverlayBuffers, ViewportOverlayRenderer,
@@ -24,7 +25,8 @@ use crate::graphics::scene::scene_renderer::overlay::{
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
 use crate::graphics::scene::scene_renderer::post_process::execute_post_process_pass_graph;
 use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
-use crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
+use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
@@ -68,6 +70,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     resources: &mut RenderGraphExecutionResources,
     target: &OffscreenTarget,
     imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
+    shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) {
     resources.import_texture_view(
         PostProcessGraphResourceNames::SCENE_COLOR,
@@ -122,6 +125,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             .bloom
             .create_view(&wgpu::TextureViewDescriptor::default()),
     );
+    if let Some(shadow_atlas_resources) = shadow_atlas_resources {
+        resources.import_borrowed_texture_view(
+            PostProcessGraphResourceNames::SHADOW_ATLAS,
+            shadow_atlas_resources.atlas_view(),
+        );
+    }
 }
 
 fn import_final_target_aliases(
@@ -169,7 +178,10 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     streamer: Option<&ResourceStreamer>,
     mut mesh_pipelines: Option<&mut MeshPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
+    hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
+    shadow_atlas_resources: Option<&ShadowAtlasResources>,
+    shadow_frame_plan: Option<&ShadowFramePlan>,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
     crate::profile_dynamic_scope!("runtime", "render_graph.stage", format!("{stage:?}"));
@@ -198,7 +210,10 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             streamer,
             mesh_pipelines.as_deref_mut(),
             mesh_draw_lists,
+            hzb_occlusion_culler,
             shadow_map_renderer,
+            shadow_atlas_resources,
+            shadow_frame_plan,
             execution,
         )?;
     }
@@ -256,7 +271,7 @@ mod tests {
         let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let mut resources = RenderGraphExecutionResources::new();
 
-        import_frame_targets(&mut resources, &target, None);
+        import_frame_targets(&mut resources, &target, None, None);
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
@@ -301,6 +316,7 @@ mod tests {
             Some(RenderGraphImportedFinalTarget {
                 view: &imported_view,
             }),
+            None,
         );
 
         for resource in FINAL_TARGET_ALIASES {
@@ -329,7 +345,7 @@ mod tests {
             .expect("default forward pipeline should compile for transient ownership test");
         let mut resources = RenderGraphExecutionResources::new();
 
-        import_frame_targets(&mut resources, &target, None);
+        import_frame_targets(&mut resources, &target, None, None);
         resources
             .materialize_transient_resources(&backend.device, &pipeline.graph)
             .expect("advanced post-process transient graph resources should materialize");
@@ -362,8 +378,7 @@ mod tests {
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
@@ -401,7 +416,10 @@ fn execute_graph_pass(
     streamer: Option<&ResourceStreamer>,
     mesh_pipelines: Option<&mut MeshPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
+    hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
+    shadow_atlas_resources: Option<&ShadowAtlasResources>,
+    shadow_frame_plan: Option<&ShadowFramePlan>,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
     let Some(pass) = pipeline
@@ -438,6 +456,12 @@ fn execute_graph_pass(
         &mut *execution.plugin_outputs,
         screen_space_ui_renderer,
     );
+    if let Some(shadow_atlas_resources) = shadow_atlas_resources {
+        gpu = gpu.with_shadow_atlas_resources(shadow_atlas_resources);
+    }
+    if let Some(shadow_frame_plan) = shadow_frame_plan {
+        gpu = gpu.with_shadow_frame_plan(shadow_frame_plan);
+    }
     if let Some(post_process_stack) = post_process_stack {
         gpu = gpu.with_post_process_stack_context(post_process_stack);
     }
@@ -472,6 +496,9 @@ fn execute_graph_pass(
     {
         gpu = gpu.with_mesh_renderer(mesh_pipelines, streamer, mesh_draw_lists);
     }
+    if let Some(hzb_occlusion_culler) = hzb_occlusion_culler {
+        gpu = gpu.with_hzb_occlusion_culler(hzb_occlusion_culler);
+    }
     let mut context =
         RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
             pass.name.clone(),
@@ -488,21 +515,32 @@ fn execute_graph_pass(
     registry
         .execute(&mut context)
         .map_err(GraphicsError::Asset)?;
-    let (compute_dispatches, motion_vector_camera_status) = context
+    let (
+        compute_dispatches,
+        motion_vector_camera_status,
+        hzb_occlusion_cull_report,
+        light_grid_report,
+    ) = context
         .gpu_mut()
         .map(|gpu| {
             (
                 gpu.take_compute_dispatches(),
                 gpu.motion_vector_camera_status(),
+                gpu.take_hzb_occlusion_cull_report(),
+                gpu.take_light_grid_report(),
             )
         })
         .unwrap_or_default();
     let cluster_grid_size = cluster_dimensions_for_size(frame.viewport_size);
     let hzb_plan = HzbBuilder::new(frame.extract.view.effective_render_size()).build_plan();
+    let hzb_occlusion_indirect_arg_count = mesh_draw_lists
+        .map(|lists| lists.occlusion_cull_candidate_arg_count())
+        .unwrap_or(0);
     let dispatch_context = RenderGraphComputeWorkloadDispatchContext::new(
         [frame.viewport_size.x, frame.viewport_size.y],
         [cluster_grid_size.x, cluster_grid_size.y],
         [hzb_plan.hzb_size.x, hzb_plan.hzb_size.y],
+        hzb_occlusion_indirect_arg_count,
     );
     execution.record.audit_compute_workload(
         &pass.name,
@@ -515,6 +553,12 @@ fn execute_graph_pass(
         execution
             .record
             .set_motion_vector_camera_status(motion_vector_camera_status);
+    }
+    if let Some(report) = hzb_occlusion_cull_report {
+        execution.record.set_hzb_occlusion_cull_report(report);
+    }
+    if let Some(report) = light_grid_report {
+        execution.record.set_light_grid_report(report);
     }
     execution
         .record

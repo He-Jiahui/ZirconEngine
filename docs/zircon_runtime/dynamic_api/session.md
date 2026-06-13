@@ -3,6 +3,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/extract.rs
+  - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/status.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
@@ -19,7 +21,10 @@ related_code:
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/profile_control.rs
   - zircon_runtime/src/dynamic_api/tests/viewport.rs
+  - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
+  - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
   - zircon_runtime/src/asset/project/manifest.rs
   - zircon_runtime/src/asset/project/script_manifest.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
@@ -40,9 +45,15 @@ related_code:
   - zircon_runtime/src/dynamic_api/tests/accessibility.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
+  - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
 implementation_files:
+  - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/extract.rs
+  - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/status.rs
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
@@ -56,7 +67,10 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/profile_control.rs
   - zircon_runtime/src/dynamic_api/tests/viewport.rs
+  - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
+  - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
   - zircon_runtime/src/asset/project/manifest.rs
   - zircon_runtime/src/asset/project/script_manifest.rs
   - zircon_runtime/src/script/vm/scene_hook.rs
@@ -77,7 +91,10 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/tests/accessibility.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
+  - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -92,14 +109,25 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/profile_control.rs
   - zircon_runtime/src/dynamic_api/tests/viewport.rs
+  - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
+  - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/accessibility.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
-  - rustfmt --edition 2021 --check zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/dynamic_api/session/*.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
+  - zircon_runtime/src/tests/runtime_absorption/plan_status.rs
+  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/dynamic_api/session/*.rs zircon_runtime/src/dynamic_api/runtime_loop.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/schedule_runner.rs zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/dynamic_api/tests/*.rs
+  - cargo test -p zircon_runtime --lib headless_session_capture_records_frame_extract_diagnostics --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-07-query-0613 --message-format short --color never -- --nocapture --test-threads=1: pending after render-owned HZB compile blocker clears
+  - cargo test -p zircon_runtime --lib frame_extract_rebuild_skips_unchanged_entities --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-07-query-0613 --message-format short --color never -- --nocapture --test-threads=1: pending after render-owned HZB compile blocker clears; source/rustfmt static checks passed 2026-06-13
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-07-query-0613 --message-format short --color never: blocked 2026-06-13 before this dynamic_api slice by render-owned HZB errors (`HzbOcclusionCullReport` missing; two `expected &ShadowMapRenderer, found &HzbOcclusionCuller`)
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
+  - dynamic_api_test_boundary targeted audit after session test-owner split: `expected_module_count = 11`, `session_entry_points.rs = 145`, `session_lifecycle.rs = 136`, `session_profiles.rs = 112`, `oversized_modules = []`, `risks = []` (2026-06-13 Dynamic API test boundary: passed)
+  - dynamic_runtime_api_boundary targeted audit: `expected_source_file_count = 14`, `function_table_structs = 10/10`, `field_count_mismatches = 0`, `missing_repr_c_tables = 0`, `runtime_session_ffi_wrappers = 11/11`, `direct_session_table_entry_bypasses = 0`, `session_owner_extern_c_present = false`, `headless_lifecycle_anchors = 12/12`, `ffi_panic_anchors = 9/9`, `loader_failure_anchors = 10/10`, `ui_pending_gate_anchors = 8/8`, `pending_cargo_gate_anchors = 5/5`, `doc_anchors = 7/7`, `mirror_docs_guard_present = true`, `risks = []`; `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts` passed 2026-06-14 static audit; Cargo gates pending
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short
   - cargo test -p zircon_runtime --lib dynamic_api --locked --jobs 1 --message-format short
   - cargo check -p zircon_runtime --lib --message-format short --color never with CARGO_TARGET_DIR=E:\cargo-targets\zircon-vampire-runtime: passed 2026-06-09
@@ -141,9 +169,12 @@ tests:
   - cargo test -p zircon_runtime --lib vampire_project_session_game_over_menu_retries_to_playing --features zr-vm-real-backend --target-dir D:\cargo-targets\zircon-vampire-menu-vm-0611 -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR and PATH set to the local ZrVM MSVC build: pending current validation stage; optionally exports ZR_VAMPIRE_GAME_OVER_CAPTURE_PNG
   - cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_world_hud_bars --features zr-vm-real-backend --target-dir D:\cargo-targets\zircon-vampire-menu-vm-0611 -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, PATH, ZR_VAMPIRE_CAPTURE_PNG, and 640x360 capture settings: pending current validation stage
   - rustfmt --edition 2021 --check zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs zircon_runtime/src/dynamic_api/tests/support.rs: passed 2026-06-12 after optional render-bridge and headless/minimal lifecycle update
-  - git diff --check -- zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs zircon_runtime/src/dynamic_api/tests/support.rs docs/zircon_runtime/dynamic_api/session.md docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md docs/plans/zircon_runtime/runtime/index.md .codex/sessions/20260612-0847-runtime-architecture-implementation.md: passed 2026-06-12 with LF-to-CRLF warnings only
-  - conflict-marker/trailing-whitespace scan over the headless lifecycle code, runtime 10 plan docs, this module doc, and the active session note: passed 2026-06-12
-  - source-token guard for optional RuntimeRenderBridge, uses_render_bridge(), render-bridge skip logging, and default headless test session helper: passed 2026-06-12
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs zircon_runtime/src/tests/runtime_absorption/mod.rs: passed 2026-06-13 for the Runtime 10 runtime-absorption guard
+  - git diff --check -- zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs zircon_runtime/src/tests/runtime_absorption/mod.rs docs/zircon_runtime/dynamic_api/session.md docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md docs/plans/zircon_runtime/runtime/index.md .codex/sessions/20260612-0847-runtime-architecture-implementation.md: passed 2026-06-13 with LF-to-CRLF warnings only
+  - conflict-marker/trailing-whitespace scan over the Runtime 10 runtime-absorption guard, runtime 10 plan docs, this module doc, and the active session note: passed 2026-06-13
+  - source/doc anchor scan for optional RuntimeRenderBridge, uses_render_bridge(), empty-frame capture fallback, bind/unbind/present no-op, and runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces: passed 2026-06-13
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs zircon_runtime/src/tests/runtime_absorption/plan_status.rs: passed 2026-06-13 for the Runtime 10 M1.3 FFI panic-boundary absorption guard
+  - source/doc anchor scan for runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary and runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge across exports/session/API-table tests/module docs/Runtime 10/index/M0 review: passed 2026-06-13
   - cargo test -p zircon_runtime --lib destroy_session --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-10-headless-0612 --message-format short --color never -- --nocapture: timed out after 904s on 2026-06-12 during Windows test-target compilation while another zircon_runtime cargo lane was active; the orphaned validation process was stopped and no Cargo pass is claimed
   - rustfmt --edition 2021 --check zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs: passed 2026-06-12 after removing runtime project fallback backend
   - git diff --check -- zircon_runtime/src/script/vm/backend/mod.rs zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs zircon_runtime/src/script/vm/tests.rs docs/zircon_runtime/script/vm/zr_vm_host_reflection.md docs/zircon_runtime/dynamic_api/session.md: passed 2026-06-12 with LF-to-CRLF warnings only
@@ -159,8 +190,10 @@ The session module is intentionally private to `zircon_runtime`. Its job is to a
 
 ## Owner Split
 
-- `session.rs` keeps the FFI entry functions, session registry, `RuntimeDynamicSessionProfile`, and `RuntimeDynamicSession` lifecycle/orchestration.
+- `session.rs` keeps the Rust-ABI session owner functions, session registry, `RuntimeDynamicSessionProfile`, and `RuntimeDynamicSession` lifecycle/orchestration. The exported C ABI entry points live in `exports.rs` wrappers.
 - `session/project.rs` adapts the optional ABI project-manifest byte slice into a runtime project root, loads `zircon-project.toml`, discovers startup ZrVM packages, and loads the manifest default scene through the existing scene/project asset path.
+- `session/extract.rs` owns the dynamic-session frame extract facade: viewport resize, scene `RenderFrameExtract` construction, UI side-path extract selection, and the runtime-side extract diagnostic hook.
+- `session/extract_stats.rs` estimates the per-extract output collection footprint and records `extract.rebuild_clones` / `extract.output_bytes` into the existing `DiagnosticStore`.
 - `session/status.rs` owns ABI `ZrStatus` construction for unsupported version, invalid argument, not found, and generic dynamic API errors.
 - `session/host_requests.rs` converts neutral runtime input-manager host requests into ABI host request payloads.
 - `session/input_events.rs` maps ABI numeric input/window/gamepad/IME constants into `core::framework::input` DTOs, including the ASCII-style WASD and digit-key codes emitted by the standalone app's physical-key converter for gameplay scripts and choice prompts.
@@ -168,18 +201,46 @@ The session module is intentionally private to `zircon_runtime`. Its job is to a
 - `session/hud.rs` extracts runtime HUD UI from gameplay dynamic components such as `gameplay.hud_text` and passes it through the normal frame presentation path. Generic text still has a fallback path, while the vampire sample HUD parser converts structured HP/XP/time/weapon/buff text into a graphical screen-space panel with bars, icon slots, and prompt rows. Combat health bars for the sample must remain in this HUD layer instead of reappearing as scene mesh/cube entities.
 - `session/menu.rs` extracts the runtime gameplay menu overlay from `gameplay.menu_state` and handles pointer hit-testing for its single command button. It writes the selected command back through `gameplay.control_state`, keeping Start/Retry interaction in the same dynamic-component channel the project script can consume on the next tick.
 - `session/tests.rs` owns focused tests for the private session orchestrator, including the vampire project-session input, combat, action-state, enemy behavior-tree, world HUD, start menu, game-over retry menu, capture export, and render diagnostic acceptance checks.
-- `tests/` mirrors the same owner split for the exported API table, profile control, viewport/frame validation, session lifecycle, host requests, accessibility, and input-event rejection paths.
+- `tests/` mirrors the same owner split for the exported API table, profile control, viewport/frame validation, session lifecycle, session entry-point handle validation, session profile/source-shape guards, host requests, accessibility, and input-event rejection paths.
 - `tests/structure.rs` keeps that mirror executable by rejecting a recreated `tests.rs`, missing owner modules, non-navigational `mod.rs` content, and owner files that grow past the split threshold.
 
 This keeps the FFI boundary file below the large-file warning line while preserving the exported `ZrRuntimeApiV1` shape.
+
+## FFI Panic Boundary
+
+`dynamic_api::exports` owns the final panic containment layer for the exported C ABI. `zircon_runtime_get_api_v1` still validates the host ABI version before returning the static `ZrRuntimeApiV1` table, but it now performs that lookup through an inner helper wrapped by `catch_unwind`; an unexpected unwind during table acquisition returns a null table pointer instead of crossing the `extern "C"` boundary.
+
+Every advertised `ZrRuntimeApiV1` session function pointer now points at an `_ffi` wrapper in `exports.rs`. The wrapper delegates normal validation and behavior to private Rust-ABI `dynamic_api::session` owner functions, then translates any unexpected unwind into `ZrStatusCode::Panic` with the stable diagnostic `runtime dynamic API panic caught at FFI boundary`. This keeps version checks, handle checks, project loading, event routing, capture, surface, profile-control, tick, and host-request semantics in the session modules while keeping the ABI panic guard at the final dynamic-library edge.
+
+`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` is the focused API-table source guard for this split: it rejects direct function-table entries that bypass the wrappers, requires the shared panic translator, locks the null-return path for panics during `zircon_runtime_get_api_v1`, and rejects `extern "C"` declarations from the private session owner functions so unwind containment remains catchable.
+
+`runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge` is the runtime-absorption guard for the same contract. It ties `exports.rs`, private session owners, the focused API-table test, this module document, Runtime 10, and the runtime index together so the exported C ABI edge cannot silently drift back into `session.rs`.
 
 ## Session Lifecycle Failure Contract
 
 Session lifecycle failures are part of the exported ABI contract, not private implementation details. `destroy_session` accepts each live handle once, then reports `NotFound` with `runtime session not found` after registry removal. `ZrRuntimeSessionHandle::invalid()` is rejected before registry lookup with `InvalidArgument` and `invalid runtime session handle`.
 
-`destroy_session_reports_explicit_not_found_for_missing_nonzero_handle`, `destroy_session_removes_registry_entry_so_destroyed_handles_become_missing`, `session_destroy_reports_explicit_not_found_after_headless_destroy`, `all_session_entry_points_reject_invalid_handle`, `destroyed_headless_session_entry_points_reject_old_handle`, and `missing_session_entry_points_reject_nonzero_handle` lock the handle-taking `ZrRuntimeApiV1` entry points to that contract. The dynamic entry-point coverage intentionally uses otherwise valid event, frame, viewport, profile, and host-request arguments so the tests reach session validation instead of version, viewport, or payload preflight branches.
+`session_lifecycle.rs` owns the create/destroy/tick lifecycle cases: `destroy_session_reports_explicit_not_found_for_missing_nonzero_handle`, `destroy_session_removes_registry_entry_so_destroyed_handles_become_missing`, and `session_destroy_reports_explicit_not_found_after_headless_destroy`. `session_entry_points.rs` owns the cross-entry handle rejection cases: `all_session_entry_points_reject_invalid_handle`, `destroyed_headless_session_entry_points_reject_old_handle`, and `missing_session_entry_points_reject_nonzero_handle`. The dynamic entry-point coverage intentionally uses otherwise valid event, frame, viewport, profile, and host-request arguments so the tests reach session validation instead of version, viewport, or payload preflight branches.
 
-`minimal` and `headless` profiles now skip `RuntimeRenderBridge` creation. They still register and activate runtime modules, install scene hooks, create or load a level, dispatch input, tick time, and drain host requests, but frame capture returns an empty encoded frame and surface bind/present operations are no-ops. This keeps lifecycle and ABI validation independent from WGPU device limits while preserving the rendered `runtime`/`editor`/`dev` profiles.
+`minimal` and `headless` profiles now skip `RuntimeRenderBridge` creation. They still register and activate runtime modules, install scene hooks, create or load a level, dispatch input, tick time, and drain host requests, but frame capture returns an empty encoded frame and surface bind/unbind/present operations are no-ops. This keeps lifecycle and ABI validation independent from WGPU device limits while preserving the rendered `runtime`/`editor`/`dev` profiles.
+
+`runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces` is the runtime-absorption source/doc guard for that contract. It keeps `RuntimeDynamicSession.render_bridge` optional, restricts `uses_render_bridge()` to rendered profiles, requires empty-frame capture fallback when no bridge is installed, and requires bind/unbind/present to return `Ok(())` rather than touching WGPU when `minimal` or `headless` skipped bridge creation.
+
+## Extract Diagnostics
+
+`RuntimeDynamicSession::current_extract()` records runtime-owned extract diagnostics after building the `RenderFrameExtract` and before handing it to the render bridge. The current production path calls `World::to_render_frame_extract()`, which clones the world once before rebuilding render DTO vectors, so `extract.rebuild_clones` is anchored at `1` per extract call until Runtime 07 M2 replaces the full rebuild with a measured incremental path.
+
+`extract.output_bytes` is a stable estimate of the main output collections carried by the extract: geometry vectors and phase queues, static-batch side vectors, virtual-geometry side vectors, animation poses, light lists, post-process stack/graph vectors and string payloads, overlay vectors, sprite/particle vectors, and visibility vectors. It is intentionally not a precise heap profiler and does not serialize the extract. Its purpose is before/after comparison for Runtime 07 M1/M2 hot-path work without adding frame-path allocation overhead.
+
+`headless_session_capture_records_frame_extract_diagnostics` covers the diagnostic path without requiring WGPU. A headless capture still builds the session extract, records `extract.rebuild_clones = 1`, and writes a non-zero `extract.output_bytes` sample into the runtime diagnostic store once the current render-owned Cargo blocker is cleared and the focused test can run.
+
+`frame_extract_rebuild_skips_unchanged_entities` is the Runtime 07 M1.2 named assertion for the current extract baseline. Because the production path still performs one full world clone per extract, the test anchors the present value across two unchanged headless captures: both captures must record `extract.rebuild_clones = 1`, and `extract.output_bytes` must remain non-zero and stable. Runtime 07 M2 can tighten this assertion after an incremental extract path exists.
+
+## Frame Profiling Spans
+
+Runtime 07 M0.3 adds profiling spans for the outer frame breakdown without changing runtime behavior. `tick_frame()` records `runtime_frame_time_update` around clock advancement and `runtime_frame_update` around level tick execution. `session/extract.rs` records `runtime_frame_extract` around scene extract construction. `runtime_loop.rs` records `runtime_frame_submit` around both capture-submit and surface-present handoff to the render framework. `SceneScheduleRunner::run_stage(...)` records `runtime_frame_schedule_stage.<SystemStage>` as a dynamic stage-level span inside the update phase, so a trace can separate `First`/`PreUpdate`/fixed-loop/`Update`/`RenderExtract` work without changing scheduling or flush semantics.
+
+The trace/profiling acceptance command is still pending until the current render-owned HZB Cargo blocker and active compile lanes clear. Static span coverage is locked by `runtime_07_hotspot_inventory_requires_counted_evidence_before_m2` and mirrored by `performance_hotpath_boundary`, which reports frame span anchors 9/9 plus extract telemetry anchors 10/10 with `risks = []`. This mirror is static evidence only; the extract/ecs_query/profiling/FPS Cargo lane remains pending.
 
 ## Boundary Rules
 
@@ -248,4 +309,8 @@ The dynamic executable links `zircon_app`, but the actual runtime session is cre
 
 `zircon_runtime/src/dynamic_api/tests/` covers the exported function table, invalid ABI and handle paths, profile-control JSON validation, frame/accessibility request validation, session creation profile handling, host request encoding, accessibility fallback behavior, and input-event rejection paths.
 
-For architecture validation, the runtime structural audit should no longer list `zircon_runtime/src/dynamic_api/session.rs` under production large-file hotspots after this split. The audit also reports `dynamic_api_test_boundary`, which must keep the legacy `zircon_runtime/src/dynamic_api/tests.rs` absent, all owner modules declared, and oversized test owner modules at zero. That audit owner now lives in `runtime_structure_audits/dynamic_api_test_boundary.py` so the main architecture audit script remains an orchestration boundary instead of becoming another mixed large file.
+The API table coverage includes `runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary`, which keeps all exported table entries behind `exports.rs` panic wrappers and requires `ZrStatusCode::Panic` rather than an unwind crossing the C ABI. The runtime-absorption coverage adds `runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge` as a cross-document architecture guard for the same boundary.
+
+The 2026-06-14 `dynamic_runtime_api_boundary` structural mirror ties this module's Runtime 10 evidence to the ABI inventory, FFI wrapper table, headless/minimal lifecycle contract, loader failure-path guards, UI pending gate, and pending Cargo gates. Current static output reports `expected_source_file_count = 14`, `function_table_structs = 10/10`, `field_count_mismatches = 0`, `missing_repr_c_tables = 0`, `runtime_session_ffi_wrappers = 11/11`, `direct_session_table_entry_bypasses = 0`, `session_owner_extern_c_present = false`, `headless_lifecycle_anchors = 12/12`, `ffi_panic_anchors = 9/9`, `loader_failure_anchors = 10/10`, `ui_pending_gate_anchors = 8/8`, `pending_cargo_gate_anchors = 5/5`, `doc_anchors = 7/7`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 10, the runtime index, the M0 review, runtime-interface convergence, and the cdylib loader doc aligned with those counts. This remains static structure evidence; the `dynamic_api`, full app loader, and UI contract owner/Cargo lanes remain pending.
+
+For architecture validation, the runtime structural audit should no longer list `zircon_runtime/src/dynamic_api/session.rs` under production large-file hotspots after this split. The audit also reports `dynamic_api_test_boundary`, which must keep the legacy `zircon_runtime/src/dynamic_api/tests.rs` absent, all 11 owner modules declared, and oversized test owner modules at zero. The current test-owner split keeps `session_entry_points.rs` at 145 lines, `session_lifecycle.rs` at 136 lines, and `session_profiles.rs` at 112 lines. That audit owner now lives in `runtime_structure_audits/dynamic_api_test_boundary.py` so the main architecture audit script remains an orchestration boundary instead of becoming another mixed large file.

@@ -10,6 +10,14 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Landscape/Private/LandscapeGrassMapsBuilder.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Landscape/Private/LandscapeNaniteComponent.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Landscape/Private/LandscapeEdit.cpp
+  - dev/Fyrox/fyrox-impl/src/scene/terrain/mod.rs
+  - dev/Fyrox/fyrox-impl/src/scene/terrain/quadtree.rs
+  - dev/Fyrox/fyrox-impl/src/scene/terrain/geometry.rs
+  - dev/Fyrox/fyrox-impl/src/scene/terrain/brushstroke/mod.rs
+  - dev/Fyrox/fyrox-impl/src/scene/terrain/brushstroke/strokechunks.rs
+  - dev/godot/scene/resources/3d/height_map_shape_3d.cpp
+  - dev/godot/scene/3d/multimesh_instance_3d.cpp
+  - dev/learn-wgpu-zh/code/intermediate/tutorial13-terrain/src/terrain.rs
 plan_sources:
   - .codex/plans/M5 Nanite-Like Virtual Geometry 全链收束计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
@@ -41,6 +49,21 @@ plan_sources:
 | `dev/UnrealEngine/.../Landscape/Private/LandscapeNaniteComponent.cpp` | 地形转 Nanite 表示(远期 VG 衔接,只读) |
 
 次参考:`dev/godot`(scene/3d 中 GPUParticles 散布思路对照);SpeedTree 风格风动画以 URP/UE 的 SpeedTree 顶点风模型为概念参考(层级:主干弯曲 + 枝条摆动 + 叶片抖动,参数化进材质)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/Fyrox/fyrox-impl/src/scene/terrain/mod.rs` | TV-M1 数据面:Rust 引擎完整 heightmap 地形(`Chunk` 网格排布、`Layer` splat 层、`hole_mask`、高度读写) | `Chunk` 字段族与 `ChunkHeightData`/`ChunkHeightMutData` 读写、`replace_height_map`、`create_margin` 的边缘共享样本处理(对照本计划 components*255+1 语义) |
+| `dev/Fyrox/fyrox-impl/src/scene/terrain/quadtree.rs` | TV-M1 四叉树 LOD:`QuadTree`/`QuadTreeNode::select` 自顶向下选层产出 `SelectedNode` | `select`/`aabb`(节点高度区间进剔除 AABB,同 `height_min_max`)、`height_mod_count` 脏版本号驱动重建 |
+| `dev/Fyrox/fyrox-impl/src/scene/terrain/geometry.rs` | 共享 patch mesh:`TerrainGeometry::new(mesh_size)` 单网格全 chunk 复用 | 顶点/索引构建(对照本计划 8 级 patch mesh,差异:Fyrox 无顶点 morph 消缝) |
+| `dev/Fyrox/fyrox-impl/src/scene/terrain/brushstroke/mod.rs` | TV-M2 编辑契约:`BrushStroke` 笔刷消息流 + `UndoData` 撤销载体 | `BrushSender::draw_pixel` 的像素消息化、`StrokeData` 累积被覆盖前值 → undo(对照 `TerrainEditOpResult::inverse`) |
+| `dev/Fyrox/fyrox-impl/src/scene/terrain/brushstroke/strokechunks.rs` | 脏区按 chunk 聚集:`StrokeChunks` 记录每 chunk 修改像素集 | chunk_size 映射与按 chunk 应用/清空周期(对照 `dirty_sections` 合并) |
+| `dev/godot/scene/resources/3d/height_map_shape_3d.cpp` | 高度场碰撞资产形态(`TerrainHeightFieldQuery` 物理消费侧的对照) | `map_width/map_depth` + heights 数组的资产表达与 min/max 高度缓存 |
+| `dev/godot/scene/3d/multimesh_instance_3d.cpp` | 散布实例渲染的实例集挂接形态 | `MultiMesh` 资源 setter/节点接线(Zircon 对应物是 `GpuScene` span,无独立实例节点) |
+| `dev/learn-wgpu-zh/code/intermediate/tutorial13-terrain/src/terrain.rs` | wgpu 地形 chunk 的端到端实绩:compute 生成 chunk 顶点 + 渲染管线 | `Terrain::gen_chunk`/`TerrainPipeline`(`gen_terrain_compute` entry)与逐 chunk 缓冲管理 |
+
+`terrain 渲染器` bevy 无同类参照,以 Fyrox terrain + UE Landscape 双样板;`billboard imposter 八面体烘焙` 与 `SpeedTree 层级风动画` 无 Rust 同类参照,实现时以 UE 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

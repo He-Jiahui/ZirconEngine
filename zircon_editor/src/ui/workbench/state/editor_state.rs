@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 
 use crate::scene::viewport::SceneViewportController;
 use crate::ui::workbench::project::AssetWorkspaceState;
+use crate::ui::workbench::snapshot::EditorBridgeDiagnosticsSnapshot;
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 use super::editor_state_play_mode::EditorPlaySession;
@@ -24,6 +25,7 @@ pub struct EditorState {
     pub(crate) welcome: WelcomePaneSnapshot,
     pub(crate) project_open: bool,
     pub(crate) status_line: String,
+    pub(crate) bridge_diagnostics: EditorBridgeDiagnosticsSnapshot,
     pub(crate) history: EditorHistory,
     pub(crate) play_session: Option<EditorPlaySession>,
 }

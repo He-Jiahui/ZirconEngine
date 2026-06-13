@@ -64,6 +64,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
             project_open: false,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &layout,
         vec![asset_browser.clone()],
@@ -150,5 +151,6 @@ fn empty_editor_data() -> EditorDataSnapshot {
         project_open: false,
         can_undo: false,
         can_redo: false,
+        bridge_diagnostics: Default::default(),
     }
 }

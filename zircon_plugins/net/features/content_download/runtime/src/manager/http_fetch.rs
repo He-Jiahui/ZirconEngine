@@ -92,7 +92,7 @@ fn fetch_attempt_via_net(
     request.max_retry_attempts = CONTENT_DOWNLOAD_HTTP_RETRY_ATTEMPTS;
     request.security = NetSecurityPolicy::development();
     if let Some((range_start, range_end)) = attempt_range_bounds(attempt)? {
-        request = request.with_header("range", format!("bytes={range_start}-{range_end}"));
+        request = request.with_byte_range(range_start, range_end);
     }
     let response = net
         .send_http_request(request)

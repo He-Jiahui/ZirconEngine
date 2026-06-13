@@ -1,13 +1,17 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::{plugin::NativePluginLiveHost, plugin::NativePluginRuntimePlayModeSnapshot};
+use zircon_runtime::plugin::{
+    BridgeDiagnosticsMatrix, NativePluginLiveHost, NativePluginRuntimePlayModeSnapshot,
+    RuntimePluginBridgeLifecycleState,
+};
 
 use super::editor_event_runtime::EditorEventRuntime;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EditorRuntimePlayModeBackendReport {
     pub diagnostics: Vec<String>,
+    pub bridge_diagnostics: Option<BridgeDiagnosticsMatrix>,
 }
 
 impl EditorRuntimePlayModeBackendReport {
@@ -45,6 +49,7 @@ impl EditorRuntimePlayModeBackend for NoopEditorRuntimePlayModeBackend {
 
 pub struct NativePluginEditorRuntimePlayModeBackend {
     live_host: Arc<NativePluginLiveHost>,
+    bridge_lifecycle: Option<RuntimePluginBridgeLifecycleState>,
     active_snapshot: Mutex<Option<NativePluginRuntimePlayModeSnapshot>>,
 }
 
@@ -52,6 +57,18 @@ impl NativePluginEditorRuntimePlayModeBackend {
     pub fn new(live_host: Arc<NativePluginLiveHost>) -> Self {
         Self {
             live_host,
+            bridge_lifecycle: None,
+            active_snapshot: Mutex::new(None),
+        }
+    }
+
+    pub fn new_with_bridge_lifecycle(
+        live_host: Arc<NativePluginLiveHost>,
+        bridge_lifecycle: RuntimePluginBridgeLifecycleState,
+    ) -> Self {
+        Self {
+            live_host,
+            bridge_lifecycle: Some(bridge_lifecycle),
             active_snapshot: Mutex::new(None),
         }
     }
@@ -72,9 +89,16 @@ impl EditorRuntimePlayModeBackend for NativePluginEditorRuntimePlayModeBackend {
 
         let mut diagnostics = Vec::new();
         if let Some(project_root) = project_root {
-            let load = self
-                .live_host
-                .load_runtime_plugins_from_project_root(project_root)?;
+            let load = if let Some(bridge_lifecycle) = &self.bridge_lifecycle {
+                self.live_host
+                    .load_runtime_plugins_from_project_root_with_bridge_lifecycle(
+                        project_root,
+                        bridge_lifecycle,
+                    )?
+            } else {
+                self.live_host
+                    .load_runtime_plugins_from_project_root(project_root)?
+            };
             diagnostics.extend(load.diagnostics);
         } else {
             diagnostics.push(
@@ -87,8 +111,15 @@ impl EditorRuntimePlayModeBackend for NativePluginEditorRuntimePlayModeBackend {
         diagnostics.extend(snapshot.combined_diagnostics());
         diagnostics.sort();
         diagnostics.dedup();
+        let bridge_diagnostics = self
+            .bridge_lifecycle
+            .as_ref()
+            .map(|lifecycle| lifecycle.bridge_table().diagnostics_matrix());
         *active = Some(snapshot);
-        Ok(EditorRuntimePlayModeBackendReport { diagnostics })
+        Ok(EditorRuntimePlayModeBackendReport {
+            diagnostics,
+            bridge_diagnostics,
+        })
     }
 
     fn exit_play_mode(&self) -> Result<EditorRuntimePlayModeBackendReport, String> {
@@ -102,12 +133,17 @@ impl EditorRuntimePlayModeBackend for NativePluginEditorRuntimePlayModeBackend {
                 diagnostics: vec![
                     "runtime play-mode backend had no active snapshot to restore".to_string(),
                 ],
+                bridge_diagnostics: None,
             });
         };
 
         let report = self.live_host.exit_runtime_play_mode(&snapshot)?;
         Ok(EditorRuntimePlayModeBackendReport {
             diagnostics: report.combined_diagnostics(),
+            bridge_diagnostics: self
+                .bridge_lifecycle
+                .as_ref()
+                .map(|lifecycle| lifecycle.bridge_table().diagnostics_matrix()),
         })
     }
 }

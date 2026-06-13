@@ -40,7 +40,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("mesh.opaque")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .read_external(PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::AlphaMask3d,
@@ -49,7 +52,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("mesh.alpha-mask")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .read_external(PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
@@ -59,7 +65,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .with_executor_id("mesh.transparent")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-            .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+            .read_external(PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
         ],
     )

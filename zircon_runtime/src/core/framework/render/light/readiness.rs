@@ -1,8 +1,5 @@
 use super::snapshots::{RenderAmbientLightSnapshot, RenderRectLightSnapshot};
 
-pub const BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT: usize = 1;
-pub const BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT: usize = 8;
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderLightFamilyReadiness {
     pub total_count: usize,
@@ -31,7 +28,7 @@ pub struct RenderLightReadinessReport {
 }
 
 impl RenderLightReadinessReport {
-    /// Mirrors the renderer's current light consumption limits rather than the authored scene data.
+    /// Mirrors the renderer's current light consumption path rather than the authored scene data.
     pub fn from_light_slices(
         directional_light_count: usize,
         point_light_count: usize,
@@ -42,13 +39,10 @@ impl RenderLightReadinessReport {
         Self {
             directional: RenderLightFamilyReadiness::new(
                 directional_light_count,
-                ready_directional_light_count(directional_light_count),
+                directional_light_count,
             ),
-            point: RenderLightFamilyReadiness::new(
-                point_light_count,
-                ready_point_light_count(point_light_count),
-            ),
-            spot: RenderLightFamilyReadiness::new(spot_light_count, 0),
+            point: RenderLightFamilyReadiness::new(point_light_count, point_light_count),
+            spot: RenderLightFamilyReadiness::new(spot_light_count, spot_light_count),
             ambient: RenderLightFamilyReadiness::new(
                 ambient_lights.len(),
                 ready_ambient_light_count(ambient_lights),
@@ -59,14 +53,6 @@ impl RenderLightReadinessReport {
             ),
         }
     }
-}
-
-fn ready_directional_light_count(total_count: usize) -> usize {
-    total_count.min(BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT)
-}
-
-fn ready_point_light_count(total_count: usize) -> usize {
-    total_count.min(BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT)
 }
 
 fn ready_ambient_light_count(lights: &[RenderAmbientLightSnapshot]) -> usize {
@@ -88,7 +74,7 @@ mod tests {
     use crate::core::framework::render::{RenderAmbientLightSnapshot, RenderRectLightSnapshot};
     use crate::core::math::{Vec2, Vec3};
 
-    use super::{RenderLightReadinessReport, BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT};
+    use super::RenderLightReadinessReport;
 
     #[test]
     fn light_status_counts_split_ready_and_degraded_slots() {
@@ -115,29 +101,18 @@ mod tests {
             },
         ];
 
-        let report = RenderLightReadinessReport::from_light_slices(
-            2,
-            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT + 2,
-            1,
-            &ambient_lights,
-            &rect_lights,
-        );
+        let report =
+            RenderLightReadinessReport::from_light_slices(2, 10, 1, &ambient_lights, &rect_lights);
 
         assert_eq!(report.directional.total_count, 2);
-        assert_eq!(report.directional.ready_count, 1);
-        assert_eq!(report.directional.degraded_count, 1);
-        assert_eq!(
-            report.point.total_count,
-            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT + 2
-        );
-        assert_eq!(
-            report.point.ready_count,
-            BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT
-        );
-        assert_eq!(report.point.degraded_count, 2);
+        assert_eq!(report.directional.ready_count, 2);
+        assert_eq!(report.directional.degraded_count, 0);
+        assert_eq!(report.point.total_count, 10);
+        assert_eq!(report.point.ready_count, 10);
+        assert_eq!(report.point.degraded_count, 0);
         assert_eq!(report.spot.total_count, 1);
-        assert_eq!(report.spot.ready_count, 0);
-        assert_eq!(report.spot.degraded_count, 1);
+        assert_eq!(report.spot.ready_count, 1);
+        assert_eq!(report.spot.degraded_count, 0);
         assert_eq!(report.ambient.total_count, 2);
         assert_eq!(report.ambient.ready_count, 1);
         assert_eq!(report.ambient.degraded_count, 1);
@@ -149,12 +124,15 @@ mod tests {
     fn rect_light(renderer_degraded: bool) -> RenderRectLightSnapshot {
         RenderRectLightSnapshot {
             node_id: 1,
+            light_id: 1,
+            layer_mask: crate::core::framework::render::DEFAULT_RENDER_LAYER_MASK,
             position: Vec3::ZERO,
             direction: Vec3::new(0.0, 0.0, -1.0),
             color: Vec3::ONE,
             intensity: 1.0,
             range: 1.0,
             size: Vec2::ONE,
+            shadow: None,
             renderer_degraded,
             degradation_reason: renderer_degraded.then(|| "degraded".to_string()),
         }

@@ -10,5 +10,6 @@ mod quality_profile;
 mod runtime_states;
 mod surface;
 mod viewport_record;
+mod visibility_static_index;
 
 pub(in crate::graphics::runtime::render_framework) use viewport_record::ViewportRecord;

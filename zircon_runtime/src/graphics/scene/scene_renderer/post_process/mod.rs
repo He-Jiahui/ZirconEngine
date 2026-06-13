@@ -22,8 +22,6 @@ use params::{
 
 pub(crate) use cluster_dimensions::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};
 pub(crate) use constants::{
-    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT,
-    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
@@ -77,6 +75,24 @@ pub(in crate::graphics::scene::scene_renderer) fn clustered_lighting_workgroup_s
     [
         constants::CLUSTER_WORKGROUP_SIZE,
         constants::CLUSTER_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn hzb_build_dispatch_groups(
+    hzb_size: UVec2,
+) -> [u32; 3] {
+    [
+        hzb_size.x.max(1).div_ceil(constants::HZB_WORKGROUP_SIZE),
+        hzb_size.y.max(1).div_ceil(constants::HZB_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn hzb_build_workgroup_size() -> [u32; 3] {
+    [
+        constants::HZB_WORKGROUP_SIZE,
+        constants::HZB_WORKGROUP_SIZE,
         1,
     ]
 }

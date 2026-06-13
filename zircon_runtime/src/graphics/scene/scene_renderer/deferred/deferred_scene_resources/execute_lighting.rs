@@ -1,36 +1,43 @@
-use bytemuck::bytes_of;
-
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
+use crate::graphics::scene::scene_renderer::shadow::atlas::{
+    ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
+    SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
+};
 use crate::render_graph::RenderGraphAttachmentOps;
 
-use super::shadow_receiver_uniform::DeferredShadowReceiverUniform;
 use super::DeferredSceneResources;
 
 impl DeferredSceneResources {
     pub(crate) fn execute_lighting(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_bind_group: &wgpu::BindGroup,
+        gpu_scene_bind_group: &wgpu::BindGroup,
         gbuffer_albedo_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
         gbuffer_material_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
-        shadow_map_view: &wgpu::TextureView,
-        shadow_scene_uniform: Option<SceneUniform>,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        light_grid_params_buffer: &wgpu::Buffer,
+        light_zbins_buffer: &wgpu::Buffer,
+        light_tile_masks_buffer: &wgpu::Buffer,
         background_view: &wgpu::TextureView,
         scene_color_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
     ) {
-        let shadow_receiver_uniform =
-            DeferredShadowReceiverUniform::from_shadow_scene_uniform(shadow_scene_uniform);
-        queue.write_buffer(
-            &self.shadow_receiver_uniform_buffer,
-            0,
-            bytes_of(&shadow_receiver_uniform),
-        );
+        let shadow_atlas_view = shadow_atlas_resources
+            .map(ShadowAtlasResources::atlas_view)
+            .unwrap_or(&self.shadow_atlas_fallback_view);
+        let shadow_atlas_sampler = shadow_atlas_resources
+            .map(ShadowAtlasResources::compare_sampler)
+            .unwrap_or(&self.shadow_compare_sampler);
+        let shadow_atlas_slot_buffer = shadow_atlas_resources
+            .map(ShadowAtlasResources::slot_buffer)
+            .unwrap_or(&self.shadow_atlas_fallback_slot_buffer);
+        let shadow_atlas_globals_buffer = shadow_atlas_resources
+            .map(ShadowAtlasResources::globals_buffer)
+            .unwrap_or(&self.shadow_atlas_fallback_globals_buffer);
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
@@ -57,16 +64,32 @@ impl DeferredSceneResources {
                     resource: wgpu::BindingResource::TextureView(scene_depth_view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: wgpu::BindingResource::TextureView(shadow_map_view),
+                    binding: SHADOW_ATLAS_BINDING,
+                    resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 6,
-                    resource: self.shadow_receiver_uniform_buffer.as_entire_binding(),
+                    binding: SHADOW_ATLAS_SAMPLER_BINDING,
+                    resource: wgpu::BindingResource::Sampler(shadow_atlas_sampler),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 7,
-                    resource: wgpu::BindingResource::Sampler(&self.shadow_compare_sampler),
+                    binding: SHADOW_ATLAS_SLOT_BUFFER_BINDING,
+                    resource: shadow_atlas_slot_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: SHADOW_GLOBALS_BINDING,
+                    resource: shadow_atlas_globals_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 20,
+                    resource: light_grid_params_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 21,
+                    resource: light_zbins_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 22,
+                    resource: light_tile_masks_buffer.as_entire_binding(),
                 },
             ],
         });
@@ -87,6 +110,7 @@ impl DeferredSceneResources {
         pass.set_pipeline(&self.lighting_pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
+        pass.set_bind_group(3, gpu_scene_bind_group, &[]);
         pass.draw(0..3, 0..1);
     }
 }

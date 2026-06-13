@@ -1,35 +1,18 @@
-use std::io::ErrorKind;
-use std::time::Duration;
-
-use tokio::net::{TcpListener, TcpStream};
-use tokio::time::timeout;
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetEvent, NetListenerId,
-    NetTransportKind,
+    NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetListenerId,
 };
 
 use crate::runtime_state::{ManagedTcpConnection, ManagedTcpListener};
 
 use super::DefaultNetManager;
 
-const TCP_ACCEPT_POLL_TIMEOUT: Duration = Duration::from_millis(1);
-
 impl DefaultNetManager {
     pub(in crate::service_types) fn listen_tcp_impl(
         &self,
         bind: &NetEndpoint,
     ) -> Result<NetListenerId, NetError> {
-        let bind_addr = bind.to_socket_addr()?;
-        let listener = self
-            .state
-            .runtime
-            .block_on(TcpListener::bind(bind_addr))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = listener
-            .local_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
         let listener_id = self.next_listener_id();
+        let local_endpoint = self.state.worker.listen_tcp(listener_id, bind.clone())?;
         self.state
             .tcp_listeners
             .lock()
@@ -37,15 +20,9 @@ impl DefaultNetManager {
             .insert(
                 listener_id,
                 ManagedTcpListener {
-                    listener,
                     local_endpoint: local_endpoint.clone(),
                 },
             );
-        self.state.push_event(NetEvent::ListenerStarted {
-            listener: listener_id,
-            transport: NetTransportKind::Tcp,
-            endpoint: local_endpoint,
-        });
         Ok(listener_id)
     }
 
@@ -58,82 +35,43 @@ impl DefaultNetManager {
             return Ok(Vec::new());
         }
 
-        let listeners = self
+        if !self
             .state
             .tcp_listeners
             .lock()
-            .expect("net TCP listeners mutex poisoned");
-        let entry = listeners
-            .get(&listener)
-            .ok_or(NetError::UnknownListener { listener })?;
-
-        let mut accepted = Vec::new();
-        while accepted.len() < max_connections {
-            match self
-                .state
-                .runtime
-                .block_on(async { timeout(TCP_ACCEPT_POLL_TIMEOUT, entry.listener.accept()).await })
-            {
-                Ok(Ok((stream, remote_addr))) => {
-                    let local_endpoint = stream
-                        .local_addr()
-                        .map(Self::endpoint_from_addr)
-                        .map_err(|error| NetError::Io(error.to_string()))?;
-                    let remote_endpoint = Self::endpoint_from_addr(remote_addr);
-                    let connection = self.next_connection_id();
-                    self.state
-                        .tcp_connections
-                        .lock()
-                        .expect("net TCP connections mutex poisoned")
-                        .insert(
-                            connection,
-                            ManagedTcpConnection {
-                                stream,
-                                _local_endpoint: local_endpoint,
-                                _remote_endpoint: remote_endpoint.clone(),
-                                state: NetConnectionState::Open,
-                            },
-                        );
-                    self.state.push_event(NetEvent::ConnectionAccepted {
-                        listener,
-                        connection,
-                        transport: NetTransportKind::Tcp,
-                        remote: remote_endpoint,
-                    });
-                    self.state.push_event(NetEvent::ConnectionStateChanged {
-                        connection,
-                        transport: NetTransportKind::Tcp,
-                        state: NetConnectionState::Open,
-                    });
-                    accepted.push(connection);
-                }
-                Ok(Err(error)) => return Err(NetError::Io(error.to_string())),
-                Err(_) => break,
-            }
+            .expect("net TCP listeners mutex poisoned")
+            .contains_key(&listener)
+        {
+            return Err(NetError::UnknownListener { listener });
         }
 
-        Ok(accepted)
+        let accepted = self.state.worker.accept_tcp(listener, max_connections)?;
+        let mut connection_ids = Vec::with_capacity(accepted.len());
+        let mut connections = self
+            .state
+            .tcp_connections
+            .lock()
+            .expect("net TCP connections mutex poisoned");
+        for accepted_connection in accepted {
+            let connection = accepted_connection.connection;
+            connections.insert(
+                connection,
+                ManagedTcpConnection {
+                    state: NetConnectionState::Open,
+                },
+            );
+            connection_ids.push(connection);
+        }
+
+        Ok(connection_ids)
     }
 
     pub(in crate::service_types) fn connect_tcp_impl(
         &self,
         remote: &NetEndpoint,
     ) -> Result<NetConnectionId, NetError> {
-        let remote_addr = remote.to_socket_addr()?;
-        let stream = self
-            .state
-            .runtime
-            .block_on(TcpStream::connect(remote_addr))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = stream
-            .local_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let remote_endpoint = stream
-            .peer_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
         let connection = self.next_connection_id();
+        self.state.worker.connect_tcp(connection, remote.clone())?;
         self.state
             .tcp_connections
             .lock()
@@ -141,17 +79,9 @@ impl DefaultNetManager {
             .insert(
                 connection,
                 ManagedTcpConnection {
-                    stream,
-                    _local_endpoint: local_endpoint,
-                    _remote_endpoint: remote_endpoint,
                     state: NetConnectionState::Open,
                 },
             );
-        self.state.push_event(NetEvent::ConnectionStateChanged {
-            connection,
-            transport: NetTransportKind::Tcp,
-            state: NetConnectionState::Open,
-        });
         Ok(connection)
     }
 
@@ -160,25 +90,7 @@ impl DefaultNetManager {
         connection: NetConnectionId,
         payload: &[u8],
     ) -> Result<usize, NetError> {
-        let connections = self
-            .state
-            .tcp_connections
-            .lock()
-            .expect("net TCP connections mutex poisoned");
-        let entry = connections
-            .get(&connection)
-            .ok_or(NetError::UnknownConnection { connection })?;
-        loop {
-            match entry.stream.try_write(payload) {
-                Ok(written) => return Ok(written),
-                Err(error) if error.kind() == ErrorKind::WouldBlock => self
-                    .state
-                    .runtime
-                    .block_on(async { entry.stream.writable().await })
-                    .map_err(|error| NetError::Io(error.to_string()))?,
-                Err(error) => return Err(NetError::Io(error.to_string())),
-            }
-        }
+        self.state.worker.send_tcp(connection, payload.to_vec())
     }
 
     pub(in crate::service_types) fn poll_tcp_impl(
@@ -190,33 +102,16 @@ impl DefaultNetManager {
             return Ok(Vec::new());
         }
 
-        let mut connections = self
+        let result = self.state.worker.poll_tcp(connection, max_bytes)?;
+        if let Some(entry) = self
             .state
             .tcp_connections
             .lock()
-            .expect("net TCP connections mutex poisoned");
-        let entry = connections
+            .expect("net TCP connections mutex poisoned")
             .get_mut(&connection)
-            .ok_or(NetError::UnknownConnection { connection })?;
-        let mut payload = vec![0_u8; max_bytes];
-        match entry.stream.try_read(&mut payload) {
-            Ok(0) => {
-                entry.state = NetConnectionState::Closed;
-                self.state.push_event(NetEvent::ConnectionClosed {
-                    connection,
-                    transport: NetTransportKind::Tcp,
-                });
-                Ok(Vec::new())
-            }
-            Ok(received) => {
-                payload.truncate(received);
-                Ok(payload)
-            }
-            Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(Vec::new()),
-            Err(error) => {
-                entry.state = NetConnectionState::Failed;
-                Err(NetError::Io(error.to_string()))
-            }
+        {
+            entry.state = result.state;
         }
+        Ok(result.payload)
     }
 }

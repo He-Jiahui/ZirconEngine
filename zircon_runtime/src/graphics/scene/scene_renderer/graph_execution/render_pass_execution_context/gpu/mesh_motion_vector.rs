@@ -53,8 +53,14 @@ impl RenderPassGpuExecutionContext<'_> {
             occlusion_query_set: None,
             multiview_mask: None,
         });
-        let forward_shadow_receiver_bind_group =
-            mesh_pipelines.create_forward_shadow_receiver_bind_group(self.device, None);
+        let forward_shadow_receiver_bind_group = mesh_pipelines
+            .create_forward_shadow_receiver_bind_group(
+                self.device,
+                self.shadow_atlas_resources,
+                None,
+                None,
+                None,
+            );
         pass.set_bind_group(0, self.scene_bind_group, &[]);
         pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
         let mut replayer = MeshDrawCommandReplayer::default();
@@ -97,7 +103,9 @@ mod tests {
     fn object_motion_vectors_bind_forward_shadow_receiver_group() {
         let source = include_str!("mesh_motion_vector.rs");
 
-        assert!(source.contains("create_forward_shadow_receiver_bind_group(self.device, None)"));
+        assert!(source.contains(
+            "create_forward_shadow_receiver_bind_group(\n                self.device,\n                self.shadow_atlas_resources,\n                None,\n                None,\n                None,\n            )"
+        ));
         assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
     }
 }

@@ -793,6 +793,7 @@ pub struct RenderCapabilitySummary {
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
     pub supports_storage_buffers: bool,
+    pub max_storage_buffers_per_shader_stage: u32,
     pub supports_indirect_draw: bool,
     pub supports_multi_draw_indirect: bool,
     pub supports_indirect_first_instance: bool,
@@ -828,6 +829,21 @@ impl RenderCapabilitySummary {
         self.supports_indirect_draw
             && self.supports_multi_draw_indirect
             && self.supports_indirect_first_instance
+    }
+
+    pub const fn storage_buffer_binding_capacity_supported(&self, required: u32) -> bool {
+        self.max_storage_buffers_per_shader_stage >= required
+    }
+
+    pub const fn hzb_occlusion_culling_supported(
+        &self,
+        required_storage_buffers_per_shader_stage: u32,
+    ) -> bool {
+        self.supports_storage_buffers
+            && self.storage_buffer_binding_capacity_supported(
+                required_storage_buffers_per_shader_stage,
+            )
+            && self.gpu_driven_submission_supported()
     }
 
     pub fn capability_class_report(
@@ -1087,8 +1103,43 @@ pub struct RenderStats {
     pub last_visibility_frustum_culled_count: usize,
     pub last_visibility_occlusion_culled_count: usize,
     pub last_visibility_visible_count: usize,
+    pub last_visibility_static_index_full_rebuild_count: usize,
+    pub last_visibility_static_index_incremental_update_count: usize,
+    pub last_visibility_static_index_inserted_count: usize,
+    pub last_visibility_static_index_updated_count: usize,
+    pub last_visibility_static_index_removed_count: usize,
+    pub last_visibility_static_index_indexed_entity_count: usize,
+    pub last_visibility_static_index_occupied_cell_count: usize,
+    pub last_visibility_static_index_main_view_prefilter_used: bool,
+    pub last_visibility_static_index_main_view_static_input_count: usize,
+    pub last_visibility_static_index_main_view_static_candidate_count: usize,
     pub last_hzb_mip_count: usize,
     pub last_hzb_graph_executed_pass_count: usize,
+    pub last_hzb_occlusion_reported: bool,
+    pub last_hzb_occlusion_candidate_arg_count: usize,
+    pub last_hzb_occlusion_candidate_instance_count: usize,
+    pub last_hzb_occlusion_dispatch_group_count: usize,
+    pub last_hzb_occlusion_dispatched_phase_count: usize,
+    pub last_hzb_occlusion_history_available: bool,
+    pub last_hzb_occlusion_readback_available: bool,
+    pub last_hzb_occlusion_tested_arg_count: usize,
+    pub last_hzb_occlusion_tested_instance_count: usize,
+    pub last_hzb_occlusion_culled_arg_count: usize,
+    pub last_hzb_occlusion_culled_instance_count: usize,
+    pub last_hzb_occlusion_indirect_args_readback_available: bool,
+    pub last_hzb_occlusion_readback_arg_count: usize,
+    pub last_hzb_occlusion_compacted_draw_count: usize,
+    pub last_hzb_occlusion_zero_instance_arg_count: usize,
+    pub last_hzb_occlusion_remaining_instance_count: usize,
+    pub last_light_grid_reported: bool,
+    pub last_light_grid_light_count: usize,
+    pub last_light_grid_tile_count: usize,
+    pub last_light_grid_zbin_count: usize,
+    pub last_light_grid_non_empty_tile_count: usize,
+    pub last_light_grid_non_empty_zbin_count: usize,
+    pub last_light_grid_non_empty_cluster_count: usize,
+    pub last_light_grid_peak_lights_per_cluster: usize,
+    pub last_light_grid_average_lights_per_cluster_milli: usize,
     pub last_quality_profile: Option<String>,
     pub last_effective_features: Vec<String>,
     pub last_graph_pass_count: usize,
@@ -1490,6 +1541,65 @@ mod tests {
             },
         ] {
             assert!(!capabilities.gpu_driven_submission_supported());
+        }
+    }
+
+    #[test]
+    fn hzb_occlusion_culling_requires_storage_buffers_gpu_driven_and_binding_capacity() {
+        const REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE: u32 = 10;
+
+        let supported = RenderCapabilitySummary {
+            supports_storage_buffers: true,
+            max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+            supports_indirect_draw: true,
+            supports_multi_draw_indirect: true,
+            supports_indirect_first_instance: true,
+            ..RenderCapabilitySummary::default()
+        };
+        assert!(
+            supported.hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)
+        );
+
+        for capabilities in [
+            RenderCapabilitySummary {
+                max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                supports_indirect_draw: true,
+                supports_multi_draw_indirect: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                supports_multi_draw_indirect: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                supports_indirect_draw: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+                supports_indirect_draw: true,
+                supports_multi_draw_indirect: true,
+                ..RenderCapabilitySummary::default()
+            },
+            RenderCapabilitySummary {
+                supports_storage_buffers: true,
+                max_storage_buffers_per_shader_stage: REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE - 1,
+                supports_indirect_draw: true,
+                supports_multi_draw_indirect: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+        ] {
+            assert!(!capabilities
+                .hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE));
         }
     }
 }

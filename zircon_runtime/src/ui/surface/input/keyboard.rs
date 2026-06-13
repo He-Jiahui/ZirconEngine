@@ -13,7 +13,10 @@ use super::{
     super::surface::UiSurface,
     editable_text::dispatch_keyboard_text_edit,
     is_valid_input_owner,
-    keyboard_action::{keyboard_requests_default_activation, keyboard_requests_popup_dismissal},
+    keyboard_action::{
+        keyboard_component_action, keyboard_component_text, keyboard_requests_default_activation,
+        keyboard_requests_popup_dismissal,
+    },
     keyboard_navigation::keyboard_navigation_kind,
     owner_route::owner_routed_result,
     route_policy::annotate_route_policy,
@@ -60,6 +63,53 @@ pub(super) fn dispatch_keyboard_input(
                 .notes
                 .insert(0, format!("focused_route_len={}", route.len()));
             return Ok(with_keyboard_route_policy(surface, text_result));
+        }
+        if let Some(action) = keyboard_component_action(&keyboard) {
+            let report =
+                surface.apply_default_semantic_keyboard_component_action(target, action)?;
+            if report.handled {
+                result.reply = UiDispatchReply::handled()
+                    .from_handler(target)
+                    .in_phase(UiDispatchPhase::Target);
+                result.diagnostics.handled_phase = Some("keyboard.component_action".to_string());
+                result
+                    .diagnostics
+                    .notes
+                    .push(format!("keyboard_component_action={action:?}"));
+                result.component_events = report.component_events;
+                result.binding_reports = report.binding_reports;
+                surface.record_focused_input(
+                    UiFocusedInputKind::Keyboard,
+                    target,
+                    route,
+                    Some(target),
+                    true,
+                );
+                return Ok(with_keyboard_route_policy(surface, result));
+            }
+        }
+        if let Some(text) = keyboard_component_text(&keyboard) {
+            let report = surface.apply_default_semantic_keyboard_component_text(target, text)?;
+            if report.handled {
+                result.reply = UiDispatchReply::handled()
+                    .from_handler(target)
+                    .in_phase(UiDispatchPhase::Target);
+                result.diagnostics.handled_phase = Some("keyboard.component_text".to_string());
+                result
+                    .diagnostics
+                    .notes
+                    .push(format!("keyboard_component_text={text}"));
+                result.component_events = report.component_events;
+                result.binding_reports = report.binding_reports;
+                surface.record_focused_input(
+                    UiFocusedInputKind::Keyboard,
+                    target,
+                    route,
+                    Some(target),
+                    true,
+                );
+                return Ok(with_keyboard_route_policy(surface, result));
+            }
         }
         if let Some(kind) = keyboard_navigation_kind(&keyboard) {
             let focused_route_len = route.len();

@@ -49,6 +49,29 @@ plan_sources:
 | Slint | `zircon_hub` 专用，不回流 editor | 仅作声明式 UI 语法参考 |
 | theatre 时间轴 / keyframe 编辑 | UI 动画引擎 + 动画编辑器面板（计划 07） | 取 sheet/object/track/keyframe 数据模型与编辑交互 |
 
+### 1.1 参考源码索引（已核实根路径）与使用纪律
+
+每份子计划末尾有「参考实现对照（dev/ 源码锚点）」节，把该计划的设计点映射到下列仓内源码的具体文件。**使用纪律**：
+
+1. 实现任何非平凡机制（路由次序、虚拟化、docking、IME、keyframe 编辑等）前，先读对应锚点的参考实现，再写 Zircon 版本——禁止凭印象/记忆实现。
+2. 行为语义存疑时以参考实现为准，并在 PR 说明注明出处（路径 + 关键函数/类型名）。
+3. 只允许引用下列已核实根路径下真实存在的文件；引用前用 Glob/ls 核实，发现失效路径修计划而不是将错就错。
+4. 参考 ≠ 复制：C++/TS 源只对齐概念与行为边界，实现风格遵守仓内惯例与全局约束。
+
+| 根路径 | 内容 | 主要服务的计划 |
+|--------|------|---------------|
+| `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/` | Slate 核心：Input/Layout/Fonts/Styling/Textures/Animation/FastUpdate/Widgets | 01、02、03、04、05、07 |
+| `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/` | Slate 框架：Framework/{Application, Commands, Docking, MultiBox, Notifications, Text, Views}、Widgets/Views | 01、03、06、08 |
+| `dev/Fyrox/fyrox-ui/src/` | Rust 消息式 UI 全家桶：控件、dock、inspector、formatted_text、window、popup、tree | 01、02、03、04、06、07、08、09 |
+| `dev/Fyrox/editor/` | Fyrox 编辑器（world viewer/inspector/asset browser 接线） | 08、09 |
+| `dev/godot/scene/gui/` + `dev/godot/servers/text` + `dev/godot/scene/animation` + `dev/godot/editor/` | C++ 控件行为权威（tree/text_edit/popup_menu/graph_edit）、TextServer、Tween、编辑器壳 | 01、02、03、06、07、08、09 |
+| `dev/bevy/crates/{bevy_ui, bevy_text, bevy_winit, bevy_input, bevy_input_focus, bevy_asset, bevy_animation}` | taffy 消费样板（bevy_ui/src/layout/convert.rs）、swash 文本、winit 翻译、焦点、资产架构 | 01、02、03、05、07 |
+| `dev/slint/internal/core/` | Rust 声明式 UI 内核：layout.rs、textlayout/、input.rs、item_focus.rs、items/ | 01、02、03、06 |
+| `dev/material-ui/packages/mui-material/src/` | 组件分类/variant/键盘语义权威、styles（theme 结构）、Collapse 等 transition | 04、06、07 |
+| `dev/theatre/packages/{core, studio}/` | sheet/track/keyframe 数据模型（core/src/projects）与时间轴编辑交互（studio） | 07、09 |
+| `dev/ionicons.designerpack` | 图标素材 | 05 |
+| `dev/tracy` | 性能时间轴（09 批次 3 Performance Timeline） | 09 |
+
 ## 2. 现状评审结论
 
 既有计划已落地的事实（详见各子计划「现状（按代码核实修正）」节，已逐项对照真实代码），新计划在此之上推进，不重做：

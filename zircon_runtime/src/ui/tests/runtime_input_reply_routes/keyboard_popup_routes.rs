@@ -231,6 +231,55 @@ fn modified_virtual_back_still_routes_to_popup_dismissal() {
     assert_eq!(popup_open(&surface), Some(false));
 }
 
+#[test]
+fn unified_keyboard_escape_prefers_semantic_cancel_binding_before_popup_dismissal() {
+    let mut surface = semantic_popup_cancel_route_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_popup_event("Escape", 27),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::FocusPath
+    );
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.component_action")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_component_action=Cancel"));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::KeyboardAction {
+            action: UiComponentKeyboardAction::Cancel,
+        }
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(2))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+    assert_eq!(popup_open(&surface), Some(true));
+}
+
 fn keyboard_popup_route_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input.reply_route.popup_keyboard"));
     surface.tree.insert_root(
@@ -277,6 +326,41 @@ fn keyboard_popup_route_surface() -> UiSurface {
                     bindings: vec![binding("CommandItem/Activate", UiEventKind::Click)],
                     widget: UiWidgetContract {
                         behavior: UiWidgetBehavior::MenuItem,
+                        ..UiWidgetContract::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+}
+
+fn semantic_popup_cancel_route_surface() -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.input.reply_route.popup_keyboard_semantic",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 180.0, 110.0)),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/select"))
+                .with_frame(UiFrame::new(8.0, 8.0, 140.0, 32.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(input_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Dropdown".to_string(),
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(true))]
+                        .into_iter()
+                        .collect(),
+                    bindings: vec![binding("Dropdown/KeyboardAction", UiEventKind::Click)],
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Popup,
+                        open_property: Some("popup_open".to_string()),
                         ..UiWidgetContract::default()
                     },
                     ..Default::default()

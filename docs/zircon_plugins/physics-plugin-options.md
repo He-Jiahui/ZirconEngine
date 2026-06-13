@@ -38,6 +38,8 @@ The physics runtime keeps the current plugin-owned `builtin` fallback as the onl
 
 The existing empty `jolt = []` feature slots in `zircon_runtime/Cargo.toml` and `zircon_plugins/physics/runtime/Cargo.toml` stay for now as explicit backend-selection compatibility with authored settings, but they must remain unavailable until a real plugin-owned Jolt bridge is linked. Enabling the feature must not silently downgrade `backend = "jolt"` to builtin stepping.
 
+The runtime-side dependency guard for this ruling is `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`; Runtime 01 also keeps this decision Cargo-pending through `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` until plugin physics validation runs in a clean lane.
+
 ## Current Baseline
 
 `zircon_plugins/physics/runtime` is no longer an empty shell. It already owns the concrete runtime plugin module, manager service implementation, builtin rigid-body step, world sync, ray/shape query fallback, contact helpers, trigger events, settings validation, and the scene hook that runs at `SystemStage::FixedUpdate`.

@@ -10,6 +10,7 @@ pub(super) fn bind_group_entries<'a>(
     scene_normal_view: &'a wgpu::TextureView,
     scene_material_view: Option<&'a wgpu::TextureView>,
     ao_view: &'a wgpu::TextureView,
+    contact_shadow_view: &'a wgpu::TextureView,
     previous_scene_color_view: Option<&'a wgpu::TextureView>,
     previous_global_illumination_view: Option<&'a wgpu::TextureView>,
     previous_screen_space_reflection_history_view: Option<&'a wgpu::TextureView>,
@@ -25,7 +26,7 @@ pub(super) fn bind_group_entries<'a>(
     effect_lut_view: &'a wgpu::TextureView,
     effect_lut_3d_view: &'a wgpu::TextureView,
     cluster_buffer: &'a wgpu::Buffer,
-) -> [wgpu::BindGroupEntry<'a>; 27] {
+) -> [wgpu::BindGroupEntry<'a>; 28] {
     let scene_depth_binding_view = match resources.depth_sampling_mode {
         PostProcessDepthSamplingMode::RawDepthTexture => scene_depth_view,
         PostProcessDepthSamplingMode::ViewportDepthFallback => &resources.black_texture_view,
@@ -165,6 +166,10 @@ pub(super) fn bind_group_entries<'a>(
                 screen_space_reflection_reflection_pyramid_coarse_view
                     .unwrap_or(&resources.black_texture_view),
             ),
+        },
+        wgpu::BindGroupEntry {
+            binding: 27,
+            resource: wgpu::BindingResource::TextureView(contact_shadow_view),
         },
     ]
 }

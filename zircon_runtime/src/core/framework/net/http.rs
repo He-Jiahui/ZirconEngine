@@ -51,6 +51,16 @@ impl NetHttpRequestDescriptor {
         self.max_retry_attempts = attempts;
         self
     }
+
+    pub fn with_byte_range(mut self, start: u64, end_inclusive: u64) -> Self {
+        self.headers
+            .retain(|(name, _)| !name.eq_ignore_ascii_case("range"));
+        self.headers.push((
+            "range".to_string(),
+            format!("bytes={start}-{end_inclusive}"),
+        ));
+        self
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

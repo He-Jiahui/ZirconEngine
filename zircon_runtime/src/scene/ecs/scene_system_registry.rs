@@ -387,6 +387,12 @@ impl<'registry> Iterator for NativeSystemsForStage<'registry> {
 fn builtin_scene_systems() -> Vec<SceneSystemDescriptor> {
     vec![
         SceneSystemDescriptor::new(
+            "zircon.scene.events_update_all",
+            SystemStage::First,
+            InternalSceneSystem::UpdateEvents,
+        )
+        .with_order(-10_000),
+        SceneSystemDescriptor::new(
             "zircon.scene.hierarchy_validity",
             SystemStage::PostUpdate,
             InternalSceneSystem::HierarchyValidity,

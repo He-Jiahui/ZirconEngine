@@ -127,9 +127,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .as_ref()
         .map(|output| output.bvh_visualization_instances().to_vec())
         .unwrap_or_default();
-    let visibility_context = VisibilityContext::from_extract_with_history(
+    let visibility_context = VisibilityContext::from_extract_with_history_and_static_index(
         &visibility_extract,
         viewport_state.previous_visibility(),
+        viewport_state.previous_static_index(),
     );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
         &effective_history_key_extract,

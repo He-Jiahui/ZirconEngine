@@ -39,6 +39,7 @@ fn builtin_rendering_catalog_declares_owner_features_and_defaults() {
         vec![
             "rendering.post_process",
             "rendering.ssao",
+            "rendering.contact_shadow",
             "rendering.decals",
             "rendering.reflection_probes",
             "rendering.baked_lighting",
@@ -150,6 +151,7 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
     let expected_features = vec![
         "rendering.post_process",
         "rendering.ssao",
+        "rendering.contact_shadow",
         "rendering.decals",
         "rendering.reflection_probes",
         "rendering.baked_lighting",

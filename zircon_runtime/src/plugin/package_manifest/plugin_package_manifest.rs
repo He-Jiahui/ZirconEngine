@@ -8,7 +8,8 @@ use crate::{
 
 use super::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginInterfaceManifest, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleManifest,
+    PluginOptionManifest, PluginPackageKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -95,5 +96,22 @@ impl PluginPackageManifest {
             return vec!["assets".to_string()];
         }
         self.asset_roots.clone()
+    }
+
+    pub fn bridge_interface(&self, interface_id: &str) -> Option<&PluginInterfaceManifest> {
+        self.provides_interfaces
+            .iter()
+            .find(|interface| interface.id == interface_id)
+    }
+
+    pub fn bridge_methods(
+        &self,
+    ) -> impl Iterator<Item = (&PluginInterfaceManifest, &PluginInterfaceMethodManifest)> {
+        self.provides_interfaces.iter().flat_map(|interface| {
+            interface
+                .methods
+                .iter()
+                .map(move |method| (interface, method))
+        })
     }
 }

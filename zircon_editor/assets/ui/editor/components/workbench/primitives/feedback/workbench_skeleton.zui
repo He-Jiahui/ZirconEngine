@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui"
+version = 2
+display_name = "Workbench Skeleton"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchSkeleton]
+root = "root"
+default_classes = ["workbench-skeleton", "workbench-primitive"]
+
+[nodes.root]
+component = "Skeleton"
+control_id = "WorkbenchSkeletonRoot"
+classes = ["workbench-skeleton"]
+props = { variant = "rounded", animation = "pulse", loading = true, width = 160.0, height = 18.0, background_color = "#252c31", highlight_color = "#323b42", corner_radius = 4.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 20.0, max = 24.0, stretch = "Fixed" } }

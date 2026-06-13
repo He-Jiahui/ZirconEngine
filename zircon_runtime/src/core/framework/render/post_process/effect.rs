@@ -6,8 +6,6 @@ pub enum PostProcessEffectKind {
     ColorGrading,
     HistoryResolve,
     EffectStack,
-    ScreenSpaceReflectionDepthPyramid,
-    ScreenSpaceReflectionDepthPyramidCoarse,
     ScreenSpaceReflectionReflectionPyramid,
     ScreenSpaceReflectionReflectionPyramidCoarse,
     ScreenSpaceReflectionSpecularOcclusion,
@@ -23,10 +21,6 @@ impl PostProcessEffectKind {
             Self::ColorGrading => "color-grading",
             Self::HistoryResolve => "history-resolve",
             Self::EffectStack => "effect-stack",
-            Self::ScreenSpaceReflectionDepthPyramid => "screen-space-reflection-depth-pyramid",
-            Self::ScreenSpaceReflectionDepthPyramidCoarse => {
-                "screen-space-reflection-depth-pyramid-coarse"
-            }
             Self::ScreenSpaceReflectionReflectionPyramid => {
                 "screen-space-reflection-reflection-pyramid"
             }

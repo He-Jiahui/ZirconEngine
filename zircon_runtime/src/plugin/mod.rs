@@ -16,7 +16,10 @@ mod scene_hook;
 mod ui_component_descriptor;
 
 pub use bridge::{
-    BridgeEntry, BridgeGuard, FrozenBridgeTable, InterfaceSlot, StrongBridge, WeakBridge,
+    BridgeDiagnosticsMatrix, BridgeDiagnosticsSnapshot, BridgeEntry, BridgeGuard,
+    BridgeInterfaceSnapshot, BridgeInterfaceStatus, BridgeOwnerTransitionMode,
+    BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary, FrozenBridgeTable, InterfaceSlot,
+    StrongBridge, WeakBridge,
 };
 pub use capability_status::{CapabilityStatus, CapabilityStatusManifest};
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
@@ -32,34 +35,39 @@ pub use extension_registry::{
 };
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use native_plugin_loader::{
-    LoadedNativePlugin, NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3,
-    NativePluginBehaviorCallReport, NativePluginBehaviorHealth, NativePluginBehaviorV2,
-    NativePluginBehaviorV3, NativePluginBehaviorValidationReport, NativePluginByteSliceV2,
-    NativePluginByteSliceV3, NativePluginCallbackStatusV2, NativePluginCallbackStatusV3,
-    NativePluginCandidate, NativePluginDescriptor, NativePluginEntryReport,
-    NativePluginEntryReportV1, NativePluginEntryReportV2, NativePluginEntryReportV3,
-    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3, NativePluginLiveHost,
-    NativePluginLiveHostCommand, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
-    NativePluginLoadManifest, NativePluginLoadManifestEntry, NativePluginLoadReport,
-    NativePluginLoader, NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3,
-    NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
-    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
-    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
-    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
-    NativePluginSchemaVersionsV3, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
-    NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    native_bridge_method_descriptors_from_manifest, LoadedNativePlugin, NativeBridgeCall,
+    NativeBridgeMethodBinding, NativeBridgeMethodDescriptor, NativeBridgeMethodFn,
+    NativeBridgeMethodManifestError, NativeHostApiV3RegistrationScope, NativeHostBridgeCallScope,
+    NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3, NativePluginBehaviorCallReport,
+    NativePluginBehaviorHealth, NativePluginBehaviorV2, NativePluginBehaviorV3,
+    NativePluginBehaviorValidationReport, NativePluginBridgeMethodCallV3,
+    NativePluginBridgeMethodFnV3, NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3,
+    NativePluginByteSliceV2, NativePluginByteSliceV3, NativePluginCallbackStatusV2,
+    NativePluginCallbackStatusV3, NativePluginCandidate, NativePluginDescriptor,
+    NativePluginEntryReport, NativePluginEntryReportV1, NativePluginEntryReportV2,
+    NativePluginEntryReportV3, NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
+    NativePluginLiveHost, NativePluginLiveHostBridgeLifecycleReport,
+    NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,
+    NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome, NativePluginLoadManifest,
+    NativePluginLoadManifestEntry, NativePluginLoadReport, NativePluginLoader,
+    NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3, NativePluginRuntimeBehaviorCall,
+    NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
+    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
+    NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimeStateSnapshot, NativePluginSchemaVersionsV3,
+    NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 pub use package_manifest::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginEventManifest,
     PluginFeatureBundleManifest, PluginFeatureDependency, PluginInterfaceManifest,
-    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
-    PluginPackageManifest,
+    PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest, PluginOptionManifest,
+    PluginPackageKind, PluginPackageManifest,
 };
 pub use plugin_maturity::PluginMaturity;
 pub use project_plugin_manifest::{
@@ -67,9 +75,13 @@ pub use project_plugin_manifest::{
 };
 pub use runtime_plugin::{
     CapabilityView, PluginFinishContext, PluginRuntimeContext, RuntimeExtensionCatalogReport,
-    RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginFeature,
-    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
-    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimePlugin, RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
+    RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
+    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
+    RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
+    RuntimePluginDescriptor, RuntimePluginFeature, RuntimePluginFeatureBlock,
+    RuntimePluginFeatureDependencyReport, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,

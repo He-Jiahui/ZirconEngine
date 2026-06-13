@@ -23,17 +23,17 @@ impl CoreHandle {
                 return Ok(());
             }
             entry.lifecycle = LifecycleState::Initializing;
-            if entry.startup_service_names.is_empty() {
-                entry.lifecycle = LifecycleState::Running;
-                return Ok(());
-            }
             entry.startup_service_names.clone()
         };
 
         let result = (|| {
-            self.resolve_startup_services(startup_services.as_ref())?;
+            if !startup_services.is_empty() {
+                self.resolve_startup_services(startup_services.as_ref())?;
+            }
 
-            self.finish_module_activation(module_name)
+            self.finish_module_activation(module_name)?;
+            self.activate_plugin_bridge_provider_for_runtime_module(module_name);
+            Ok(())
         })();
 
         if result.is_err() {
@@ -52,27 +52,33 @@ impl CoreHandle {
             };
             let previous_lifecycle = entry.lifecycle;
             entry.lifecycle = LifecycleState::Stopping;
-            if entry.shutdown_service_names.is_empty() {
-                entry.lifecycle = LifecycleState::Unloaded;
-                return Ok(());
-            }
             (previous_lifecycle, entry.shutdown_service_names.clone())
         };
-        let blocked_unload = {
-            let mut services = self.inner.services.lock().unwrap();
-            let unload_order = unload_order.as_ref();
-            let blocked_unload = first_blocked_unload(&services, unload_order);
-            if blocked_unload.is_none() {
-                unload_services(&mut services, unload_order);
+
+        let result = (|| {
+            let blocked_unload = {
+                let services = self.inner.services.lock().unwrap();
+                first_blocked_unload(&services, unload_order.as_ref())
+            };
+            if let Some((service_name, dependents)) = blocked_unload {
+                return Err(CoreError::UnloadBlocked(service_name, dependents));
             }
-            blocked_unload
-        };
-        if let Some((service_name, dependents)) = blocked_unload {
+
+            self.deactivate_plugin_bridge_provider_for_runtime_module(module_name)?;
+
+            if !unload_order.is_empty() {
+                let mut services = self.inner.services.lock().unwrap();
+                unload_services(&mut services, unload_order.as_ref());
+            }
+
+            self.finish_module_deactivation(module_name)
+        })();
+
+        if result.is_err() {
             self.reset_stopping_module(module_name, previous_lifecycle);
-            return Err(CoreError::UnloadBlocked(service_name, dependents));
         }
 
-        self.finish_module_deactivation(module_name)
+        result
     }
 
     fn reset_initializing_module(&self, module_name: &str) {

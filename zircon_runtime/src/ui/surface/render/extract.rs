@@ -32,7 +32,7 @@ use super::selection_controls::{
 };
 use super::sliders::{slider_render_commands, slider_suppresses_owner_text};
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
-use crate::ui::text::layout_text;
+use crate::ui::text::{resolve_text_layout, UiTextLayoutRequest};
 
 pub fn extract_ui_render_tree(tree: &UiTree) -> UiRenderExtract {
     let arranged_tree = build_arranged_tree(tree);
@@ -111,12 +111,13 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                 };
 
             let text_layout = owner_text.as_deref().map(|text| {
-                let mut layout = layout_text(
+                let request = UiTextLayoutRequest::new(
                     text,
                     &owner_style,
                     arranged_node.frame,
                     Some(arranged_node.clip_frame),
                 );
+                let mut layout = resolve_text_layout(&request).layout;
                 layout.editable = visual.editable.clone();
                 layout
             });

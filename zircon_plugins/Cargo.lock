@@ -5894,6 +5894,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_plugin_ai_runtime",
  "zircon_plugin_animation_runtime",
+ "zircon_plugin_gltf_importer_runtime",
  "zircon_plugin_hybrid_gi_runtime",
  "zircon_plugin_navigation_runtime",
  "zircon_plugin_net_runtime",
@@ -5903,6 +5904,14 @@ dependencies = [
  "zircon_plugin_sound_runtime",
  "zircon_plugin_texture_runtime",
  "zircon_plugin_virtual_geometry_runtime",
+ "zircon_plugin_zr_vm_language_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_ai_runtime"
+version = "0.1.0"
+dependencies = [
  "zircon_runtime",
 ]
 
@@ -5922,13 +5931,6 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
- "zircon_runtime",
-]
-
-[[package]]
-name = "zircon_plugin_ai_runtime"
-version = "0.1.0"
-dependencies = [
  "zircon_runtime",
 ]
 
@@ -6115,11 +6117,16 @@ dependencies = [
 name = "zircon_plugin_net_http_runtime"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "http-body-util",
  "hyper",
  "hyper-util",
  "reqwest",
+ "ring",
+ "rustls",
+ "rustls-pki-types",
  "tokio",
+ "tokio-rustls",
  "zircon_plugin_net_runtime",
  "zircon_runtime",
 ]
@@ -6152,6 +6159,9 @@ dependencies = [
 name = "zircon_plugin_net_runtime"
 version = "0.1.0"
 dependencies = [
+ "ring",
+ "rustls",
+ "rustls-pki-types",
  "tokio",
  "zircon_runtime",
 ]
@@ -6250,6 +6260,24 @@ dependencies = [
 name = "zircon_plugin_rendering_baked_lighting_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_rendering_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_contact_shadow_editor"
+version = "0.1.0"
+dependencies = [
+ "zircon_editor",
+ "zircon_plugin_rendering_contact_shadow_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_contact_shadow_runtime"
+version = "0.1.0"
+dependencies = [
+ "wgpu",
  "zircon_plugin_rendering_runtime",
  "zircon_runtime",
 ]
@@ -6453,6 +6481,8 @@ name = "zircon_plugin_sound_runtime"
 version = "0.1.0"
 dependencies = [
  "cpal",
+ "zircon_plugin_sound_ray_traced_convolution_runtime",
+ "zircon_plugin_sound_timeline_animation_runtime",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -6584,8 +6614,6 @@ name = "zircon_plugin_zr_vm_language_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_runtime",
- "zr_vm_rust_binding",
- "zr_vm_rust_binding_sys",
 ]
 
 [[package]]
@@ -6622,6 +6650,8 @@ dependencies = [
  "winit",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
+ "zr_vm_rust_binding",
+ "zr_vm_rust_binding_sys",
  "zstd",
 ]
 

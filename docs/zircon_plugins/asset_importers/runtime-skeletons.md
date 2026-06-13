@@ -228,7 +228,7 @@ Each runtime-backed importer crate exposes:
 - `package_manifest()`
 - `runtime_selection()`
 - `plugin_registration()`
-- `register_runtime_extensions(...)`
+- `register(...)`
 
 The package manifest records the runtime crate, editor/client targets, platform support, package
 capabilities, and the `AssetImporterDescriptor` rows for that importer package.

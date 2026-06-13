@@ -1,9 +1,10 @@
 use crate::asset::AssetImporterDescriptor;
+use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest, PluginPackageKind,
-    PluginPackageManifest, UiComponentDescriptor,
+    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
+    PluginPackageKind, PluginPackageManifest, UiComponentDescriptor,
 };
 use crate::RuntimeTargetMode;
 
@@ -159,7 +160,18 @@ fn plugin_module_manifest_declares_system_sets_and_anchors() {
 #[test]
 fn plugin_package_manifest_declares_bridge_interfaces() {
     let manifest = PluginPackageManifest::new("weather", "Weather")
-        .with_provided_interface(PluginInterfaceManifest::new("weather.query.v1"))
+        .with_provided_interface(
+            PluginInterfaceManifest::new("weather.query.v1").with_method(
+                PluginInterfaceMethodManifest::new("sample_temperature", 0)
+                    .with_return_value_kind(ScriptHostValueKind::Int)
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "region",
+                        ScriptHostValueKind::String,
+                    ))
+                    .with_required_capability("runtime.plugin.weather.query")
+                    .with_documentation("Samples the weather provider temperature."),
+            ),
+        )
         .with_provided_interface_id("weather.forecast.v1")
         .with_dependency(
             PluginDependencyManifest::new("physics", true)
@@ -175,10 +187,29 @@ fn plugin_package_manifest_declares_bridge_interfaces() {
     assert_eq!(
         manifest.provides_interfaces,
         vec![
-            PluginInterfaceManifest::new("weather.query.v1"),
+            PluginInterfaceManifest::new("weather.query.v1").with_method(
+                PluginInterfaceMethodManifest::new("sample_temperature", 0)
+                    .with_return_value_kind(ScriptHostValueKind::Int)
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "region",
+                        ScriptHostValueKind::String,
+                    ))
+                    .with_required_capability("runtime.plugin.weather.query")
+                    .with_documentation("Samples the weather provider temperature."),
+            ),
             PluginInterfaceManifest::new("weather.forecast.v1"),
         ]
     );
+    assert_eq!(
+        manifest
+            .bridge_interface("weather.query.v1")
+            .unwrap()
+            .method("sample_temperature")
+            .unwrap()
+            .method_slot,
+        0
+    );
+    assert_eq!(manifest.bridge_methods().count(), 1);
     assert_eq!(
         manifest.dependencies[0].interfaces,
         vec![
@@ -194,6 +225,9 @@ fn plugin_package_manifest_declares_bridge_interfaces() {
     let encoded = toml::to_string(&manifest).expect("manifest toml");
     assert!(encoded.contains("[[provides_interfaces]]"));
     assert!(encoded.contains("id = \"weather.query.v1\""));
+    assert!(encoded.contains("[[provides_interfaces.methods]]"));
+    assert!(encoded.contains("name = \"sample_temperature\""));
+    assert!(encoded.contains("method_slot = 0"));
     assert!(encoded.contains("interfaces = ["));
     assert!(encoded.contains("\"physics.query.v1\""));
 

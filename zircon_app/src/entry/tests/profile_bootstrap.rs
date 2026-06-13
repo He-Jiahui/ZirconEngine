@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_editor::ui::host::EditorManager;
 #[cfg(feature = "target-editor-host")]
 use zircon_editor::EDITOR_MANAGER_NAME;
+use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::framework::render::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
     RenderViewportDescriptor, RENDER_PROFILE_CONFIG_KEY,
@@ -40,8 +41,9 @@ use zircon_runtime::{
     scene::create_default_level,
 };
 use zircon_runtime::{
-    plugin::CapabilityStatus, plugin::PluginMaturity, plugin::PluginModuleKind,
-    plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
+    plugin::BridgeInterfaceStatus, plugin::CapabilityStatus, plugin::PluginMaturity,
+    plugin::PluginModuleKind, plugin::RuntimePluginBridgeLifecycleEvent, plugin::RuntimeProfileId,
+    RuntimePluginId, RuntimeTargetMode,
 };
 use zircon_runtime::{
     plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin,
@@ -500,6 +502,49 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
 }
 
 #[test]
+fn runtime_plugin_bootstrap_installs_bridge_lifecycle_state() {
+    let config = EntryConfig::new(EntryProfile::Runtime)
+        .with_required_runtime_plugins([RuntimePluginId::Physics]);
+    let report = RuntimePluginRegistrationReport::from_plugin(&LinkedPhysicsBridgePlugin {
+        descriptor: RuntimePluginDescriptor::new(
+            "physics",
+            "Physics",
+            RuntimePluginId::Physics,
+            "zircon_plugin_physics_runtime",
+        )
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capability("runtime.plugin.physics"),
+    });
+
+    let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
+        .expect("linked bridge provider should bootstrap");
+    let state = core
+        .plugin_bridge_lifecycle_state()
+        .expect("runtime plugin bootstrap should install bridge lifecycle state");
+
+    assert!(state
+        .bridge_table()
+        .resolve_slot(<dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID)
+        .is_some());
+    let outcome = core
+        .apply_plugin_bridge_lifecycle_event(RuntimePluginBridgeLifecycleEvent::disable_provider(
+            "physics",
+        ))
+        .expect("installed lifecycle state should apply provider events");
+    let state = core
+        .plugin_bridge_lifecycle_state()
+        .expect("runtime plugin bootstrap should retain bridge lifecycle state");
+
+    assert!(outcome.is_applied());
+    assert_eq!(
+        state
+            .bridge_table()
+            .interface_status(<dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID),
+        BridgeInterfaceStatus::Disabled
+    );
+}
+
+#[test]
 fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
@@ -888,7 +933,7 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
@@ -964,6 +1009,47 @@ impl VirtualGeometryRuntimeState for LinkedVirtualGeometryRuntimeState {
         VirtualGeometryRuntimeUpdate::default()
     }
 }
+
+#[derive(Debug)]
+struct LinkedPhysicsBridgePlugin {
+    descriptor: RuntimePluginDescriptor,
+}
+
+impl RuntimePlugin for LinkedPhysicsBridgePlugin {
+    fn descriptor(&self) -> &RuntimePluginDescriptor {
+        &self.descriptor
+    }
+
+    fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
+        self.descriptor
+            .package_manifest()
+            .with_provided_interface_id(
+                <dyn EntryBootstrapPhysicsBridge as PluginInterface>::INTERFACE_ID,
+            )
+    }
+
+    fn register(
+        &self,
+        registry: &mut RuntimeExtensionRegistry,
+    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module("physics.runtime")?;
+        registry.export_interface::<dyn EntryBootstrapPhysicsBridge>(
+            owner,
+            Arc::new(EntryBootstrapPhysicsProvider),
+        )
+    }
+}
+
+trait EntryBootstrapPhysicsBridge: Send + Sync {}
+
+impl PluginInterface for dyn EntryBootstrapPhysicsBridge {
+    const INTERFACE_ID: &'static str = "entry.bootstrap.physics.v1";
+}
+
+#[derive(Debug)]
+struct EntryBootstrapPhysicsProvider;
+
+impl EntryBootstrapPhysicsBridge for EntryBootstrapPhysicsProvider {}
 
 fn unique_export_root(prefix: &str) -> PathBuf {
     let stamp = SystemTime::now()

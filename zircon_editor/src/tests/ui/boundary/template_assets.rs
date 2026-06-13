@@ -765,6 +765,10 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchField",
         ),
         (
+            "assets/ui/editor/components/workbench/primitives/data/workbench_icon.zui",
+            "WorkbenchIcon",
+        ),
+        (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui",
             "WorkbenchSearchInput",
         ),
@@ -781,12 +785,28 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchListRow",
         ),
         (
+            "assets/ui/editor/components/workbench/primitives/data/workbench_label.zui",
+            "WorkbenchLabel",
+        ),
+        (
+            "assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui",
+            "WorkbenchDivider",
+        ),
+        (
             "assets/ui/editor/components/workbench/shell/workbench_main_band.zui",
             "WorkbenchMainBand",
         ),
         (
+            "assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui",
+            "WorkbenchNumberField",
+        ),
+        (
             "assets/ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui",
             "WorkbenchPopupMenu",
+        ),
+        (
+            "assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui",
+            "WorkbenchProgressBar",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui",
@@ -817,6 +837,14 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchSlider",
         ),
         (
+            "assets/ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui",
+            "WorkbenchRangeSlider",
+        ),
+        (
+            "assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui",
+            "WorkbenchSkeleton",
+        ),
+        (
             "assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui",
             "WorkbenchStatusItem",
         ),
@@ -827,6 +855,10 @@ fn imported_zui_components_are_single_component_assets() {
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui",
             "WorkbenchTab",
+        ),
+        (
+            "assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui",
+            "WorkbenchTabStrip",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui",

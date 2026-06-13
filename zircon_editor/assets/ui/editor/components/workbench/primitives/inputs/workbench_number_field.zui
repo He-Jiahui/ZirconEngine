@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui"
+version = 2
+display_name = "Workbench Number Field"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchNumberField]
+root = "root"
+default_classes = ["workbench-number-field", "workbench-primitive"]
+
+[nodes.root]
+component = "NumberField"
+control_id = "WorkbenchNumberFieldRoot"
+classes = ["workbench-field", "workbench-number-field"]
+props = { value = 42.0, value_text = "42", placeholder = "0", min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, precision = 0.0, validation_level = "normal", editable_text = true, layout_stepper = true, layout_padding_left = 8.0, layout_padding_right = 8.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }

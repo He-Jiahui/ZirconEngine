@@ -4,6 +4,7 @@ mod binding;
 mod gpu_scene;
 mod id_allocator;
 mod layout;
+mod prev_transform;
 mod update_queue;
 mod upload;
 
@@ -31,6 +32,7 @@ pub(crate) use layout::{
     GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM, GPU_PRIMITIVE_FLAG_VISIBLE,
     GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
+pub(crate) use prev_transform::GpuScenePrevTransformRollReport;
 pub(crate) use update_queue::{
     GpuSceneDirtyRange, GpuSceneUpdateQueue, GpuSceneUploadRange, GPU_SCENE_DIRTY_RANGE_MERGE_GAP,
 };

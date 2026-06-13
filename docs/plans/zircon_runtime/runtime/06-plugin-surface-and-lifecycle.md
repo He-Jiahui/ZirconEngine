@@ -10,13 +10,14 @@ related_code:
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - docs/engine-architecture/native-plugin-boundary.md
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_boundary.py
   - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
   - dev/Fyrox/fyrox-impl/src/plugin/dylib.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: in_progress
-last_refined: 2026-06-12
+last_refined: 2026-06-14
 ---
 
 # 06 插件公开面与生命周期收束
@@ -27,8 +28,12 @@ last_refined: 2026-06-12
 - **ABI 三代并存**：版本常量当前版 `ZIRCON_NATIVE_PLUGIN_ABI_VERSION = 3`；V1/V2 在仓内的真实使用者**仅 1 个文件**——`zircon_plugins/native_dynamic_fixture/native/src/lib.rs`（测试夹具，自带本地常量副本 :7-10，并实现 `SyncDescriptorV1/V2` :285-286 以覆测三代协商）；`plugin/export_build_plan/` 生成的宿主文件**不引用**任何版本符号（grep `DESCRIPTOR_SYMBOL_V\d|ABI_VERSION_V\d` 0 命中）。淘汰决策的真实迁移面比旧文预估小得多。
 - **ZrVM 空指针现场（精确定位）**：`script/vm/backend/zr_vm_project_backend/real_backend/instance.rs`——`fn call_entry_lifecycle_export(&mut self, export_name: &str, arguments: &[zrvm::Value])`（:58-65）委托 `call_optional_export`（:50-56 经 `call_module_export`）；`activate()`（:73-94）以 `call_entry_lifecycle_export("activate", &[])` 传**空 slice**，deactivate（:98）/saveState（:104）同口径——空 slice 在 sys 边界成为非法指针，触发 `zr_vm_core.dll function.c:1394` 断言（`.codex/sessions/20260611-0416` 根因记录）。修复点在 `call_module_export` 到 `zr_vm_rust_binding_sys` 的参数 marshalling 段。
 - **热重载**：`native_plugin_loader/native_plugin_live_host/lifecycle.rs` 的 `pub fn hot_reload_runtime_plugin(`（:32）/`pub fn hot_reload_editor_plugin(`（:40）+ `NativePluginHotReloadState` 回滚（状态字段执行时核验：Grep `NativePluginHotReloadState`，path 同目录）。
-- **下游调用面**：`zircon_app/src` 引用 `NativePlugin*` 共 6 文件（实测全列）：`lib.rs`、`prelude.rs`、`entry/mod.rs`、`entry/entry_runner/mod.rs`、`entry/entry_runner/bootstrap.rs`、`entry/tests/profile_bootstrap.rs`——M2 收窄的迁移面。
+- **下游调用面**：`zircon_app/src` 引用 `NativePlugin*` 当前共 7 文件（2026-06-14 实测全列；app NativePlugin current call-site files: 7）：`lib.rs`、`prelude.rs`、`entry/mod.rs`、`entry/export_bootstrap.rs`、`entry/entry_runner/mod.rs`、`entry/entry_runner/bootstrap.rs`、`entry/tests/profile_bootstrap.rs`——M2 收窄的迁移面；`entry/export_bootstrap.rs` 是 Runtime 02 generated/export 收束后的新增调用面，不改变 M2 硬切换要求。
 - Fyrox 锚点（每点一行）：`Plugin`（静态）/`DynamicPlugin`（dylib）双 trait + `PluginContainer` — `dev/Fyrox/fyrox-impl/src/plugin/mod.rs`；热重载"序列化状态→unload→重载→恢复" — `dev/Fyrox/fyrox-impl/src/plugin/dylib.rs`。
+
+补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
+
+- Godot GDExtension：C ABI 入口装载与符号协商的成熟实现（M2 收窄 facade、M3 版本协商失败路径对照）— `dev/godot/core/extension/gdextension_function_loader.{h,cpp}`、`gdextension.{h,cpp}`
 
 ## 目标
 
@@ -166,6 +171,9 @@ last_refined: 2026-06-12
 | M2 | 2.2 测试/文档迁移 | 待开始 | — | — |
 | M3 | 3.1 V1/V2 处置 | 待开始 | — | — |
 | M3 | 3.2 回滚失败注入 | 待开始 | — | — |
+| 横切 | Cargo/plugin pending gate | code_static_pending_cargo | 2026-06-13 | 新增 `runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation`，保持 Runtime 06 在 `script::vm/vampire_project_session/plugin/native_plugin/app/plugins` 验证线通过前为 `in_progress`：M1 空参数修复只记录 binding 与 session 静态/局部证据，真实后端 `vampire_project_session`、runtime fallback、plugin/native plugin、app 与 `zircon_plugins` workspace Cargo 仍待 clean lane 重跑；M2/M3 native 收口、测试/文档迁移、V1/V2 处置、回滚失败注入仍为待开始；M0 评审同步引用 `native_plugin_public_surface` 与 `root_reexport_count = 68`，以固定当前 public-surface debt 证据名。 |
+| 横切 | plugin surface/lifecycle 结构镜像 | structure_audit_static_passed_cargo_pending | 2026-06-14 | 新增 `plugin_surface_lifecycle_boundary` 并接入总审计；镜像 Runtime 06 source 9/9、doc 5/5、frontmatter `in_progress`、`last_refined = 2026-06-14`、`native_plugin_public_surface.m4_gate_status = migration-debt-present`、`root_reexport_count = 68`、public native re-export location 1、debt groups 5、unclassified root re-export symbols 0、native loader V1/V2 implementation files 6、`zircon_plugins` V1/V2 usage files 1（仅 `native_dynamic_fixture`）、export_build_plan V1/V2 usage 0、app NativePlugin current call-site files: 7；本切片只做静态镜像和计划同步，不改 plugin/native/script 生产代码，Cargo 仍等待 active lanes 清空后按本计划验证线重跑。 |
+| 横切 | plugin surface/lifecycle 静态验证 | static_validation_passed_cargo_blocked | 2026-06-14 | `python -m py_compile` 覆盖 `native_plugin_public_surface.py`、`plugin_surface_lifecycle_boundary.py` 与总审计脚本通过；直接运行 `plugin_surface_lifecycle_boundary_audit` 报告 `risks = []`；聚合 `audit_runtime_structure.py --json` 中 Runtime 06 镜像断言通过，`native_plugin_public_surface` 当前按设计保留迁移债风险且 root count/debt/unclassified 断言为 68/5/0；Markdown 输出含 Runtime 06 边界、`native-bridge-method-public-debt` 与 7 个 app NativePlugin 文件；`rustfmt --edition 2021 --check` 覆盖 plan-status early/recent guards 通过；冲突标记、尾随空白、`git diff --check` 通过（文档 LF→CRLF 警告 only）；Cargo/rustc 通道仍被其他 `cargo check -p zircon_runtime --lib --no-default...` lane 占用，因此未声明 Runtime 06 Cargo 通过。 |
 
 基线数值（开工首日记录）：
 

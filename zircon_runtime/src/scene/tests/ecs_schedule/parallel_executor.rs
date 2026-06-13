@@ -217,6 +217,53 @@ fn parallel_and_serial_execution_reach_identical_world_state() {
 }
 
 #[test]
+fn executor_batches_are_chained_through_job_dependencies() {
+    let batches = representative_parallel_batches();
+    let observed = Arc::new(Mutex::new(Vec::new()));
+    let mut registry = ScheduleParallelTaskRegistry::<&'static str>::new();
+    for system_id in [
+        "read.health",
+        "read.counter",
+        "write.health",
+        "write.counter",
+        "post.extract.a",
+        "post.extract.b",
+    ] {
+        let observed = observed.clone();
+        registry.register(system_id, move || {
+            let mut observed = observed.lock().unwrap();
+            if system_id.starts_with("write.") {
+                let read_batch_complete =
+                    observed.contains(&"read.health") && observed.contains(&"read.counter");
+                if !read_batch_complete {
+                    return Err("write.started.before.read.batch.completed");
+                }
+            }
+            if system_id.starts_with("post.") {
+                let write_batch_complete =
+                    observed.contains(&"write.health") && observed.contains(&"write.counter");
+                if !write_batch_complete {
+                    return Err("post.started.before.write.batch.completed");
+                }
+            }
+            observed.push(system_id);
+            Ok(())
+        });
+    }
+    let executor = ScheduleParallelExecutor::new(JobScheduler::default());
+
+    let report = executor
+        .run_batches_with_report(&batches, &registry)
+        .unwrap();
+
+    let scheduler_report = executor.scheduler().diagnostic_report();
+    assert_eq!(report.parallel_batches(), 3);
+    assert_eq!(scheduler_report.scheduled, batches.len() as u64);
+    assert_eq!(scheduler_report.completed, batches.len() as u64);
+    assert_eq!(observed.lock().unwrap().len(), 6);
+}
+
+#[test]
 fn schedule_parallel_executor_reports_missing_tasks_before_running_batch() {
     let graph = ScheduleConflictGraph::from_nodes([ScheduleConflictNode::new(
         "missing.task",

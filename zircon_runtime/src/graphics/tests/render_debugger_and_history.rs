@@ -360,9 +360,12 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
         .directional_lights
         .push(RenderDirectionalLightSnapshot {
             node_id: 71,
+            light_id: 71,
+            layer_mask: default_render_layer_mask(),
             direction: Vec3::new(0.0, -1.0, 0.0),
             color: Vec3::ONE,
             intensity: 3.0,
+            shadow: None,
         });
     assert!(!history.is_compatible(
         viewport_size,

@@ -2,18 +2,17 @@ pub(in crate::asset::pipeline::manager) fn builtin_pbr_wgsl() -> &'static str {
     concat!(
         include_str!("../../../../graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
         "\n",
+        include_str!(
+            "../../../../graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"
+        ),
+        "\n",
+        include_str!("../../../../graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+        "\n",
         r#"
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
-    light_dir: vec4<f32>,
-    light_color: vec4<f32>,
     ambient_color: vec4<f32>,
-};
-
-struct ShadowReceiverUniform {
-    light_view_proj: mat4x4<f32>,
-    params: vec4<f32>,
 };
 
 struct MaterialPropertyUniform {
@@ -31,9 +30,6 @@ struct MaterialPropertyUniform {
 @group(2) @binding(0) var color_texture: texture_2d<f32>;
 @group(2) @binding(1) var color_sampler: sampler;
 @group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
-@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;
-@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;
-@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -52,6 +48,14 @@ struct VertexOutput {
 
 const EPSILON: f32 = 0.000001;
 
+fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
+    let value_length = length(value);
+    if (value_length <= EPSILON) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+    return value / value_length;
+}
+
 @vertex
 fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> VertexOutput {
     var out: VertexOutput;
@@ -66,67 +70,70 @@ fn vs_main(input: VertexInput, @builtin(instance_index) instance_index: u32) -> 
     return out;
 }
 
-fn world_to_shadow_coord(world_position: vec3<f32>) -> vec4<f32> {
-    let light_clip = shadow_receiver.light_view_proj * vec4<f32>(world_position, 1.0);
-    if (abs(light_clip.w) <= EPSILON) {
-        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: vec3<f32>, shadow_params: vec4<f32>, view_z: f32) -> vec3<f32> {
+    if (light_index >= zr_gpu_scene_light_count()) {
+        return vec3<f32>(0.0, 0.0, 0.0);
     }
 
-    let light_ndc = light_clip.xyz / light_clip.w;
-    if (any(light_ndc.xy < vec2<f32>(-1.0, -1.0)) || light_ndc.z < 0.0 || any(light_ndc > vec3<f32>(1.0, 1.0, 1.0))) {
-        return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    let light = zr_gpu_light(light_index);
+    let light_type = zr_gpu_light_type(light);
+    let radiance = max(light.color_intensity.rgb, vec3<f32>(0.0, 0.0, 0.0)) * max(light.color_intensity.w, 0.0);
+    if (length(radiance) <= EPSILON) {
+        return vec3<f32>(0.0, 0.0, 0.0);
     }
 
-    let shadow_uv = light_ndc.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
-    return vec4<f32>(shadow_uv, light_ndc.z, 1.0);
+    if (light_type == ZR_GPU_LIGHT_TYPE_DIRECTIONAL) {
+        let light_vector = normalize_or_zero(-light.direction_type.xyz);
+        var direct_visibility = 1.0;
+        if (shadow_params.z > 0.5) {
+            direct_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
+        }
+        return radiance * max(dot(normal, light_vector), 0.0) * direct_visibility;
+    }
+
+    let to_light = light.position_range.xyz - world_position;
+    let distance_to_light = length(to_light);
+    let range = max(light.position_range.w, EPSILON);
+    if (distance_to_light >= range) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+    let light_vector = to_light / max(distance_to_light, EPSILON);
+    let attenuation = pow(clamp(1.0 - distance_to_light / range, 0.0, 1.0), 2.0);
+    var shadow_visibility = 1.0;
+    if (shadow_params.z > 0.5) {
+        shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
+    }
+    return radiance * max(dot(normal, light_vector), 0.0) * attenuation * shadow_visibility;
 }
 
-fn sample_shadow_visibility(shadow_uv: vec2<f32>, receiver_depth: f32, offset: vec2<i32>) -> f32 {
-    let shadow_size = max(textureDimensions(shadow_map_tex), vec2<u32>(1u, 1u));
-    let shadow_texel = vec2<f32>(1.0, 1.0) / vec2<f32>(shadow_size);
-    let sample_uv = clamp(shadow_uv + vec2<f32>(offset) * shadow_texel, vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 1.0));
-    return textureSampleCompare(shadow_map_tex, shadow_compare_sampler, sample_uv, receiver_depth);
-}
-
-fn shadow_visibility(world_position: vec3<f32>, shadow_params: vec4<f32>) -> f32 {
-    if (shadow_receiver.params.x <= 0.5) {
-        return 1.0;
-    }
-    if (shadow_params.z <= 0.5) {
-        return 1.0;
+fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, shadow_params: vec4<f32>) -> vec3<f32> {
+    let view_z = zr_light_view_z(world_position, zr_light_grid_params);
+    let bin = zr_light_zbin_index(view_z, zr_light_grid_params);
+    let header = zr_light_zbin_header(bin, zr_light_grid_params);
+    if (header.x == 0xFFFFu || header.x > header.y) {
+        return vec3<f32>(0.0, 0.0, 0.0);
     }
 
-    let shadow_coord = world_to_shadow_coord(world_position);
-    if (shadow_coord.w <= 0.0) {
-        return 1.0;
+    let tile_base = zr_light_tile_base(frag_coord, zr_light_grid_params);
+    var lighting = vec3<f32>(0.0, 0.0, 0.0);
+    for (var word = header.x / 32u; word <= header.y / 32u; word = word + 1u) {
+        var mask = zr_light_mask_word(tile_base, bin, word, zr_light_grid_params);
+        while (mask != 0u) {
+            let bit_index = firstTrailingBit(mask);
+            let light_index = word * 32u + bit_index;
+            lighting = lighting + shade_gpu_light_index(light_index, world_position, normal, shadow_params, view_z);
+            mask = mask & (mask - 1u);
+        }
     }
-
-    let receiver_depth = clamp(shadow_coord.z - shadow_receiver.params.y, 0.0, 1.0);
-    let offsets = array<vec2<i32>, 9>(
-        vec2<i32>(-1, -1),
-        vec2<i32>(0, -1),
-        vec2<i32>(1, -1),
-        vec2<i32>(-1, 0),
-        vec2<i32>(0, 0),
-        vec2<i32>(1, 0),
-        vec2<i32>(-1, 1),
-        vec2<i32>(0, 1),
-        vec2<i32>(1, 1),
-    );
-    var lit = 0.0;
-    for (var i = 0u; i < 9u; i = i + 1u) {
-        lit = lit + sample_shadow_visibility(shadow_coord.xy, receiver_depth, offsets[i]);
-    }
-
-    return mix(clamp(shadow_receiver.params.z, 0.0, 1.0), 1.0, lit / 9.0);
+    return lighting;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let albedo = textureSample(color_texture, color_sampler, input.uv) * input.tint;
-    let ndotl = max(dot(normalize(input.world_normal), normalize(-scene.light_dir.xyz)), 0.0);
-    let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);
-    let lighting = scene.ambient_color.rgb + scene.light_color.rgb * ndotl * direct_visibility;
+    let normal = normalize_or_zero(input.world_normal);
+    let lighting = scene.ambient_color.rgb + gpu_light_lighting(input.position.xy, input.world_position, normal, input.shadow_params);
+
     return vec4<f32>(albedo.rgb * lighting, albedo.a);
 }
 "#
@@ -143,33 +150,61 @@ mod tests {
 
         let view_proj = shader.find("view_proj: mat4x4<f32>").unwrap();
         let inverse_view_proj = shader.find("inverse_view_proj: mat4x4<f32>").unwrap();
-        let light_dir = shader.find("light_dir: vec4<f32>").unwrap();
-        let light_color = shader.find("light_color: vec4<f32>").unwrap();
         let ambient_color = shader.find("ambient_color: vec4<f32>").unwrap();
 
         assert!(view_proj < inverse_view_proj);
-        assert!(inverse_view_proj < light_dir);
-        assert!(light_dir < light_color);
-        assert!(light_color < ambient_color);
+        assert!(inverse_view_proj < ambient_color);
+        assert!(!shader.contains("light_dir: vec4<f32>"));
+        assert!(!shader.contains("light_color: vec4<f32>"));
     }
 
     #[test]
-    fn builtin_pbr_shader_receives_forward_shadow_map_resources() {
+    fn builtin_pbr_shader_receives_shadow_atlas_resources() {
         let shader = builtin_pbr_wgsl();
 
-        assert!(shader.contains("@group(1) @binding(0) var shadow_map_tex: texture_depth_2d;"));
-        assert!(shader.contains(
-            "@group(1) @binding(1) var<uniform> shadow_receiver: ShadowReceiverUniform;"
-        ));
-        assert!(shader
-            .contains("@group(1) @binding(2) var shadow_compare_sampler: sampler_comparison;"));
-        assert!(shader.contains("textureSampleCompare"));
-        assert!(shader.contains("if (shadow_params.z <= 0.5)"));
-        assert!(shader.contains(
-            "let direct_visibility = shadow_visibility(input.world_position, input.shadow_params);"
-        ));
-        assert!(shader.contains(
-            "let lighting = scene.ambient_color.rgb + scene.light_color.rgb * ndotl * direct_visibility;"
-        ));
+        for expected in [
+            "@group(1) @binding(8) var zr_shadow_atlas: texture_depth_2d;",
+            "@group(1) @binding(9) var zr_shadow_sampler: sampler_comparison;",
+            "@group(1) @binding(10) var<storage, read> zr_shadow_slots",
+            "@group(1) @binding(11) var<uniform> zr_shadow_globals",
+            "fn zr_gpu_light_shadow_visibility",
+            "fn zr_sample_shadow_slot",
+            "fn zr_shadow_slot_pcf_quality",
+            "ZR_SHADOW_PCF_QUALITY_MEDIUM",
+            "zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)",
+        ] {
+            assert!(
+                shader.contains(expected),
+                "builtin PBR shader should expose shadow atlas resource `{expected}`"
+            );
+        }
+        assert!(shader.contains("fn shade_gpu_light_index"));
+        assert!(shader.contains("let light = zr_gpu_light(light_index);"));
+        assert!(shader.contains("zr_gpu_light_casts_shadow(light)"));
+        assert!(!shader.contains("ShadowReceiverUniform"));
+        assert!(!shader.contains("shadow_map_tex"));
+        assert!(!shader.contains("shadow_compare_sampler"));
+        assert!(!shader.contains("sample_shadow_visibility"));
+        assert!(!shader.contains("world_to_shadow_coord"));
+    }
+
+    #[test]
+    fn builtin_pbr_shader_receives_light_grid_resources() {
+        let shader = builtin_pbr_wgsl();
+
+        for expected in [
+            "@group(1) @binding(20) var<uniform> zr_light_grid_params",
+            "@group(1) @binding(21) var<storage, read> zr_light_zbins",
+            "@group(1) @binding(22) var<storage, read> zr_light_tile_masks",
+            "zr_light_mask_word(tile_base, bin, word, zr_light_grid_params)",
+            "firstTrailingBit(mask)",
+            "gpu_light_lighting(input.position.xy",
+        ] {
+            assert!(
+                shader.contains(expected),
+                "builtin PBR shader should use `{expected}` for light-grid lighting"
+            );
+        }
+        assert!(!shader.contains("for (var i = 0u; i < light_count; i = i + 1u)"));
     }
 }

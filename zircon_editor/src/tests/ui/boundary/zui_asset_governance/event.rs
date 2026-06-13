@@ -38,6 +38,25 @@ fn leading_route_segment(route: &str) -> &str {
     route.split('.').next().unwrap_or_default()
 }
 
+fn owned_route_namespace_for_id_namespace(namespace: &str) -> &str {
+    match namespace {
+        "ButtonGroup" | "MaterialLab" => "material_lab",
+        "ComponentLab" | "UiComponentShowcase" => "component_lab",
+        "DockCommand"
+        | "Hierarchy"
+        | "Inspector"
+        | "MenuAction"
+        | "PanelTab"
+        | "Run"
+        | "Tool"
+        | "Workbench"
+        | "WorkbenchExtension"
+        | "WorkbenchGeneratedBottom"
+        | "WorkbenchModule" => "workbench",
+        namespace => namespace,
+    }
+}
+
 #[test]
 fn production_zui_event_bindings_are_authorable_and_unique() {
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
@@ -242,13 +261,16 @@ fn production_zui_event_binding_routes_share_id_namespaces() {
 
                     let id_namespace = leading_path_segment(&binding.id);
                     let route_namespace = leading_route_segment(route);
-                    if id_namespace != route_namespace {
+                    let expected_route_namespace =
+                        owned_route_namespace_for_id_namespace(id_namespace);
+                    if expected_route_namespace != route_namespace {
                         offenders.push(format!(
-                            "{} node `{}` event binding #{} uses id namespace `{}` but route namespace `{}` in id `{}` route `{}`",
+                            "{} node `{}` event binding #{} uses id namespace `{}` owned by route namespace `{}` but route namespace `{}` in id `{}` route `{}`",
                             path.display(),
                             node_id,
                             binding_index + 1,
                             id_namespace,
+                            expected_route_namespace,
                             route_namespace,
                             binding.id,
                             route
@@ -269,7 +291,7 @@ fn production_zui_event_binding_routes_share_id_namespaces() {
     );
     assert!(
         offenders.is_empty(),
-        "production .zui event binding ids and legacy routes must share their leading authoring namespace so route tables, replay traces, and future action targets group the same interaction consistently: {offenders:#?}"
+        "production .zui event binding ids and legacy routes must share a governed authoring namespace owner so route tables, replay traces, and future action targets group the same interaction consistently: {offenders:#?}"
     );
 }
 

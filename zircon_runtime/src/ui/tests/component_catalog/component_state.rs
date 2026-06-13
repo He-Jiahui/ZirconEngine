@@ -6,8 +6,12 @@ use zircon_runtime_interface::ui::component::UiComponentEventError;
 use super::*;
 
 mod button;
+mod keyboard;
+mod keyboard_menu;
 mod overlay;
 mod selection;
+mod slider;
+mod text_input_validation;
 mod value_validation;
 mod windowing;
 
@@ -904,4 +908,52 @@ fn component_state_applies_numeric_state_step_large_step_and_clamp_settings() {
         )
         .unwrap();
     assert_eq!(state.value("value"), Some(&UiValue::Float(10.0)));
+}
+
+#[test]
+fn component_state_clamps_range_slider_thumbs_against_each_other() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let range_slider = registry.descriptor("RangeSlider").unwrap();
+    assert_has_event(range_slider, UiComponentEventKind::LargeDragDelta);
+
+    let mut state = UiComponentState::new()
+        .with_value("range_min", UiValue::Float(30.0))
+        .with_value("value", UiValue::Float(70.0))
+        .with_value("min", UiValue::Float(0.0))
+        .with_value("max", UiValue::Float(100.0))
+        .with_value("step", UiValue::Float(5.0))
+        .with_value("large_step", UiValue::Float(20.0));
+
+    state
+        .apply_event(
+            range_slider,
+            UiComponentEvent::DragDelta {
+                property: "range_min".to_string(),
+                delta: 20.0,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.value("range_min"), Some(&UiValue::Float(70.0)));
+
+    state
+        .apply_event(
+            range_slider,
+            UiComponentEvent::LargeDragDelta {
+                property: "value".to_string(),
+                delta: -4.0,
+            },
+        )
+        .unwrap();
+    assert_eq!(state.value("value"), Some(&UiValue::Float(70.0)));
+
+    state
+        .apply_event(
+            range_slider,
+            UiComponentEvent::Commit {
+                property: "range_min".to_string(),
+                value: UiValue::Float(120.0),
+            },
+        )
+        .unwrap();
+    assert_eq!(state.value("range_min"), Some(&UiValue::Float(70.0)));
 }

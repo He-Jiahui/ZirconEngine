@@ -75,6 +75,7 @@ impl EditorState {
             project_open: self.project_open,
             can_undo: self.history.can_undo(),
             can_redo: self.history.can_redo(),
+            bridge_diagnostics: self.bridge_diagnostics.clone(),
         }
     }
 }

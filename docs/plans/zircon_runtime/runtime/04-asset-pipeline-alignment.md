@@ -1,15 +1,23 @@
 ---
 related_code:
   - zircon_runtime/src/asset/facade/handle.rs
+  - zircon_runtime/src/asset/facade/assets.rs
   - zircon_runtime/src/asset/facade/load_state.rs
+  - zircon_runtime/src/asset/facade/manager.rs
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
+  - zircon_runtime/src/asset/artifact/cache_payload.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/importer
   - zircon_runtime/src/asset/management.rs
   - zircon_runtime/src/core/resource
+  - zircon_runtime_interface/src/resource/resource_record.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - dev/bevy/crates/bevy_asset/src
   - dev/Fyrox/fyrox-resource/src
 plan_sources:
@@ -17,7 +25,7 @@ plan_sources:
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 status: in_progress
-last_refined: 2026-06-12
+last_refined: 2026-06-13
 ---
 
 # 04 资产管线对齐
@@ -29,10 +37,15 @@ last_refined: 2026-06-12
 - **句柄已强类型（矫正，但语义有缺口）**：`asset/facade/handle.rs:12-52` 的 `Handle<TAsset: Asset>` 是 `Copy` 的类型化 ID 包装（内含 `ResourceId` + `PhantomData`，经 `TAsset::Marker` 携带 `ResourceKind`，可降级 `UntypedResourceHandle`）。**与 `bevy_asset/handle.rs` 的关键差异：无引用计数、无 strong/weak 之分**——句柄不管资产存活，存活由 `core::resource` 的记录与显式卸载管理。这是"裁决保留差异还是列债"的核心条目，不是"句柄是否强类型"。
 - **加载状态已显式（矫正）**：`asset/facade/load_state.rs` 已有 `AssetLoadState { NotLoaded, Loading, Loaded, Failed, Reloading }`（:7-13）+ `DependencyLoadState`（:69）+ `RecursiveDependencyLoadState`（:97）三级，Bevy 同形。状态是投影而非存储：`AssetLoadState::from_resource(record, runtime_state, has_payload)`（:32-64）从 `core::resource::{ResourceState（Pending/Ready/Error/Reloading）, RuntimeResourceState}` 映射——**真正的状态机在 `core/resource` 层**，转移合法性测试应打在那里。
 - **事件族已成型（矫正）**：`asset/facade/event.rs` 已有 `AssetEventKind { Added, Modified, Removed, Renamed, ReloadFailed }`（:42-48）与带 `revision: u64` 的类型化 `AssetEvent<TAsset>`（:52-）；`AssetEventReceiver` 自带 shutdown 通道（:14-17），由 `core::resource::ResourceEvent` 桥接。失败事件（ReloadFailed）已存在。
-- **worker pool 真实缺口确认**：`asset/pipeline/worker_pool.rs:11-73`——`AssetWorkerPool::new(worker_count)`（调用方注入线程数，`.max(1)`），request/completion 均 `crossbeam_channel::unbounded`（:20-21，**无背压**），`request()` 直发**无去重**；失败传播已有（`CpuAssetPayload::Failure { request, message }` :79-89）；Drop 关闭发送端并 join（:65-73）。线程命名 `zircon-asset-{i}`。
+- **worker pool 原始缺口基线（已由 M2/M11-M2.4 收束）**：2026-06-12 初始核验时 `asset/pipeline/worker_pool.rs:11-73` 仍为 `AssetWorkerPool::new(worker_count)`（调用方注入线程数，`.max(1)`），request/completion 均 `crossbeam_channel::unbounded`（:20-21，**无背压**），`request()` 直发**无去重**；失败传播已有（`CpuAssetPayload::Failure { request, message }` :79-89）；Drop 关闭发送端并 join（:65-73）。当前状态以本文件“状态与产出记录”M2.1-M2.3、Runtime 11 M2.4 与 `docs/zircon_runtime/asset/worker_pool.md` 为准。
 - **watcher 去抖已存在（矫正）**：`asset/watch/watch_loop.rs:11` `const WATCH_DEBOUNCE: Duration = Duration::from_millis(120)`。缺的是去抖行为测试（保存风暴 N 写 1 reload）与监视失败路径（目录删除、权限）测试。
 - 参考锚点（每点一行）：`bevy_asset` 分层 loader/handle/server/processor/meta — `dev/bevy/crates/bevy_asset/src/{loader.rs,handle.rs,server/,processor/,meta.rs}`；Fyrox 状态机/事件 — `dev/Fyrox/fyrox-resource/src/{manager.rs,loader.rs,state.rs,event.rs}`。
 - 既有计划承接：格式与 meta 层归 `.codex/plans/Bevy-Style Asset Stack Completion Plan.md` 与 `.zmeta` 计划；本计划只做架构对齐与缺口收束，不重复其条目。
+
+补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
+
+- Godot 线程化资源加载（请求去重/进度查询/缓存模式，M2 去重与背压的第二实现对照）— `dev/godot/core/io/resource_loader.{h,cpp}`；import→artifact 边界 — `resource_importer.{h,cpp}`；稳定资源 ID — `resource_uid.{h,cpp}`
+- Piccolo 轻量资产管理（单引擎全栈最小参照）— `dev/Piccolo/engine/source/runtime/resource`
 
 ## 目标
 
@@ -56,7 +69,7 @@ last_refined: 2026-06-12
 1. 活动会话对齐：`asset/**` 在 `20260604-1232` 会话 touched_modules 内（importer registry、serialization_guard 等）；开工前重读该会话最新状态。
 2. worktree 脏文件检查：`git status --porcelain -- zircon_runtime/src/asset/ zircon_runtime/src/core/resource/`。
 3. 事实重核：
-   - `grep -n "unbounded\|bounded" zircon_runtime/src/asset/pipeline/worker_pool.rs`（核"无背压"仍成立）
+   - `grep -n "unbounded\|bounded" zircon_runtime/src/asset/pipeline/worker_pool.rs`（记录当前有界/无界队列形态；原始"无背压"假设已由 M2.1 收束）
    - `grep -n "WATCH_DEBOUNCE" zircon_runtime/src/asset/watch/watch_loop.rs`
    - `grep -n "pub enum" zircon_runtime/src/asset/facade/load_state.rs zircon_runtime/src/asset/facade/event.rs`
    - `AssetWorkerPool::new` 调用方：已核验 2 处（construction.rs:42 生产、tests/pipeline/worker_pool.rs:6 测试），开工时确认无新增
@@ -72,18 +85,18 @@ last_refined: 2026-06-12
 - 目标文件：`docs/zircon_runtime/asset/facade.md`（已存在，扩展架构节；执行时核验：`ls docs/zircon_runtime/asset/`）。
 - 改动形态：纯文档。按 bevy_asset 五件 + fyrox state/event 逐项对照，已核实行预填：
 
-  | bevy/fyrox 锚点 | 本仓对应物 | 已知语义差异 | 裁决（执行时定稿） |
+  | bevy/fyrox 锚点 | 本仓对应物 | 已知语义差异 | Runtime 04 裁决 |
   |---|---|---|---|
-  | `handle.rs`（Arc 强弱句柄） | `asset/facade/handle.rs` `Handle<TAsset>` | 无引用计数/strong-weak；Copy ID 包装 | 待裁决（M1 核心） |
-  | `server/`（加载入口与状态查询） | `asset/facade/` + `pipeline/manager/service_contracts/asset_manager_contract.rs` | 命名为 manager/facade（server 命名禁用） | 待补查询面盘点 |
-  | `loader.rs` | `asset/importer/` + `asset/load/{mesh,texture}` | — | 待对照 |
-  | `processor/`（import→artifact 缓存） | `asset/importer/ingest/` + artifact store（`asset/tests/assets/artifact_store.rs` 旁证） | 边界未声明 | 待对照，结论回写 `.zmeta` 计划 |
+  | `handle.rs`（Arc 强弱句柄） | `asset/facade/handle.rs` `Handle<TAsset>` + `core::resource::ResourceHandle` | 无引用计数/strong-weak；Copy ID 包装，payload 驻留由 `ResourceLease<T>` 与 resource record 控制 | 保留当前差异；M1.1 锁定悬空 handle 查询返回 `NotLoaded`，不得 panic 或暗示驻留所有权 |
+  | `server/`（加载入口与状态查询） | `asset/facade/` + `pipeline/manager/service_contracts/asset_manager_contract.rs` | 命名为 manager/facade（server 命名禁用）；查询面已分布在 `ProjectAssetManager`、`Assets<TAsset>` 与 `AssetManager` service trait | 保留 manager/facade/service 查询面，不引入 asset server 词汇；`runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free` 锁定当前盘点 |
+  | `loader.rs` | `asset/importer/` + format-specific `asset/load/*` helpers | importer 选择、诊断-only backend 与原始 decode helper 分离；部分 loader 产出多 entry 或诊断记录 | 保留 importer/load split；具体格式解析继续由 importer/load owner 负责，Runtime 04 只收紧 facade/state/worker/watcher 行为 |
+  | `processor/`（import→artifact 缓存） | `asset/importer/ingest/` + `asset/artifact` + `asset/project` + `.zmeta` entries | artifact/processor 语义已绑定 `.zmeta` per-entry UUID、dependency locator、package root 与 shader/material assetization | 不重开第二套 processor 设计；Runtime 04 记录边界，schema/processor 演进交给 `.zmeta` 与 shader/material assetization 计划 |
   | `meta.rs` | `.zmeta` 计划地盘 | — | 引用既有计划，不重复 |
   | fyrox `state.rs` | `core/resource` 的 `ResourceState/RuntimeResourceState` + `load_state.rs` 投影 | 状态机在 resource 层、asset 层只读投影 | 保留分层，补转移表测试（M1） |
   | fyrox `event.rs` | `asset/facade/event.rs`（5 类事件 + revision） | 已对齐 | 保留 |
 
 - 调用方迁移：无。
-- 验收：表中每行有"对应物路径 + 语义差异 + 裁决"三列齐备，无"待对照"残留。
+- 验收：表中每行有"对应物路径 + 语义差异 + 裁决"三列齐备，不留下 unresolved 对照占位。
 - DoD：差距表落 `facade.md`，meta/processor 行的裁决已回写 `.zmeta` 计划。
 
 #### M0 测试阶段（milestone-first）
@@ -178,18 +191,27 @@ last_refined: 2026-06-12
 - `cargo test -p zircon_runtime --lib asset:: --locked`
 - 验收证据：去抖测试、失败路径测试；文档刷新完成。
 
+`runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation` 保持 Runtime 04 为 `in_progress`，直到 broader `asset::` / `worker_pool` Cargo filters 在干净编译窗口中补齐真实通过证据；已有 `artifact_store_roundtrips_scene_assets_with` 4/4 与 `watcher` 7/7 只证明 M3 的聚焦修复，不替代 M1/M2 broader gate。
+
+`asset_pipeline_boundary` 结构审计现在作为 Runtime 04 的横切 owner 接入总审计，锁定句柄/状态投影、facade 查询面、resource reload 边界、worker pool 背压/去重/诊断、watcher debounce/error、scene artifact cache wire type 与剩余 Cargo gate。当前静态事实为 source 19/19、guard 10/10、worker diagnostics 5/5、artifact-store scene roundtrip guards 4/4、Runtime 04 guard anchors 21/21、旧 `AssetWorkerPool::new(worker_count)` 源码引用 0、旧 `WATCH_DEBOUNCE` watch-loop 引用 0、`risks = []`。
+
 ## 状态与产出记录
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
 | M0 | 0.1 差距表 | 文档完成；status gate 受既有 asset 脏树限制 | 2026-06-12 | `docs/zircon_runtime/asset/facade.md` 新增 Reference Asset Stack Gap Table；`.codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md` 回写 processor/meta owner 口径；`git status --porcelain -- zircon_runtime/src/asset/ zircon_runtime/src/core/resource/ ...` 显示大量既有 asset 改动，无法证明 M0 纯 docs 工作区 |
+| M0 | 0.1 差距表占位收束守卫 | static_passed_cargo_pending | 2026-06-14 | Runtime 04 计划表已同步 `docs/zircon_runtime/asset/facade.md` 的 handle/loader/processor 最终裁决；`runtime_absorption::asset_surface::runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free` 现在同时拒绝 pending-query、pending-comparison、pending-decision 占位回流。Cargo/rustc 独立验证仍待 active lanes 清空。 |
 | M1 | 1.1 句柄语义裁决 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | 裁决为保留 Zircon `Copy` typed ID handle 差异：payload residency 继续归 `core::resource` 记录与 `ResourceLease<T>`；新增 `zircon_runtime/src/asset/tests/facade/handle_lifecycle.rs::dangling_handle_queries_report_not_loaded_instead_of_panicking`，并从超长 `facade.rs` 以子模块挂接；`rustfmt --edition 2021 --check` 通过；conflict-marker / `git diff --check` 通过 |
 | M1 | 1.2 转移表测试 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | `core::resource` 收紧状态边界：`Error -> Ready` 必须先 `start_reload`，`Ready -> Error` 不能绕过 reload；项目资源同步在失败后成功导入时显式走 `Error -> Reloading -> Ready`；`ResourceRecord::failure_reason()` 复用现有 `ResourceDiagnostic` 作为失败原因来源，`Assets<T>` / `ProjectAssetManager` 暴露 `failure_reason(handle)`；新增/更新测试名：`resource_state_rejects_error_to_ready_without_reloading`、`resource_state_recovers_from_error_only_through_reloading`、`resource_state_rejects_reload_failure_without_reload_boundary`、`asset_load_state_projection_matches_resource_record_matrix`、`failed_asset_exposes_failure_reason_through_facade`；`docs/zircon_runtime/core/resource.md` 与 `docs/zircon_runtime/asset/facade.md` 已同步；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过，Cargo 因活动编译通道暂缓 |
 | M2 | 2.1 背压策略 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | `AssetWorkerPool::new(worker_count)` 硬切为 `AssetWorkerPool::new(AssetWorkerPoolOptions)`；`queue_depth: None` 显式保留无界模式，`Some(n)` 使用 bounded channel；`request(...)` 改为 `try_send(...)`，队列满返回 `ZirconError::ChannelSend("asset request queue full: ...")`；生产装配 `ProjectAssetManager::spawn_worker_pool` 已迁移；新增 `worker_pool_unbounded_mode_is_explicit_opt_in`、`worker_pool_bounded_queue_rejects_overflow_with_explicit_error`；`docs/zircon_runtime/asset/worker_pool.md` 记录 `request_sender()` 旁路暂留，去重/诊断仍归 M2.2/M2.3；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过，Cargo 因活动编译通道暂缓 |
 | M2 | 2.2 请求去重 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | `AssetWorkerPool` 新增 in-flight `HashMap<AssetRequest, usize>` 计数；首个请求入队，重复 key 只增加等待计数，不再入队第二次解码；worker 完成后按等待计数向 completion channel 发送同一 payload 的多份通知；`request_sender()` 暂留为低层旁路并在 `docs/zircon_runtime/asset/worker_pool.md` 标注会绕过 pool-level coalescing；新增 `concurrent_requests_for_same_asset_decode_once_and_notify_all`，用 workerless test harness 证明同 key 只占一个 bounded 队列槽且完成时通知两个等待者；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过，Cargo 因活动编译通道暂缓 |
-| M2 | 2.3 诊断计数 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | `AssetWorkerPoolDiagnostics` 新增 `in_flight`、`completed`、`failed`、`queue_peak` 四计数；`AssetWorkerPool::record_diagnostics(...)` 写入 `asset.worker.in_flight`、`asset.worker.completed`、`asset.worker.failed`、`asset.worker.queue_peak`；`request(...)` 改为先登记 in-flight 再入队，bounded enqueue 失败会回滚登记，避免快 worker 完成早于 in-flight 注册导致悬挂计数；新增/更新 `worker_pool_diagnostics_track_in_flight_and_failure_counts` 与 bounded overflow 诊断断言；`docs/zircon_runtime/asset/worker_pool.md` 与 `docs/zircon_runtime/asset/facade.md` 已同步；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过，Cargo 因活动编译通道暂缓 |
+| M2 | 2.3 诊断计数 | code_complete_static_passed，Cargo 待空闲窗口 | 2026-06-12 | `AssetWorkerPoolDiagnostics` 新增 `in_flight`、`completed`、`failed`、`queue_peak` 四个请求计数；Runtime 11 M2.4 追加 `thread_budget_source` / `budgeted_threads` 预算记账字段；`AssetWorkerPool::record_diagnostics(...)` 写入 `asset.worker.in_flight`、`asset.worker.completed`、`asset.worker.failed`、`asset.worker.queue_peak` 与 `asset.worker.budgeted_threads`；`request(...)` 改为先登记 in-flight 再入队，bounded enqueue 失败会回滚登记，避免快 worker 完成早于 in-flight 注册导致悬挂计数；新增/更新 `worker_pool_diagnostics_track_in_flight_and_failure_counts`、`worker_pool_options_can_derive_threads_from_runtime_io_budget`、`project_asset_manager_default_workers_use_runtime_io_budget_source` 与 bounded overflow 诊断断言；`docs/zircon_runtime/asset/worker_pool.md`、`docs/zircon_runtime/asset/facade.md` 与 `docs/zircon_runtime/core/job_system.md` 已同步；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过，Cargo 因活动编译通道暂缓 |
+| M2 | worker pool 当前状态守卫 | code_static_pending_cargo | 2026-06-13 | 新增 `zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs::asset_worker_pool_matches_runtime_04_and_11_decisions`，以源码/测试/文档/Runtime 04/Runtime 11/总表六点锁定 `AssetWorkerPoolOptions`、bounded 背压、in-flight 去重、worker diagnostics、`TaskPoolIo` 预算来源与 `asset.worker.budgeted_threads`；并防止旧缺口标题复活为当前状态。`rustfmt --edition 2021 --check` 通过；冲突标记、尾随空白与 scoped `git diff --check` 通过（仅 LF/CRLF 提示）；Cargo/rustc 独立测试待 active lanes 清空。 |
 | M3 | 3.1 去抖与失败路径 | code_complete_static_passed，artifact cache 与 watcher 回归已通过 | 2026-06-12 | `AssetWatcherOptions` 与 `ASSET_WATCH_DEFAULT_DEBOUNCE=120ms` 已落地，`watch_loop` 支持测试注入短 debounce；notify `Err(...)` 与 watch-triggered project scan/resource sync 失败转成 `AssetWatchError { assets_root, paths, message }`；`AssetManager::subscribe_asset_watch_errors()` 与项目管理器独立 error 订阅面已落地；新增 `rapid_successive_writes_within_debounce_window_emit_single_reload`、`watcher_failure_on_removed_directory_surfaces_observable_error`；`docs/zircon_runtime/asset/watcher.md` 已新增；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过；`cargo test -p zircon_runtime --lib watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 ...` 第一次 904s 超时，第二次进入测试阶段：4 个低层 watcher 用例通过，3 个既有 manager watcher 用例在 `open_project(...)` 前置路径失败，根因定位为 Scene `.zasset` bincode 读回遇到内部标记/自定义 serde 形状；第一次 artifact focused retry 中 camera/physics cache 用例通过、既有 mesh-reference 用例暴露 `skip_serializing_if` 二进制字段错位；`asset/artifact/cache_payload/scene.rs` 已补 scene mesh/camera/collider/joint cache wire type，`asset/artifact/cache_payload.rs` 降到 938 行，`docs/zircon_runtime/asset/artifact.md` 已记录缓存边界；`cargo test -p zircon_runtime --lib artifact_store_roundtrips_scene_assets_with --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --nocapture` 通过 4/4；`cargo test -p zircon_runtime --lib watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --test-threads=1 --nocapture` 通过 7/7 |
 | M3 | 3.2 重载事件对齐 | code_complete_static_passed，artifact cache 与 watcher 回归已通过 | 2026-06-12 | 不新增 watcher-local 热重载事件通道；`core::resource` 继续负责 `start_reload` / `register_ready` / `fail_reload` 状态机，typed facade 将 `Updated` / `ReloadFailed` 投影为 `AssetEvent::Modified` / `AssetEvent::ReloadFailed`；新增 `asset/tests/facade/hot_reload.rs::{hot_reload_transitions_through_reloading_state_and_emits_modified_event,reload_failure_emits_reload_failed_event_and_lands_failed_state}`；`docs/zircon_runtime/asset/facade.md`、`docs/zircon_runtime/asset/watcher.md` 与 `docs/zircon_runtime/asset/artifact.md` 已同步；`asset/tests/assets/artifact_store.rs` 新增/覆盖 mesh reference、camera target、physics scene cache 与 script binding JSON 回归，`cache_payload/scene.rs` 承担 scene cache wire type；`cargo test -p zircon_runtime --lib artifact_store_roundtrips_scene_assets_with --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --nocapture` 通过 4/4；watcher acceptance 已通过 7/7；`rustfmt --edition 2021 --check`、conflict-marker scan、`git diff --check` 通过 |
+| M4 | 验证门守卫 | cargo_validation_pending_guarded | 2026-06-13 | 新增 `runtime_absorption::plan_status::runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation`，要求 Runtime 04 在 broader `asset::` / `worker_pool` Cargo filters 有真实通过证据前保持 `in_progress`，并锁定 Runtime 04 计划、总索引 P7/子计划行、asset facade / worker docs 与 M0 评审里的句柄语义、状态机、worker pool、watcher/artifact 证据和剩余 Cargo gate。Cargo 待 active lane 清空后运行 broader asset validation。 |
+| 横切 | asset_pipeline_boundary 结构审计 owner | static_passed_cargo_pending | 2026-06-13 | 新增 `.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py` 并接入 `audit_runtime_structure.py`；聚合 JSON/Markdown 均报告 source 19/19、guard 10/10、worker diagnostics 5/5、artifact-store scene roundtrip guards 4/4、Runtime 04 guard anchors 21/21、旧 worker-count 构造引用 0、旧 watch-loop `WATCH_DEBOUNCE` 引用 0、`risks = []`。Cargo/rustc 独立验证仍待 active lanes 清空，Runtime 04 保持 `in_progress`。 |
+| 横切 | facade 查询面盘点守卫 | query_surface_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_absorption::asset_surface::runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free`，锁定加载/状态查询面分布在 `ProjectAssetManager`、typed `Assets<TAsset>` 与 `AssetManager` service trait：`load_state`、`failure_reason`、dependency/readiness state、loaded predicates、typed event subscription、importer capability/current project/status/list/watch-error service queries均保持 manager/facade/service 词汇；拒绝旧 pending-query 文本和 `AssetServer`/`asset_server` 源码回退。未改 asset 生产代码；Cargo/rustc 仍待 active lanes 清空后补跑。 |
 
 基线数值（开工首日记录）：
 

@@ -10,18 +10,16 @@ use super::builtin_postprocess_executors::{
     color_grading_postprocess_executor, depth_of_field_prepare_executor,
     effect_stack_postprocess_executor, final_composite_postprocess_executor,
     fxaa_postprocess_executor, history_resolve_postprocess_executor, hzb_build_executor,
-    motion_vector_camera_executor, motion_vector_clear_executor,
+    hzb_occlusion_cull_executor, motion_vector_camera_executor, motion_vector_clear_executor,
     motion_vector_mesh_object_executor, motion_vector_neighbor_max_executor,
     motion_vector_tile_max_coarse_executor, motion_vector_tile_max_executor, post_stack_executor,
-    screen_space_reflection_depth_pyramid_coarse_executor,
-    screen_space_reflection_depth_pyramid_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
     screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
     screen_space_reflection_specular_occlusion_executor, ssao_executor,
 };
 use super::builtin_scene_executors::{
     deferred_gbuffer_executor, deferred_lighting_executor, depth_prepass_executor, mesh_executor,
-    overlay_gizmo_executor, screen_space_ui_executor, shadow_map_executor, sprite_executor,
+    overlay_gizmo_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
 };
 use super::preview_sky_executor::{
     preview_sky_final_color_executor, preview_sky_scene_color_executor,
@@ -73,7 +71,7 @@ impl RenderPassExecutorRegistry {
         registry.register("deferred.depth-prepass".into(), depth_prepass_executor);
         registry.register("deferred.gbuffer".into(), deferred_gbuffer_executor);
         registry.register("lighting.deferred".into(), deferred_lighting_executor);
-        registry.register("shadow.map".into(), shadow_map_executor);
+        registry.register("shadow.atlas".into(), shadow_atlas_executor);
         registry.register(
             "sky.preview-scene-color".into(),
             preview_sky_scene_color_executor,
@@ -83,11 +81,12 @@ impl RenderPassExecutorRegistry {
             preview_sky_final_color_executor,
         );
         registry.register("ao.ssao-evaluate".into(), ssao_executor);
-        registry.register(
-            "lighting.clustered-cull".into(),
-            clustered_lighting_executor,
-        );
+        registry.register("lighting.light-grid".into(), clustered_lighting_executor);
         registry.register("visibility.hzb-build".into(), hzb_build_executor);
+        registry.register(
+            "visibility.hzb-occlusion-cull".into(),
+            hzb_occlusion_cull_executor,
+        );
         registry.register("post.bloom-extract".into(), bloom_extract_executor);
         registry.register(
             "post.motion-vector-clear".into(),
@@ -116,14 +115,6 @@ impl RenderPassExecutorRegistry {
         registry.register(
             "post.depth-of-field-prepare".into(),
             depth_of_field_prepare_executor,
-        );
-        registry.register(
-            "post.screen-space-reflection-depth-pyramid".into(),
-            screen_space_reflection_depth_pyramid_executor,
-        );
-        registry.register(
-            "post.screen-space-reflection-depth-pyramid-coarse".into(),
-            screen_space_reflection_depth_pyramid_coarse_executor,
         );
         registry.register(
             "post.screen-space-reflection-reflection-pyramid".into(),

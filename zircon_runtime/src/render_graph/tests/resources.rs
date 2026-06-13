@@ -312,7 +312,7 @@ fn graph_preserves_compute_workload_metadata() {
         BufferUsage::STORAGE | BufferUsage::COPY_SRC,
     ));
 
-    let clustered = builder.add_pass("clustered-light-culling", QueueLane::AsyncCompute);
+    let clustered = builder.add_pass("light-grid-build", QueueLane::AsyncCompute);
     builder
         .set_compute_workload(
             clustered,

@@ -56,3 +56,20 @@ pub(super) fn poll_websocket_until(
     }
     panic!("expected WebSocket frame");
 }
+
+pub(super) fn poll_websocket_frames_until_count(
+    net: &DefaultNetManager,
+    connection: NetConnectionId,
+    expected_count: usize,
+) -> Vec<NetWebSocketFrame> {
+    let mut frames = Vec::new();
+    for _ in 0..200 {
+        let remaining = expected_count.saturating_sub(frames.len()).max(1);
+        frames.extend(net.poll_websocket_frames(connection, remaining).unwrap());
+        if frames.len() >= expected_count {
+            return frames;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected {expected_count} WebSocket frame(s), got {frames:?}");
+}

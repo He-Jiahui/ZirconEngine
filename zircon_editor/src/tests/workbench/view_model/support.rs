@@ -98,6 +98,7 @@ pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
             project_open: true,
             can_undo: true,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &layout,
         vec![scene_instance, hierarchy_instance],
@@ -140,6 +141,7 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
             project_open: true,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &WorkbenchLayout {
             active_main_page: MainPageId::new("page:prefab"),
@@ -223,6 +225,7 @@ pub(super) fn sample_floating_window_chrome() -> EditorChromeSnapshot {
             project_open: true,
             can_undo: true,
             can_redo: true,
+            bridge_diagnostics: Default::default(),
         },
         &WorkbenchLayout {
             active_main_page: MainPageId::workbench(),

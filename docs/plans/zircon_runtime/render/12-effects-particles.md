@@ -11,6 +11,15 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/LensFlareDataDrivenPostProcessPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/LensFlareScreenSpacePostProcessPass.cs
   - dev/Graphics/Packages/com.unity.visualeffectgraph
+  - dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs
+  - dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs
+  - dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs
+  - dev/Fyrox/fyrox-impl/src/scene/sprite.rs
+  - dev/Fyrox/fyrox-impl/src/scene/decal.rs
+  - dev/bevy/crates/bevy_pbr/src/decal/forward.rs
+  - dev/bevy/crates/bevy_pbr/src/decal/clustered.rs
+  - dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp
+  - dev/godot/scene/resources/3d/primitive_meshes.cpp
 plan_sources:
   - .codex/plans/ZirconEngine Particles 插件完善计划.md
   - .codex/plans/Rendering 插件选项补齐计划.md
@@ -45,6 +54,22 @@ plan_sources:
 | `dev/Graphics/.../universal/.../LensFlareScreenSpacePostProcessPass.cs` | 屏幕空间 flare(从 bloom 链派生)作为第二种实现档 |
 
 次参考:`dev/bevy/crates/bevy_sprite`(billboard 顶点构造);`dev/Graphics/Packages/com.unity.visualeffectgraph`(GPU VFX 图的属性 buffer 布局,vfx_graph feature 远期)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs` | 粒子系统组件契约(CPU 档) | Rust 引擎完整 CPU 粒子实现:粒子存储、emitter 列表、生命周期更新与 trail-free 的简洁组件面 —— `ParticleSimSource::Cpu` 的母本,重点 |
+| `dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs` | billboard 粒子顶点 ABI | `Vertex`(position/tex_coord/size/rotation/color 的 `#[repr(C)]` Pod)与 `VertexTrait::layout()` 声明 —— `BillboardInstanceData` 逐字段对拍的同类 |
+| `dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs` | 发射器参数面 | `BaseEmitter`(:34,spawn_rate/max_particles/寿命与范围参数)的 Rust 契约与 spawn 逻辑 |
+| `dev/Fyrox/fyrox-impl/src/scene/sprite.rs` | `BillboardRenderer` 独立组件 | 始终面向相机的 billboard 场景节点(:111)字段与 bounds 处理 |
+| `dev/Fyrox/fyrox-impl/src/scene/decal.rs` | `ProjectorExtract` 组件面 | box 投影 decal 节点:`diffuse_texture`/`normal_texture`(:117/:120)+ layer 掩码(:63)的组件契约 |
+| `dev/bevy/crates/bevy_pbr/src/decal/forward.rs` | decal forward(screen-space)回落档 | forward decal 的深度重建 + box clip Rust/wgpu 实现(配 `forward_decal.wgsl`)—— `decals.screen_space_composite` 同型 |
+| `dev/bevy/crates/bevy_pbr/src/decal/clustered.rs` | decal clustered/deferred 档 | clustered decal 的 GPU 数据组织与剔除(配 `clustered.wgsl`)—— 两档 executor 共用投影函数的对照 |
+| `dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp` | GPU 粒子模拟 + trail 数据流 | compute 粒子处理管线(`copy_pipelines`/`SortEffects`)、`trail_bind_pose_buffer`/`ParticlesFrameParams` 的 trail 缓冲组织(非 Rust,但为最完整的 GPU 粒子 + trail 落地;结构定义见同目录 `particles_storage.h`) |
+| `dev/godot/scene/resources/3d/primitive_meshes.cpp` | `RibbonBuilder` 双排展开 | `RibbonTrailMesh::_create_mesh_array`(:2884)/`TubeTrailMesh::_create_mesh_array`(:2508):条带双排顶点 + 索引构造的可读样板 |
+
+`LensFlareAsset`/halo(数据驱动元素链 + 屏幕空间遮挡测试)无 Rust 同类参照,实现时以 URP `LensFlareCommonSRP` 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 
@@ -128,7 +153,7 @@ plan_sources:
 | 路径 | 内容 |
 |------|------|
 | `zircon_plugins/rendering/features/lens_flare/runtime/Cargo.toml` | crate `zircon_plugin_rendering_lens_flare_runtime`(对齐 decals feature crate 形态) |
-| `zircon_plugins/rendering/features/lens_flare/runtime/src/lib.rs` | `FEATURE_ID = "rendering.lens_flare"`、`RuntimePluginFeature` 实现、`render_feature_descriptor()`、executor 注册(对齐 `zircon_plugin_rendering_decals_runtime` 的 `register_runtime_extensions` 三连) |
+| `zircon_plugins/rendering/features/lens_flare/runtime/src/lib.rs` | `FEATURE_ID = "rendering.lens_flare"`、`RuntimePluginFeature` 实现、`render_feature_descriptor()`、executor 注册(对齐 `zircon_plugin_rendering_decals_runtime` 的 `register` 三连) |
 | `zircon_plugins/rendering/features/lens_flare/runtime/src/executors.rs` | `lens_flare.occlusion`(compute)与 `lens_flare.draw`(graphics)两个 pass executor 契约 + 资源 IO 声明 |
 | `zircon_plugins/rendering/features/lens_flare/runtime/src/shaders/lens_flare.wgsl` | 遮挡 compute entry + element 绘制 entry |
 | `zircon_plugins/rendering/features/lens_flare/editor/` | crate `zircon_plugin_rendering_lens_flare_editor`:`LensFlareAsset` 面板与 halo 预设 |

@@ -126,6 +126,7 @@ fn welcome_shell_fixture() -> (
             project_open: false,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &WorkbenchLayout {
             active_main_page: MainPageId::new("page:welcome"),

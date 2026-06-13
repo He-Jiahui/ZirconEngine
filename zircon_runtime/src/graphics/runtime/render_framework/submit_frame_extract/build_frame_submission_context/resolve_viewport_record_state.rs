@@ -23,6 +23,7 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         quality_profile,
         previous_visibility,
+        previous_static_index,
         previous_motion_vector_camera,
         previous_motion_vector_object_history,
         compile_options,
@@ -71,6 +72,7 @@ pub(super) fn resolve_viewport_record_state(
             record.generation(),
             record.quality_profile().map(|profile| profile.name.clone()),
             record.history().map(|history| history.visibility().clone()),
+            record.visibility_static_index().cloned(),
             record.motion_vector_camera().cloned(),
             record.motion_vector_object_history().cloned(),
             compile_options_for_profile(
@@ -96,6 +98,7 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         quality_profile,
         previous_visibility,
+        previous_static_index,
         previous_motion_vector_camera,
         previous_motion_vector_object_history,
         pipeline_asset,

@@ -1,6 +1,7 @@
 use crate::core::framework::scene::EntityId;
 
 use super::super::view_context::FrameVisibility;
+use super::super::{VisibilityStaticIndex, VisibilityStaticIndexReport};
 use super::{
     visibility_batch::VisibilityBatch, visibility_bvh_instance::VisibilityBvhInstance,
     visibility_bvh_update_plan::VisibilityBvhUpdatePlan,
@@ -33,6 +34,7 @@ pub struct VisibilityContext {
     pub draw_commands: Vec<VisibilityDrawCommand>,
     pub bvh_instances: Vec<VisibilityBvhInstance>,
     pub bvh_update_plan: VisibilityBvhUpdatePlan,
+    pub static_index_report: VisibilityStaticIndexReport,
     pub history_snapshot: VisibilityHistorySnapshot,
     pub instance_upload_plan: VisibilityInstanceUploadPlan,
     pub particle_upload_plan: VisibilityParticleUploadPlan,
@@ -44,4 +46,11 @@ pub struct VisibilityContext {
     pub virtual_geometry_page_upload_plan: VisibilityVirtualGeometryPageUploadPlan,
     pub virtual_geometry_feedback: VisibilityVirtualGeometryFeedback,
     pub gpu_instancing_candidates: Vec<VisibilityBatch>,
+    pub(crate) static_index: VisibilityStaticIndex,
+}
+
+impl VisibilityContext {
+    pub(crate) fn static_index(&self) -> &VisibilityStaticIndex {
+        &self.static_index
+    }
 }

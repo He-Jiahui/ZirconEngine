@@ -23,6 +23,7 @@ mod tests {
     use crate::core::framework::render::{
         AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
     };
+    use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
     use crate::RenderFeatureCapabilityRequirement;
 
     use super::compile_options_for_profile;
@@ -65,13 +66,53 @@ mod tests {
             .contains(&RenderFeatureCapabilityRequirement::HybridGlobalIllumination));
     }
 
+    #[test]
+    fn compile_options_gate_hzb_occlusion_from_backend_capabilities() {
+        let supported = compile_options_for_profile(
+            None,
+            &hzb_occlusion_capabilities(),
+            &AdvancedProviderAvailability::new(),
+        );
+        assert!(supported.enable_hzb_occlusion_culling);
+
+        let unsupported = compile_options_for_profile(
+            None,
+            &advanced_capabilities(),
+            &AdvancedProviderAvailability::new(),
+        );
+        assert!(!unsupported.enable_hzb_occlusion_culling);
+
+        let insufficient_storage_binding_capacity = compile_options_for_profile(
+            None,
+            &RenderCapabilitySummary {
+                max_storage_buffers_per_shader_stage:
+                    HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE - 1,
+                ..hzb_occlusion_capabilities()
+            },
+            &AdvancedProviderAvailability::new(),
+        );
+        assert!(!insufficient_storage_binding_capacity.enable_hzb_occlusion_culling);
+    }
+
     fn advanced_capabilities() -> RenderCapabilitySummary {
         RenderCapabilitySummary {
             virtual_geometry_supported: true,
             hybrid_global_illumination_supported: true,
             supports_storage_buffers: true,
+            max_storage_buffers_per_shader_stage:
+                HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
             supports_indirect_draw: true,
             supports_buffer_readback: true,
+            ..RenderCapabilitySummary::default()
+        }
+    }
+
+    fn hzb_occlusion_capabilities() -> RenderCapabilitySummary {
+        RenderCapabilitySummary {
+            supports_storage_buffers: true,
+            supports_indirect_draw: true,
+            supports_multi_draw_indirect: true,
+            supports_indirect_first_instance: true,
             ..RenderCapabilitySummary::default()
         }
     }

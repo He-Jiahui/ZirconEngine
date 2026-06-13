@@ -1,0 +1,110 @@
+---
+related_code:
+  - zircon_runtime/src/input/mod.rs
+  - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/input_driver.rs
+  - zircon_runtime/src/input/runtime/input_state.rs
+  - zircon_runtime/src/input/module
+  - zircon_runtime/src/core/framework/input
+  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
+  - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/ui/surface/interaction_gate.rs
+  - zircon_runtime/src/ui/dispatch
+  - zircon_app/Cargo.toml
+  - dev/bevy/crates/bevy_input/src
+  - dev/godot/core/input
+plan_sources:
+  - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
+status: in_progress
+last_refined: 2026-06-14
+---
+
+# 12 输入栈与动作映射对齐
+
+输入域当前没有任何子计划认领：09 只管 `ui/surface/input` 的 UI 路由侧，本计划管其上游——原始输入契约、帧输入状态语义、动作映射层缺口、gamepad 接入路径。
+
+## 现状与证据（2026-06-13 实仓盘点）
+
+- **分层已成形**：契约在 `core/framework/input`（`InputButton/InputEvent/InputEventRecord/InputSnapshot`，经 `input/mod.rs:6,17` 再导出）；运行时在 `input/runtime/{default_input_manager.rs,input_driver.rs,input_state.rs}`（`DefaultInputManager`/`InputDriver`，:22 导出）；模块注册在 `input/module/{config,descriptor,module_type}.rs`。
+- **缺口 1——无动作映射层**：公共面只有按键/事件/快照原语，无"动作（action）→ 绑定（binding）→ 上下文（context）"层——对照 Godot `InputMap`、UE Enhanced Input、Unity Input System 的 action asset，玩法代码当前只能硬编码物理按键。
+- **缺口 2——帧语义未声明**：`input_state.rs` 的 just_pressed/just_released/按住时长语义、输入清帧时机与 03 帧循环的关系（`tick_frame_drives_loaded_level_before_clearing_frame_input` 测试名旁证：清帧在 level tick 后）未文档化为权威契约。
+- **缺口 3——gamepad 在 app 侧**：gilrs 0.11 是 `zircon_app` 的 optional（`gamepad-gilrs` feature）——手柄事件进 runtime 契约的路径、热插拔与多手柄语义未入任何计划。
+- **缺口 4——与 09 的交接面**：输入先到玩法还是先到 UI（UI 吃掉输入的仲裁）需要单点声明，09 的 interaction_gate 是 UI 侧闸，全局仲裁 owner 未定。
+- 参考锚点（2026-06-13 实测核验，动工前先读——index 公约 §7.9）：
+  - bevy_input 全家（按键/轴/手柄/触摸 + ButtonInput just_pressed 语义）— `dev/bevy/crates/bevy_input/src`
+  - Godot InputMap/InputEvent（动作映射 + 事件冒泡仲裁）— `dev/godot/core/input/`（执行时核验子文件：`ls dev/godot/core/input/`）
+  - UE Enhanced Input（概念对照；源码路径执行时核验：Glob `**/EnhancedInput/**`，无则仅语义锚）
+
+## 目标
+
+1. 帧输入语义权威化：snapshot/just_* 语义、清帧时机（与 03 帧序图互引）、事件 vs 状态双读口的使用判据文档化 + 测试锚。
+2. 动作映射层立项决策：最小 action/binding/context 模型设计（数据驱动、可序列化、ABI-safe 跨 dynamic_api），实现排期独立切片。
+3. gamepad 接入路径定稿：app 侧 gilrs 事件 → runtime `InputEvent` 契约的桥接面与热插拔语义。
+4. 输入仲裁单点：UI 消费与玩法消费的优先级裁决（与 09 interaction_gate 交接）。
+
+## 非目标
+
+- 不动 UI 内部路由（09 地盘）；不改 winit 事件抽取（app/平台宿主侧职责，只定契约）；不做录制回放系统（可列 backlog）。
+
+### 全局硬约束（继承总计划 §4）
+
+- 不新增 crate；硬切换；动态边界只传 ABI-safe 值；非网络语义 server 命名是 blocker。
+
+## 执行前检查清单
+
+1. `git status --porcelain -- zircon_runtime/src/input/ zircon_runtime/src/core/framework/input/`；活动会话避让。
+2. 事实重核：`ls zircon_runtime/src/input/runtime/`；Grep `just_pressed|JustPressed`，path `zircon_runtime/src/input`（帧语义现状）；Grep `gilrs`，path `zircon_app/src`（gamepad 现状面）。
+3. 基线记录：`cargo test -p zircon_runtime --lib input --locked` 通过数。
+
+## 里程碑
+
+### M0 输入链路审计与帧语义文档化
+
+- 切片 0.1（纯文档 + 测试锚）：`docs/zircon_runtime/input/`（执行时核验镜像文档存在性）落输入链路图——platform/app 事件源 → `InputDriver` → `DefaultInputManager` → `InputSnapshot` → 玩法/UI 双消费；清帧时机标到 03 帧序图的 stage 位。验收测试锚：`input_snapshot_just_pressed_is_true_for_exactly_one_frame`、`frame_input_clears_after_level_tick_not_before`（归属 `input/tests/` 既有树）。DoD：链路图 + 两测试绿。
+- 切片 0.2（裁决）：输入仲裁单点判词——UI 先吃（capture）还是玩法先吃，焦点态如何切换；与 09 的 interaction_gate 契约互引。DoD：判词落文档，09 计划交叉引用更新。
+
+#### M0.2 输入仲裁判词（2026-06-13）
+
+- Owner 分工：`zircon_runtime::input` 只负责 platform/app 原始事件归一、帧内 transition/accumulator 维护，以及 `InputSnapshot` / `InputFrameSnapshot` 读口；它不判断 UI 与玩法谁消费事件，也不复制 UI 的 capture、popup、focus、direct-target、bubble 路由规则。
+- UI surface 优先：当事件命中活动 UI surface、存在 pointer capture、popup stack、文本/导航 focus，或 09 的 `interaction_gate` 能给出 UI route decision 时，事件先进入 09 的 UI 路由权威链。09 内部继续拥有 `frame_hit_test -> interaction_gate -> dispatch -> 组件/焦点/popup_stack` 的顺序和旁路清理。
+- 玩法 fallback：headless、无活动 UI surface、UI 未处理、capture 释放、popup 关闭、focus 清空，或明确 route result 为 unhandled 时，事件进入玩法/action mapping。M1 的动作映射层必须消费“UI 过滤后的未处理输入流”或等价的 consumed/unhandled 标记，禁止重新实现 UI 路由。
+- 焦点切换：pointer capture 与 popup scope 在生命周期内优先于玩法；文本输入与导航 focus 优先供 UI 控件处理；玩法恢复依赖 UI route unhandled、显式 focus clear、capture release、popup close，或无 UI/headless profile。全局调试/宿主快捷键若需要越过两者，必须另立 host-command 通道，不能塞进 gameplay action map。
+
+### M1 动作映射层设计与最小实现
+
+- 切片 1.1（设计定稿）：`InputAction`/`InputBinding`/`InputActionMap`/`InputActionState` 签名草案（serde 可序列化、跨 dynamic_api ABI-safe；对照 Godot InputMap 的 action 字符串键 + bevy ButtonInput 泛型）；数据来源（项目配置文件）与 runtime 注册路径。落 `core/framework/input`（契约）+ `input/runtime`（求值）。
+- 切片 1.2（实现 + 测试）：`action_map_resolves_chords_and_reports_just_activated`、`rebinding_action_does_not_require_recompilation`（数据驱动锚）。调用方迁移：无强制（新增层；既有原语保留为底层读口）。
+- DoD：`cargo test -p zircon_runtime --lib input --locked` 全绿；文档含"何时用 action vs 原始按键"判据。
+
+### M2 gamepad 桥接与热插拔
+
+- 切片 2.1：app 侧 gilrs 事件 → `InputEvent` 契约扩展（手柄按钮/轴/连接断开事件枚举补全，ABI-safe）；热插拔语义测试（`gamepad_disconnect_clears_held_state_without_panic`）。调用方迁移：`zircon_app` gamepad feature 路径（执行时枚举：Grep `gilrs`，path `zircon_app/src`）。
+- DoD：手柄事件经统一契约可达动作映射层；`cargo test -p zircon_app --locked` 无回归。
+
+### 测试阶段（milestone-first，每里程碑末）
+
+- `cargo test -p zircon_runtime --lib input --locked -- --nocapture`；M2 加 `cargo test -p zircon_app --locked`。
+
+## 状态与产出记录
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M0 | 0.1 链路与帧语义 | input_frame_contract_static_passed_cargo_pending | 2026-06-13 | 已读锚点：`dev/bevy/crates/bevy_input/src/button_input.rs`（`just_pressed` / `just_released` 一帧语义）、`dev/godot/core/input/` 目录（Input/InputMap 后续动作映射与仲裁参照）。复用镜像文档 `docs/zircon_runtime/input/input_state.md`，新增 "Frame Input Contract"：platform/app 事件源 → `DefaultInputManager::submit_event(...)` → `InputFrameSnapshot` / `InputSnapshot` → gameplay/UI consumer，并明确 dynamic session 中 level tick 先于 `input_manager.begin_frame()` 的清帧边界。新增测试锚 `input_snapshot_just_pressed_is_true_for_exactly_one_frame` 与 `frame_input_clears_after_level_tick_not_before`（`zircon_runtime/src/input/tests/input_manager.rs`）；新增 `runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` 锁定文档/导出面；`rustfmt --edition 2021 --check` 已覆盖 Runtime 12 输入契约、runtime、测试挂载与输入测试文件，冲突标记/尾随空白扫描为空，`git diff --check` 仅有既有 LF/CRLF 提示。Cargo 未跑：当前有 active HZB/Cargo lane，待空闲后运行 `cargo test -p zircon_runtime --lib input --locked -- --nocapture`。 |
+| M0 | 0.2 仲裁判词 | arbitration_judgement_documented_static_passed | 2026-06-13 | 裁决已写入本计划的 "M0.2 输入仲裁判词"：底层 `zircon_runtime::input` 只维护原始输入与帧状态；UI surface/pointer capture/popup/focus 先经 09 的 `interaction_gate`/dispatch 权威链；玩法/action mapping 只消费 UI 未处理或无 UI/headless 输入流。09 计划已加交叉引用；本切片不改 UI 源码、不运行 Cargo。 |
+| M1 | 1.1 动作映射设计 | action_contract_static_passed_cargo_pending | 2026-06-13 | 新增 `InputAction`、`InputBinding`、`InputActionMap`、`InputActionState` 于 `zircon_runtime/src/core/framework/input/`，均为 serde 数据契约，action id 使用字符串键，binding 使用可序列化 `InputButton` chord。`InputActionMap::clear_bindings(...)` 支持运行时重绑定；`zircon_runtime/src/prelude.rs` 与 `zircon_runtime/src/input/mod.rs` 已导出公共面。静态证据同 M1.2：`rustfmt --edition 2021 --check` 覆盖 `core/framework/input` 契约文件、runtime evaluator、测试挂载与输入测试；冲突标记/尾随空白扫描为空，`git diff --check` 仅有 LF/CRLF 提示；Cargo 待 active Cargo lane 清空后随 M1.2 运行 `action_map` 与 `input` filters。 |
+| M1 | 1.2 最小实现 | action_evaluator_static_passed_cargo_pending | 2026-06-13 | 新增 `zircon_runtime/src/input/runtime/action_evaluator.rs`，从 `InputFrameSnapshot` 求值 pressed/just_activated/just_deactivated；`evaluate_with_consumed_buttons(...)` 承接 M0.2 UI-first arbitration，只消费 UI 未处理输入。新增测试锚 `action_map_resolves_chords_and_reports_just_activated`、`rebinding_action_does_not_require_recompilation` 于独立 `zircon_runtime/src/input/tests/action_mapping.rs`；新增 `runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path` 锁 action contract/evaluator/test anchors；`rustfmt --edition 2021 --check` 已覆盖新输入代码/测试/prelude，`git diff --check` 仅有既有 CRLF 提示，冲突/尾随空白扫描为空。Cargo 待 active Cargo lane 清空后运行 `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`。 |
+| M2 | 2.1 gamepad 桥接 | gamepad_bridge_static_passed_cargo_pending | 2026-06-13 | 现有 app 侧 `zircon_app/src/entry/runtime_entry_app/gamepad/{events,polling}.rs` 已通过 `ZrRuntimeEventV1::gamepad_connection_with_ids` / `gamepad_button` / `gamepad_axis` 向 runtime ABI 发送 gilrs 连接、按钮、轴事件，`RuntimeDynamicSession` 已归约为 `InputEvent::GamepadConnection` / `GamepadButton` / `GamepadAxis`。新增 `zircon_runtime/src/input/tests/gamepad_bridge.rs`，含 `gamepad_disconnect_clears_held_state_without_panic` 与 `gamepad_host_bridge_uses_runtime_gamepad_abi_constructors` 两个锚；新增 `runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path` 锁 gamepad contract/app ABI/session reducers；`rustfmt --edition 2021 --check` 已覆盖 gamepad 测试与输入测试挂载，冲突标记/尾随空白扫描为空，`git diff --check` 仅有 LF/CRLF 提示。Cargo 待 active Cargo lane 清空后运行 `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`，app 包回归仍待后续空闲窗口。 |
+| M3 | 验证门守卫 | cargo_validation_pending_guarded | 2026-06-13 | 新增 `runtime_absorption::plan_status::runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`，要求本计划保持 `in_progress`，M0/M1/M2 状态行继续保留 `*_cargo_pending` 与 Cargo gate，直到 `cargo test -p zircon_runtime --lib input --locked -- --nocapture`、`cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`、`cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture` 以及 `cargo test -p zircon_app --locked` 有真实通过记录。 |
+| 横切 | Input stack 结构审计 owner | structure_audit_static_passed_cargo_pending | 2026-06-14 | 新增 `.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py` 并接入 `audit_runtime_structure.py`，把 Runtime 12 的 `input/` runtime owner、`core/framework/input` 契约、输入测试 owner、`InputActionEvaluator::evaluate_with_consumed_buttons(...)`、app gilrs → runtime ABI → `InputEvent::Gamepad*` 路径、三条 `runtime_absorption::input_stack` 守卫、镜像文档守卫与 pending Cargo gate 统一纳入结构审计。Targeted audit facts：`expected_runtime_module_count = 10`、`expected_framework_module_count = 17`、`expected_test_module_count = 5`、`public_surface_anchors = 10/10`、`runtime_12_guard_anchors = 5/5`、`missing_doc_anchors = []`、`missing_test_anchors = []`、`missing_cargo_gate_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true`、`risks = []`。Cargo 仍按 M3 gate 保持 pending。 |
+| 横切 | Input stack 镜像文档守卫 | mirror_docs_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_absorption::input_stack::runtime_12_input_stack_mirror_docs_match_structure_audit_counts`，锁定 input module doc、本计划、runtime index、M0 review 与 runtime-interface convergence 均同步记录 `input_stack_boundary` 的同一组结构事实：`expected_runtime_module_count = 10`、`expected_framework_module_count = 17`、`expected_test_module_count = 5`、`public_surface_anchors = 10/10`、`runtime_12_guard_anchors = 5/5`、`missing_doc_anchors = []`、`missing_test_anchors = []`、`missing_cargo_gate_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true`、`risks = []`。该守卫只封住文档漂移；input/action_map/gamepad/app Cargo gates 仍保持 pending。 |
+
+基线：`input/` 模块树（mod/module/runtime/tests）；gamepad：app 侧 gilrs optional 且已有 ABI bridge，M2.1 已补断开清理与 bridge source guard 锚；M0.1/M1/M2 的 `rustfmt --edition 2021 --check`、锚点扫描、冲突标记扫描、尾随空白扫描与 `git diff --check` 静态证据已记录，`runtime_absorption::input_stack` 守卫已锁定文档/导出、UI-filtered action evaluator、gamepad ABI path 与镜像文档计数；`input_stack_boundary` 进一步锁定 `expected_runtime_module_count = 10`、`expected_framework_module_count = 17`、`expected_test_module_count = 5`、`public_surface_anchors = 10/10`、`runtime_12_guard_anchors = 5/5`、`missing_doc_anchors = []`、`missing_test_anchors = []`、`missing_cargo_gate_anchors = []`、`oversized_modules = []`、`mirror_docs_guard_present = true`、`risks = []`；Cargo 通过数仍待 active HZB/active Cargo lane 清空后记录，并由 `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation` 锁定 input/action_map/gamepad/app filters 的待验证状态；M0.2 已定 UI-first arbitration 边界，M1 已落最小 action/binding/map/state 契约与 evaluator，后续不得绕过 09 路由权威直接把 UI 命中事件映射成玩法动作。
+
+## 风险与协调
+
+- 与 09（UI 路由）的交接面已由 0.2 判词定为双向互引：12 只定义全局输入消费边界，09 继续拥有 UI 内部路由权威，禁止各写一套。
+- 动作映射的配置文件格式与 04（asset/config）的 config_store 归属衔接；序列化形状过 05 的 authoring token 守卫（不得引入 editor 语义词）。
+- 03 帧序图（frame_schedule.md）若已定稿，0.1 的清帧时机直接标注其上；未定稿则本计划先行并回写。

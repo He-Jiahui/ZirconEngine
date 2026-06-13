@@ -52,6 +52,11 @@ impl RenderPipelineCompileOptions {
         self
     }
 
+    pub fn with_hzb_occlusion_culling(mut self, enabled: bool) -> Self {
+        self.enable_hzb_occlusion_culling = enabled;
+        self
+    }
+
     pub fn with_graph_msaa_sample_count(mut self, sample_count: u32) -> Self {
         self.graph_msaa_sample_count = Some(sample_count.max(1));
         self

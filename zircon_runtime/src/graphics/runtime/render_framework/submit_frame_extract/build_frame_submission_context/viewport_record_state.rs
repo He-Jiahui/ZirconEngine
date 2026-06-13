@@ -3,6 +3,7 @@ use crate::core::framework::render::{
     ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
+use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::ViewportMotionVectorObjectHistory;
 
 use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot};
@@ -13,6 +14,7 @@ pub(super) struct ViewportRecordState {
     viewport_generation: u64,
     quality_profile: Option<String>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
+    previous_static_index: Option<VisibilityStaticIndex>,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
     pipeline_asset: RenderPipelineAsset,
@@ -31,6 +33,7 @@ impl ViewportRecordState {
         viewport_generation: u64,
         quality_profile: Option<String>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
+        previous_static_index: Option<VisibilityStaticIndex>,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
         previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
         pipeline_asset: RenderPipelineAsset,
@@ -46,6 +49,7 @@ impl ViewportRecordState {
             viewport_generation,
             quality_profile,
             previous_visibility,
+            previous_static_index,
             previous_motion_vector_camera,
             previous_motion_vector_object_history,
             pipeline_asset,
@@ -71,6 +75,10 @@ impl ViewportRecordState {
 
     pub(super) fn previous_visibility(&self) -> Option<&VisibilityHistorySnapshot> {
         self.previous_visibility.as_ref()
+    }
+
+    pub(super) fn previous_static_index(&self) -> Option<&VisibilityStaticIndex> {
+        self.previous_static_index.as_ref()
     }
 
     pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {

@@ -601,10 +601,6 @@ fn ssr_pyramid_mip_alias_for_lifetimes<'a>(
 
 fn ssr_pyramid_mip_alias(name: &str) -> Option<(&'static str, u32)> {
     match name {
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE => Some((
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-            1,
-        )),
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => Some((
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
             1,
@@ -830,7 +826,7 @@ mod tests {
         let backend = RenderBackend::new_offscreen().unwrap();
         let mut builder = RenderGraphBuilder::new("materialization");
         let shadow = builder.create_texture(TextureDesc::new(
-            "shadow-map",
+            "shadow-atlas",
             64,
             64,
             TextureFormat::Depth32Float,
@@ -871,13 +867,13 @@ mod tests {
             .materialize_transient_resources(&backend.device, &graph)
             .unwrap();
 
-        assert!(resources.has_texture_view("shadow-map"));
+        assert!(resources.has_texture_view("shadow-atlas"));
         assert!(
             !resources.has_texture_view("sparse-pages"),
             "sparse reservations must not be silently backed by a dense WGPU texture"
         );
         assert!(resources.has_buffer("scratch"));
-        assert!(resources.has_bound_resource("shadow-map"));
+        assert!(resources.has_bound_resource("shadow-atlas"));
         assert!(resources.has_bound_resource("scratch"));
         assert!(!resources.has_bound_resource("sparse-pages"));
         assert_eq!(
@@ -1068,26 +1064,9 @@ mod tests {
     }
 
     #[test]
-    fn materialization_aliases_ssr_coarse_pyramids_to_parent_mip_views() {
+    fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
         let backend = RenderBackend::new_offscreen().unwrap();
         let mut builder = RenderGraphBuilder::new("ssr-mip-aliases");
-        let depth_pyramid = builder.create_texture(
-            TextureDesc::new(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-                64,
-                32,
-                TextureFormat::Rgba16Float,
-                TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-            )
-            .with_mip_levels(3),
-        );
-        let depth_pyramid_coarse = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-            32,
-            16,
-            TextureFormat::Rgba16Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
         let reflection_pyramid = builder.create_texture(
             TextureDesc::new(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
@@ -1106,15 +1085,6 @@ mod tests {
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
         ));
         let output = builder.import_external_resource("viewport-output");
-        let depth_pass = builder.add_pass("depth-pyramid", QueueLane::Graphics);
-        builder.write_texture(depth_pass, depth_pyramid).unwrap();
-        let depth_coarse_pass = builder.add_pass("depth-pyramid-coarse", QueueLane::Graphics);
-        builder
-            .read_texture(depth_coarse_pass, depth_pyramid)
-            .unwrap();
-        builder
-            .write_texture(depth_coarse_pass, depth_pyramid_coarse)
-            .unwrap();
         let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
         builder
             .write_texture(reflection_pass, reflection_pyramid)
@@ -1129,9 +1099,6 @@ mod tests {
             .unwrap();
         let output_pass = builder.add_pass("output", QueueLane::Graphics);
         builder
-            .read_texture(output_pass, depth_pyramid_coarse)
-            .unwrap();
-        builder
             .read_texture(output_pass, reflection_pyramid_coarse)
             .unwrap();
         builder.write_external(output_pass, output).unwrap();
@@ -1143,25 +1110,11 @@ mod tests {
             .unwrap();
 
         assert!(resources.has_texture_view(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
-        ));
-        assert!(resources.has_texture_view(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
-        ));
-        assert!(resources.has_texture_view(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
         ));
         assert!(resources.has_texture_view(
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
         ));
-        assert!(resources
-            .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
-            .is_some());
-        assert!(resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
-            )
-            .is_none());
         assert!(resources
             .owned_texture(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
@@ -1174,41 +1127,44 @@ mod tests {
             .is_none());
         let report = resources.resource_report();
         assert_eq!(report.external_texture_view_count, 0);
-        assert_eq!(report.owned_texture_count, 2);
-        assert_eq!(report.texture_view_count, 4);
+        assert_eq!(report.owned_texture_count, 1);
+        assert_eq!(report.texture_view_count, 2);
     }
 
     #[test]
-    fn materialization_allocates_ssr_coarse_resource_when_parent_has_no_coarse_mip() {
+    fn materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip() {
         let backend = RenderBackend::new_offscreen().unwrap();
         let mut builder = RenderGraphBuilder::new("ssr-small-pyramid");
-        let depth_pyramid = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
+        let reflection_pyramid = builder.create_texture(TextureDesc::new(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
             1,
             1,
             TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
         ));
-        let depth_pyramid_coarse = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        let reflection_pyramid_coarse = builder.create_texture(TextureDesc::new(
+            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
             1,
             1,
             TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
         ));
         let output = builder.import_external_resource("viewport-output");
-        let depth_pass = builder.add_pass("depth-pyramid", QueueLane::Graphics);
-        builder.write_texture(depth_pass, depth_pyramid).unwrap();
-        let depth_coarse_pass = builder.add_pass("depth-pyramid-coarse", QueueLane::Graphics);
+        let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
         builder
-            .read_texture(depth_coarse_pass, depth_pyramid)
+            .write_texture(reflection_pass, reflection_pyramid)
+            .unwrap();
+        let reflection_coarse_pass =
+            builder.add_pass("reflection-pyramid-coarse", QueueLane::Graphics);
+        builder
+            .read_texture(reflection_coarse_pass, reflection_pyramid)
             .unwrap();
         builder
-            .write_texture(depth_coarse_pass, depth_pyramid_coarse)
+            .write_texture(reflection_coarse_pass, reflection_pyramid_coarse)
             .unwrap();
         let output_pass = builder.add_pass("output", QueueLane::Graphics);
         builder
-            .read_texture(output_pass, depth_pyramid_coarse)
+            .read_texture(output_pass, reflection_pyramid_coarse)
             .unwrap();
         builder.write_external(output_pass, output).unwrap();
         let graph = builder.compile().unwrap();
@@ -1219,11 +1175,13 @@ mod tests {
             .unwrap();
 
         assert!(resources
-            .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
+            .owned_texture(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
+            )
             .is_some());
         assert!(resources
             .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
             )
             .is_some());
     }

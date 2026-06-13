@@ -42,6 +42,7 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         | ImportedAsset::TileSet(_)
         | ImportedAsset::TileMap(_)
         | ImportedAsset::Prefab(_)
+        | ImportedAsset::UiIcon(_)
         | ImportedAsset::UiV2View(_)
         | ImportedAsset::UiV2Component(_)
         | ImportedAsset::UiV2Style(_) => {
@@ -73,7 +74,8 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         | ImportedAsset::NavMesh(_)
         | ImportedAsset::NavigationSettings(_)
         | ImportedAsset::AnimationSkeleton(_)
-        | ImportedAsset::AnimationSequence(_) => {}
+        | ImportedAsset::AnimationSequence(_)
+        | ImportedAsset::UiTheme(_) => {}
     }
 
     dedup_references(references)
@@ -93,7 +95,10 @@ fn dedup_references(references: Vec<AssetReference>) -> Vec<AssetReference> {
 #[cfg(test)]
 mod tests {
     use super::direct_references;
-    use zircon_runtime::asset::assets::{FontAsset, ImportedAsset};
+    use zircon_runtime::asset::assets::{
+        FontAsset, ImportedAsset, UiIconAsset, UiIconSource, UiIconSourceKind, UiThemeAsset,
+    };
+    use zircon_runtime_interface::ui::style::UiThemeDocument;
 
     #[test]
     fn font_assets_do_not_report_direct_references() {
@@ -104,5 +109,37 @@ mod tests {
         });
 
         assert!(direct_references(&imported).is_empty());
+    }
+
+    #[test]
+    fn ui_theme_assets_do_not_report_direct_references() {
+        let imported = ImportedAsset::UiTheme(UiThemeAsset {
+            document: UiThemeDocument::dark(),
+        });
+
+        assert!(direct_references(&imported).is_empty());
+    }
+
+    #[test]
+    fn ui_icon_assets_report_external_source_reference() {
+        let imported = ImportedAsset::UiIcon(UiIconAsset {
+            source: UiIconSource {
+                kind: UiIconSourceKind::SvgAsset,
+                text: None,
+                uri: Some("res://ui/icons/run.svg".to_string()),
+            },
+            default_size: 18.0,
+            semantic_id: "icons/run".to_string(),
+        });
+
+        let references = direct_references(&imported);
+
+        assert_eq!(
+            references
+                .iter()
+                .map(|reference| reference.locator.to_string())
+                .collect::<Vec<_>>(),
+            vec!["res://ui/icons/run.svg"]
+        );
     }
 }

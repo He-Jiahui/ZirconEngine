@@ -234,7 +234,10 @@ fn tab() -> UiComponentDescriptor {
     )
     .slot(UiSlotSchema::new("icon"))
     .slot(UiSlotSchema::new("indicator"))
-    .event(UiComponentEventKind::ValueChanged)
+    .events([
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::ValueChanged,
+    ])
 }
 
 fn add_props<const N: usize>(

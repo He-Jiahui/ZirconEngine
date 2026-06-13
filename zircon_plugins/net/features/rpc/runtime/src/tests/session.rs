@@ -4,7 +4,10 @@ use zircon_runtime::core::framework::net::{
 };
 
 use super::support::{complete_joined_connection_session, process_hello, process_login};
-use crate::{net_rpc_runtime_manager, NetRpcRuntimeManager, NET_RPC_FEATURE_CAPABILITY};
+use crate::{
+    net_rpc_runtime_manager, NetRpcHandshakeFrame, NetRpcRuntimeManager,
+    NET_RPC_FEATURE_CAPABILITY, RPC_HANDSHAKE_CAPABILITY_NET_RPC,
+};
 
 #[test]
 fn rpc_feature_manager_completes_control_handshake_sequence() {
@@ -208,5 +211,43 @@ fn rpc_feature_manager_reports_control_handshake_failures() {
         NetError::UnknownSession {
             session: NetSessionId::new(999),
         }
+    );
+}
+
+#[test]
+fn rpc_handshake_frame_round_trips_magic_version_capabilities_and_token() {
+    let frame =
+        NetRpcHandshakeFrame::new(1, RPC_HANDSHAKE_CAPABILITY_NET_RPC, b"join-token".to_vec());
+
+    let encoded = frame.encode().unwrap();
+    let decoded = NetRpcHandshakeFrame::decode(&encoded).unwrap();
+
+    assert_eq!(decoded.protocol_version, 1);
+    assert_eq!(decoded.capabilities, RPC_HANDSHAKE_CAPABILITY_NET_RPC);
+    assert_eq!(decoded.token, b"join-token".to_vec());
+    assert!(decoded.supports_net_rpc());
+}
+
+#[test]
+fn handshake_version_mismatch_rejected() {
+    let rpc = net_rpc_runtime_manager();
+    let session = rpc.begin_handshake();
+    let bytes =
+        NetRpcHandshakeFrame::new(2, RPC_HANDSHAKE_CAPABILITY_NET_RPC, b"token-v2".to_vec())
+            .encode()
+            .unwrap();
+
+    let report = rpc.process_handshake_frame(session, &bytes).unwrap();
+
+    assert_eq!(report.state, NetSessionHandshakeState::Failed);
+    assert_eq!(
+        report.response,
+        Some(NetControlMessage::Failure {
+            reason: "protocol version mismatch".to_string(),
+        })
+    );
+    assert_eq!(
+        rpc.handshake_state(session).unwrap(),
+        NetSessionHandshakeState::Failed
     );
 }

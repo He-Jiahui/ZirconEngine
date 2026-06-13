@@ -19,6 +19,14 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/BloomPostProcessPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/ScalingSetupPostProcessPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Textures/RTHandleSystem.cs
+  - dev/bevy/crates/bevy_post_process/src/auto_exposure/auto_exposure.wgsl
+  - dev/bevy/crates/bevy_post_process/src/auto_exposure/settings.rs
+  - dev/bevy/crates/bevy_post_process/src/bloom/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/bloom/bloom.wgsl
+  - dev/bevy/crates/bevy_core_pipeline/src/tonemapping/mod.rs
+  - dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/upscaling/mod.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/hdr/mod.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
@@ -48,6 +56,21 @@ plan_sources:
 | `dev/UnrealEngine/.../PostProcess/PostProcessing.cpp` | UE 全链顺序权威参考(translucency 后 → DoF → motion blur → bloom → exposure → tonemap → 输出) |
 | `dev/UnrealEngine/.../PostProcess/PostProcessEyeAdaptation.cpp` | histogram compute 自动曝光与速度参数 |
 | `dev/Graphics/.../universal/Runtime/Passes/PostProcess/ScalingSetupPostProcessPass.cs` + `core/Runtime/Textures/RTHandleSystem.cs` | 动态分辨率:RTHandle 比例缩放 + 链尾 upscale 的接法 |
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_post_process/src/auto_exposure/auto_exposure.wgsl` | `exposure_histogram/resolve` compute(PP-M3 重点) | 64 bin `array<atomic<u32>, 64>` + `var<workgroup>` 共享 bins 归并的 WGSL 直方图;百分位截断求平均与收敛写回,与本计划布局一一对应 |
+| `dev/bevy/crates/bevy_post_process/src/auto_exposure/settings.rs` | `RenderExposureSettings` | `speed_brighten`(默认 3.0)/`speed_darken`(默认 1.0)/percentile 范围字段,与 UE 参数同语义的 Rust 表达 |
+| `dev/bevy/crates/bevy_post_process/src/bloom/mod.rs` | bloom downsample/upsample 链多 pass 组织 | mip 链 RT 分配、downsampling/upsampling 双 pipeline 与逐 mip pass 录制 |
+| `dev/bevy/crates/bevy_post_process/src/bloom/bloom.wgsl` | 能量守恒 bloom 核 | `sample_input_13_tap`(13-tap downsample)与 `karis_average`(首段抗 firefly) |
+| `dev/bevy/crates/bevy_core_pipeline/src/tonemapping/mod.rs` | tonemap 曲线与 LUT 绑定 | `TonemappingLuts`(3D LUT 纹理)、tonemap 模式枚举与 shader def 注入;配 `tonemapping.wgsl` 曲线实现 |
+| `dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs` | uber pass 合并(CA/vignette 单 pass) | `PostProcessingPipeline`/`PostProcessingPipelineKey` 与 `post_process.wgsl` 的多效果单 entry 合并形态 |
+| `dev/bevy/crates/bevy_core_pipeline/src/upscaling/mod.rs` | `post.upscale` 链尾上采样 | `ViewUpscalingPipeline` 基于 blit 的链尾尺寸跃迁(bilinear 起步形态) |
+| `dev/Fyrox/fyrox-impl/src/renderer/hdr/mod.rs` | 曝光适应的另一 Rust 形态 | `LumBuffer`(64x64 luminance 链)+ `AdaptationChain` 平均亮度法曝光(对照项:本计划取 histogram 法,勿照搬) |
+
+`Volume` 容器框架(全局/盒/球容器、blend distance 权重插值)无 Rust 同类参照(bevy/Fyrox 均无 Volume 概念),实现时以 Unity `VolumeManager.cs`/`VolumeStack.cs` 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

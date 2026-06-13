@@ -123,8 +123,16 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             ]),
         data_view("ListView", "List View", "list-view")
             .with_prop(int_prop("item_count", 0))
+            .with_prop(int_prop("focused_index", 0))
+            .with_prop(int_prop("selected_index", 0))
+            .with_prop(array_prop("disabled_options"))
+            .with_prop(bool_prop("selection_follows_focus", false))
+            .with_prop(bool_prop("keyboard_navigation", true))
             .slot(UiSlotSchema::new("items").multiple(true))
-            .event(UiComponentEventKind::SelectOption),
+            .events([
+                UiComponentEventKind::KeyboardAction,
+                UiComponentEventKind::SelectOption,
+            ]),
         virtualized_range_props(
             data_view("VirtualList", "Virtual List", "virtual-list")
                 .descriptor_kind(UiComponentDescriptorKind::Layout)
@@ -136,8 +144,14 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         data_view("TreeView", "Tree View", "tree-view")
             .with_prop(string_prop("query"))
             .with_prop(expanded_prop())
+            .with_prop(int_prop("focused_index", 0))
+            .with_prop(int_prop("selected_index", 0))
+            .with_prop(array_prop("disabled_options"))
+            .with_prop(bool_prop("selection_follows_focus", false))
+            .with_prop(bool_prop("keyboard_navigation", true))
             .slot(UiSlotSchema::new("nodes").multiple(true))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::SelectOption,
                 UiComponentEventKind::ToggleExpanded,
                 UiComponentEventKind::OpenPopupAt,
@@ -146,6 +160,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         composite("Table", "Table", UiComponentCategory::Collection, "table")
             .with_prop(array_prop("rows"))
             .with_prop(array_prop("columns"))
+            .with_prop(int_prop("focused_index", 0))
+            .with_prop(int_prop("selected_index", 0))
+            .with_prop(array_prop("disabled_options"))
+            .with_prop(bool_prop("selection_follows_focus", false))
+            .with_prop(bool_prop("keyboard_navigation", true))
             .with_prop(default_string_prop("component", "table"))
             .with_prop(mui_enum_prop(
                 "padding",
@@ -157,6 +176,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .slot(UiSlotSchema::new("header").multiple(true))
             .slot(UiSlotSchema::new("row").multiple(true))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::Hover,
                 UiComponentEventKind::Press,
                 UiComponentEventKind::SelectOption,

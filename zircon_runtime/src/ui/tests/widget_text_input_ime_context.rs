@@ -43,6 +43,43 @@ fn text_input_ime_preedit_refreshes_context_with_committed_surrounding_text() {
 }
 
 #[test]
+fn text_input_ime_preedit_rects_follow_soft_wrapped_composition_range() {
+    let mut surface = text_input_surface_with_selection_and_attributes(
+        "abcdef",
+        5,
+        1,
+        5,
+        [
+            ("layout_padding_left", toml::Value::Float(0.0)),
+            ("layout_padding_right", toml::Value::Float(136.0)),
+            ("layout_padding_top", toml::Value::Float(0.0)),
+            ("layout_padding_bottom", toml::Value::Float(0.0)),
+            ("font_size", toml::Value::Float(10.0)),
+            ("line_height", toml::Value::Float(12.0)),
+            ("wrap", toml::Value::String("glyph".to_string())),
+        ],
+    );
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "WXYZQ", None);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(text_attr(&surface, "content"), "aWXYZQf");
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    assert_eq!(
+        request.cursor_rect,
+        Some(UiFrame::new(20.0, 20.0, 1.0, 12.0))
+    );
+    assert_eq!(
+        request.composition_rects,
+        vec![
+            UiFrame::new(14.0, 8.0, 18.0, 12.0),
+            UiFrame::new(8.0, 20.0, 12.0, 12.0),
+        ]
+    );
+}
+
+#[test]
 fn text_input_ime_commit_refreshes_context_after_composition_is_committed() {
     let mut surface = text_input_surface_with_selection("abcd", 3, 1, 3);
     surface.input.input_method_owner = Some(UiNodeId::new(2));
@@ -102,12 +139,28 @@ fn text_input_surface_with_selection(
     selection_anchor: usize,
     selection_focus: usize,
 ) -> UiSurface {
+    text_input_surface_with_selection_and_attributes(
+        value,
+        caret_offset,
+        selection_anchor,
+        selection_focus,
+        [],
+    )
+}
+
+fn text_input_surface_with_selection_and_attributes<const N: usize>(
+    value: &str,
+    caret_offset: usize,
+    selection_anchor: usize,
+    selection_focus: usize,
+    attributes: [(&str, toml::Value); N],
+) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.widget.text_input.ime_context"));
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
             .with_frame(UiFrame::new(0.0, 0.0, 200.0, 80.0)),
     );
-    let attributes = [
+    let mut metadata_attributes = [
         (
             "content".to_string(),
             toml::Value::String(value.to_string()),
@@ -126,7 +179,12 @@ fn text_input_surface_with_selection(
         ),
     ]
     .into_iter()
-    .collect();
+    .collect::<std::collections::BTreeMap<_, _>>();
+    metadata_attributes.extend(
+        attributes
+            .into_iter()
+            .map(|(key, value)| (key.to_string(), value)),
+    );
     surface
         .tree
         .insert_child(
@@ -137,7 +195,7 @@ fn text_input_surface_with_selection(
                 .with_state_flags(focusable_state())
                 .with_template_metadata(UiTemplateNodeMetadata {
                     component: "SearchBox".to_string(),
-                    attributes,
+                    attributes: metadata_attributes,
                     bindings: vec![binding("SearchBox/Change", UiEventKind::Change)],
                     widget: UiWidgetContract {
                         behavior: UiWidgetBehavior::TextInput,

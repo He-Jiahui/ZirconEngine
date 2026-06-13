@@ -11,6 +11,7 @@ use zircon_runtime_interface::{
 };
 
 use super::{
+    extract_stats::{EXTRACT_OUTPUT_BYTES_DIAGNOSTIC, EXTRACT_REBUILD_CLONES_DIAGNOSTIC},
     runtime_session_error, RuntimeDynamicSession, RuntimeDynamicSessionProfile,
     RuntimeProjectConfig,
 };
@@ -452,6 +453,66 @@ fn vampire_project_session_capture_frame_draws_world_hud_bars() {
         "captured vampire frame should carry attack particle data, particle_passes={} alive={}",
         render_stats.last_particle_graph_executed_pass_count,
         render_stats.last_particle_gpu_alive_count
+    );
+}
+
+#[test]
+fn headless_session_capture_records_frame_extract_diagnostics() {
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless session");
+
+    session
+        .capture_frame(small_headless_frame_request())
+        .expect("headless capture");
+
+    let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());
+    let rebuild_clones =
+        diagnostic_current(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC).unwrap_or_default();
+    let output_bytes =
+        diagnostic_current(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC).unwrap_or_default();
+
+    assert_eq!(
+        rebuild_clones, 1.0,
+        "headless capture should record one current full extract rebuild clone"
+    );
+    assert!(
+        output_bytes > 0.0,
+        "headless capture should record a non-empty extract output byte estimate"
+    );
+}
+
+#[test]
+fn frame_extract_rebuild_skips_unchanged_entities() {
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless session");
+
+    session
+        .capture_frame(small_headless_frame_request())
+        .expect("first headless capture");
+    session
+        .capture_frame(small_headless_frame_request())
+        .expect("second headless capture");
+
+    let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());
+    let rebuilds = diagnostic_series(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC)
+        .expect("extract rebuild diagnostics");
+    let output_bytes = diagnostic_series(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC)
+        .expect("extract output byte diagnostics");
+
+    assert_eq!(
+        rebuilds.history.len(),
+        2,
+        "current baseline records one extract rebuild sample per capture"
+    );
+    assert!(
+        rebuilds.history.iter().all(|sample| sample.value == 1.0),
+        "current baseline still rebuilds the full extract for unchanged captures"
+    );
+    assert_eq!(output_bytes.history.len(), 2);
+    assert!(output_bytes.history[0].value > 0.0);
+    assert_eq!(
+        output_bytes.history[0].value, output_bytes.history[1].value,
+        "unchanged headless captures should keep the extract output byte baseline stable"
     );
 }
 
@@ -907,6 +968,25 @@ fn diagnostic_current(
         .iter()
         .find(|series| series.path.as_str() == path)
         .and_then(|series| series.current)
+}
+
+fn diagnostic_series<'a>(
+    diagnostics: &'a crate::core::diagnostics::RuntimeDiagnosticsSnapshot,
+    path: &str,
+) -> Option<&'a crate::core::diagnostics::DiagnosticSeriesSnapshot> {
+    diagnostics
+        .store
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+}
+
+fn small_headless_frame_request() -> ZrRuntimeFrameRequestV1 {
+    ZrRuntimeFrameRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        zircon_runtime_interface::ZrRuntimeViewportSizeV1::new(64, 48),
+    )
 }
 
 fn summarize_hud_region(rgba: &[u8], width: u32, height: u32) -> String {

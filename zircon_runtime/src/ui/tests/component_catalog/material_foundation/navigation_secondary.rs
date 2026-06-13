@@ -14,6 +14,15 @@ fn assert_menu_list(registry: &UiComponentDescriptorRegistry) {
     let menu_list = descriptor(registry, "MenuList");
     assert_enum_options(menu_list, "variant", &["menu", "selectedMenu"]);
     for prop in [
+        "options",
+        "focused_index",
+        "disabled_options",
+        "keyboard_navigation",
+        "allow_search",
+        "search_bar_enabled_on_item_count",
+        "search_query",
+        "filtered_option_ids",
+        "filter_no_results",
         "autoFocus",
         "autoFocusItem",
         "disabledItemsFocusable",
@@ -27,6 +36,11 @@ fn assert_menu_list(registry: &UiComponentDescriptorRegistry) {
         "variant",
         UiValue::Enum("selectedMenu".to_string()),
     );
+    assert_has_event(menu_list, UiComponentEventKind::KeyboardAction);
+    assert_has_event(menu_list, UiComponentEventKind::KeyboardText);
+    assert_has_event(menu_list, UiComponentEventKind::TypeaheadExpired);
+    assert_has_event(menu_list, UiComponentEventKind::ValueChanged);
+    assert_has_event(menu_list, UiComponentEventKind::Focus);
     assert_has_event(menu_list, UiComponentEventKind::SelectOption);
 }
 

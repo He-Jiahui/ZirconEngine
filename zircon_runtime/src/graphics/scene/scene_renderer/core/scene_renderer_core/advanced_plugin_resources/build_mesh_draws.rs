@@ -2,6 +2,7 @@ use super::scene_renderer_advanced_plugin_resources::SceneRendererAdvancedPlugin
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::mesh::{build_mesh_draws, BuiltMeshDraws};
+use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl SceneRendererAdvancedPluginResources {
@@ -15,6 +16,7 @@ impl SceneRendererAdvancedPluginResources {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         virtual_geometry_enabled: bool,
+        shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     ) -> BuiltMeshDraws {
         let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
         build_mesh_draws(
@@ -26,6 +28,7 @@ impl SceneRendererAdvancedPluginResources {
             streamer,
             frame,
             virtual_geometry_enabled,
+            shadow_light_slots,
         )
     }
 }

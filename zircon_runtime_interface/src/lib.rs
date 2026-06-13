@@ -20,10 +20,11 @@ pub use handles::{ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewpo
 pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTargetMode};
 pub use plugin_api::{
     ZrComponentDescV1, ZrEventTypeId, ZrHostApiV3, ZrHostAssetApiV1, ZrHostAssetRequestFnV1,
-    ZrHostDiagnosticsApiV1, ZrHostDiagnosticsEmitFnV1, ZrHostDiagnosticsMetricFnV1, ZrHostEcsApiV1,
-    ZrHostEventApiV1, ZrHostEventDrainFnV1, ZrHostEventEmitFnV1, ZrHostRegisterComponentFnV1,
-    ZrHostRegisterSystemFnV1, ZrHostSpawnCommandFnV1, ZrNativeSystemInvokeFnV1, ZrPluginApiV1,
-    ZrPluginEntryFnV1, ZrPluginEntryFnV3, ZrPluginEntryReportV1, ZrPluginSnapshotRestoreFnV1,
+    ZrHostBridgeApiV1, ZrHostBridgeCallFnV1, ZrHostDiagnosticsApiV1, ZrHostDiagnosticsEmitFnV1,
+    ZrHostDiagnosticsMetricFnV1, ZrHostEcsApiV1, ZrHostEventApiV1, ZrHostEventDrainFnV1,
+    ZrHostEventEmitFnV1, ZrHostRegisterComponentFnV1, ZrHostRegisterSystemFnV1,
+    ZrHostSpawnCommandFnV1, ZrNativeSystemInvokeFnV1, ZrPluginApiV1, ZrPluginEntryFnV1,
+    ZrPluginEntryFnV3, ZrPluginEntryReportV1, ZrPluginSnapshotRestoreFnV1,
     ZrPluginSnapshotSaveFnV1, ZrPluginStateSnapshotApiV1, ZrSystemRegistrationV1,
     ZR_PLUGIN_ENTRY_SYMBOL_V1, ZR_PLUGIN_ENTRY_SYMBOL_V3,
 };

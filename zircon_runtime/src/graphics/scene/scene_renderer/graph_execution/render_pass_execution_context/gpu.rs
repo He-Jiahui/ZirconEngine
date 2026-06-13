@@ -6,6 +6,7 @@ use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshDrawCommandStream, MeshDrawReplayStatsAccumulator,
     MeshIndirectDrawExecution, MeshSceneDataBindHandle,
@@ -16,14 +17,19 @@ use crate::graphics::scene::scene_renderer::overlay::{
 };
 use crate::graphics::scene::scene_renderer::particle::ParticleRenderer;
 use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
-use crate::graphics::scene::scene_renderer::shadow::ShadowMapRenderer;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
+use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::visibility::HzbOcclusionCullReport;
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
-use super::super::{RenderGraphComputeDispatchRecord, RenderGraphExecutionResources};
+use super::super::{
+    RenderGraphComputeDispatchRecord, RenderGraphExecutionResources, RenderGraphLightGridReport,
+};
 
+mod hzb_occlusion;
 mod mesh_motion_vector;
 mod post_process;
 
@@ -97,6 +103,36 @@ impl<'a> RenderPassMeshCommandLists<'a> {
     ) -> MeshDrawCommandStream<'a> {
         MeshDrawCommandStream::new(self.velocity_commands, self.velocity_indirect)
     }
+
+    pub(in crate::graphics::scene::scene_renderer) fn occlusion_cull_candidate_arg_count(
+        &self,
+    ) -> u32 {
+        self.hzb_occlusion_indirect_executions()
+            .into_iter()
+            .flatten()
+            .map(|execution| execution.args_count())
+            .sum()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn occlusion_cull_candidate_instance_count(
+        &self,
+    ) -> u32 {
+        self.hzb_occlusion_indirect_executions()
+            .into_iter()
+            .flatten()
+            .map(|execution| execution.total_instances())
+            .sum()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn hzb_occlusion_indirect_executions(
+        &self,
+    ) -> [Option<&'a MeshIndirectDrawExecution>; 3] {
+        [
+            self.opaque_indirect,
+            self.alpha_mask_indirect,
+            self.velocity_indirect,
+        ]
+    }
 }
 
 pub struct RenderPassGpuExecutionContext<'a> {
@@ -114,13 +150,18 @@ pub struct RenderPassGpuExecutionContext<'a> {
     prepared_overlays: Option<&'a PreparedOverlayBuffers>,
     prepass: Option<&'a NormalPrepassPipeline>,
     shadow_map_renderer: Option<&'a ShadowMapRenderer>,
+    shadow_atlas_resources: Option<&'a ShadowAtlasResources>,
+    shadow_frame_plan: Option<&'a ShadowFramePlan>,
     particle_renderer: Option<&'a ParticleRenderer>,
     sprite_renderer: Option<&'a SpriteRenderer>,
     deferred: Option<&'a DeferredSceneResources>,
     streamer: Option<&'a ResourceStreamer>,
     mesh_pipelines: Option<&'a mut MeshPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'a>>,
+    hzb_occlusion_culler: Option<&'a HzbOcclusionCuller>,
     compute_dispatches: Vec<RenderGraphComputeDispatchRecord>,
+    hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
+    light_grid_report: Option<RenderGraphLightGridReport>,
     motion_vector_camera_status: MotionVectorCameraStatus,
 }
 
@@ -169,13 +210,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             prepared_overlays: None,
             prepass: None,
             shadow_map_renderer: None,
+            shadow_atlas_resources: None,
+            shadow_frame_plan: None,
             particle_renderer: None,
             sprite_renderer: None,
             deferred: None,
             streamer: None,
             mesh_pipelines: None,
             mesh_draw_lists: None,
+            hzb_occlusion_culler: None,
             compute_dispatches: Vec::new(),
+            hzb_occlusion_cull_report: None,
+            light_grid_report: None,
             motion_vector_camera_status: MotionVectorCameraStatus::NotRequested,
         }
     }
@@ -217,6 +263,38 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         std::mem::take(&mut self.compute_dispatches)
     }
 
+    pub fn record_compute_dispatch(
+        &mut self,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        pipeline_label: impl Into<String>,
+        workgroup_size: [u32; 3],
+        dispatch_groups: [u32; 3],
+        storage_write_resources: Vec<String>,
+    ) {
+        self.compute_dispatches
+            .push(RenderGraphComputeDispatchRecord::new(
+                pass_name,
+                executor_id,
+                pipeline_label,
+                workgroup_size,
+                dispatch_groups,
+                storage_write_resources,
+            ));
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn take_hzb_occlusion_cull_report(
+        &mut self,
+    ) -> Option<HzbOcclusionCullReport> {
+        self.hzb_occlusion_cull_report.take()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn take_light_grid_report(
+        &mut self,
+    ) -> Option<RenderGraphLightGridReport> {
+        self.light_grid_report.take()
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn motion_vector_camera_status(
         &self,
     ) -> MotionVectorCameraStatus {
@@ -248,6 +326,22 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         shadow_map_renderer: &'a ShadowMapRenderer,
     ) -> Self {
         self.shadow_map_renderer = Some(shadow_map_renderer);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_shadow_atlas_resources(
+        mut self,
+        shadow_atlas_resources: &'a ShadowAtlasResources,
+    ) -> Self {
+        self.shadow_atlas_resources = Some(shadow_atlas_resources);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_shadow_frame_plan(
+        mut self,
+        shadow_frame_plan: &'a ShadowFramePlan,
+    ) -> Self {
+        self.shadow_frame_plan = Some(shadow_frame_plan);
         self
     }
 
@@ -309,6 +403,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn with_hzb_occlusion_culler(
+        mut self,
+        hzb_occlusion_culler: &'a HzbOcclusionCuller,
+    ) -> Self {
+        self.hzb_occlusion_culler = Some(hzb_occlusion_culler);
+        self
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn record_depth_prepass_to_resources(
         &mut self,
         pass_name: &str,
@@ -346,46 +448,50 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         Ok(())
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn record_shadow_map_to_resource(
+    pub(in crate::graphics::scene::scene_renderer) fn record_shadow_atlas_to_resources(
         &mut self,
         pass_name: &str,
-        shadow_map_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
+        shadow_atlas_resource_name: &str,
+        shadow_atlas_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        let shadow_map_view = self
+        let shadow_atlas_view = self
             .resources
-            .require_texture_view(shadow_map_resource_name)?;
+            .require_texture_view(shadow_atlas_resource_name)?;
         if let Some(shadow_map_renderer) = self.shadow_map_renderer {
             let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
                 format!(
-                    "shadow map graph executor for pass `{pass_name}` requires mesh draw context"
+                    "shadow atlas graph executor for pass `{pass_name}` requires mesh draw context"
                 )
             })?;
-            let replay_stats = shadow_map_renderer.record_commands_with_attachment_ops(
-                self.queue,
-                self.encoder,
-                pass_name,
-                shadow_map_view,
-                self.frame,
-                mesh_draw_lists.gpu_scene_bind_group,
-                mesh_draw_lists.shadow_stream(),
-                attachment_ops,
-            );
-            mesh_draw_lists.replay_stats.record(replay_stats);
+            if let Some(shadow_frame_plan) = self.shadow_frame_plan {
+                let replay_stats = shadow_map_renderer.record_atlas_commands_with_attachment_ops(
+                    self.queue,
+                    self.encoder,
+                    pass_name,
+                    shadow_atlas_view,
+                    shadow_frame_plan.atlas_passes(),
+                    self.frame,
+                    mesh_draw_lists.gpu_scene_bind_group,
+                    mesh_draw_lists.shadow_stream(),
+                    shadow_atlas_attachment_ops,
+                );
+                mesh_draw_lists.replay_stats.record(replay_stats);
+            } else {
+                record_depth_clear_pass(
+                    self.encoder,
+                    pass_name,
+                    shadow_atlas_view,
+                    shadow_atlas_attachment_ops,
+                );
+            }
             return Ok(());
         }
-        let _pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some(pass_name),
-            color_attachments: &[],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: shadow_map_view,
-                depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
-                stencil_ops: None,
-            }),
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
+        record_depth_clear_pass(
+            self.encoder,
+            pass_name,
+            shadow_atlas_view,
+            shadow_atlas_attachment_ops,
+        );
         Ok(())
     }
 
@@ -393,7 +499,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
         color_resource_name: &str,
         depth_resource_name: &str,
-        shadow_map_resource_name: Option<&str>,
         stage: RenderPassStage,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
@@ -413,12 +518,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if stream.is_empty() {
             return Ok(());
         }
-        let shadow_map_view = shadow_map_resource_name
-            .map(|resource_name| self.resources.require_texture_view(resource_name))
-            .transpose()?;
-        let shadow_scene_uniform = shadow_map_resource_name
-            .and_then(|_| self.shadow_map_renderer)
-            .and_then(|renderer| renderer.scene_uniform_for_frame(self.frame));
+        let light_grid_params_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        )?;
+        let light_zbins_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
+        )?;
+        let light_tile_masks_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+        )?;
         let replay_stats = BaseScenePass.record_commands_with_attachment_ops(
             self.encoder,
             self.device,
@@ -430,9 +538,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             mesh_pipelines,
             streamer,
             self.frame,
-            Some(self.queue),
-            shadow_map_view,
-            shadow_scene_uniform,
+            self.shadow_atlas_resources,
+            Some(light_grid_params_buffer),
+            Some(light_zbins_buffer),
+            Some(light_tile_masks_buffer),
             mesh_stage_attachment_ops(stage, attachment_ops),
             mesh_stage_attachment_ops(stage, depth_attachment_ops),
         );
@@ -489,7 +598,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         gbuffer_normal_resource_name: &str,
         gbuffer_material_resource_name: &str,
         scene_depth_resource_name: &str,
-        shadow_map_resource_name: &str,
         background_resource_name: &str,
         scene_color_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
@@ -506,34 +614,50 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let scene_depth_view = self
             .resources
             .require_texture_view(scene_depth_resource_name)?;
-        let shadow_map_view = self
-            .resources
-            .require_texture_view(shadow_map_resource_name)?;
+        let light_grid_params_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        )?;
+        let light_zbins_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
+        )?;
+        let light_tile_masks_buffer = self.resources.require_buffer(
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+        )?;
         let background_view = self
             .resources
             .require_texture_view(background_resource_name)?;
         let scene_color_view = self
             .resources
             .require_texture_view(scene_color_resource_name)?;
-        let shadow_scene_uniform = self
-            .shadow_map_renderer
-            .and_then(|renderer| renderer.scene_uniform_for_frame(self.frame));
         let deferred = self.deferred.ok_or_else(|| {
             format!(
                 "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
             )
         })?;
+        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
+            format!("deferred graph executor for pass `{pass_name}` requires mesh draw context")
+        })?;
+        let gpu_scene_bind_group = mesh_draw_lists
+            .gpu_scene_bind_group
+            .ok_or_else(|| {
+                format!(
+                    "deferred graph executor for pass `{pass_name}` requires GPUScene bind group"
+                )
+            })?
+            .bind_group();
         deferred.execute_lighting(
             self.device,
-            self.queue,
             self.encoder,
             self.scene_bind_group,
+            gpu_scene_bind_group,
             gbuffer_albedo_view,
             gbuffer_normal_view,
             gbuffer_material_view,
             scene_depth_view,
-            shadow_map_view,
-            shadow_scene_uniform,
+            self.shadow_atlas_resources,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
             background_view,
             scene_color_view,
             attachment_ops,
@@ -686,4 +810,24 @@ fn mesh_stage_attachment_ops(
         };
     }
     attachment_ops
+}
+
+fn record_depth_clear_pass(
+    encoder: &mut wgpu::CommandEncoder,
+    pass_name: &str,
+    depth_view: &wgpu::TextureView,
+    attachment_ops: RenderGraphAttachmentOps,
+) {
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some(pass_name),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(depth_attachment_operations(attachment_ops, 1.0)),
+            stencil_ops: None,
+        }),
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
 }

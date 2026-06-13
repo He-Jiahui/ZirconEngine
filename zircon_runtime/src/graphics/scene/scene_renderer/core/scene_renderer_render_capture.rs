@@ -1,10 +1,15 @@
 use crate::graphics::backend::GraphicsDebuggerCaptureStop;
+use crate::rhi::RenderBackendCaps;
 
 use super::scene_renderer::SceneRenderer;
 
 impl SceneRenderer {
     pub(crate) fn backend_name(&self) -> &str {
         self.backend.backend_name()
+    }
+
+    pub(crate) fn backend_caps(&self) -> RenderBackendCaps {
+        self.backend.caps()
     }
 
     pub(crate) fn start_graphics_debugger_capture(&self) {

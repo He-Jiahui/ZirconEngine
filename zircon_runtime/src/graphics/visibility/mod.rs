@@ -3,6 +3,7 @@ mod culling;
 mod declarations;
 mod occlusion;
 mod planning;
+mod static_index;
 mod view_context;
 
 pub use declarations::{
@@ -14,7 +15,13 @@ pub use declarations::{
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan,
 };
-pub use occlusion::{HzbBuildPlan, HzbBuilder};
+pub use occlusion::{
+    HzbBuildPlan, HzbBuilder, HzbOcclusionCullReadbackStats, HzbOcclusionCullReport,
+    HzbOcclusionIndirectArgsReadbackSummary,
+};
+#[allow(unused_imports)]
+pub(crate) use static_index::VisibilityStaticIndex;
+pub use static_index::VisibilityStaticIndexReport;
 pub use view_context::{
     FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityViewKey,
 };

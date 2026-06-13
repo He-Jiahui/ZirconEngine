@@ -35,6 +35,12 @@ pub(super) const RENDERING_FEATURE_ROWS: &[RenderingFeatureRow] = &[
         extra_dependencies: &[],
     },
     RenderingFeatureRow {
+        id_suffix: "contact_shadow",
+        display_name: "Contact Shadow",
+        enabled_by_default: false,
+        extra_dependencies: &[],
+    },
+    RenderingFeatureRow {
         id_suffix: "decals",
         display_name: "Decals",
         enabled_by_default: false,

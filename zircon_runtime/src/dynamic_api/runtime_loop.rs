@@ -49,6 +49,7 @@ impl RuntimeRenderBridge {
         size: UVec2,
         ui: Option<UiRenderExtract>,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "submit_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
@@ -97,6 +98,7 @@ impl RuntimeRenderBridge {
         size: UVec2,
         ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError> {
+        crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "present_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);

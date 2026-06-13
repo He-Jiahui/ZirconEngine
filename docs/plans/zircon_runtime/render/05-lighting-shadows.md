@@ -1,12 +1,59 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/light/mod.rs
+  - zircon_runtime/src/core/framework/render/light/shadow_settings.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
+  - zircon_runtime/src/graphics/tests/render_product_shadows.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
+  - zircon_plugins/Cargo.toml
+  - zircon_plugins/rendering/plugin.toml
+  - zircon_plugins/rendering/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
+  - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightRendering.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ShadowSetup.cpp
@@ -18,6 +65,14 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ShadowUtils.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/MainLightShadowCasterPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/AdditionalLightsShadowAtlasLayout.cs
+  - dev/bevy/crates/bevy_light/src/cluster/assign.rs
+  - dev/bevy/crates/bevy_light/src/cascade.rs
+  - dev/bevy/crates/bevy_pbr/src/render/light.rs
+  - dev/bevy/crates/bevy_pbr/src/render/clustered_forward.wgsl
+  - dev/bevy/crates/bevy_pbr/src/render/shadows.wgsl
+  - dev/bevy/crates/bevy_pbr/src/render/shadow_sampling.wgsl
+  - dev/Fyrox/fyrox-impl/src/renderer/shadow/csm.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/shadow/point.rs
 plan_sources:
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - .codex/plans/Rendering 插件选项补齐计划.md
@@ -54,6 +109,21 @@ plan_sources:
 | `dev/Graphics/.../Runtime/Passes/AdditionalLightsShadowAtlasLayout.cs` + `ShadowUtils.cs` | 多光源 shadow atlas 槽位分配、按分辨率档位打包、texel snapping 稳定化 |
 | `dev/UnrealEngine/.../VirtualShadowMaps/VirtualShadowMapArray.cpp` | VSM 远期预研(本计划只读不实施) |
 
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_light/src/cluster/assign.rs` | `LightGridPass` 的 CPU 聚簇构建 | `assign_objects_to_clusters`:CPU 端灯光-cluster 求交与紧凑索引打包(Rust 同型先例,数据布局取 URP zbin+tile) |
+| `dev/bevy/crates/bevy_pbr/src/render/light.rs` | `GpuLightData` 打包与 shadow view 生成 | `prepare_lights`:灯光 extract → GPU buffer 打包、级联/点光 shadow view 批量创建、`ViewShadowBindings` |
+| `dev/bevy/crates/bevy_pbr/src/render/clustered_forward.wgsl` | `zr_light_grid.wgsl` include | cluster offset/count 查询函数与着色端灯光遍历骨架的 WGSL 形态 |
+| `dev/bevy/crates/bevy_light/src/cascade.rs` | `cascade.rs` 级联分割与稳定化 | `CascadeShadowConfigBuilder::build`/`calculate_cascade_bounds`、`Cascade.texel_size`(snapping 用世界单位 texel) |
+| `dev/bevy/crates/bevy_pbr/src/render/shadows.wgsl` | `zr_shadow.wgsl` CSM 选择与槽采样 | `get_cascade_index`/`world_to_directional_light_local`/`fetch_point_shadow`/`fetch_spot_shadow` |
+| `dev/bevy/crates/bevy_pbr/src/render/shadow_sampling.wgsl` | PCF 质量分档(LS-M4) | `sample_shadow_map_hardware`(硬件 2x2)与 `sample_shadow_map_castano_thirteen`(高质量核)的 WGSL 写法 |
+| `dev/Fyrox/fyrox-impl/src/renderer/shadow/csm.rs` | CSM 最小可用 Rust 实现 | `CSM_NUM_CASCADES` 级联数组、`split_options` 分割、逐级联正交投影 + framebuffer 组织 |
+| `dev/Fyrox/fyrox-impl/src/renderer/shadow/point.rs` | point 光立方体 6 面阴影 | cube map 六面(`CubeMapFaceDescriptor::cube_faces`)shadow pass 组织,LS-M3 point 光 6 槽参照 |
+
+`ShadowAtlas` shelf 槽位分配器无 Rust 同类参照(bevy 走 texture array 分层、Fyrox 走独立 framebuffer,均无 atlas 打包),实现时以 URP `AdditionalLightsShadowAtlasLayout.cs` 为唯一样板,按 index §8 第 8 条配对拍测试先行。
+
 ## 目标架构
 
 归属:`graphics/scene/scene_renderer/` 下新增 `lighting/`(grid 构建与光照 pass)并升级 `shadow/`;灯光契约扩展在 `core/framework/render/light/`。
@@ -61,7 +131,7 @@ plan_sources:
 核心设计:
 
 - `GpuLightData`:进计划 03 GpuScene 的 light buffer(类型、位置/方向、颜色强度、范围/锥角、阴影槽位索引、layer mask);extract 端 `light/snapshots.rs` 增加稳定 light id。
-- `LightGridPass`(compute):URP 风格 zbin + tile 灯光列表(比 UE 链表更简单,wgpu storage buffer 友好);输出 grid header + 紧凑索引表。forward 着色与 deferred lighting pass 同读此 grid。
+- `LightGridPass`:URP 风格 zbin + tile 灯光列表(比 UE 链表更简单,wgpu storage buffer 友好);V1 由 CPU 构建并经 graph executor 上传到瞬态 buffer,IO 合同保留为后续 GPU compute 构建可替换形态。forward 着色与 deferred lighting pass 同读此 grid。
 - deferred lighting 改造:从"场景 uniform 灯光循环"切到"grid 驱动循环";forward+ 同一 WGSL include 共享采样函数。
 - `ShadowAtlas`:单张大 depth 纹理 + 槽位分配器(2 的幂档位,按光源屏幕占比/优先级分配与降档);方向光 CSM 占独立 atlas 区段;级联划分采用对数线性混合 + texel snapping + 级联间过渡带。
 - per-light 阴影参数契约:bias/normal bias/分辨率偏好/是否投影进 `light/` 契约与编辑器面板对接;`casts_shadow` relevance 由计划 04 提供。
@@ -70,6 +140,22 @@ plan_sources:
 ## 里程碑
 
 ### LS-M1 GpuLightData 与灯光上限解除
+
+进度(2026-06-13):
+- 已完成第一段数据底座:新增 framework 侧 `GpuLightData`/`GpuLightType`/`LightShadowSettings`;
+  `RenderDirectionalLightSnapshot`/`RenderPointLightSnapshot`/`RenderSpotLightSnapshot`/`RenderRectLightSnapshot`
+  已携带稳定 `light_id`、`layer_mask` 与可选 shadow 设置,真实 scene extract 以 `node_id` 作为稳定 id 并继承实体 render layer mask。
+- 已新增 `graphics/scene/scene_renderer/lighting/light_buffer.rs`,按 Bevy light packing 与 URP structured additional-light buffer 思路,
+  将 directional/point/spot/rect 全量打包为 96B `GpuLightData`;该打包路径不再按 scene-uniform 点光上限截断。
+- `GpuScene` 现已拥有真实 light storage buffer、CPU shadow、容量增长、整段上传和 bind group 重建路径;
+  `build_mesh_draws` 会在 primitive/instance 同步前把当前帧 packed lights 写入 GPUScene,由既有 GPUScene flush 一并上传。
+- LS-M1 shader 硬切换已落地:forward fallback 与 deferred lighting 均 prepend `zr_gpu_scene.wgsl`,从 group3 的
+  `GpuLightData` storage buffer 做全量灯光循环;deferred lighting pipeline layout 绑定同一 GPUScene group3。
+- `SceneUniform` 已删除 `light_dir`/`light_color`/点光数组/点光参数字段,非光照 shader 只声明自己实际读取的 camera/ambient/motion
+  prefix;`readiness.rs` 已移除旧 scene-uniform directional/point 上限,方向光/点光/聚光按 light-buffer 消费路径报告 ready。
+- LS-M1 窄范围验收已补齐:core-min `cargo check` 通过,已构建 lib-test 二进制并直接跑通 light ABI、light packer、
+  GPUScene light upload、forward/deferred WGSL validity 与 GPU light shader source 断言;`render_product_many_point_lights`
+  已补源码产品合同,证明 64 点光打包不截断。真实 >8 点光 forward/deferred 捕获对拍仍是剩余验收项。
 
 实施切片:
 1. light buffer 进 GpuScene(依赖计划 03 GS-M1);extract 增加 light id 与脏更新。
@@ -81,21 +167,141 @@ plan_sources:
 
 ### LS-M2 clustered light grid
 
+进度(2026-06-13):
+- 已完成 light grid 数据底座:新增 `lighting/light_grid_builder.rs`,按 URP zbin + tile mask 结构构建
+  `LightGridParams`、zbin header、tile bitmask 与 `LightGridStats`;tile 从 8px 起按预算倍增,
+  zbin/tile word 上限分别固定为 4096/8192,方向光覆盖全 grid,point/spot/rect 以 view-space sphere 近似求交。
+- 已新增 `lighting/light_grid_pass.rs`,从当前 extract 与 camera 生成 frame light grid 并写入 zbin/tile buffers;
+  `light-grid-build` graph 节点声明 `LIGHT_ZBINS`、`LIGHT_TILE_MASKS`,并暂时继续写 legacy `LIGHT_LIST`
+  供旧 tile tint/post-process 兼容路径消费。
+- 已新增 `lighting/shaders/zr_light_grid.wgsl`,提供 grid 参数、zbin header、tile base、mask word 与灯光计数查询函数;
+  该 include 已被 forward fallback、deferred lighting 与内建 PBR shader 共同引用;三条着色路径已从 LS-M1 全量 light-buffer
+  循环切到 `zbin_word & tile_word` 的 grid mask 交集遍历,并在 light index 越界时保护返回。
+- graph executor 注册名已从 `lighting.clustered-cull` 收束为 `lighting.light-grid`,pipeline 编译器为
+  `LIGHT_GRID_PARAMS`/`LIGHT_ZBINS`/`LIGHT_TILE_MASKS` 分配 transient buffer,mesh/deferred pass 描述符声明读取这些资源。
+  forward group1 layout 与 deferred lighting group1 layout 都绑定 light-grid uniform/storage buffers;motion-vector 与 overlay
+  路径使用 disabled/empty fallback buffers。
+- `LightGridStats` 已接入 graph execution record、`SceneRenderer::last_light_grid_report()`、`RenderStats` 与产品诊断;
+  指标记录在 `render.light_grid.*`,包括 light/tile/zbin 数、非空 tile/zbin/cluster、峰值每簇灯光数与平均每簇灯光数。
+- 64 点光产品合同切片(2026-06-14):新增 `render_product_many_point_lights`,在 render product 层证明 64 个 point light
+  进入 `GpuLightData` packer、light grid 使用第二个 32-bit word、zbin/tile mask 保留高位灯光,且默认 Forward+/Deferred 编译图
+  都经 `light-grid-build` 写入并由 mesh/deferred lighting pass 读取 `LIGHT_GRID_PARAMS`/`LIGHT_ZBINS`/`LIGHT_TILE_MASKS`。
+- 验证(2026-06-13):`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` 通过
+  (仓库既有 warnings);临时 Naga 验证器直接解析并验证了 fallback mesh、deferred lighting、builtin PBR 三份拼接后 WGSL。
+  过滤 `cargo test` 目标在 Windows lib-test 代码生成阶段两次超时,未返回测试结果;本切片保留源码断言与 check/WGSL 验证作为当前证据。
+- 64 点光合同验证(2026-06-14):`cargo fmt --all`、`cargo fmt --all -- --check` 通过;`cargo check -p zircon_runtime
+  --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin --message-format short --color never`
+  通过(66 个仓库既有 warnings)。`cargo test -p zircon_runtime --lib render_product_many_point_lights --no-default-features
+  --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin
+  --message-format short --color never --no-run` 完成 lib-test 编译;随后直接运行生成的
+  `zircon_runtime-5d2828c2001649f6.exe render_product_many_point_lights --nocapture` 通过 1 个过滤测试。该切片仍不替代真实
+  forward/deferred 捕获对拍。
+
 实施切片:
-1. zbin+tile grid 构建 compute pass(graph 节点);grid 资源经计划 01 瞬态池。
+1. zbin+tile grid CPU 构建 + graph 上传节点;grid 资源经计划 01 瞬态池,IO 合同保留后续 GPU compute 替换空间。
 2. forward 与 deferred 着色切换为 grid 驱动;共享 WGSL include。
 3. grid 统计(平均/峰值每簇灯光数)进 RenderStats。
 
 测试阶段:
-- `cargo test -p zircon_runtime lighting --locked`(grid CPU 参考实现对拍 compute 结果)
+- `cargo test -p zircon_runtime lighting --locked`(grid builder zbin/tile mask、预算扩张、WGSL include 解析)
 - 验收证据:百灯场景着色成本与灯光局部密度相关而非总数(统计);两管线产物一致性对拍。
 
 ### LS-M3 CSM 完整化与 shadow atlas
 
+进度(2026-06-13):
+
+- LS-M3 第一切片已完成底层支撑:新增 `shadow/atlas/allocator.rs` 与 `shadow/cascade.rs`,并给 `ShadowResolutionTier`
+  补齐降档辅助方法。atlas 分配器支持 4096 默认 atlas、顶部 CSM 保留行、URP 风格整体面积降档、优先级压力驱逐、
+  上一帧槽位复用、8 帧滞回、连续 4 帧且高 25% 的抢占门槛,并输出 frame allocation/rejection 报告。
+- CSM 支撑已实现 log/linear 混合 split、fade range、camera frustum slice bounds、light-space texel snapping 与
+  snapped orthographic view-projection helper。该底座现在同时服务 `ShadowFramePlan` 的 atlas slot 矩阵和 Plan 04
+  direction cascade shadow view camera,让 atlas pass 与 visibility 使用同一套 split/bounds 口径。
+- 已新增 `shadow/slot.rs` 固定 `GpuShadowSlot`/`GpuShadowGlobals` CPU-side GPU ABI:`ZrShadowSlot` 为 96 B
+  (`view_proj` 0、`atlas_scale_bias` 64、`params` 80),globals 为 48 B(cascade far split、fade length、atlas size/
+  inv-size)。已新增 `shadow/atlas/resources.rs`,由 `SceneRendererCore` 持有持久 WGPU depth atlas、atlas view、
+  comparison sampler、`shadow_slots` storage buffer 与 `shadow_globals` uniform buffer;默认 4096x4096/256 slot,
+  设备 2D 纹理上限不足时降到 2048。`shadow/atlas/bindings.rs` 已把最终 group1 binding 固定为
+  8/9/10/11,避开 legacy shadow 与 light-grid 槽位。当前每帧上传 `ShadowFramePlan` 产出的 slot/global payload,
+  并已把 atlas entries 插进 forward/deferred group1 layout 与 bind group;motion-vector/overlay 等无 atlas 输入路径使用 disabled fallback
+  slot/global buffer。
+- 已新增 `shadow/plan.rs` 作为 LS-M3 计划桥接层:根据整帧 `ViewportRenderFrame` 构建 `ShadowFramePlan`,方向光写连续 CSM slot,
+  point 光要求 6 个 face slot 全部分配成功才写入,spot 光写 1 个 slot,并在 `build_mesh_draws` 写入 GPUScene light buffer 前
+  patch `GpuLightData.shadow_slot_layer.x` 与 `shadow_params.w`。当前 slot `view_proj` 已从 identity 占位推进为真实矩阵:
+  方向光基于主相机 frustum slice bounds 生成 texel-snapped CSM 正交矩阵,spot 基于位置/方向/锥角/range 生成透视矩阵,
+  point 光写 6 个 90 度 face 透视矩阵。
+- 已新增 `shadow/shaders/zr_shadow.wgsl`,由 forward fallback、deferred lighting 与 builtin PBR shader 共享 include。shader 端
+  通过 `GpuLightData.shadow_slot_layer`/`shadow_params.w` 选择方向光级联、point 光 cube face 或 spot 单槽,投影到
+  `ZrShadowSlot.view_proj` 与 atlas scale/bias 后按 slot flag 进行 1/5/9 tap comparison PCF;默认 authoring 档位为 Low,
+  现有产品合同显式设 High 以保留旧 3x3 采样行为。
+- 已完成 graph-declared atlas depth 写入闭环:`PostProcessGraphResourceNames::SHADOW_ATLAS` 是 graph-visible
+  外部资源,内建 shadows descriptor 已收束为 `shadow-atlas` pass / `shadow.atlas` executor;forward mesh、deferred lighting
+  与 deferred transparent mesh 显式读取 `SHADOW_ATLAS` 以建立 graph 顺序。
+  `import_frame_targets()` 把持久 `ShadowAtlasResources::atlas_view()` 导入 execution resources,Shadow 阶段把
+  `ShadowFramePlan` 传入 `RenderPassGpuExecutionContext`,并由 `ShadowMapRenderer::record_atlas_commands_with_attachment_ops()`
+  按 `ShadowAtlasSlotPass { slot_index, rect, view_proj, view_key }` 逐槽设置 viewport/scissor 后 replay shadow command stream。
+  本轮已让方向光 cascade、point face、spot slot pass 分别绑定 `VisibilityViewKey::ShadowCascade { light, cascade }`、
+  `ShadowPointFace { light, face }`、`ShadowSpot { light }`;shadow 命令携带 source entity,atlas 写入回放时会按对应 Plan 04
+  shadow view 的 visible entity set 跳过不可见命令。Plan 04 现在生成 atlas 所需 view key,且方向光各 cascade shadow view
+  使用同一套 CSM frustum slice bounds。pass/executor 命名已收束为最终 atlas 形态。
+- atlas receiver 硬切片(2026-06-14):已删除 graph 级 legacy `SHADOW_MAP` 资源、forward/deferred 旧单贴图 receiver bindings
+  (`shadow_map_tex`/`ShadowReceiverUniform`/`shadow_compare_sampler`)与 Rust receiver uniform buffers;`shadow-atlas` pass
+  现在只写 external `SHADOW_ATLAS`,所有 forward/deferred receiver shader 只通过 atlas slot 采样。`RenderShadowExecutionReport`
+  的写入统计改为 `shadow_atlas_write_count`,graph/test 夹具也收束到 `shadow-atlas`。
+- caster/receiver 源码保护切片(2026-06-14):新增 `mesh_visibility_states_preserve_shadow_only_casters`,在 mesh draw
+  visibility state 层证明"主视图不可见但 shadow view 可见"的 caster 会保留 `shadow_view_visible=true`,不会被
+  main-view culling 误删。该切片只覆盖源码级 caster 保留边界,不替代 forward/deferred 对拍、CSM 平移稳定性或 multi-spot
+  产品捕获。
+- 产品阴影合同切片(2026-06-14):新增 `render_product_csm_directional` 与 `render_product_multi_spot_shadows`,
+  将方向光 4 级联 slot 生成与 ≥3 spot 阴影同帧 atlas 槽位不重叠写入 render product 源码合同。该切片仍不替代真实
+  forward/deferred 捕获对拍、CSM 平移稳定性抓帧和 receiver 覆盖验证。
+- 验证(2026-06-13):`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` 通过
+  (仓库既有 warnings)。`cargo test -p zircon_runtime shadow --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --no-run --message-format short --color never`
+  在 Windows 共享 lib-test 编译/代码生成阶段 600s 超时,未返回测试二进制;残留 cargo/rustc 进程已确认清理。真实矩阵切片随后已通过同一 core-min
+  `cargo check` 形态。本轮 atlas binding/shader sampling 切片再次通过同一 core-min `cargo check`;focused
+  `fallback_mesh_shader_is_valid_wgsl` 测试在共享 lib-test 编译阶段 600s 超时,残留 cargo/rustc 进程已清理。本轮
+  graph-declared atlas depth 写入切片已运行同一 core-min `cargo check` 并通过,仍为 70 个仓库既有 warnings。随后尝试
+  `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked render_shadow_frame_plan_assigns_first_directional_cascade_slots --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never -- --exact --nocapture`
+  在 600s 内未返回测试结果,仍表现为 Windows 共享 lib-test 编译超时;本次超时命令未留下对应 target-dir 的 cargo/rustc 残留进程。
+  随后的 atlas shadow-view 扩展切片已再次通过 `cargo fmt --all -- --check` 与同一 core-min `cargo check`,覆盖 `ShadowCascade`、
+  `ShadowPointFace`、`ShadowSpot` view key 生成和 atlas slot pass 绑定,仍为仓库既有 warnings。focused
+  `visibility_context_builds_shadow_views_for_atlas_light_slots` 测试尝试在 600s 内未返回结果,仍表现为 Windows 共享 lib-test
+  编译超时;对应 target-dir 的残留 cargo/rustc 进程已停止或已退出。方向光 frustum-slice follow-up 随后在同一 target dir 下完成
+  shared lib-test `--no-run` 编译;`cargo test ... render_shadow_ -- --nocapture` 通过 27 个 shadow 过滤测试,覆盖新增
+  `render_shadow_cascade_bounds_follow_camera_slice_depth` 与 `render_shadow_frame_plan_builds_distinct_directional_cascade_matrices`;
+  `cargo test ... visibility_context_builds_shadow_views_for_atlas_light_slots -- --nocapture` 通过 1 个 visibility 过滤测试。
+- pass/executor 命名收束切片(2026-06-13):内建 shadows descriptor、执行器注册、产品阴影合同与图统计合同已从
+  `shadow-map`/`shadow.map` 收束为 `shadow-atlas`/`shadow.atlas`,当时仍继续写 legacy `SHADOW_MAP` 与 external
+  `SHADOW_ATLAS`;该 legacy 写入已在 2026-06-14 receiver hard cut 中删除。`cargo fmt --all -- --check`、scoped `git diff --check` 通过;`cargo check -p zircon_runtime
+  --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin
+  --message-format short --color never` 通过(66 个仓库既有 warnings)。`cargo test ... shadow_atlas -- --test-threads=1 --nocapture`
+  通过 16 个过滤测试,1 个 `render_framework_stats_report_shadow_atlas_graph_execution` 因当前 HZB occlusion WGPU
+  storage-buffer 上限 blocker 被标记 ignored;直接运行已构建的 core-min lib-test 二进制 `render_product_shadows`
+  通过 4 个产品阴影合同测试。`render_product_shadows` 的 Cargo wrapper 在复用 target dir 时遇到 dep-info 写入错误,
+  干净 target dir 重新编译 15 分钟超时;默认 Forward+/Deferred pipeline compile 过滤的重新编译也在共享 lib-test 链接阶段超时,
+  但最终 core-min `cargo check` 已重新通过且无残留 cargo/rustc 进程。
+- hard cut 验证(2026-06-14):`cargo fmt --all`、`cargo fmt --all -- --check`、本切片 scoped `git diff --check` 通过;
+  `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-shadow-atlas-cutover-coremin --message-format short --color never`
+  通过(66 个仓库既有 warnings)。`cargo test -p zircon_runtime --lib shadow_atlas --no-default-features --features core-min --locked ...`
+  在启动前被当前 `Cargo.lock` 与测试目标解析不一致阻止,未修改锁文件,无测试结果。
+- 产品阴影合同验证(2026-06-14):`cargo fmt --all`、`cargo fmt --all -- --check` 通过;`cargo check -p zircon_runtime
+  --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-vc3-product-shadow-contracts-coremin --message-format short --color never`
+  通过(66 个仓库既有 warnings)。`cargo test -p zircon_runtime --lib render_product_multi_spot_shadows --no-default-features
+  --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-product-shadow-contracts-coremin
+  --message-format short --color never --no-run` 在 904s 后仍未返回 shared lib-test 编译结果,无过滤测试结果;无残留
+  target-dir cargo/rustc 进程,未修改 `Cargo.lock`。
+
 实施切片:
 1. 级联划分/稳定化/过渡带;`ShadowAtlas` 槽位分配器与降档策略。
 2. point(立方体 6 面或双抛物面)/spot 阴影入 atlas;`GpuLightData` 写阴影槽位与矩阵。
-3. shadow pass 接计划 02 `ShadowPassProcessor` 与计划 04 per-light view 剔除。
+3. 已接入计划 04 per-light/per-slot view 剔除与方向光 frustum-slice 精化:atlas replay 按 `ShadowAtlasSlotPass.view_key` 过滤 source entity,覆盖方向光 cascade、point face、spot;方向光 cascade view 与 atlas slot 矩阵共享 CSM frustum-slice bounds。
+4. 已收束 graph pass/executor 命名并完成 receiver 硬切:`shadow-atlas` / `shadow.atlas` 为当前图合同;旧 `SHADOW_MAP` graph 资源与单贴图 receiver 绑定已删除。
 
 测试阶段:
 - `cargo test -p zircon_runtime shadow --locked`(分配器单测:档位、驱逐、降档)+ `render_product` 阴影场景
@@ -103,9 +309,49 @@ plan_sources:
 
 ### LS-M4 PCF 质量与 contact shadow(可选 feature)
 
+进度(2026-06-14):
+- 已完成 PCF 质量源码切片:新增 `ShadowPcfQuality { Low, Medium, High }` 并接入 `LightShadowSettings.pcf_quality`,
+  `GpuShadowSlot.params.w` 的 flags 以 bit 8..9 编码质量档位,`ShadowFramePlan` 按 per-light shadow settings 写入 slot。
+    `zr_shadow.wgsl` 现在按 slot flag 分流 Low=1 tap、Medium=5 tap 十字、High=9 tap 3x3;forward fallback、deferred lighting
+    与 builtin PBR shader source 断言均覆盖该 include 合同。
+- 已完成 contact shadow 描述符闭环:新增 `rendering.contact_shadow` 可选 feature,同步 `zircon_plugins/Cargo.toml`、
+  `plugin.toml`、Rendering runtime provider、内置 Rendering catalog 行与编辑器 capability;runtime crate 注册
+  `contact-shadow` / `lighting.contact-shadow` async compute pass,读取 `scene-depth`、`gbuffer-normal`、计划 04 `hzb-furthest`,
+  写入 `contact-shadow-occlusion` transient storage texture。`plugin_render_features.rs` 将该 feature 插到 `hzb-build`
+  之后、`light-grid-build` 之前;插件测试覆盖 feature 关闭时 compiled graph 无 `contact-shadow` pass。
+- 已完成 contact shadow 最小真实执行器:runtime crate 用插件自有 `RenderPassExecutor` 替换 no-op,缓存 WGPU compute pipeline,
+  绑定 depth/normal/HZB 与 `contact-shadow-occlusion` storage texture,执行 `contact_shadow.wgsl` 的 8x8 ray-march pass,
+  并通过 `RenderPassGpuExecutionContext::record_compute_dispatch(...)` 记录实际 dispatch 与 storage write 资源。该执行器不依赖
+  runtime 私有 post-process stack;仍保持 feature 默认关闭。
+- 已完成 contact shadow 后处理消费闭环:`post.stack` graph pass 现在声明读取 `contact-shadow-occlusion`,保证该 transient
+  texture 的生命周期覆盖到最终后处理;feature 关闭或资源缺席时 execution 绑定白色 fallback。`SceneRuntimeFeatureFlags` 新增
+  `contact_shadow_enabled`,由插件 feature 名 `contact_shadow` 驱动;`PostProcessParams::lighting_flags.x` 独立控制 contact shadow,
+  不复用 SSAO 标志。`post_process.wgsl` 新增 binding 27 `contact_shadow_tex`,在最终颜色阶段把 contact visibility 与 AO
+  分开相乘;SSR 内部 pass 复用同一 bind group 布局时绑定白色 fallback,不采样 contact shadow 槽位。
+- 验证(2026-06-14):`cargo fmt --all -- --check` 与 scoped `git diff --check` 通过;`cargo check -p zircon_runtime
+  --lib --no-default-features --features core-min --locked --jobs 1
+  --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never` 通过(67 个仓库既有 warnings)。
+  `cargo test -p zircon_runtime --lib pcf_quality --no-default-features --features core-min --locked --jobs 1
+    --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never --no-run`
+    在 Windows 共享 lib-test 编译/链接阶段超时 904 秒,未产出过滤测试结果;残留的该 target-dir cargo/rustc 进程已停止。
+    轻量源码合同检查确认 12 个关键符号/断言存在。
+  - contact shadow 验证(2026-06-14):scoped `rustfmt --edition 2021 --check` 通过;scoped `git diff --check` 通过
+    (仅 CRLF 提示);`cargo metadata --manifest-path zircon_plugins\Cargo.toml --no-deps --format-version 1 --locked`
+    确认 `zircon_plugin_rendering_contact_shadow_runtime` 与 `zircon_plugin_rendering_contact_shadow_editor` 已进入插件 workspace;
+    16 项 contact-shadow 源码合同检查通过。真实执行器切片追加 scoped `rustfmt --edition 2021 --check`、scoped
+    `git diff --check` 与 15 项源码合同检查,覆盖 WGPU executor、storage texture binding、shader binding 和 dispatch 记录入口。
+    后处理消费切片追加 scoped `rustfmt --edition 2021`、scoped `git diff --check`、12 项源码合同检查与 4 个 SSR fallback
+    调用点检查,覆盖 runtime flag、post.stack graph 读取、binding 27、WGSL contact shadow 采样和插件侧 post-process 读依赖断言。
+    本切片复跑 `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+    --target-dir D:\cargo-targets\zircon-runtime-contact-shadow-post-0614` 与
+    `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_rendering_contact_shadow_runtime --locked --jobs 1
+    --target-dir D:\cargo-targets\zircon-contact-shadow-post-0614`,两者均在编译前因对应 lock 文件需要刷新而被 `--locked`
+    拦截;当前未修改 lock 文件,本切片不强行刷新/恢复 `Cargo.lock`。
+
 实施切片:
-1. PCF 核(质量分档:1/5/9 tap)与 per-light bias 体系定稿。
-2. contact shadow(屏幕空间短距离 ray march,读 HZB)作为 rendering 插件可选 feature 接入。
+1. 已完成 PCF 核(质量分档:1/5/9 tap)与 per-light bias/pcf quality 槽位合同定稿。
+2. 已完成:contact shadow(屏幕空间短距离 ray march,读 HZB)作为 rendering 插件可选 feature 接入,并已通过 post.stack 读取
+   `contact-shadow-occlusion` 乘入最终颜色;后续仍需真实抓帧评估视觉质量。
 
 测试阶段:
 - `cargo test -p zircon_runtime shadow --locked` 与 `cargo test --manifest-path zircon_plugins/Cargo.toml -p <rendering feature crate> --locked`
@@ -128,10 +374,17 @@ plan_sources:
 | `zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs` | CPU zbin+tile 构建(URP Jobs 形态的 Rust 移植)+ `LightGridParams` 计算 | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs` | `lighting.light-grid` executor:buffer 写入与 grid 统计进 RenderStats | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl` | 共享 include:grid 查询函数(无 entry point) | WGSL |
-| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/mod.rs` | `ShadowAtlas`:atlas 纹理生命周期 + 槽位表 | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/mod.rs` | atlas 模块 wiring、allocator/resources 出口 | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator.rs` | `ShadowAtlasAllocator`(shelf 分配器)+ 滞回/降档策略 | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/bindings.rs` | `shadow_atlas` group1 binding ABI:8 atlas/9 sampler/10 slots/11 globals | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs` | `ShadowAtlasResources`:持久 WGPU atlas、compare sampler、slot storage/global uniform buffer owner | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/shadow/cascade.rs` | `CascadeSplitConfig`、log/linear 混合分割、texel snapping、过渡带计算 | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs` | `ShadowFramePlan`:extract 灯光 → shadow slot/global payload + atlas slot-pass descriptors → light buffer slot 写回 | graphics 实现 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs` | `GpuShadowSlot`/`GpuShadowGlobals` POD、atlas allocation 到 slot 打包、flags/layout 常量 | graphics 实现 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl` | 共享 include:slot 采样、CSM 选择、PCF 核 | WGSL |
+| `zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs` | `rendering.contact_shadow` 可选 feature runtime:注册 HZB 驱动 `contact-shadow` graph pass、WGPU compute executor 与契约测试 | rendering plugin |
+| `zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl` | contact shadow compute shader:读 scene depth/normal/HZB,写 Rgba8Unorm visibility 输出 | WGSL |
+| `zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs` | `rendering.contact_shadow` editor capability/manifest 投影 | rendering plugin |
 
 修改文件:
 
@@ -140,14 +393,17 @@ plan_sources:
 | `zircon_runtime/src/core/framework/render/light/snapshots.rs` | 各 snapshot 增加 `light_id: u64`(稳定 id,extract 端生成)、`layer_mask: u32`、`shadow: Option<LightShadowSettings>` |
 | `zircon_runtime/src/core/framework/render/light/readiness.rs` | 删除 `BASIC_SCENE_UNIFORM_*_LIMIT` 与 `ready_point_light_count` 等截断逻辑;readiness 改为 buffer 容量导向(LS-M1 硬切换) |
 | `zircon_runtime/src/core/framework/render/light/mod.rs` | re-export 更新(thin) |
-| `zircon_runtime/src/core/framework/render/post_process/stack.rs` | `PostProcessGraphResourceNames` 新增 `LIGHT_BUFFER`、`LIGHT_ZBINS`、`LIGHT_TILE_MASKS`、`SHADOW_ATLAS`、`SHADOW_SLOTS`;既有 `LIGHT_LIST`/`SHADOW_MAP` 名删除 |
+| `zircon_runtime/src/core/framework/render/post_process/stack.rs` | `PostProcessGraphResourceNames` 新增/保留 `LIGHT_ZBINS`、`LIGHT_TILE_MASKS`、`SHADOW_ATLAS`、`CONTACT_SHADOW_OCCLUSION`;`LIGHT_LIST` 仅作为旧 tile tint/post-process 过渡资源保留,grid 着色切换后删除;LS-M3 已删除旧 `SHADOW_MAP` graph 资源 |
+| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs` | `post.stack` 声明读取 `CONTACT_SHADOW_OCCLUSION`,让 contact shadow transient 生命周期覆盖最终后处理 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/post_process/**` | `SceneRuntimeFeatureFlags::contact_shadow_enabled`、`PostProcessParams::lighting_flags`、post-process bind group binding 27 与 WGSL contact shadow 采样/合成路径 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs` | 删除 `light_dir`/`light_color`/`point_light_position_range`/`point_light_color_intensity`/`point_light_params` 字段(ambient 保留) |
 | `zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs` | 删除 `authored_point_light_data`/`empty_point_light_data` |
 | `zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl` + `mesh/mesh_pipeline/fallback_mesh_shader_source.rs` | 灯光循环改读 light buffer(LS-M1 全量循环→LS-M2 grid 驱动);shadow 采样按计划 03 GS-M2 槽位重排进 group1 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/{create.rs,shader_source.rs}` + `deferred/lighting_bind_group_layout/` | deferred lighting 从 uniform 灯光循环切 grid 驱动;group1 layout 与 forward 共用同一布局常量 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs` | LS-M3 整体替换:`shadow_light`/`shadow_scene_uniform`/`shadow_view_projection` 删除,命令生成走计划 02 `MeshPassProcessor`,view 来自 `cascade.rs` + atlas 槽位 |
-| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs` | pass 改名 `light-grid-build`,IO:`write_buffer(LIGHT_ZBINS)` + `write_buffer(LIGHT_TILE_MASKS)`(不再 read SCENE_DEPTH,zbin/tile 为 CPU 构建,见帧时序) |
-| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs` | `write_texture_with_ops(SHADOW_ATLAS, ...)`;executor id 改 `shadow.atlas` |
+| `zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs` | atlas caster renderer:按 `ShadowAtlasSlotPass` 更新 scene uniform、viewport/scissor 并 replay shadow stream 写 atlas;旧单 shadow map 直录路径、`shadow_light`/`shadow_scene_uniform` 等 legacy receiver 辅助已删除 |
+| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs` | pass 改名 `light-grid-build`,IO:`write_buffer(LIGHT_ZBINS)` + `write_buffer(LIGHT_TILE_MASKS)`(不再 read SCENE_DEPTH,zbin/tile 为 CPU 构建,见帧时序);过渡期仍写 `LIGHT_LIST` 供旧调试/tint executor 消费 |
+| `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs` | pass 已收束为 `shadow-atlas`/`shadow.atlas`,只 `write_external_with_ops(SHADOW_ATLAS, ...)`;旧 `SHADOW_MAP` 写入已删除 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs` | 对插件公开 `record_compute_dispatch(...)`,允许插件 executor 把真实 compute dispatch 与 storage 写资源汇入帧执行记录 |
 | `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/{default_forward_plus.rs,default_deferred.rs}` | feature 列表不变(`Shadows`/`ClusteredLighting` 复用),无新增 stage |
 
 ### 核心类型与接口
@@ -208,6 +464,26 @@ impl ShadowAtlasAllocator {
 pub(crate) struct CascadeSplitConfig { pub cascade_count: u32 /*<=4*/, pub max_distance: f32, pub log_linear_lambda: f32 /*默认 0.7*/, pub fade_fraction: f32 /*默认 0.1*/ }
 pub(crate) fn compute_cascade_splits(cfg: &CascadeSplitConfig, near: f32) -> [f32; 5];
 pub(crate) fn snapped_cascade_view_proj(light_dir: Vec3, frustum_slice: &FrustumSlice, resolution: u32) -> Mat4; // texel snapping
+
+// shadow/slot.rs
+#[repr(C, align(16))]
+pub(crate) struct GpuShadowSlot { pub view_proj: [[f32; 4]; 4], pub atlas_scale_bias: [f32; 4], pub params: [f32; 4] } // 96 B
+#[repr(C, align(16))]
+pub(crate) struct GpuShadowGlobals { pub cascade_splits: [f32; 4], pub cascade_fade_lengths: [f32; 4], pub atlas_params: [f32; 4] } // 48 B
+
+// shadow/atlas/resources.rs
+pub(crate) struct ShadowAtlasResourceConfig { pub width: u32, pub height: u32, pub slot_capacity: u32 }
+pub(crate) struct ShadowAtlasResources; // owns atlas texture/view, compare sampler, shadow_slots storage, shadow_globals uniform
+
+// shadow/atlas/bindings.rs
+pub(crate) const SHADOW_ATLAS_BINDING: u32 = 8;
+pub(crate) const SHADOW_ATLAS_SAMPLER_BINDING: u32 = 9;
+pub(crate) const SHADOW_ATLAS_SLOT_BUFFER_BINDING: u32 = 10;
+pub(crate) const SHADOW_GLOBALS_BINDING: u32 = 11;
+
+// shadow/plan.rs
+pub(crate) struct ShadowFramePlan; // owns frame slots/globals and per-light first-slot assignments
+pub(crate) struct ShadowLightSlotAssignments; // patches GpuLightData.shadow_slot_layer.x + shadow_params.w
 ```
 
 阴影 view 剔除经计划 04 `ViewVisibilityContext`(per-light view,`casts_shadow` relevance 由 `PrimitiveRelevance` 提供);shadow pass 命令经计划 02 `MeshPassProcessor` 生成语义槽命令,不直接 `set_pipeline`。
@@ -229,20 +505,54 @@ zbin buffer(`array<u32>`):每 bin 跨度 `2 + words_per_tile` 个 u32。word0 = 
 
 tile mask buffer(`array<u32>`):`tile_masks[(tile_y * tile_res.x + tile_x) * words_per_tile + word]`,bit i = 灯 i 覆盖该 tile。`words_per_tile = (light_count + 31) / 32`;tile 边长从 8px 起倍增直至 `tile_res.x * tile_res.y * words_per_tile <= ZR_MAX_TILE_WORDS`(URP `actualTileWidth` 同策略)。着色时灯光遍历集合 = `zbin_word & tile_word` 的按位与(URP 双重裁剪同构)。
 
-group1(pass 级,index.md §8;槽位编号基于计划 03 GS-M2 重排后的 fallback_mesh.wgsl,forward 着色 pass 与 deferred lighting pass 同一布局):
+group1(pass 级,index.md §8;LS-M3 已完成 atlas receiver hard cut。forward 着色 pass 与
+deferred lighting pass 都从 group3 `GpuScene` 读取 `array<GpuLightData>` light buffer,group1 只放 pass-local 纹理/采样器/
+light-grid 资源):
+
+Forward group1 当前布局:
 
 | binding | 资源 | 类型 |
 |---------|------|------|
-| 0 | light_buffer | `var<storage, read> array<GpuLightData>` |
-| 1 | light_grid_params | `var<uniform> ZrLightGridParams` |
-| 2 | light_zbins | `var<storage, read> array<u32>` |
-| 3 | light_tile_masks | `var<storage, read> array<u32>` |
-| 4 | shadow_atlas | `texture_depth_2d` |
-| 5 | shadow_sampler | `sampler_comparison` |
-| 6 | shadow_slots | `var<storage, read> array<ZrShadowSlot>` |
-| 7 | shadow_globals | `var<uniform> ZrShadowGlobals`(级联 split vec4、fade 带宽、atlas 尺寸) |
+| 8 | shadow_atlas | `texture_depth_2d` |
+| 9 | shadow_sampler | `sampler_comparison` |
+| 10 | shadow_slots | `var<storage, read> array<ZrShadowSlot>` |
+| 11 | shadow_globals | `var<uniform> ZrShadowGlobals` |
+| 20 | light_grid_params | `var<uniform> ZrLightGridParams` |
+| 21 | light_zbins | `var<storage, read> array<u32>` |
+| 22 | light_tile_masks | `var<storage, read> array<u32>` |
 
-`ZrShadowSlot`(std430,96 B):`view_proj: mat4x4f`(offset 0)、`atlas_scale_bias: vec4f`(64,xy scale zw offset,归一化 atlas UV)、`params: vec4f`(80,x depth_bias y normal_bias z slot_texel_size w flags)。
+Deferred lighting group1 当前布局:
+
+| binding | 资源 | 类型 |
+|---------|------|------|
+| 0..3 | gbuffer_albedo/normal/background/material | `texture_2d<f32>` |
+| 4 | scene_depth | `texture_depth_2d` |
+| 8 | shadow_atlas | `texture_depth_2d` |
+| 9 | shadow_sampler | `sampler_comparison` |
+| 10 | shadow_slots | `var<storage, read> array<ZrShadowSlot>` |
+| 11 | shadow_globals | `var<uniform> ZrShadowGlobals` |
+| 20 | light_grid_params | `var<uniform> ZrLightGridParams` |
+| 21 | light_zbins | `var<storage, read> array<u32>` |
+| 22 | light_tile_masks | `var<storage, read> array<u32>` |
+
+LS-M3 atlas binding ABI 已在 `shadow/atlas/bindings.rs` 固化,并已插入当前 forward/deferred layout:
+
+| binding | 资源 | 类型 |
+|---------|------|------|
+| 8 | shadow_atlas | `texture_depth_2d` |
+| 9 | shadow_sampler | `sampler_comparison` |
+| 10 | shadow_slots | `var<storage, read> array<ZrShadowSlot>` |
+| 11 | shadow_globals | `var<uniform> ZrShadowGlobals` |
+
+这些 binding 避开 light-grid 的 20/21/22,并保留 group1 低号位给 forward material/deferred gbuffer。layout 接入、`zr_shadow.wgsl`
+和 `GpuLightData.shadow_slot_layer` 写回已完成;`SHADOW_ATLAS` 现在由 graph 声明为 external 资源,并由
+`shadow-atlas` pass / `shadow.atlas` executor 逐 slot 写入真实 depth atlas。Plan 04 per-light/per-cascade shadow view 剔除已接入;仍需捕获对拍,
+处理必要的 caster expansion/receiver slice 覆盖风险。
+
+`ZrShadowSlot`(std430,96 B,CPU POD 已落地为 `GpuShadowSlot`):`view_proj: mat4x4f`(offset 0)、
+`atlas_scale_bias: vec4f`(64,xy scale zw offset,归一化 atlas UV)、`params: vec4f`(80,x depth_bias y normal_bias
+z slot_texel_size w flags)。`ZrShadowGlobals`(CPU POD `GpuShadowGlobals`,48 B):`cascade_splits: vec4f`、
+`cascade_fade_lengths: vec4f`、`atlas_params: vec4f(width,height,inv_width,inv_height)`。
 
 `zr_light_grid.wgsl`(include,只含函数与 struct):
 
@@ -261,13 +571,20 @@ WGSL 无闭包,`for_each_light` 以调用方循环骨架落地(forward 与 defer
 `zr_shadow.wgsl`(include):
 
 ```wgsl
-fn zr_shadow_pcf(atlas_uv: vec2<f32>, depth_ref: f32, taps: u32, texel: f32) -> f32   // taps ∈ {1,5,9}
-fn zr_sample_shadow_slot(slot: u32, world_pos: vec3<f32>, n: vec3<f32>) -> f32        // slot 矩阵投影 + bias + PCF
-fn zr_sample_csm(world_pos: vec3<f32>, view_z: f32, n: vec3<f32>) -> f32              // 级联选择 + fade 带过渡
-fn zr_csm_cascade_index(view_z: f32) -> u32
+fn zr_sample_shadow_slot(slot_index: u32, world_position: vec3<f32>) -> f32
+fn zr_shadow_cascade_index(view_z: f32, cascade_count: u32) -> u32
+fn zr_sample_directional_shadow(light: ZrGpuLightData, world_position: vec3<f32>, view_z: f32) -> f32
+fn zr_point_shadow_face_index(light_position: vec3<f32>, world_position: vec3<f32>) -> u32
+fn zr_gpu_light_shadow_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, view_z: f32) -> f32
 ```
 
-CSM 约定:级联即 shadow slot 0..cascade_count-1;`zr_sample_csm` 在 `split[i] - fade` 区间内对 i 与 i+1 级联结果 lerp(UE `SplitNearFadeRegion`/`FadePlaneOffset` 语义的单带简化)。分割公式(log/linear 混合):`split_i = lerp(near + (far-near)*i/N, near*(far/near)^(i/N), lambda)`,`lambda` 默认 0.7(UE 等价物为 `ComputeAccumulatedScale` 指数分布,exponent 默认 4;两者曲线接近,取公式更简的混合式)。texel snapping:级联包围球半径取 slice 八角点最大距(半径跨帧锁定到 1% 步进),`world_per_texel = 2*radius/resolution`,将 light view 空间下的视锥中心 `fmod` 对齐到 `world_per_texel` 网格再回变换(UE ShadowSetup.cpp `SnapX/SnapY` 同构)。
+CSM 约定:方向光的 `shadow_slot_layer.x` 是首个 cascade slot,`shadow_params.w` 是 cascade 数;`zr_sample_directional_shadow`
+按 `zr_shadow_globals.cascade_splits` 选择级联,并在 `split[i] - fade` 区间内对 i 与 i+1 级联结果 lerp(UE `SplitNearFadeRegion`/
+`FadePlaneOffset` 语义的单带简化)。分割公式(log/linear 混合):`split_i = lerp(near + (far-near)*i/N,
+near*(far/near)^(i/N), lambda)`,`lambda` 默认 0.7(UE 等价物为 `ComputeAccumulatedScale` 指数分布,exponent 默认 4;
+两者曲线接近,取公式更简的混合式)。texel snapping:级联包围球半径取 slice 八角点最大距(半径跨帧锁定到 1% 步进),
+`world_per_texel = 2*radius/resolution`,将 light view 空间下的视锥中心 `fmod` 对齐到 `world_per_texel` 网格再回变换
+(UE ShadowSetup.cpp `SnapX/SnapY` 同构)。
 
 PCF 档位表(进 `ZrShadowSlot.params.w` flags 与 pipeline 常量):
 
@@ -277,6 +594,9 @@ PCF 档位表(进 `ZrShadowSlot.params.w` flags 与 pipeline 常量):
 | Medium | 5(十字) | spot/point |
 | High | 9(3x3) | 方向光近级联 |
 
+`ShadowPcfQuality::default()` 为 Low;需要保持旧 3x3 行为的产品/测试合同必须显式写 `ShadowPcfQuality::High`。
+CPU slot flags 与 WGSL 常量共享 bit 8..9 作为质量字段,bit 0 仍为 valid flag,bit 1..3 保留方向光/spot/point-face 类型标记。
+
 ShadowAtlas:单张 `4096x4096` D32Float(capability 不足降 2048,档位整体降一档)。方向光 CSM 固定占顶部 `4096x1024` 行(4 x 1024²);其余区域 shelf 分配。
 
 ### 帧时序与集成点
@@ -285,17 +605,17 @@ ShadowAtlas:单张 `4096x4096` D32Float(capability 不足降 2048,档位整体�
 
 1. extract:`RenderFrameExtract` 灯光 snapshots(带 light_id/layer_mask/shadow settings)。
 2. prepare(CPU):`light_buffer.rs` 打包 + 脏更新上传(GpuScene grow);`cascade.rs` 计算级联;`ShadowAtlasAllocator::allocate_frame` 产出槽位;`build_light_grid` CPU 构建 zbin/tile(对齐 URP:URP 的 zbin/tile 即 CPU Jobs 构建,不依赖 depth;故 `light-grid-build` 节点不读 SCENE_DEPTH)。
-3. graph 节点 `light-grid-build`(executor `lighting.light-grid`,QueueLane::AsyncCompute 保留):LS-M2 形态为 buffer 上传 + 统计;后续若切 GPU compute 构建,IO 合同不变。zbin/tile buffer 经计划 01 `TransientResourcePool` 以 `RgBufferHandle` 申请。
-4. graph 节点 `shadow-atlas`(executor `shadow.atlas`):按槽位批次渲染,命令由 `MeshPassProcessor` 生成,per-light view 剔除来自计划 04。
-5. depth prepass → forward 着色 / deferred geometry + lighting:同读 group1 的 grid 与 atlas。
+3. graph 节点 `light-grid-build`(executor `lighting.light-grid`,QueueLane::AsyncCompute 保留):LS-M2 形态为 CPU builder 输出的 zbin/tile buffer 上传 + 统计;后续若切 GPU compute 构建,IO 合同不变。zbin/tile buffer 经计划 01 `TransientResourcePool` 以 `RgBufferHandle` 申请。
+4. graph 节点 `shadow-atlas`(executor `shadow.atlas`)已启用;只写 external `SHADOW_ATLAS`,按 `ShadowAtlasSlotPass` 槽位批次渲染。命令暂复用 shadow command stream,但 replay 已按 `ShadowAtlasSlotPass.view_key` 消费计划 04 的 directional cascade/point face/spot shadow view 可见集。
+5. depth prepass → forward 着色 / deferred geometry + lighting:同读 group1 的 grid 与 atlas;当前 forward/deferred pass 已声明读取 `SHADOW_ATLAS` 以建立 graph 顺序。
 
 硬切换删除清单(LS-M1/M3 各自变更内完成,不留双路径):
 
 - `scene_uniform.rs`:`light_dir`、`light_color`、`point_light_position_range`、`point_light_color_intensity`、`point_light_params` 字段及 `from_frame.rs` 的 `authored_point_light_data`/`empty_point_light_data`。
 - `readiness.rs`:`BASIC_SCENE_UNIFORM_DIRECTIONAL_LIGHT_LIMIT`、`BASIC_SCENE_UNIFORM_POINT_LIGHT_LIMIT`、`ready_directional_light_count`、`ready_point_light_count`(spot `ready=0` 的硬编码一并删除)。
 - `fallback_mesh.wgsl` 与 deferred `lighting_pipeline/shader_source.rs`:scene uniform 灯光循环段。
-- `shadow_map_renderer.rs`:`shadow_light`、`shadow_light_from_directional`、`shadow_scene_uniform`、`shadow_view_projection`、`shadow_bounds_from_frame`、`ShadowMapRenderer` 自持 pipeline/`record_with_attachment_ops` 直录路径(LS-M3)。
-- `post_process/stack.rs`:`LIGHT_LIST`、`SHADOW_MAP` 资源名(被 `LIGHT_ZBINS`/`LIGHT_TILE_MASKS`/`SHADOW_ATLAS` 取代),消费点同变更内改名。
+- `shadow_map_renderer.rs`:`shadow_light`、`shadow_light_from_directional`、`shadow_scene_uniform`、`shadow_view_projection`、`shadow_bounds_from_frame`、`ShadowMapRenderer` 旧单贴图 `record_commands_with_attachment_ops` 直录路径(LS-M3 已完成)。
+- `post_process/stack.rs`:`LIGHT_LIST` 资源名在 shader grid 驱动与 tile tint 兼容路径收束后删除;`SHADOW_MAP` 已在 LS-M3 `SHADOW_ATLAS` 切换时删除,消费点同变更内改名。
 
 ### 实施切片细化
 
@@ -308,12 +628,18 @@ LS-M2(clustered grid):
 2. 触碰:`fallback_mesh.wgsl`、deferred lighting shader、两处 bind group layout。要点:全量循环切 grid 驱动(同一 include),保留全量循环作为 capability 回落档(同一 buffer ABI)。判据:forward/deferred 产物对拍一致;grid 统计进 RenderStats。
 
 LS-M3(CSM + atlas):
-1. 触碰:`cascade.rs`(新)、`atlas/`(新)、`shadow_settings.rs`(新)。要点:分割/snapping/fade 计算与 shelf 分配器(滞回:槽位保留 8 帧,抢占需连续 4 帧得分高 25%;降档:URP `EstimateScaleFactorNeededToFitAllShadowsInAtlas` 同策略整体除 2)。判据:分配器单测全过(档位/驱逐/滞回/降档)。
-2. 触碰:`shadows.rs` descriptor、`shadow_map_renderer.rs`(删旧)、`zr_shadow.wgsl`(新)、`GpuLightData.shadow_slot_layer` 写入。要点:atlas pass 经 `MeshPassProcessor` + per-light 剔除;point 光取立方体 6 面(6 槽,双抛物面留作降档预研不实施)。判据:多 spot 阴影并存;相机平移抓帧无 swimming。
+1. 已完成:触碰 `cascade.rs`(新)、`atlas/`(新)、`slot.rs`(新)、`shadow_settings.rs`(新)。要点:分割/snapping/fade 计算与 shelf 分配器(滞回:槽位保留 8 帧,抢占需连续 4 帧得分高 25%;降档:URP `EstimateScaleFactorNeededToFitAllShadowsInAtlas` 同策略整体除 2),并定稿 `GpuShadowSlot`/`GpuShadowGlobals` ABI。判据:分配器/级联/slot layout 源码单测覆盖(档位/驱逐/滞回/降档/offset),core-min `cargo check` 通过。
+2. 已完成 bridge 写入:触碰 `shadows.rs` descriptor、`post_process/stack.rs`、`execute_graph_stage.rs`、`shadow_map_renderer.rs`、`zr_shadow.wgsl`、`GpuLightData.shadow_slot_layer` 写入。要点:`SHADOW_ATLAS` 作为 external graph resource 被导入并写入,forward/deferred shader 通过 atlas slot 采样;point 光取立方体 6 面(6 槽,双抛物面留作降档预研不实施)。判据:core-min `cargo check` 通过。
+3. 已完成 shadow view 过滤切片:触碰 `view_context/mod.rs`、`view_context/build_views.rs`、`construct.rs`、`shadow/plan.rs`、`shadow_map_renderer.rs`、`mesh_pass/mesh_draw_command.rs`、`mesh_pass/mesh_pass_processor.rs`。要点:`VisibilityViewKey` 可拷贝进 `ShadowAtlasSlotPass`;方向光 cascade、point face、spot slot pass 分别记录对应 Plan 04 shadow view;shadow replay 以 command source entity 对 view visible set 做逐命令过滤。indirect shadow stream 在需要 view 过滤时仍走逐命令 direct replay,避免按槽位过滤错误复用整批 indirect args。判据:core-min `cargo check` 通过。
+4. 已完成方向光 frustum-slice 精化:触碰 `shadow/cascade.rs`、`shadow/plan.rs`、`scene/mod.rs`、`scene_renderer/mod.rs` 与 Plan 04 `view_context/build_views.rs`/`construct.rs`。要点:`cascade_shadow_bounds_from_camera_slice(...)` 从主相机 frustum slice 八角点推导每 cascade center/radius,`ShadowFramePlan` 和 visibility shadow view 共享该 split/bounds 口径,atlas slot pass 第 0/3 级联矩阵不再相同。判据:core-min check 与 focused shadow/visibility tests 通过。
+5. 已完成 receiver 硬切:删除 legacy `SHADOW_MAP` graph resource、forward/deferred 单贴图 receiver bindings 与 Rust receiver uniform buffers;forward/deferred/builtin PBR 只通过 atlas slot 采样。判据:core-min `cargo check` 通过。
+6. 已完成 caster/receiver 源码保护:触碰 `mesh/build_mesh_draws/build/build.rs`。要点:`mesh_visibility_states(...)` 将 shadow-only caster 映射为 `main_view_visible=false` 且 `shadow_view_visible=true`,证明主视图剔除不会切掉 shadow view 可见 caster。判据:source test 已添加,core-min `cargo check` 通过。
+7. 已完成产品合同源码断言:触碰 `graphics/tests/render_product_shadows.rs`。要点:`render_product_csm_directional` 锁住方向光 CSM 4 槽与 per-cascade view key,`render_product_multi_spot_shadows` 锁住 ≥3 spot 阴影同帧 atlas 槽位不重叠。判据:core-min `cargo check` 通过。
+8. 待完成真实捕获验收:捕获多 spot/CSM 稳定性/forward-deferred 对拍,处理必要的 caster expansion/receiver slice 覆盖风险。判据:多 spot 阴影并存;相机平移抓帧无 swimming。
 
 LS-M4(PCF 与 contact shadow):
-1. 触碰:`zr_shadow.wgsl`、`shadow_settings.rs`。要点:1/5/9 tap 档位 + per-light bias 定稿(URP GetShadowBias 的 texel 尺度语义)。判据:档位切换产物差异符合预期。
-2. 触碰:`zircon_plugins/` rendering feature crate(contact shadow,读计划 04 HzbBuilder 输出)。要点:经 RenderFeature descriptor 接入;feature 关闭时 compiled graph 无该 pass。判据:插件测试 + graph 节点存在性断言。
+1. 已完成:触碰 `zr_shadow.wgsl`、`shadow_settings.rs`、`shadow/slot.rs`、`shadow/plan.rs` 及三处 shader source 断言。要点:1/5/9 tap 档位 + per-light pcf quality/bias 槽位合同定稿(URP GetShadowBias 的 texel 尺度语义保留在 bias 字段)。判据:slot flags 与 shader source 单测覆盖;产物差异抓帧仍待真实捕获验收。
+2. 已完成 contact shadow 最小执行闭环:触碰 `zircon_plugins/` rendering feature crate、`contact_shadow.wgsl` 与 `RenderPassGpuExecutionContext` 插件 dispatch 记录入口。要点:经 RenderFeature descriptor 接入;feature 关闭时 compiled graph 无该 pass;启用时 WGPU compute executor 读计划 04 HZB 和 depth/normal,写 `CONTACT_SHADOW_OCCLUSION`,并记录实际 dispatch。判据:插件测试 + graph 节点存在性断言 + executor/shader 源码合同。
 
 切片期一律 `cargo check -p zircon_runtime --lib --locked`;里程碑末 `cargo test -p zircon_runtime --lib --locked`(过滤词 `light` / `lighting` / `shadow`)。
 
@@ -328,11 +654,46 @@ LS-M4(PCF 与 contact shadow):
 | `render_light_grid_tile_words_respect_budget` | tile 边长倍增至满足 `ZR_MAX_TILE_WORDS` | 同上 |
 | `render_light_grid_layer_mask_filters_lights` | mask 不匹配的灯不进着色集合 | 同上 |
 | `render_shadow_atlas_allocates_tiers_descending` | shelf 按档位降序铺排,无重叠 | `shadow/atlas/allocator.rs` |
+| `render_shadow_atlas_global_downgrade_fits_pressure` | URP 风格整体面积估算导致统一降档后仍能铺满 | 同上 |
 | `render_shadow_atlas_evicts_lowest_priority_on_pressure` | 超容时低分槽被驱逐/降档 | 同上 |
 | `render_shadow_atlas_hysteresis_prevents_flapping` | 分数交替互换时槽位 8 帧内不换主 | 同上 |
+| `render_shadow_atlas_preempts_after_confirmed_priority_margin` | 连续 4 帧且高 25% 才允许抢占既有槽位 | 同上 |
+| `render_shadow_atlas_scale_bias_matches_slice_transform` | atlas scale/bias 与 URP `ApplySliceTransform` 的归一化形态一致 | 同上 |
 | `render_shadow_cascade_splits_blend_log_linear` | lambda=0/1 退化为线性/对数;单调递增 | `shadow/cascade.rs` |
+| `render_shadow_cascade_ranges_are_monotonic_and_have_fade_bands` | split range 单调且 fade_start 落在级联范围内 | 同上 |
 | `render_shadow_cascade_snapping_quantizes_origin` | 平移相机半 texel,snapped 矩阵不变 | 同上 |
-| `render_product_many_point_lights` | 64 点光场景,forward/deferred 对拍一致 | render_product 套件 |
+| `render_shadow_cascade_view_projection_is_stable_under_half_texel_motion` | half-texel light-space motion 不改变 snapped VP 矩阵 | 同上 |
+| `render_shadow_cascade_bounds_follow_camera_slice_depth` | 远 cascade slice 的 bounds 半径与中心距离大于近 cascade slice | 同上 |
+| `render_shadow_slot_layout_matches_plan_05_std430_contract` | `GpuShadowSlot` 96 B + offset 0/64/80 | `shadow/slot.rs` |
+| `render_shadow_slot_from_allocation_writes_atlas_slice_and_flags` | allocation 写入 atlas scale/bias、bias、texel size 和 flags | 同上 |
+| `render_shadow_slot_encodes_pcf_quality_in_flags` | Low/Medium/High 稳定编码到 `GpuShadowSlot.params.w` bit 8..9 | 同上 |
+| `render_shadow_globals_layout_and_atlas_params_are_stable` | `GpuShadowGlobals` 48 B + split/fade/atlas 参数布局 | 同上 |
+| `render_shadow_atlas_resource_config_uses_plan_05_defaults` | atlas resource 默认 4096x4096/256 slots | `shadow/atlas/resources.rs` |
+| `render_shadow_atlas_resource_config_downgrades_to_capability_limit` | 设备纹理上限不足时降到 2048 fallback | 同上 |
+| `render_shadow_atlas_upload_report_describes_cleared_tail` | 上传报告记录写入 slot 与清理 stale tail | 同上 |
+| `render_shadow_atlas_group1_bindings_avoid_legacy_shadow_and_light_grid_slots` | atlas binding 8..11 不与现有 legacy shadow/light-grid 冲突 | `shadow/atlas/bindings.rs` |
+| `render_shadow_atlas_group1_layout_entries_match_plan_05_resource_types` | 8 texture depth、9 compare sampler、10 storage、11 uniform | 同上 |
+| `fallback_mesh_shader_receives_shadow_atlas_resources` | forward shader 声明 atlas 8..11 资源、调用 `zr_gpu_light_shadow_visibility`,覆盖 PCF 质量 helper,并断言旧单贴图 receiver 不存在 | `mesh/mesh_pipeline/fallback_mesh_shader_source.rs` |
+| `deferred_lighting_shader_receives_shadow_atlas_resources` | deferred shader 声明 atlas 8..11 资源、调用 `zr_gpu_light_shadow_visibility`,覆盖 PCF 质量 helper,并断言旧单贴图 receiver 不存在 | `deferred/lighting_pipeline/tests.rs` |
+| `builtin_pbr_shader_receives_shadow_atlas_resources` | builtin PBR shader 拼接 `zr_shadow.wgsl`、声明 atlas 8..11 资源,覆盖 PCF 质量 helper,并断言旧单贴图 receiver 不存在 | `asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs` |
+| `render_shadow_frame_plan_assigns_first_directional_cascade_slots` | 首个方向光写入连续 CSM slot、atlas slot pass 与 globals split/fade | `shadow/plan.rs` |
+| `render_shadow_frame_plan_caps_directional_cascade_tier_to_atlas_row` | CSM tier 按实际 atlas 宽度/级联数与预留行高度降档 | 同上 |
+| `render_shadow_frame_plan_builds_distinct_directional_cascade_matrices` | 方向光第 0/3 cascade atlas pass 与 slot view-projection 矩阵不同,证明不再共享 frame-bounds 投影 | 同上 |
+| `render_shadow_frame_plan_assigns_point_light_contiguous_face_slots` | point 光 6 面 slot/atlas slot pass 完整分配后才建立 first-slot assignment,且每个 face 带 `ShadowPointFace` view key | 同上 |
+| `render_shadow_frame_plan_assigns_spot_light_slot_view_key` | spot 光单槽 slot pass 带 `ShadowSpot` view key | 同上 |
+| `render_shadow_frame_plan_encodes_per_light_pcf_quality` | point/spot shadow settings 的 Low/Medium 档位分别写入各自 atlas slot flags | 同上 |
+| `contact_shadow_feature_registers_hzb_ray_march_pass` | `rendering.contact_shadow` 注册 HZB 驱动的 async compute pass、workload、输入/输出资源和默认关闭 manifest | `zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs` |
+| `contact_shadow_graph_pass_is_absent_when_plugin_feature_is_disabled` | 插件 feature 禁用时 compiled graph 无 `contact-shadow`;启用后 pass 位于 `hzb-build` 之后并读 `HZB_FURTHEST`、写 `CONTACT_SHADOW_OCCLUSION` | 同上 |
+| `contact_shadow_executor_accepts_declared_pass_contract` | executor 契约接受 async compute pass 名称、队列、side-effect flags 与 depth/normal/HZB/output 资源 | 同上 |
+| `contact_shadow_executor_requires_gpu_after_contract_validation` | 契约通过后 metadata-only context 会明确要求 renderer GPU context,证明 executor 不再是 no-op | 同上 |
+| `contact_shadow_executor_rejects_resource_contract_drift` | 输出资源缺失时报告 resource contract mismatch | 同上 |
+| `contact_shadow_shader_declares_expected_compute_bindings` | WGSL 声明 depth/normal/HZB 输入、Rgba8Unorm storage 输出、8x8 workgroup 和 `textureStore` | 同上 |
+| `visibility_context_builds_shadow_views_for_atlas_light_slots` | Plan 04 生成方向光 4 cascade、point 6 face、spot 1 view key,且方向光 cascade camera 随 slice 深度变化,供 atlas slot pass 消费 | `visibility/context/from_extract_with_history/construct.rs` |
+| `shadow_atlas_view_filter_keeps_only_visible_source_entities` | atlas slot replay 过滤掉不在对应 shadow view visible set 中的 source entity | `shadow_map_renderer.rs` |
+| `mesh_visibility_states_preserve_shadow_only_casters` | main-view 不可见但 shadow-view 可见的 caster 仍写成 `shadow_view_visible=true`,供 shadow pass 生成命令 | `mesh/build_mesh_draws/build/build.rs` |
+| `mesh_batch_ref_emits_gpu_scene_instance_command` | `MeshDrawCommand` 保留 source entity,供 atlas slot view 过滤消费且不破坏 instance span | `mesh_pass/mesh_draw_command_list.rs` |
+| `render_shadow_light_slot_assignments_patch_packed_light_contract` | assignment patch `GpuLightData.shadow_slot_layer.x` 与 `shadow_params.w` | 同上 |
+| `render_product_many_point_lights` | 源码合同已覆盖 64 点光打包、light-grid 第二 word 与 Forward+/Deferred 编译图消费;真实 forward/deferred 捕获对拍仍待验收 | render_product 套件 |
 | `render_product_csm_directional` | 4 级联边界 fade 无硬缝 | 同上 |
 | `render_product_multi_spot_shadows` | ≥3 spot 阴影同帧并存 | 同上 |
 

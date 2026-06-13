@@ -6,6 +6,7 @@ pub const RENDERING_RUNTIME_CAPABILITY: &str = "runtime.plugin.rendering";
 pub enum RenderingFeatureKind {
     PostProcess,
     Ssao,
+    ContactShadow,
     Decals,
     ReflectionProbes,
     BakedLighting,
@@ -17,6 +18,7 @@ pub enum RenderingFeatureKind {
 pub const RENDERING_FEATURES: &[RenderingFeatureKind] = &[
     RenderingFeatureKind::PostProcess,
     RenderingFeatureKind::Ssao,
+    RenderingFeatureKind::ContactShadow,
     RenderingFeatureKind::Decals,
     RenderingFeatureKind::ReflectionProbes,
     RenderingFeatureKind::BakedLighting,
@@ -30,6 +32,7 @@ impl RenderingFeatureKind {
         match self {
             Self::PostProcess => "post_process",
             Self::Ssao => "ssao",
+            Self::ContactShadow => "contact_shadow",
             Self::Decals => "decals",
             Self::ReflectionProbes => "reflection_probes",
             Self::BakedLighting => "baked_lighting",
@@ -43,6 +46,7 @@ impl RenderingFeatureKind {
         match self {
             Self::PostProcess => "Post Process",
             Self::Ssao => "SSAO",
+            Self::ContactShadow => "Contact Shadow",
             Self::Decals => "Decals",
             Self::ReflectionProbes => "Reflection Probes",
             Self::BakedLighting => "Baked Lighting",
@@ -98,7 +102,7 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
@@ -209,11 +213,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rendering_descriptor_declares_eight_owner_features() {
+    fn rendering_descriptor_declares_nine_owner_features() {
         let descriptor = runtime_plugin_descriptor();
 
         assert_eq!(descriptor.category, "rendering");
-        assert_eq!(descriptor.optional_features.len(), 8);
+        assert_eq!(descriptor.optional_features.len(), 9);
+        assert!(
+            descriptor
+                .optional_features
+                .iter()
+                .any(|feature| feature.id == "rendering.contact_shadow"
+                    && !feature.enabled_by_default)
+        );
         assert_eq!(
             descriptor
                 .optional_features

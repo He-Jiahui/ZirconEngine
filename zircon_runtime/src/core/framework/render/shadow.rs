@@ -2,7 +2,7 @@
 pub struct RenderShadowExecutionReport {
     pub shadow_pass_executed: bool,
     pub shadow_pass_count: usize,
-    pub shadow_map_write_count: usize,
+    pub shadow_atlas_write_count: usize,
     pub receiver_read_pass_count: usize,
     pub receiver_available: bool,
     pub caster_draw_count: usize,
@@ -14,7 +14,7 @@ impl RenderShadowExecutionReport {
     #[allow(clippy::too_many_arguments)]
     pub const fn new(
         shadow_pass_count: usize,
-        shadow_map_write_count: usize,
+        shadow_atlas_write_count: usize,
         receiver_read_pass_count: usize,
         caster_draw_count: usize,
         alpha_mask_caster_draw_count: usize,
@@ -23,9 +23,9 @@ impl RenderShadowExecutionReport {
         Self {
             shadow_pass_executed: shadow_pass_count > 0,
             shadow_pass_count,
-            shadow_map_write_count,
+            shadow_atlas_write_count,
             receiver_read_pass_count,
-            receiver_available: shadow_map_write_count > 0 && receiver_read_pass_count > 0,
+            receiver_available: shadow_atlas_write_count > 0 && receiver_read_pass_count > 0,
             caster_draw_count,
             alpha_mask_caster_draw_count,
             directional_light_ready_count,
@@ -44,7 +44,7 @@ mod tests {
         assert!(report.shadow_pass_executed);
         assert!(report.receiver_available);
         assert_eq!(report.shadow_pass_count, 1);
-        assert_eq!(report.shadow_map_write_count, 1);
+        assert_eq!(report.shadow_atlas_write_count, 1);
         assert_eq!(report.receiver_read_pass_count, 3);
         assert_eq!(report.caster_draw_count, 8);
         assert_eq!(report.alpha_mask_caster_draw_count, 2);

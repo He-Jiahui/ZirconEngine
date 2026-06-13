@@ -10,6 +10,7 @@ pub enum ZrStatusCode {
     NotFound = 4,
     CapabilityDenied = 5,
     Panic = 6,
+    BridgeNotEnabled = 7,
 }
 
 impl ZrStatusCode {
@@ -22,6 +23,7 @@ impl ZrStatusCode {
             4 => Self::NotFound,
             5 => Self::CapabilityDenied,
             6 => Self::Panic,
+            7 => Self::BridgeNotEnabled,
             _ => Self::Error,
         }
     }

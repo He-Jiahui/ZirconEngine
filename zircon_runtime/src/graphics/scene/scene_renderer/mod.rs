@@ -4,6 +4,8 @@ mod core;
 mod deferred;
 mod graph_execution;
 mod history;
+mod hzb;
+pub(crate) mod lighting;
 mod mesh;
 mod overlay;
 mod particle;
@@ -15,6 +17,7 @@ mod sprite;
 mod ui;
 
 pub use core::SceneRenderer;
+pub(crate) use graph_execution::RenderGraphLightGridReport;
 pub use graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
     RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
@@ -23,14 +26,21 @@ pub use graph_execution::{
 
 pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
 pub(crate) use deferred::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
+pub(crate) use lighting::{
+    light_buffer::pack_lighting_extract, light_grid_pass::build_light_grid_for_frame,
+};
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
 pub(crate) use post_process::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size,
-    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE_FORMAT,
-    SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
 };
 pub(crate) use prepass::NORMAL_FORMAT;
+pub(crate) use shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResourceConfig};
+pub(crate) use shadow::cascade::{
+    cascade_shadow_bounds_from_camera_slice, compute_cascade_ranges, CascadeRange,
+    CascadeSplitConfig,
+};
+pub(crate) use shadow::{build_shadow_frame_plan, ShadowLightSlotAssignment};

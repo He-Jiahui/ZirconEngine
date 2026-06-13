@@ -5,20 +5,25 @@ use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::scene::scene_renderer::lighting::light_grid_pass::{
+    build_light_grid_for_frame, write_light_grid_buffers,
+};
 use crate::graphics::scene::scene_renderer::post_process::{
-    clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size, ssao_dispatch_groups,
-    ssao_workgroup_size, ScenePostProcessResources, SceneRuntimeFeatureFlags,
+    clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size,
+    hzb_build_dispatch_groups, hzb_build_workgroup_size, ssao_dispatch_groups, ssao_workgroup_size,
+    ScenePostProcessResources, SceneRuntimeFeatureFlags,
 };
 use crate::graphics::visibility::HzbBuilder;
 use crate::render_graph::RenderGraphAttachmentOps;
 
-use super::super::super::{RenderGraphComputeDispatchRecord, RenderGraphExecutionResources};
+use super::super::super::{
+    RenderGraphComputeDispatchRecord, RenderGraphExecutionResources, RenderGraphLightGridReport,
+};
 use super::RenderPassGpuExecutionContext;
 
 mod screen_space_reflection;
 
 const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
-const HZB_BUILD_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn with_post_process_stack_context(
@@ -98,6 +103,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
             stack.post_process,
         )?;
+        let contact_shadow_view = optional_texture_view_or_white(
+            self.resources,
+            PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
+            stack.post_process,
+        )?;
         let bloom_view = if post_process_graph_has_node(graph, PostProcessEffectKind::Bloom) {
             self.resources
                 .require_texture_view(PostProcessGraphResourceNames::BLOOM)?
@@ -150,6 +160,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_normal_view,
             scene_material_view,
             ambient_occlusion_view,
+            contact_shadow_view,
             history.map(|history| &history.scene_color_view),
             history.map(|history| &history.global_illumination_view),
             history.map(|history| &history.screen_space_reflection_view),
@@ -175,6 +186,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         executor_id: &str,
         depth_resource_name: &str,
         normal_resource_name: &str,
+        hzb_furthest_resource_name: &str,
         ambient_occlusion_resource_name: &str,
     ) -> Result<(), String> {
         let stack = self.post_process_stack.ok_or_else(|| {
@@ -184,6 +196,16 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         })?;
         let depth_view = self.resources.require_texture_view(depth_resource_name)?;
         let normal_view = self.resources.require_texture_view(normal_resource_name)?;
+        let hzb_furthest_view = self
+            .resources
+            .require_texture_view(hzb_furthest_resource_name)?;
+        let hzb_furthest_full_mip_view = self
+            .resources
+            .owned_texture_full_mip_view(hzb_furthest_resource_name)
+            .ok();
+        let hzb_furthest_sampling_view = hzb_furthest_full_mip_view
+            .as_ref()
+            .unwrap_or(hzb_furthest_view);
         let ambient_occlusion_view = self
             .resources
             .require_texture_view(ambient_occlusion_resource_name)?;
@@ -198,6 +220,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             target.size,
             depth_view,
             normal_view,
+            hzb_furthest_sampling_view,
             stack
                 .history_textures
                 .map(|history| &history.ambient_occlusion_view),
@@ -223,18 +246,37 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
         pass_name: &str,
         executor_id: &str,
-        depth_resource_name: &str,
-        light_list_resource_name: &str,
+        light_grid_params_resource_name: &str,
+        light_zbins_resource_name: &str,
+        light_tile_masks_resource_name: &str,
+        legacy_light_list_resource_name: &str,
     ) -> Result<(), String> {
         let stack = self.post_process_stack.ok_or_else(|| {
             format!(
-                "clustered lighting graph executor for pass `{pass_name}` requires post-process stack context"
+                "light grid graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let _depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let light_list_buffer = self.resources.require_buffer(light_list_resource_name)?;
+        let light_grid_params_buffer = self
+            .resources
+            .require_buffer(light_grid_params_resource_name)?;
+        let light_zbins_buffer = self.resources.require_buffer(light_zbins_resource_name)?;
+        let light_tile_masks_buffer = self
+            .resources
+            .require_buffer(light_tile_masks_resource_name)?;
+        let legacy_light_list_buffer = self
+            .resources
+            .require_buffer(legacy_light_list_resource_name)?;
         let target = stack.target;
         let enabled = stack.runtime_features.clustered_lighting_enabled;
+        let light_grid = build_light_grid_for_frame(&self.frame.extract, target.size, enabled);
+        self.light_grid_report = Some(RenderGraphLightGridReport::from_stats(&light_grid.stats));
+        write_light_grid_buffers(
+            self.queue,
+            light_grid_params_buffer,
+            light_zbins_buffer,
+            light_tile_masks_buffer,
+            &light_grid,
+        );
         let dispatch_groups = clustered_lighting_dispatch_groups(target.cluster_dimensions);
         let workgroup_size = clustered_lighting_workgroup_size();
         stack.post_process.execute_clustered_lighting(
@@ -243,7 +285,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.encoder,
             target.size,
             target.cluster_dimensions,
-            light_list_buffer,
+            legacy_light_list_buffer,
             target.cluster_buffer_bytes,
             &self.frame.extract.lighting.directional_lights,
             enabled,
@@ -256,7 +298,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     "zircon-cluster-pipeline",
                     workgroup_size,
                     dispatch_groups,
-                    vec![light_list_resource_name.to_string()],
+                    vec![
+                        light_grid_params_resource_name.to_string(),
+                        light_zbins_resource_name.to_string(),
+                        light_tile_masks_resource_name.to_string(),
+                        legacy_light_list_resource_name.to_string(),
+                    ],
                 ));
         }
         Ok(())
@@ -269,20 +316,43 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         depth_resource_name: &str,
         hzb_resource_name: &str,
     ) -> Result<(), String> {
-        let _depth_view = self.resources.require_texture_view(depth_resource_name)?;
+        let stack = self.post_process_stack.ok_or_else(|| {
+            format!("HZB graph executor for pass `{pass_name}` requires post-process stack context")
+        })?;
+        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
         let _hzb_view = self.resources.require_texture_view(hzb_resource_name)?;
         let plan = HzbBuilder::new(self.frame.extract.view.effective_render_size()).build_plan();
-        let dispatch_groups = [
-            plan.hzb_size.x.div_ceil(HZB_BUILD_WORKGROUP_SIZE[0]),
-            plan.hzb_size.y.div_ceil(HZB_BUILD_WORKGROUP_SIZE[1]),
-            1,
-        ];
+        for mip_level in 0..plan.mip_count {
+            let source_view = if mip_level == 0 {
+                None
+            } else {
+                Some(
+                    self.resources
+                        .owned_texture_mip_view(hzb_resource_name, mip_level - 1)?,
+                )
+            };
+            let target_view = self
+                .resources
+                .owned_texture_mip_view(hzb_resource_name, mip_level)?;
+            stack.post_process.execute_hzb_build_mip(
+                self.device,
+                self.queue,
+                self.encoder,
+                depth_view,
+                source_view.as_ref(),
+                &target_view,
+                plan.mip_size(mip_level),
+                mip_level,
+            );
+        }
+        let dispatch_groups = hzb_build_dispatch_groups(plan.hzb_size);
+        let workgroup_size = hzb_build_workgroup_size();
         self.compute_dispatches
             .push(RenderGraphComputeDispatchRecord::new(
                 pass_name,
                 executor_id,
                 HZB_BUILD_PIPELINE_LABEL,
-                HZB_BUILD_WORKGROUP_SIZE,
+                workgroup_size,
                 dispatch_groups,
                 vec![hzb_resource_name.to_string()],
             ));
@@ -567,5 +637,11 @@ impl<'a> RenderPassPostProcessStackContext<'a> {
     ) -> Self {
         self.material_gbuffer_valid = material_gbuffer_valid;
         self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn white_texture_view(
+        &self,
+    ) -> &'a wgpu::TextureView {
+        self.post_process.white_texture_view()
     }
 }

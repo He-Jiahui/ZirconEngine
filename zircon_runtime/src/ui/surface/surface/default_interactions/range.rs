@@ -16,6 +16,17 @@ use crate::ui::surface::{
 
 use super::{is_default_range_behavior, UiDefaultRangePointerActionReport};
 
+struct UiDefaultRangeValueUpdate {
+    active_property: String,
+    active_value: f64,
+    side_effect: Option<(String, f64)>,
+}
+
+struct UiDefaultRangeValueApplyReport {
+    property: String,
+    delta: f64,
+}
+
 impl UiSurface {
     pub(in crate::ui::surface::surface) fn apply_default_range_pointer_actions(
         &mut self,
@@ -32,9 +43,14 @@ impl UiSurface {
                 if !self.is_default_range_node(node_id)? {
                     return Ok(action);
                 }
-                let value_property = self.default_range_value_property(node_id)?;
+                let value_property =
+                    self.default_range_value_property_for_point(node_id, route.point)?;
                 self.capture_pointer(node_id)?;
-                let drag = self.input.begin_pointer_drag(node_id, route.point);
+                let drag = self.input.begin_pointer_drag_with_property(
+                    node_id,
+                    route.point,
+                    Some(value_property.clone()),
+                );
                 self.push_pointer_component_events_with_drag_metrics(
                     events,
                     node_id,
@@ -56,9 +72,10 @@ impl UiSurface {
                 if !self.is_default_range_node(node_id)? {
                     return Ok(action);
                 }
-                let value_property = self.default_range_value_property(node_id)?;
+                let value_property =
+                    self.default_range_drag_value_property(node_id, route.point)?;
                 let drag = self.input.update_pointer_drag(node_id, route.point);
-                if let Some(delta) = self.apply_default_range_value_from_point(
+                if let Some(update) = self.apply_default_range_value_from_point(
                     node_id,
                     &value_property,
                     route.point,
@@ -71,8 +88,8 @@ impl UiSurface {
                         node_id,
                         UiEventKind::DragUpdate,
                         UiComponentEvent::DragDelta {
-                            property: value_property,
-                            delta,
+                            property: update.property,
+                            delta: update.delta,
                         },
                         UiPointerComponentEventReason::DirectBinding,
                         Some(drag),
@@ -88,18 +105,18 @@ impl UiSurface {
                 if !self.is_default_range_node(node_id)? {
                     return Ok(action);
                 }
-                let value_property = self.default_range_value_property(node_id)?;
-                if self
-                    .apply_default_range_value_from_point(
-                        node_id,
-                        &value_property,
-                        route.point,
-                        events,
-                        binding_reports,
-                        UiPointerComponentEventReason::DefaultClick,
-                    )?
-                    .is_some()
-                {
+                let value_property =
+                    self.default_range_drag_value_property(node_id, route.point)?;
+                let mut end_property = value_property.clone();
+                if let Some(update) = self.apply_default_range_value_from_point(
+                    node_id,
+                    &value_property,
+                    route.point,
+                    events,
+                    binding_reports,
+                    UiPointerComponentEventReason::DefaultClick,
+                )? {
+                    end_property = update.property;
                     action.damage_node = Some(node_id);
                 }
                 let drag = self.input.end_pointer_drag(node_id, route.point);
@@ -108,7 +125,7 @@ impl UiSurface {
                     node_id,
                     UiEventKind::DragEnd,
                     UiComponentEvent::EndDrag {
-                        property: value_property,
+                        property: end_property,
                     },
                     UiPointerComponentEventReason::PressEnd,
                     Some(drag),
@@ -129,25 +146,43 @@ impl UiSurface {
         events: &mut Vec<UiPointerComponentEvent>,
         binding_reports: &mut Vec<UiBindingUpdateReport>,
         reason: UiPointerComponentEventReason,
-    ) -> Result<Option<f64>, UiTreeError> {
-        let Some(next_value) = self.default_range_click_value(node_id, point)? else {
+    ) -> Result<Option<UiDefaultRangeValueApplyReport>, UiTreeError> {
+        let Some(raw_next_value) = self.default_range_click_value(node_id, point)? else {
             return Ok(None);
         };
+        let update =
+            self.default_range_value_update_for_property(node_id, property, raw_next_value)?;
         let current_value = self
-            .default_range_current_value(node_id)?
-            .unwrap_or(next_value);
-        if self.apply_default_range_value(
+            .default_range_current_value(node_id, &update.active_property)?
+            .unwrap_or(update.active_value);
+        let mut changed = false;
+        if let Some((property, value)) = update.side_effect.as_ref() {
+            changed |= self.apply_default_range_value(
+                node_id,
+                property,
+                *value,
+                events,
+                binding_reports,
+                reason,
+            )?;
+        }
+        changed |= self.apply_default_range_value(
             node_id,
-            property,
-            next_value,
+            &update.active_property,
+            update.active_value,
             events,
             binding_reports,
             reason,
-        )? {
-            Ok(Some(next_value - current_value))
-        } else {
-            Ok(None)
+        )?;
+        if !changed {
+            return Ok(None);
         }
+        self.input
+            .set_pointer_drag_property(node_id, Some(update.active_property.clone()));
+        Ok(Some(UiDefaultRangeValueApplyReport {
+            property: update.active_property,
+            delta: update.active_value - current_value,
+        }))
     }
 
     fn apply_default_range_value(
@@ -344,7 +379,11 @@ impl UiSurface {
         Ok(Some((current + direction.signum() * step).clamp(min, max)))
     }
 
-    fn default_range_current_value(&self, node_id: UiNodeId) -> Result<Option<f64>, UiTreeError> {
+    fn default_range_current_value(
+        &self,
+        node_id: UiNodeId,
+        property: &str,
+    ) -> Result<Option<f64>, UiTreeError> {
         let node = self
             .tree
             .node(node_id)
@@ -362,8 +401,12 @@ impl UiSurface {
             .default_range_numeric_value(node_id, metadata, widget_max_property(metadata))
             .unwrap_or(1.0);
         Ok(self
-            .default_range_numeric_value(node_id, metadata, widget_value_property(metadata))
-            .or_else(|| metadata.widget.value.as_ref().and_then(UiValue::as_f64))
+            .default_range_numeric_value(node_id, metadata, property)
+            .or_else(|| {
+                (property == widget_value_property(metadata))
+                    .then(|| metadata.widget.value.as_ref().and_then(UiValue::as_f64))
+                    .flatten()
+            })
             .map(|value| {
                 if max > min {
                     value.clamp(min, max)
@@ -402,6 +445,134 @@ impl UiSurface {
     fn default_range_value_property(&self, node_id: UiNodeId) -> Result<String, UiTreeError> {
         let metadata = self.template_metadata(node_id)?;
         Ok(widget_value_property(metadata).to_string())
+    }
+
+    fn default_range_value_property_for_point(
+        &self,
+        node_id: UiNodeId,
+        point: UiPoint,
+    ) -> Result<String, UiTreeError> {
+        let metadata = self.template_metadata(node_id)?;
+        if metadata.component != "RangeSlider" {
+            return Ok(widget_value_property(metadata).to_string());
+        }
+        let Some(next_value) = self.default_range_click_value(node_id, point)? else {
+            return Ok(widget_value_property(metadata).to_string());
+        };
+        let upper_property = widget_value_property(metadata);
+        let Some(upper_value) = self.default_range_current_value(node_id, upper_property)? else {
+            return Ok(upper_property.to_string());
+        };
+        let Some(lower_value) = self.default_range_current_value(node_id, "range_min")? else {
+            return Ok(upper_property.to_string());
+        };
+        if (next_value - lower_value).abs() < (next_value - upper_value).abs() {
+            Ok("range_min".to_string())
+        } else {
+            Ok(upper_property.to_string())
+        }
+    }
+
+    fn default_range_drag_value_property(
+        &self,
+        node_id: UiNodeId,
+        point: UiPoint,
+    ) -> Result<String, UiTreeError> {
+        if let Some(property) = self.input.pointer_drag_property(node_id) {
+            return Ok(property.to_string());
+        }
+        self.default_range_value_property_for_point(node_id, point)
+    }
+
+    fn default_range_constrained_value_for_property(
+        &self,
+        node_id: UiNodeId,
+        property: &str,
+        value: f64,
+    ) -> Result<f64, UiTreeError> {
+        let metadata = self.template_metadata(node_id)?;
+        let min = self
+            .default_range_numeric_value(node_id, metadata, widget_min_property(metadata))
+            .unwrap_or(0.0);
+        let max = self
+            .default_range_numeric_value(node_id, metadata, widget_max_property(metadata))
+            .unwrap_or(1.0);
+        let mut constrained = if max > min {
+            value.clamp(min, max)
+        } else {
+            value
+        };
+        if metadata.component != "RangeSlider" {
+            return Ok(constrained);
+        }
+
+        let upper_property = widget_value_property(metadata);
+        if property == "range_min" {
+            if let Some(upper_value) = self.default_range_current_value(node_id, upper_property)? {
+                constrained = constrained.min(upper_value);
+            }
+        } else if property == upper_property {
+            if let Some(lower_value) = self.default_range_current_value(node_id, "range_min")? {
+                constrained = constrained.max(lower_value);
+            }
+        }
+        Ok(constrained)
+    }
+
+    fn default_range_value_update_for_property(
+        &self,
+        node_id: UiNodeId,
+        property: &str,
+        value: f64,
+    ) -> Result<UiDefaultRangeValueUpdate, UiTreeError> {
+        let metadata = self.template_metadata(node_id)?;
+        let min = self
+            .default_range_numeric_value(node_id, metadata, widget_min_property(metadata))
+            .unwrap_or(0.0);
+        let max = self
+            .default_range_numeric_value(node_id, metadata, widget_max_property(metadata))
+            .unwrap_or(1.0);
+        let constrained = if max > min {
+            value.clamp(min, max)
+        } else {
+            value
+        };
+        if metadata.component == "RangeSlider" && !range_slider_disable_swap(metadata) {
+            let upper_property = widget_value_property(metadata);
+            if property == "range_min" {
+                if let Some(upper_value) =
+                    self.default_range_current_value(node_id, upper_property)?
+                {
+                    if constrained > upper_value {
+                        return Ok(UiDefaultRangeValueUpdate {
+                            active_property: upper_property.to_string(),
+                            active_value: constrained,
+                            side_effect: Some(("range_min".to_string(), upper_value)),
+                        });
+                    }
+                }
+            } else if property == upper_property {
+                if let Some(lower_value) = self.default_range_current_value(node_id, "range_min")? {
+                    if constrained < lower_value {
+                        return Ok(UiDefaultRangeValueUpdate {
+                            active_property: "range_min".to_string(),
+                            active_value: constrained,
+                            side_effect: Some((upper_property.to_string(), lower_value)),
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(UiDefaultRangeValueUpdate {
+            active_property: property.to_string(),
+            active_value: self.default_range_constrained_value_for_property(
+                node_id,
+                property,
+                constrained,
+            )?,
+            side_effect: None,
+        })
     }
 }
 
@@ -453,4 +624,17 @@ fn f64_attribute_value(
         toml::Value::String(value) => value.parse::<f64>().ok(),
         _ => None,
     }
+}
+
+fn range_slider_disable_swap(metadata: &UiTemplateNodeMetadata) -> bool {
+    bool_attribute_value(&metadata.attributes, "disable_swap")
+        .or_else(|| bool_attribute_value(&metadata.attributes, "disableSwap"))
+        .unwrap_or(true)
+}
+
+fn bool_attribute_value(
+    values: &std::collections::BTreeMap<String, toml::Value>,
+    key: &str,
+) -> Option<bool> {
+    values.get(key)?.as_bool()
 }

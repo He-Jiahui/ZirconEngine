@@ -54,6 +54,7 @@ fn button_base() -> UiComponentDescriptor {
     .with_prop(any_prop("TouchRippleProps"))
     .slot(UiSlotSchema::new("touchRipple"))
     .events([
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::Press,
         UiComponentEventKind::Commit,
@@ -247,11 +248,18 @@ fn radio_group() -> UiComponentDescriptor {
     )
     .with_prop(options_prop())
     .with_prop(default_string_prop("value", ""))
+    .with_prop(value_text_prop())
     .with_prop(default_string_prop("defaultValue", ""))
     .with_prop(default_string_prop("name", ""))
     .with_prop(bool_prop("row", false))
+    .with_prop(int_prop("selected_index", 0))
+    .with_prop(int_prop("focused_index", 0))
+    .with_prop(array_prop("disabled_options"))
+    .with_prop(bool_prop("selection_follows_focus", true))
+    .with_prop(bool_prop("keyboard_navigation", true))
     .slot(UiSlotSchema::new("items").multiple(true))
     .events([
+        UiComponentEventKind::KeyboardAction,
         UiComponentEventKind::Focus,
         UiComponentEventKind::SelectOption,
         UiComponentEventKind::ValueChanged,

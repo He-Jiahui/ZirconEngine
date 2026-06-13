@@ -104,6 +104,13 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 |------|------|------|
 | 17 性能体系与优化 | `17-performance-and-profiling.md` | PF-M1(观测底座)无依赖、最先启动,是各计划 stats 验收的前置;PF-M2(CPU 并行)依赖 01/02;PF-M3(预算降级)接 01/07/13;PF-M4(编译治理与防回归)接 08 |
 
+扩展层(每项机制独立 feature、可单独启停,在其依赖计划的里程碑完成后即可逐项启动,不占用阶段序):
+
+| 计划 | 文档 | 依赖 |
+|------|------|------|
+| 18 进阶光照与透明特性 | `18-advanced-lighting-features.md` | 体积雾/体积光(05/07)、light cookies(05/13)、clearcoat/anisotropy/transmission(08)、OIT(09 排序之上可选)、局部 irradiance volumes(11 姊妹项)、planar reflection(09 RT 相机)、Burley SSS(07/08) |
+| 19 GPU 能力利用与带宽优化 | `19-gpu-capability-optimizations.md` | GC-M1 能力 gate 修复建议随阶段 A;bindless(03/08)、multi_draw_indirect_count(03/04)、subgroup 归约(04/07/13/16)、pipeline statistics(17)、静态阴影缓存(05)、半分辨率透明(07/09/12)、mip 流送(13,与 SVT 分工)、GPU 排序(12/16)、specular AA(08/13) |
+
 阶段划分:
 
 - 阶段 A(地基):01 + 02。先把"图"和"命令"两条骨架立起来,后续一切 pass 与 draw 都在其上表达。16 的 compute 框架切片(CN-M1)可与阶段 A 末尾并行;17 的观测底座(PF-M1:GPU 计时/分层 stats/抓帧钩子)与阶段 A 同步启动,为全部后续计划提供量化验收手段。
@@ -112,6 +119,7 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 - 阶段 D(时域与后处理):06 → 07。velocity/jitter/TAA 解链后定稿后处理顺序、色彩空间与 Volume 容器。
 - 阶段 E(材质收敛):08。几何源、光照模型与材质排列正交化,GPU skinning 全材质可用。
 - 阶段 F(能力铺开):10 → {11、12、13、14 任意并行} → 15;16 的 NN 插件部分随需启动。能力层各计划共享骨架层产出的注册表、排序键、instancing 与资源池,不允许另起旁路。
+- 扩展层(18/19)不占用阶段序:每项机制在其依赖计划的里程碑完成后即可独立启动;19 的 GC-M1(能力 gate 探测/请求断链修复)建议随阶段 A 一并完成。
 
 阶段 B 之后,既有的 Hybrid GI(Lumen-style)与 Virtual Geometry(Nanite-like)计划可以切换到这套基础设施继续推进:VG 的 N3/N4(GPU 剔除、indirect)直接复用 03/04;HGI 的多灯型与 grid 复用 05。
 
@@ -156,6 +164,10 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 | 多线程渲染(extract 双缓冲 / 并行 prepare / 并行录制) | 17 | PF-M2,依赖 01/02 |
 | 内存与带宽预算、超预算降级阶梯 | 17(+01/07/13 消费) | render scale→mip bias→关 feature 顺序定稿 |
 | pipeline 异步编译与首帧卡顿治理 | 17 + 08 | 变体磁盘缓存预热衔接 |
+| 体积雾 / 体积光(froxel)、light cookies、平面反射 | 18 | 消费 05 light grid、07 Volume、09 RT 相机 |
+| clearcoat / anisotropy / transmission / SSS、OIT、局部 irradiance volumes | 18(+08/11) | shading 扩展位 + 独立 pass,feature 可关 |
+| bindless、indirect_count、subgroup、pipeline statistics | 19 | 能力 gate + 回退路径双轨,产物逐像素一致 |
+| 静态阴影缓存、半分辨率透明、纹理 mip 流送、GPU 排序、specular AA | 19 | 带宽/缓存类优化,逐项接 05/07/12/13 |
 
 ## 5. 与既有 .codex/plans 计划的关系
 
@@ -198,3 +210,4 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 5. **统一排序键** `sort_key: u64` 的位段布局唯一由计划 09 定义;其余计划(02 的命令排序、10 的合批切分、14 的 2D 排序)只消费该布局,不得另造位段。
 6. **测试命名**:`render_<topic>_*` 单测、`render_product_*` 产物对拍、`render_perf_*` 性能计数断言(确定性计数:draw 数/状态切换/上传字节/瞬态峰值,归计划 17;时间类指标只观测不断言);各子计划"工程落地细化"章节给出函数级测试清单。
 7. **实施权威**:每份子计划的"## 工程落地细化"章节是该计划的实施权威 —— 文件落点、类型签名、GPU 布局、切片步骤、测试清单以该章节为准;与正文概述冲突时以细化章节为新。
+8. **参考对照纪律(防凭空实现)**:每个新机制动手前必须先读对应子计划"参考代码"表列出的文件 —— UE/Unity 提供设计与算法样板,`dev/bevy`/`dev/Fyrox` 提供 Rust/wgpu 落地形态(API 形态、所有权组织、wgpu 资源管理),两类都要读,不得只凭记忆或常识实现;计划中显式标注"无 Rust 同类参照"的机制(如 SVT、NN 算子),实现时必须对拍测试先行、逐切片抓帧验证。

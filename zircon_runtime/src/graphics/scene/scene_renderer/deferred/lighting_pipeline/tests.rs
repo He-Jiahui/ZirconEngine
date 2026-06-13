@@ -10,37 +10,68 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
 
     let view_proj = scene_uniform.find("view_proj").unwrap();
     let inverse_view_proj = scene_uniform.find("inverse_view_proj").unwrap();
-    let light_dir = scene_uniform.find("light_dir").unwrap();
+    let ambient_color = scene_uniform.find("ambient_color").unwrap();
+    let previous_view_proj = scene_uniform.find("previous_view_proj").unwrap();
 
     assert!(
-        view_proj < inverse_view_proj && inverse_view_proj < light_dir,
-        "deferred lighting shader must match the Rust SceneUniform matrix layout before light fields"
+        view_proj < inverse_view_proj && inverse_view_proj < ambient_color && ambient_color < previous_view_proj,
+        "deferred lighting shader must match the Rust SceneUniform matrix, ambient, and motion layout"
     );
+    assert!(!scene_uniform.contains("light_dir"));
+    assert!(!scene_uniform.contains("light_color"));
+    assert!(!scene_uniform.contains("point_light_position_range"));
 }
 
 #[test]
-fn deferred_lighting_shader_receives_scene_point_lights() {
+fn deferred_lighting_shader_receives_gpu_light_buffer() {
     for expected in [
-        "point_light_position_range: array<vec4<f32>, 8>",
-        "point_light_color_intensity: array<vec4<f32>, 8>",
-        "point_light_params: vec4<f32>",
-        "fn point_light_lighting",
-        "let point_lights = point_light_lighting(world_position",
+        "@group(3) @binding(2) var<storage, read> zr_light_data",
+        "fn gpu_light_lighting",
+        "fn shade_gpu_light_index",
+        "if (light_index >= zr_gpu_scene_light_count())",
+        "let light = zr_gpu_light(light_index);",
+        "ZR_GPU_LIGHT_TYPE_DIRECTIONAL",
+        "ZR_GPU_LIGHT_TYPE_POINT",
+        "ZR_GPU_LIGHT_TYPE_SPOT",
+        "ZR_GPU_LIGHT_TYPE_RECT",
+        "zr_gpu_light_casts_shadow(light)",
+        "zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z)",
+        "let direct_lights = gpu_light_lighting(position.xy",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
-            "deferred lighting shader should use `{expected}` for point lighting"
+            "deferred lighting shader should use `{expected}` for GPU light-buffer lighting"
         );
     }
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("point_light_position_range"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("scene.light_color"));
 }
 
 #[test]
-fn deferred_lighting_shader_receives_shadow_map_resources() {
+fn deferred_lighting_shader_receives_light_grid_resources() {
+    for expected in [
+        "@group(1) @binding(20) var<uniform> zr_light_grid_params",
+        "@group(1) @binding(21) var<storage, read> zr_light_zbins",
+        "@group(1) @binding(22) var<storage, read> zr_light_tile_masks",
+        "zr_light_mask_word(tile_base, bin, word, zr_light_grid_params)",
+        "firstTrailingBit(mask)",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should use `{expected}` for light-grid lighting"
+        );
+    }
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("for (var i = 0u; i < light_count; i = i + 1u)"));
+}
+
+#[test]
+fn deferred_lighting_shader_receives_shadow_atlas_resources() {
     for expected in [
         "@group(1) @binding(4) var scene_depth_tex: texture_depth_2d;",
-        "@group(1) @binding(5) var shadow_map_tex: texture_depth_2d;",
-        "@group(1) @binding(6) var<uniform> shadow_receiver: ShadowReceiverUniform;",
-        "@group(1) @binding(7) var shadow_compare_sampler: sampler_comparison;",
+        "@group(1) @binding(8) var zr_shadow_atlas: texture_depth_2d;",
+        "@group(1) @binding(9) var zr_shadow_sampler: sampler_comparison;",
+        "@group(1) @binding(10) var<storage, read> zr_shadow_slots",
+        "@group(1) @binding(11) var<uniform> zr_shadow_globals",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
@@ -50,19 +81,34 @@ fn deferred_lighting_shader_receives_shadow_map_resources() {
 
     for expected in [
         "reconstruct_world_position(coord, depth)",
-        "textureSampleCompare(shadow_map_tex, shadow_compare_sampler",
-        "sample_shadow_visibility",
-        "shadow_receiver.params.y",
-        "shadow_receiver.params.z",
         "direct_visibility",
+        "fn zr_gpu_light_shadow_visibility",
+        "fn zr_sample_shadow_slot",
+        "fn zr_shadow_slot_pcf_quality",
+        "ZR_SHADOW_PCF_QUALITY_MEDIUM",
     ] {
         assert!(
             DEFERRED_LIGHTING_SHADER.contains(expected),
             "deferred lighting shader should use `{expected}` for shadow receiving"
         );
     }
-    assert!(
-        !DEFERRED_LIGHTING_SHADER.contains("textureLoad(shadow_map_tex"),
-        "deferred shadow receiving should use the hardware comparison sampler instead of raw depth loads"
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("ShadowReceiverUniform"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("shadow_map_tex"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("shadow_compare_sampler"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("sample_shadow_visibility"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("world_to_shadow_coord"));
+}
+
+#[test]
+fn deferred_lighting_shader_is_valid_wgsl() {
+    let module = naga::front::wgsl::parse_str(DEFERRED_LIGHTING_SHADER)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(DEFERRED_LIGHTING_SHADER)));
+    let mut validator = naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
     );
+
+    validator
+        .validate(&module)
+        .expect("deferred lighting shader should validate");
 }

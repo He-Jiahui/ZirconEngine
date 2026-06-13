@@ -8,9 +8,6 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::rhi::RenderDevice;
-use crate::rhi_wgpu::WgpuRenderDevice;
-
 use crate::{GraphicsError, SceneRenderer};
 
 use super::super::capability_summary::capability_summary;
@@ -95,13 +92,13 @@ impl WgpuRenderFramework {
             selected_hybrid_gi_runtime_provider.as_ref(),
             selected_virtual_geometry_runtime_provider.as_ref(),
         );
-        let render_device = WgpuRenderDevice::new_headless();
         let renderer = SceneRenderer::new_with_plugin_render_extensions(
             asset_manager,
             render_features.clone(),
             render_pass_executors,
             runtime_prepare_collectors,
         )?;
+        let render_capabilities = capability_summary(&renderer.backend_caps());
         let graphics_debugger = GraphicsDebuggerState::available_with_capture_next_created_viewport(
             renderer.backend_name(),
             renderdoc_capture_next_from_env(),
@@ -119,7 +116,7 @@ impl WgpuRenderFramework {
                 last_virtual_geometry_debug_snapshot: None,
                 viewports: HashMap::new(),
                 stats: crate::core::framework::render::RenderStats {
-                    capabilities: capability_summary(render_device.caps()),
+                    capabilities: render_capabilities,
                     advanced_provider_availability,
                     ..crate::core::framework::render::RenderStats::default()
                 },

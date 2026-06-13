@@ -100,7 +100,7 @@ impl UiWidgetBehavior {
             "Group" | "Foldout" | "InspectorSection" | "TreeRow" | "TreeView" => Self::Disclosure,
             "Dropdown" | "ComboBox" | "EnumField" | "FlagsField" | "SearchSelect"
             | "ContextActionMenu" | "Popup" => Self::Popup,
-            "RangeField" | "Slider" => Self::Range,
+            "RangeField" | "Slider" | "RangeSlider" => Self::Range,
             "Scrollbar" | "ScrollBar" | "ScrollBarTrack" => Self::Scrollbar,
             "ScrollbarThumb" | "ScrollThumb" | "ScrollBarThumb" => Self::ScrollbarThumb,
             "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"

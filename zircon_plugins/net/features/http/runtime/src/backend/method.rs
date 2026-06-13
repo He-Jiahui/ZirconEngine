@@ -10,6 +10,16 @@ pub(super) fn method_to_reqwest(method: NetHttpMethod) -> reqwest::Method {
     }
 }
 
+pub(super) fn method_to_hyper(method: NetHttpMethod) -> hyper::Method {
+    match method {
+        NetHttpMethod::Get => hyper::Method::GET,
+        NetHttpMethod::Post => hyper::Method::POST,
+        NetHttpMethod::Put => hyper::Method::PUT,
+        NetHttpMethod::Patch => hyper::Method::PATCH,
+        NetHttpMethod::Delete => hyper::Method::DELETE,
+    }
+}
+
 pub(super) fn http_method_from_hyper(method: &hyper::Method) -> Option<NetHttpMethod> {
     if method == hyper::Method::GET {
         Some(NetHttpMethod::Get)

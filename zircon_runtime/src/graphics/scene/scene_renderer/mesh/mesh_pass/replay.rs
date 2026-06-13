@@ -3,7 +3,7 @@ use std::cell::Cell;
 use super::{
     IndirectDrawBatch, MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream,
     MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
 };
 
 const MATERIAL_BIND_GROUP_SLOT: u32 = 2;
@@ -26,6 +26,10 @@ impl<'a> MeshSceneDataBindHandle<'a> {
 
     pub(crate) const fn id(self) -> u64 {
         self.id
+    }
+
+    pub(crate) const fn bind_group(self) -> &'a wgpu::BindGroup {
+        self.bind_group
     }
 }
 
@@ -220,10 +224,34 @@ impl MeshDrawCommandReplayer {
     pub(crate) fn draw_indexed_indirect_batch<'pass>(
         &mut self,
         pass: &mut wgpu::RenderPass<'pass>,
-        execution: &MeshIndirectDrawExecution,
+        execution: &'pass MeshIndirectDrawExecution,
         batch: &IndirectDrawBatch,
     ) {
         let offset = u64::from(batch.first_args) * INDEXED_INDIRECT_ARGS_STRIDE_BYTES;
+        if execution.compaction_ready_for_replay() {
+            if let Some(bind_group) = execution.visible_remap_scene_bind_group() {
+                self.bind_raw_group_if_needed(
+                    pass,
+                    GPU_SCENE_BIND_GROUP_SLOT,
+                    bind_group as *const wgpu::BindGroup as usize as u64,
+                    bind_group,
+                );
+            }
+            let count_offset =
+                u64::from(batch.draw_count_index) * INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES;
+            pass.multi_draw_indexed_indirect_count(
+                execution
+                    .compaction_resources()
+                    .compacted_indirect_args_buffer(),
+                offset,
+                execution.compaction_resources().draw_count_buffer(),
+                count_offset,
+                batch.args_count,
+            );
+            self.stats.draw_call_count += 1;
+            return;
+        }
+
         pass.multi_draw_indexed_indirect(execution.args_buffer(), offset, batch.args_count);
         self.stats.draw_call_count += 1;
     }
@@ -268,7 +296,11 @@ mod tests {
         let source = include_str!("replay.rs");
 
         assert!(source.contains("pass.multi_draw_indexed_indirect"));
+        assert!(source.contains("pass.multi_draw_indexed_indirect_count"));
+        assert!(source.contains("compaction_ready_for_replay"));
+        assert!(source.contains("visible_remap_scene_bind_group"));
         assert!(source.contains("batch.first_args"));
         assert!(source.contains("batch.args_count"));
+        assert!(source.contains("batch.draw_count_index"));
     }
 }

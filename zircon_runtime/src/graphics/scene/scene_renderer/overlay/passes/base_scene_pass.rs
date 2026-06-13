@@ -8,7 +8,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
-use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
+use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -28,20 +28,24 @@ impl BaseScenePass {
         mesh_pipelines: &mut MeshPipelineCache,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
-        queue: Option<&wgpu::Queue>,
-        shadow_map_view: Option<&wgpu::TextureView>,
-        shadow_scene_uniform: Option<SceneUniform>,
+        shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        light_grid_params_buffer: Option<&wgpu::Buffer>,
+        light_zbins_buffer: Option<&wgpu::Buffer>,
+        light_tile_masks_buffer: Option<&wgpu::Buffer>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
     {
-        if let Some(queue) = queue {
-            mesh_pipelines.update_forward_shadow_receiver(queue, shadow_scene_uniform);
-        }
-        let forward_shadow_receiver_bind_group =
-            mesh_pipelines.create_forward_shadow_receiver_bind_group(device, shadow_map_view);
+        let forward_shadow_receiver_bind_group = mesh_pipelines
+            .create_forward_shadow_receiver_bind_group(
+                device,
+                shadow_atlas_resources,
+                light_grid_params_buffer,
+                light_zbins_buffer,
+                light_tile_masks_buffer,
+            );
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("BaseScenePass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {

@@ -106,7 +106,7 @@ pub fn runtime_selection() -> ProjectPluginSelection {
 pub fn plugin_registration() -> RuntimePluginRegistrationReport {
     let mut extensions = RuntimeExtensionRegistry::default();
     let mut diagnostics = Vec::new();
-    if let Err(error) = register_runtime_extensions(&mut extensions) {
+    if let Err(error) = register(&mut extensions) {
         diagnostics.push(error.to_string());
     }
     RuntimePluginRegistrationReport {
@@ -117,7 +117,7 @@ pub fn plugin_registration() -> RuntimePluginRegistrationReport {
     }
 }
 
-pub fn register_runtime_extensions(
+pub fn register(
     registry: &mut RuntimeExtensionRegistry,
 ) -> Result<(), RuntimeExtensionRegistryError> {
     registry.register_module(module_descriptor())?;
@@ -274,8 +274,8 @@ fn decode_symphonia_audio(
         sample_rate_hz.ok_or_else(|| "audio file produced no decoded samples".to_string())?;
     let channel_count =
         channel_count.ok_or_else(|| "audio file produced no decoded channels".to_string())?;
-    let channel_layout =
-        channel_layout.ok_or_else(|| "audio file produced no decoded channel layout".to_string())?;
+    let channel_layout = channel_layout
+        .ok_or_else(|| "audio file produced no decoded channel layout".to_string())?;
     if channel_count > u16::MAX as usize {
         return Err(format!(
             "decoded audio channel count {channel_count} exceeds u16"

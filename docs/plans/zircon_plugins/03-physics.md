@@ -3,6 +3,7 @@
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
 > 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/physics/runtime.md`
 > 参考实现：Godot `servers/physics_3d`（PhysicsServer3D body/shape/joint/area API 形态）、Jolt 官方 Samples（约束族与 ragdoll）
+> 最新进度（2026-06-14 00:21 +08:00）：在不刷新 `zircon_plugins/Cargo.lock` 的前提下，使用临时 manifest 与外部 target-dir 复跑 `physics_manager_runtime_contract`，32 项全通过（含 contact/query/step/world_sync 合约）。直接 `zircon_plugins/Cargo.toml --locked` 路径仍会在编译前因锁文件需要更新而停止，本次锁文件保持未改。
 
 ## 1. 目标
 
@@ -230,3 +231,14 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_ru
 - 确定性测试在不同 SIMD 路径下可能漂移：金样用容差断言而非逐位相等。
 - Ragdoll 依赖 04-M2（骨骼姿态通道），排期上 M5 必须晚于之；契约 DTO（skeletal_pose.rs）可先行落地解耦排期。
 - builtin 降级集的边界（哪些 Unsupported）必须写进 capability_statuses，避免用户在无 jolt 构建下静默缺功能。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，Jolt 用法与约束参数语义对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| Jolt 集成全形态（最重要） | `dev/godot/modules/jolt_physics/` | shape/body/constraint 到 Jolt 类型的完整映射、层过滤桥接、CCD/休眠参数换算——M1-T3/M2/M4 逐任务对照 |
+| Server API 形态（RID handle/查询） | `dev/godot/servers/physics_3d/` | body/shape/joint/area 的不透明 handle API 面、direct state 读取边界 |
+| 纯软件降级后端形态 | `dev/godot/modules/godot_physics_3d/` | builtin 后端能力边界划定的参照 |
+| ragdoll/骨骼物理 | `dev/UnrealEngine/Engine/Source/Runtime/Engine/`（PhysicsEngine 子目录，PhysicsAsset 形态）与 `dev/godot/modules/jolt_physics/` 的关节实现 | 骨骼 → body/constraint 映射、Animated/Simulated 切换的速度初始化 |

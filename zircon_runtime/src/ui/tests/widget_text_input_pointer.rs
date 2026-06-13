@@ -114,6 +114,56 @@ fn text_input_double_click_selects_word_from_pointer_hit() {
 }
 
 #[test]
+fn text_input_triple_click_selects_line_from_pointer_hit() {
+    let mut surface = text_input_surface("alpha\nbeta", 0);
+
+    let result = dispatch_pointer_with_click_count(
+        &mut surface,
+        UiPointerEventKind::Down,
+        UiPoint::new(20.0, 22.0),
+        Some(UiPointerButton::Primary),
+        UiPointerId::new(17),
+        3,
+        |_| {},
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("pointer.text_press")
+    );
+    assert_eq!(
+        int_attr(&surface, "caret_offset"),
+        "alpha\nbeta".len() as i64
+    );
+    assert_eq!(
+        int_attr(&surface, "selection_anchor"),
+        "alpha\n".len() as i64
+    );
+    assert_eq!(
+        int_attr(&surface, "selection_focus"),
+        "alpha\nbeta".len() as i64
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "text_pointer_line_selection"));
+    assert!(!result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "text_pointer_word_selection"));
+    assert_drag_metrics(
+        &result,
+        UiDragPhase::Begin,
+        UiPoint::new(20.0, 22.0),
+        UiPoint::new(20.0, 22.0),
+        0.0,
+    );
+}
+
+#[test]
 fn text_input_secondary_press_outside_selection_moves_caret_without_drag() {
     let mut surface = text_input_surface_with_selection("alpha beta", 5, 0, 5);
 

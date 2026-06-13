@@ -428,6 +428,46 @@ const nativeZuiComponentAssets = [
     needles: ["min = 0.0", "max = 100.0", "step = 1.0"]
   },
   {
+    name: "range slider atom",
+    file: "workbench/primitives/inputs/workbench_range_slider.zui",
+    componentName: "WorkbenchRangeSlider",
+    rootComponent: "RangeSlider",
+    interactive: true,
+    needles: ["range_min = 20.0", "value = 80.0", "range_min_percent = 0.2", "value_percent = 0.8"]
+  },
+  {
+    name: "number field atom",
+    file: "workbench/primitives/inputs/workbench_number_field.zui",
+    componentName: "WorkbenchNumberField",
+    rootComponent: "NumberField",
+    interactive: true,
+    needles: ["value = 42.0", "large_step = 10.0", "layout_stepper = true"]
+  },
+  {
+    name: "tab strip atom",
+    file: "workbench/primitives/inputs/workbench_tab_strip.zui",
+    componentName: "WorkbenchTabStrip",
+    rootComponent: "Tabs",
+    interactive: true,
+    needles: ['options = ["overview", "details", "stats"]', "selection_follows_focus = true"]
+  },
+  {
+    name: "label atom",
+    file: "workbench/primitives/data/workbench_label.zui",
+    componentName: "WorkbenchLabel",
+    rootComponent: "Label",
+    interactive: false,
+    needles: ['text = "Label"', "font_weight = 500"]
+  },
+  {
+    name: "icon atom",
+    file: "workbench/primitives/data/workbench_icon.zui",
+    componentName: "WorkbenchIcon",
+    rootComponent: "Icon",
+    interactive: false,
+    needles: ['icon = "zircon_editor_shell/controls/add.svg"', "layout_icon_size = 18.0"]
+  },
+  {
     name: "list row collection",
     file: "workbench/primitives/data/workbench_list_row.zui",
     componentName: "WorkbenchListRow",
@@ -452,12 +492,36 @@ const nativeZuiComponentAssets = [
     needles: ["options = [", "layout_first_cell_offset_x"]
   },
   {
+    name: "divider atom",
+    file: "workbench/primitives/data/workbench_divider.zui",
+    componentName: "WorkbenchDivider",
+    rootComponent: "Divider",
+    interactive: false,
+    needles: ['orientation = "horizontal"', "thickness = 1.0"]
+  },
+  {
     name: "popup menu collection",
     file: "workbench/primitives/feedback/workbench_popup_menu.zui",
     componentName: "WorkbenchPopupMenu",
     rootComponent: "ContextActionMenu",
     interactive: true,
     needles: ["menu_items = [", "popup_anchor_x", "popup_anchor_y"]
+  },
+  {
+    name: "progress bar feedback",
+    file: "workbench/primitives/feedback/workbench_progress_bar.zui",
+    componentName: "WorkbenchProgressBar",
+    rootComponent: "Progress",
+    interactive: false,
+    needles: ["value_percent = 0.64", 'variant = "linear"', "track_fill_color"]
+  },
+  {
+    name: "skeleton feedback",
+    file: "workbench/primitives/feedback/workbench_skeleton.zui",
+    componentName: "WorkbenchSkeleton",
+    rootComponent: "Skeleton",
+    interactive: false,
+    needles: ['animation = "pulse"', "loading = true", "highlight_color"]
   },
   {
     name: "tooltip feedback",
@@ -532,16 +596,24 @@ const componentDrawerImports = [
   ["workbench/primitives/inputs/workbench_field.zui", "WorkbenchField"],
   ["workbench/primitives/inputs/workbench_search_input.zui", "WorkbenchSearchInput"],
   ["workbench/primitives/inputs/workbench_icon_button.zui", "WorkbenchIconButton"],
+  ["workbench/primitives/data/workbench_label.zui", "WorkbenchLabel"],
+  ["workbench/primitives/data/workbench_icon.zui", "WorkbenchIcon"],
+  ["workbench/primitives/data/workbench_divider.zui", "WorkbenchDivider"],
   ["workbench/primitives/data/workbench_list_row.zui", "WorkbenchListRow"],
   ["workbench/primitives/feedback/workbench_popup_menu.zui", "WorkbenchPopupMenu"],
+  ["workbench/primitives/feedback/workbench_progress_bar.zui", "WorkbenchProgressBar"],
   ["workbench/primitives/inputs/workbench_radio.zui", "WorkbenchRadio"],
   ["workbench/primitives/inputs/workbench_segmented_control.zui", "WorkbenchSegmentedControl"],
   ["workbench/primitives/inputs/workbench_slider.zui", "WorkbenchSlider"],
+  ["workbench/primitives/inputs/workbench_range_slider.zui", "WorkbenchRangeSlider"],
+  ["workbench/primitives/feedback/workbench_skeleton.zui", "WorkbenchSkeleton"],
   ["workbench/primitives/inputs/workbench_tab.zui", "WorkbenchTab"],
+  ["workbench/primitives/inputs/workbench_tab_strip.zui", "WorkbenchTabStrip"],
   ["workbench/primitives/data/workbench_table_row.zui", "WorkbenchTableRow"],
   ["workbench/primitives/feedback/workbench_toast.zui", "WorkbenchToast"],
   ["workbench/primitives/feedback/workbench_tooltip.zui", "WorkbenchTooltip"],
-  ["workbench/primitives/inputs/workbench_toggle.zui", "WorkbenchToggle"]
+  ["workbench/primitives/inputs/workbench_toggle.zui", "WorkbenchToggle"],
+  ["workbench/primitives/inputs/workbench_number_field.zui", "WorkbenchNumberField"]
 ];
 
 const nativeZuiShellSurfaceAssets = [
@@ -947,6 +1019,7 @@ checks.push([
     && sources.componentDrawerZui.includes('component = "WorkbenchButton"')
     && sources.componentDrawerZui.includes('component = "WorkbenchIconButton"')
     && sources.componentDrawerZui.includes('component = "WorkbenchDropdown"')
+    && sources.componentDrawerZui.includes('component = "WorkbenchRangeSlider"')
     && sources.componentDrawerZui.includes('component = "WorkbenchPopupMenu"')
     && sources.componentDrawerZui.includes('component = "WorkbenchToast"')
 ]);
@@ -1243,6 +1316,7 @@ checks.push([
     && sources.runtimeSelectionTest.includes("render_extract_expands_selection_control_indicators")
     && sources.runtimeSegmentedControlTest.includes("render_extract_expands_tabs_and_segmented_control_primitives")
     && sources.runtimeSliderTest.includes("render_extract_expands_slider_primitives")
+    && sources.runtimeSliderTest.includes("render_extract_expands_range_slider_dual_thumb_primitives")
     && sources.runtimeDropdownTest.includes("render_extract_expands_dropdown_trigger_primitives")
     && sources.runtimeFeedbackTest.includes("render_extract_expands_feedback_primitives")
     && sources.runtimeTextFieldTest.includes("render_extract_expands_text_field_primitives")
@@ -1253,7 +1327,7 @@ checks.push([
 checks.push([
   "native component contract spans web and runtime",
   nativeComponentFamilies.length >= 15
-    && nativeZuiComponentAssets.length >= 24
+    && nativeZuiComponentAssets.length >= 32
     && nativeZuiShellSurfaceAssets.length >= 7
     && nativeInteractionContracts.length >= 10
     && sources.templateNodes.includes("push_template_node_commands")

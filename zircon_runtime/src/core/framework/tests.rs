@@ -29,6 +29,7 @@ use super::{
         RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
         RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
         RenderViewportHandle, RenderViewportRect, RenderingBackendInfo, ViewportCameraSnapshot,
+        DEFAULT_RENDER_LAYER_MASK,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
     tasks::{
@@ -1518,19 +1519,27 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             meshes: Vec::new(),
             directional_lights: vec![RenderDirectionalLightSnapshot {
                 node_id: 10,
+                light_id: 10,
+                layer_mask: DEFAULT_RENDER_LAYER_MASK,
                 direction: Vec3::new(-0.4, -1.0, -0.2),
                 color: Vec3::new(1.0, 0.9, 0.8),
                 intensity: 3.0,
+                shadow: None,
             }],
             point_lights: vec![RenderPointLightSnapshot {
                 node_id: 20,
+                light_id: 20,
+                layer_mask: DEFAULT_RENDER_LAYER_MASK,
                 position: Vec3::new(2.0, 3.0, 4.0),
                 color: Vec3::new(0.2, 0.6, 1.0),
                 intensity: 4.5,
                 range: 9.0,
+                shadow: None,
             }],
             spot_lights: vec![RenderSpotLightSnapshot {
                 node_id: 30,
+                light_id: 30,
+                layer_mask: DEFAULT_RENDER_LAYER_MASK,
                 position: Vec3::new(-1.0, 5.0, 2.0),
                 direction: Vec3::new(0.0, -1.0, 0.3),
                 color: Vec3::new(1.0, 0.7, 0.2),
@@ -1538,6 +1547,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 range: 14.0,
                 inner_angle_radians: 0.25,
                 outer_angle_radians: 0.5,
+                shadow: None,
             }],
             ambient_lights: vec![RenderAmbientLightSnapshot {
                 color: Vec3::new(0.05, 0.06, 0.07),
@@ -1549,12 +1559,15 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             }],
             rect_lights: vec![RenderRectLightSnapshot {
                 node_id: 40,
+                light_id: 40,
+                layer_mask: DEFAULT_RENDER_LAYER_MASK,
                 position: Vec3::new(1.0, 2.0, 3.0),
                 direction: Vec3::new(0.0, -1.0, 0.0),
                 color: Vec3::new(1.0, 0.8, 0.6),
                 intensity: 6.0,
                 range: 12.0,
                 size: Vec2::new(2.0, 0.5),
+                shadow: None,
                 renderer_degraded: true,
                 degradation_reason: Some(
                     "rect light renderer path is deferred after M5A".to_string(),
@@ -1636,12 +1649,15 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
         });
     extract.lighting.rect_lights.push(RenderRectLightSnapshot {
         node_id: 80,
+        light_id: 80,
+        layer_mask: DEFAULT_RENDER_LAYER_MASK,
         position: Vec3::new(1.0, 2.0, 3.0),
         direction: Vec3::new(0.0, -1.0, 0.0),
         color: Vec3::new(1.0, 0.8, 0.6),
         intensity: 5.0,
         range: 12.0,
         size: Vec2::new(2.0, 0.5),
+        shadow: None,
         renderer_degraded: true,
         degradation_reason: Some("rect light renderer path is deferred after M5A".to_string()),
     });

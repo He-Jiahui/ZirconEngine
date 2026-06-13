@@ -44,21 +44,21 @@ The structural audit now reports a `root_surface_audit.m1_gate_status` value. Cu
 
 Current numeric evidence:
 
-- `public_module_count = 18`
+- `public_module_count = 20`
 - `public_use_location_count = 3`
-- `module_decision_count = 18`
+- `module_decision_count = 20`
 - `public_use_decision_count = 3`
 - `unclassified_public_module_count = 0`
 - `unclassified_public_use_location_count = 0`
 - `root_surface_migration_debt_count = 3`
-- `crate_visible_graphics_reexport_count = 75`
+- `crate_visible_graphics_reexport_count = 80`
 
 The current public module classification is:
 
 - `stable-facade`: `core`, `dynamic_api`, `engine_module`, `prelude`
 - `namespace-entry`: `plugin`
 - `assembly-facade-review`: `builtin`
-- `runtime-module-entry`: `asset`, `diagnostic_log`, `foundation`, `input`, `platform`, `scene`, `script`, `ui`
+- `runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `platform`, `scene`, `script`, `ui`
 - `graphics-rhi-deferred`: `graphics`, `render_graph`, `rhi`
 - `backend-public-debt`: `rhi_wgpu`
 
@@ -71,7 +71,7 @@ The current root `pub use` classification is:
 The current migration debt list is:
 
 - backend module exposed at runtime root: `rhi_wgpu`
-- crate-visible graphics re-export fan-out: 75 symbols
+- crate-visible graphics re-export fan-out: 80 symbols
 - broad builtin assembly root pub-use facade requires continued M2 review
 
 ## M1 Decision Rules
@@ -79,6 +79,8 @@ The current migration debt list is:
 Stable facades are allowed only when they expose the converged runtime spine, descriptor contracts, ABI surface, macro facade, or a deliberately curated prelude.
 
 Runtime module entries are allowed only when they are the current owner namespace for absorbed built-in modules. They must not become a dumping ground for cross-module construction.
+
+Runtime 14 classifies `animation` and `navigation` as deliberate runtime module-family root seats. `animation` owns runtime playback/evaluation and scene-hook application, while `navigation` owns the built-in fallback runtime pathfinding implementation used when the external Recast-backed plugin stack is not linked. They are runtime module entries, not unclassified root modules.
 
 The `plugin` root namespace is allowed, but root-level flattening of native loader or ABI symbols is not allowed. Native loader exposure remains an M4 blocker until the plugin ecosystem session settles.
 

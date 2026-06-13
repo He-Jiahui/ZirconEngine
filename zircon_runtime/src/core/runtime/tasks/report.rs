@@ -1,4 +1,66 @@
-use super::{TaskPool, TaskPoolKind, TaskPoolThreadCounts};
+use crate::core::diagnostics::DiagnosticStore;
+
+use super::{
+    TaskPool, TaskPoolKind, TaskPoolThreadCounts, TASKS_COMPLETED_DIAGNOSTIC,
+    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC,
+    TASKS_SCHEDULED_DIAGNOSTIC,
+};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct JobSchedulerReport {
+    pub scheduled: u64,
+    pub completed: u64,
+    pub dependency_wait_ms: f64,
+    pub main_thread_wait_ms: f64,
+}
+
+impl JobSchedulerReport {
+    pub fn diagnostic_lines(&self) -> Vec<String> {
+        vec![
+            format!("{}={}", TASKS_SCHEDULED_DIAGNOSTIC, self.scheduled),
+            format!("{}={}", TASKS_COMPLETED_DIAGNOSTIC, self.completed),
+            format!(
+                "{}={:.3}",
+                TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, self.dependency_wait_ms
+            ),
+            format!(
+                "{}={:.3}",
+                TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC, self.main_thread_wait_ms
+            ),
+        ]
+    }
+
+    pub fn format_diagnostics(&self) -> String {
+        self.diagnostic_lines().join("\n")
+    }
+
+    pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
+        for (path, value, unit) in [
+            (
+                TASKS_SCHEDULED_DIAGNOSTIC,
+                self.scheduled as f64,
+                Some("task"),
+            ),
+            (
+                TASKS_COMPLETED_DIAGNOSTIC,
+                self.completed as f64,
+                Some("task"),
+            ),
+            (
+                TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC,
+                self.dependency_wait_ms,
+                Some("ms"),
+            ),
+            (
+                TASKS_MAIN_THREAD_WAIT_MS_DIAGNOSTIC,
+                self.main_thread_wait_ms,
+                Some("ms"),
+            ),
+        ] {
+            store.record(path, frame_index, value, unit, ["tasks", "job_scheduler"]);
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskPoolReport {

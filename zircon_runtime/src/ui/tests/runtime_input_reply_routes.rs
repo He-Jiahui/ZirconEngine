@@ -9,7 +9,7 @@ use std::sync::{
 use zircon_runtime_interface::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     binding::UiEventKind,
-    component::{UiComponentEvent, UiValue},
+    component::{UiComponentEvent, UiComponentKeyboardAction, UiValue},
     dispatch::{
         UiAccessibilityInputEvent, UiAnalogInputEvent, UiDispatchDisposition, UiDispatchEffect,
         UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDispatchReplyStep,
@@ -19,9 +19,10 @@ use zircon_runtime_interface::ui::{
         UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent,
         UiNavigationInputEvent, UiPointerCaptureReason, UiPointerDispatchEffect, UiPointerEvent,
         UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind,
-        UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiTextInputEvent,
-        UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
-        UiTransientDismissalReason, UiTransientDismissalTarget,
+        UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
+        UiSubmenuHoverTimerInputEvent, UiTextInputEvent, UiTooltipEffectKind,
+        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiTransientDismissalReason,
+        UiTransientDismissalTarget,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusedInputKind,

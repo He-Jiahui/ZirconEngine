@@ -7,8 +7,6 @@ mod motion_vector_camera_pipeline;
 mod motion_vector_neighbor_max_pipeline;
 mod motion_vector_tile_max_pipeline;
 mod post_process_pipeline;
-mod screen_space_reflection_depth_pyramid_coarse_pipeline;
-mod screen_space_reflection_depth_pyramid_pipeline;
 mod screen_space_reflection_reflection_pyramid_coarse_pipeline;
 mod screen_space_reflection_reflection_pyramid_pipeline;
 mod screen_space_reflection_resolve_pipeline;

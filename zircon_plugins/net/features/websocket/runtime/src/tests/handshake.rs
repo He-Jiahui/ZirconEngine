@@ -6,7 +6,8 @@ use zircon_runtime::core::framework::net::{
 use crate::websocket_runtime_manager;
 
 use super::support::{
-    accept_until_websocket, assert_websocket_policy_rejects, poll_websocket_until,
+    accept_until_websocket, assert_websocket_policy_rejects, poll_websocket_frames_until_count,
+    poll_websocket_until,
 };
 
 #[test]
@@ -117,5 +118,58 @@ fn websocket_feature_manager_enforces_server_path_header_and_subprotocol_policy(
     assert_eq!(
         poll_websocket_until(&net, server),
         NetWebSocketFrame::Text("policy-ok".to_string())
+    );
+}
+
+#[test]
+fn ws_frame_order_preserved() {
+    let net = websocket_runtime_manager();
+    let listener = net
+        .listen_websocket(NetWebSocketListenerDescriptor::new(NetEndpoint::new(
+            "127.0.0.1",
+            0,
+        )))
+        .unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+    let connector = net.clone();
+    let client_thread = std::thread::spawn(move || {
+        connector
+            .connect_websocket(NetWebSocketConnectDescriptor::new(format!(
+                "ws://{}:{}/ordered",
+                endpoint.host, endpoint.port
+            )))
+            .unwrap()
+    });
+    let server = accept_until_websocket(&net, listener);
+    let client = client_thread
+        .join()
+        .expect("websocket connect thread panicked");
+
+    let client_frames = vec![
+        NetWebSocketFrame::Text("client-one".to_string()),
+        NetWebSocketFrame::Binary(vec![2]),
+        NetWebSocketFrame::Text("client-three".to_string()),
+        NetWebSocketFrame::Binary(vec![4]),
+    ];
+    for frame in client_frames.iter().cloned() {
+        net.send_websocket_frame(client, frame).unwrap();
+    }
+    assert_eq!(
+        poll_websocket_frames_until_count(&net, server, client_frames.len()),
+        client_frames
+    );
+
+    let server_frames = vec![
+        NetWebSocketFrame::Text("server-one".to_string()),
+        NetWebSocketFrame::Binary(vec![12]),
+        NetWebSocketFrame::Text("server-three".to_string()),
+        NetWebSocketFrame::Binary(vec![14]),
+    ];
+    for frame in server_frames.iter().cloned() {
+        net.send_websocket_frame(server, frame).unwrap();
+    }
+    assert_eq!(
+        poll_websocket_frames_until_count(&net, client, server_frames.len()),
+        server_frames
     );
 }

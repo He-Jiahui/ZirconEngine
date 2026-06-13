@@ -42,7 +42,7 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
         &self.descriptor
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {

@@ -27,7 +27,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::SHADOW_MAP)
+        .read_external(PostProcessGraphResourceNames::SHADOW_ATLAS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_ZBINS)
+        .read_buffer(PostProcessGraphResourceNames::LIGHT_TILE_MASKS)
         .read_external(PostProcessGraphResourceNames::FINAL_COLOR)
         .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
     )

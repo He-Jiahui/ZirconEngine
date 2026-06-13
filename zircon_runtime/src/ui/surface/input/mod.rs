@@ -18,11 +18,13 @@ mod popup;
 mod route_policy;
 mod route_steps;
 mod state;
+mod submenu_hover_timer;
 mod text_constraints;
 mod text_keyboard;
 mod text_pointer;
 mod text_state;
 mod tooltip_timer;
+mod typeahead_timer;
 mod validation;
 mod window_pump;
 

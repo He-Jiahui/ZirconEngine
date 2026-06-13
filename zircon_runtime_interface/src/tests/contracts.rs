@@ -25,9 +25,9 @@ use crate::{
             UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchResult,
             UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource,
             UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-            UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId, UiTextByteRange,
-            UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-            UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+            UiRedrawRequestReason, UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent, UiSurfaceId,
+            UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
+            UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent, UiUserId, UiWindowId,
         },
         event_ui::{
             UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
@@ -1723,17 +1723,28 @@ fn ui_input_event_contract_constructs_every_event_family() {
             anchor: Some(UiPoint::new(12.0, 16.0)),
         }),
         UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
-            metadata,
+            metadata: metadata.clone(),
             kind: UiTooltipTimerInputEventKind::Elapsed,
             tooltip_id: "save-tooltip".to_string(),
             owner: Some(UiNodeId::new(11)),
         }),
+        UiInputEvent::TypeaheadTimer(UiTypeaheadTimerInputEvent {
+            metadata: metadata.clone(),
+            target: UiNodeId::new(11),
+        }),
+        UiInputEvent::SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent {
+            metadata,
+            target: UiNodeId::new(11),
+            option_id: "file".to_string(),
+        }),
     ];
 
-    assert_eq!(events.len(), 10);
+    assert_eq!(events.len(), 12);
     assert!(matches!(events[0], UiInputEvent::Pointer(_)));
     assert!(matches!(events[6], UiInputEvent::MouseMotion(_)));
     assert!(matches!(events[9], UiInputEvent::TooltipTimer(_)));
+    assert!(matches!(events[10], UiInputEvent::TypeaheadTimer(_)));
+    assert!(matches!(events[11], UiInputEvent::SubmenuHoverTimer(_)));
     let UiInputEvent::Pointer(pointer) = ui_input_round_trip(&events[0]) else {
         panic!("pointer event family changed");
     };
@@ -2166,10 +2177,19 @@ fn ui_input_payloads_round_trip_through_serde() {
         anchor: Some(UiPoint::new(3.0, 4.0)),
     });
     let tooltip = UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
-        metadata,
+        metadata: metadata.clone(),
         kind: UiTooltipTimerInputEventKind::Canceled,
         tooltip_id: "status.hint".to_string(),
         owner: Some(UiNodeId::new(77)),
+    });
+    let typeahead = UiInputEvent::TypeaheadTimer(UiTypeaheadTimerInputEvent {
+        metadata: metadata.clone(),
+        target: UiNodeId::new(77),
+    });
+    let submenu_hover = UiInputEvent::SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent {
+        metadata,
+        target: UiNodeId::new(77),
+        option_id: "file".to_string(),
     });
     let input_method_request = UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {
@@ -2211,6 +2231,8 @@ fn ui_input_payloads_round_trip_through_serde() {
     assert_eq!(ui_input_round_trip(&drag_drop), drag_drop);
     assert_eq!(ui_input_round_trip(&popup), popup);
     assert_eq!(ui_input_round_trip(&tooltip), tooltip);
+    assert_eq!(ui_input_round_trip(&typeahead), typeahead);
+    assert_eq!(ui_input_round_trip(&submenu_hover), submenu_hover);
     assert_eq!(
         ui_input_round_trip(&input_method_request),
         input_method_request

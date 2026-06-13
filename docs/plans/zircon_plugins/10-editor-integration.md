@@ -106,3 +106,16 @@ cargo test -p zircon_editor --test integration_contracts --features integration-
 
 - E2 触及 workbench 状态层的局部历史，与编辑器既有事件执行路径（editor_event_execution）耦合深；迁移按"先栈后策略"两步走，undo_policy 行为以现有测试为回归网。
 - E1 的运行期控件树在大组件（几十字段）上的布局性能需要 retained host 虚拟化支持；首版以折叠组惰性展开规避。
+
+## 11. 附录 · dev 参考源码对位
+
+实现各项前**必须先读对应参考实现**，交互语义与视觉基准对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| 反射驱动 Inspector（E1） | `dev/godot/editor/`（inspector 相关：editor_inspector/property editor 族）与 `dev/Fyrox/editor/`（reflect-based Inspector） | 类型 → 控件映射表、嵌套折叠/数组项编辑、撤销集成点 |
+| undo/redo 栈（E2） | `dev/godot/`（core/object 下 undo_redo 实现 + editor 侧封装） | action 合并（merge mode）、对象生命期安全引用、transaction 嵌套 |
+| 编辑器控件视觉/交互基准 | `dev/material-ui/`、`dev/material-components/`、`dev/bevy/crates/bevy_feathers/`、`bevy_ui_widgets/` | 组件状态层（hover/focus/disabled）、密度 token——与 `ai-workbench-style/STYLE-NOTES.md` 互补 |
+| 时间轴/sequencer 交互 | `dev/theatre/`（Theatre.js studio 的 sequence 编辑） | 关键帧选择/拖拽/吸附、轨道折叠交互形态 |
+| 声明式 UI 模板体系 | `dev/slint/` | 模板编译与属性绑定（zircon_hub 一侧的边界参照，editor 不引入） |
+

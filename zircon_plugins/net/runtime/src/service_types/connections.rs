@@ -1,6 +1,4 @@
-use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetError, NetEvent, NetTransportKind,
-};
+use zircon_runtime::core::framework::net::{NetConnectionId, NetConnectionState, NetError};
 
 use super::DefaultNetManager;
 
@@ -33,18 +31,19 @@ impl DefaultNetManager {
         &self,
         connection: NetConnectionId,
     ) -> Result<(), NetError> {
-        if let Some(entry) = self
+        if self
             .state
             .tcp_connections
             .lock()
             .expect("net TCP connections mutex poisoned")
-            .remove(&connection)
+            .contains_key(&connection)
         {
-            let _ = entry.stream;
-            self.state.push_event(NetEvent::ConnectionClosed {
-                connection,
-                transport: NetTransportKind::Tcp,
-            });
+            self.state.worker.close_tcp(connection)?;
+            self.state
+                .tcp_connections
+                .lock()
+                .expect("net TCP connections mutex poisoned")
+                .remove(&connection);
             return Ok(());
         }
 

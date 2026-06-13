@@ -203,6 +203,9 @@ impl MeshBatchRef {
             self.geometry.clone(),
             draw_args,
         );
+        if let Some(identity) = self.cache_identity {
+            command = command.with_source_entity(identity.entity);
+        }
         command = command.with_source_draw_index(self.source_draw_index);
         if let Some(material_textures) = &self.material_textures {
             command = command.with_material_textures(material_textures.clone());

@@ -1,12 +1,16 @@
 pub const PLUGIN_ID: &str = "net";
+pub const PLUGIN_RUNTIME_MODULE_NAME: &str = "net.runtime";
 
 mod config;
 mod http;
 mod module;
 mod package;
 mod runtime_state;
+mod runtime_system;
 mod service_types;
+mod transport;
 mod websocket;
+mod worker;
 
 pub use config::NetConfig;
 pub use http::{HttpRouteHandler, HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
@@ -17,7 +21,15 @@ pub use package::{
     attach_net_manifest_contributions, net_event_catalogs, net_optional_features, net_options,
     NET_RUNTIME_EVENT_NAMESPACE,
 };
+pub use runtime_system::{
+    register_runtime_systems, NET_EVENT_ID, NET_EVENT_SCHEMA, NET_FLUSH_EGRESS_SYSTEM,
+    NET_POLL_INGRESS_SYSTEM, NET_SYSTEM_SET,
+};
 pub use service_types::{DefaultNetManager, NetDriver, NetRuntimeManager};
+pub use transport::{
+    certificate_pin_matches, certificate_sha256_pin, rustls_client_config, rustls_root_store,
+    rustls_server_config, TlsServerIdentity,
+};
 pub use websocket::{
     WebSocketRuntimeBackend, WebSocketRuntimeConnection, WebSocketRuntimeListener,
 };
@@ -47,10 +59,11 @@ impl zircon_runtime::plugin::RuntimePlugin for NetRuntimePlugin {
         attach_net_manifest_contributions(self.descriptor.package_manifest())
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        let owner = registry.intern_plugin_module(PLUGIN_RUNTIME_MODULE_NAME)?;
         registry.register_module(module_descriptor())?;
         for option in net_options() {
             registry.register_plugin_option(option)?;
@@ -58,6 +71,7 @@ impl zircon_runtime::plugin::RuntimePlugin for NetRuntimePlugin {
         for event_catalog in net_event_catalogs() {
             registry.register_plugin_event_catalog(event_catalog)?;
         }
+        register_runtime_systems(registry, owner)?;
         Ok(())
     }
 }
@@ -84,6 +98,8 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         )
         .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
     )
+    .with_system_sets([NET_SYSTEM_SET])
+    .with_system_anchors([NET_POLL_INGRESS_SYSTEM, NET_FLUSH_EGRESS_SYSTEM])
 }
 
 pub fn runtime_plugin() -> NetRuntimePlugin {

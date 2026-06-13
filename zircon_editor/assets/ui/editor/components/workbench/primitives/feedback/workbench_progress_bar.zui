@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui"
+version = 2
+display_name = "Workbench Progress Bar"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchProgressBar]
+root = "root"
+default_classes = ["workbench-progress-bar", "workbench-primitive"]
+
+[nodes.root]
+component = "Progress"
+control_id = "WorkbenchProgressBarRoot"
+classes = ["workbench-progress-bar"]
+props = { value = 64.0, value_percent = 0.64, min = 0.0, max = 100.0, variant = "linear", label_text = "Progress", show_label = false, background_color = "#20282d", track_fill_color = "#2099a2", track_empty_color = "#11171b", corner_radius = 4.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 18.0, max = 22.0, stretch = "Fixed" } }

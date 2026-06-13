@@ -1,12 +1,19 @@
+mod bridge_host_module;
 mod builtin_host_modules;
 mod constants;
 mod host_export_registry;
 mod host_registry;
 mod plugin_host_driver;
 mod reflection_docs;
+mod script_call_table;
 mod vm_plugin_host_context;
 mod vm_plugin_slot_lifecycle;
 
+pub use bridge_host_module::{
+    register_bridge_host_module, register_bridge_host_module_from_manifest,
+    script_bridge_method_descriptors_from_manifest, ScriptBridgeCall, ScriptBridgeMethodBinding,
+    ScriptBridgeMethodDescriptor, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
+};
 pub use builtin_host_modules::{builtin_host_capabilities, register_builtin_host_modules};
 pub use constants::{
     PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
@@ -20,5 +27,6 @@ pub use reflection_docs::{
     builtin_host_module_descriptors, render_script_host_modules_markdown,
     write_script_host_modules_markdown, ScriptHostInterfaceMarkdownOptions,
 };
+pub use script_call_table::{ScriptCallSite, ScriptCallSiteId, ScriptCallTable};
 pub use vm_plugin_host_context::VmPluginHostContext;
 pub use vm_plugin_slot_lifecycle::VmPluginSlotLifecycle;

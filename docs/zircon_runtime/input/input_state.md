@@ -3,6 +3,10 @@ related_code:
   - zircon_runtime/src/core/framework/input/mod.rs
   - zircon_runtime/src/core/framework/input/button_input_state.rs
   - zircon_runtime/src/core/framework/input/input_button.rs
+  - zircon_runtime/src/core/framework/input/input_action.rs
+  - zircon_runtime/src/core/framework/input/input_binding.rs
+  - zircon_runtime/src/core/framework/input/input_action_map.rs
+  - zircon_runtime/src/core/framework/input/input_action_state.rs
   - zircon_runtime/src/core/framework/input/input_event.rs
   - zircon_runtime/src/core/framework/input/mouse_wheel.rs
   - zircon_runtime/src/core/framework/input/file_drag_drop.rs
@@ -14,7 +18,11 @@ related_code:
   - zircon_runtime/src/core/framework/input/touch.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
+  - zircon_runtime/src/input/runtime/action_evaluator.rs
   - zircon_runtime/src/input/runtime/input_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
@@ -40,6 +48,10 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/input/button_input_state.rs
   - zircon_runtime/src/core/framework/input/input_button.rs
+  - zircon_runtime/src/core/framework/input/input_action.rs
+  - zircon_runtime/src/core/framework/input/input_binding.rs
+  - zircon_runtime/src/core/framework/input/input_action_map.rs
+  - zircon_runtime/src/core/framework/input/input_action_state.rs
   - zircon_runtime/src/core/framework/input/input_event.rs
   - zircon_runtime/src/core/framework/input/mouse_wheel.rs
   - zircon_runtime/src/core/framework/input/file_drag_drop.rs
@@ -48,8 +60,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/input/gamepad.rs
   - zircon_runtime/src/core/framework/input/ime.rs
   - zircon_runtime/src/core/framework/input/touch.rs
+  - zircon_runtime/src/input/runtime/action_evaluator.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
@@ -75,7 +91,9 @@ plan_sources:
   - user: 2026-05-16 Bevy-style platform/window/winit/gilrs/input parity plan
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
   - chat: ZirconEngine Bevy 式 Platform / Window / Input / Gilrs 完成度计划
+  - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - dev/bevy/crates/bevy_input/src/button_input.rs
+  - dev/godot/core/input/input_map.cpp
   - dev/bevy/crates/bevy_input/src/keyboard.rs
   - dev/bevy/crates/bevy_input/src/mouse.rs
   - dev/bevy/crates/bevy_input/src/touch.rs
@@ -89,6 +107,20 @@ plan_sources:
   - dev/bevy/crates/bevy_gilrs/src/converter.rs
 tests:
   - zircon_runtime/src/input/tests/input_manager.rs
+  - zircon_runtime/src/input/tests/action_mapping.rs
+  - zircon_runtime/src/input/tests/gamepad_bridge.rs
+  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
+  - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported
+  - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path
+  - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path
+  - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_mirror_docs_match_structure_audit_counts
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 12 input_stack_boundary targeted evidence: expected_runtime_module_count = 10, expected_framework_module_count = 17, expected_test_module_count = 5, public_surface_anchors = 10/10, runtime_12_guard_anchors = 5/5, missing_doc_anchors = [], missing_test_anchors = [], missing_cargo_gate_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = [])
+  - cargo test -p zircon_runtime --lib input_snapshot_just_pressed_is_true_for_exactly_one_frame --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
+  - cargo test -p zircon_runtime --lib frame_input_clears_after_level_tick_not_before --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
+  - cargo test -p zircon_runtime --lib action_map_resolves_chords_and_reports_just_activated --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M1 action-map named anchor: pending after active Cargo lane clears; source/rustfmt static checks passed)
+  - cargo test -p zircon_runtime --lib rebinding_action_does_not_require_recompilation --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M1 action-map named anchor: pending after active Cargo lane clears; source/rustfmt static checks passed)
+  - cargo test -p zircon_runtime --lib gamepad_disconnect_clears_held_state_without_panic --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M2 gamepad named anchor: pending after active Cargo lane clears; source/rustfmt static checks passed)
+  - cargo test -p zircon_runtime --lib gamepad_host_bridge_uses_runtime_gamepad_abi_constructors --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M2 gamepad source guard: pending after active Cargo lane clears; source/rustfmt static checks passed)
   - zircon_runtime/src/input/tests/boundary.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
@@ -137,6 +169,39 @@ Gamepad connection events track connected gamepad ids. Disconnect clears that ga
 Gamepad button and axis values intentionally enter the runtime as raw host readings. `GamepadButtonAxisSettings` clamps analog button values into `[0.0, 1.0]`, applies a low zone of `0.05`, a high zone of `0.95`, and ignores processed changes below `0.01`. `GamepadButtonSettings` then applies Bevy-style digital hysteresis: a gamepad button presses at `0.75` and releases at `0.65`. `GamepadAxisSettings` applies an axis deadzone of `[-0.05, 0.05]`, livezone bounds of `[-1.0, 1.0]`, and a processed-value change threshold of `0.01`. These defaults mirror Bevy's split where the gilrs backend emits raw events and `bevy_input::gamepad::GamepadSettings` owns filtering.
 
 Gamepad rumble requests are runtime-to-host requests. Runtime systems submit `InputEvent::GamepadRumbleRequest`; `InputFrameSnapshot::gamepad_rumble_requests` exposes the current-frame view, and `InputManager::drain_gamepad_rumble_requests()` is the one-shot handoff used by the dynamic runtime host-request ABI. The request intensity is clamped when converted to the stable ABI so invalid caller values cannot leak to a native backend.
+
+Runtime 12 M2 adds named anchors for the gamepad bridge that already exists in the preview stack. `gamepad_disconnect_clears_held_state_without_panic` verifies that a disconnect clears the durable connected gamepad id, processed axis values, analog button values, and pressed gamepad buttons, while still surfacing a one-frame `just_released` transition. `gamepad_host_bridge_uses_runtime_gamepad_abi_constructors` is a source guard that locks the app-side gilrs path to `ZrRuntimeEventV1::gamepad_connection_with_ids`, `gamepad_button`, and `gamepad_axis`, and locks `RuntimeDynamicSession` to the matching `InputEvent::Gamepad*` reducers.
+
+`runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path` guards the gamepad contract, app-side ABI constructors, dynamic-session reducers, and M2 bridge test anchors.
+
+## Frame Input Contract
+
+Runtime 12 M0.1 makes the frame-input lifecycle explicit. Platform and app host events enter through ABI constructors or direct runtime event submission, then `DefaultInputManager::submit_event(...)` reduces them into durable button state, frame-local transitions, accumulators, and current-frame event lists. Gameplay and UI-facing consumers should read `InputFrameSnapshot` when they need `just_pressed`, `just_released`, mouse motion, wheel deltas, touch, IME, file-drag, window-status, or gamepad state. `InputSnapshot` remains the compact compatibility view for cursor, pressed buttons, and scalar wheel data.
+
+`DefaultInputManager::begin_frame()` is the transition-clear boundary for the next frame. It clears `just_pressed`, `just_released`, wheel/motion accumulators, and current-frame message lists, but it does not release durable pressed buttons or persistent IME/gamepad state. This follows the same state split as Bevy `ButtonInput<T>`, where `just_pressed` and `just_released` are one-frame facts layered on top of a longer-lived pressed set.
+
+The dynamic runtime session has one important ordering rule: `RuntimeDynamicSession::tick_frame()` runs the loaded level before it calls `input_manager.begin_frame()`. Guard anchor: RuntimeDynamicSession::tick_frame() runs the loaded level before it calls `input_manager.begin_frame()`. Events submitted since the previous clear therefore remain visible to level systems for exactly one update, and are cleared only after that update has consumed the frame. `frame_input_clears_after_level_tick_not_before` is the source-order guard for that rule; `input_snapshot_just_pressed_is_true_for_exactly_one_frame` is the behavior anchor for the one-frame transition state.
+
+Runtime 12 M0.2 settles the first arbitration boundary above this lower input state: UI surface/pointer capture/popup/focus 优先; UI surface hits, pointer capture, popup scope, and text/navigation focus go through the UI 09 `interaction_gate` / dispatch authority before gameplay actions. Gameplay action mapping consumes UI-unhandled input, or all input in headless/no-UI profiles. `DefaultInputManager` still does not make that decision; it only preserves the frame facts both consumers need.
+
+`runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` guards this contract at the plan/doc/source boundary. It keeps the frame contract anchors, `DefaultInputManager` / `InputFrameSnapshot` public surface, and named M0.1 test anchors synchronized while the Cargo input filter remains pending.
+
+`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 10`, `expected_framework_module_count = 17`, `expected_test_module_count = 5`, `public_surface_anchors = 10/10`, `runtime_12_guard_anchors = 5/5`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+
+## Action Mapping
+
+Runtime 12 M1 adds the first data-driven gameplay action layer without removing the raw input read path. The shared contract lives in `zircon_runtime::core::framework::input`:
+
+- `InputAction` names a gameplay action and optionally tags it with a context and display label. The id is a plain string so project files, dynamic API payloads, and tools can serialize the same key without Rust type identity.
+- `InputBinding` maps one action id to one physical button chord. Chords sort and deduplicate their buttons on construction, which keeps serialized bindings deterministic and prevents repeated button entries from creating duplicate activation edges.
+- `InputActionMap` stores the project-side action and binding tables. It supports clearing and replacing bindings at runtime, so rebinding changes data instead of recompiling gameplay code.
+- `InputActionState` is the frame result: durable `pressed` actions, one-frame `just_activated` actions, and one-frame `just_deactivated` actions.
+
+`zircon_runtime::input::runtime::InputActionEvaluator` owns the concrete evaluation step. It reads an `InputFrameSnapshot`, evaluates each explicit action against its bindings, reports a chord as active only when all chord buttons are currently pressed, and reports `just_activated` when an active binding contains at least one `just_pressed` button. It reports `just_deactivated` only when no binding for the action remains active and at least one binding button was released this frame.
+
+The evaluator also accepts `evaluate_with_consumed_buttons(...)`. That is the Runtime 12 M0.2 bridge: callers that run UI routing first pass any UI-consumed buttons to the gameplay evaluator, and those bindings are ignored for the frame. Headless or no-UI callers use `evaluate(...)`, which treats the whole snapshot as unconsumed gameplay input.
+
+`runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path` guards the action-map contract shape, the `evaluate_with_consumed_buttons(...)` UI-filtered path, and the two M1 action-map test anchors.
 
 ## Compatibility
 

@@ -13,11 +13,15 @@ related_code:
   - zircon_runtime/src/scene/ecs/messages.rs
   - zircon_runtime/src/scene/ecs/resource_store.rs
   - zircon_runtime/src/scene/ecs/bundle.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
+  - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_boundary.py
   - dev/bevy/crates/bevy_ecs/src
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-06-12
+last_refined: 2026-06-14
 ---
 
 # 08 ECS 内核数据面对齐
@@ -33,6 +37,13 @@ last_refined: 2026-06-12
 - **事件双通道**：`events.rs` 与 `messages.rs` 并存——两者语义分工（帧内事件 vs 跨帧消息？double-buffer 清理策略？）未文档化，是本计划裁决项。
 - 已确认健康项（03/07 盘点继承）：`query_state/` 缓存与 `cached_query_iter.rs` 已存在；conflict graph 测试 11 个；`apply_deferred` 屏障语义在 `schedule_runner.rs` 已实现。
 - 参考锚点（每点一行）：bevy_ecs 存储双形态 — `dev/bevy/crates/bevy_ecs/src/storage/{table,sparse_set}.rs`；bevy 实体分配/重用（generation 复用）— `dev/bevy/crates/bevy_ecs/src/entity/mod.rs`；bevy Observer/hooks — `dev/bevy/crates/bevy_ecs/src/observer/`；bevy Events double-buffer — `dev/bevy/crates/bevy_ecs/src/event/`。
+
+补充参考锚点（2026-06-13 实测核验，实现型切片动工前先读——index 公约 §7.9）：
+
+- bevy_ecs 存储双形态本体（M0 存储行对照的精确落点）— `dev/bevy/crates/bevy_ecs/src/storage/{table/,sparse_set.rs,blob_array.rs}`
+- 实体编码/分配/重用 — `dev/bevy/crates/bevy_ecs/src/entity/mod.rs`
+- 观察者（集中/分布式存储 + runner 触发时机，M2.1 时序判词必读）— `dev/bevy/crates/bevy_ecs/src/observer/{mod.rs,runner.rs,centralized_storage.rs,distributed_storage.rs}`
+- 事件与触发（M3.1 双通道分工对照）— `dev/bevy/crates/bevy_ecs/src/event/{mod.rs,trigger.rs}`
 
 ## 目标
 
@@ -165,13 +176,18 @@ last_refined: 2026-06-12
 | M2 | 2.2 命令队列错误路径 | code_complete_pending_cargo | 2026-06-12 | 已补 `DeferredCommandReport` / `DeferredCommandError` / `DeferredCommandOperation` 报告面与 `command_queue_on_despawned_entity_target_is_reported_not_silently_dropped`、`deferred_command_success_report_counts_applied_commands_without_errors`；Cargo 待活动 lanes 清空后运行 |
 | M3 | 3.1 双通道定稿 | code_complete_pending_cargo | 2026-06-12 | 已补 `events_require_explicit_update_and_keep_next_queue_hidden`、`clear_events_prunes_current_and_next_event_queues`、`messages_are_retained_until_explicit_clear_independent_of_event_updates`、`event_and_message_clear_boundaries_do_not_cross_channels`；裁决 events=current/next 帧推进，messages=带 id 的显式保留缓冲；Cargo 待活动 lanes 清空后运行 |
 | M3 | 3.2 tick 回绕 | code_complete_pending_cargo | 2026-06-12 | 已补 `ChangeTick::next()` 回绕递增、`ChangeTick::relative_to(...)` 回绕差值、`ChangeTick::is_newer_than(...)` 相对年龄比较、`ChangeTickWindow::new(...)` stale `last_run` 截断，以及 `change_tick_comparison_survives_wraparound`、`tick_window_clamps_stale_ticks`；Cargo 待活动 lanes 清空后运行 |
+| M4 | QueryState owner 审计同步 | structure_audit_static_passed_cargo_pending | 2026-06-13 | `ecs_query_state_boundary` 已把 `query_state/stats.rs` 归类为 Runtime 07 telemetry sidecar，而不是 ECS 数据面异常 owner module；当前结构审计事实为 `expected_module_count = 8`、`unexpected_modules = []`、`risks = []`，并与 `docs/zircon_runtime/scene/ecs/query_state.md` 的 Boundary Rules 保持一致。Cargo 验证状态仍由本计划验证门守卫统一保持 pending。 |
+| M4 | 验证门守卫 | cargo_validation_pending_guarded | 2026-06-13 | 新增 `runtime_absorption::plan_status::runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation`，要求本计划保持 `in_progress`，M1/M2/M3 行继续保留 `code_complete_pending_cargo` 与 Cargo gate，直到 `cargo test -p zircon_runtime --lib entity --locked -- --nocapture`、`cargo test -p zircon_runtime --lib observer --locked -- --nocapture`、`cargo test -p zircon_runtime --lib command --locked -- --nocapture`、`cargo test -p zircon_runtime --lib messages --locked`、`cargo test -p zircon_runtime --lib change_tick --locked -- --nocapture` 与 `cargo test -p zircon_runtime --lib ecs --locked` 有真实通过记录。 |
+| M4 | ECS 数据面结构审计镜像 | structure_audit_static_passed_cargo_pending | 2026-06-14 | 新增 `ecs_kernel_data_boundary` 并接入 `audit_runtime_structure.py`；当前结构审计事实为 `expected_source_file_count = 20`、`expected_test_file_count = 7`、`storage_anchors = 9/9`、`entity_lifecycle_anchors = 10/10`、`observer_anchors = 8/8`、`deferred_command_anchors = 11/11`、`event_message_anchors = 11/11`、`change_tick_anchors = 6/6`、`runtime_08_guard_anchors = 17/17`、`doc_anchors = 7/7`、`pending_cargo_gate_anchors = 6/6`、`mirror_docs_guard_present = true`、`risks = []`。这仍是静态结构证据；entity/observer/command/messages/change_tick/ecs Cargo filters 继续 pending。 |
+| M4 | ECS 数据面镜像文档守卫 | mirror_docs_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_absorption::ecs_kernel_data::runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts`，锁定 `docs/zircon_runtime/scene/ecs.md`、本计划、runtime index、M0 review 与 runtime-interface convergence 均同步记录 `ecs_kernel_data_boundary` 的同一组结构事实：`expected_source_file_count = 20`、`expected_test_file_count = 7`、`storage_anchors = 9/9`、`entity_lifecycle_anchors = 10/10`、`observer_anchors = 8/8`、`deferred_command_anchors = 11/11`、`event_message_anchors = 11/11`、`change_tick_anchors = 6/6`、`runtime_08_guard_anchors = 17/17`、`doc_anchors = 7/7`、`pending_cargo_gate_anchors = 6/6`、`mirror_docs_guard_present = true`、`risks = []`。该守卫只封住文档漂移；entity/observer/command/messages/change_tick/ecs Cargo gates 仍保持 pending。 |
 
 基线数值（开工首日记录）：
 
 - `scene/ecs/` 条目基线：40（2026-06-12 ls；含新增 `system_set.rs` 时当前文件树仍由本计划按 40 项口径跟踪）
 - 观察者入口基线：3 类（observer.rs:54/:70/:90）
 - 存储形态基线：`StorageType::{Table,SparseSet}`，`ComponentStorage` 同文件内实现 table + sparse 双 backing store（2026-06-12 重核）
-- `cargo test -p zircon_runtime --lib ecs --locked` 通过数基线：未记录；当前有其他 Cargo/rustc lanes 活跃，且上一轮 runtime 03 Cargo 被无关 UI test import 阻断，未重新启动 Cargo
+- 结构审计基线：`ecs_kernel_data_boundary` 当前报告 `expected_source_file_count = 20`、`expected_test_file_count = 7`、`storage_anchors = 9/9`、`entity_lifecycle_anchors = 10/10`、`observer_anchors = 8/8`、`deferred_command_anchors = 11/11`、`event_message_anchors = 11/11`、`change_tick_anchors = 6/6`、`runtime_08_guard_anchors = 17/17`、`doc_anchors = 7/7`、`pending_cargo_gate_anchors = 6/6`、`mirror_docs_guard_present = true`、`risks = []`；它不替代 Cargo gate。
+- `cargo test -p zircon_runtime --lib ecs --locked` 通过数基线：未记录；当前有其他 Cargo/rustc lanes 活跃，且上一轮 runtime 03 Cargo 被无关 UI test import 阻断，未重新启动 Cargo。Runtime 08 的 entity/observer/command/messages/change_tick/ecs filters 待验证状态由 `runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation` 锁定。
 
 ## 风险与协调
 

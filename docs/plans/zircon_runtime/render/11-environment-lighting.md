@@ -9,6 +9,15 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentDiffuseIrradiance.cpp
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/DrawSkyboxPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeReferenceVolume.cs
+  - dev/bevy/crates/bevy_core_pipeline/src/skybox/mod.rs
+  - dev/bevy/crates/bevy_light/src/probe.rs
+  - dev/bevy/crates/bevy_pbr/src/light_probe/mod.rs
+  - dev/bevy/crates/bevy_pbr/src/light_probe/environment_map.rs
+  - dev/bevy/crates/bevy_pbr/src/light_probe/generate.rs
+  - dev/bevy/crates/bevy_pbr/src/light_probe/irradiance_volume.rs
+  - dev/bevy/crates/bevy_pbr/src/lightmap/mod.rs
+  - dev/bevy/crates/bevy_pbr/src/fog.rs
+  - dev/Fyrox/fyrox-impl/src/scene/probe.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
@@ -42,6 +51,22 @@ plan_sources:
 | `dev/Graphics/.../core/Runtime/Lighting/ProbeVolume/ProbeReferenceVolume.cs` | probe volume 的索引与插值组织(远期 probe GI 参考,本计划只取 SH 采样 ABI) |
 
 次参考:`dev/bevy/crates/bevy_pbr`(environment map light 的 wgsl 采样与 binding 组织)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_core_pipeline/src/skybox/mod.rs` | skybox pass(Cubemap 模式) | `SkyboxUniforms`(:89)/`SkyboxPipeline` 与 `prepare_skybox_pipelines`/`prepare_skybox_bind_groups`:cubemap 天空的 pipeline/深度策略组织(配同目录 `skybox.wgsl`) |
+| `dev/bevy/crates/bevy_light/src/probe.rs` | `ReflectionProbeData` 契约面 | `LightProbe`(:75)影响域组件 + `EnvironmentMapLight`(diffuse/specular 双贴图、intensity、旋转)与 `GeneratedEnvironmentMapLight`(:260)字段清单 |
+| `dev/bevy/crates/bevy_pbr/src/light_probe/mod.rs` | 探针选择与 per-view 上传 | `LightProbesUniform`(:122)/`RenderViewLightProbes`(:255):view 内探针收集、裁剪进 uniform 的 Rust 全链(对应"extract 端按 layer/距离裁到 64") |
+| `dev/bevy/crates/bevy_pbr/src/light_probe/environment_map.rs` | `GpuEnvironmentMap` 绑定 | `EnvironmentMapUniform` 与 binding 组织(rotation 采样期生效,与 `IblBakeKey` 排除项同思路;配 `environment_map.wgsl` 采样) |
+| `dev/bevy/crates/bevy_pbr/src/light_probe/generate.rs` | IBL 预滤波 compute(`ibl_prefilter.rs` 直接同类) | 运行时 GGX specular mip 链卷积 + irradiance 生成的 compute 编排、radiance/irradiance 双 bind layout(:73)(配 `environment_filter.wgsl`/`copy.wgsl`) |
+| `dev/bevy/crates/bevy_pbr/src/light_probe/irradiance_volume.rs` | `LightProbeGridData`(V1 均匀网格) | 体素化 probe 网格的 GPU 资源与 per-view bind group(`RenderViewIrradianceVolumeBindGroupEntries` :165) |
+| `dev/bevy/crates/bevy_pbr/src/lightmap/mod.rs` | lightmap 消费契约(EL-M3) | lightmap slot/uv_rect 实例数据组织与采样接线(配 `lightmap.wgsl`)—— `LightmapInstanceSlot` 的 Rust 同型 |
+| `dev/bevy/crates/bevy_pbr/src/fog.rs` | `FogSettings` 距离雾三模式 | `DistanceFog`(:52)/`FogFalloff`(Linear/Exponential/ExponentialSquared,:17–19)参数契约与文档内衰减公式 |
+| `dev/Fyrox/fyrox-impl/src/scene/probe.rs` | 探针捕获(EL-M2)与 ambient 来源 | `ReflectionProbe` 场景节点:捕获 cube 纹理 + `EnvironmentLightingSource`(:176)把探针作为环境光来源的组件契约 |
+
+高度雾(height fog)无 Rust 同类参照(bevy 仅距离/大气雾),实现时以 UE 高度雾为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

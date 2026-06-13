@@ -101,7 +101,7 @@ fn execution_context_records_graph_queue_and_pass_flags() {
     let context =
         RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
             "lighting",
-            RenderPassExecutorId::new("lighting.clustered-cull"),
+            RenderPassExecutorId::new("lighting.light-grid"),
             QueueLane::Graphics,
             QueueLane::Graphics,
             PassFlags::default(),
@@ -177,13 +177,12 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.motion-vector-tile-max-coarse",
         "post.motion-vector-neighbor-max",
         "post.depth-of-field-prepare",
-        "post.screen-space-reflection-depth-pyramid",
-        "post.screen-space-reflection-depth-pyramid-coarse",
         "post.screen-space-reflection-reflection-pyramid",
         "post.screen-space-reflection-reflection-pyramid-coarse",
         "post.screen-space-reflection-resolve",
         "post.screen-space-reflection-specular-occlusion",
         "visibility.hzb-build",
+        "visibility.hzb-occlusion-cull",
         "post.color-grade",
         "post.stack",
         "history.scene-color",
@@ -310,14 +309,12 @@ fn ssao_executor_requires_post_process_context_instead_of_nooping() {
 
 #[test]
 fn clustered_lighting_executor_requires_post_process_context_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context(
-        "clustered-light-culling",
-        "lighting.clustered-cull",
-    );
+    let error =
+        execute_gpu_executor_without_specialized_context("light-grid-build", "lighting.light-grid");
 
     assert_eq!(
         error,
-        "clustered lighting graph executor for pass `clustered-light-culling` requires post-process stack context"
+        "light grid graph executor for pass `light-grid-build` requires post-process stack context"
     );
 }
 
@@ -445,36 +442,6 @@ fn screen_space_reflection_resolve_executor_requires_post_process_context_instea
 }
 
 #[test]
-fn screen_space_reflection_depth_pyramid_executor_requires_post_process_context_instead_of_nooping()
-{
-    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
-        "screen-space-reflection-depth-pyramid",
-        "post.screen-space-reflection-depth-pyramid",
-        effect_stack_with_screen_space_reflection(),
-    );
-
-    assert_eq!(
-        error,
-        "screen-space reflection depth-pyramid graph executor for pass `screen-space-reflection-depth-pyramid` requires post-process stack context"
-    );
-}
-
-#[test]
-fn screen_space_reflection_depth_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
-) {
-    let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
-        "screen-space-reflection-depth-pyramid-coarse",
-        "post.screen-space-reflection-depth-pyramid-coarse",
-        effect_stack_with_screen_space_reflection(),
-    );
-
-    assert_eq!(
-        error,
-        "screen-space reflection depth-pyramid coarse graph executor for pass `screen-space-reflection-depth-pyramid-coarse` requires post-process stack context"
-    );
-}
-
-#[test]
 fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping(
 ) {
     let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
@@ -520,14 +487,6 @@ fn optional_postprocess_executors_skip_resource_work_when_effects_are_disabled()
             "post.motion-vector-neighbor-max",
         ),
         ("depth-of-field-prepare", "post.depth-of-field-prepare"),
-        (
-            "screen-space-reflection-depth-pyramid",
-            "post.screen-space-reflection-depth-pyramid",
-        ),
-        (
-            "screen-space-reflection-depth-pyramid-coarse",
-            "post.screen-space-reflection-depth-pyramid-coarse",
-        ),
         (
             "screen-space-reflection-reflection-pyramid",
             "post.screen-space-reflection-reflection-pyramid",
@@ -1056,40 +1015,40 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
 }
 
 #[test]
-fn shadow_map_executor_requires_graph_shadow_map_resource_instead_of_nooping() {
-    let error = execute_gpu_executor_without_specialized_context("shadow-map", "shadow.map");
+fn shadow_atlas_executor_requires_graph_shadow_atlas_resource_instead_of_nooping() {
+    let error = execute_gpu_executor_without_specialized_context("shadow-atlas", "shadow.atlas");
 
     assert_eq!(
         error,
-        "render graph execution texture resource `shadow-map` is not bound"
+        "render graph execution texture resource `shadow-atlas` is not bound"
     );
 }
 
 #[test]
-fn shadow_map_executor_records_depth_only_pass_when_graph_resource_is_bound() {
+fn shadow_atlas_executor_records_depth_only_pass_when_graph_resource_is_bound() {
     let backend = RenderBackend::new_offscreen().unwrap();
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
     let mut encoder = backend
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("shadow-map-executor-test"),
+            label: Some("shadow-atlas-executor-test"),
         });
     let scene_bind_group_layout =
         backend
             .device
             .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("shadow-map-executor-empty-layout"),
+                label: Some("shadow-atlas-executor-empty-layout"),
                 entries: &[],
             });
     let scene_bind_group = backend
         .device
         .create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("shadow-map-executor-empty-bind-group"),
+            label: Some("shadow-atlas-executor-empty-bind-group"),
             layout: &scene_bind_group_layout,
             entries: &[],
         });
     let mut resources = RenderGraphExecutionResources::new();
-    import_shadow_map_texture(&mut resources, &backend.device);
+    import_shadow_atlas_texture(&mut resources, &backend.device);
     let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
@@ -1108,13 +1067,13 @@ fn shadow_map_executor_records_depth_only_pass_when_graph_resource_is_bound() {
         &mut screen_space_ui_renderer,
     );
     let mut context = RenderPassExecutionContext::with_graph_metadata_and_resources(
-        "shadow-map",
-        RenderPassExecutorId::new("shadow.map"),
+        "shadow-atlas",
+        RenderPassExecutorId::new("shadow.atlas"),
         QueueLane::Graphics,
         PassFlags::default(),
         vec![RenderGraphPassResourceAccess {
-            name: "shadow-map".to_string(),
-            kind: RenderGraphResourceKind::TransientTexture,
+            name: PostProcessGraphResourceNames::SHADOW_ATLAS.to_string(),
+            kind: RenderGraphResourceKind::External,
             access: RenderGraphResourceAccessKind::Write,
             attachment_ops: Some(RenderGraphAttachmentOps::clear_store()),
         }],
@@ -1237,7 +1196,7 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::SHADOW_MAP,
+        PostProcessGraphResourceNames::SHADOW_ATLAS,
     ] {
         import_test_texture(&mut resources, &backend.device, resource);
     }
@@ -1389,9 +1348,12 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
         .expect("culled passes should not require executor registration");
 }
 
-fn import_shadow_map_texture(resources: &mut RenderGraphExecutionResources, device: &wgpu::Device) {
+fn import_shadow_atlas_texture(
+    resources: &mut RenderGraphExecutionResources,
+    device: &wgpu::Device,
+) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("shadow-map"),
+        label: Some("shadow-atlas"),
         size: wgpu::Extent3d {
             width: 16,
             height: 16,
@@ -1405,7 +1367,7 @@ fn import_shadow_map_texture(resources: &mut RenderGraphExecutionResources, devi
         view_formats: &[],
     });
     resources.import_texture_view(
-        "shadow-map",
+        PostProcessGraphResourceNames::SHADOW_ATLAS,
         texture.create_view(&wgpu::TextureViewDescriptor::default()),
     );
 }

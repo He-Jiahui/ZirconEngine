@@ -3,19 +3,31 @@ use zircon_runtime_interface::ui::{component::UiDragMetrics, event_ui::UiNodeId,
 
 use super::UiSurfaceInputState;
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfacePointerDragState {
     pub start: UiPoint,
     pub current: UiPoint,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub property: Option<String>,
 }
 
 impl UiSurfaceInputState {
     pub fn begin_pointer_drag(&mut self, owner: UiNodeId, point: UiPoint) -> UiDragMetrics {
+        self.begin_pointer_drag_with_property(owner, point, None)
+    }
+
+    pub fn begin_pointer_drag_with_property(
+        &mut self,
+        owner: UiNodeId,
+        point: UiPoint,
+        property: Option<String>,
+    ) -> UiDragMetrics {
         self.pointer_drags.insert(
             owner,
             UiSurfacePointerDragState {
                 start: point,
                 current: point,
+                property,
             },
         );
         UiDragMetrics::begin(point)
@@ -28,6 +40,7 @@ impl UiSurfaceInputState {
             .or_insert(UiSurfacePointerDragState {
                 start: point,
                 current: point,
+                property: None,
             });
         drag.current = point;
         UiDragMetrics::update(drag.start, drag.current)
@@ -40,8 +53,21 @@ impl UiSurfaceInputState {
             .unwrap_or(UiSurfacePointerDragState {
                 start: point,
                 current: point,
+                property: None,
             });
         UiDragMetrics::end(drag.start, point)
+    }
+
+    pub fn pointer_drag_property(&self, owner: UiNodeId) -> Option<&str> {
+        self.pointer_drags
+            .get(&owner)
+            .and_then(|drag| drag.property.as_deref())
+    }
+
+    pub fn set_pointer_drag_property(&mut self, owner: UiNodeId, property: Option<String>) {
+        if let Some(drag) = self.pointer_drags.get_mut(&owner) {
+            drag.property = property;
+        }
     }
 
     pub fn clear_pointer_drag_for(&mut self, owner: UiNodeId) {

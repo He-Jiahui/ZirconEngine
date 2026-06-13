@@ -22,17 +22,20 @@ pub(super) fn apply_numeric_drag(
         .and_then(|value| value.as_f64())
         .unwrap_or(0.0);
     let step = numeric_setting(state, descriptor, step_property, schema.step, 1.0);
-    let next = super::clamp_numeric(
-        current + delta * step,
-        super::optional_numeric_setting(state, descriptor, "min", schema.min),
-        super::optional_numeric_setting(state, descriptor, "max", schema.max),
-    );
-    super::set_value(
+    let next = super::clamp_component_numeric_value(
         state,
+        descriptor,
+        &property,
+        schema.min,
+        schema.max,
+        current + delta * step,
+    );
+    super::apply_value(
+        state,
+        descriptor,
         property,
         super::numeric_value(schema.value_kind, next),
-    );
-    Ok(())
+    )
 }
 
 fn numeric_setting(

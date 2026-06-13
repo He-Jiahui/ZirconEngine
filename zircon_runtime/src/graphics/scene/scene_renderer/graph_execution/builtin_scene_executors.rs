@@ -53,9 +53,6 @@ pub(super) fn depth_prepass_executor(
 
 pub(super) fn mesh_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     let stage = mesh_stage_for_executor(context.executor_id.as_str())?;
-    let shadow_map_resource_name = context
-        .reads_transient_texture(PostProcessGraphResourceNames::SHADOW_MAP)
-        .then_some(PostProcessGraphResourceNames::SHADOW_MAP);
     let attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_COLOR)
         .unwrap_or_else(RenderGraphAttachmentOps::load_store);
@@ -66,7 +63,6 @@ pub(super) fn mesh_executor(context: &mut RenderPassExecutionContext<'_>) -> Res
     gpu.record_mesh_stage_to_resources(
         PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        shadow_map_resource_name,
         stage,
         attachment_ops,
         depth_attachment_ops,
@@ -117,25 +113,24 @@ pub(super) fn deferred_lighting_executor(
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::SHADOW_MAP,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
         attachment_ops,
     )
 }
 
-pub(super) fn shadow_map_executor(
+pub(super) fn shadow_atlas_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::SHADOW_MAP)
+    let shadow_atlas_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SHADOW_ATLAS)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
-    gpu.record_shadow_map_to_resource(
+    gpu.record_shadow_atlas_to_resources(
         &pass_name,
-        PostProcessGraphResourceNames::SHADOW_MAP,
-        attachment_ops,
+        PostProcessGraphResourceNames::SHADOW_ATLAS,
+        shadow_atlas_attachment_ops,
     )
 }
 

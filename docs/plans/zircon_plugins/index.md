@@ -3,13 +3,14 @@
 > 状态：工程化细化版 v2（2026-06）——全部分计划已按代码实查校准基线，并细化到"模块文件树 + API 签名 + 里程碑任务表（含测试名）"的可开工粒度
 > 范围：以插件架构核心升级为前置，系统性补齐 Sound / Physics / Animation / Navigation / AI / Net / VM / 跨平台发行 八大周边设施插件，并确立编辑器集成横切规范。
 > 原则（全计划共同遵守）：硬切不留兼容层；中立契约在 `zircon_runtime::core::framework::*`，实现在 `zircon_plugins/*`；root 接线文件保持薄；注册期重、运行期零开销；插件分 runtime/editor 两部分注册。
+> **实现纪律**：每份计划文末附录给出 `dev/` 参考源码对位表（路径均已实地核验）——任务开工前必读对应条目，复杂算法/协议/语义（调度拓扑、DSP 数值、Jolt 映射、行为树打断、复制协议、导出流程等）一律对照参考实现核对，**禁止凭记忆或凭空实现**。
 
 ## 1. 文档索引
 
 | 编号 | 计划 | 优先级 | 核心交付 |
 |------|------|--------|---------|
 | [01](01-plugin-architecture-core.md) | 插件架构核心升级 | **P0** | 9 阶段调度 + SystemSet 偏序、register_system/resource/event、TypedExtensionPoint/FrozenExtensionTable、四阶段生命周期、Editor capability 对称、Native ABI v3 |
-| [02](02-sound.md) | Sound | P1 | CompiledMixGraph 零分配热路径重构、DspEffect 统一 trait + ParametricEq、SPSC 命令队列线程模型、声道协商、Timeline 自动化 |
+| [02](02-sound.md) | Sound | P1 | **kira 为执行核心**（自研混音/输出栈退役）、契约 → kira track/effect 映射编译、缺口效果与 HRTF 以 kira Effect 迁移现有数值、3D 策略计算 + Timeline→Tween/Clock |
 | [03](03-physics.md) | Physics | P1 | PhysicsBackend trait + joltc-sys 后端、形状全集、六约束、ragdoll 三模式、QueryMode/过滤 |
 | [04](04-animation.md) | Animation | P1 | AnimationTargetId dense 化 + PoseBuffer SoA 零分配求值、avatar mask 编译、多层状态机、GPU skinning、IK |
 | [05](05-navigation.md) | Navigation | P1 | TiledBake 异步、DetourCrowd 接入、TileCache carving、off-mesh traverse 状态机（vendored recastnavigation 已在） |
@@ -49,7 +50,7 @@
 ## 3. 现状基线摘要（2026-06 代码实查结论，v2 校准）
 
 - **架构**：四层插件系统（package_manifest / runtime_plugin / extension_registry / native_plugin_loader）成型；**访问集（`SystemParamAccess`）、冲突图、并行批次、7 阶段 `SystemStage` 已存在**——真缺口是 SystemSet 偏序、registry 的 system/resource/event 注册通道、类型化扩展点冻结、owner 追踪、ABI 分域函数表（01 §2 缺口表 G1–G8）。
-- **插件成熟度（实查比早期调研乐观）**：sound 执行引擎/DSP/HRTF/occlusion/多声道**已实现**但热路径违反零分配原则（02 S1/S2）；navigation 已 vendored upstream recastnavigation 且单块烘焙 bridge 在（缺 tiled/crowd/carving 闭环）；net 六 feature crate 已建（缺 worker 线程模型与深度实现）；physics/animation 契约 DTO 完整、核心算法缺（Jolt、约束、ragdoll、GPU skinning、avatar mask 执行）；ai 框架在、节点库/观察者中断/感知缺；zr_vm 为 wrapper 但**反射 DTO 家族与宿主注册表已在**（缺 derive/反向/性能层）；export 的 profile/验证/物化模板**已在**（缺 zrpack/CLI/平台模板）；terrain/tilemap_2d 为 stub（不在本轮范围）。
+- **插件成熟度（实查比早期调研乐观）**：sound 自研执行栈功能面完整但热路径有硬伤，**已裁决以 kira 为执行核心整体替代自研混音/输出栈（02 v2.1），自研 DSP 数值迁移为 kira 自定义 Effect**；navigation 已 vendored upstream recastnavigation 且单块烘焙 bridge 在（缺 tiled/crowd/carving 闭环）；net 六 feature crate 已建（缺 worker 线程模型与深度实现）；physics/animation 契约 DTO 完整、核心算法缺（Jolt、约束、ragdoll、GPU skinning、avatar mask 执行）；ai 框架在、节点库/观察者中断/感知缺；zr_vm 为 wrapper 但**反射 DTO 家族与宿主注册表已在**（缺 derive/反向/性能层）；export 的 profile/验证/物化模板**已在**（缺 zrpack/CLI/平台模板）；terrain/tilemap_2d 为 stub（不在本轮范围）。
 - **既有计划冲突已裁决**：Physics 后端以"Jolt（joltc-sys）唯一必交付 + builtin 降级"为准（03）；animation 归属以"已迁入 zircon_plugins"现实为准（04）；Tokio 不进 runtime 本体依赖、由 net 插件自建 worker（07）。
 
 ## 4. 全局验收

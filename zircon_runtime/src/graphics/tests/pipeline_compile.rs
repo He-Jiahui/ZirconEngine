@@ -53,20 +53,21 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "hzb-occlusion-cull",
             "motion-vector-clear",
-            "shadow-map",
-            "clustered-light-culling",
+            "shadow-atlas",
+            "hzb-build",
+            "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
             "motion-vector-camera",
+            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
-            "screen-space-reflection-depth-pyramid",
             "screen-space-reflection-reflection-pyramid",
-            "screen-space-reflection-depth-pyramid-coarse",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
@@ -134,19 +135,21 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
-        "screen-space-reflection-depth-pyramid",
+        "hzb-occlusion-cull",
+        PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "hzb-build",
         PostProcessGraphResourceNames::SCENE_DEPTH,
         RenderGraphResourceAccessKind::Read,
     );
-    assert_eq!(
-        pass_resource_access(
-            &compiled,
-            "screen-space-reflection-depth-pyramid",
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-            RenderGraphResourceAccessKind::Write,
-        )
-        .attachment_ops,
-        Some(RenderGraphAttachmentOps::clear_store())
+    pass_resource_access(
+        &compiled,
+        "hzb-build",
+        PostProcessGraphResourceNames::HZB_FURTHEST,
+        RenderGraphResourceAccessKind::Write,
     );
     pass_resource_access(
         &compiled,
@@ -159,22 +162,6 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             &compiled,
             "screen-space-reflection-reflection-pyramid",
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-            RenderGraphResourceAccessKind::Write,
-        )
-        .attachment_ops,
-        Some(RenderGraphAttachmentOps::clear_store())
-    );
-    pass_resource_access(
-        &compiled,
-        "screen-space-reflection-depth-pyramid-coarse",
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        RenderGraphResourceAccessKind::Read,
-    );
-    assert_eq!(
-        pass_resource_access(
-            &compiled,
-            "screen-space-reflection-depth-pyramid-coarse",
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
             RenderGraphResourceAccessKind::Write,
         )
         .attachment_ops,
@@ -315,13 +302,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     pass_resource_access(
         &compiled,
         "screen-space-reflection-resolve",
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        RenderGraphResourceAccessKind::Read,
-    );
-    pass_resource_access(
-        &compiled,
-        "screen-space-reflection-resolve",
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
+        PostProcessGraphResourceNames::HZB_FURTHEST,
         RenderGraphResourceAccessKind::Read,
     );
     pass_resource_access(
@@ -402,7 +383,12 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "visibility".to_string(),
         ]
     );
-    assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
+    assert_eq!(
+        compiled.history_bindings,
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::HzbFurthest
+        )]
+    );
 }
 
 #[test]
@@ -438,20 +424,21 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "hzb-occlusion-cull",
             "motion-vector-clear",
-            "shadow-map",
+            "shadow-atlas",
             "gbuffer-mesh",
-            "clustered-light-culling",
+            "hzb-build",
+            "light-grid-build",
             "deferred-lighting",
             "transparent-mesh",
             "motion-vector-camera",
+            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
-            "screen-space-reflection-depth-pyramid",
             "screen-space-reflection-reflection-pyramid",
-            "screen-space-reflection-depth-pyramid-coarse",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
@@ -551,6 +538,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
+        "hzb-occlusion-cull",
+        PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
         "gbuffer-mesh",
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         RenderGraphResourceAccessKind::Write,
@@ -606,7 +599,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "visibility".to_string(),
         ]
     );
-    assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
+    assert_eq!(
+        compiled.history_bindings,
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::HzbFurthest
+        )]
+    );
 }
 
 #[test]
@@ -736,16 +734,8 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
                 Some("post.depth-of-field-prepare"),
             ),
             (
-                "screen-space-reflection-depth-pyramid",
-                Some("post.screen-space-reflection-depth-pyramid"),
-            ),
-            (
                 "screen-space-reflection-reflection-pyramid",
                 Some("post.screen-space-reflection-reflection-pyramid"),
-            ),
-            (
-                "screen-space-reflection-depth-pyramid-coarse",
-                Some("post.screen-space-reflection-depth-pyramid-coarse"),
             ),
             (
                 "screen-space-reflection-reflection-pyramid-coarse",
@@ -794,10 +784,12 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "hzb-occlusion-cull",
             "motion-vector-clear",
-            "shadow-map",
+            "shadow-atlas",
+            "hzb-build",
             "ssao-evaluate",
-            "clustered-light-culling",
+            "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
@@ -805,13 +797,12 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "reflection-probe-composite",
             "baked-lighting-composite",
             "motion-vector-camera",
+            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
-            "screen-space-reflection-depth-pyramid",
             "screen-space-reflection-reflection-pyramid",
-            "screen-space-reflection-depth-pyramid-coarse",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
@@ -824,9 +815,10 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
     );
     assert_eq!(
         compiled.history_bindings,
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::AmbientOcclusion
-        )]
+        vec![
+            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
+            FrameHistoryBinding::read_write(FrameHistorySlot::HzbFurthest)
+        ]
     );
 }
 
@@ -846,24 +838,25 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
         vec![
             "preview-sky",
             "depth-prepass",
+            "hzb-occlusion-cull",
             "motion-vector-clear",
-            "shadow-map",
+            "shadow-atlas",
             "gbuffer-mesh",
+            "hzb-build",
             "ssao-evaluate",
-            "clustered-light-culling",
+            "light-grid-build",
             "deferred-lighting",
             "transparent-mesh",
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
             "motion-vector-camera",
+            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
-            "screen-space-reflection-depth-pyramid",
             "screen-space-reflection-reflection-pyramid",
-            "screen-space-reflection-depth-pyramid-coarse",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
@@ -1163,7 +1156,7 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
         .collect::<Vec<_>>();
 
     assert!(!pass_names.contains(&"ssao-evaluate"));
-    assert!(!pass_names.contains(&"clustered-light-culling"));
+    assert!(!pass_names.contains(&"light-grid-build"));
     assert!(!pass_names.contains(&"history-resolve"));
     assert!(!compiled
         .history_bindings
@@ -1202,6 +1195,13 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         .graph
         .passes()
         .iter()
+        .any(|pass| pass.name == "hzb-occlusion-cull"
+            && pass.queue == QueueLane::Graphics
+            && pass.declared_queue == QueueLane::AsyncCompute));
+    assert!(compiled
+        .graph
+        .passes()
+        .iter()
         .any(|pass| pass.name == "hzb-build"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
@@ -1209,9 +1209,29 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         .graph
         .passes()
         .iter()
-        .any(|pass| pass.name == "clustered-light-culling"
+        .any(|pass| pass.name == "light-grid-build"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
+    let light_zbins_output = pass_resource_access(
+        &compiled,
+        "light-grid-build",
+        PostProcessGraphResourceNames::LIGHT_ZBINS,
+        RenderGraphResourceAccessKind::Write,
+    );
+    let light_tile_masks_output = pass_resource_access(
+        &compiled,
+        "light-grid-build",
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+        RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        light_zbins_output.kind,
+        RenderGraphResourceKind::TransientBuffer
+    );
+    assert_eq!(
+        light_tile_masks_output.kind,
+        RenderGraphResourceKind::TransientBuffer
+    );
     let ssao_output = pass_resource_access(
         &compiled,
         "ssao-evaluate",
@@ -1224,6 +1244,44 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         "compute storage writes must not inherit render attachment load/store ops"
     );
     assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 3);
+}
+
+#[test]
+fn compile_options_gate_hzb_occlusion_cull_without_removing_hzb_build() {
+    let pipeline = RenderPipelineAsset::default_forward_plus();
+    let options = RenderPipelineCompileOptions::default().with_hzb_occlusion_culling(false);
+
+    let compiled = pipeline
+        .compile_with_options(&test_extract(), &options)
+        .unwrap();
+
+    assert!(!compiled
+        .graph
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "hzb-occlusion-cull"));
+    assert!(compiled
+        .graph
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "hzb-build"));
+    assert_eq!(compiled.pass_stage("hzb-occlusion-cull"), None);
+    assert_eq!(
+        compiled.pass_stage("hzb-build"),
+        Some(RenderPassStage::AmbientOcclusion)
+    );
+    pass_resource_access(
+        &compiled,
+        "hzb-build",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "hzb-build",
+        PostProcessGraphResourceNames::HZB_FURTHEST,
+        RenderGraphResourceAccessKind::Write,
+    );
 }
 
 #[test]
@@ -1530,15 +1588,9 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
             TextureFormat::Rgba8UnormSrgb,
         ),
         (
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-            640,
-            360,
-            TextureFormat::Rgba16Float,
-        ),
-        (
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-            320,
-            180,
+            PostProcessGraphResourceNames::HZB_FURTHEST,
+            1024,
+            512,
             TextureFormat::Rgba16Float,
         ),
         (
@@ -1606,6 +1658,7 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
         .with_executor_id("ao.ssao-evaluate")
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
         .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
     )
 }
@@ -1724,17 +1777,6 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "screen-space-reflection-depth-pyramid",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.screen-space-reflection-depth-pyramid")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
                 "screen-space-reflection-reflection-pyramid",
                 QueueLane::Graphics,
             )
@@ -1742,17 +1784,6 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "screen-space-reflection-depth-pyramid-coarse",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.screen-space-reflection-depth-pyramid-coarse")
-            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
                 RenderGraphAttachmentOps::clear_store(),
             ),
             RenderFeaturePassDescriptor::new(
@@ -1789,10 +1820,7 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID)
-            .read_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-            )
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
             .read_texture(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
@@ -1997,9 +2025,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         "motion-vector-tile-max-coarse",
         "motion-vector-neighbor-max",
         "depth-of-field-prepare",
-        "screen-space-reflection-depth-pyramid",
         "screen-space-reflection-reflection-pyramid",
-        "screen-space-reflection-depth-pyramid-coarse",
         "screen-space-reflection-reflection-pyramid-coarse",
         "screen-space-reflection-specular-occlusion",
         "screen-space-reflection-resolve",
@@ -2023,9 +2049,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
@@ -2073,9 +2097,9 @@ fn effective_post_process_stack_keeps_screen_space_reflection_passes_when_reques
         "motion-vector-object",
         "motion-vector-tile-max",
         "motion-vector-neighbor-max",
-        "screen-space-reflection-depth-pyramid",
+        "hzb-occlusion-cull",
+        "hzb-build",
         "screen-space-reflection-reflection-pyramid",
-        "screen-space-reflection-depth-pyramid-coarse",
         "screen-space-reflection-reflection-pyramid-coarse",
         "screen-space-reflection-specular-occlusion",
         "screen-space-reflection-resolve",

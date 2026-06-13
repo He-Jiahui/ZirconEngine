@@ -83,6 +83,12 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         true,
         &["capability", "storage_buffer"],
     );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.capability.max_storage_buffers_per_shader_stage",
+        10.0,
+        &["capability", "storage_buffer"],
+    );
     assert_render_bool_series(
         &snapshot.store,
         "render.capability.buffer_readback_supported",
@@ -302,7 +308,7 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     assert_render_count_series(
         &snapshot.store,
         "render.visibility.occlusion_culled_count",
-        1.0,
+        18.0,
         &["render", "visibility", "occlusion"],
     );
     assert_render_count_series(
@@ -310,6 +316,78 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.visibility.visible_count",
         3.0,
         &["render", "visibility", "visible"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.full_rebuild_count",
+        0.0,
+        &["render", "visibility", "static_index", "rebuild"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.incremental_update_count",
+        1.0,
+        &["render", "visibility", "static_index", "incremental"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.inserted_count",
+        2.0,
+        &["render", "visibility", "static_index", "change"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.updated_count",
+        3.0,
+        &["render", "visibility", "static_index", "change"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.removed_count",
+        4.0,
+        &["render", "visibility", "static_index", "change"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.indexed_entity_count",
+        10.0,
+        &["render", "visibility", "static_index", "entity"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.occupied_cell_count",
+        7.0,
+        &["render", "visibility", "static_index", "cell"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.visibility.static_index.main_view_prefilter_used",
+        true,
+        &[
+            "render",
+            "visibility",
+            "static_index",
+            "main_view",
+            "prefilter",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.main_view_static_input_count",
+        12.0,
+        &["render", "visibility", "static_index", "main_view", "input"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.visibility.static_index.main_view_static_candidate_count",
+        5.0,
+        &[
+            "render",
+            "visibility",
+            "static_index",
+            "main_view",
+            "candidate",
+        ],
     );
     assert_render_count_series(
         &snapshot.store,
@@ -322,6 +400,156 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.hzb.graph_executed_pass_count",
         1.0,
         &["render", "hzb", "graph"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hzb.occlusion.reported",
+        true,
+        &["render", "hzb", "occlusion"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.candidate_arg_count",
+        6.0,
+        &["render", "hzb", "occlusion", "candidate"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.candidate_instance_count",
+        42.0,
+        &["render", "hzb", "occlusion", "candidate"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.dispatch_group_count",
+        2.0,
+        &["render", "hzb", "occlusion", "dispatch"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.dispatched_phase_count",
+        1.0,
+        &["render", "hzb", "occlusion", "dispatch"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hzb.occlusion.history_available",
+        true,
+        &["render", "hzb", "occlusion", "history"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hzb.occlusion.readback_available",
+        true,
+        &["render", "hzb", "occlusion", "readback"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.tested_arg_count",
+        6.0,
+        &["render", "hzb", "occlusion", "tested"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.tested_instance_count",
+        42.0,
+        &["render", "hzb", "occlusion", "tested"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.culled_arg_count",
+        2.0,
+        &["render", "hzb", "occlusion", "culled"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.culled_instance_count",
+        18.0,
+        &["render", "hzb", "occlusion", "culled"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hzb.occlusion.indirect_args_readback_available",
+        true,
+        &["render", "hzb", "occlusion", "readback", "indirect_args"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.readback_arg_count",
+        6.0,
+        &["render", "hzb", "occlusion", "readback", "indirect_args"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.compacted_draw_count",
+        4.0,
+        &["render", "hzb", "occlusion", "readback", "indirect_args"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.zero_instance_arg_count",
+        2.0,
+        &["render", "hzb", "occlusion", "readback", "indirect_args"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hzb.occlusion.remaining_instance_count",
+        24.0,
+        &["render", "hzb", "occlusion", "readback", "indirect_args"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.light_grid.reported",
+        true,
+        &["render", "light_grid"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.light_count",
+        9.0,
+        &["render", "light_grid", "light"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.tile_count",
+        64.0,
+        &["render", "light_grid", "tile"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.zbin_count",
+        32.0,
+        &["render", "light_grid", "zbin"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.non_empty_tile_count",
+        11.0,
+        &["render", "light_grid", "tile"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.non_empty_zbin_count",
+        7.0,
+        &["render", "light_grid", "zbin"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.non_empty_cluster_count",
+        23.0,
+        &["render", "light_grid", "cluster"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.peak_lights_per_cluster",
+        5.0,
+        &["render", "light_grid", "cluster", "peak"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.light_grid.average_lights_per_cluster",
+        0.375,
+        &["render", "light_grid", "cluster", "average"],
     );
     assert_render_bool_series(
         &snapshot.store,

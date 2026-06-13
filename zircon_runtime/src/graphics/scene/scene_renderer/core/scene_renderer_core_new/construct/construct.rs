@@ -5,6 +5,7 @@ use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::{RenderFeatureDescriptor, RuntimePrepareCollectorRegistration};
 
 use super::super::super::super::deferred::DeferredSceneResources;
+use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_buffer, skinned_joint_palette_uniform_min_binding_size,
 };
@@ -13,6 +14,10 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::super::shadow::atlas::{
+    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
+};
 use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
@@ -65,6 +70,16 @@ impl SceneRendererCore {
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
         );
+        let shadow_atlas_resources =
+            ShadowAtlasResources::new(device, ShadowAtlasResourceConfig::default());
+        let shadow_atlas_resource_config = shadow_atlas_resources.config();
+        let shadow_atlas_allocator = ShadowAtlasAllocator::new(ShadowAtlasConfig {
+            width: shadow_atlas_resource_config.width,
+            height: shadow_atlas_resource_config.height,
+            reserved_top_px: SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT
+                .min(shadow_atlas_resource_config.height),
+            ..ShadowAtlasConfig::default()
+        });
         let deferred = DeferredSceneResources::new(
             device,
             &scene_bind_group_bundle.layout,
@@ -80,6 +95,13 @@ impl SceneRendererCore {
             &texture_bind_group_layout,
             target_format,
         );
+        let hzb_occlusion_culler = hzb_occlusion_supported_by_limits(&device.limits()).then(|| {
+            HzbOcclusionCuller::new(
+                device,
+                &scene_bind_group_bundle.layout,
+                gpu_scene.scene_bind_group_layout(),
+            )
+        });
         let post_process =
             ScenePostProcessResources::new(device, queue, target_format, backend_name);
         let overlay_renderer = ViewportOverlayRenderer::new(
@@ -106,8 +128,11 @@ impl SceneRendererCore {
             mesh_pipelines,
             cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
             gpu_scene,
+            hzb_occlusion_culler,
             normal_prepass,
             shadow_map_renderer,
+            shadow_atlas_allocator,
+            shadow_atlas_resources,
             deferred,
             particle_renderer,
             sprite_renderer,

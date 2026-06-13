@@ -44,6 +44,7 @@ fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
             project_open: true,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &WorkbenchLayout::default(),
         Vec::new(),

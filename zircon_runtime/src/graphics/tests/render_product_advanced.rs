@@ -1,16 +1,28 @@
+use std::sync::Arc;
+
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
-    AdvancedRenderFeature, RenderFramework, RenderHybridGiExtract, RenderHybridGiPayloadSource,
-    RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderQualityProfile, RenderStats,
-    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
+    AdvancedRenderFeature, CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract,
+    RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderHybridGiExtract,
+    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderMeshSnapshot, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderStats, RenderViewportDescriptor, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::core::math::{UVec2, Vec3};
+use crate::core::framework::scene::Mobility;
+use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
+use crate::graphics::runtime::WgpuRenderFramework;
 use crate::scene::world::World;
 
 use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework, pluginized_wgpu_render_framework_with_advanced_providers,
 };
+
+const HZB_WALL_HIDDEN_INSTANCE_COUNT: usize = 64;
 
 #[test]
 fn render_product_advanced_submits_vg_hgi_only_with_runtime_providers() {
@@ -99,6 +111,63 @@ fn render_product_advanced_degrades_without_runtime_providers() {
             .any(|degradation| degradation.reason
                 == AdvancedRenderDegradationReason::ProviderMissing));
     }
+}
+
+#[test]
+fn render_product_hzb_occlusion_wall_scene() {
+    let viewport_size = UVec2::new(320, 240);
+    let (occlusion_frame, stats) =
+        render_hzb_occlusion_wall_scene(hzb_occlusion_wall_capabilities(), viewport_size);
+    let (fallback_frame, fallback_stats) = render_hzb_occlusion_wall_scene(
+        hzb_occlusion_wall_cpu_fallback_capabilities(),
+        viewport_size,
+    );
+
+    assert!(stats.last_hzb_occlusion_reported);
+    assert!(stats.last_hzb_occlusion_history_available);
+    assert!(stats.last_hzb_occlusion_readback_available);
+    assert!(stats.last_hzb_occlusion_indirect_args_readback_available);
+    assert!(
+        stats.last_hzb_occlusion_tested_instance_count >= HZB_WALL_HIDDEN_INSTANCE_COUNT,
+        "HZB occlusion should test the hidden wall-scene instances; tested={}, hidden={}",
+        stats.last_hzb_occlusion_tested_instance_count,
+        HZB_WALL_HIDDEN_INSTANCE_COUNT
+    );
+    assert!(
+        stats.last_hzb_occlusion_culled_instance_count >= HZB_WALL_HIDDEN_INSTANCE_COUNT,
+        "the wall should occlude the hidden instances on the second frame; culled={}, hidden={}",
+        stats.last_hzb_occlusion_culled_instance_count,
+        HZB_WALL_HIDDEN_INSTANCE_COUNT
+    );
+    assert_eq!(
+        stats.last_visibility_occlusion_culled_count,
+        stats.last_hzb_occlusion_culled_instance_count
+    );
+    assert!(stats.last_hzb_occlusion_compacted_draw_count > 0);
+    assert!(
+        stats.last_hzb_occlusion_compacted_draw_count <= stats.last_hzb_occlusion_readback_arg_count,
+        "compact replay should submit no more draws than the readback arg capacity; compacted={}, readback={}",
+        stats.last_hzb_occlusion_compacted_draw_count,
+        stats.last_hzb_occlusion_readback_arg_count
+    );
+    assert!(stats.last_hzb_occlusion_zero_instance_arg_count > 0);
+    assert!(
+        stats.last_hzb_occlusion_remaining_instance_count
+            < stats.last_hzb_occlusion_tested_instance_count,
+        "occlusion culling should reduce submitted instances; remaining={}, tested={}",
+        stats.last_hzb_occlusion_remaining_instance_count,
+        stats.last_hzb_occlusion_tested_instance_count
+    );
+    assert!(
+        !fallback_stats.last_hzb_occlusion_reported,
+        "capability fallback should not execute hzb-occlusion-cull"
+    );
+    assert_eq!(fallback_stats.last_visibility_occlusion_culled_count, 0);
+    assert_captured_frames_equal(
+        &occlusion_frame,
+        &fallback_frame,
+        "HZB occlusion should match the occlusion-disabled product baseline",
+    );
 }
 
 pub(super) fn advanced_quality_profile(name: &str) -> RenderQualityProfile {
@@ -234,4 +303,188 @@ pub(super) fn advanced_provider_report(
         .iter()
         .find(|report| report.feature == feature)
         .expect("advanced provider report should be recorded")
+}
+
+fn hzb_occlusion_wall_quality_profile() -> RenderQualityProfile {
+    RenderQualityProfile::new("hzb-occlusion-wall")
+        .with_clustered_lighting(false)
+        .with_screen_space_ambient_occlusion(false)
+        .with_history_resolve(false)
+        .with_bloom(false)
+        .with_color_grading(false)
+        .with_anti_alias(false)
+}
+
+fn hzb_occlusion_wall_capabilities() -> RenderCapabilitySummary {
+    RenderCapabilitySummary {
+        backend_name: "hzb-occlusion-wall-test".to_string(),
+        supports_offscreen: true,
+        supports_async_compute: true,
+        supports_storage_buffers: true,
+        max_storage_buffers_per_shader_stage:
+            HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+        supports_indirect_draw: true,
+        supports_multi_draw_indirect: true,
+        supports_indirect_first_instance: true,
+        supports_buffer_readback: true,
+        supports_fxaa: true,
+        ..RenderCapabilitySummary::default()
+    }
+}
+
+fn hzb_occlusion_wall_cpu_fallback_capabilities() -> RenderCapabilitySummary {
+    RenderCapabilitySummary {
+        backend_name: "hzb-occlusion-wall-cpu-baseline".to_string(),
+        supports_multi_draw_indirect: false,
+        ..hzb_occlusion_wall_capabilities()
+    }
+}
+
+fn render_hzb_occlusion_wall_scene(
+    capabilities: RenderCapabilitySummary,
+    viewport_size: UVec2,
+) -> (CapturedFrame, RenderStats) {
+    let server = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    server.override_capabilities_for_tests(capabilities);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    server
+        .set_quality_profile(viewport, hzb_occlusion_wall_quality_profile())
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, hzb_occlusion_wall_extract(viewport_size))
+        .unwrap();
+    server
+        .submit_frame_extract(viewport, hzb_occlusion_wall_extract(viewport_size))
+        .unwrap();
+    let frame = server
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("wall-scene second frame should be capturable");
+    let stats = server.query_stats().unwrap();
+    server.destroy_viewport(viewport).unwrap();
+    (frame, stats)
+}
+
+fn assert_captured_frames_equal(actual: &CapturedFrame, expected: &CapturedFrame, label: &str) {
+    assert_eq!(actual.width, expected.width, "{label}: width mismatch");
+    assert_eq!(actual.height, expected.height, "{label}: height mismatch");
+    if let Some(index) = first_pixel_mismatch(&actual.rgba, &expected.rgba) {
+        let byte = index * 4;
+        panic!(
+            "{label}: pixel {index} mismatch, actual={:?}, expected={:?}",
+            &actual.rgba[byte..byte + 4],
+            &expected.rgba[byte..byte + 4]
+        );
+    }
+}
+
+fn first_pixel_mismatch(actual: &[u8], expected: &[u8]) -> Option<usize> {
+    assert_eq!(
+        actual.len(),
+        expected.len(),
+        "captured frame byte lengths should match"
+    );
+    actual
+        .chunks_exact(4)
+        .zip(expected.chunks_exact(4))
+        .position(|(actual, expected)| actual != expected)
+}
+
+fn hzb_occlusion_wall_extract(viewport_size: UVec2) -> RenderFrameExtract {
+    let mut meshes = Vec::with_capacity(HZB_WALL_HIDDEN_INSTANCE_COUNT + 1);
+    meshes.push(hzb_wall_mesh(
+        91_000,
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(4.5, 3.5, 0.25),
+    ));
+    for index in 0..HZB_WALL_HIDDEN_INSTANCE_COUNT {
+        let row = index / 8;
+        let column = index % 8;
+        let x = (column as Real - 3.5) * 0.32;
+        let y = (row as Real - 3.5) * 0.32;
+        meshes.push(hzb_hidden_mesh(
+            92_000 + index as u64,
+            Vec3::new(x, y, -4.0),
+        ));
+    }
+
+    RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(910),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot {
+                    transform: Transform::from_translation(Vec3::new(0.0, 0.0, 4.0)),
+                    ..ViewportCameraSnapshot::default()
+                },
+                meshes,
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: Default::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    )
+    .with_viewport_size(viewport_size)
+}
+
+fn hzb_wall_mesh(node_id: u64, translation: Vec3, scale: Vec3) -> RenderMeshSnapshot {
+    hzb_occlusion_mesh(
+        node_id,
+        translation,
+        scale,
+        "builtin://material/hzb-wall",
+        Vec4::new(0.75, 0.76, 0.8, 1.0),
+    )
+}
+
+fn hzb_hidden_mesh(node_id: u64, translation: Vec3) -> RenderMeshSnapshot {
+    hzb_occlusion_mesh(
+        node_id,
+        translation,
+        Vec3::new(0.18, 0.18, 0.18),
+        "builtin://material/hzb-hidden",
+        Vec4::new(0.0, 0.8, 0.55, 1.0),
+    )
+}
+
+fn hzb_occlusion_mesh(
+    node_id: u64,
+    translation: Vec3,
+    scale: Vec3,
+    material_label: &str,
+    tint: Vec4,
+) -> RenderMeshSnapshot {
+    RenderMeshSnapshot {
+        node_id,
+        stable_instance_key: node_id << 16,
+        transform_revision: 0,
+        transform: Transform {
+            translation,
+            scale,
+            ..Transform::default()
+        },
+        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label("builtin://cube")),
+        mesh: None,
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            material_label,
+        )),
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint,
+        mobility: Mobility::Static,
+        static_state: Default::default(),
+        render_layer_mask: u32::MAX,
+    }
 }

@@ -8,6 +8,21 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
@@ -28,6 +43,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
+  - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/editor/src/lib.rs
@@ -35,6 +51,9 @@ related_code:
   - zircon_plugins/rendering/features/post_process/editor/src/lib.rs
   - zircon_plugins/rendering/features/ssao/runtime/src/lib.rs
   - zircon_plugins/rendering/features/ssao/editor/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
+  - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
   - zircon_plugins/rendering/features/decals/runtime/src/lib.rs
   - zircon_plugins/rendering/features/decals/editor/src/lib.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/lib.rs
@@ -88,6 +107,21 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/requires_explicit_opt_in.rs
@@ -131,6 +165,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/editor/src/lib.rs
@@ -138,6 +173,9 @@ implementation_files:
   - zircon_plugins/rendering/features/post_process/editor/src/lib.rs
   - zircon_plugins/rendering/features/ssao/runtime/src/lib.rs
   - zircon_plugins/rendering/features/ssao/editor/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
+  - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
   - zircon_plugins/rendering/features/decals/runtime/src/lib.rs
   - zircon_plugins/rendering/features/decals/editor/src/lib.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/lib.rs
@@ -193,6 +231,8 @@ tests:
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/features/post_process/runtime/src/lib.rs
   - zircon_plugins/rendering/features/ssao/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
   - zircon_plugins/rendering/features/decals/runtime/src/lib.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/lib.rs
   - zircon_plugins/rendering/features/baked_lighting/runtime/src/lib.rs
@@ -207,10 +247,11 @@ doc_type: module-detail
 ## Owner model
 
 `rendering` is the umbrella plugin package for the Rendering option pool. It owns
-eight optional feature bundles:
+nine optional feature bundles:
 
 - `rendering.post_process`
 - `rendering.ssao`
+- `rendering.contact_shadow`
 - `rendering.decals`
 - `rendering.reflection_probes`
 - `rendering.baked_lighting`
@@ -241,10 +282,11 @@ preserve the previous frame graph behavior:
 - `reflection_probes`
 - `baked_lighting`
 
-`decals`, `ray_tracing_policy`, `shader_graph`, and `vfx_graph` are opt-in. VFX
-Graph depends on `particles` plus the `runtime.feature.rendering.shader_graph`
-capability; the catalog reports it as blocked when those dependencies are not
-selected, and it does not implicitly enable either dependency.
+`contact_shadow`, `decals`, `ray_tracing_policy`, `shader_graph`, and
+`vfx_graph` are opt-in. VFX Graph depends on `particles` plus the
+`runtime.feature.rendering.shader_graph` capability; the catalog reports it as
+blocked when those dependencies are not selected, and it does not implicitly
+enable either dependency.
 
 ## Runtime boundary
 
@@ -259,6 +301,23 @@ lighting keep their post-process composite slots, and post process keeps
 `post.stack`. The default forward/deferred pipeline assets no longer embed those
 features directly; applying the default rendering feature descriptors restores
 the legacy pass order.
+
+The `contact_shadow` feature is the Plan 05 LS-M4 screen-space shadow extension.
+Its runtime crate registers a `contact-shadow` AmbientOcclusion-stage async
+compute pass with executor `lighting.contact-shadow`; the pass reads
+`scene-depth`, `gbuffer-normal`, and the shared Plan 04 `hzb-furthest` mip chain,
+then writes the transient `contact-shadow-occlusion` storage texture. The
+executor is a plugin-owned WGPU compute executor that caches its pipeline, binds
+the graph resources directly, runs `contact_shadow.wgsl`, and records the actual
+dispatch through `RenderPassGpuExecutionContext::record_compute_dispatch(...)`.
+The built-in `post.stack` pass declares a normal texture read from
+`contact-shadow-occlusion`, so when the plugin is enabled the compiled graph keeps
+the transient lifetime alive until final compositing. When the feature is absent,
+execution binds a white fallback. The final post-process shader samples binding
+27 under `SceneRuntimeFeatureFlags::contact_shadow_enabled` /
+`PostProcessParams::lighting_flags.x` and multiplies it independently from SSAO.
+The feature is disabled by default, and compile options that disable
+`contact_shadow` leave no `contact-shadow` producer pass in the compiled graph.
 
 The runtime built-in `Decal` feature is deliberately narrower than the
 `rendering.decals` plugin. It is a descriptor-only advanced slot for renderer-data
@@ -343,6 +402,13 @@ executable projector decal rendering; the runtime `Decal` token only gives
 renderer data and quality profiles a stable built-in feature name before a
 dedicated built-in decal renderer exists.
 
+`contact_shadow` registers no component surface in V1. It contributes the
+short-distance screen-space ray-march pass descriptor, a minimal WGPU compute
+executor/shader pair, the post-process binding/flag path that consumes its
+visibility output, and the matching editor capability row so projects can enable
+the feature explicitly while authoring controls and visual tuning remain future
+work.
+
 `ray_tracing_policy` provides a policy report over acceleration structure,
 inline ray query, and ray pipeline gates. It does not implement a hardware ray
 tracer in V1.
@@ -386,20 +452,47 @@ Focused checks that passed for this slice:
   --jobs 1 --target-dir
   D:\cargo-targets\zircon-rendering-feature-editor-capability --quiet` passed
   for static `zircon_plugins/rendering/plugin.toml` round-trip parity.
-- 2026-05-31 editor-module capability parity: all eight Rendering feature editor
+- 2026-05-31 editor-module capability parity: all eight then-existing Rendering feature editor
   crates passed `cargo check --locked --offline --jobs 1` against
   `D:\cargo-targets\zircon-rendering-feature-editor-capability` after their
   descriptors were wired to the runtime `EDITOR_CAPABILITY` constants.
+- 2026-06-14 contact shadow feature row:
+  scoped `rustfmt --edition 2021 --check` passed, scoped `git diff --check`
+  passed with only CRLF warnings, `cargo metadata --manifest-path
+  zircon_plugins\Cargo.toml --no-deps --format-version 1 --locked` confirmed
+  the `zircon_plugin_rendering_contact_shadow_runtime` and
+  `zircon_plugin_rendering_contact_shadow_editor` workspace packages, and a
+  16-symbol source-contract scan covered the pass, manifest, catalog, graph
+  insertion, and docs contracts. Locked `cargo check` for the runtime package
+  was blocked before compilation because `zircon_plugins/Cargo.lock` currently
+  needs refresh; that lock file was not modified while another plugin Cargo
+  task was active.
+- 2026-06-14 contact shadow executor slice: scoped `rustfmt --edition 2021
+    --check`, scoped `git diff --check`, and a 15-symbol source-contract scan
+  passed for the WGPU executor, `contact_shadow.wgsl` bindings, storage texture
+    output, and plugin dispatch-recording entry. Locked runtime/plugin cargo checks
+    were retried and still stopped before compilation because the root and plugin
+    lock files need refresh; no lock file was modified while other Cargo work was
+    active.
+- 2026-06-14 contact shadow post-process consumption slice: scoped `rustfmt
+  --edition 2021`, scoped `git diff --check`, a 12-symbol source-contract scan,
+  and a 4-call-site SSR fallback scan passed for the `post.stack` graph read,
+  runtime flag, binding 27 layout/entry, WGSL sampling path, and plugin-side
+  post-process read dependency assertion. Locked Cargo validation was retried
+  with target dirs `D:\cargo-targets\zircon-runtime-contact-shadow-post-0614`
+  and `D:\cargo-targets\zircon-contact-shadow-post-0614`; both checks stopped
+  before compilation because the root/plugin lock files need refresh under
+  `--locked`. No lock file was modified by this slice.
 
 - `cargo metadata --manifest-path zircon_plugins/Cargo.toml --no-deps --format-version 1`
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_runtime --locked --jobs 1`
-- `cargo check --manifest-path zircon_plugins/Cargo.toml` for all eight rendering
+- `cargo check --manifest-path zircon_plugins/Cargo.toml` for all rendering
   feature runtime crates with `--locked --jobs 1`
 - `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_runtime --locked --jobs 1`
-- `cargo test --manifest-path zircon_plugins/Cargo.toml` for all eight rendering
+- `cargo test --manifest-path zircon_plugins/Cargo.toml` for all rendering
   feature runtime crates with `--locked --jobs 1`
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_editor --locked --jobs 1`
-- `cargo check --manifest-path zircon_plugins/Cargo.toml` for all eight rendering
+- `cargo check --manifest-path zircon_plugins/Cargo.toml` for all rendering
   feature editor crates with `--locked --jobs 1`
 - `cargo test -p zircon_runtime --lib --locked rendering_plugin_default_features_restore_legacy --jobs 1`
 - `cargo test -p zircon_runtime --lib --locked builtin_rendering_catalog_declares_owner_features_and_defaults --jobs 1`
@@ -410,7 +503,7 @@ Focused checks that passed for this slice:
 - `cargo test -p zircon_editor --lib --locked
   editor_manager_plugin_status_lists_rendering_owner_features_and_defaults
   --jobs 1`, covering editor plugin status projection for the Rendering owner
-  package and its eight feature rows
+  package and its feature rows
 - `cargo test -p zircon_runtime --lib --locked plugin_extensions --jobs 1`,
   covering plugin catalog, manifest, dependency, export-template, native loader,
   extension registry, and Rendering option integration rows

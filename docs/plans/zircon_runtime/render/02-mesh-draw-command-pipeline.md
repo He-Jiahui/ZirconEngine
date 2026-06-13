@@ -14,6 +14,12 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/MeshDrawCommands.h
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/MeshDrawCommands.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/PrimitiveSceneProxy.cpp
+  - dev/bevy/crates/bevy_render/src/render_phase/mod.rs
+  - dev/bevy/crates/bevy_render/src/render_phase/draw.rs
+  - dev/bevy/crates/bevy_render/src/render_phase/draw_state.rs
+  - dev/bevy/crates/bevy_render/src/render_phase/rangefinder.rs
+  - dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/bundle.rs
 plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/ZirconEngine WGPU 渲染主链闭环计划.md
@@ -48,6 +54,19 @@ mesh batch(extract 快照)→ 每 pass 的 MeshPassProcessor 转换 → 不可�
 | `dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/PrimitiveSceneProxy.cpp` | proxy → `FMeshBatch` 的生成边界:哪些信息属于 extract 快照,哪些属于 pass 决策(对应本引擎 `scene_extract.rs` 与 processor 的分工) |
 
 次参考:`dev/bevy/crates/bevy_render/src/render_phase/`(`PhaseItem`/`RenderCommand` 的 Rust trait 表达与排序键打包)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/render_phase/mod.rs` | per-phase 命令容器与跨帧缓存 | `BinnedRenderPhase` 两级 key(`BatchSetKey` → `BinKey` → entity)的 binned 组织;`cached_entity_bin_keys`/`CachedBinKey` 跨帧保留 bin 归属、变更才重 bin——与 `CachedMeshDrawCommands` 的保留/失效思想同源 |
+| `dev/bevy/crates/bevy_render/src/render_phase/draw.rs` | MeshPassProcessor 的 pass 专属逻辑 | `Draw`/`RenderCommand` trait 与元组组合(如 `SetItemPipeline` + 各 bind 命令):bevy 把 per-pass 差异编码为命令元组类型;Zircon 改为 processor 在构建期固化进不可变命令,录制期不再做选择 |
+| `dev/bevy/crates/bevy_render/src/render_phase/draw_state.rs` | 重放状态去重 | `DrawState` 跟踪当前 pipeline/bind group(含 dynamic offsets)/vertex/index buffer,`TrackedRenderPass::set_*` 相同即跳过——与重放器的 state_change 去重直接对应,移植时保留其 buffer slice 粒度判等 |
+| `dev/bevy/crates/bevy_render/src/render_phase/rangefinder.rs` | 深度排序键 | `ViewRangefinder3d` 由 view 矩阵行算 view-space Z 距离;transparent 排序键的最小 Rust 表达 |
+| `dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs` | sort_key 字段取舍 | `Opaque3dBatchSetKey`/`Opaque3dBinKey`(pipeline、draw_function、material/mesh id 进 key)与 `Transparent3d` 按距离排序;打包 u64 时该选哪些维度、opaque 与 transparent 语义差异的实例 |
+| `dev/Fyrox/fyrox-impl/src/renderer/bundle.rs` | 批次聚合与排序 | `RenderDataBundleStorage` 以 persistent identifier 哈希聚 bundle、`sort()` 按 `sort_index` 单键排序;单线程简化形态,适合校对"批次身份 = 几何+材质+排序键"的最小判据 |
+
+`不可变 MeshDrawCommand(命令自持全部绑定、静态部分跨帧缓存)` 无 Rust 同类参照(bevy 以泛型 RenderCommand 每帧重放、Fyrox 即时绑定),实现时以 UE 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

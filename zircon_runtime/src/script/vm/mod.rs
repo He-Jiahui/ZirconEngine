@@ -16,12 +16,15 @@ pub use capability_set::CapabilitySet;
 pub use gameplay_host::register_gameplay_host_module;
 pub use handles::{HostHandle, PluginSlotId};
 pub use host::{
-    builtin_host_capabilities, builtin_host_module_descriptors, register_builtin_host_modules,
-    render_script_host_modules_markdown, write_script_host_modules_markdown, HostCapabilityRecord,
-    HostExportCallback, HostExportFunction, HostExportModuleRecord, HostExportRegistry,
-    HostRegistry, PluginHostDriver, ScriptHostInterfaceMarkdownOptions, VmPluginHostContext,
-    VmPluginSlotLifecycle, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
-    VM_PLUGIN_RUNTIME_NAME,
+    builtin_host_capabilities, builtin_host_module_descriptors, register_bridge_host_module,
+    register_bridge_host_module_from_manifest, register_builtin_host_modules,
+    render_script_host_modules_markdown, script_bridge_method_descriptors_from_manifest,
+    write_script_host_modules_markdown, HostCapabilityRecord, HostExportCallback,
+    HostExportFunction, HostExportModuleRecord, HostExportRegistry, HostRegistry, PluginHostDriver,
+    ScriptBridgeCall, ScriptBridgeMethodBinding, ScriptBridgeMethodDescriptor, ScriptCallSite,
+    ScriptCallSiteId, ScriptCallTable, ScriptHostInterfaceMarkdownOptions, VmPluginHostContext,
+    VmPluginSlotLifecycle, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE, PLUGIN_HOST_DRIVER_NAME,
+    SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
 };
 pub use module::{module_descriptor, ScriptModule};
 pub use plugin::{

@@ -1,6 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/ui/surface/input/dispatch.rs
+  - zircon_runtime/src/ui/surface/input/navigation.rs
+  - zircon_runtime/src/ui/surface/input/pointer.rs
+  - zircon_runtime/src/ui/surface/input/pointer_reply.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/runtime_parent_chain.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
@@ -29,6 +32,9 @@ related_code:
   - zircon_runtime_interface/src/ui/pipeline/stage.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
   - docs/zircon_runtime_interface/ui/pipeline.md
+  - zircon_hub/src/state/hub_message/message.rs
+  - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
+  - zircon_plugins/net/features/http/runtime/src/backend/client.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
 implementation_files:
@@ -98,26 +104,28 @@ The structural audit now reports `hard_cutover_migration_smells.hard_cutover_gat
 
 Current evidence:
 
-- `source_file_count = 5414`
-- `legacy_reference_count = 142`
+- `source_file_count = 5839`
+- `legacy_reference_count = 212`
 - `compat_reference_count = 0`
 - `shim_reference_count = 0`
-- `bridge_reference_count = 231`
-- `allowed_business_bridge_reference_count = 231`
+- `bridge_reference_count = 300`
+- `allowed_business_bridge_reference_count = 300`
 - `migration_bridge_smell_count = 0`
-- `smell_decision_count = 142`
-- `smell_decision_group_count = 5`
-- `classification_count = 5`
-- `hard_cutover_migration_debt_count = 5`
+- `smell_decision_count = 212`
+- `smell_decision_group_count = 7`
+- `classification_count = 7`
+- `hard_cutover_migration_debt_count = 7`
 - `unclassified_location_count = 0`
 - `unclassified_locations = []`
 
 Current classification:
 
-- `legacy-runtime-ui-input-debt = 54`
+- `legacy-runtime-ui-input-debt = 63`
 - `legacy-hybrid-gi-render-debt = 56`
-- `legacy-runtime-graphics-debt = 28`
+- `legacy-runtime-graphics-debt = 30`
+- `legacy-hub-message-archived-text-debt = 58`
 - `legacy-texture-importer-dds-debt = 1`
+- `legacy-net-hyper-client-api-debt = 1`
 - `legacy-editor-ui-fixture-debt = 3`
 
 The classification means every current hard-cutover smell has an explicit owner group. It does not mean the runtime is converged.
@@ -134,13 +142,17 @@ Any future `unclassified-hard-cutover-smell` is a review blocker. Classify it wi
 
 ## Owner Decisions
 
-`legacy-runtime-ui-input-debt` belongs to the runtime UI input dispatch owner. The target language should describe current pointer routing, capture, and component dispatch rather than preserving a `legacy` route variable.
+`legacy-runtime-ui-input-debt` belongs to the runtime UI input dispatch owner. The current locations are split across the input dispatch, navigation, pointer, and pointer-reply files. The target language should describe current pointer routing, capture, navigation handoff, and component dispatch rather than preserving a `legacy` route or reply variable.
 
 `legacy-hybrid-gi-render-debt` belongs to the hybrid GI render plugin owner. Current references describe old extract/trace schedules and scene-prepare filters; this must be resolved with the active render/plugin owner, not by adding a compatibility path.
 
 `legacy-runtime-graphics-debt` belongs to the M6 graphics/RHI slice. It covers viewport packet wording, render feature fallback labels, runtime feature conversion, render graph execution records, and render-product test fixtures.
 
+`legacy-hub-message-archived-text-debt` belongs to the Hub message archived-text compatibility owner. The target language should rename Hub message text constructors, enum variants, fixtures, and build-action helpers to explicit archived/raw text policy terminology during the Hub support slice instead of keeping generic legacy labels.
+
 `legacy-texture-importer-dds-debt` belongs to the texture importer DDS container owner. Runtime asset importer source-template suffix guards have been renamed to current `.zui` policy language; the remaining asset-adjacent debt is plugin-owned DDS container wording that should become explicit DDS caps policy or be deleted.
+
+`legacy-net-hyper-client-api-debt` belongs to the Net plugin HTTP backend dependency owner. The current hit is the third-party `hyper_util::client::legacy::Client` API path in the HTTP backend; wrap or rename that dependency edge as an explicit HTTP backend policy when the Net plugin backend is next touched.
 
 `legacy-editor-ui-fixture-debt` belongs to editor retained-host fixture and projection owners. These are stale labels and view IDs, not runtime compatibility contracts.
 

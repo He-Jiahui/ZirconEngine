@@ -27,6 +27,7 @@ related_code:
   - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
   - zircon_runtime/src/ui/surface/input/editable_text/mutation.rs
   - zircon_runtime/src/ui/surface/input/editable_text/state_transition.rs
+  - zircon_runtime/src/ui/surface/input/text_state.rs
   - zircon_runtime/src/ui/surface/input/keyboard.rs
   - zircon_runtime/src/ui/surface/input/owner_route.rs
   - zircon_runtime/src/ui/surface/input/pointer.rs
@@ -100,11 +101,13 @@ related_code:
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/pointer_click_semantics.rs
   - zircon_runtime/src/ui/tests/widget_range_navigation.rs
+  - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/widget_radio_behavior.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_clipboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_hard_line.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_text.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -159,6 +162,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
   - zircon_runtime/src/ui/surface/input/editable_text/mutation.rs
   - zircon_runtime/src/ui/surface/input/editable_text/state_transition.rs
+  - zircon_runtime/src/ui/surface/input/text_state.rs
   - zircon_runtime/src/ui/surface/input/keyboard.rs
   - zircon_runtime/src/ui/surface/input/owner_route.rs
   - zircon_runtime/src/ui/surface/input/pointer.rs
@@ -232,12 +236,14 @@ implementation_files:
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/pointer_click_semantics.rs
   - zircon_runtime/src/ui/tests/widget_range_navigation.rs
+  - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/widget_radio_behavior.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_clipboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_hard_line.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_text.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -530,6 +536,15 @@ tests:
   - 2026-05-17 scrollbar-widget-runtime-validation: cargo test -p zircon_runtime --lib widget_scrollbar_behavior --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-scrollbar-runtime --message-format short --color never (blocked before focused tests by third-party wgpu-hal 29.0.3 DX12/windows type mismatch)
   - 2026-05-16 mutation-status-validation: cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-zmeta-validation --lib surface_property_mutation_marks_dirty_only_when_values_change -- --nocapture (passed, 1 test)
   - 2026-05-16 material-runtime-state-validation: cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-zmeta-validation --lib editor_material_ -- --nocapture (passed, 2 tests)
+  - 2026-06-14 rangeslider-nearest-thumb-pointer-validation: rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\widget.rs zircon_runtime_interface\src\tests\ui_contract_spine.rs zircon_runtime\src\ui\surface\surface\default_interactions\range.rs zircon_runtime\src\ui\tests\v2_asset.rs (passed)
+  - 2026-06-14 rangeslider-nearest-thumb-pointer-validation: cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-pointer-0614-coremin --message-format short --color never (passed with existing warnings only)
+  - 2026-06-14 rangeslider-nearest-thumb-pointer-validation: cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-pointer-0614-coremin ui_v2_surface_rangeslider_click_targets_nearest_thumb --message-format short --color never -- --nocapture (timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics; matching target-dir cargo/rustc processes were stopped)
+  - 2026-06-14 rangeslider-drag-lock-validation: rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\state\pointer_drag.rs zircon_runtime\src\ui\surface\surface\default_interactions\range.rs zircon_runtime\src\ui\tests\v2_asset.rs (passed)
+  - 2026-06-14 rangeslider-drag-lock-validation: cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-drag-lock-0614-coremin --message-format short --color never (passed with existing warnings only)
+  - 2026-06-14 rangeslider-drag-lock-validation: cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-drag-lock-0614-coremin ui_v2_surface_rangeslider_click_targets_nearest_thumb --message-format short --color never -- --nocapture (blocked during lib-test compile by unrelated `zircon_runtime/src/graphics/tests/render_product_shadows.rs` private `scene_renderer` module access; no UI diagnostics)
+  - 2026-06-14 rangeslider-swap-validation: rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\state\pointer_drag.rs zircon_runtime\src\ui\surface\surface\default_interactions\range.rs zircon_runtime\src\ui\component\catalog\material_foundation\inputs.rs zircon_runtime\src\ui\tests\component_catalog\material_foundation\inputs.rs zircon_runtime\src\ui\tests\v2_asset.rs (passed)
+  - 2026-06-14 rangeslider-swap-validation: cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-swap-0614-coremin --message-format short --color never (passed with existing warnings only)
+  - 2026-06-14 rangeslider-swap-validation: cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-rangeslider-swap-0614-coremin ui_v2_surface_rangeslider_swap_policy_can_switch_active_thumb --message-format short --color never -- --nocapture (timed out after 604s before reaching test execution, with no Rust diagnostics; matching target-dir cargo/rustc processes were stopped or had exited)
 doc_type: module-detail
 ---
 
@@ -636,6 +651,8 @@ TextInput placeholder/value fallback evidence from 2026-05-24:
 This follows the Bevy standard-widget split: `dev/bevy/crates/bevy_ui_widgets/src/lib.rs` defines unstyled widgets that emit `Activate` and `ValueChange<T>` events, while `button.rs`, `checkbox.rs`, and `slider.rs` keep pointer and focused-keyboard behavior separate from styling. Zircon deliberately keeps the behavior contract serialized in `zircon_runtime_interface` because templates and editor-authored widgets need stable runtime behavior without depending on editor-specific styling code.
 
 The focused regression in `zircon_runtime/src/ui/tests/pointer_click_semantics.rs` covers a custom `FavoritePill` component that opts into `Toggle` behavior and mutates a custom `selected` property from both pointer release and Space-key activation. It also covers a button widget contract that emits an activated commit from focused Enter-key activation while the existing pointer click and double-click tests continue to exercise the typed button pointer reducer. Runtime component-state `disabled = true` now blocks button pointer press/click/double-click emission, focused keyboard activation, and toggle pointer/keyboard mutation. `zircon_runtime/src/ui/tests/widget_range_navigation.rs` covers focused Range `Home`/`End` endpoint mutation through authored min/max/value aliases. The interface contract test in `zircon_runtime_interface/src/tests/ui_contract_spine.rs` covers serde round-trip behavior for the new behavior enum and property aliases.
+
+Default range pointer behavior lives in `surface/surface/default_interactions/range.rs`. `RangeField`, `Slider`, and custom `Range` widgets still mutate their configured widget value property, but `RangeSlider` is inferred as `UiWidgetBehavior::Range` and then resolves pointer press against the nearest retained thumb. The reducer computes the clicked value from the track geometry, compares it with `range_min` and the upper `value`, writes the closer property with clamp/step normalization, favors upper on exact ties, records the chosen property in `UiSurfacePointerDragState`, and reuses that property for captured move/release. Lower-thumb writes clamp at or below the current upper value and upper-thumb writes clamp at or above the current lower value while `disable_swap = true` or absent. When authored metadata sets `disable_swap = false` or MUI-style `disableSwap = false`, crossing writes the old opposite endpoint to the crossed property, switches the active drag property through `UiSurfacePointerDragState::set_pointer_drag_property(...)`, and keeps later DragDelta/EndDrag reports on the swapped active thumb. The existing BeginDrag/DragDelta/ValueChanged/EndDrag route vocabulary stays unchanged for both policies.
 
 `zircon_runtime/src/ui/tests/widget_radio_behavior.rs` covers Radio pointer selection, already-checked no-op behavior, disabled group rejection, focused keyboard activation, group value mutation, sibling uncheck, and a11y role/action projection for `RadioGroup` and `Radio`.
 
@@ -1174,6 +1191,29 @@ M5 disabled pointer-focus and MUI TextInput owner evidence from 2026-05-27:
 - `rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\surface.rs zircon_runtime\src\ui\tests\pointer_click_semantics.rs zircon_runtime\src\ui\tests\widget_text_input_mui.rs`: PASS.
 - Exact focused reruns passed for disabled pointer/keyboard Button suppression, disabled TextInput pointer suppression, and `ui::tests::widget_text_input_mui::mui_input_base_component_name_is_editable_text_owner`.
 - `cargo test -p zircon_runtime --lib --locked --target-dir F:\cargo-targets\zircon-platform-m5-workspace --message-format short --color never -- --format terse`: PASS with 2102 passed, 0 failed.
+
+SearchField/Autocomplete query text-owner and TextField caret-key evidence from 2026-06-13:
+
+- Query-backed `SearchField` and `Autocomplete` nodes now resolve `query` as their editable value property unless an explicit widget `value_property` overrides it. This keeps host edit actions such as Backspace/Delete on the retained search query instead of introducing a phantom `value` field or overwriting Autocomplete's committed selection value.
+- Focused MUI `TextField` host routing now covers ArrowLeft, Delete, End, active-selection Backspace, Ctrl+Backspace word delete, Ctrl+A select-all replacement, and Shift/Ctrl+Shift selection extension through the retained editable-text path. Caret-only actions update `caret_offset` without component value events; Delete removes the caret-local grapheme; Backspace removes the active selection and collapses `caret_offset`, `selection_anchor`, and `selection_focus`; Ctrl+Backspace removes the previous word boundary; Ctrl+A selects the whole retained value and the following text commit replaces it. Value mutations emit `ValueChanged { property: "value" }` and keep binding reports owned by the widget value path.
+- Focused MUI `TextareaAutosize` host routing now covers multiline ArrowDown/ArrowUp same-column movement, Home/End line boundary movement, and Enter newline insertion while preserving retained `caret_offset`, `selection_anchor`, and `selection_focus`.
+- Focused TextInput pointer routing already uses text layout hit-testing for caret movement, pointer drag selection, and double-click word selection. It now distinguishes triple-click before the double-click path, selecting the source line through shared `line_start_boundary` and `line_end_boundary`, and records `text_pointer_line_selection` diagnostics instead of `text_pointer_word_selection`.
+- Runtime window IME adaptation now maps ABI `ime_disabled` into `UiImeInputEventKind::Cancel`, so platform composition cancellation can enter the same `dispatch_ime_input` path as direct UI input. MUI `TextField` now has a retained-composition regression for preedit selection replacement, commit replacement, and cancel restoration/owner clearing; runtime lib-test execution for that new MUI case is still pending because the shared Windows lib-test binary is expensive to build.
+- Retained IME context geometry now computes cursor rects and composition rects through the same visible line/column helper. Hard newlines split composition rects by line, and nodes that opt into wrapping with `wrap != "none"` or `multiline = true` use the current text frame width and simplified font metrics to split soft-wrapped composition ranges into multiple `composition_rects`; this lets the host candidate window follow the visible post-wrap cursor baseline instead of the old single-line range box.
+- `rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\text_state.rs zircon_runtime\src\ui\tests\widget_text_input_mui.rs zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\build.rs`: PASS.
+- `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-searchfield-query-0613-coremin ui::tests::widget_text_input_mui::mui_text_field_keyboard_delete_and_caret_keys_update_retained_edit_state -- --exact --nocapture`: PASS, 1 focused TextField physical-key test passed.
+- `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-searchfield-query-0613-coremin ui::tests::widget_text_input_mui::mui_text_field_keyboard_backspace_removes_active_selection_and_collapses_caret -- --exact --nocapture`: PASS, 1 focused TextField selection Backspace test passed.
+- `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-searchfield-query-0613-coremin ui::tests::widget_text_input_mui::mui_ -- --nocapture`: PASS, 7 MUI text-input tests passed, including the SearchField query Backspace route, Autocomplete query/value separation, TextField Delete/ArrowLeft/End retained edit-state route, TextField active-selection Backspace collapse, and the existing InputBase value-owner regression. The earlier unrelated `lighting` import-level compile error in `mesh/build_mesh_draws/build.rs` was repaired by matching the sibling `primitives` import depth.
+- `rustfmt --edition 2021 --check zircon_runtime\src\ui\tests\widget_text_input_mui.rs`: PASS after adding word-delete, select-all replacement, shift-selection, and multiline caret host-route coverage.
+- `cargo test -p zircon_runtime --lib --no-run --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-text-edit-actions-0613-coremin --message-format short --color never mui_text_field_keyboard_word_delete_and_select_all_replace_use_retained_state`: timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics; no `zircon_runtime-*.exe` test binary was produced and matching target-dir cargo/rustc processes were stopped.
+- `rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\text_pointer.rs zircon_runtime\src\ui\tests\widget_text_input_pointer.rs`: PASS after adding triple-click line selection.
+- `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-typeahead-host-0613-coremin --message-format short --color never`: PASS after triple-click line selection, with existing warnings only.
+- `rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\window\runtime_event_adapter.rs zircon_runtime_interface\src\tests\window_runtime_event_adapter_contracts.rs zircon_runtime\src\ui\tests\widget_text_input_mui.rs`: PASS after adding IME disabled-to-cancel and MUI retained-composition coverage.
+- `cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-ime-cancel-0613 --message-format short --color never`: PASS after the IME adapter mapping.
+- `cargo test -p zircon_runtime_interface --lib runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-ime-cancel-0613 --message-format short --color never`: PASS, 1 focused adapter test covering ABI `ime_disabled` -> UI `Cancel`.
+- `rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\editable_text\ime_context.rs zircon_runtime\src\ui\tests\widget_text_input_ime_context.rs`: PASS after adding retained IME soft-wrap geometry coverage.
+- `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-ime-anchor-0613-coremin --message-format short --color never`: PASS after retained IME soft-wrap geometry, with existing warnings only.
+- `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-ime-anchor-0613-coremin text_input_ime_preedit_rects_follow_soft_wrapped_composition_range --message-format short --color never -- --exact --nocapture`: timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics; no `zircon_runtime-*.exe` test binary was produced and matching target-dir cargo/rustc processes were stopped.
 
 Popup/tooltip explicit owner-gate evidence from 2026-05-23:
 

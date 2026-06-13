@@ -34,6 +34,7 @@ pub(crate) fn runtime_features_from_pipeline(
             BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
             "screen_space_ambient_occlusion",
         ),
+        contact_shadow_enabled: plugin_feature_enabled("contact_shadow"),
         clustered_lighting_enabled: feature_enabled(BuiltinRenderFeature::ClusteredLighting),
         hybrid_global_illumination_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
@@ -295,6 +296,23 @@ mod tests {
                     .write_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
                 ),
                 RenderFeatureDescriptor::new(
+                    "contact_shadow",
+                    vec![
+                        "view".to_string(),
+                        "geometry".to_string(),
+                        "visibility".to_string(),
+                    ],
+                    Vec::new(),
+                    vec![RenderFeaturePassDescriptor::new(
+                        RenderPassStage::PostProcess,
+                        "plugin-contact-shadow-runtime-flag",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("plugin.contact-shadow.runtime-flag")
+                    .read_texture("scene-color")
+                    .write_texture("scene-color")],
+                ),
+                RenderFeatureDescriptor::new(
                     "reflection_probes",
                     vec![
                         "view".to_string(),
@@ -336,6 +354,10 @@ mod tests {
         assert!(
             flags.reflection_probes_enabled,
             "reflection probes should follow the rendering plugin feature name"
+        );
+        assert!(
+            flags.contact_shadow_enabled,
+            "contact shadow should follow the rendering plugin feature name"
         );
         assert!(
             flags.baked_lighting_enabled,

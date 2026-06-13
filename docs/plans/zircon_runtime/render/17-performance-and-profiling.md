@@ -14,6 +14,13 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Debugging/ProfilingScope.cs
   - dev/bevy/crates/bevy_render/src/pipelined_rendering.rs
   - dev/bevy/crates/bevy_render/src/lib.rs
+  - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
+  - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
+  - dev/bevy/crates/bevy_render/src/diagnostic/tracy_gpu.rs
+  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
+  - dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs
+  - dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/stats.rs
 plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 ---
@@ -54,6 +61,18 @@ plan_sources:
 | `dev/bevy/crates/bevy_render/src/lib.rs` | `ExtractSchedule` 的定位:extract 是唯一同时摸两个 world 的同步点,extract 命令延迟到 render 侧应用以便主世界尽早开跑 |
 
 次参考:`dev/tracy`(CPU profile 导出格式可对接,既有 `profiling/export.rs` 已具备);wgpu `Features::TIMESTAMP_QUERY` / `Queue::get_timestamp_period` 文档语义。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/diagnostic/internal.rs` | PF-M1 `GpuPassTimer` 直接对应:`TIMESTAMP_QUERY` 能力 gate、`QuerySet` 池、`get_timestamp_period` 换算、多帧 in-flight 槽轮转 + mapped 回调 | timestamps_query_set 创建分支、`supports_timestamps_inside_passes/encoders` 能力位区分(本计划只需 pass 边界档)、submitted_frames 轮转的非阻塞读取 |
+| `dev/bevy/crates/bevy_render/src/diagnostic/mod.rs` | pass/time span 守卫式打点 API:同一 pass 名贯通 CPU/GPU 两面 | `RecordDiagnostics` trait、`PassSpanGuard`/`TimeSpanGuard` 的 begin/end 配对(对照 `pass_timestamp_writes` 挂载点) |
+| `dev/bevy/crates/bevy_render/src/diagnostic/tracy_gpu.rs` | Tracy GPU 帧打点接入(注:`dev/tracy` 目录仅含 profiler 可执行文件、无 C++ 源码,Tracy client 概念经本文件的 `tracy_client` 集成参照) | `new_tracy_gpu_context` 的后端→`GpuContextType` 映射与 timestamp 校准 |
+| `dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs` | 诊断值滑动窗口/EMA 平滑 —— 精读笔记"平滑放诊断层、契约层只传单帧"结论的 Rust 实绩 | `Diagnostic` 的 history 队列与 `ema_smoothing_factor` 增量更新 |
+| `dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs` | frame time/fps 诊断源的最小形态(`render_stats_store` 镜像消费面的对照) | `diagnostic_system` 的逐帧测量写入 |
+| `dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs` | PF-M4 `PipelineAsyncCompiler` 对应:异步 pipeline 编译状态机 + 同步回落档 | `CachedPipelineState::{Queued,Creating,Ok}` 状态推进、`create_pipeline_task`、`block_on_render_pipeline`(必须立即可用时的阻塞档)、关闭异步编译的开关位 |
+| `dev/Fyrox/fyrox-impl/src/renderer/stats.rs` | 渲染统计分层聚合的 Rust 形态(对照 `RenderFrameProfile` 的子系统层) | `Statistics::begin_frame/end_frame/finalize` 帧圈定、`LightingStatistics`/`SceneStatistics` 子结构拆分 |
 
 ## 目标架构
 

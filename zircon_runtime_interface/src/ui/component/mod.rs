@@ -24,7 +24,9 @@ pub use drag::{
     UiDragMetrics, UiDragPayload, UiDragPayloadKind, UiDragPhase, UiDragSourceMetadata,
     UiDropPolicy,
 };
-pub use event::{UiComponentEvent, UiComponentEventError, UiComponentEventKind};
+pub use event::{
+    UiComponentEvent, UiComponentEventError, UiComponentEventKind, UiComponentKeyboardAction,
+};
 pub use state::{UiComponentFlags, UiComponentState};
 pub use validation::{UiValidationLevel, UiValidationState};
 pub use value::{UiValue, UiValueKind};

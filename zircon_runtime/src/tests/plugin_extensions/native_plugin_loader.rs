@@ -9,7 +9,7 @@ use crate::asset::{
     AssetSchemaMigrationReport, DataAssetFormat, ImportedAsset, NativeAssetImporterHandler,
 };
 use crate::{
-    plugin::NativePluginLoader, plugin::PluginModuleKind,
+    plugin::NativePluginBehaviorHealth, plugin::NativePluginLoader, plugin::PluginModuleKind,
     plugin::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     plugin::ZIRCON_NATIVE_PLUGIN_STATUS_OK, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
@@ -362,6 +362,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(plugin
         .runtime_event_manifest()
         .is_some_and(|manifest| manifest.contains("event=native_dynamic_fixture.echoed")));
+    assert_eq!(
+        plugin.runtime_behavior_health(),
+        Some(NativePluginBehaviorHealth::Clean)
+    );
     let echo_report = plugin.invoke_runtime_command("echo", b"hello");
     assert_eq!(echo_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
     assert_eq!(echo_report.payload.as_deref(), Some(&b"echo:hello"[..]));
@@ -425,6 +429,10 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         "native_dynamic_fixture"
     );
     assert_eq!(plugin.editor_behavior_is_stateless(), Some(true));
+    assert_eq!(
+        plugin.editor_behavior_health(),
+        Some(NativePluginBehaviorHealth::Clean)
+    );
     let editor_state_report = plugin.save_editor_state();
     assert_eq!(
         editor_state_report.status_code,
@@ -779,15 +787,45 @@ fn build_native_dynamic_fixture_with_features(
     target_root: &std::path::Path,
     features: &[&str],
 ) -> PathBuf {
-    let manifest_path = repo_root().join("zircon_plugins/Cargo.toml");
+    // Keep runtime tests from mutating zircon_plugins/Cargo.lock while still compiling the live fixture source.
+    let build_root = temp_export_root("native-dynamic-fixture-build");
+    fs::create_dir_all(&build_root).unwrap();
+    let source_path = repo_root()
+        .join("zircon_plugins/native_dynamic_fixture/native/src/lib.rs")
+        .display()
+        .to_string()
+        .replace('\\', "/");
+    let manifest_path = build_root.join("Cargo.toml");
+    fs::write(
+        &manifest_path,
+        format!(
+            r#"[package]
+name = "zircon_plugin_native_dynamic_fixture_native"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Native dynamic ABI fixture plugin for Zircon."
+
+[lib]
+crate-type = ["cdylib"]
+path = "{source_path}"
+
+[features]
+abi_v2_only = []
+
+[dependencies]
+serde = {{ version = "1.0.228", features = ["derive"] }}
+serde_json = "1.0.149"
+"#
+        ),
+    )
+    .unwrap();
     let mut command = Command::new("cargo");
     command
         .arg("build")
         .arg("--manifest-path")
         .arg(&manifest_path)
-        .arg("-p")
-        .arg("zircon_plugin_native_dynamic_fixture_native")
-        .arg("--locked")
+        .arg("--offline")
         .arg("--target-dir")
         .arg(target_root)
         .arg("--quiet");

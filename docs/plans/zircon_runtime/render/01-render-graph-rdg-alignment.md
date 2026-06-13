@@ -14,6 +14,13 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphPass.h
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphResources.h
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphUtils.h
+  - dev/bevy/crates/bevy_render/src/texture/texture_cache.rs
+  - dev/bevy/crates/bevy_render/src/texture/texture_attachment.rs
+  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
+  - dev/bevy/crates/bevy_render/src/renderer/mod.rs
+  - dev/bevy/crates/bevy_render/src/renderer/render_context.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/cache/mod.rs
+  - dev/godot/servers/rendering/rendering_device_graph.h
 plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
@@ -49,6 +56,20 @@ plan_sources:
 | `dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphUtils.h` | Clear/Copy/Resolve 等标准工具 pass 的形态 |
 
 次参考:`dev/bevy/crates/bevy_render`(render graph 的 Rust 表达,节点/slot 风格,主要看 Rust 侧 API 人体工学,不照搬其无生命周期推导的设计)。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/texture/texture_cache.rs` | `TransientResourcePool` 池化复用 | `TextureCache::get` 以完整 `TextureDescriptor` 做桶键、`frames_since_last_use < 3` 帧龄驱逐;与 Zircon 的描述符桶 + KEEP_FRAMES 驱逐同构,但 bevy 无生命周期区间着色,同帧别名需自实现 |
+| `dev/bevy/crates/bevy_render/src/texture/texture_attachment.rs` | 首写 attachment ops 裁决 | `ColorAttachment`/`DepthAttachment` 以 `is_first_call: AtomicBool` 实现"首写 Clear、后续 Load";Zircon 把同一裁决前移到 `compile()` 期静态校验,不要照搬运行期原子标记 |
+| `dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs` | 编译结果缓存 | `PipelineCache` 的 key 化缓存、异步编译与失效流程;注意它只缓存 PSO 粒度,graph 粒度的 `CompiledGraphCache` 键组成仍以 Unity RenderGraphCompilationCache 为准 |
+| `dev/bevy/crates/bevy_render/src/renderer/mod.rs` | graph 执行驱动 | 新版 bevy 已删除 node 式 render graph,改为 `RenderGraph` schedule(Begin/Render/Submit/Finish)+ `render_system` 驱动;印证 Rust 侧不需要 trait-object 节点图,Zircon 的 compiled pass 序列 + executor registry 形态可行 |
+| `dev/bevy/crates/bevy_render/src/renderer/render_context.rs` | pass 录制与提交分段 | `RenderContext`/`PendingCommandBuffers` 的 encoder 生命周期管理与分段 submit,wgpu 下命令录制组织的参考形态 |
+| `dev/Fyrox/fyrox-impl/src/renderer/cache/mod.rs` | 池条目驱逐策略 | `TemporaryCache`/`TimeToLive` 按帧龄回收 GPU 资源,Fyrox 全部 renderer 缓存(texture/geometry/shader)共用该形态;印证瞬态池可独立于 graph 先落地 |
+| `dev/godot/servers/rendering/rendering_device_graph.h` | 资源使用跟踪(C++) | `RenderingDeviceGraph` 按资源 usage 推导命令依赖并重排/插 barrier;wgpu 自动 barrier 下只借鉴其 usage 合并思路,barrier 部分不移植 |
+
+`pass culling(反向可达性裁剪)` 与 `graph 粒度编译缓存` 无 Rust 同类参照,实现时以 UE/Unity 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 wgpu 适配要点:wgpu 没有显式 barrier 与 placed resource,RDG 的"自动 barrier"在本引擎对应为 (a) 资源池复用时机的正确性(同 encoder 内 usage 冲突由 wgpu 校验),(b) pass 间纹理 usage 推导(声明读写 → TextureUsages 合并),(c) load/store/clear ops 的统一裁决。瞬态别名退化为"池化复用",不做底层内存 alias。
 

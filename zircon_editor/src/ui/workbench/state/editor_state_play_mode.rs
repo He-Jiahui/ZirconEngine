@@ -1,5 +1,7 @@
 use crate::core::editing::history::EditorHistory;
+use crate::ui::workbench::snapshot::EditorBridgeDiagnosticsSnapshot;
 use crate::ui::workbench::startup::EditorSessionMode;
+use zircon_runtime::plugin::BridgeDiagnosticsMatrix;
 use zircon_runtime::scene::{NodeId, Scene};
 
 use super::editor_state::EditorState;
@@ -70,6 +72,15 @@ impl EditorState {
         self.sync_selection_state();
         self.status_line = "Exited play mode and restored edit state".to_string();
         Ok(true)
+    }
+
+    pub(crate) fn sync_bridge_diagnostics_matrix(
+        &mut self,
+        matrix: Option<&BridgeDiagnosticsMatrix>,
+    ) {
+        self.bridge_diagnostics = matrix
+            .map(EditorBridgeDiagnosticsSnapshot::from_runtime_matrix)
+            .unwrap_or_default();
     }
 }
 

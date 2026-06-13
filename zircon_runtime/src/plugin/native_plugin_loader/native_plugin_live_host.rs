@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
-use super::{LoadedNativePlugin, NativePluginLoader};
+use super::{LoadedNativePlugin, NativeBridgeMethodBinding, NativePluginLoader};
 
+mod bridge_lifecycle;
+mod bridge_methods;
 mod diagnostics;
 mod hot_reload;
 mod keys;
@@ -27,6 +29,7 @@ use keys::live_key;
 #[cfg(test)]
 use loading::lock_loaded_native_plugins;
 pub use reports::{
+    NativePluginLiveHostBridgeLifecycleReport, NativePluginLiveHostBridgeReloadReport,
     NativePluginLiveHostCommand, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
     NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
@@ -41,6 +44,7 @@ use runtime_behavior::{allow_missing_unload_callback_to_drop_handle, unload_beha
 pub struct NativePluginLiveHost {
     loader: NativePluginLoader,
     loaded: Mutex<BTreeMap<String, LoadedNativePlugin>>,
+    runtime_bridge_method_bindings: Mutex<BTreeMap<String, Vec<NativeBridgeMethodBinding>>>,
 }
 
 #[cfg(test)]

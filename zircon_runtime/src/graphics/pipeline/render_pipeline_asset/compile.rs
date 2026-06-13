@@ -376,7 +376,10 @@ fn feature_descriptor_for_options(
     feature: &RendererFeatureAsset,
     options: &RenderPipelineCompileOptions,
 ) -> RenderFeatureDescriptor {
-    let descriptor = feature.descriptor();
+    let mut descriptor = feature.descriptor();
+    if feature.is_builtin(BuiltinRenderFeature::Hzb) && !options.enable_hzb_occlusion_culling {
+        descriptor = filter_hzb_occlusion_descriptor(descriptor);
+    }
     let Some(post_process_stack) = options.post_process_stack.as_ref() else {
         return descriptor;
     };
@@ -388,6 +391,15 @@ fn feature_descriptor_for_options(
     }
 
     filter_post_process_descriptor(descriptor, builtin_feature, post_process_stack)
+}
+
+fn filter_hzb_occlusion_descriptor(
+    mut descriptor: RenderFeatureDescriptor,
+) -> RenderFeatureDescriptor {
+    descriptor
+        .stage_passes
+        .retain(|pass| pass.executor_id.as_str() != "visibility.hzb-occlusion-cull");
+    descriptor
 }
 
 fn post_process_stack_filters_feature(feature: BuiltinRenderFeature) -> bool {
@@ -443,11 +455,6 @@ fn post_process_pass_can_be_filtered(feature: BuiltinRenderFeature, executor_id:
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max-coarse")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-neighbor-max")
         | (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare")
-        | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-depth-pyramid")
-        | (
-            BuiltinRenderFeature::PostProcess,
-            "post.screen-space-reflection-depth-pyramid-coarse",
-        )
         | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid")
         | (
             BuiltinRenderFeature::PostProcess,
@@ -493,19 +500,6 @@ fn optional_post_process_pass_enabled(
         (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare") => {
             post_process_stack_uses_depth_of_field(stack)
         }
-        (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-depth-pyramid") => {
-            stack_effect_enabled(
-                stack,
-                PostProcessEffectKind::ScreenSpaceReflectionDepthPyramid,
-            )
-        }
-        (
-            BuiltinRenderFeature::PostProcess,
-            "post.screen-space-reflection-depth-pyramid-coarse",
-        ) => stack_effect_enabled(
-            stack,
-            PostProcessEffectKind::ScreenSpaceReflectionDepthPyramidCoarse,
-        ),
         (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid") => {
             stack_effect_enabled(
                 stack,
@@ -572,6 +566,7 @@ fn post_process_resource_is_active(
         PostProcessGraphResourceNames::FINAL_COLOR
             | PostProcessGraphResourceNames::FINAL_COMPOSITED
             | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION
+            | PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION
     ) || active_resources.contains(&resource.name)
 }
 
@@ -888,13 +883,12 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
         | PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
         | PostProcessGraphResourceNames::HZB_FURTHEST
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
             Some(TextureFormat::Rgba16Float)
         }
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC
+        | PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION => {
             Some(TextureFormat::Rgba8Unorm)
         }
@@ -913,12 +907,10 @@ fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, 
             (plan.hzb_size.x, plan.hzb_size.y)
         }
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
             (half_extent(width), half_extent(height))
         }
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
             let half_width = half_extent(width);
             let half_height = half_extent(height);
@@ -931,8 +923,7 @@ fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, 
 fn post_process_intermediate_mip_levels(name: &str, width: u32, height: u32) -> u32 {
     match name {
         PostProcessGraphResourceNames::HZB_FURTHEST => full_mip_chain_level_count(width, height),
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID => {
             full_mip_chain_level_count(width, height)
         }
         _ => 1,
@@ -948,13 +939,27 @@ fn half_extent(value: u32) -> u32 {
 }
 
 fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
+    use crate::graphics::scene::lighting::light_grid_builder::{
+        LightGridParams, LIGHT_GRID_MAX_TILE_WORDS, LIGHT_GRID_MAX_ZBIN_WORDS,
+    };
+
     let view_size = extract.view.effective_render_size();
     let pixel_count = u64::from(view_size.x.max(1)) * u64::from(view_size.y.max(1));
-    BufferDesc::new(
-        name,
-        pixel_count.max(1) * 4,
-        BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
-    )
+    let size_bytes = match name {
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
+            std::mem::size_of::<LightGridParams>() as u64
+        }
+        PostProcessGraphResourceNames::LIGHT_ZBINS => u64::from(LIGHT_GRID_MAX_ZBIN_WORDS) * 4,
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS => u64::from(LIGHT_GRID_MAX_TILE_WORDS) * 4,
+        _ => pixel_count.max(1) * 4,
+    };
+    let usage = match name {
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
+            BufferUsage::UNIFORM | BufferUsage::COPY_DST
+        }
+        _ => BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
+    };
+    BufferDesc::new(name, size_bytes, usage)
 }
 
 fn is_scene_color_resource(name: &str) -> bool {
@@ -1081,21 +1086,14 @@ mod tests {
     }
 
     #[test]
-    fn compile_describes_ssr_pyramids_as_mip_chain_transients() {
+    fn compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients() {
         let mut extract = test_extract();
         extract.apply_viewport_size(crate::core::math::UVec2::new(128, 64));
         let compiled = RenderPipelineAsset::default_forward_plus()
             .compile(&extract)
             .unwrap();
 
-        let depth_pyramid = texture_lifetime(
-            &compiled,
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID,
-        );
-        let depth_pyramid_coarse = texture_lifetime(
-            &compiled,
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_DEPTH_PYRAMID_COARSE,
-        );
+        let hzb_furthest = texture_lifetime(&compiled, PostProcessGraphResourceNames::HZB_FURTHEST);
         let reflection_pyramid = texture_lifetime(
             &compiled,
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
@@ -1105,13 +1103,8 @@ mod tests {
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         );
 
-        assert_eq!((depth_pyramid.width, depth_pyramid.height), (64, 32));
-        assert_eq!(depth_pyramid.mip_levels, 7);
-        assert_eq!(
-            (depth_pyramid_coarse.width, depth_pyramid_coarse.height),
-            (32, 16)
-        );
-        assert_eq!(depth_pyramid_coarse.mip_levels, 1);
+        assert_eq!((hzb_furthest.width, hzb_furthest.height), (64, 32));
+        assert_eq!(hzb_furthest.mip_levels, 7);
         assert_eq!(
             (reflection_pyramid.width, reflection_pyramid.height),
             (64, 32)

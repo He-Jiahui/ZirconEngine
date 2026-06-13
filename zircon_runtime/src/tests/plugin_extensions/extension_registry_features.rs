@@ -334,7 +334,7 @@ impl RuntimePluginFeature for SoundTimelineFeaturePlugin {
         )
     }
 
-    fn register_runtime_extensions(
+    fn register(
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), crate::plugin::RuntimeExtensionRegistryError> {

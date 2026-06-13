@@ -241,3 +241,16 @@ winit（editor EventLoop）→ 01 platform_input 翻译 → batch
 - workbench/docking/windowing 语义不下沉 runtime；runtime 不出现 editor page/drawer/window 概念。
 - 视觉验收对照 `ai-workbench-web-framework.png` 的结构与配色方向：近黑 chrome、teal 激活态、左窄 activity rail、左 scene/assets 树、右 inspector、底 console/timeline、薄 status bar——结构正确即可，不逐像素。
 - 命令 id 是稳定契约：改名走废弃别名表，不直接断链。
+
+## 13. 参考实现对照（dev/ 源码锚点）
+
+实现切片前先读对应锚点，不确定的行为语义以参考实现为准（在 PR 说明中注明出处）；禁止凭印象实现、禁止引用未核实路径。
+
+| 设计点 | 主参考 | 次参考 | 参考什么 |
+|--------|--------|--------|---------|
+| docking/tab manager | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking`（FTabManager/SDockTab） | `dev/Fyrox/fyrox-ui/src/dock/{tile.rs, config.rs}` | tab 拖出/合回、layout 序列化恢复（FTabManager::PersistLayout 对应布局持久化四级链）；Fyrox dock config 是 Rust 端序列化样板 |
+| 菜单栏/工具栏装配 | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/MultiBox` | — | MultiBox：菜单项 = command + 可扩展插槽的装配模式（菜单树声明的架构参照） |
+| 命令注册表/快捷键 | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Commands`（UICommandList/InputBindingManager） | — | command id、默认键位、上下文绑定链、按键未消费时的命令解析（EditorKeymap.resolve 对照） |
+| 通知/Toast | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Notifications` | — | NotificationManager 的队列与生命周期 |
+| 编辑器壳整体组织 | `dev/Fyrox/editor` | `dev/godot/editor`（editor_node 等） | Rust 引擎编辑器的 docking 壳 + 面板注册组织；Godot 的 dock 槽位/主题化壳（结构参考） |
+| 多窗口/浮窗 | `dev/bevy/crates/bevy_winit`（多窗口生命周期） | `dev/Fyrox/fyrox-ui/src/window.rs` | 每窗口独立 surface 的事件归属与关闭语义；Fyrox 的 UI 内浮动窗口（拖动/缩放/置顶） |

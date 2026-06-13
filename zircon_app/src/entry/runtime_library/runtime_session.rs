@@ -316,6 +316,7 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Runtim
         ZrStatusCode::InvalidArgument => "invalid-argument",
         ZrStatusCode::NotFound => "not-found",
         ZrStatusCode::CapabilityDenied => "capability-denied",
+        ZrStatusCode::BridgeNotEnabled => "bridge-not-enabled",
         ZrStatusCode::Panic => "panic",
     };
     Err(RuntimeLibraryError::new(format!(

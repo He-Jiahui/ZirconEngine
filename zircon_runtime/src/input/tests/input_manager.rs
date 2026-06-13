@@ -64,6 +64,79 @@ fn button_input_state_tracks_bevy_style_frame_transitions() {
 }
 
 #[test]
+fn input_snapshot_just_pressed_is_true_for_exactly_one_frame() {
+    let input = DefaultInputManager::default();
+    let key = InputButton::Key("Jump".to_string());
+
+    input.begin_frame();
+    input.submit_event(InputEvent::ButtonPressed(key.clone()));
+    let pressed_frame = input.frame_snapshot();
+
+    assert!(pressed_frame.buttons.pressed(&key));
+    assert!(pressed_frame.buttons.just_pressed(&key));
+    assert!(!pressed_frame.buttons.just_released(&key));
+
+    input.begin_frame();
+    let held_frame = input.frame_snapshot();
+
+    assert!(held_frame.buttons.pressed(&key));
+    assert!(!held_frame.buttons.just_pressed(&key));
+    assert!(!held_frame.buttons.just_released(&key));
+
+    input.submit_event(InputEvent::ButtonReleased(key.clone()));
+    let released_frame = input.frame_snapshot();
+
+    assert!(!released_frame.buttons.pressed(&key));
+    assert!(!released_frame.buttons.just_pressed(&key));
+    assert!(released_frame.buttons.just_released(&key));
+
+    input.begin_frame();
+    let cleared_frame = input.frame_snapshot();
+
+    assert!(!cleared_frame.buttons.pressed(&key));
+    assert!(!cleared_frame.buttons.just_pressed(&key));
+    assert!(!cleared_frame.buttons.just_released(&key));
+}
+
+#[test]
+fn frame_input_clears_after_level_tick_not_before() {
+    let session_source = include_str!("../../dynamic_api/session.rs");
+    let tick_start = session_source
+        .find("fn tick_frame(&mut self)")
+        .expect("dynamic session should keep a tick_frame owner");
+    let drain_start = session_source[tick_start..]
+        .find("fn drain_host_requests")
+        .map(|offset| tick_start + offset)
+        .expect("tick_frame should stay before host-request draining");
+    let tick_body = &session_source[tick_start..drain_start];
+    let level_tick = tick_body
+        .find(".tick(&self.runtime.handle(), advance)")
+        .expect("tick_frame should advance the loaded level");
+    let clear_input = tick_body
+        .find("self.input_manager.begin_frame()")
+        .expect("tick_frame should clear frame-local input through begin_frame");
+
+    assert!(
+        level_tick < clear_input,
+        "runtime tick_frame must keep current-frame input visible to level systems before clearing transitions"
+    );
+
+    let input = DefaultInputManager::default();
+    let button = InputButton::MouseLeft;
+    input.begin_frame();
+    input.submit_event(InputEvent::ButtonPressed(button.clone()));
+
+    let visible_to_level_tick = input.frame_snapshot();
+    assert!(visible_to_level_tick.buttons.just_pressed(&button));
+
+    input.begin_frame();
+    let next_frame = input.frame_snapshot();
+
+    assert!(next_frame.buttons.pressed(&button));
+    assert!(!next_frame.buttons.just_pressed(&button));
+}
+
+#[test]
 fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
     let input = DefaultInputManager::default();
     input.begin_frame();

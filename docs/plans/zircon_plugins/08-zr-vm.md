@@ -158,3 +158,14 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_lang
 - VM 系统 dynamic access 使调度器对其保守串行；文档明确 VM 系统性能定位（gameplay 逻辑而非引擎 hot path）。
 - real-zr-vm 的 CI 依赖外部构建产物：CI 用预编译缓存或专用 runner，default 构建绝不依赖。
 - proc-macro crate 进根工作区会增加全量构建时间；保持宏实现最小化（syn features 收紧）。
+
+## 8. 附录 · dev 参考源码对位
+
+实现各任务前**必须先读对应参考实现**，反射模型与 GC 边界对照真实代码核对，禁止凭空实现：
+
+| 设计点 | 参考源码（已核验存在） | 看什么 |
+|--------|----------------------|--------|
+| 编译期反射注入（TypeMeta/FieldAccessor/MethodAccessor） | `dev/Piccolo/engine/source/runtime/core/meta/` + 生成器 `dev/Piccolo/engine/source/meta_parser/` | 字段/方法访问器的生成形态与注册流——derive 宏（M1-T1）输出结构的判例 |
+| Rust 反射 derive 工程实践 | `dev/bevy/crates/bevy_reflect/`（含 derive 子 crate） | derive 宏的属性解析、容器类型（Vec/Map/Option）反射、TypeRegistry 形态——我们复用自有 ReflectTypeInfo，但宏实现技法以此为准 |
+| 跨语言注册/函数表/世代句柄 | `dev/godot/core/extension/gdextension_interface.cpp`、`gdextension.cpp` | class/method 注册流、object instance binding 生命周期、版本化函数表 |
+

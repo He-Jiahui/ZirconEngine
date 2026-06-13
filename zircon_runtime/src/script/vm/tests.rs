@@ -9,18 +9,25 @@ mod tests {
         backend::MockVmBackend, builtin_host_module_descriptors, module_descriptor,
         render_script_host_modules_markdown, write_script_host_modules_markdown,
         BuiltinVmBackendFamily, CapabilitySet, HostExportFunction, HostExportRegistry,
-        HostRegistry, HotReloadCoordinator, PluginHostDriver, ScriptHostInterfaceMarkdownOptions,
-        UnavailableVmBackend, VmBackend, VmBackendFamily, VmError, VmPluginHostContext,
-        VmPluginInstance, VmPluginManager, VmPluginManifest, VmPluginPackage,
-        VmPluginPackageSource, VmPluginSlotLifecycle, VmPluginSlotRecord, PLUGIN_HOST_DRIVER_NAME,
-        SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+        HostRegistry, HotReloadCoordinator, PluginHostDriver, ScriptBridgeMethodBinding,
+        ScriptBridgeMethodDescriptor, ScriptHostInterfaceMarkdownOptions, UnavailableVmBackend,
+        VmBackend, VmBackendFamily, VmError, VmPluginHostContext, VmPluginInstance,
+        VmPluginManager, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
+        VmPluginSlotLifecycle, VmPluginSlotRecord, BRIDGE_HOST_CAPABILITY, BRIDGE_HOST_MODULE,
+        PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
+        VM_PLUGIN_RUNTIME_NAME,
     };
+    use crate::core::framework::bridge::PluginInterface;
     use crate::core::framework::script::{
         ScriptHostFieldDescriptor, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
         ScriptHostParameterDescriptor, ScriptHostPrototypeKind, ScriptHostTypeDescriptor,
         ScriptHostTypeRef, ScriptHostValue, ScriptHostValueKind, ZirconScriptType,
     };
     use crate::core::{CoreRuntime, PluginContext};
+    use crate::plugin::{
+        PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginPackageManifest,
+        RuntimeExtensionRegistry,
+    };
 
     #[derive(Clone, Debug, PartialEq, Eq)]
     struct ObservedHostContext {
@@ -164,6 +171,16 @@ mod tests {
         }
     }
 
+    trait VmWeatherBridge: Send + Sync {}
+
+    impl PluginInterface for dyn VmWeatherBridge {
+        const INTERFACE_ID: &'static str = "vm.weather.bridge.v1";
+    }
+
+    struct VmWeatherProvider;
+
+    impl VmWeatherBridge for VmWeatherProvider {}
+
     #[test]
     fn host_handles_are_stable_and_valid() {
         let registry = HostRegistry::default();
@@ -241,6 +258,275 @@ mod tests {
     }
 
     #[test]
+    fn script_call_table_pre_resolves_host_export_callbacks() {
+        let exports = HostExportRegistry::default();
+        let seen_context = Arc::new(Mutex::new(Vec::new()));
+        let seen_context_for_add = Arc::clone(&seen_context);
+        let descriptor = ScriptHostModuleDescriptor::new("test.host", "0.1.0")
+            .with_capability("test.add")
+            .with_function(
+                ScriptHostFunctionDescriptor::new("add", 2, 2, ScriptHostValueKind::Int)
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "left",
+                        ScriptHostValueKind::Int,
+                    ))
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "right",
+                        ScriptHostValueKind::Int,
+                    ))
+                    .with_required_capability("test.add"),
+            );
+
+        exports
+            .register_module(
+                descriptor,
+                [HostExportFunction::new("add", move |context| {
+                    seen_context_for_add
+                        .lock()
+                        .unwrap()
+                        .push((context.module_name.clone(), context.function_name.clone()));
+                    let left = match context.arguments[0] {
+                        ScriptHostValue::Int(value) => value,
+                        _ => 0,
+                    };
+                    let right = match context.arguments[1] {
+                        ScriptHostValue::Int(value) => value,
+                        _ => 0,
+                    };
+                    Ok(ScriptHostValue::Int(left + right))
+                })],
+            )
+            .unwrap();
+
+        let call_table = exports.script_call_table().unwrap();
+        let site = call_table.resolve("test.host", "add").unwrap();
+
+        assert_eq!(call_table.len(), 1);
+        assert_eq!(site.id().raw(), 0);
+        assert_eq!(site.module_name(), "test.host");
+        assert_eq!(site.function_name(), "add");
+        assert_eq!(
+            call_table
+                .call(
+                    site.id(),
+                    vec![ScriptHostValue::Int(2), ScriptHostValue::Int(5)],
+                    &CapabilitySet::default().with("test.add"),
+                )
+                .unwrap(),
+            ScriptHostValue::Int(7)
+        );
+        assert_eq!(
+            seen_context.lock().unwrap().as_slice(),
+            &[("test.host".to_string(), "add".to_string())]
+        );
+    }
+
+    #[test]
+    fn bridge_host_module_dispatches_vm_calls_through_resolved_bridge_slots() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+        registry
+            .export_interface::<dyn VmWeatherBridge>(owner, Arc::new(VmWeatherProvider))
+            .unwrap();
+        let table = registry.frozen_bridge_table();
+        let slot = table
+            .resolve_slot(<dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID)
+            .unwrap();
+        let exports = HostExportRegistry::default();
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let calls_for_method = Arc::clone(&calls);
+
+        super::super::register_bridge_host_module(
+            &exports,
+            table.clone(),
+            [ScriptBridgeMethodDescriptor::new(
+                "sample_temperature",
+                <dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID,
+                9,
+                ScriptHostValueKind::Int,
+                move |call| {
+                    calls_for_method.lock().unwrap().push((
+                        call.interface_slot.raw(),
+                        call.method_slot,
+                        call.arguments.clone(),
+                    ));
+                    Ok(ScriptHostValue::Int(32))
+                },
+            )
+            .with_parameter(ScriptHostParameterDescriptor::new(
+                "zone",
+                ScriptHostValueKind::String,
+            ))],
+        )
+        .unwrap();
+
+        let module = exports.module(BRIDGE_HOST_MODULE).unwrap();
+        assert!(module
+            .descriptor
+            .capabilities
+            .contains(&BRIDGE_HOST_CAPABILITY.to_string()));
+        assert!(module
+            .descriptor
+            .functions
+            .iter()
+            .any(|function| function.name == "sample_temperature"));
+
+        let value = exports
+            .call_with_capabilities(
+                BRIDGE_HOST_MODULE,
+                "sample_temperature",
+                vec![ScriptHostValue::String("outside".to_string())],
+                &CapabilitySet::default().with(BRIDGE_HOST_CAPABILITY),
+            )
+            .unwrap();
+
+        assert_eq!(value, ScriptHostValue::Int(32));
+        assert_eq!(
+            calls.lock().unwrap().as_slice(),
+            &[(
+                slot.raw(),
+                9,
+                vec![ScriptHostValue::String("outside".to_string())]
+            )]
+        );
+    }
+
+    #[test]
+    fn bridge_host_module_registers_methods_from_package_manifest() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+        registry
+            .export_interface::<dyn VmWeatherBridge>(owner, Arc::new(VmWeatherProvider))
+            .unwrap();
+        let table = registry.frozen_bridge_table();
+        let slot = table
+            .resolve_slot(<dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID)
+            .unwrap();
+        let exports = HostExportRegistry::default();
+        let calls = Arc::new(Mutex::new(Vec::new()));
+        let calls_for_method = Arc::clone(&calls);
+        let manifest = PluginPackageManifest::new("weather", "Weather").with_provided_interface(
+            PluginInterfaceManifest::new(<dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID)
+                .with_method(
+                    PluginInterfaceMethodManifest::new("sample_temperature", 9)
+                        .with_return_value_kind(ScriptHostValueKind::Int)
+                        .with_parameter(ScriptHostParameterDescriptor::new(
+                            "zone",
+                            ScriptHostValueKind::String,
+                        ))
+                        .with_required_capability("runtime.plugin.weather.query")
+                        .with_documentation("Samples a weather bridge query."),
+                ),
+        );
+
+        super::super::register_bridge_host_module_from_manifest(
+            &exports,
+            table,
+            &manifest,
+            [ScriptBridgeMethodBinding::new(
+                <dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID,
+                "sample_temperature",
+                move |call| {
+                    calls_for_method
+                        .lock()
+                        .unwrap()
+                        .push((call.interface_slot.raw(), call.method_slot));
+                    Ok(ScriptHostValue::Int(36))
+                },
+            )],
+        )
+        .unwrap();
+
+        let module = exports.module(BRIDGE_HOST_MODULE).unwrap();
+        let function = module
+            .descriptor
+            .functions
+            .iter()
+            .find(|function| function.name == "sample_temperature")
+            .unwrap();
+        assert_eq!(function.return_value_kind, ScriptHostValueKind::Int);
+        assert_eq!(function.parameters[0].name, "zone");
+        assert!(function
+            .required_capabilities
+            .contains(&BRIDGE_HOST_CAPABILITY.to_string()));
+        assert!(function
+            .required_capabilities
+            .contains(&"runtime.plugin.weather.query".to_string()));
+        assert_eq!(
+            function.documentation.as_deref(),
+            Some("Samples a weather bridge query.")
+        );
+
+        let value = exports
+            .call_with_capabilities(
+                BRIDGE_HOST_MODULE,
+                "sample_temperature",
+                vec![ScriptHostValue::String("outside".to_string())],
+                &CapabilitySet::default()
+                    .with(BRIDGE_HOST_CAPABILITY)
+                    .with("runtime.plugin.weather.query"),
+            )
+            .unwrap();
+
+        assert_eq!(value, ScriptHostValue::Int(36));
+        assert_eq!(calls.lock().unwrap().as_slice(), &[(slot.raw(), 9)]);
+    }
+
+    #[test]
+    fn bridge_host_module_rejects_manifest_method_without_binding() {
+        let manifest = PluginPackageManifest::new("weather", "Weather").with_provided_interface(
+            PluginInterfaceManifest::new(<dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID)
+                .with_method(PluginInterfaceMethodManifest::new("sample_temperature", 9)),
+        );
+
+        let error =
+            match super::super::script_bridge_method_descriptors_from_manifest(&manifest, []) {
+                Ok(_) => panic!("manifest method without binding should be rejected"),
+                Err(error) => error,
+            };
+
+        assert!(format!("{error}").contains("declared but has no binding"));
+    }
+
+    #[test]
+    fn bridge_host_module_reports_disabled_bridge_to_vm_callers() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+        registry
+            .export_interface::<dyn VmWeatherBridge>(owner, Arc::new(VmWeatherProvider))
+            .unwrap();
+        let table = registry.frozen_bridge_table();
+        let slot = table
+            .resolve_slot(<dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID)
+            .unwrap();
+        table.set_enabled(slot, false).unwrap();
+        let exports = HostExportRegistry::default();
+        super::super::register_bridge_host_module(
+            &exports,
+            table,
+            [ScriptBridgeMethodDescriptor::new(
+                "sample_temperature",
+                <dyn VmWeatherBridge as PluginInterface>::INTERFACE_ID,
+                9,
+                ScriptHostValueKind::Int,
+                |_| Ok(ScriptHostValue::Int(32)),
+            )],
+        )
+        .unwrap();
+
+        let error = exports
+            .call_with_capabilities(
+                BRIDGE_HOST_MODULE,
+                "sample_temperature",
+                Vec::new(),
+                &CapabilitySet::default().with(BRIDGE_HOST_CAPABILITY),
+            )
+            .unwrap_err();
+
+        assert!(format!("{error}").contains("is not enabled"));
+    }
+
+    #[test]
     fn host_export_registry_preserves_precise_type_refs_for_zr_vm_registration() {
         let exports = HostExportRegistry::default();
         let descriptor = ScriptHostModuleDescriptor::new("test.types", "0.1.0")
@@ -283,6 +569,18 @@ mod tests {
                 .type_ref
                 .type_name,
             "Vec3"
+        );
+    }
+
+    #[test]
+    fn zr_vm_real_backend_uses_script_call_table_for_host_callbacks() {
+        let source = include_str!("backend/zr_vm_project_backend/real_backend/host_modules.rs");
+
+        assert!(source.contains("script_call_table()"));
+        assert!(source.contains("ScriptCallSite"));
+        assert!(
+            !source.contains(".call_with_capabilities("),
+            "real zr_vm callbacks must use pre-resolved ScriptCallSite dispatch"
         );
     }
 
@@ -1098,11 +1396,13 @@ mod tests {
             "backend/mock_vm_backend.rs",
             "backend/vm_error.rs",
             "host/mod.rs",
+            "host/bridge_host_module.rs",
             "host/builtin_host_modules.rs",
             "host/host_export_registry.rs",
             "host/host_registry.rs",
             "host/plugin_host_driver.rs",
             "host/constants.rs",
+            "host/script_call_table.rs",
             "host/vm_plugin_host_context.rs",
             "host/vm_plugin_slot_lifecycle.rs",
             "gameplay_host.rs",

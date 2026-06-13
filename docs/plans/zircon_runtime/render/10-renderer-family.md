@@ -12,6 +12,14 @@ related_code:
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/RenderObjectsPass.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ScriptableRendererFeature.cs
   - dev/bevy/crates/bevy_sprite/src/sprite.rs
+  - dev/bevy/crates/bevy_render/src/batching/mod.rs
+  - dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs
+  - dev/bevy/crates/bevy_camera/src/visibility/range.rs
+  - dev/bevy/crates/bevy_render/src/view/visibility/range.rs
+  - dev/bevy/crates/bevy_pbr/src/render/mesh.rs
+  - dev/bevy/crates/bevy_sprite_render/src/render/mod.rs
+  - dev/Fyrox/fyrox-impl/src/scene/base.rs
+  - dev/Fyrox/fyrox-impl/src/renderer/bundle.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
@@ -44,6 +52,21 @@ plan_sources:
 | `dev/Graphics/.../Runtime/Passes/DrawObjectsPass.cs` | URP 按 queue 段 + layer mask 过滤绘制的 filtering/rendering settings 模型 |
 | `dev/Graphics/.../Runtime/Passes/RenderObjectsPass.cs` + `ScriptableRendererFeature.cs` | 用户自定义绘制注入:override material、自定义过滤 —— 自定义渲染器扩展点样板 |
 | `dev/bevy/crates/bevy_sprite/src/sprite.rs` | sprite 组件字段的 Rust 表达(flip/anchor/custom_size/atlas 引用) |
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/batching/mod.rs` | 合批决策入口与组键 | `NoAutomaticBatching`(:25)显式退出位、`GetBatchData`/`GetFullBatchData`(:77/:119,batch 兼容键 + per-instance 数据切分)trait 切面 —— `MeshDrawBatchKey` 维度设计的对照 |
+| `dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs` | GPU instancing 路径(衔接计划 03) | `BatchedInstanceBuffers`/`PhaseBatchedInstanceBuffers`(:167/:217)的实例 buffer 双层组织、`GpuPreprocessingSupport`(:104)能力降级 |
+| `dev/bevy/crates/bevy_camera/src/visibility/range.rs` | LodGroup dither cross-fade 契约 | `VisibilityRange` 的 margin 重叠与 dithering crossfade 语义(:52/:76 注释)—— 与 `LodSelection.fade_from_level/fade_factor` 直接对应,重点 |
+| `dev/bevy/crates/bevy_render/src/view/visibility/range.rs` | LOD 选择结果→GPU 下发 | `RenderVisibilityRanges`(:62)、`lod_index_for_entity`/`entity_has_crossfading_visibility_ranges`(:145/:152)与 dither 因子 buffer 写出 |
+| `dev/bevy/crates/bevy_pbr/src/render/mesh.rs` | mesh 渲染器 extract→prepare→queue 全链 | batching/gpu_preprocessing 在 mesh 域的接入、`no_automatic_skin_batching`/`no_automatic_morph_batching`(:178)退出条件、`VisibilityRange` dither 消费 |
+| `dev/bevy/crates/bevy_sprite_render/src/render/mod.rs` | sprite 渲染器的批组织 | `extract_sprites`(:345)/`queue_sprites`(:484)/`prepare_sprite_image_bind_groups`(:621)与 `SpriteBatch`(:474)按 image 切批的三段式 |
+| `dev/Fyrox/fyrox-impl/src/scene/base.rs` | RendererCommon 字段母本(Rust 版) | `LodGroup`(:131)挂在 Base 节点的资产语义、`cast_shadows`(:411)等通用渲染开关的组件面表达 |
+| `dev/Fyrox/fyrox-impl/src/renderer/bundle.rs` | 同 key 实例归并(instancing 策略) | `RenderDataBundle`(同 vertex/index + 共享材质,:176)与 `SurfaceInstanceData`(:188)的逐实例字段切分 |
+
+静态合批(顶点预变换合并)与动态合批(CPU 顶点搬运)无 Rust 同类参照,实现时以 Unity 为唯一样板,按 index §8 第 8 条配对拍测试先行。
 
 ## 目标架构
 

@@ -156,6 +156,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "PropertyGrid",
         "Radio",
         "RadioGroup",
+        "RangeSlider",
         "Rating",
         "ScrollView",
         "Scrollbar",
@@ -308,6 +309,13 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "helper_text",
         "multiline",
         "select_mode",
+        "required",
+        "min_length",
+        "max_length",
+        "validation_timing",
+        "validation_message",
+        "validation_dirty",
+        "validation_touched",
     ] {
         assert_has_prop(text_field, prop);
     }
@@ -322,6 +330,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
     );
     for event in [
         UiComponentEventKind::Focus,
+        UiComponentEventKind::KeyboardText,
         UiComponentEventKind::ValueChanged,
         UiComponentEventKind::Commit,
     ] {
@@ -343,6 +352,13 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "autosize",
         "min_rows",
         "max_rows",
+        "required",
+        "min_length",
+        "max_length",
+        "validation_timing",
+        "validation_message",
+        "validation_dirty",
+        "validation_touched",
     ] {
         assert_has_prop(textarea, prop);
     }
@@ -370,6 +386,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
     }
     for event in [
         UiComponentEventKind::Focus,
+        UiComponentEventKind::KeyboardText,
         UiComponentEventKind::ValueChanged,
         UiComponentEventKind::Commit,
     ] {
@@ -442,6 +459,18 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         .descriptor("SearchField")
         .expect("SearchField descriptor");
     assert_has_prop(search_field, "query");
+    for prop in [
+        "required",
+        "min_length",
+        "max_length",
+        "validation_timing",
+        "validation_message",
+        "validation_dirty",
+        "validation_touched",
+    ] {
+        assert_has_prop(search_field, prop);
+    }
+    assert_has_event(search_field, UiComponentEventKind::KeyboardText);
     assert_has_event(search_field, UiComponentEventKind::ValueChanged);
     assert!(search_field
         .required_host_capabilities
@@ -453,6 +482,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
     assert_has_prop(field_editor, "text");
     assert_has_prop(field_editor, "value_text");
     assert!(field_editor.slot_schema("field").is_some());
+    assert_has_event(field_editor, UiComponentEventKind::KeyboardText);
 
     let asset_grid = registry
         .descriptor("AssetGrid")

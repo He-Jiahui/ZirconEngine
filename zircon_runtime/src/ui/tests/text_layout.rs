@@ -3,8 +3,9 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     surface::{
-        UiEditableTextState, UiTextAlign, UiTextCaret, UiTextDirection, UiTextEditAction,
-        UiTextOverflow, UiTextRange, UiTextRunKind, UiTextSelection, UiTextWrap,
+        UiEditableTextState, UiRenderCommand, UiResolvedTextLayout, UiTextAlign, UiTextCaret,
+        UiTextDirection, UiTextEditAction, UiTextOverflow, UiTextRange, UiTextRunKind,
+        UiTextSelection, UiTextWrap,
     },
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
@@ -304,6 +305,7 @@ fn render_extract_outputs_editable_text_state_for_text_fields() {
 value = "Hello"
 font_size = 10.0
 line_height = 12.0
+focused = true
 caret_offset = 4
 selection_anchor = 1
 selection_focus = 4
@@ -324,10 +326,7 @@ read_only = true
 
     surface.rebuild();
 
-    let layout = surface.render_extract.list.commands[0]
-        .text_layout
-        .as_ref()
-        .unwrap();
+    let layout = first_text_layout(&surface);
     let editable = layout
         .editable
         .as_ref()
@@ -351,6 +350,61 @@ read_only = true
         .restore_text
         .is_none());
     assert!(editable.read_only);
+}
+
+#[test]
+fn render_extract_injects_preedit_span_without_document_value_mutation() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root/input"))
+            .with_frame(UiFrame::new(4.0, 8.0, 120.0, 24.0))
+            .with_state_flags(visible_state())
+            .with_template_metadata(UiTemplateNodeMetadata {
+                component: "TextField".to_string(),
+                control_id: Some("PreeditLayoutDemo".to_string()),
+                classes: Vec::new(),
+                attributes: toml::from_str(
+                    r#"
+value = "Hello"
+font_size = 10.0
+line_height = 12.0
+focused = true
+composition_start = 1
+composition_end = 4
+composition_text = "拼"
+composition_restore_text = "ell"
+"#,
+                )
+                .unwrap(),
+                slot_attributes: Default::default(),
+                style_overrides: Default::default(),
+                style_tokens: Default::default(),
+                bindings: Vec::new(),
+                ..Default::default()
+            }),
+    );
+
+    surface.rebuild();
+
+    let command = first_text_layout_command(&surface);
+    assert_eq!(command.text.as_deref(), Some("Hello"));
+
+    let layout = command.text_layout.as_ref().unwrap();
+    assert_eq!(layout.lines[0].text, "H拼o");
+    let editable = layout.editable.as_ref().unwrap();
+    assert_eq!(editable.text, "Hello");
+    assert_eq!(editable.composition.as_ref().unwrap().range.start, 1);
+    assert_eq!(editable.composition.as_ref().unwrap().range.end, 4);
+    assert_eq!(editable.composition.as_ref().unwrap().text, "拼");
+    assert_eq!(
+        editable
+            .composition
+            .as_ref()
+            .unwrap()
+            .restore_text
+            .as_deref(),
+        Some("ell")
+    );
 }
 
 #[test]
@@ -492,4 +546,21 @@ fn visible_state() -> UiStateFlags {
         checked: false,
         dirty: false,
     }
+}
+
+fn first_text_layout(surface: &UiSurface) -> &UiResolvedTextLayout {
+    first_text_layout_command(surface)
+        .text_layout
+        .as_ref()
+        .expect("render extract should contain a resolved text layout")
+}
+
+fn first_text_layout_command(surface: &UiSurface) -> &UiRenderCommand {
+    surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.text_layout.is_some())
+        .expect("render extract should contain a text layout command")
 }

@@ -15,7 +15,7 @@ pub use plugin_dependency_manifest::PluginDependencyManifest;
 pub use plugin_event_manifest::{PluginEventCatalogManifest, PluginEventManifest};
 pub use plugin_feature_bundle_manifest::PluginFeatureBundleManifest;
 pub use plugin_feature_dependency::PluginFeatureDependency;
-pub use plugin_interface_manifest::PluginInterfaceManifest;
+pub use plugin_interface_manifest::{PluginInterfaceManifest, PluginInterfaceMethodManifest};
 pub use plugin_module_kind::PluginModuleKind;
 pub use plugin_module_manifest::PluginModuleManifest;
 pub use plugin_option_manifest::PluginOptionManifest;

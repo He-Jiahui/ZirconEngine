@@ -83,6 +83,7 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
             project_open: false,
             can_undo: false,
             can_redo: false,
+            bridge_diagnostics: Default::default(),
         },
         &layout,
         vec![present],

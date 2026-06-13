@@ -12,13 +12,19 @@ pub(crate) struct MeshPipelineCache {
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipeline_layout: wgpu::PipelineLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_receiver_layout:
         wgpu::BindGroupLayout,
-    pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_receiver_uniform_buffer:
-        wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_receiver_disabled_uniform_buffer:
-        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_compare_sampler:
         wgpu::Sampler,
-    pub(in crate::graphics::scene::scene_renderer::mesh) fallback_shadow_map_view:
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_light_grid_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_light_grid_empty_zbins_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_light_grid_empty_tile_masks_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_atlas_fallback_slot_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::mesh) forward_shadow_atlas_fallback_globals_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::mesh) fallback_shadow_atlas_view:
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_modules:
         HashMap<String, wgpu::ShaderModule>,

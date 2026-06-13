@@ -194,3 +194,5 @@ Before editing export templates, inspect:
 - `generated_code_boundary.m1_gate_status`
 
 The gate is clear only while `m1_gate_status` is `classified-and-clear` and `migration_debt_location_count = 0`.
+
+Runtime 02 still keeps a separate plan-status validation gate, `runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation`. That guard records that the generated boundary is structurally clear but still needs the generated/export_build_plan/app validation lane to rerun cleanly alongside the broader core/root checks before Runtime 02 can close.

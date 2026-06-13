@@ -71,7 +71,7 @@ impl WebSocketRuntimeListener for TungsteniteWebSocketListener {
             Err(error) => return Err(NetError::Io(error.to_string())),
         };
         let (sink, stream) = websocket.split();
-        let (network, read_half) = TungsteniteWebSocketConnection::server(sink, stream);
+        let (network, read_half) = TungsteniteWebSocketConnection::server(runtime, sink, stream);
         spawn_reader(runtime, connection, &network, read_half, events);
         Ok(Some((NetEndpoint::from(remote_addr), Box::new(network))))
     }

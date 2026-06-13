@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/upload.rs
@@ -61,6 +62,14 @@ related_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/GPUScene.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Public/GPUSceneWriter.h
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/InstanceCulling/InstanceCullingManager.cpp
+  - dev/bevy/crates/bevy_render/src/batching/mod.rs
+  - dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs
+  - dev/bevy/crates/bevy_render/src/render_resource/gpu_array_buffer.rs
+  - dev/bevy/crates/bevy_pbr/src/render/mesh.rs
+  - dev/bevy/crates/bevy_pbr/src/render/gpu_preprocess.rs
+  - dev/bevy/crates/bevy_pbr/src/render/mesh_preprocess.wgsl
+  - dev/bevy/crates/bevy_pbr/src/render/build_indirect_params.wgsl
+  - dev/bevy/crates/bevy_pbr/src/render/mesh_functions.wgsl
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -70,6 +79,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/id_allocator.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/upload.rs
@@ -189,6 +199,21 @@ doc_type: milestone-detail
 | `dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/InstanceCulling/InstanceCullingManager.cpp` | 视锥/遮挡剔除 compute 的批组织(load balancer)、剔除结果写 indirect args、多 view 合批剔除 |
 
 次参考:`dev/bevy/crates/bevy_pbr`(`MeshUniform` 的 storage buffer 化与 `GpuArrayBuffer` 抽象,Rust/wgpu 实操);wgpu 能力:`Features::MULTI_DRAW_INDIRECT_COUNT`、`INDIRECT_FIRST_INSTANCE`。
+
+**Rust/wgpu 落地参照(防凭空实现)**:
+
+| 文件 | 对应本计划机制 | 应重点阅读 |
+|------|---------------|-----------|
+| `dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs` | capability gate + `IndirectDrawBatcher` | `GpuPreprocessingSupport`/`GpuPreprocessingMode`(Off/PreprocessingOnly/Culling 三档,按 adapter 能力降级)与 `IndirectParametersBuffers`/`PreprocessWorkItem` 的 indirect 批组织;GS-M4 的 gate 分档直接对照 |
+| `dev/bevy/crates/bevy_render/src/batching/mod.rs` | 批次聚合判据 | `GetBatchData`/`GetFullBatchData`:哪些数据决定两 draw 可合批(buffer index 连续性、bin 内相邻);`NoAutomaticBatching` 的逃生口设计 |
+| `dev/bevy/crates/bevy_render/src/render_resource/gpu_array_buffer.rs` | storage buffer 回落路径 | `GpuArrayBuffer` 枚举在 storage buffer 与 `BatchedUniformBuffer`(dynamic offset uniform)间按 limits 切换——"同一 ABI、不同提交方式"的能力回落实例 |
+| `dev/bevy/crates/bevy_pbr/src/render/mesh.rs` | `GpuScene` 条目与脏维护 | `MeshUniform`(GPU 侧逐实例布局)与 `MeshInputUniform`(CPU 写入面,含 previous transform、flags)分离;`RenderMeshInstanceGpuBuilder` 的增量更新与稳定 index 维护 |
+| `dev/bevy/crates/bevy_pbr/src/render/gpu_preprocess.rs` | GPU-driven compute 调度 | `PreprocessPipelines`/`PreprocessPhasePipelines`:reset batch sets → transform/cull preprocess → build indirect params 的 compute 串联与 bind group 组织 |
+| `dev/bevy/crates/bevy_pbr/src/render/mesh_preprocess.wgsl` | 剔除 + indirect 改写 compute | 读 `MeshInputUniform` 写 `MeshUniform`、`view_frustum_intersects_obb`、HZB 遮挡测试、原子累加 instance_count——GS-M4/计划 04 VC-M3 的 WGSL 直接样板 |
+| `dev/bevy/crates/bevy_pbr/src/render/build_indirect_params.wgsl` | indirect args buffer 布局 | `IndirectParametersIndexed` 由 CPU/GPU metadata 两段拼出 args 的布局与写入时序;`IndexedIndirectArgs` 字段对齐可对照 |
+| `dev/bevy/crates/bevy_pbr/src/render/mesh_functions.wgsl` | instance index 着色 ABI | `get_world_from_local(instance_index)`/`get_previous_world_from_local`:顶点着色器按 instance_index 取变换的标准写法(GS-M2 切换后的目标形态) |
+
+Fyrox 无 GPUScene/indirect 同类实现(逐 draw uniform 块分配,见其 `renderer/cache/uniform.rs`),本计划 Rust 参照以 bevy 为准。
 
 ## 目标架构
 
@@ -544,6 +569,15 @@ indirect args buffer 布局:`array<IndexedIndirectArgs>`(等价 `wgpu::util::Dra
 
 2026-06-12 GS-M3 当前落地状态:`PendingMeshDraw` 已携带 extract 的 `transform_revision`,`GpuScene::write_primitive` 与 `GpuScene::write_instances` 会先对比 CPU shadow,只有 primitive/instance 数据真实变化才标脏。compiled scene 的 full-frame pending draw 同步仍可每帧运行,但同一静态条目第二帧不会进入 dirty range,`flush_updates` 返回 0 上传字节;单个移动条目只上传一个 `GpuInstanceData` stride。`GpuSceneUploadReport` 现在显式携带 `GpuSceneUploadPath::DirectQueueWrite`,并映射到 `RenderGpuSceneUploadPath::DirectQueueWrite`;`RenderStats.last_gpu_scene_*`、primitive/instance upload range count 与 upload path 已沿 `GpuSceneUploadReport` -> `PreparedMeshQueueStats` -> framework stats -> render-product diagnostics 流转。当前 GS-M3 V1 策略是保留直接 `queue.write_buffer` 写入 persistent GPUScene storage buffer,把 staging ring / render graph upload node 留作后续优化,而不是在本阶段留下隐式缺口。验证:`cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` 通过并报告 88 个 warning;`cargo test -p zircon_runtime --lib render_gpu_scene_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` 通过 7/7;`cargo test -p zircon_runtime --lib render_product_diagnostics_record_gpu_scene_upload_stats --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture` 通过 1/1。运行时聚合诊断夹具已改为用 `crate::graphics::GRAPHICS_MODULE_NAME` 注册 fake render framework,以匹配 `GraphicsModule.Manager.RenderFramework` 的服务所有权;完整 `runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins` 重跑当前被插件会话的 `extension_registry_bridge.rs` / `runtime_extension_registry.rs` 编译错误阻塞,不是 GPUScene 诊断代码失败。剩余 GS-M3 refinement:用真实 render-product 帧日志记录静态稳态上传量,并在后续上传优化阶段再决定 staging ring / render graph upload node 的切入点。
 
+2026-06-14 计划 06 TP-M1 previous-transform 数据面已接回 GPUScene:`gpu_scene/prev_transform.rs`
+通过 `roll_prev_transforms_after_success()` 在成功提交后把当前 `GpuInstanceData.world_from_local` 滚动到 `prev_world_from_local`,
+`GpuSceneEntry.has_rolled_previous_transform` 防止首帧对象误报 previous 可用,并在 previous 发生变化时保留
+下一帧 instance dirty range。compiled-scene 与 legacy `render_scene` 路径都在 `queue.submit(...)` 后触发 roll。
+`build_mesh_draws` 同步 pending draw 时仍优先使用旧 CPU `ViewportMotionVectorObjectHistory`,缺失时 fallback 到
+GPUScene rolled previous,并把有效 previous 传播到 primitive flags、motion params 与 MeshDraw 的 velocity
+eligibility。该切片不删除旧 CPU history,只关闭"GPUScene 没有自身 previous 写入面"的缺口;velocity executor
+迁移与 previous skinned palette roll 仍归计划 06 后续切片。
+
 **GS-M4 indirect 提交(capability gate)**
 
 | 切片 | 触碰文件 | 改动要点 | 完成判据 |
@@ -565,6 +599,8 @@ indirect args buffer 布局:`array<IndexedIndirectArgs>`(等价 `wgpu::util::Dra
 | `render_gpu_scene_update_queue_merges_adjacent_dirty_ranges` | 间隙 ≤8 条目的脏区间合并;输出字节区间正确 | `gpu_scene/update_queue.rs` |
 | `render_gpu_scene_static_scene_second_frame_uploads_zero_bytes` | 同一 extract 连提两帧,第二帧 `flush_updates` 返回 0 | `gpu_scene/gpu_scene.rs`(headless device) |
 | `render_gpu_scene_single_moving_entity_uploads_only_its_entry` | 仅 bump 一个 `transform_revision`,上传字节 == 该条目 stride 合并区间 | `gpu_scene/gpu_scene.rs`(headless device) |
+| `render_gpu_scene_rolls_current_transform_into_previous_after_success` | 提交成功后的 roll 将 current 写入 previous,标记下一帧 instance upload,并让 entry previous 状态有效 | `gpu_scene/prev_transform.rs` |
+| `render_gpu_scene_roll_marks_previous_valid_without_dirty_upload_when_unchanged` | current/previous 已一致时不产生脏上传,但下一帧可读取有效 previous | `gpu_scene/prev_transform.rs` |
 | `render_gpu_scene_buffer_readback_matches_extract` | readback 三缓冲与 CPU shadow 逐字节一致 | `gpu_scene/gpu_scene.rs` |
 | `fallback_mesh_shader_reads_gpu_scene_instance_data` | forward fallback vertex/motion-vector 入口使用 `@builtin(instance_index)` 读取 current/previous transform 与 primitive 参数 | `fallback_mesh_shader_source.rs` |
 | `normal_prepass_shader_reads_gpu_scene_instance_data` | normal prepass 顶点入口从 GPUScene 读取 transform 与 motion params,fragment normal map gate 使用传入参数 | `normal_prepass_shader_source.rs` |
@@ -615,4 +651,4 @@ indirect args buffer 布局:`array<IndexedIndirectArgs>`(等价 `wgpu::util::Dra
 
 - shader ABI 大改波及全部内建 WGSL 与插件 shader:GS-M2 一次性切换,以 `render_product` 全量对拍守护;插件 shader 在同里程碑适配。
 - wgpu 对 multi-draw indirect 仅 native 后端支持:gate 设计已覆盖;WebGPU 目标走回落路径,不作为本计划验收项。
-- prev transform 槽位本计划只预留(双缓冲 primitive data 或独立 prev 缓冲),写入逻辑归计划 06,避免两计划改同一文件冲突。
+- prev transform 槽位已由计划 06 TP-M1 接入 GPUScene 帧末滚动;剩余风险转为 previous skinned palette、temporal feature descriptor 与旧 CPU object-history 删除的后续切片。

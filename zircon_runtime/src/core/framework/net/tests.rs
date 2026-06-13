@@ -20,6 +20,10 @@ fn endpoint_transport_and_security_policy_are_neutral_contracts() {
     assert!(policy.has_pin_for_host("API.ZIRCON.DEV"));
     assert!(!policy.has_pin_for_host("cdn.zircon.dev"));
 
+    let rooted = NetSecurityPolicy::development().with_certificate_root_der(vec![1, 2, 3]);
+    assert!(rooted.has_certificate_roots());
+    assert_eq!(rooted.certificate_roots[0].der, vec![1, 2, 3]);
+
     let json = serde_json::to_value(&policy).unwrap();
     assert_eq!(
         serde_json::from_value::<NetSecurityPolicy>(json).unwrap(),
@@ -66,6 +70,15 @@ fn http_and_websocket_descriptors_keep_protocol_state_data_only() {
     );
     assert_eq!(request.body, br#"{"op":"ping"}"#);
     assert_eq!(request.security, NetSecurityPolicy::development());
+
+    let ranged = NetHttpRequestDescriptor::new(
+        NetRequestId::new(8),
+        NetHttpMethod::Get,
+        "https://cdn.zircon.dev/chunk.bin",
+    )
+    .with_header("range", "bytes=0-15")
+    .with_byte_range(16, 31);
+    assert_eq!(ranged.headers, vec![("range".into(), "bytes=16-31".into())]);
 
     let response = NetHttpResponseDescriptor::new(NetRequestId::new(0), 202, b"ok".to_vec())
         .with_header("x-request", "accepted")

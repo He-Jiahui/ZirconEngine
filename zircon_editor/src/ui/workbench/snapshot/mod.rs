@@ -12,8 +12,10 @@ pub use asset::{
     AssetWorkspaceSnapshot,
 };
 pub use data::{
-    EditorChromeSnapshot, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
+    EditorBridgeDiagnosticsSnapshot, EditorBridgeDiagnosticsSummarySnapshot,
+    EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
+    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
+    ProjectOverviewSnapshot, SceneEntry,
 };
 pub use workbench::{
     ActivityDrawerSnapshot, DocumentWorkspaceSnapshot, FloatingWindowSnapshot, MainPageSnapshot,

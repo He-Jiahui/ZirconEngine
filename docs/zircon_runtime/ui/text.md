@@ -11,6 +11,8 @@ related_code:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/text/edit_state.rs
+  - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/surface/render/text_fields.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
   - zircon_runtime/src/ui/tests/text_pipeline.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -26,8 +28,11 @@ implementation_files:
   - zircon_runtime/src/ui/text/raster/mod.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/surface/render/text_fields.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
   - zircon_runtime/src/ui/tests/text_pipeline.rs
+  - zircon_runtime/src/ui/tests/text_layout.rs
 plan_sources:
   - .codex/plans/ZirconEngine UITextInputA11y 缺口收束计划.md
   - docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md
@@ -42,6 +47,9 @@ tests:
   - rustfmt --edition 2021 zircon_runtime/src/ui/text/font_registry.rs zircon_runtime/src/ui/text/resolved_layout.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/text/raster/mod.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_pipeline.rs zircon_runtime/src/ui/tests/mod.rs (2026-06-12: passed)
   - cargo test -p zircon_runtime --lib style_mapping --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-editor-ui-runtime-coremin --message-format short --color never -- --nocapture --test-threads=1 (2026-06-12: timed out after 604 seconds while compiling runtime test binary; matching target processes stopped, no Rust diagnostics emitted)
   - target/codex-editor-ui-runtime/debug/deps/zircon_runtime-de6f737e1b69a0f9.exe text_pipeline --nocapture --test-threads=1 (2026-06-12: passed, 5 passed)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\text\mod.rs zircon_runtime\src\ui\surface\render\extract.rs zircon_runtime\src\ui\surface\render\text_fields.rs zircon_runtime\src\ui\tests\text_layout.rs (2026-06-13: passed after TextField render extract preedit span injection)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin --message-format short --color never (2026-06-13: passed with existing warnings only)
+  - cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin ui::tests::text_layout::render_extract_injects_preedit_span_without_document_value_mutation --message-format short --color never -- --exact --nocapture (2026-06-13: timed out after 1204s during Windows lib-test compile/link; no Rust diagnostics, no zircon_runtime-*.exe test binary, matching cargo/rustc processes stopped)
   - cargo test -p zircon_runtime --lib runtime_input_manager --locked --jobs 1 --target-dir target/codex-editor-ui-runtime --message-format short --color never (2026-06-12: rebuild blocked by unrelated unresolved import crate::core::frame_clock in zircon_runtime/src/core/runtime/state/runtime_inner.rs)
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs::runtime_text_doc_records_three_layer_stack_and_cross_reference
 doc_type: module-detail
@@ -76,7 +84,7 @@ This matrix mirrors the runtime dependency decision in [Runtime Tech Stack](../.
 
 ## Current Guarantees
 
-`layout_text(...)` now routes through `UiHeuristicTextShaper`, while `measure_text_size(...)` routes through the same backend. This keeps layout measurement and render extraction on one source of text geometry.
+`layout_text(...)` now routes through `UiHeuristicTextShaper`, while `measure_text_size(...)` routes through the same backend. Owner text render extraction and focused TextField text commands now construct `UiTextLayoutRequest` values and call `resolve_text_layout(...)`, so render extraction consumes the same request-level source hash and optional preedit span model used by the text pipeline tests.
 
 The existing `layout_engine` still handles grapheme cluster wrapping, rich text run splitting, ellipsis range preservation, and the low-fidelity BiDi scaffold. `text_hit_testing.rs` consumes the resolved layout rather than re-estimating line geometry.
 
@@ -92,7 +100,7 @@ The existing `layout_engine` still handles grapheme cluster wrapping, rich text 
 
 ## Layout Request And Cache
 
-`UiTextLayoutRequest` wraps the existing `layout_text(...)` path with the extra information the editor UI plan needs: style key extraction, optional clip frame, source hashing, and an optional preedit span. `UiPreeditSpan` replaces a byte range in the temporary layout input only; it does not mutate the source text. This preserves the IME invariant that preedit text is visual state until commit.
+`UiTextLayoutRequest` wraps the existing `layout_text(...)` path with the extra information the editor UI plan needs: style key extraction, optional clip frame, source hashing, and an optional preedit span. `UiPreeditSpan` replaces a byte range in the temporary layout input only; it does not mutate the source text. This preserves the IME invariant that preedit text is visual state until commit. TextField render extraction now converts retained composition metadata into this span before shaping, so a command can keep its retained `text`/`editable.text` as the document value while the `UiResolvedTextLayout` line text shows the active preedit replacement.
 
 `UiTextMeasureCache` is the Stage A cache boundary. Its key contains the source/preedit hash, a style key, and a width bucket. For the current heuristic layout engine, the width bucket is the wrapped character capacity, matching the existing `text_advance(font_size) = font_size * 0.5` rule. The cache records per-frame shape count so later frame reports can assert that the same text/style/wrap bucket is shaped once and reused by measure, arrange, and render extraction.
 

@@ -4,9 +4,11 @@ use crate::core::framework::render::{
 };
 
 use crate::graphics::backend::ViewportSurface;
+use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
+use crate::graphics::visibility::HzbOcclusionCullReport;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 use crate::CompiledRenderPipeline;
 
@@ -250,6 +252,14 @@ impl SceneRenderer {
         &self,
     ) -> Option<&crate::core::framework::render::PostProcessPassGraph> {
         self.last_render_graph_execution.post_process_graph()
+    }
+
+    pub(crate) fn last_hzb_occlusion_cull_report(&self) -> Option<HzbOcclusionCullReport> {
+        self.last_render_graph_execution.hzb_occlusion_cull_report()
+    }
+
+    pub(crate) fn last_light_grid_report(&self) -> Option<RenderGraphLightGridReport> {
+        self.last_render_graph_execution.light_grid_report()
     }
 
     pub(crate) fn last_render_graph_executed_resource_access_count(&self) -> usize {

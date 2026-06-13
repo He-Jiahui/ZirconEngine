@@ -54,6 +54,13 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         capabilities.supports_storage_buffers,
         &["render", "capability", "storage_buffer"],
     );
+    record_count(
+        store,
+        "render.capability.max_storage_buffers_per_shader_stage",
+        frame_index,
+        capabilities.max_storage_buffers_per_shader_stage as usize,
+        &["render", "capability", "storage_buffer"],
+    );
     record_bool(
         store,
         "render.capability.indirect_draw_supported",

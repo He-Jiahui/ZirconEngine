@@ -9,6 +9,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(bool_prop("checkboxSelection", false))
             .with_prop(bool_prop("multiSelect", false))
             .with_prop(bool_prop("disabledItemsFocusable", false))
+            .with_prop(int_prop("focused_index", 0))
+            .with_prop(int_prop("selected_index", 0))
+            .with_prop(array_prop("disabled_options"))
+            .with_prop(bool_prop("selection_follows_focus", false))
+            .with_prop(bool_prop("keyboard_navigation", true))
             .with_prop(array_prop("defaultExpandedItems"))
             .with_prop(array_prop("selectedItems"))
             .with_prop(float_prop("itemChildrenIndentation", 16.0))
@@ -19,6 +24,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .slot(UiSlotSchema::new("icon"))
             .slot(UiSlotSchema::new("checkbox"))
             .events([
+                UiComponentEventKind::KeyboardAction,
                 UiComponentEventKind::SelectOption,
                 UiComponentEventKind::ToggleExpanded,
                 UiComponentEventKind::Commit,
@@ -41,6 +47,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(bool_prop("hideFooterSelectedRowCount", false))
         .with_prop(bool_prop("showCellVerticalBorder", false))
         .with_prop(bool_prop("showColumnVerticalBorder", false))
+        .with_prop(int_prop("focused_index", 0))
+        .with_prop(int_prop("selected_index", 0))
+        .with_prop(array_prop("disabled_options"))
+        .with_prop(bool_prop("selection_follows_focus", false))
+        .with_prop(bool_prop("keyboard_navigation", true))
         .with_prop(mui_enum_prop(
             "rowSpacingType",
             "margin",
@@ -71,6 +82,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .slot(UiSlotSchema::new("loadingOverlay"))
         .slot(UiSlotSchema::new("noRowsOverlay"))
         .events([
+            UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::SetVisibleRange,
             UiComponentEventKind::SelectOption,
             UiComponentEventKind::Commit,

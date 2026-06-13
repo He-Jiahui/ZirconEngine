@@ -17,7 +17,11 @@ pub use scene_renderer::SceneRenderer;
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;
 pub(crate) use scene_renderer::{
-    anti_alias, cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
+    anti_alias, build_light_grid_for_frame, build_shadow_frame_plan,
+    cascade_shadow_bounds_from_camera_slice, cluster_buffer_bytes_for_size,
+    cluster_dimensions_for_size, compute_cascade_ranges, create_depth_texture, lighting,
+    pack_lighting_extract, CascadeRange, CascadeSplitConfig, RenderGraphLightGridReport,
+    ShadowAtlasAllocator, ShadowAtlasResourceConfig, ShadowLightSlotAssignment,
     GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
 };
 pub use scene_renderer::{

@@ -346,7 +346,7 @@ assert!(duplicate_executor
     .contains("render pass executor weather.volumetric-clouds already registered"));
 ```
 
-Update `WeatherRuntimePlugin::register_runtime_extensions` to register the weather executor and assert catalog merge:
+Update `WeatherRuntimePlugin::register` to register the weather executor and assert catalog merge:
 
 ```rust
 registry.register_render_pass_executor(RenderPassExecutorRegistration::new(
@@ -543,7 +543,7 @@ use zircon_runtime::graphics::{
 };
 ```
 
-- [ ] In `VirtualGeometryRuntimePlugin::register_runtime_extensions`, register pass executors after `register_render_feature`.
+- [ ] In `VirtualGeometryRuntimePlugin::register`, register pass executors after `register_render_feature`.
 
 Target shape:
 
@@ -638,7 +638,7 @@ use zircon_runtime::graphics::{
 };
 ```
 
-- [ ] In `HybridGiRuntimePlugin::register_runtime_extensions`, register pass executors after `register_render_feature`.
+- [ ] In `HybridGiRuntimePlugin::register`, register pass executors after `register_render_feature`.
 
 Target shape:
 

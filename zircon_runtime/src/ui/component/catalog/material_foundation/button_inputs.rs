@@ -177,12 +177,13 @@ fn floating_action_button() -> UiComponentDescriptor {
     .requires_render_capability(UiRenderCapability::Vector)
 }
 
-fn button_interaction_events() -> [UiComponentEventKind; 4] {
+fn button_interaction_events() -> [UiComponentEventKind; 5] {
     [
         UiComponentEventKind::Focus,
         UiComponentEventKind::Hover,
         UiComponentEventKind::Press,
         UiComponentEventKind::Commit,
+        UiComponentEventKind::KeyboardAction,
     ]
 }
 
