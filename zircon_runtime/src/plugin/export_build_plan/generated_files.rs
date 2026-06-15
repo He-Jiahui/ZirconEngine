@@ -5,6 +5,7 @@ use crate::{
 
 use super::asset_manifest_template::asset_manifest_template;
 use super::cargo_manifest_template::cargo_manifest_template;
+use super::native_dynamic_package_plan::NativeDynamicPackageExportPlan;
 use super::native_plugin_load_manifest_template::native_plugin_load_manifest_template;
 use super::platform_host_files::platform_host_files;
 use super::plugin_selection_template::plugin_selection_template;
@@ -15,7 +16,7 @@ pub(super) fn generated_files_for_profile(
     profile: &ExportProfile,
     project_plugin_selections: &[&ProjectPluginSelection],
     linked_runtime_crates: &[ExportLinkedRuntimeCrate],
-    native_dynamic_packages: &[String],
+    native_dynamic_packages: &[NativeDynamicPackageExportPlan],
 ) -> Vec<ExportGeneratedFile> {
     let mut files = Vec::new();
     if !native_dynamic_packages.is_empty() {

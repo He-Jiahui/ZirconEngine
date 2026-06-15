@@ -17,27 +17,36 @@ impl ScenePostProcessResources {
         let ssao_bind_group_layout = bind_group_layouts::ssao(device);
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
         let hzb_bind_group_layout = bind_group_layouts::hzb(device);
+        let exposure_histogram_bind_group_layout = bind_group_layouts::exposure_histogram(device);
+        let exposure_resolve_bind_group_layout = bind_group_layouts::exposure_resolve(device);
         let depth_of_field_prepare_bind_group_layout =
             bind_group_layouts::depth_of_field_prepare(device, depth_sampling_mode);
-        let motion_vector_camera_bind_group_layout =
-            bind_group_layouts::motion_vector_camera(device, depth_sampling_mode);
+        let taa_resolve_bind_group_layout =
+            bind_group_layouts::taa_resolve(device, depth_sampling_mode);
+        let velocity_camera_bind_group_layout =
+            bind_group_layouts::velocity_camera(device, depth_sampling_mode);
         let motion_vector_tile_max_bind_group_layout =
             bind_group_layouts::motion_vector_tile_max(device);
         let motion_vector_neighbor_max_bind_group_layout =
             bind_group_layouts::motion_vector_neighbor_max(device);
         let post_process_bind_group_layout =
             bind_group_layouts::post_process(device, depth_sampling_mode);
+        let output_transfer_bind_group_layout = bind_group_layouts::output_transfer(device);
         let pipeline_bundle = create_pipeline_bundle(
             device,
             target_format,
             &bloom_bind_group_layout,
             &cluster_bind_group_layout,
             &hzb_bind_group_layout,
+            &exposure_histogram_bind_group_layout,
+            &exposure_resolve_bind_group_layout,
             &depth_of_field_prepare_bind_group_layout,
-            &motion_vector_camera_bind_group_layout,
+            &taa_resolve_bind_group_layout,
+            &velocity_camera_bind_group_layout,
             &motion_vector_tile_max_bind_group_layout,
             &motion_vector_neighbor_max_bind_group_layout,
             &post_process_bind_group_layout,
+            &output_transfer_bind_group_layout,
             depth_sampling_mode,
         );
         let buffer_bundle = create_buffer_bundle(device);
@@ -49,17 +58,24 @@ impl ScenePostProcessResources {
             ssao_bind_group_layout,
             cluster_bind_group_layout,
             hzb_bind_group_layout,
+            exposure_histogram_bind_group_layout,
+            exposure_resolve_bind_group_layout,
             depth_of_field_prepare_bind_group_layout,
-            motion_vector_camera_bind_group_layout,
+            taa_resolve_bind_group_layout,
+            velocity_camera_bind_group_layout,
             motion_vector_tile_max_bind_group_layout,
             motion_vector_neighbor_max_bind_group_layout,
             post_process_bind_group_layout,
+            output_transfer_bind_group_layout,
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
             ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
             hzb_pipeline: pipeline_bundle.hzb_pipeline,
+            exposure_histogram_pipeline: pipeline_bundle.exposure_histogram_pipeline,
+            exposure_resolve_pipeline: pipeline_bundle.exposure_resolve_pipeline,
             depth_of_field_prepare_pipeline: pipeline_bundle.depth_of_field_prepare_pipeline,
-            motion_vector_camera_pipeline: pipeline_bundle.motion_vector_camera_pipeline,
+            taa_resolve_pipeline: pipeline_bundle.taa_resolve_pipeline,
+            velocity_camera_pipeline: pipeline_bundle.velocity_camera_pipeline,
             motion_vector_tile_max_pipeline: pipeline_bundle.motion_vector_tile_max_pipeline,
             motion_vector_neighbor_max_pipeline: pipeline_bundle
                 .motion_vector_neighbor_max_pipeline,
@@ -72,13 +88,18 @@ impl ScenePostProcessResources {
             screen_space_reflection_specular_occlusion_pipeline: pipeline_bundle
                 .screen_space_reflection_specular_occlusion_pipeline,
             post_process_pipeline: pipeline_bundle.post_process_pipeline,
+            output_transfer_pipeline: pipeline_bundle.output_transfer_pipeline,
             bloom_params_buffer: buffer_bundle.bloom_params_buffer,
             ssao_params_buffer: buffer_bundle.ssao_params_buffer,
             cluster_params_buffer: buffer_bundle.cluster_params_buffer,
             hzb_params_buffer: buffer_bundle.hzb_params_buffer,
+            taa_resolve_params_buffer: buffer_bundle.taa_resolve_params_buffer,
+            exposure_params_buffer: buffer_bundle.exposure_params_buffer,
+            default_exposure_buffer: buffer_bundle.default_exposure_buffer,
+            default_exposure_histogram_buffer: buffer_bundle.default_exposure_histogram_buffer,
             depth_of_field_prepare_params_buffer: buffer_bundle
                 .depth_of_field_prepare_params_buffer,
-            motion_vector_camera_params_buffer: buffer_bundle.motion_vector_camera_params_buffer,
+            velocity_camera_params_buffer: buffer_bundle.velocity_camera_params_buffer,
             post_process_params_buffer: buffer_bundle.post_process_params_buffer,
             light_buffer: buffer_bundle.light_buffer,
             hybrid_gi_probe_buffer: buffer_bundle.hybrid_gi_probe_buffer,

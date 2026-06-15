@@ -7,15 +7,17 @@ use crate::CompiledRenderPipeline;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, clustered_lighting_executor,
-    color_grading_postprocess_executor, depth_of_field_prepare_executor,
-    effect_stack_postprocess_executor, final_composite_postprocess_executor,
-    fxaa_postprocess_executor, history_resolve_postprocess_executor, hzb_build_executor,
-    hzb_occlusion_cull_executor, motion_vector_camera_executor, motion_vector_clear_executor,
-    motion_vector_mesh_object_executor, motion_vector_neighbor_max_executor,
-    motion_vector_tile_max_coarse_executor, motion_vector_tile_max_executor, post_stack_executor,
+    color_lut_bake_postprocess_executor, depth_of_field_prepare_executor,
+    exposure_histogram_executor, exposure_resolve_executor, fxaa_postprocess_executor,
+    hzb_build_executor, hzb_occlusion_cull_executor, motion_vector_neighbor_max_executor,
+    motion_vector_tile_max_coarse_executor, motion_vector_tile_max_executor,
+    output_transfer_postprocess_executor, particle_velocity_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
     screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
     screen_space_reflection_specular_occlusion_executor, ssao_executor,
+    taa_reactive_mask_clear_executor, taa_reactive_mask_mesh_executor,
+    taa_resolve_postprocess_executor, uber_postprocess_executor, velocity_camera_executor,
+    velocity_mesh_object_executor,
 };
 use super::builtin_scene_executors::{
     deferred_gbuffer_executor, deferred_lighting_executor, depth_prepass_executor, mesh_executor,
@@ -45,20 +47,17 @@ impl RenderPassExecutorRegistry {
         }
         registry.register("post.bloom".into(), bloom_postprocess_executor);
         registry.register(
-            "post.color-grade".into(),
-            color_grading_postprocess_executor,
+            "post.exposure.histogram".into(),
+            exposure_histogram_executor,
+        );
+        registry.register("post.exposure.resolve".into(), exposure_resolve_executor);
+        registry.register(
+            "post.color-lut-bake".into(),
+            color_lut_bake_postprocess_executor,
         );
         registry.register(
-            "post.history-resolve".into(),
-            history_resolve_postprocess_executor,
-        );
-        registry.register(
-            "post.effect-stack".into(),
-            effect_stack_postprocess_executor,
-        );
-        registry.register(
-            "post.final-composite".into(),
-            final_composite_postprocess_executor,
+            "post.output-transfer".into(),
+            output_transfer_postprocess_executor,
         );
         registry.register(FXAA_EXECUTOR_ID.into(), fxaa_postprocess_executor);
         registry.register("sprite.opaque".into(), sprite_executor);
@@ -88,17 +87,23 @@ impl RenderPassExecutorRegistry {
             hzb_occlusion_cull_executor,
         );
         registry.register("post.bloom-extract".into(), bloom_extract_executor);
+        registry.register("temporal.velocity-camera".into(), velocity_camera_executor);
         registry.register(
-            "post.motion-vector-clear".into(),
-            motion_vector_clear_executor,
+            "temporal.velocity-object".into(),
+            velocity_mesh_object_executor,
+        );
+        registry.register("particle.velocity".into(), particle_velocity_executor);
+        registry.register(
+            "temporal.taa-reactive-mask-clear".into(),
+            taa_reactive_mask_clear_executor,
         );
         registry.register(
-            "post.motion-vector-camera".into(),
-            motion_vector_camera_executor,
+            "temporal.taa-reactive-mask-mesh".into(),
+            taa_reactive_mask_mesh_executor,
         );
         registry.register(
-            "post.motion-vector-object".into(),
-            motion_vector_mesh_object_executor,
+            "temporal.taa-resolve".into(),
+            taa_resolve_postprocess_executor,
         );
         registry.register(
             "post.motion-vector-tile-max".into(),
@@ -132,13 +137,9 @@ impl RenderPassExecutorRegistry {
             "post.screen-space-reflection-specular-occlusion".into(),
             screen_space_reflection_specular_occlusion_executor,
         );
-        registry.register("post.stack".into(), post_stack_executor);
+        registry.register("post.uber".into(), uber_postprocess_executor);
         registry.register("ui.screen-space".into(), screen_space_ui_executor);
         registry.register("overlay.gizmo".into(), overlay_gizmo_executor);
-        registry.register(
-            "history.scene-color".into(),
-            history_resolve_postprocess_executor,
-        );
         registry
     }
 
@@ -231,13 +232,11 @@ impl RenderPassExecutorRegistry {
 }
 
 const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
-    "history.scene-color",
     "lighting.baked-composite",
     "lighting.reflection-probes",
     "mesh.alpha-mask",
     "mesh.opaque",
     "mesh.transparent",
-    "post.color-grade",
 ];
 
 fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {

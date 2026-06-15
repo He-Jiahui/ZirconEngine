@@ -5,20 +5,24 @@ use std::collections::BTreeMap;
 use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 
+mod particle_extract_policy;
+
 use super::{
     build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CorePipelineKind,
     DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
-    PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-    RenderBakedLightingExtract, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
-    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderFramePhaseQueueSummary,
+    PostProcessStackDescriptor, PostProcessVolumeExtract, PreviewEnvironmentExtract,
+    RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderBloomSettings,
+    RenderCameraOrderReport, RenderCameraTarget, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFramePhaseQueueSummary,
     RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
-    RenderPhaseQueue, RenderPhaseQueueSummary, RenderPointLightSnapshot,
-    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeStack, RenderRectLightSnapshot,
+    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
+    RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
+    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
     RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
-    SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
+    SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot, VolumeEvaluationError,
+    VolumeEvaluationRequest, VolumeEvaluator, DEFAULT_CAMERA_EXPOSURE_EV100,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -441,9 +445,10 @@ pub struct PostProcessExtract {
     pub preview: PreviewEnvironmentExtract,
     pub display_mode: DisplayMode,
     pub bloom: RenderBloomSettings,
+    pub exposure: RenderExposureSettings,
     pub color_grading: RenderColorGradingSettings,
     pub effect_stack: RenderPostProcessEffectStackSettings,
-    pub volume_stack: RenderPostProcessVolumeStack,
+    pub volumes: Vec<PostProcessVolumeExtract>,
     pub stack: PostProcessStackDescriptor,
     pub graph: PostProcessPassGraph,
 }
@@ -475,7 +480,7 @@ impl PostProcessExtract {
         display_mode: DisplayMode,
         bloom: RenderBloomSettings,
         color_grading: RenderColorGradingSettings,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
         history_available: bool,
     ) -> Self {
         Self::from_parts_with_effect_stack(
@@ -484,7 +489,7 @@ impl PostProcessExtract {
             bloom,
             color_grading,
             RenderPostProcessEffectStackSettings::default(),
-            history_resolve_enabled,
+            temporal_history_enabled,
             history_available,
         )
     }
@@ -495,15 +500,16 @@ impl PostProcessExtract {
         bloom: RenderBloomSettings,
         color_grading: RenderColorGradingSettings,
         effect_stack: RenderPostProcessEffectStackSettings,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
         history_available: bool,
     ) -> Self {
         let stack =
-            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
                 &bloom,
                 &color_grading,
+                RenderExposureSettings::manual_ev100(DEFAULT_CAMERA_EXPOSURE_EV100),
                 &effect_stack,
-                history_resolve_enabled,
+                temporal_history_enabled,
                 history_available,
                 &AntiAliasSettings::off(),
             );
@@ -512,21 +518,23 @@ impl PostProcessExtract {
             preview,
             display_mode,
             bloom,
+            exposure: RenderExposureSettings::manual_ev100(DEFAULT_CAMERA_EXPOSURE_EV100),
             color_grading,
             effect_stack,
-            volume_stack: RenderPostProcessVolumeStack::default(),
+            volumes: Vec::new(),
             stack,
             graph,
         }
     }
 
-    pub fn rebuild_graph(&mut self, history_resolve_enabled: bool, history_available: bool) {
+    pub fn rebuild_graph(&mut self, temporal_history_enabled: bool, history_available: bool) {
         self.stack =
-            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
                 &self.bloom,
                 &self.color_grading,
+                self.exposure,
                 &self.effect_stack,
-                history_resolve_enabled,
+                temporal_history_enabled,
                 history_available,
                 &AntiAliasSettings::off(),
             );
@@ -535,32 +543,37 @@ impl PostProcessExtract {
 
     pub fn rebuild_graph_with_anti_alias(
         &mut self,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
         history_available: bool,
         anti_alias: &AntiAliasSettings,
     ) {
         self.stack =
-            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
                 &self.bloom,
                 &self.color_grading,
+                self.exposure,
                 &self.effect_stack,
-                history_resolve_enabled,
+                temporal_history_enabled,
                 history_available,
                 anti_alias,
             );
         self.graph = self.stack.validated_graph();
     }
 
-    pub fn resolved_settings_for_layers(
+    pub fn resolved_settings_for_camera(
         &self,
-        render_layers: &RenderLayerSet,
-    ) -> RenderResolvedPostProcessSettings {
-        self.volume_stack.resolve(
-            render_layers,
-            self.bloom,
-            self.color_grading,
-            self.effect_stack,
-        )
+        camera_position: crate::core::math::Vec3,
+        camera_volume_mask: &RenderLayerSet,
+    ) -> Result<RenderResolvedPostProcessSettings, VolumeEvaluationError> {
+        VolumeEvaluator::default().evaluate(VolumeEvaluationRequest {
+            camera_position,
+            camera_volume_mask,
+            base_bloom: self.bloom,
+            base_exposure: self.exposure,
+            base_color_grading: self.color_grading,
+            base_effect_stack: self.effect_stack,
+            volumes: &self.volumes,
+        })
     }
 }
 
@@ -573,6 +586,7 @@ pub struct DebugOverlayExtract {
 pub struct ParticleExtract {
     pub emitters: Vec<EntityId>,
     pub sprites: Vec<RenderParticleSpriteSnapshot>,
+    pub previous_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
     pub bounds: Vec<RenderParticleBoundsSnapshot>,
     pub sort_camera_position: Option<crate::core::math::Vec3>,
     pub gpu_frame: Option<RenderParticleGpuFrameExtract>,
@@ -676,14 +690,19 @@ impl RenderFrameExtract {
                 baked_lighting: None,
                 hybrid_global_illumination: None,
             },
-            post_process: PostProcessExtract::from_parts(
-                snapshot.preview.clone(),
-                snapshot.overlays.display_mode,
-                RenderBloomSettings::default(),
-                RenderColorGradingSettings::default(),
-                false,
-                false,
-            ),
+            post_process: {
+                let mut post_process = PostProcessExtract::from_parts(
+                    snapshot.preview.clone(),
+                    snapshot.overlays.display_mode,
+                    RenderBloomSettings::default(),
+                    RenderColorGradingSettings::default(),
+                    false,
+                    false,
+                );
+                post_process.exposure =
+                    RenderExposureSettings::manual_ev100(snapshot.scene.camera.exposure_ev100);
+                post_process
+            },
             debug: DebugOverlayExtract {
                 overlays: snapshot.overlays,
             },

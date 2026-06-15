@@ -5,11 +5,13 @@ related_code:
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
 implementation_files:
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
@@ -63,4 +65,4 @@ Focused artifact store tests cover scene artifact round-trips with mesh referenc
 
 Static validation for this slice includes rustfmt over `cache_payload.rs`, `cache_payload/scene.rs`, and `artifact_store.rs`, plus conflict-marker checks over the changed runtime, docs, and session files. The first focused Cargo retry passed the camera-target and physics-component scene cache cases, then exposed the existing mesh-reference case as the same cache-wire boundary problem. Scene mesh payloads now use cache-local structs as well. The clean retry `cargo test -p zircon_runtime --lib artifact_store_roundtrips_scene_assets_with --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --nocapture` passed 4/4; the watcher acceptance rerun `cargo test -p zircon_runtime --lib watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-04-asset-0612 --message-format short --color never -- --test-threads=1 --nocapture` passed 7/7.
 
-The Runtime 04 `asset_pipeline_boundary` audit also counts the four scene artifact roundtrip guards and checks that the artifact cache wire anchors stay present. Current structural evidence is 4/4 scene roundtrip guards, no missing artifact cache anchors, and `risks = []`; this does not replace the broader pending `asset::` / `worker_pool` Cargo validation gate.
+The Runtime 04 `asset_pipeline_boundary` audit also counts the four scene artifact roundtrip guards and checks that the artifact cache wire anchors stay present. Current structural evidence reports `expected_source_file_count = 19`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 5`, `expected_worker_diagnostic_count = 5`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 22`, `behavior_test_anchor_count = 18`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this artifact doc aligned with Runtime 04, the runtime index, facade/worker/watcher/core-resource docs, M0 review, and runtime-interface convergence; this does not replace the broader pending `asset::` / `worker_pool` Cargo validation gate.

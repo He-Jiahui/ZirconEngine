@@ -35,7 +35,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -160,7 +160,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/render.rs

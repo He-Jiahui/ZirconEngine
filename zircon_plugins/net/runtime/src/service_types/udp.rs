@@ -43,9 +43,12 @@ impl DefaultNetManager {
         destination: &NetEndpoint,
         payload: &[u8],
     ) -> Result<usize, NetError> {
-        self.state
+        let bytes = self
+            .state
             .worker
-            .send_udp(socket, destination.clone(), payload.to_vec())
+            .send_udp(socket, destination.clone(), payload.to_vec())?;
+        self.state.record_outbound_bytes(bytes);
+        Ok(bytes)
     }
 
     pub(in crate::service_types) fn poll_udp_impl(
@@ -57,7 +60,10 @@ impl DefaultNetManager {
             return Ok(Vec::new());
         }
 
-        self.state.worker.poll_udp(socket, max_packets)
+        let packets = self.state.worker.poll_udp(socket, max_packets)?;
+        self.state
+            .record_inbound_bytes(packets.iter().map(|packet| packet.payload.len()).sum());
+        Ok(packets)
     }
 
     pub(in crate::service_types) fn close_socket_impl(

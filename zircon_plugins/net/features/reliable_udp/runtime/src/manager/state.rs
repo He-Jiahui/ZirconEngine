@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use zircon_runtime::core::framework::net::{
     ReliableDatagramConfig, ReliableDatagramPacket, ReliableDatagramRecoveryReport,
@@ -15,6 +15,8 @@ pub(in crate::manager) struct NetReliableUdpRuntimeState {
     pub(in crate::manager) resend_state: HashMap<u64, PendingResendState>,
     pub(in crate::manager) inbound_fragments: HashMap<u64, InboundFragmentAssembly>,
     pub(in crate::manager) completed_inbound_sequences: VecDeque<u64>,
+    pub(in crate::manager) next_ordered_sequence: u64,
+    pub(in crate::manager) ordered_payloads: BTreeMap<u64, Vec<u8>>,
     pub(in crate::manager) simulation_profile: ReliableDatagramSimulationProfile,
     pub(in crate::manager) simulated_packet_counter: u64,
     pub(in crate::manager) recovery_state: ReliableDatagramRecoveryState,
@@ -38,6 +40,8 @@ impl NetReliableUdpRuntimeState {
             resend_state: HashMap::new(),
             inbound_fragments: HashMap::new(),
             completed_inbound_sequences: VecDeque::new(),
+            next_ordered_sequence: 1,
+            ordered_payloads: BTreeMap::new(),
             simulation_profile: ReliableDatagramSimulationProfile::default(),
             simulated_packet_counter: 0,
             recovery_state: ReliableDatagramRecoveryState::Connected,

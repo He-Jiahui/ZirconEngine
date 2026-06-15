@@ -446,6 +446,15 @@ PF-M4:
 
 产物对拍:`render_product_*` 系列在三开关(pipelined/parallel_record/async_compile)8 组合矩阵下全绿。CI 接入建议(不强改):`ci.yml` 现有 `cargo test --workspace` 自动携带上述确定性测试;计时型观测建议另开 `workflow_dispatch` 手动 job 导出 profile 文本工件,不设阈值门禁。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | PF-M1 observation base | 部分完成: CPU profiling/markers/diagnostics 存在,GPU timestamp 未接 | `RenderStats`、runtime diagnostics、`profile_scope!`、debug markers 和 RenderDoc capture env hook 已存在并被各计划复用;但无 GPU pass timing、frame profile hierarchy 或 graph dump bundle。 | 本文件 `现状与差距` 实读代码列出 CPU profiling、debug marker、RenderDoc hook 已有,且 `timestamp_writes: None` 全面存在。 | 请求 timestamp feature、实现 `GpuPassTimer`、`RenderFrameProfile` 和 graph dump/profile 关联。 |
+| 2026-06-15 | PF-M2 CPU parallelization | 未启动: 渲染提交仍串行 | submit/extract/prepare/present 仍在锁内串行,graph stage pass 逐个录制。 | 本文件 `现状与差距` 记录 `submit_frame_extract` 双锁串行和 `execute_graph_stage` for 循环。 | 设计 pipeline extract/prepare、rayon prepare jobs 和安全的并行 command recording。 |
+| 2026-06-15 | PF-M3 memory and bandwidth budgets | 部分完成: 统计字段存在,预算/降级缺失 | 多计划已扩展 `RenderStats` 和 diagnostics,能看到 transient bytes、GPUScene upload、reactive mask、HZB readback 等;但无预算、超限降级或 OOM 阶梯。 | 本文件 `现状与差距` 明确统计扁平且无预算防回归;计划 03/04/06/07 状态表记录多项统计面已接入。 | 建立 budget policy、per-pass memory/bandwidth buckets 和 degrade ladder。 |
+| 2026-06-15 | PF-M4 compile stutter and performance regression baseline | 未启动: 无性能 CI gate | CI 只有 build/test,无性能基线、无 shader warmup 统计、无 compile stutter 监控。 | 本文件 `现状与差距` 明确无预算与防回归机制;计划 08 MS-M4 也记录 shader variant cache/warmup 未启动。 | 建立 perf fixture、baseline artifacts、threshold policy 和 shader warmup reporting。 |
+
 ### 参考实现精读笔记
 
 - **UE `FRealtimeGPUProfiler`**(`RealtimeGPUProfiler.h`):单例 `Get()`,`BeginFrame/EndFrame(FRHICommandListImmediate&)` 圈帧;`PushEvent(GPUMask, Name, Stat, Description)` 返回 `FRealtimeGPUProfilerQuery`,查询对象延迟 `Submit(RHICmdList, bBegin)`,且专门提供 `Discard(bBegin)` 处理"RDG 建了 profiler event 但 pass 被 culling 从未提交"的情况 —— Zircon 对应:`GpuPassTimer` 的 query 槽按实际录制挂载而非按 graph 声明预分配,01 的 pass culling 天然不产生悬空查询。`ActiveFrame` + `TQueue<TUniquePtr<FRealtimeGPUProfilerFrame>> PendingFrames` + `FRenderQueryPoolRHIRef` 即多帧 in-flight 池,与本计划 3 槽延迟环同构;`FRealtimeGPUProfilerHistoryItem`(HistoryCount=64,`AccumulatedTime`)与 `FetchPerfByDescription` 的 Avg/Min/Max 说明 UI 展示要做滑动窗口平滑 —— 我们放诊断层(`render_stats_store`)做,契约层只传单帧。
@@ -468,4 +477,3 @@ PF-M4:
 | `RenderStats` 双形态(扁平 + 层级)长期并存漂移 | `render_perf_frame_profile_matches_flat_stats` 自洽断言常驻;扁平字段新增项必须同步进层级聚合,否则该测试红 |
 
 回退总开关:`allow_gpu_timing` / `allow_pipelined_render` / `allow_parallel_record` / `allow_async_compile` 四开关相互独立,任意组合下 `render_product_*` 产物一致是 PF-M2/M4 的硬验收;全关即与本计划落地前行为等价(观测字段为空,不影响渲染正确性)。
-

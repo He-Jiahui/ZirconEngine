@@ -20,6 +20,12 @@ mod popup;
 mod radio;
 mod range;
 mod scrollbar;
+mod table;
+mod toast_timer;
+mod tree_view;
+mod tree_view_reparent;
+mod tree_view_support;
+mod tree_view_virtualization;
 
 pub(super) use range::{range_navigation_action, UiDefaultRangeNavigationAction};
 
@@ -41,6 +47,12 @@ pub(crate) struct UiDefaultKeyboardActionReport {
     pub binding_reports: Vec<UiBindingUpdateReport>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(in crate::ui::surface::surface) struct UiDefaultTreeViewPointerActionReport {
+    pub handled_by: Option<UiNodeId>,
+    pub damage_node: Option<UiNodeId>,
+}
+
 impl UiSurface {
     pub(super) fn apply_default_pointer_component_actions(
         &mut self,
@@ -49,6 +61,18 @@ impl UiSurface {
         events: &mut Vec<UiPointerComponentEvent>,
         binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<(), UiTreeError> {
+        if self.apply_default_tree_view_reorder_component_action(route, events, binding_reports)? {
+            return Ok(());
+        }
+        if route.activation_phase == UiPointerActivationPhase::SecondaryRelease {
+            let _ = self.apply_default_tree_view_rename_component_action(
+                route,
+                click_count,
+                events,
+                binding_reports,
+            )?;
+            return Ok(());
+        }
         if route.activation_phase != UiPointerActivationPhase::PrimaryRelease {
             return Ok(());
         }
@@ -58,6 +82,17 @@ impl UiSurface {
         };
         let Some(next_checked) = self.default_toggle_next_checked(node_id)? else {
             if self.apply_default_radio_component_action(node_id, events, binding_reports)? {
+                return Ok(());
+            }
+            let tree_selection_handled =
+                self.apply_default_tree_view_component_action(route, events, binding_reports)?;
+            let tree_rename_handled = self.apply_default_tree_view_rename_component_action(
+                route,
+                click_count,
+                events,
+                binding_reports,
+            )?;
+            if tree_selection_handled || tree_rename_handled {
                 return Ok(());
             }
             if self.apply_default_expanded_component_action(node_id, events, binding_reports)? {
@@ -539,7 +574,9 @@ impl UiSurface {
             || is_default_expanded_behavior(metadata)
             || is_default_popup_behavior(metadata)
             || is_default_range_behavior(metadata)
-            || is_default_scrollbar_behavior(metadata))
+            || is_default_scrollbar_behavior(metadata)
+            || table::is_default_table_behavior(metadata)
+            || tree_view::is_default_tree_view_behavior(metadata))
     }
 
     fn default_toggle_checked_property(&self, node_id: UiNodeId) -> Result<String, UiTreeError> {
@@ -704,7 +741,25 @@ fn is_default_scrollbar_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
 }
 
 fn is_menu_component(metadata: &UiTemplateNodeMetadata) -> bool {
-    matches!(metadata.component.as_str(), "Menu" | "MenuList")
+    matches!(
+        metadata.component.as_str(),
+        "Menu"
+            | "MenuList"
+            | "PopupMenu"
+            | "MenuPopup"
+            | "ContextMenu"
+            | "ContextActionMenu"
+            | "DropdownPopup"
+    ) || metadata
+        .attributes
+        .get("role")
+        .and_then(toml::Value::as_str)
+        .is_some_and(|role| {
+            matches!(
+                role,
+                "menu" | "menu-list" | "context-menu" | "dropdown-popup"
+            )
+        })
 }
 
 fn widget_behavior(metadata: &UiTemplateNodeMetadata) -> UiWidgetBehavior {
@@ -759,7 +814,8 @@ fn semantic_keyboard_event_kinds(action: UiComponentKeyboardAction) -> &'static 
         | UiComponentKeyboardAction::Increment
         | UiComponentKeyboardAction::Decrement
         | UiComponentKeyboardAction::LargeIncrement
-        | UiComponentKeyboardAction::LargeDecrement => &[UiEventKind::Change],
+        | UiComponentKeyboardAction::LargeDecrement
+        | UiComponentKeyboardAction::BeginEdit => &[UiEventKind::Change],
     }
 }
 

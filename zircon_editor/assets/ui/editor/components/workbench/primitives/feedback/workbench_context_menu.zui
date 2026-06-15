@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui"
+version = 2
+display_name = "Workbench Context Menu"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchContextMenu]
+root = "root"
+default_classes = ["workbench-context-menu", "workbench-popup-menu", "workbench-primitive"]
+
+[nodes.root]
+component = "ContextMenu"
+control_id = "WorkbenchContextMenuRoot"
+classes = ["workbench-context-menu", "workbench-popup-menu"]
+props = { open = true, popup_open = true, options = ["Open", "Rename", "Duplicate", "Delete", "More Tools"], context_target = "SceneNode:Camera", context_target_path = "/Scene/Camera", focused_index = 1, disabled_options = ["Delete"], keyboard_navigation = true, typeahead_buffer = "", typeahead_buffer_expired = false, typeahead_timeout_ms = 500, hovered_option_id = "Rename", submenu_pending_option_id = "More Tools", submenu_open_option_id = "", submenu_hover_ready = false, submenu_hover_delay_ms = 300, submenu_focus_scope = "root", submenu_focus_loop = true, placement = "right-start", popup_anchor_x = 18.0, popup_anchor_y = 24.0, popup_anchor_width = 0.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "left", popup_offset_x = 8.0, popup_offset_y = 0.0, disable_auto_focus = false, disable_enforce_focus = false, disable_restore_focus = false, disable_escape_key_down = false, close_on_backdrop_click = true, keep_mounted = false, aria_modal = true, aria_labelledby = "Workbench context menu", aria_describedby = "Context actions for the selected editor object", z_index = 1400, disable_portal = false, portal_layer = "overlay", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 140.0, preferred = 150.0, max = 156.0, stretch = "Fixed" } }

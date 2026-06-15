@@ -1,10 +1,9 @@
 use crate::core::framework::render::{
-    AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderPipelineHandle, SolariRuntimeReport,
-    ViewportCameraSnapshot,
+    AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderParticlePreviousSpriteSnapshot,
+    RenderPipelineHandle, SolariRuntimeReport, TaaQualityPreset, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::VisibilityStaticIndex;
-use crate::graphics::ViewportMotionVectorObjectHistory;
 
 use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot};
 
@@ -12,11 +11,13 @@ pub(super) struct ViewportRecordState {
     size: UVec2,
     pipeline_handle: RenderPipelineHandle,
     viewport_generation: u64,
+    temporal_frame_index: u64,
     quality_profile: Option<String>,
+    quality_profile_taa_quality: Option<TaaQualityPreset>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
     previous_static_index: Option<VisibilityStaticIndex>,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
-    previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
+    previous_particle_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
     pipeline_asset: RenderPipelineAsset,
     compile_options: RenderPipelineCompileOptions,
     advanced_runtime_plan: AdvancedProfileRuntimePlan,
@@ -31,11 +32,13 @@ impl ViewportRecordState {
         size: UVec2,
         pipeline_handle: RenderPipelineHandle,
         viewport_generation: u64,
+        temporal_frame_index: u64,
         quality_profile: Option<String>,
+        quality_profile_taa_quality: Option<TaaQualityPreset>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
         previous_static_index: Option<VisibilityStaticIndex>,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
-        previous_motion_vector_object_history: Option<ViewportMotionVectorObjectHistory>,
+        previous_particle_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
         pipeline_asset: RenderPipelineAsset,
         compile_options: RenderPipelineCompileOptions,
         advanced_runtime_plan: AdvancedProfileRuntimePlan,
@@ -47,11 +50,13 @@ impl ViewportRecordState {
             size,
             pipeline_handle,
             viewport_generation,
+            temporal_frame_index,
             quality_profile,
+            quality_profile_taa_quality,
             previous_visibility,
             previous_static_index,
             previous_motion_vector_camera,
-            previous_motion_vector_object_history,
+            previous_particle_sprites,
             pipeline_asset,
             compile_options,
             advanced_runtime_plan,
@@ -73,6 +78,10 @@ impl ViewportRecordState {
         self.viewport_generation
     }
 
+    pub(super) fn temporal_frame_index(&self) -> u64 {
+        self.temporal_frame_index
+    }
+
     pub(super) fn previous_visibility(&self) -> Option<&VisibilityHistorySnapshot> {
         self.previous_visibility.as_ref()
     }
@@ -85,10 +94,8 @@ impl ViewportRecordState {
         self.previous_motion_vector_camera.as_ref()
     }
 
-    pub(super) fn previous_motion_vector_object_history(
-        &self,
-    ) -> Option<&ViewportMotionVectorObjectHistory> {
-        self.previous_motion_vector_object_history.as_ref()
+    pub(super) fn previous_particle_sprites(&self) -> &[RenderParticlePreviousSpriteSnapshot] {
+        &self.previous_particle_sprites
     }
 
     pub(super) fn pipeline_asset(&self) -> &RenderPipelineAsset {
@@ -113,6 +120,10 @@ impl ViewportRecordState {
 
     pub(super) fn take_quality_profile(&mut self) -> Option<String> {
         self.quality_profile.take()
+    }
+
+    pub(super) fn quality_profile_taa_quality(&self) -> Option<TaaQualityPreset> {
+        self.quality_profile_taa_quality
     }
 
     pub(super) fn predicted_generation(&self) -> u64 {

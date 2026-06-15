@@ -130,6 +130,24 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    let tasks_tests = include_str!("../tasks.rs");
+    for behavior_test_anchor in [
+        "job_handle_wait_blocks_until_task_completes",
+        "schedule_after_runs_task_only_after_all_dependencies",
+        "combined_handle_completes_when_all_children_complete",
+        "schedule_after_does_not_consume_worker_while_waiting_on_dependencies",
+        "job_diagnostics_track_schedule_complete_and_wait_times",
+        "deep_dependency_chain_completes_in_order",
+        "wide_fanout_combine_waits_for_all",
+        "parallel_for_visits_every_item_exactly_once",
+        "parallel_for_chunk_size_bounds_task_granularity",
+    ] {
+        assert!(
+            tasks_tests.contains(behavior_test_anchor),
+            "zircon_runtime/src/tests/tasks.rs should retain Runtime 11 behavior test anchor `{behavior_test_anchor}`"
+        );
+    }
+
     let schedule_executor = include_str!("../../scene/ecs/schedule_parallel_executor.rs");
     for executor_anchor in [
         "JobHandle::completed()",
@@ -198,6 +216,8 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
             "direct_rayon_paths = 3",
             "schedule_parallel_executor_direct_rayon = []",
             "diagnostic_anchor_count = 4",
+            "behavior_test_anchor_count = 9",
+            "missing_behavior_test_anchors = []",
             "oversized_modules = []",
             "mirror_docs_guard_present = true",
             "risks = []",

@@ -5,7 +5,7 @@ use super::frame_geometry::{contains_point, union_frame, union_optional_frames};
 use super::globals::PaneSurfaceHostContext;
 use super::redraw::NativePointerDispatchResult;
 use super::template_geometry::{frame_from_template_node, template_popup_bounds};
-use super::template_popup_layout::dropdown_option_popup_frame_within;
+use super::template_popup_layout::template_option_popup_frame_within;
 use super::window::UiHostWindow;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
@@ -86,7 +86,8 @@ fn popup_dismiss_target_for_node(
 
     let control_frame = frame_from_template_node(node);
     let popup_frame = if node.structured_options.row_count() > 0 {
-        dropdown_option_popup_frame_within(
+        template_option_popup_frame_within(
+            node,
             &control_frame,
             node.structured_options.row_count(),
             bounds,

@@ -36,7 +36,7 @@ pub(crate) use viewport_toolbar::BuiltinViewportToolbarTemplateBridge;
 pub(crate) use welcome_surface::BuiltinWelcomeSurfaceTemplateBridge;
 pub(crate) use workbench::{
     BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge, WorkbenchCommandPaletteOpenState,
 };
 #[cfg(test)]
 pub(crate) use workbench_drawer_source::BuiltinHostDrawerSourceTemplateBridge;

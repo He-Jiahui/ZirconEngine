@@ -1,0 +1,202 @@
+---
+related_code:
+  - zircon_runtime/src/graphics/resource_limits.rs
+  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
+  - zircon_runtime/src/core/framework/render/post_process/chain.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
+  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
+  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/rhi/descriptors.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_histogram.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/output_transfer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_histogram_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
+  - zircon_runtime/src/core/framework/render/material/standard_material.rs
+  - zircon_runtime/src/asset/assets/material/material_control.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl
+implementation_files:
+  - zircon_runtime/src/graphics/resource_limits.rs
+  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
+  - zircon_runtime/src/core/framework/render/post_process/chain.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
+  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
+  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/rhi/descriptors.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_histogram.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/output_transfer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_histogram_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
+  - zircon_runtime/src/core/framework/render/material/standard_material.rs
+  - zircon_runtime/src/asset/assets/material/material_control.rs
+  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl
+plan_sources:
+  - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
+  - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
+tests:
+  - zircon_runtime/src/core/framework/render/post_process/chain.rs::tests::render_post_chain_backbone_order_is_stable
+  - zircon_runtime/src/core/framework/render/post_process/chain.rs::tests::render_post_chain_current_effect_kinds_have_migration_slots
+  - zircon_runtime/src/core/framework/render/post_process/chain.rs::tests::render_post_chain_planned_executor_ids_are_stable
+  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_cover_renderer_layout_requirements
+  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_keep_hzb_optional_when_adapter_limit_is_lower
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs::tests::post_process_layout_sampled_texture_count_matches_device_request_limit
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::non_storage_texture_formats_do_not_request_storage_binding
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::storage_texture_formats_request_storage_binding
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::taa_reactive_mask_processor_draws_visible_transparent_batches_only
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_taa_reactive_mask_strength_drives_standard_descriptor_without_shader_override
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_taa_reactive_mask_strength_reports_invalid_override
+  - zircon_runtime/src/core/framework/render/post_process/color_space.rs::tests::render_post_color_space_intermediate_hdr_defaults_to_rg11b10ufloat
+  - zircon_runtime/src/core/framework/render/post_process/color_space.rs::tests::render_post_color_lut_contract_keeps_power_of_two_sizes
+  - zircon_runtime/src/core/framework/render/post_process/color_space.rs::tests::render_post_output_transfer_defaults_to_srgb
+  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_features_require_rg11b10_render_target_for_post_process
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_shader_parses_and_declares_history_outputs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::output_transfer_shader_source_declares_single_texture_input
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs::tests::output_transfer_shader_parses
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::builtin_registry_covers_product_postprocess_executor_ids
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs::tests::render_volume_param_interp_blends_float_vec3_and_discrete_values
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs::tests::render_volume_component_descriptor_applies_defaults_to_resolved_stack
+  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs::tests::render_volume_registry_exposes_builtin_post_process_components
+  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs::tests::render_volume_registry_rejects_duplicate_component_id
+  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs::tests::render_volume_extract_maps_profile_to_component_overrides
+  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs::tests::render_volume_extract_stores_global_box_and_sphere_shapes
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests::render_volume_evaluator_blends_global_volumes_by_priority_order
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests::render_volume_evaluator_box_blend_distance_weight
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests::render_volume_evaluator_keeps_unset_component_params_from_current_stack
+  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs::tests
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::manual_exposure_declares_resolve_without_histogram
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::histogram_exposure_declares_histogram_before_resolve
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs::tests::post_process_layout_binds_resolved_exposure_storage_buffer
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_multiplies_color_grading_by_resolved_exposure
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs::local_sphere_post_process_volume_uses_camera_distance_for_full_influence
+  - zircon_runtime/src/scene/tests/render_post_process_extract.rs::local_box_post_process_volume_uses_camera_distance_for_blend
+  - source scan for retired PP-M1-S3 names: PostProcessEffectKind::ColorGrading, PostProcessEffectKind::EffectStack, post.color-grade, post.effect-stack, post.stack
+  - source scan for Plan 07 PP-M2-S2 extract/shape/override symbols
+  - source scan for Plan 07 PP-M2-S3 evaluator/read hook/submit cutover symbols
+  - source scan for Plan 07 PP-M3-S1b exposure graph/resource/executor symbols
+  - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 exposure_ -- --nocapture
+  - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 runtime_diagnostics -- --nocapture
+  - cargo fmt --package zircon_runtime -- --check
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-chain-0615 --message-format short --color never
+  - cargo test -p zircon_runtime --lib render_post_chain --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-chain-0615 --message-format short --color never -- --test-threads=1 --nocapture (timed out after 604s while compiling the shared lib-test target)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never
+  - cargo test -p zircon_runtime --lib render_post_color_space --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never -- --test-threads=1 --nocapture (timed out after 904s while compiling the shared lib-test target)
+  - cargo test -p zircon_runtime --lib output_transfer --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never -- --test-threads=1 --nocapture (timed out after 304s while compiling the shared lib-test target)
+  - cargo fmt --package zircon_runtime
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never (after PP-M1-S3)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never (after PP-M2-S1)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-m3-s1-0614 --message-format short --color never
+doc_type: module-overview
+---
+
+# Scene Renderer Post-Process
+
+This directory documents post-process renderer behavior that is too specific for the broad render-product submit document.
+
+- `projection.md` owns camera projection, SSR reconstruction, reflection-probe projection, and temporal jitter audit rules for post-process screen-space consumers.
+- `temporal/taa.md` owns the TAA resolve contract, WGPU fullscreen resolve pass, quality/responsive uniforms, shader, `TemporalHistoryStore` history behavior, TAA reactive-mask clear/mesh writer ordering, material-authored reactive strength packing, and opaque/alpha-mask material flag writes.
+- TP-M3 adds `TAA_OUTPUT` as an optional post-process graph input. The pipeline compiler strips it from default no-stack compatibility compiles and retains it only when an effective stack enables `PostProcessEffectKind::TaaResolve`, so final composite consumes the resolved TAA color without making TAA resources live in Off/Fxaa paths.
+- TP-M4-S1 removes the legacy scene-color history resolve path from post-process ownership. TAA scene-color history now flows only through `TemporalHistoryStore` and `temporal.taa-resolve`; SSR keeps its dedicated temporal history texture.
+- TP-M4-S2 adds `TAA_REACTIVE_MASK = "taa.reactive-mask"` as a TAA-only graph texture. `temporal.taa-reactive-mask-clear` clear-stores the `R8Unorm` default-zero mask, and the compiler culls the mask resource when the effective stack is not using TAA.
+- TP-M4-S3 inserts `temporal.taa-reactive-mask-mesh` between the clear pass and `temporal.taa-resolve`. The mesh writer replays visible transparent mesh commands, reads scene depth, load/stores the mask, and writes sampled base alpha through `fs_taa_reactive_mask`.
+- TP-M4-S3b adds `StandardMaterialDescriptor::taa_reactive_mask_strength` as a material-owned override and packs it into `MaterialPropertyUniform.data8.x`; `fs_taa_reactive_mask` writes the maximum of sampled alpha and explicit strength.
+- TP-M4-S3c adds `MeshPassPipelineKind::TaaReactiveMaterialMask` and `fs_taa_reactive_material_mask`; opaque/alpha-mask batches only emit material-mask commands when their CPU-side material strength is nonzero, while transparent batches still use the sampled-alpha writer.
+- TP-M4-S4a tightens the WGPU resource envelope needed by the full post-process layout: device request limits now reserve 21 sampled textures per fragment stage, a layout test counts the same `zircon-post-process-bind-group-layout` entries passed to WGPU, and transient `R8Unorm`/`R16Float`/`Rg16Float` textures no longer request unsupported storage binding usage.
+- PP-M1-S1 adds `PostProcessChainSlot` as the fixed Plan 07 backbone from `taa-resolve` through `output-transfer`. Current legacy `PostProcessEffectKind` nodes now carry `chain_slot` and `planned_chain_executor_id`, and validated graphs expose both `planned_backbone_slots` and `active_chain_slots` so later executor hard cuts can compare graph order against the target post-process chain.
+- PP-M1-S2a adds the framework-level color-space contract: `INTERMEDIATE_HDR_FORMAT_DEFAULT` is `rg11b10ufloat`, WGPU devices request `RG11B10UFLOAT_RENDERABLE`, RHI/graph execution can materialize `TextureFormat::Rg11b10Ufloat`, and HDR `scene-color`, `TAA_OUTPUT`, plus SSR reflection pyramids now use the shared post-process HDR format while HZB, TAA history, and motion-vector resources remain `rgba16float`.
+- PP-M1-S2b replaces the legacy `FinalComposite` contract node with `OutputTransfer` and introduces `postprocess.tonemapped` as the explicit handoff from the tonemap/uber stage to `post.output-transfer`. The WGPU side now owns `output_transfer.wgsl`, a dedicated bind group layout/pipeline, `execute_output_transfer`, and a registered `post.output-transfer` graph executor that writes `FINAL_COLOR`.
+- PP-M1-S3 clears the old runtime pass/executor names for color grading and effect-stack routing. The graph now uses `color-lut-bake`/`post.color-lut-bake` and `uber`/`post.uber`, while data-schema names such as `RenderColorGradingSettings` and `RenderPostProcessEffectStackSettings` remain until the PP-M2/PP-M3 schema migration.
+- PP-M2-S1 adds the contract-only volume component schema and registry. `VolumeParamValue`, `VolumeParamSchema`, and `VolumeComponentDescriptor` define parameter defaults plus interpolation/apply hooks, while `VolumeComponentRegistry::with_builtin_post_process_components()` exposes the planned built-in component ids from Plan 07 for later volume extract/evaluator wiring.
+- PP-M2-S2 adds `PostProcessVolumeExtract` as the planned per-frame volume DTO. Scene extraction now emits global/box/sphere shape snapshots plus component override vectors, with local volume projection isolated in `scene/world/render_post_process.rs` so the main render extract module stays below the large-file threshold.
+- PP-M2-S3 adds `VolumeEvaluator` and switches WGPU frame submission to `PostProcessExtract::resolved_settings_for_camera(...)`. Evaluator uses registered component descriptors to read current strong-typed values, apply per-param overrides, compute global/box/sphere weights, and write a `ResolvedPostProcessStack`; the former `volume_stack`/`volume.rs` fallback path has been hard-deleted.
+- PP-M3-S1b adds the WGPU exposure path. Histogram mode declares `exposure-histogram` plus `exposure-resolve`, manual mode declares only resolve, and both modes feed the final post-process shader through the same binding 28 resolved exposure buffer. `SceneFrameHistoryTextures` owns the previous/current exposure buffer pair and runtime diagnostics report `render.history.copy.exposure_copied`.

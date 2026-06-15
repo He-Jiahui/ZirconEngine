@@ -484,6 +484,7 @@ fn host_menu_chrome_item(item: &MenuItemModel) -> HostMenuChromeItemData {
 fn menu_item_action_id(item: &MenuItemModel) -> SharedString {
     match item.binding.payload() {
         EditorUiBindingPayload::MenuAction { action_id } => action_id.as_str().into(),
+        EditorUiBindingPayload::EditorCommand { command_id } => command_id.as_str().into(),
         EditorUiBindingPayload::EditorOperation { operation_id, .. } => {
             operation_id.as_str().into()
         }
@@ -517,6 +518,7 @@ pub(crate) fn build_native_floating_surface_data(
             chrome,
         ),
         native_floating_window_id: host_shell.native_floating_window_id.clone(),
+        native_surface_tree_id: host_shell.native_surface_tree_id.clone(),
         native_window_bounds: host_shell.native_window_bounds.clone(),
         header_height_px: metrics.document_header_height_px,
     }

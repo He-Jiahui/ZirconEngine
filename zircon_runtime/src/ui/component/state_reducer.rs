@@ -5,15 +5,20 @@ use zircon_runtime_interface::ui::component::{
 
 mod button;
 mod collection;
+mod command_palette;
 mod disclosure;
 mod interaction;
 mod keyboard;
+mod notification_center;
 mod numeric;
 mod overlay;
 mod reference;
 mod selection;
 mod slider;
+mod table;
 mod text_input;
+mod toast;
+mod tree_view;
 mod windowing;
 mod world;
 
@@ -39,7 +44,9 @@ pub fn apply_component_event(
     let event_manages_validation = text_input::event_manages_validation(descriptor, &event);
     let result = match event {
         UiComponentEvent::ValueChanged { property, value } => {
-            if text_input::is_text_input_control(descriptor) {
+            if table::apply_value_event(state, descriptor, &property, &value)? {
+                Ok(())
+            } else if text_input::is_text_input_control(descriptor) {
                 text_input::apply_value_event(
                     state,
                     descriptor,
@@ -50,11 +57,31 @@ pub fn apply_component_event(
             } else {
                 let changed_property = property.clone();
                 apply_value(state, descriptor, property, value)?;
-                keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+                if command_palette::sync_after_value_change(state, descriptor, &changed_property)? {
+                    Ok(())
+                } else if notification_center::sync_after_value_change(
+                    state,
+                    descriptor,
+                    &changed_property,
+                )? {
+                    Ok(())
+                } else if toast::sync_after_value_change(state, descriptor, &changed_property)? {
+                    Ok(())
+                } else {
+                    keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+                }
             }
         }
         UiComponentEvent::Commit { property, value } => {
-            if text_input::is_text_input_control(descriptor) {
+            if overlay::apply_commit(state, descriptor, &property, &value)? {
+                Ok(())
+            } else if toast::apply_commit(state, descriptor, &property, &value)? {
+                Ok(())
+            } else if command_palette::apply_commit(state, descriptor, &property, &value)? {
+                Ok(())
+            } else if tree_view::apply_commit(state, descriptor, &property, &value)? {
+                Ok(())
+            } else if text_input::is_text_input_control(descriptor) {
                 text_input::apply_value_event(
                     state,
                     descriptor,
@@ -65,7 +92,19 @@ pub fn apply_component_event(
             } else {
                 let changed_property = property.clone();
                 apply_value(state, descriptor, property, value)?;
-                keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+                if command_palette::sync_after_value_change(state, descriptor, &changed_property)? {
+                    Ok(())
+                } else if notification_center::sync_after_value_change(
+                    state,
+                    descriptor,
+                    &changed_property,
+                )? {
+                    Ok(())
+                } else if toast::sync_after_value_change(state, descriptor, &changed_property)? {
+                    Ok(())
+                } else {
+                    keyboard::sync_menu_search_filter(state, descriptor, &changed_property)
+                }
             }
         }
         UiComponentEvent::KeyboardAction { action } => {
@@ -113,16 +152,47 @@ pub fn apply_component_event(
             interaction::active_drag_target(state, active);
             Ok(())
         }
-        UiComponentEvent::OpenPopup => overlay::open_popup(state),
-        UiComponentEvent::OpenPopupAt { x, y } => overlay::open_popup_at(state, x, y),
-        UiComponentEvent::ClosePopup => overlay::close_popup(state),
+        UiComponentEvent::OpenPopup => {
+            if toast::apply_open_popup(state, descriptor)? {
+                Ok(())
+            } else {
+                overlay::open_popup(state, descriptor)
+            }
+        }
+        UiComponentEvent::OpenPopupAt { x, y } => overlay::open_popup_at(state, descriptor, x, y),
+        UiComponentEvent::ClosePopup => {
+            if toast::apply_close_popup(state, descriptor)? {
+                Ok(())
+            } else {
+                overlay::close_popup(state, descriptor)
+            }
+        }
         UiComponentEvent::SelectOption {
             property,
             option_id,
             selected,
-        } => selection::apply_selection(state, descriptor, property, option_id, selected),
+        } => {
+            if command_palette::apply_selection(state, descriptor, &property, &option_id, selected)?
+            {
+                Ok(())
+            } else if notification_center::apply_selection(
+                state, descriptor, &property, &option_id, selected,
+            )? {
+                Ok(())
+            } else if tree_view::apply_select_option(
+                state, descriptor, &property, &option_id, selected,
+            )? {
+                Ok(())
+            } else {
+                selection::apply_selection(state, descriptor, property, option_id, selected)
+            }
+        }
         UiComponentEvent::ToggleExpanded { expanded } => {
-            disclosure::toggle_expanded(state, expanded)
+            if tree_view::apply_toggle_expanded(state, descriptor, expanded)? {
+                Ok(())
+            } else {
+                disclosure::toggle_expanded(state, expanded)
+            }
         }
         UiComponentEvent::AddElement { property, value } => {
             collection::add_element(state, property, value);

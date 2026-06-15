@@ -3,19 +3,20 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
-    AdvancedRenderFeature, FrameHistoryHandle, FrameHistoryInvalidationReason, RenderBloomSettings,
-    RenderCameraOrderAmbiguity, RenderCameraOrderReport, RenderCameraTargetOrderKey,
-    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
-    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
-    RenderDepthOfFieldSettings, RenderDitherSettings, RenderDynamicResolutionSettings,
-    RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderFramework,
-    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
+    AdvancedRenderFeature, FrameHistoryHandle, FrameHistoryInvalidationReason,
+    PostProcessVolumeExtract, RenderBloomSettings, RenderCameraOrderAmbiguity,
+    RenderCameraOrderReport, RenderCameraTargetOrderKey, RenderCapabilityKind,
+    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderChromaticAberrationSettings,
+    RenderColorGradingSettings, RenderColorLookupSettings, RenderDepthOfFieldSettings,
+    RenderDitherSettings, RenderDynamicResolutionSettings, RenderFilmGrainSettings,
+    RenderFogSettings, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
     RenderHybridGiTraceRegion, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolume, RenderPostProcessVolumeProfile, RenderPostProcessVolumeStack,
-    RenderQualityProfile, RenderScreenSpaceReflectionSettings, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
+    RenderPostProcessVolumeProfile, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
+    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SortedRenderCamera,
+    VolumeComponentOverride,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
@@ -285,7 +286,7 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
             RenderQualityProfile::new("post-process-product")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     server.submit_frame_extract(viewport, extract).unwrap();
@@ -294,15 +295,15 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
     assert_eq!(stats.last_post_process_graph_node_count, 4);
     assert_eq!(stats.last_post_process_graph_skipped_node_count, 1);
     assert_eq!(
-        stats.last_post_process_final_composite_node.as_deref(),
-        Some("final-composite")
+        stats.last_post_process_output_transfer_node.as_deref(),
+        Some("output-transfer")
     );
     assert_eq!(
         stats.last_post_process_graph_executed_nodes,
         vec![
             "bloom".to_string(),
-            "color-grading".to_string(),
-            "final-composite".to_string(),
+            "color-lut-bake".to_string(),
+            "output-transfer".to_string(),
             "fxaa".to_string(),
         ]
     );
@@ -365,7 +366,7 @@ fn render_framework_stats_report_effect_stack_product_node_when_authored() {
             RenderQualityProfile::new("post-process-effect-stack")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_anti_alias(false),
@@ -377,7 +378,7 @@ fn render_framework_stats_report_effect_stack_product_node_when_authored() {
     assert_eq!(stats.last_post_process_graph_node_count, 2);
     assert_eq!(
         stats.last_post_process_graph_executed_nodes,
-        vec!["effect-stack".to_string(), "final-composite".to_string()]
+        vec!["uber".to_string(), "output-transfer".to_string()]
     );
     assert!(stats.last_post_process_effect_stack_report.enabled);
     assert_eq!(
@@ -424,20 +425,21 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
     let mut extract = test_extract();
-    extract.post_process.volume_stack =
-        RenderPostProcessVolumeStack::from_volumes([RenderPostProcessVolume::global(
-            0.0,
-            RenderPostProcessVolumeProfile::default().with_effect_stack(
-                RenderPostProcessEffectStackSettings {
-                    vignette: RenderVignetteSettings {
-                        intensity: 0.6,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            ),
-        )
-        .with_weight(0.5)]);
+    let profile = RenderPostProcessVolumeProfile::default().with_effect_stack(
+        RenderPostProcessEffectStackSettings {
+            vignette: RenderVignetteSettings {
+                intensity: 0.6,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
+    extract.post_process.volumes = vec![PostProcessVolumeExtract::global(
+        0.0,
+        0.5,
+        extract.view.camera.render_layers.clone(),
+        VolumeComponentOverride::from_profile(&profile),
+    )];
 
     server
         .set_quality_profile(
@@ -445,7 +447,7 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
             RenderQualityProfile::new("post-process-volume-effect-stack")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_anti_alias(false),
@@ -457,7 +459,7 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
     assert_eq!(stats.last_post_process_graph_node_count, 2);
     assert_eq!(
         stats.last_post_process_graph_executed_nodes,
-        vec!["effect-stack".to_string(), "final-composite".to_string()]
+        vec!["uber".to_string(), "output-transfer".to_string()]
     );
     assert_eq!(
         stats.last_post_process_effect_stack_report.active_families,
@@ -470,7 +472,7 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
 }
 
 #[test]
-fn render_framework_records_history_resolve_after_compatible_history_exists() {
+fn render_framework_records_temporal_history_after_compatible_history_exists() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let viewport = server
@@ -482,7 +484,7 @@ fn render_framework_records_history_resolve_after_compatible_history_exists() {
             RenderQualityProfile::new("history-product")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(true)
+                .with_temporal_history(true)
                 .with_bloom(false)
                 .with_color_grading(false),
         )
@@ -499,7 +501,7 @@ fn render_framework_records_history_resolve_after_compatible_history_exists() {
     assert!(!first_stats.last_frame_history_status.previous_available);
     assert!(!first_stats
         .last_post_process_graph_executed_nodes
-        .contains(&"history-resolve".to_string()));
+        .contains(&"taa-resolve".to_string()));
 
     server
         .submit_frame_extract(viewport, test_extract())
@@ -510,9 +512,9 @@ fn render_framework_records_history_resolve_after_compatible_history_exists() {
         second_stats.last_frame_history_status.invalidation_reason,
         None
     );
-    assert!(second_stats
+    assert!(!second_stats
         .last_post_process_graph_executed_nodes
-        .contains(&"history-resolve".to_string()));
+        .contains(&"taa-resolve".to_string()));
 }
 
 #[test]
@@ -586,7 +588,7 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
             RenderQualityProfile::new("history-validity")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(true)
+                .with_temporal_history(true)
                 .with_bloom(false)
                 .with_color_grading(false),
         )
@@ -604,9 +606,9 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
         Some(FrameHistoryHandle::new(1))
     );
     assert!(compatible.last_frame_history_status.previous_available);
-    assert!(compatible
+    assert!(!compatible
         .last_post_process_graph_executed_nodes
-        .contains(&"history-resolve".to_string()));
+        .contains(&"taa-resolve".to_string()));
 
     let mut moved_camera = test_extract();
     moved_camera.view.camera.transform = Transform::from_translation(Vec3::new(0.25, 0.0, 0.0));
@@ -632,7 +634,7 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
     );
     assert!(!invalidated
         .last_post_process_graph_executed_nodes
-        .contains(&"history-resolve".to_string()));
+        .contains(&"taa-resolve".to_string()));
 }
 
 #[test]
@@ -649,7 +651,7 @@ fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
             RenderQualityProfile::new("history-dynamic-resolution")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(true)
+                .with_temporal_history(true)
                 .with_bloom(false)
                 .with_color_grading(false),
         )
@@ -699,7 +701,7 @@ fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
     );
     assert!(!invalidated
         .last_post_process_graph_executed_nodes
-        .contains(&"history-resolve".to_string()));
+        .contains(&"taa-resolve".to_string()));
 }
 
 #[test]
@@ -784,7 +786,7 @@ fn quality_profile_can_disable_ssao_clustered_and_history_features() {
             RenderQualityProfile::new("forward-lite")
                 .with_screen_space_ambient_occlusion(false)
                 .with_clustered_lighting(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     server
@@ -801,7 +803,7 @@ fn quality_profile_can_disable_ssao_clustered_and_history_features() {
         .contains(&"clustered_lighting".to_string()));
     assert!(!stats
         .last_effective_features
-        .contains(&"history_resolve".to_string()));
+        .contains(&"temporal".to_string()));
 }
 
 #[test]
@@ -1075,7 +1077,7 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
                 "bad-gated-registration-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")],
+            .with_executor_id("post.uber")],
         ));
 
     let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
@@ -1804,7 +1806,7 @@ fn render_hybrid_gi_history_capture(
                 .with_virtual_geometry(false)
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_reflection_probes(false)
@@ -1821,7 +1823,7 @@ fn render_hybrid_gi_history_capture(
         )
         .unwrap();
     server
-        .submit_frame_extract(viewport, hybrid_gi_history_resolve_extract(viewport_size))
+        .submit_frame_extract(viewport, hybrid_gi_temporal_history_extract(viewport_size))
         .unwrap();
 
     server
@@ -1878,7 +1880,7 @@ fn hybrid_gi_history_seed_extract(
     extract
 }
 
-fn hybrid_gi_history_resolve_extract(viewport_size: UVec2) -> RenderFrameExtract {
+fn hybrid_gi_temporal_history_extract(viewport_size: UVec2) -> RenderFrameExtract {
     let world = World::new();
     let mesh = world
         .nodes()

@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs

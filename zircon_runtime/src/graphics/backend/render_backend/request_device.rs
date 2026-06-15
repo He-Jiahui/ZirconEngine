@@ -1,23 +1,18 @@
-use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
+use crate::graphics::resource_limits::{
+    HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+    POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+};
 use crate::graphics::types::GraphicsError;
 
 const REQUIRED_RENDER_BIND_GROUP_LIMIT: u32 = 5;
-const REQUIRED_POST_PROCESS_SAMPLED_TEXTURES_PER_SHADER_STAGE: u32 = 20;
 
 pub(super) fn request_device(
     adapter: &wgpu::Adapter,
 ) -> Result<(wgpu::Device, wgpu::Queue), GraphicsError> {
-    let mut requested_features = wgpu::Features::empty();
     let adapter_features = adapter.features();
-    if adapter_features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT) {
-        requested_features |= wgpu::Features::MULTI_DRAW_INDIRECT_COUNT;
-    }
-    if adapter_features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE) {
-        requested_features |= wgpu::Features::INDIRECT_FIRST_INSTANCE;
-    }
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-device"),
-        required_features: requested_features,
+        required_features: required_render_features(adapter_features),
         required_limits: required_render_limits(&adapter.limits()),
         memory_hints: wgpu::MemoryHints::Performance,
         trace: wgpu::Trace::Off,
@@ -26,11 +21,24 @@ pub(super) fn request_device(
     .map_err(GraphicsError::from)
 }
 
+fn required_render_features(adapter_features: wgpu::Features) -> wgpu::Features {
+    let mut requested_features = wgpu::Features::RG11B10UFLOAT_RENDERABLE;
+    for feature in [
+        wgpu::Features::MULTI_DRAW_INDIRECT_COUNT,
+        wgpu::Features::INDIRECT_FIRST_INSTANCE,
+    ] {
+        if adapter_features.contains(feature) {
+            requested_features |= feature;
+        }
+    }
+    requested_features
+}
+
 fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
     let mut limits = wgpu::Limits {
         max_bind_groups: REQUIRED_RENDER_BIND_GROUP_LIMIT,
         max_sampled_textures_per_shader_stage:
-            REQUIRED_POST_PROCESS_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+            POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
         ..wgpu::Limits::default()
     };
     if adapter_limits.max_storage_buffers_per_shader_stage
@@ -44,12 +52,32 @@ fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
 
 #[cfg(test)]
 mod tests {
-    use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
+    use crate::graphics::resource_limits::{
+        HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+        POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+    };
 
     use super::{
-        required_render_limits, REQUIRED_POST_PROCESS_SAMPLED_TEXTURES_PER_SHADER_STAGE,
-        REQUIRED_RENDER_BIND_GROUP_LIMIT,
+        required_render_features, required_render_limits, REQUIRED_RENDER_BIND_GROUP_LIMIT,
     };
+
+    #[test]
+    fn offscreen_device_features_request_rg11b10_render_target_when_available() {
+        let features = required_render_features(
+            wgpu::Features::RG11B10UFLOAT_RENDERABLE | wgpu::Features::INDIRECT_FIRST_INSTANCE,
+        );
+
+        assert!(features.contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE));
+        assert!(features.contains(wgpu::Features::INDIRECT_FIRST_INSTANCE));
+        assert!(!features.contains(wgpu::Features::MULTI_DRAW_INDIRECT_COUNT));
+    }
+
+    #[test]
+    fn offscreen_device_features_require_rg11b10_render_target_for_post_process() {
+        let features = required_render_features(wgpu::Features::empty());
+
+        assert!(features.contains(wgpu::Features::RG11B10UFLOAT_RENDERABLE));
+    }
 
     #[test]
     fn offscreen_device_limits_cover_renderer_layout_requirements() {
@@ -62,7 +90,7 @@ mod tests {
         assert!(limits.max_bind_groups >= REQUIRED_RENDER_BIND_GROUP_LIMIT);
         assert!(
             limits.max_sampled_textures_per_shader_stage
-                >= REQUIRED_POST_PROCESS_SAMPLED_TEXTURES_PER_SHADER_STAGE
+                >= POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE
         );
         assert!(
             limits.max_storage_buffers_per_shader_stage

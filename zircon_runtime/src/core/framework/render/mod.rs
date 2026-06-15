@@ -25,6 +25,8 @@ mod shadow;
 mod solari;
 mod sprite;
 mod surface;
+mod temporal_jitter;
+mod view_matrix_pair;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
@@ -36,6 +38,7 @@ pub use advanced::{
 };
 pub use anti_alias::{
     AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
+    TaaQualityPreset,
 };
 pub use backend_types::{
     FrameHistoryHandle, FrameHistoryInvalidationReason, FrameHistoryStatus, GraphicsDebuggerStatus,
@@ -47,8 +50,9 @@ pub use backend_types::{
     RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
     RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
     RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
-    RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
+    RenderQueueCapability, RenderSceneVelocityReadbackReport, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
+    RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -143,16 +147,26 @@ pub use plugin_renderer_outputs::{
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
 pub use post_process::{
-    PostProcessEffectKind, PostProcessEffectSettings, PostProcessGraphResourceNames,
-    PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
-    PostProcessStackDescriptor, RenderBlurSettings, RenderChromaticAberrationSettings,
+    interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, PostProcessEffectKind,
+    PostProcessEffectSettings, PostProcessGraphResourceNames, PostProcessGraphValidationError,
+    PostProcessPassGraph, PostProcessPassNode, PostProcessStackDescriptor,
+    PostProcessVolumeExtract, RenderBlurSettings, RenderChromaticAberrationSettings,
     RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderDepthOfFieldSettings,
-    RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings, RenderMotionBlurSettings,
+    RenderDitherSettings, RenderExposureMode, RenderExposureSettings, RenderFilmGrainSettings,
+    RenderFogSettings, RenderMotionBlurSettings, RenderOutputTransfer,
     RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
-    RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
-    RenderPostProcessVolumeStack, RenderResolvedPostProcessSettings,
+    RenderPostProcessEffectStackSettings, RenderPostProcessTextureFormat,
+    RenderPostProcessVolumeProfile, RenderResolvedPostProcessSettings,
     RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
-    RenderVignetteSettings, MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE,
+    RenderVignetteSettings, ResolvedPostProcessStack, VolumeComponentApplyError,
+    VolumeComponentApplyFn, VolumeComponentDescriptor, VolumeComponentOverride,
+    VolumeComponentReadFn, VolumeComponentRegistry, VolumeEvaluationError, VolumeEvaluationRequest,
+    VolumeEvaluator, VolumeParamInterpFn, VolumeParamSchema, VolumeParamType, VolumeParamValue,
+    VolumeRegistryError, VolumeShapeExtract, BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
+    COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT, COLOR_LUT_SIZE_HIGH_QUALITY,
+    EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
+    MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
 };
 pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
 pub use profile::{
@@ -164,12 +178,13 @@ pub use scene_extract::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, PreviewEnvironmentExtract,
     RenderBloomSettings, RenderColorGradingSettings, RenderExtractPacket, RenderHybridGiDebugView,
     RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
-    RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL, RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
+    RenderMeshStaticState, RenderParticleBillboardBasisSnapshot, RenderParticleBoundsSnapshot,
+    RenderParticlePreviousSpriteSnapshot, RenderParticleSpriteSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
+    SceneViewportRenderPacket, RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
+    RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
@@ -189,6 +204,8 @@ pub use sprite::{
     RenderSpriteSlicer, RenderSpriteSnapshot, SpriteExtract,
 };
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
+pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
+pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
     RenderVirtualGeometryClusterSelectionInputSource,

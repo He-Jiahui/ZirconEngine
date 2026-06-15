@@ -81,3 +81,37 @@ fn replication_schedule_enforces_snapshot_and_byte_budgets_after_interest_cullin
     assert_eq!(repeat_tick_report.skipped_not_due, 2);
     assert_eq!(repeat_tick_report.skipped_by_interest, 1);
 }
+
+#[test]
+fn budget_caps_bytes_per_tick() {
+    let replication = net_replication_runtime_manager();
+    replication.register_component(
+        SyncComponentDescriptor::new("Inventory", SyncAuthority::Server)
+            .with_field(SyncFieldDescriptor::new("payload", "bytes")),
+    );
+
+    let first = NetObjectId::new(41);
+    let second = NetObjectId::new(42);
+    replication.publish_snapshot(
+        first,
+        "Inventory",
+        [SyncFieldValue::new("payload", [1, 2, 3])],
+    );
+    replication.publish_snapshot(
+        second,
+        "Inventory",
+        [SyncFieldValue::new("payload", [4, 5, 6])],
+    );
+
+    let report = replication.scheduled_snapshots(
+        NetSessionId::new(80),
+        0,
+        SyncReplicationBudget::new()
+            .with_max_snapshots(4)
+            .with_max_bytes(3),
+    );
+
+    assert_eq!(report.sent_snapshots.len(), 1);
+    assert_eq!(report.used_bytes, 3);
+    assert_eq!(report.deferred_snapshots, 1);
+}

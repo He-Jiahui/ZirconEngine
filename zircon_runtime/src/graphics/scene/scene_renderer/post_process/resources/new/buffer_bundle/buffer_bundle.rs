@@ -9,7 +9,15 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) hzb_params_buffer:
         wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_camera_params_buffer:
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) exposure_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) default_exposure_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) default_exposure_histogram_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) taa_resolve_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) velocity_camera_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) post_process_params_buffer:
         wgpu::Buffer,

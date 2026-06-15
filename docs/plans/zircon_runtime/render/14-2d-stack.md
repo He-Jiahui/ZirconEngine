@@ -418,6 +418,15 @@ pub trait TilemapBrushRuleHook {
 
 里程碑命令:TD-M1 `cargo test -p zircon_runtime text --locked` + UI 全量文本闸门;TD-M2 `cargo test -p zircon_runtime sprite --locked`;TD-M3 `cargo test -p zircon_runtime tilemap --locked`;TD-M4 `cargo test -p zircon_runtime phase --locked`。切片期一律 `cargo check -p zircon_runtime --lib --locked`(milestone-first)。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | TD-M1 text service and scene text renderer | 未启动: 文本仍主要在 UI 内部 | UI 文本/排版能力存在,但场景 2D 无共享 shaping/atlas 服务和 scene text renderer。 | 本文件 `现状与差距` 明确文本仅 UI 内部、场景 2D 不能直接复用。 | 下沉 font/shaping/atlas 服务,实现 scene text draw command 和 batching。 |
+| 2026-06-15 | TD-M2 nine-slice and image renderer | 部分完成: sprite/atlas 基础存在,九宫和 image renderer 未完成 | sprite renderer 与 atlas management 可用,prepared batches 有批组织;九宫、image renderer、sprite material override 仍待计划实现。 | 本文件 `现状与差距` 记录 sprite 渲染器和图集管理可用但无九宫。 | 实现 nine-slice mesh generation、image renderer asset contract 和 batching stats。 |
+| 2026-06-15 | TD-M3 tilemap data plane and renderer | 未启动: tilemap 数据面缺失 | 无 tilemap chunk、palette、collision/render separation 或 streaming 机制。 | 本文件 `现状与差距` 明确无 tilemap。 | 建立 tilemap asset/chunk renderer、dirty region upload 和 material atlas binding。 |
+| 2026-06-15 | TD-M4 sorting and brush contract | 部分完成: UI 内部排序自洽,场景 2D 混排未统一 | UI z-index 与 painter 内部已有规则,但 sprite/world-space UI/3D 统一排序仍依赖计划 09。 | 计划 09 状态表记录 unified sort key 尚未完成;本文件记录无 y-sort。 | 与计划 09 CO-M3 对齐 sort key、y-sort、layer 和 brush priority。 |
+
 ### 参考实现精读笔记
 
 1. **godot `scene/2d/tile_map_layer.cpp/.h`**(quadrant 组织与脏重建)

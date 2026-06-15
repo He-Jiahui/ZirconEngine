@@ -155,6 +155,13 @@ fn child_window_host_recompute_caches_floating_window_projection_bundle_for_deta
     assert_eq!(frames.host_frame, Some(expected_outer_frame));
     assert!(frames.native_host_present);
     assert_eq!(
+        frames
+            .surface_tree_id
+            .as_ref()
+            .map(|tree_id| tree_id.0.as_str()),
+        Some("zircon.editor.native_window.window:hierarchy")
+    );
+    assert_eq!(
         frames.tab_strip_frame,
         ShellFrame::new(
             expected_outer_frame.x,

@@ -51,10 +51,10 @@ fn shared_menu_pointer_bridge_resolves_popup_item_and_dismiss_overlay_routes() {
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 1,
-            action_id: "workbench.project.save".to_string(),
+            action_id: "file.project.save".to_string(),
         })
     );
-    assert_eq!(item.action_id.as_deref(), Some("workbench.project.save"));
+    assert_eq!(item.action_id.as_deref(), Some("file.project.save"));
     assert_eq!(item.state.open_menu_index, None);
     assert_eq!(item.state.hovered_menu_index, None);
     assert_eq!(item.state.hovered_item_index, None);

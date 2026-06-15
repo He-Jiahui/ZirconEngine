@@ -1,4 +1,4 @@
-use super::data::FrameRect;
+use super::data::{FrameRect, TemplatePaneNodeData};
 
 const TEMPLATE_POPUP_ROW_GAP: f32 = 4.0;
 const MIN_TEMPLATE_POPUP_ROW_HEIGHT: f32 = 24.0;
@@ -43,6 +43,18 @@ pub(crate) fn dropdown_option_popup_frame_within(
     Some(popup)
 }
 
+pub(crate) fn template_option_popup_frame_within(
+    node: &TemplatePaneNodeData,
+    control_frame: &FrameRect,
+    row_count: usize,
+    bounds: &FrameRect,
+) -> Option<FrameRect> {
+    if template_option_rows_use_projected_frame(node) {
+        return (row_count > 0).then_some(control_frame.clone());
+    }
+    dropdown_option_popup_frame_within(control_frame, row_count, bounds)
+}
+
 pub(crate) fn dropdown_option_row_frame(control_frame: &FrameRect, row: usize) -> FrameRect {
     let row_height = dropdown_option_row_height(control_frame);
     FrameRect {
@@ -54,6 +66,30 @@ pub(crate) fn dropdown_option_row_frame(control_frame: &FrameRect, row: usize) -
         width: control_frame.width.max(1.0),
         height: row_height,
     }
+}
+
+pub(crate) fn template_option_row_frame_within(
+    node: &TemplatePaneNodeData,
+    control_frame: &FrameRect,
+    row_count: usize,
+    row: usize,
+    bounds: &FrameRect,
+) -> Option<FrameRect> {
+    if row >= row_count {
+        return None;
+    }
+    let popup = template_option_popup_frame_within(node, control_frame, row_count, bounds)?;
+    let row_height = if template_option_rows_use_projected_frame(node) {
+        menu_item_row_height(&popup, row_count)?
+    } else {
+        dropdown_option_row_height(control_frame)
+    };
+    Some(FrameRect {
+        x: popup.x,
+        y: popup.y + row as f32 * row_height,
+        width: popup.width,
+        height: row_height,
+    })
 }
 
 pub(crate) fn dropdown_option_row_frame_within(
@@ -98,6 +134,11 @@ fn menu_item_row_height(menu_frame: &FrameRect, row_count: usize) -> Option<f32>
         .then_some((menu_frame.height / row_count as f32).max(MIN_TEMPLATE_POPUP_ROW_HEIGHT))
 }
 
+pub(crate) fn template_option_rows_use_projected_frame(node: &TemplatePaneNodeData) -> bool {
+    matches!(node.role.as_str(), "DropdownPopup")
+        || matches!(node.component_role.as_str(), "dropdown-popup")
+}
+
 fn valid_bounds(bounds: &FrameRect) -> bool {
     bounds.x.is_finite()
         && bounds.y.is_finite()
@@ -109,6 +150,7 @@ fn valid_bounds(bounds: &FrameRect) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::super::data::{TemplateNodeFrameData, TemplatePaneNodeData};
     use super::*;
 
     #[test]
@@ -146,6 +188,34 @@ mod tests {
 
         assert_eq!(popup.x, 80.0);
         assert_eq!(popup.width, 80.0);
+    }
+
+    #[test]
+    fn template_option_popup_frame_within_uses_projected_dropdown_popup_frame() {
+        let node = TemplatePaneNodeData {
+            role: "DropdownPopup".into(),
+            component_role: "dropdown-popup".into(),
+            frame: TemplateNodeFrameData {
+                x: 100.0,
+                y: 60.0,
+                width: 120.0,
+                height: 96.0,
+            },
+            ..TemplatePaneNodeData::default()
+        };
+        let popup = template_option_popup_frame_within(
+            &node,
+            &rect(100.0, 60.0, 120.0, 96.0),
+            4,
+            &rect(0.0, 0.0, 320.0, 240.0),
+        )
+        .expect("DropdownPopup should use its projected popup frame");
+        let row =
+            template_option_row_frame_within(&node, &popup, 4, 2, &rect(0.0, 0.0, 320.0, 240.0))
+                .expect("DropdownPopup row should be inside the projected popup frame");
+
+        assert_eq!(popup, rect(100.0, 60.0, 120.0, 96.0));
+        assert_eq!(row, rect(100.0, 108.0, 120.0, 24.0));
     }
 
     fn rect(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

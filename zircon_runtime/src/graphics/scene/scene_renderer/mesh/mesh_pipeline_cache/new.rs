@@ -52,7 +52,9 @@ impl MeshPipelineCache {
             fallback_shadow_atlas_view,
             shader_modules: HashMap::new(),
             mesh_pipelines: HashMap::new(),
-            motion_vector_mesh_pipelines: HashMap::new(),
+            velocity_mesh_pipelines: HashMap::new(),
+            taa_reactive_mask_mesh_pipelines: HashMap::new(),
+            taa_reactive_material_mask_mesh_pipelines: HashMap::new(),
             pipeline_variant_registry: MeshPipelineVariantRegistry::default(),
         }
     }

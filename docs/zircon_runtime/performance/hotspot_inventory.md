@@ -2,13 +2,26 @@
 related_code:
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/query/query_state/stats.rs
   - zircon_runtime/src/scene/ecs/change_detection/stats.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/lighting.rs
+  - zircon_runtime/src/asset/assets/scene/physics.rs
+  - zircon_runtime/src/asset/assets/mod.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/scene/world/project_io/physics.rs
+  - zircon_runtime/src/scene/world/project_io/post_process.rs
+  - zircon_runtime/src/scene/world/project_io/references.rs
+  - zircon_runtime/src/scene/world/project_io/script.rs
+  - zircon_runtime/src/scene/world/project_io/transform.rs
+  - docs/zircon_runtime/scene/world/project_io.md
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
@@ -28,11 +41,12 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
-  - zircon_runtime/src/dynamic_api/session/tests.rs
+  - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/ecs/schedule_runner.rs zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs zircon_runtime/src/tests/runtime_absorption/mod.rs
   - source/doc anchor scan for Runtime 07 M0.3 stage span, M1.3 evidence gate, and render diversion: passed 2026-06-13
   - tracked scoped git diff --check plus untracked no-index diff-check for Runtime 07 performance files: passed 2026-06-13 with LF-to-CRLF warnings only on tracked files
   - runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit added 2026-06-14; Cargo pending active compile lanes
+  - runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner added 2026-06-14; standalone rustc performance_hotspots.rs 4/4 passed; Cargo pending active compile lanes
 doc_type: module-detail
 ---
 
@@ -52,7 +66,7 @@ Until that sample exists, Runtime 07 M2 may only prepare work against the counte
 
 ## Owner-Budgeted Optimization Gate
 
-Runtime 07 M2 also has an owner-budgeted optimization gate. `performance_hotpath_boundary` now consumes `large_file_ownership_gate` so a measured hotspot cannot be promoted into a large production file without an owner verdict. The current static gate is `migration-debt-present`: threshold 1000 lines, 41 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots.
+Runtime 07 M2 also has an owner-budgeted optimization gate. `performance_hotpath_boundary` now consumes `large_file_ownership_gate` so a measured hotspot cannot be promoted into a large production file without an owner verdict. The current static gate is `migration-debt-present`: threshold 1000 lines, 39 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots.
 
 This means extract, ECS, asset, UI, render, and editor candidates must stay in their owning module families. When large production files remain above the owner budget, a Runtime 07 optimization must first split the affected owner surface or defer to the active owner session instead of adding more behavior to the hotspot file.
 
@@ -80,8 +94,14 @@ The current diversion rule is:
 
 `runtime_07_hotspot_inventory_requires_counted_evidence_before_m2` keeps this document, Runtime 07, the runtime index, the schedule-runner span source, the local counted tests, and the persisted 10fps evidence anchors aligned. The guard intentionally allows the authoritative top list to remain pending, but it rejects returning to an empty hotspot placeholder or starting M2 from undocumented suspicion.
 
-`runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit` keeps the owner-budget gate facts synchronized across this document, Runtime 07, the runtime index, the M0 review, the interface-convergence mirror, and `large-file-ownership-m1.md`. It locks the current static evidence to threshold 1000, 41 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots, and it rejects stale 33-hotspot or removed Hub `app/` path anchors. This is a mirror guard; it does not mean the large files are split.
+`runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit` keeps the owner-budget gate facts synchronized across this document, Runtime 07, the runtime index, the M0 review, the interface-convergence mirror, and `large-file-ownership-m1.md`. It locks the current static evidence to threshold 1000, 39 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots, and it rejects stale 33/37/38/41/42-hotspot or removed Hub `app/` path anchors. This is a mirror guard; it does not mean the remaining large files are split.
+
+`runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner` protects the scene asset split that removed the old scene asset large-file hotspot. It requires the folder-backed `scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs` layout, keeps `SceneMobilityAsset` owned only by `scene/mod.rs`, prevents `scene/physics.rs` from reintroducing that enum, and verifies `SceneSpotLightAsset` still has its public fields and export chain through `lighting.rs`, `scene/mod.rs`, `asset/assets/mod.rs`, and `asset/mod.rs`. It also requires Runtime 07 and scene module docs to retain the split-drift repair state anchors.
+
+`runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` protects the project_io folder split. It requires `project_io.rs` to keep only the `World` project I/O entry orchestration and the child declarations for `project_io/{camera,physics,post_process,references,script,transform}.rs`, and it rejects moving converter helper definitions back into the entry file. This keeps the Runtime 07 project_io folder split tied to the current `large_file_hotspot_count = 39` / `runtime-other = 12` owner-budget state.
+
+`runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner` protects the Dynamic Session Event Split. It requires `session.rs` to keep the private Rust-ABI event entry and `mod events;`, requires `session/events.rs` to own the pointer, mouse, touch, keyboard, IME, file-drag, window, gamepad, accessibility, camera, and menu event helpers, and rejects moving those helpers back into the session entry file. This keeps the dynamic session event split tied to the current `large_file_hotspot_count = 39` / `runtime-other = 12` owner-budget state.
 
 `runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation` is the narrower closeout gate for extract/ecs_query/performance profiling/FPS gates. It keeps the Runtime 07 plan and runtime index in `in_progress` while `extract`, `ecs_query`, trace/profiling, and authoritative vampire FPS validation are still pending a clean render/runtime build lane.
 
-The structural mirror for this boundary is `performance_hotpath_boundary`. Its current static evidence reports source 10/10, guard/test 5/5, frame span anchors 9/9, QueryState telemetry anchors 13/13, change-detection telemetry anchors 9/9, extract telemetry anchors 10/10, asset-worker candidate telemetry anchors 5/5, hotspot guard anchors 16/16, Runtime 07 counter assertion anchors 12/12, doc anchors 16/16, pending Cargo/profiling/FPS gate anchors 5/5, stale top3 placeholder false, and `risks = []`. It also mirrors the `large_file_ownership_gate` owner-budget result described above. This is a structure-sync guard only; it does not replace the pending extract/ecs_query/profiling/FPS validation lane.
+The structural mirror for this boundary is `performance_hotpath_boundary`. Its current static evidence is mirrored by `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` and reports `expected_source_file_count = 10`, `expected_test_file_count = 5`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 13`, `change_counter_anchor_count = 9`, `extract_counter_anchor_count = 10`, `asset_worker_anchor_count = 5`, `hotspot_guard_anchor_count = 20`, `test_anchor_count = 12`, `doc_anchor_count = 17`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = migration-debt-present`, `large_file_hotspot_count = 39`, `large_file_migration_debt_count = 5`, `large_file_owner_class_count = 5`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. It also mirrors the `large_file_ownership_gate` owner-budget result described above. This is a structure-sync guard only; it does not replace the pending extract/ecs_query/profiling/FPS validation lane.

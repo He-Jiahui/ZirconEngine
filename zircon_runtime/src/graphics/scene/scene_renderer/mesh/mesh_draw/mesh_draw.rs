@@ -32,12 +32,13 @@ pub(crate) struct MeshDraw {
     pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
     pub(super) cast_shadows: bool,
+    pub(super) taa_reactive_mask_strength: f32,
     pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
     pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
     pub(super) primitive_relevance: Option<PrimitiveRelevance>,
     pub(super) main_view_visible: bool,
     pub(super) shadow_view_visible: bool,
-    pub(super) has_previous_motion_vector_transform: bool,
+    pub(super) has_previous_velocity_transform: bool,
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) skinned: bool,
     #[allow(dead_code)]
@@ -45,6 +46,7 @@ pub(crate) struct MeshDraw {
     #[allow(dead_code)]
     pub(super) previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) skinned_joint_count: u32,
+    pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     // Retains the source mesh that allowed this draw to enter the shader-skinning
     // path. Draws without this source remain CPU-skinned dynamic fallbacks.
     pub(super) skinned_gpu_source: Option<Arc<GpuMeshResource>>,
@@ -73,13 +75,15 @@ impl MeshDraw {
         standard_material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
         cast_shadows: bool,
+        taa_reactive_mask_strength: f32,
         gpu_scene_bind_group: Option<wgpu::BindGroup>,
-        has_previous_motion_vector_transform: bool,
+        has_previous_velocity_transform: bool,
         mesh_lod: Option<RenderMeshLodSelection>,
         skinned: bool,
         skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
         previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
         skinned_joint_count: u32,
+        previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source: Option<Arc<GpuMeshResource>>,
         skinned_gpu_source_uses_cpu_morphed_source: bool,
         skinned_gpu_skinning_enabled: bool,
@@ -105,25 +109,27 @@ impl MeshDraw {
             standard_material_uniform,
             pipeline_key,
             cast_shadows,
+            taa_reactive_mask_strength,
             gpu_scene_bind_group,
             gpu_scene_instance_span: None,
             primitive_relevance: None,
             main_view_visible: true,
             shadow_view_visible: true,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             mesh_lod,
             skinned,
             skinned_joint_palette_buffer,
             previous_skinned_joint_palette_buffer,
             skinned_joint_count,
+            previous_skinned_gpu_source,
             skinned_gpu_source,
             skinned_gpu_source_uses_cpu_morphed_source,
             skinned_gpu_skinning_enabled,
         }
     }
 
-    pub(crate) fn has_previous_motion_vector_transform(&self) -> bool {
-        self.has_previous_motion_vector_transform
+    pub(crate) fn has_previous_velocity_transform(&self) -> bool {
+        self.has_previous_velocity_transform
     }
 
     pub(crate) fn source_entity(&self) -> EntityId {

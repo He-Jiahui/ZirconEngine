@@ -4,7 +4,7 @@ use crate::core::framework::render::{
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
 
-pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 128;
+pub(crate) const GPU_MATERIAL_UNIFORM_MIN_SIZE: usize = 144;
 
 pub(crate) struct GpuMaterialUniformResource {
     #[allow(dead_code)]
@@ -87,6 +87,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
         material.roughness,
         material.emissive.to_array(),
         material.unlit,
+        material.taa_reactive_mask_strength,
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
     )
@@ -98,6 +99,7 @@ fn fallback_standard_material_uniform_contents() -> Vec<u8> {
         1.0,
         [0.0, 0.0, 0.0],
         false,
+        0.0,
         [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
         [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
     )
@@ -108,10 +110,11 @@ fn standard_material_uniform_contents_from_values(
     roughness: f32,
     emissive: [f32; 3],
     unlit: bool,
+    taa_reactive_mask_strength: f32,
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
 ) -> Vec<u8> {
-    let mut values = [0.0_f32; 32];
+    let mut values = [0.0_f32; 36];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
     values[1] = finite_or(roughness, 1.0).clamp(0.04, 1.0);
     values[2] = 1.0;
@@ -128,6 +131,7 @@ fn standard_material_uniform_contents_from_values(
     values[29] = material_uv_channel_scalar(texture_uv_channels[1]);
     values[30] = material_uv_channel_scalar(texture_uv_channels[2]);
     values[31] = material_uv_channel_scalar(texture_uv_channels[3]);
+    values[32] = finite_or(taa_reactive_mask_strength, 0.0).clamp(0.0, 1.0);
 
     bytemuck::cast_slice(&values).to_vec()
 }
@@ -183,11 +187,12 @@ mod tests {
             0.0,
             [0.25, -1.0, 2.0],
             true,
+            1.4,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
         );
 
-        assert_eq!(bytes.len(), 128);
+        assert_eq!(bytes.len(), 144);
         assert_eq!(f32_at(&bytes, 0), 1.0);
         assert_eq!(f32_at(&bytes, 4), 0.04);
         assert_eq!(f32_at(&bytes, 8), 1.0);
@@ -195,6 +200,7 @@ mod tests {
         assert_eq!(f32_at(&bytes, 16), 0.25);
         assert_eq!(f32_at(&bytes, 20), 0.0);
         assert_eq!(f32_at(&bytes, 24), 2.0);
+        assert_eq!(f32_at(&bytes, 128), 1.0);
     }
 
     #[test]
@@ -204,6 +210,7 @@ mod tests {
             0.5,
             [0.0, 0.0, 0.0],
             false,
+            0.25,
             [
                 transform([2.0, 3.0], [0.25, 0.5]),
                 transform([4.0, 5.0], [0.125, 0.25]),
@@ -221,6 +228,7 @@ mod tests {
         assert_eq!(vec4_at(&bytes, 96), [1.0, 11.0, 0.0, -0.25]);
         assert_eq!(f32_at(&bytes, 28), 1.0);
         assert_eq!(vec4_at(&bytes, 112), [1.0, 0.0, 1.0, 1.0]);
+        assert_eq!(vec4_at(&bytes, 128), [0.25, 0.0, 0.0, 0.0]);
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {

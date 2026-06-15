@@ -13,6 +13,7 @@ fn native_floating_window_mode_uses_rust_owned_host_window_contract() {
         "configure_native_floating_window_presentation",
         "native_floating_window_mode = true",
         "native_floating_window_id",
+        "native_surface_tree_id",
         "native_window_title",
         "native_window_bounds",
         "UiHostWindow::new()",

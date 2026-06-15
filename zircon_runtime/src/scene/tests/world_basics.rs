@@ -35,7 +35,9 @@ fn world_bootstraps_with_renderable_defaults() {
         vec![
             SystemStage::First,
             SystemStage::PreUpdate,
+            SystemStage::FixedFirst,
             SystemStage::FixedUpdate,
+            SystemStage::FixedPostUpdate,
             SystemStage::Update,
             SystemStage::PostUpdate,
             SystemStage::Last,

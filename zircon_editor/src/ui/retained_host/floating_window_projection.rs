@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiFrame};
 
 use crate::ui::host::NativeWindowHostState;
 use crate::ui::retained_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;
@@ -19,6 +19,7 @@ pub(crate) struct FloatingWindowProjectionFrames {
     pub content_frame: ShellFrame,
     pub host_frame: Option<ShellFrame>,
     pub native_host_present: bool,
+    pub surface_tree_id: Option<UiTreeId>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -74,9 +75,10 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_s
         .iter()
         .enumerate()
         .map(|(window_index, window)| {
-            let native_host_present = native_window_hosts
+            let native_host = native_window_hosts
                 .iter()
-                .any(|host| host.window_id == window.window_id);
+                .find(|host| host.window_id == window.window_id);
+            let native_host_present = native_host.is_some();
             let host_frame =
                 resolve_native_floating_window_host_frame(native_window_hosts, &window.window_id);
             let outer_frame = resolve_floating_window_projected_outer_frame_with_host_frame(
@@ -110,6 +112,7 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_s
                     content_frame,
                     host_frame,
                     native_host_present,
+                    surface_tree_id: native_host.map(|host| host.surface_tree_id.clone()),
                 },
             )
         })
@@ -300,7 +303,13 @@ mod tests {
 
         assert_eq!(
             bundle.frames(&window_id),
-            Some(&projection_frames(requested_frame, &metrics, None, false))
+            Some(&projection_frames(
+                requested_frame,
+                &metrics,
+                None,
+                false,
+                None,
+            ))
         );
     }
 
@@ -338,16 +347,16 @@ mod tests {
             &floating_window_projection_model(window_id.clone(), requested_frame),
             Some(shared_source()),
             &metrics,
-            &[NativeWindowHostState {
-                window_id: window_id.clone(),
-                handle: Some(7),
-                bounds: [
+            &[NativeWindowHostState::new_for_test(
+                window_id.clone(),
+                Some(7),
+                [
                     host_frame.x,
                     host_frame.y,
                     host_frame.width,
                     host_frame.height,
                 ],
-            }],
+            )],
         );
 
         assert_eq!(
@@ -356,7 +365,8 @@ mod tests {
                 host_frame,
                 &metrics,
                 Some(host_frame),
-                true
+                true,
+                Some("zircon.editor.native_window.window:hosted"),
             ))
         );
     }
@@ -371,16 +381,16 @@ mod tests {
             &floating_window_projection_model(window_id.clone(), ShellFrame::default()),
             Some(shared_source()),
             &metrics,
-            &[NativeWindowHostState {
-                window_id: window_id.clone(),
-                handle: Some(7),
-                bounds: [
+            &[NativeWindowHostState::new_for_test(
+                window_id.clone(),
+                Some(7),
+                [
                     host_frame.x,
                     host_frame.y,
                     host_frame.width,
                     host_frame.height,
                 ],
-            }],
+            )],
         );
 
         assert_eq!(
@@ -389,7 +399,8 @@ mod tests {
                 host_frame,
                 &metrics,
                 Some(host_frame),
-                true
+                true,
+                Some("zircon.editor.native_window.window:bundle-hosted"),
             ))
         );
     }
@@ -426,6 +437,7 @@ mod tests {
                 ),
                 host_frame: None,
                 native_host_present: false,
+                surface_tree_id: None,
             }),
             "shared floating-window projection source should clamp the requested frame"
         );
@@ -472,6 +484,7 @@ mod tests {
                 ),
                 host_frame: None,
                 native_host_present: false,
+                surface_tree_id: None,
             }),
             "missing requested frames should be synthesized from the shared source"
         );
@@ -487,16 +500,22 @@ mod tests {
             &floating_window_projection_model(window_id.clone(), requested_frame),
             None,
             &metrics,
-            &[NativeWindowHostState {
-                window_id: window_id.clone(),
-                handle: Some(9),
-                bounds: [0.0, 0.0, 0.0, 0.0],
-            }],
+            &[NativeWindowHostState::new_for_test(
+                window_id.clone(),
+                Some(9),
+                [0.0, 0.0, 0.0, 0.0],
+            )],
         );
 
         assert_eq!(
             bundle.frames(&window_id),
-            Some(&projection_frames(requested_frame, &metrics, None, true))
+            Some(&projection_frames(
+                requested_frame,
+                &metrics,
+                None,
+                true,
+                Some("zircon.editor.native_window.window:bundle-fallback"),
+            ))
         );
     }
 
@@ -512,6 +531,7 @@ mod tests {
         metrics: &WorkbenchChromeMetrics,
         host_frame: Option<ShellFrame>,
         native_host_present: bool,
+        surface_tree_id: Option<&str>,
     ) -> FloatingWindowProjectionFrames {
         FloatingWindowProjectionFrames {
             outer_frame,
@@ -530,6 +550,7 @@ mod tests {
             ),
             host_frame,
             native_host_present,
+            surface_tree_id: surface_tree_id.map(UiTreeId::new),
         }
     }
 

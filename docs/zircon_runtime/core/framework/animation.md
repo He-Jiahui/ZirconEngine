@@ -122,13 +122,15 @@ The framework defaults return inert status and descriptor records so optional ma
 
 Framework DTOs sanitize non-finite and negative times, playback speeds, and weights. Target matching accepts exact ids and slash-path leaf matches, matching current clip target-id and sequence target-id behavior. Empty or muted target descriptors do not match runtime targets. Missing skeletons, missing targets, GPU resource gaps, invalid players, and waiting-for-asset states are represented as status data rather than panics.
 
+`AnimationPlayerRuntimeStatus` also sanitizes its JSON boundary. `time_seconds` and `playback_speed` serialize and deserialize as finite non-negative values, and `weight` serializes and deserializes as a finite `0.0..=1.0` value. `AnimationRuntimeStatus::sanitized_snapshot()` exposes the same comparison shape used by the serde round-trip guard, so diagnostics and editor panels do not receive JSON `null` values from `NaN` or infinite runtime floats.
+
 Concrete managers must still validate asset availability, clip duration, graph cycles, state-machine transition validity, malformed quaternion channels, skeleton/track mismatch, GPU resource allocation, and event dispatch ordering.
 
 2026-06-04 plugin runtime follow-up split `zircon_plugins/animation/runtime/src/sequence.rs` into a structural facade plus `sequence/{apply,channel_sample,conversion,interpolation,target,tests,time}.rs`. This did not change the neutral framework contracts; sequence binding iteration, channel sampling, interpolation, target-id fallback, and scene property writeback remain plugin-owned runtime behavior behind the same `AnimationManager::apply_sequence_to_world(...)` capability.
 
 ## Test Coverage
 
-Framework tests lock avatar mask target filtering, tick/event report behavior, GPU-skinning readiness, sequence timeline descriptor generation, clip bone/event descriptor generation, track mask matching, clip status sanitization, runtime player/rig aggregation, and serde round-trips for runtime status records.
+Framework tests lock avatar mask target filtering, tick/event report behavior, GPU-skinning readiness, sequence timeline descriptor generation, clip bone/event descriptor generation, track mask matching, clip status sanitization, runtime player/rig aggregation, and serde round-trips for runtime status records. `runtime_animation_status_json_boundary_sanitizes_non_finite_values` keeps the Runtime 14 plan and module-family audit tied to the same JSON boundary guard.
 
 Focused Cargo validation for the current framework-contract update is pending while active Cargo lanes are running. The intended focused check is:
 

@@ -92,7 +92,14 @@ pub(super) fn projected_popup_frame(
 fn is_anchor_positioned_overlay(component_role: &str) -> bool {
     matches!(
         component_role,
-        "popover" | "popper" | "tooltip" | "menu" | "context-menu"
+        "popover"
+            | "popper"
+            | "tooltip"
+            | "menu"
+            | "context-menu"
+            | "context-action-menu"
+            | "dropdown-popup"
+            | "notification-center"
     )
 }
 
@@ -186,7 +193,7 @@ fn origin_axis(
 
 fn default_anchor_origin_vertical(component_role: &str) -> &'static str {
     match component_role {
-        "menu" | "context-menu" => "bottom",
+        "menu" | "context-menu" | "context-action-menu" | "dropdown-popup" => "bottom",
         _ => "top",
     }
 }

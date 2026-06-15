@@ -3,7 +3,7 @@ mod cluster_dimensions;
 mod constants;
 mod fallback_texture;
 mod gpu_data;
-mod params;
+pub(in crate::graphics::scene::scene_renderer) mod params;
 mod pass_graph;
 mod resources;
 mod scene_post_process_resources;
@@ -16,18 +16,18 @@ use gpu_data::{
     reflection_probe_gpu,
 };
 use params::{
-    bloom_params, cluster_params, depth_of_field_prepare_params, motion_vector_camera_params,
-    post_process_params, ssao_params,
+    bloom_params, cluster_params, depth_of_field_prepare_params, post_process_params, ssao_params,
 };
 
 pub(crate) use cluster_dimensions::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};
 pub(crate) use constants::{
-    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+    wgpu_post_process_texture_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
+    POST_PROCESS_TONEMAPPED_FORMAT, SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
 };
-pub(in crate::graphics::scene::scene_renderer) use params::motion_vector_camera_params::MotionVectorCameraParams;
 pub(crate) use pass_graph::execute_post_process_pass_graph;
+pub(in crate::graphics::scene::scene_renderer) use resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 pub(crate) use scene_post_process_resources::ScenePostProcessResources;
 pub(crate) use scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
 
@@ -95,4 +95,36 @@ pub(in crate::graphics::scene::scene_renderer) fn hzb_build_workgroup_size() -> 
         constants::HZB_WORKGROUP_SIZE,
         1,
     ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_histogram_dispatch_groups(
+    viewport_size: UVec2,
+) -> [u32; 3] {
+    [
+        viewport_size
+            .x
+            .max(1)
+            .div_ceil(constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE),
+        viewport_size
+            .y
+            .max(1)
+            .div_ceil(constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_histogram_workgroup_size() -> [u32; 3] {
+    [
+        constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+        constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_resolve_dispatch_groups() -> [u32; 3] {
+    [1, 1, 1]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_resolve_workgroup_size() -> [u32; 3] {
+    [1, 1, 1]
 }

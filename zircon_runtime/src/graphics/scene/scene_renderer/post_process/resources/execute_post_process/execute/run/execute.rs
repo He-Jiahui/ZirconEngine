@@ -39,6 +39,7 @@ impl ScenePostProcessResources {
         screen_space_reflection_history_view: &wgpu::TextureView,
         screen_space_reflection_specular_occlusion_view: &wgpu::TextureView,
         cluster_buffer: &wgpu::Buffer,
+        exposure_buffer: &wgpu::Buffer,
         frame: &ViewportRenderFrame,
         streamer: &ResourceStreamer,
         features: SceneRuntimeFeatureFlags,
@@ -98,6 +99,7 @@ impl ScenePostProcessResources {
             effect_lut.texture_2d_view,
             effect_lut.texture_3d_view,
             cluster_buffer,
+            exposure_buffer,
         );
         record_pass(
             self,

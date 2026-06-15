@@ -270,6 +270,184 @@ fn runtime_component_projection_preserves_material_visual_metadata() {
 }
 
 #[test]
+fn runtime_component_projection_projects_popup_option_state_metadata_for_native_painter() {
+    let popup = host_template_node(projected_node(
+        "DropdownPopup",
+        [
+            ("open", Value::Boolean(true)),
+            (
+                "options",
+                string_array(
+                    [
+                        "scene|label=Scene",
+                        "assets|label=Assets,checked",
+                        "console|label=Console",
+                        "render|label=Render",
+                    ]
+                    .into_iter()
+                    .map(str::to_owned),
+                ),
+            ),
+            (
+                "selected_options",
+                string_array(["assets"].into_iter().map(str::to_owned)),
+            ),
+            (
+                "disabled_options",
+                string_array(["render"].into_iter().map(str::to_owned)),
+            ),
+            (
+                "pressed_options",
+                string_array(["assets"].into_iter().map(str::to_owned)),
+            ),
+            (
+                "loading_options",
+                string_array(["scene"].into_iter().map(str::to_owned)),
+            ),
+            ("focused_index", Value::Integer(2)),
+            ("hovered_option_id", Value::String("console".to_owned())),
+        ],
+    ))
+    .expect("DropdownPopup should project option state metadata into host rows");
+
+    assert!(popup.popup_open);
+    assert_eq!(popup.structured_options.row_count(), 4);
+
+    let scene = popup.structured_options.row_data(0).unwrap();
+    assert_eq!(scene.id.as_str(), "scene");
+    assert_eq!(scene.label.as_str(), "Scene");
+    assert!(scene.loading);
+
+    let assets = popup.structured_options.row_data(1).unwrap();
+    assert_eq!(assets.id.as_str(), "assets");
+    assert_eq!(assets.label.as_str(), "Assets");
+    assert!(assets.selected);
+    assert!(assets.pressed);
+
+    let console = popup.structured_options.row_data(2).unwrap();
+    assert_eq!(console.id.as_str(), "console");
+    assert_eq!(console.label.as_str(), "Console");
+    assert!(console.focused);
+    assert!(console.hovered);
+
+    let render = popup.structured_options.row_data(3).unwrap();
+    assert_eq!(render.id.as_str(), "render");
+    assert_eq!(render.label.as_str(), "Render");
+    assert!(render.disabled);
+}
+
+#[test]
+fn runtime_component_projection_projects_command_palette_commands_for_native_painter() {
+    let palette = host_template_node(projected_node(
+        "CommandPalette",
+        [
+            ("open", Value::Boolean(true)),
+            ("query", Value::String("build".to_owned())),
+            (
+                "commands",
+                Value::Array(vec![
+                    toml_table([
+                        ("id", Value::String("open_scene".to_owned())),
+                        ("label", Value::String("Open Scene".to_owned())),
+                        ("source", Value::String("workbench".to_owned())),
+                        ("shortcut", Value::String("Ctrl+O".to_owned())),
+                    ]),
+                    toml_table([
+                        ("id", Value::String("build_project".to_owned())),
+                        ("label", Value::String("Build Project".to_owned())),
+                        ("source", Value::String("workbench".to_owned())),
+                    ]),
+                    Value::String(
+                        "reload_runtime|label=Reload Runtime|source=runtime|shortcut=Ctrl+R"
+                            .to_owned(),
+                    ),
+                    Value::String(
+                        "build_assets|label=Build Assets|source=workbench|disabled=true".to_owned(),
+                    ),
+                ]),
+            ),
+            (
+                "filtered_commands",
+                string_array(
+                    ["build_project", "build_assets"]
+                        .into_iter()
+                        .map(str::to_owned),
+                ),
+            ),
+            (
+                "disabled_commands",
+                string_array(["build_assets"].into_iter().map(str::to_owned)),
+            ),
+            (
+                "selected_command_id",
+                Value::String("build_project".to_owned()),
+            ),
+            ("focused_index", Value::Integer(0)),
+            (
+                "recent_commands",
+                string_array(["open_scene"].into_iter().map(str::to_owned)),
+            ),
+        ],
+    ))
+    .expect("CommandPalette should project command rows into the host contract");
+
+    assert_eq!(palette.component_role.as_str(), "command-palette");
+    assert_eq!(palette.component_category.as_str(), "input");
+    assert_eq!(palette.component_layout_role.as_str(), "popup");
+    assert!(palette.popup_open);
+    assert_eq!(palette.search_query.as_str(), "build");
+    assert_eq!(palette.options_text.as_str(), "Build Project, Build Assets");
+    assert_eq!(palette.options.row_count(), 2);
+    assert_eq!(
+        palette.options.row_data(0).as_deref(),
+        Some("Build Project")
+    );
+    assert_eq!(palette.structured_options.row_count(), 2);
+
+    let build_project = palette.structured_options.row_data(0).unwrap();
+    assert_eq!(build_project.id.as_str(), "build_project");
+    assert_eq!(build_project.label.as_str(), "Build Project");
+    assert!(build_project.selected);
+    assert!(build_project.focused);
+    assert!(build_project.matched);
+    assert!(!build_project.disabled);
+
+    let build_assets = palette.structured_options.row_data(1).unwrap();
+    assert_eq!(build_assets.id.as_str(), "build_assets");
+    assert_eq!(build_assets.label.as_str(), "Build Assets");
+    assert!(build_assets.disabled);
+    assert!(build_assets.matched);
+}
+
+#[test]
+fn runtime_component_projection_projects_popup_menu_loading_flags_for_native_painter() {
+    let menu = host_template_node(projected_node(
+        "ContextActionMenu",
+        [
+            ("popup_open", Value::Boolean(true)),
+            (
+                "menu_items",
+                string_array(
+                    ["Archive|loading", "Delete|danger,disabled"]
+                        .into_iter()
+                        .map(str::to_owned),
+                ),
+            ),
+        ],
+    ))
+    .expect("ContextActionMenu should project menu-item state flags into host rows");
+
+    let archive = menu.structured_menu_items.row_data(0).unwrap();
+    assert_eq!(archive.label.as_str(), "Archive");
+    assert!(archive.loading);
+
+    let delete = menu.structured_menu_items.row_data(1).unwrap();
+    assert_eq!(delete.label.as_str(), "Delete");
+    assert!(delete.disabled);
+    assert!(!delete.loading);
+}
+
+#[test]
 fn runtime_component_projection_preserves_segmented_selected_style_metadata() {
     let segmented = host_template_node(projected_node(
         "SegmentedControl",
@@ -685,11 +863,57 @@ fn runtime_component_projection_applies_mui_overlay_surface_defaults() {
     .expect("MUI Dialog should project into the host contract");
 
     assert_eq!(dialog.component_role.as_str(), "dialog");
+    assert_eq!(dialog.text.as_str(), "Confirm");
     assert_eq!(dialog.surface_variant.as_str(), "popup");
     assert_eq!(dialog.corner_radius, 4.0);
+    assert_eq!(dialog.border_width, 1.0);
     assert_eq!(dialog.elevation, 24.0);
     assert_eq!(dialog.z_index, 1300);
     assert!(dialog.popup_open);
+
+    let confirm_dialog = host_template_node(projected_node(
+        "ConfirmDialog",
+        [
+            ("open", Value::Boolean(true)),
+            ("title", Value::String("Delete selected prefab?".into())),
+            (
+                "message",
+                Value::String("This removes the prefab reference from the scene.".into()),
+            ),
+            ("confirm_text", Value::String("Delete".into())),
+            ("cancel_text", Value::String("Cancel".into())),
+            ("severity", Value::String("error".into())),
+            ("destructive", Value::Boolean(true)),
+            ("confirm_enabled", Value::Boolean(false)),
+        ],
+    ))
+    .expect("MUI ConfirmDialog should project into the host contract");
+
+    assert_eq!(confirm_dialog.component_role.as_str(), "confirm-dialog");
+    assert_eq!(confirm_dialog.text.as_str(), "Delete selected prefab?");
+    assert_eq!(
+        confirm_dialog.value_text.as_str(),
+        "This removes the prefab reference from the scene."
+    );
+    assert_variant_token(confirm_dialog.component_variant.as_str(), "error");
+    assert_variant_token(confirm_dialog.component_variant.as_str(), "colorError");
+    assert_variant_token(confirm_dialog.component_variant.as_str(), "destructive");
+    assert_variant_token(confirm_dialog.component_variant.as_str(), "confirmDisabled");
+    assert_eq!(confirm_dialog.surface_variant.as_str(), "popup");
+    assert_eq!(confirm_dialog.validation_level.as_str(), "error");
+    assert_eq!(confirm_dialog.border_width, 1.0);
+    assert_eq!(confirm_dialog.elevation, 24.0);
+    assert_eq!(confirm_dialog.z_index, 1300);
+    assert!(confirm_dialog.popup_open);
+    assert_eq!(confirm_dialog.actions.row_count(), 2);
+    assert_eq!(
+        confirm_dialog.actions.row_data(0).unwrap().label.as_str(),
+        "Cancel"
+    );
+    assert_eq!(
+        confirm_dialog.actions.row_data(1).unwrap().label.as_str(),
+        "Delete"
+    );
 
     let tooltip = host_template_node(projected_node(
         "Tooltip",
@@ -933,6 +1157,42 @@ fn runtime_component_projection_positions_mui_popups_from_anchor_metadata() {
 
     assert_eq!(menu.frame.x, 100.0);
     assert_eq!(menu.frame.y, 60.0);
+
+    let mut context_node = projected_node(
+        "ContextMenu",
+        [
+            ("open", Value::Boolean(true)),
+            ("popup_anchor_x", Value::Float(120.0)),
+            ("popup_anchor_y", Value::Float(70.0)),
+            ("popup_anchor_width", Value::Float(24.0)),
+            ("popup_anchor_height", Value::Float(12.0)),
+        ],
+    );
+    context_node.frame = UiFrame::new(0.0, 0.0, 96.0, 48.0);
+    let context = host_template_node(context_node)
+        .expect("ContextMenu should project anchor metadata into the host contract");
+
+    assert_eq!(context.component_role.as_str(), "context-menu");
+    assert_eq!(context.frame.x, 120.0);
+    assert_eq!(context.frame.y, 82.0);
+
+    let mut dropdown_popup_node = projected_node(
+        "DropdownPopup",
+        [
+            ("open", Value::Boolean(true)),
+            ("popup_anchor_x", Value::Float(140.0)),
+            ("popup_anchor_y", Value::Float(90.0)),
+            ("popup_anchor_width", Value::Float(80.0)),
+            ("popup_anchor_height", Value::Float(28.0)),
+        ],
+    );
+    dropdown_popup_node.frame = UiFrame::new(0.0, 0.0, 128.0, 96.0);
+    let dropdown_popup = host_template_node(dropdown_popup_node)
+        .expect("DropdownPopup should project anchor metadata into the host contract");
+
+    assert_eq!(dropdown_popup.component_role.as_str(), "dropdown-popup");
+    assert_eq!(dropdown_popup.frame.x, 140.0);
+    assert_eq!(dropdown_popup.frame.y, 118.0);
 }
 
 #[test]

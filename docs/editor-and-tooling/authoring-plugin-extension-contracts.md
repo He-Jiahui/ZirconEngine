@@ -26,7 +26,7 @@ related_code:
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
@@ -79,7 +79,7 @@ implementation_files:
   - zircon_plugins/animation_graph/README.md
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/imported.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime_interface/src/resource/marker.rs
 plan_sources:
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md

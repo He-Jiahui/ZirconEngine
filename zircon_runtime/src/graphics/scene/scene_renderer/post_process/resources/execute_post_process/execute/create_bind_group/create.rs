@@ -27,6 +27,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn creat
     effect_lut_view: &wgpu::TextureView,
     effect_lut_3d_view: &wgpu::TextureView,
     cluster_buffer: &wgpu::Buffer,
+    exposure_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
     let entries = bind_group_entries(
         resources,
@@ -52,6 +53,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn creat
         effect_lut_view,
         effect_lut_3d_view,
         cluster_buffer,
+        exposure_buffer,
     );
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-post-process-bind-group"),

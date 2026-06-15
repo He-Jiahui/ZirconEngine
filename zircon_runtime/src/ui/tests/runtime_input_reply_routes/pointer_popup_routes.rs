@@ -93,8 +93,27 @@ fn unified_pointer_outside_popup_dismiss_reports_hit_route_and_popup_owner_handl
     assert_eq!(popup_open(&surface), Some(false));
 }
 
+#[test]
+fn unified_pointer_outside_context_menu_dismisses_editor_popup_shell() {
+    let mut surface = component_popup_route_surface("ContextMenu");
+
+    assert_outside_click_closes_component_popup(&mut surface, "ContextMenu");
+}
+
+#[test]
+fn unified_pointer_outside_dropdown_popup_dismisses_selection_popup_shell() {
+    let mut surface = component_popup_route_surface("DropdownPopup");
+
+    assert_outside_click_closes_component_popup(&mut surface, "DropdownPopup");
+}
+
 fn pointer_popup_route_surface() -> UiSurface {
+    component_popup_route_surface("MenuPopup")
+}
+
+fn component_popup_route_surface(component: &str) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input.reply_route.popup_pointer"));
+    let close_binding = format!("{component}/ClosePopup");
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
             .with_frame(UiFrame::new(0.0, 0.0, 180.0, 110.0))
@@ -114,13 +133,19 @@ fn pointer_popup_route_surface() -> UiSurface {
                     ..UiStateFlags::default()
                 })
                 .with_template_metadata(UiTemplateNodeMetadata {
-                    component: "MenuPopup".to_string(),
-                    attributes: [("popup_open".to_string(), toml::Value::Boolean(true))]
-                        .into_iter()
-                        .collect(),
-                    bindings: vec![binding("MenuPopup/ClosePopup", UiEventKind::Click)],
+                    component: component.to_string(),
+                    attributes: [
+                        ("open".to_string(), toml::Value::Boolean(true)),
+                        ("popup_open".to_string(), toml::Value::Boolean(true)),
+                        (
+                            "close_on_backdrop_click".to_string(),
+                            toml::Value::Boolean(true),
+                        ),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    bindings: vec![binding(close_binding.as_str(), UiEventKind::Click)],
                     widget: UiWidgetContract {
-                        behavior: UiWidgetBehavior::Popup,
                         open_property: Some("popup_open".to_string()),
                         ..UiWidgetContract::default()
                     },
@@ -149,6 +174,38 @@ fn pointer_popup_route_surface() -> UiSurface {
         .unwrap();
     surface.rebuild();
     surface
+}
+
+fn assert_outside_click_closes_component_popup(surface: &mut UiSurface, component: &str) {
+    assert_popup_stack(surface, &["root/popup"]);
+    assert_eq!(popup_component(surface), Some(component));
+
+    surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            pointer_event(UiPointerEventKind::Down, UiPoint::new(170.0, 100.0)),
+        )
+        .unwrap();
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            pointer_event(UiPointerEventKind::Up, UiPoint::new(170.0, 100.0)),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert_eq!(result.diagnostics.handled_phase.as_deref(), Some("pointer"));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ClosePopup
+    );
+    assert!(surface.input.popup_stack.is_empty());
+    assert_eq!(popup_open(surface), Some(false));
 }
 
 fn root_pointer_state() -> UiStateFlags {
@@ -180,4 +237,12 @@ fn popup_open(surface: &UiSurface) -> Option<bool> {
         .and_then(|node| node.template_metadata.as_ref())
         .and_then(|metadata| metadata.attributes.get("popup_open"))
         .and_then(toml::Value::as_bool)
+}
+
+fn popup_component(surface: &UiSurface) -> Option<&str> {
+    surface
+        .tree
+        .node(UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .map(|metadata| metadata.component.as_str())
 }

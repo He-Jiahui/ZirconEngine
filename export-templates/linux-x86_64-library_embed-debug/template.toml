@@ -1,0 +1,25 @@
+format_version = 1
+template_id = "linux-x86_64-library_embed-debug"
+engine_version = "0.1.0"
+target_platform = "linux-x86_64"
+host_kind = "desktop"
+resource_strategy = "filesystem_bundle"
+plugin_strategy = "native_dynamic_allowed"
+bundle_format = "directory"
+compatible_profiles = ["linux-release"]
+content_hash = "ba15973051598ad7709f6314f11ab35863f322306cf565ff875747e999896398"
+
+[paths]
+host_executable = "bin/zircon_runtime.host-placeholder"
+
+[bundle]
+host_path = "ZirconRuntime"
+pack_path = "data/assets.zrpack"
+delta_pack_path = "patches/assets.delta.zrpd"
+manifest_path = "zircon-export.json"
+
+[[files]]
+path = "bin/zircon_runtime.host-placeholder"
+bundle_path = "ZirconRuntime"
+purpose = "M3-T2 placeholder host path for Linux directory bundle layout validation"
+sha256 = "9b04e05f06f1c75fc9c8a8bb2904a86e66f3cc7652b85e659d494fea5c532236"

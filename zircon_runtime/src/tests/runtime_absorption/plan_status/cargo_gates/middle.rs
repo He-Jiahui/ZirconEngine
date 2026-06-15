@@ -45,7 +45,7 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
     ] {
         let row = runtime_09_plan
             .lines()
-            .find(|line| line.contains(row_name))
+            .find(|line| line.starts_with('|') && line.contains(row_name))
             .unwrap_or_else(|| panic!("Runtime 09 should keep status row `{row_name}`"));
         assert_contains_all("Runtime 09 pending status row", row, required_anchors);
     }

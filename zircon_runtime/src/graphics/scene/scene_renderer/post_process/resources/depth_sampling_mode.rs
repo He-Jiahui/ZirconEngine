@@ -15,17 +15,25 @@ const DOF_PREPARE_RAW_DEPTH_LOAD_RETURN: &str =
     "return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);";
 const DOF_PREPARE_FALLBACK_DEPTH_LOAD_RETURN: &str =
     "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);";
-const MOTION_VECTOR_CAMERA_RAW_DEPTH_BINDING_DECLARATION: &str =
+const VELOCITY_CAMERA_RAW_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_depth_2d;";
-const MOTION_VECTOR_CAMERA_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
+const VELOCITY_CAMERA_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_2d<f32>;";
-const MOTION_VECTOR_CAMERA_RAW_DEPTH_LOAD_RETURN: &str =
+const VELOCITY_CAMERA_RAW_DEPTH_LOAD_RETURN: &str =
     "return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);";
-const MOTION_VECTOR_CAMERA_FALLBACK_DEPTH_LOAD_RETURN: &str =
+const VELOCITY_CAMERA_FALLBACK_DEPTH_LOAD_RETURN: &str =
     "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);";
+const TAA_RESOLVE_RAW_DEPTH_BINDING_DECLARATION: &str =
+    "@group(0) @binding(1) var scene_depth_tex: texture_depth_2d;";
+const TAA_RESOLVE_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
+    "@group(0) @binding(1) var scene_depth_tex: texture_2d<f32>;";
+const TAA_RESOLVE_RAW_DEPTH_LOAD_RETURN: &str =
+    "return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);";
+const TAA_RESOLVE_FALLBACK_DEPTH_LOAD_RETURN: &str =
+    "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(size.y), 0.0, 1.0);";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::graphics::scene::scene_renderer::post_process) enum PostProcessDepthSamplingMode {
+pub(in crate::graphics::scene::scene_renderer) enum PostProcessDepthSamplingMode {
     RawDepthTexture,
     ViewportDepthFallback,
 }
@@ -88,7 +96,7 @@ impl PostProcessDepthSamplingMode {
         }
     }
 
-    pub(in crate::graphics::scene::scene_renderer::post_process) fn motion_vector_camera_shader_source(
+    pub(in crate::graphics::scene::scene_renderer::post_process) fn velocity_camera_shader_source(
         self,
         raw_shader_source: &'static str,
     ) -> Cow<'static, str> {
@@ -97,12 +105,32 @@ impl PostProcessDepthSamplingMode {
             Self::ViewportDepthFallback => Cow::Owned(
                 raw_shader_source
                     .replace(
-                        MOTION_VECTOR_CAMERA_RAW_DEPTH_BINDING_DECLARATION,
-                        MOTION_VECTOR_CAMERA_FALLBACK_DEPTH_BINDING_DECLARATION,
+                        VELOCITY_CAMERA_RAW_DEPTH_BINDING_DECLARATION,
+                        VELOCITY_CAMERA_FALLBACK_DEPTH_BINDING_DECLARATION,
                     )
                     .replace(
-                        MOTION_VECTOR_CAMERA_RAW_DEPTH_LOAD_RETURN,
-                        MOTION_VECTOR_CAMERA_FALLBACK_DEPTH_LOAD_RETURN,
+                        VELOCITY_CAMERA_RAW_DEPTH_LOAD_RETURN,
+                        VELOCITY_CAMERA_FALLBACK_DEPTH_LOAD_RETURN,
+                    ),
+            ),
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::post_process) fn taa_resolve_shader_source(
+        self,
+        raw_shader_source: &'static str,
+    ) -> Cow<'static, str> {
+        match self {
+            Self::RawDepthTexture => Cow::Borrowed(raw_shader_source),
+            Self::ViewportDepthFallback => Cow::Owned(
+                raw_shader_source
+                    .replace(
+                        TAA_RESOLVE_RAW_DEPTH_BINDING_DECLARATION,
+                        TAA_RESOLVE_FALLBACK_DEPTH_BINDING_DECLARATION,
+                    )
+                    .replace(
+                        TAA_RESOLVE_RAW_DEPTH_LOAD_RETURN,
+                        TAA_RESOLVE_FALLBACK_DEPTH_LOAD_RETURN,
                     ),
             ),
         }
@@ -116,7 +144,9 @@ mod tests {
 
     const DEPTH_OF_FIELD_PREPARE_SHADER: &str =
         include_str!("../shaders/depth_of_field_prepare.wgsl");
-    const MOTION_VECTOR_CAMERA_SHADER: &str = include_str!("../shaders/motion_vector_camera.wgsl");
+    const VELOCITY_CAMERA_SHADER: &str =
+        include_str!("../../temporal/velocity/shaders/velocity_camera.wgsl");
+    const TAA_RESOLVE_SHADER: &str = include_str!("../../temporal/taa/shaders/taa_resolve.wgsl");
 
     #[test]
     fn gl_backends_use_viewport_depth_fallback() {
@@ -181,16 +211,30 @@ mod tests {
     }
 
     #[test]
-    fn viewport_depth_fallback_rewrites_motion_vector_camera_shader() {
+    fn viewport_depth_fallback_rewrites_velocity_camera_shader() {
         let shader_source = PostProcessDepthSamplingMode::ViewportDepthFallback
-            .motion_vector_camera_shader_source(MOTION_VECTOR_CAMERA_SHADER);
+            .velocity_camera_shader_source(VELOCITY_CAMERA_SHADER);
 
         naga::front::wgsl::parse_str(&shader_source)
-            .expect("fallback camera motion-vector shader must parse");
+            .expect("fallback camera velocity shader must parse");
         assert!(!shader_source.contains("texture_depth_2d"));
         assert!(!shader_source.contains("textureLoad(scene_depth_tex"));
         assert!(
             shader_source.contains("@group(0) @binding(0) var scene_depth_tex: texture_2d<f32>;")
+        );
+        assert!(shader_source.contains("return clamp((vec2<f32>(clamped)"));
+    }
+
+    #[test]
+    fn viewport_depth_fallback_rewrites_taa_resolve_shader() {
+        let shader_source = PostProcessDepthSamplingMode::ViewportDepthFallback
+            .taa_resolve_shader_source(TAA_RESOLVE_SHADER);
+
+        naga::front::wgsl::parse_str(&shader_source).expect("fallback TAA shader must parse");
+        assert!(!shader_source.contains("texture_depth_2d"));
+        assert!(!shader_source.contains("textureLoad(scene_depth_tex"));
+        assert!(
+            shader_source.contains("@group(0) @binding(1) var scene_depth_tex: texture_2d<f32>;")
         );
         assert!(shader_source.contains("return clamp((vec2<f32>(clamped)"));
     }

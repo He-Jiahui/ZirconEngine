@@ -35,6 +35,7 @@ related_code:
   - zircon_runtime/src/ui/surface/input/drag_drop.rs
   - zircon_runtime/src/ui/surface/input/popup.rs
   - zircon_runtime/src/ui/surface/input/tooltip_timer.rs
+  - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/input/analog_navigation.rs
   - zircon_runtime/src/ui/surface/input/keyboard_action.rs
   - zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs
@@ -49,6 +50,8 @@ related_code:
   - zircon_runtime/src/ui/surface/input/text_keyboard/payload.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/surface/popup_stack.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/accessibility/action.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/edit_state.rs
@@ -57,7 +60,15 @@ related_code:
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/range.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/radio.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/scrollbar.rs
   - zircon_runtime/src/ui/surface/interaction_gate.rs
@@ -88,6 +99,8 @@ related_code:
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/gamepad_navigation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/popup_routes.rs
@@ -126,6 +139,7 @@ related_code:
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/route.rs
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -170,6 +184,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/drag_drop.rs
   - zircon_runtime/src/ui/surface/input/popup.rs
   - zircon_runtime/src/ui/surface/input/tooltip_timer.rs
+  - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/input/analog_navigation.rs
   - zircon_runtime/src/ui/surface/input/keyboard_action.rs
   - zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs
@@ -184,6 +199,8 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/text_keyboard/payload.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
   - zircon_runtime/src/ui/surface/popup_stack.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
+  - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/accessibility/action.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/edit_state.rs
@@ -192,7 +209,15 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/range.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/radio.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/scrollbar.rs
   - zircon_runtime/src/ui/surface/interaction_gate.rs
@@ -223,6 +248,8 @@ implementation_files:
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/gamepad_navigation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/popup_routes.rs
@@ -261,6 +288,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/navigation.rs
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
+  - zircon_runtime_interface/src/ui/surface/pointer/route.rs
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -301,6 +329,8 @@ tests:
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/gamepad_navigation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/popup_routes.rs
@@ -308,6 +338,10 @@ tests:
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_popup_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tooltip_timer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes/touch_pointer_routes.rs
+  - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/dispatch/input/event.rs zircon_runtime_interface/src/ui/dispatch/input/mod.rs zircon_runtime_interface/src/ui/dispatch/mod.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/dispatch/input_manager/timers.rs zircon_runtime/src/ui/dispatch/input_manager/manager.rs zircon_runtime/src/ui/surface/surface/default_interactions.rs zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/toast_timer.rs zircon_runtime/src/ui/surface/input/route_policy.rs zircon_runtime/src/ui/surface/input/owner_route.rs zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs (2026-06-15 M3.S2 Snackbar/Toast input-manager auto-hide timer dispatch: passed)
+  - git diff --check -- touched tracked ToastTimer dispatch Rust/docs/session files (2026-06-15 M3.S2 Snackbar/Toast input-manager auto-hide timer dispatch: passed with LF-to-CRLF warnings only)
+  - cargo test -p zircon_runtime --lib toast_timer --locked and cargo test -p zircon_runtime_interface --lib ui_input_payloads_round_trip_through_serde --locked (2026-06-15 M3.S2 Snackbar/Toast input-manager auto-hide timer dispatch: deferred because active cargo/rustc lanes were present in the shared Windows workspace)
+  - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/pointer_click_semantics.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_clipboard.rs
@@ -584,6 +618,8 @@ M2 focus routing now records focused input through the runtime-owned `UiFocusSta
 
 Focus mutation lives in `surface/focus.rs` instead of growing `surface.rs` further. Programmatic focus uses `UiFocusChangeReason::Programmatic`; pointer focus uses `Input` and hides focus-visible by default unless a pointer handler explicitly requests a visible focus ring; keyboard/navigation focus uses `Navigation` and `KeyboardNavigation`. Autofocus resolves from `pending_autofocus` or the first authored `UiFocusContract::autofocus` node and records an `Autofocus` focus-change event. Re-focusing the already focused node updates the visible policy but does not append a duplicate focus-change event.
 
+Open overlay focus scopes are no longer limited to hard-coded Material component names. `Dialog`, `ConfirmDialog`, `Modal`, `Popover`, `Menu`, and any node whose resolved `UiWidgetContract::behavior` is `Popup` participate in the same focus scope when `open` or `popup_open` is true. Opening the scope records the previous focus, autofocuses the first focusable descendant unless `disable_auto_focus` / `disableAutoFocus` is set, and tab traversal loops inside that overlay. Programmatic focus requests that target an outside node are redirected back into the open overlay unless `disable_enforce_focus` / `disableEnforceFocus` is set. Closing the overlay removes the restore entry, restores the previous valid focus unless `disable_restore_focus` / `disableRestoreFocus` is set, and clears focus when the closed overlay still owns it. This keeps `.zui` Popup/MenuPopup/Dialog/ConfirmDialog widgets on the same focus-loop contract as MUI modal components while preserving authored opt-out flags.
+
 Focus reconciliation is driven by accepted tree changes only. Runtime property mutation clears focus when an accepted `disabled`, `enabled`, `visible`, `visibility`, or `focusable` mutation makes the focused node invalid, and records `Disabled` or `Hidden` according to the property that invalidated focus. The `disabled` path matters for authored/runtime attribute gates because `disabled = true` is not the inverse `enabled` state flag; it is mirrored into component state and then checked by the shared input-owner validator. Unchanged and rejected mutations do not emit focus changes. Detaching a subtree to the surface node pool clears focus, capture, press, hover, high-precision, IME, pointer-lock, and active drag/drop state for detached owners with `Despawned` focus-change reason.
 
 The focus cleanup path rebuilds the hover-owner list from valid owners instead of retaining with a closure that also borrows the surface for validation. Editable text dispatch captures the focused-input kind before moving the shared input event into `UiInputDispatchResult`, and keyboard focused-input records an accepted focused route whenever a focused owner exists even if the current low-level keyboard reply remains unhandled pending a widget reducer. These are compile-level invariants for the runtime-owned focus/input state and do not change navigation ordering.
@@ -592,7 +628,7 @@ M3 navigation behavior consumes the M1 `UiNavigationContract` stored on `UiTreeN
 
 ## Widget Behavior Contract
 
-Headless widget behavior is now authored through `UiWidgetContract::behavior` instead of being inferred only from a component name at each runtime call site. `UiWidgetBehavior::Auto` preserves existing templates by mapping known components such as `Button`, `Checkbox`, `Slider`, `TextField`, and `MenuItem` onto behavior families. Explicit values such as `Toggle`, `Range`, or `TextInput` override that fallback, and `Passive` prevents a known component name from gaining default behavior accidentally.
+Headless widget behavior is now authored through `UiWidgetContract::behavior` instead of being inferred only from a component name at each runtime call site. `UiWidgetBehavior::Auto` preserves existing templates by mapping known components such as `Button`, `Checkbox`, `Slider`, `TextField`, and `MenuItem` onto behavior families. Popup-like shell components resolve to `Popup`, so accepted `open`/`popup_open` mutations share popup-stack synchronization and modal focus-loop handling. Dialog-like shells join the same popup stack and modal focus scope through the retained overlay shell classifier instead of gaining the generic Popup default toggle behavior. Explicit values such as `Toggle`, `Range`, or `TextInput` override that fallback, and `Passive` prevents a known component name from gaining default behavior accidentally.
 
 Default pointer and focused-keyboard behavior read the resolved widget behavior once and then apply the behavior family. Buttons and menu items emit the same activated commit through click bindings for pointer release and focused `Enter`/`Space`; pointer double-click keeps the existing `double_activated` binding event while still being owned by the button behavior reducer. Menu item popup close is owned by the MenuItem reducer even when the menu item itself has no activation binding, so pointer, keyboard, and accessibility activation all close the nearest open popup through the same popup mutation path. Toggle widgets use `checked_property` with `checked` as the legacy fallback. Disclosure and popup widgets use `open_property` with `expanded` or `popup_open` as the current family default. Range widgets use `value_property`, `min_property`, `max_property`, and `step_property`, so custom TOML components can participate in drag, step, and value-change events without adopting the built-in `Slider` or `RangeField` component names.
 
@@ -1214,6 +1250,72 @@ SearchField/Autocomplete query text-owner and TextField caret-key evidence from 
 - `rustfmt --edition 2021 --check zircon_runtime\src\ui\surface\input\editable_text\ime_context.rs zircon_runtime\src\ui\tests\widget_text_input_ime_context.rs`: PASS after adding retained IME soft-wrap geometry coverage.
 - `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-ime-anchor-0613-coremin --message-format short --color never`: PASS after retained IME soft-wrap geometry, with existing warnings only.
 - `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-ime-anchor-0613-coremin text_input_ime_preedit_rects_follow_soft_wrapped_composition_range --message-format short --color never -- --exact --nocapture`: timed out after 1204s during Windows lib-test compile/link with no Rust diagnostics; no `zircon_runtime-*.exe` test binary was produced and matching target-dir cargo/rustc processes were stopped.
+
+Popup menu shell timer evidence from 2026-06-14:
+
+- `default_interactions.rs` now treats `Menu`, `MenuList`, `PopupMenu`, `MenuPopup`, `ContextMenu`, `ContextActionMenu`, and `DropdownPopup` component metadata, plus matching menu roles, as menu-like for typeahead and submenu hover timer lookup.
+- `UiInputManager` timer coverage now exercises `MenuList`, `ContextMenu`, and `DropdownPopup` with authored `typeahead_timeout_ms` and `submenu_hover_delay_ms`. `popup_menu_shells_expose_typeahead_and_submenu_timer_contracts` asserts the surface predicates return both delays for each shell, and `hovered_menu_option_arms_replaces_and_clears_submenu_hover_timer` now covers the same shell set when arming, replacing, and clearing submenu hover deadlines.
+- Focused `rustfmt --edition 2021 --check` passed for `state_reducer/keyboard/menu.rs`, `component_state/keyboard_menu.rs`, `dispatch/input_manager/manager.rs`, and `surface/default_interactions.rs`. Direct Cargo execution is deferred to the M3.S1 testing stage, matching the milestone implementation cadence.
+
+TreeView physical-key component-action evidence from 2026-06-14:
+
+- Focused `TreeView`/`MaterialTreeView`/`FolderTree` nodes now get target-aware semantic action mapping before generic directional focus navigation. ArrowRight maps to `UiComponentKeyboardAction::Increment` so the component reducer can expand the focused node; ArrowLeft maps to `Decrement` so it can collapse; F2 maps to `BeginEdit` so the tree reducer can enter retained inline rename state; ArrowUp/ArrowDown keep `Previous`/`Next`.
+- `unified_keyboard_arrow_right_prefers_tree_view_expand_keyboard_action_binding`, `unified_keyboard_arrow_left_prefers_tree_view_collapse_keyboard_action_binding`, and `unified_keyboard_f2_prefers_tree_view_begin_edit_keyboard_action_binding` cover the focused route: focus stays on the tree target, the dispatch result is handled by `keyboard.component_action`, `KeyboardAction` events are delivered to the tree binding, and no `keyboard_navigation=` fallback note is emitted.
+- Focused `rustfmt --edition 2021 --check` formatting passed for the touched TreeView route/reducer/catalog/test files, `git diff --check` passed with LF-to-CRLF warnings only, `cargo check -p zircon_runtime_interface --lib` passed, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min` passed with existing warnings only. A default-feature `cargo check -p zircon_runtime --lib` repeat and direct `cargo test -p zircon_runtime tree_view --lib` were blocked before TreeView test execution by unrelated graphics/render test-profile compile errors around private `SKINNED_MESH_MAX_JOINT_MATRICES` re-export, private `scene_renderer::mesh` access, missing `AdvancedProfileRuntimePlan::default`, and `FrameSubmissionContext::new(...)` argument shape; no TreeView route/reducer diagnostics were emitted.
+
+TreeView pointer selection route evidence from 2026-06-14:
+
+- `UiPointerRoute` now retains `UiInputModifiers`, and pointer metadata dispatch forwards those modifiers into the surface default-interaction path. This lets the same hit-test route distinguish plain, Ctrl, and Shift pointer selection without inventing host-only tree selection state.
+- `default_interactions/tree_view.rs` maps pointer release on `TreeItem`/`TreeRow` metadata back to the owning `TreeView`/`MaterialTreeView`/`FolderTree`, flattens `nodes`/`items`/`options`, respects disabled item metadata, and emits `SelectOption` while writing `value`, `focused_index`, `selected_index`, `selection_anchor_index`, `selected_items`, or MUI `selectedItems` as appropriate. Plain click selects one item; Ctrl toggles an item when multi-select is enabled; Shift selects the retained anchor-to-target range.
+- Focused formatting and type checks passed for the touched pointer route files: `rustfmt --edition 2021 --check`, `cargo check -p zircon_runtime_interface --lib --target-dir E:\cargo-targets\zircon-editor-ui-tree-pointer-interface-0614`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --target-dir E:\cargo-targets\zircon-editor-ui-tree-pointer-coremin-0614`. Direct `cargo test -p zircon_runtime --lib --no-default-features --features core-min tree_view_ --target-dir E:\cargo-targets\zircon-editor-ui-tree-pointer-coremin-0614` was blocked before executing the new pointer tests by unrelated graphics/test-profile compile errors around `SKINNED_MESH_MAX_JOINT_MATRICES`, `AdvancedProfileRuntimePlan::default`, and `FrameSubmissionContext::new(...)`; no TreeView pointer diagnostics were emitted.
+
+TreeView pointer/context rename entry evidence from 2026-06-14:
+
+- TreeView default pointer interactions now treat primary double-click on a clicked tree item and secondary release inside the same pressed tree item as inline rename entry requests. Both routes resolve the item back to the owning `TreeView`/`MaterialTreeView`/`FolderTree`, respect `editable=false`, disabled item lists, and the shared interaction gate, then emit `KeyboardAction::BeginEdit`.
+- The route writes retained edit state on the owner rather than asking the editor to infer it from a raw pointer event: `editing = true`, `editing_node_id`/`editingNodeId`, `editing_text`/`editingText`, `editing_index`/`editingIndex`, `focused_index`, `selected_index`, `rename_committed`/`renameCommitted = false`, and empty renamed-node/text payloads. Generic TreeView keeps snake_case props; MUI `MaterialTreeView` uses camelCase aliases.
+- Focused `rustfmt --edition 2021 --check` passed for `default_interactions.rs`, `default_interactions/tree_view.rs`, and `runtime_input_reply_routes/tree_view_pointer_routes.rs`; `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-tree-rename-entry-coremin-0614 --message-format short --color never` passed with existing warnings only. Direct `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-tree-rename-entry-coremin-0614 tree_view_pointer --message-format short --color never -- --nocapture` timed out after 304s during Windows lib-test compile/link with no Rust diagnostics and no matching target-dir cargo/rustc processes left running.
+
+TreeView drag reorder evidence from 2026-06-14:
+
+- Default TreeView pointer interactions now treat primary press on a reorderable tree row as a tree drag begin. Generic `TreeView` opts in with `reorderable = true`; MUI X `MaterialTreeView` opts in with `itemsReordering = true`. The press captures the tree owner, stores a tree-specific drag token in pointer-drag state, and emits `BeginDrag` with drag metrics.
+- Primary move while captured updates the retained pointer-drag metrics without changing the collection order. Primary release over another row owned by the same tree ends the drag, reorders top-level `nodes` for generic TreeView or top-level `items` for MaterialTreeView, updates selected/focused/anchor/value props for the moved id, emits `MoveElement { property, from, to }`, and emits `EndDrag`. The later M2.S2 baseline extends this release path to nested cross-parent reparent and virtualized scroll-to-window behavior.
+- Focused `rustfmt --edition 2021 --check` passed for `default_interactions.rs`, `default_interactions/tree_view.rs`, `default_interactions/tree_view_support.rs`, `runtime_input_reply_routes.rs`, `runtime_input_reply_routes/tree_view_pointer_routes.rs`, `data_display.rs`, and `mui_x.rs`; `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-tree-drag-reorder-coremin-0614 --message-format short --color never` passed with existing warnings only. Direct `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-tree-drag-reorder-coremin-0614 tree_view_pointer --message-format short --color never -- --nocapture` timed out after 404s during Windows lib-test compile/link with no Rust diagnostics and no matching target-dir cargo/rustc processes left running.
+
+Table/DataGrid pointer column-resize evidence from 2026-06-14:
+
+- Default Table/DataGrid pointer interactions now treat primary press on a column resize handle as a table drag begin. Generic `Table` opts in with `resizable_columns = true`; MUI X `DataGrid` keeps the route enabled unless `disableColumnResize = true`. The press resolves the resize handle back to the owning table, captures that owner, stores the field/start-width drag token, and emits `BeginDrag { property = "column_width" }`.
+- Primary move and release update `column_widths[field]` and the matching `columns[].width`, clamp width with the column or owner `min_column_width`, and emit `ValueChanged`, `DragDelta`, and `EndDrag` from the owner. The route is covered for generic Table, MUI DataGrid, and disabled MUI resize handles; later Table/DataGrid slices added sort-header, row-selection, and virtual-scroll routes on top of this resize baseline.
+- Focused `rustfmt --edition 2021 --check` passed for `default_interactions.rs`, `default_interactions/table/mod.rs`, `surface.rs`, `runtime_input_reply_routes.rs`, `runtime_input_reply_routes/table_pointer_routes.rs`, `data_display.rs`, and `mui_x.rs`; `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-resize-coremin-0614 --message-format short --color never` passed with existing warnings only. Direct `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-resize-coremin-0614 table_column_resize --message-format short --color never -- --nocapture` timed out after 604s during Windows lib-test compile/link with no Rust diagnostics, and matching cargo/rustc processes were stopped. `cargo check -p zircon_runtime --lib --tests --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-resize-coremin-0614 --message-format short --color never` remains blocked by unrelated `zircon_runtime\tests\virtual_geometry_debug_snapshot_contract.rs` `RenderMeshSnapshot` missing-field E0063 errors.
+
+Table/DataGrid sort-header route evidence from 2026-06-14:
+
+- Default Table/DataGrid pointer interactions now treat primary release on `TableColumnHeader`/`DataGridColumnHeader` as a sort request for the column `field`. The route resolves the header back to the owning `Table`/`DataGrid`, respects owner sorting disable flags and per-column `sortable = false`, then emits `ValueChanged { property = "sort_column" }` from the owner.
+- The route writes retained owner `sort_column` and `sort_direction`, toggling same-column `asc`/`desc` with the reducer's existing rule. It also writes `columns[].sortDirection` as the render-facing indicator, mirrors DataGrid `sortModel`, sorts retained `rows` in client mode, and leaves row order untouched when `sortingMode = "server"`.
+- `rustfmt --edition 2021` passed for `default_interactions/table/mod.rs` and `runtime_input_reply_routes/table_pointer_routes.rs`; `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-sort-header-coremin-0614 --message-format short --color never` passed with existing warnings only. Direct `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-sort-header-coremin-0614 table_sort_header --message-format short --color never -- --nocapture` exited during dependency/test compile with no Rust diagnostics and no produced `zircon_runtime-*.exe`. `cargo check -p zircon_runtime --lib --tests --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-sort-header-coremin-0614 --message-format short --color never` remains blocked by unrelated `zircon_runtime\tests\virtual_geometry_debug_snapshot_contract.rs` `RenderMeshSnapshot` missing-field E0063 errors.
+
+Table/DataGrid row-selection route evidence from 2026-06-14:
+
+- `default_interactions/table/mod.rs` delegates row-click release handling to `default_interactions/table/selection.rs` after column resize and sort-header routes decline the event, keeping Table pointer behaviors ordered and folder-backed.
+- The selection route resolves `TableRow`/`DataGridRow` nodes, derives row id/index from row metadata or owner `rows`, respects owner/row disabled gates and DataGrid `disableRowSelectionOnClick`, then writes generic Table `selected_rows` plus `value` or DataGrid `rowSelectionModel`, with `focused_index` and `selected_index` mirrors on both owners. It emits `SelectOption` from the owner so retained state, route diagnostics, and editor-side semantic observers share one signal.
+- `rustfmt --edition 2021 --check` passed for `default_interactions/table/mod.rs`, `default_interactions/table/selection.rs`, `runtime_input_reply_routes/table_pointer_routes.rs`, and `data_display.rs`; an initial `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-row-selection-coremin-0614 --message-format short --color never` passed with existing warnings only. A focused `cargo test ... table_pointer_routes` run reached 8 tests and reported 7/8 passed before the disabled-row-selection assertion was corrected; after that fix, reruns are blocked before UI tests by unrelated `zircon_runtime\src\asset\assets\scene\*` compile errors, and the current same-target `cargo check` is blocked by the same unrelated asset/scene errors.
+
+Table/DataGrid virtual-scroll route evidence from 2026-06-14:
+
+- `default_interactions/table/mod.rs` now delegates `UiPointerActivationPhase::Scroll` to `default_interactions/table/virtualization.rs`. The route resolves the owning `Table`/`DataGrid` from the hit stack, ignores captured pointer drags and zero-delta scrolls, and respects owner interaction gates plus `disableVirtualization`.
+- The virtual-scroll route computes the next retained viewport from `viewport_start`, `viewport_count`, `rowHeight`/`row_height`, `rowCount`/`row_count` or `rows`, and overscan aliases. It writes `viewport_start`, `viewport_count`, `visible_end`/`visibleEnd`, `requested_start`/`requestedStart`, `requested_count`/`requestedCount`, `overscan` aliases, total/count aliases, and `scroll_offset`/`scrollTop`, then emits owner `SetVisibleRange { start, count }`.
+- `rustfmt --edition 2021 --check` passed for the touched Table route, virtualization helper, Table pointer-route tests, and Material descriptor/schema files. The focused `cargo test -p zircon_runtime --lib --no-default-features --features core-min table_pointer_routes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-table-virtual-scroll-0614 --message-format short --color never` wrapper exceeded the foreground timeout during Windows lib-test compile/link, but the warmed binary was produced; direct `E:\cargo-targets\zircon-editor-ui-table-virtual-scroll-0614\debug\deps\zircon_runtime-5d2828c2001649f6.exe table_pointer_routes --nocapture --test-threads=1` passed 11 tests, 0 failed, 4079 filtered.
+
+TreeView virtualized reparent/scroll route evidence from 2026-06-14:
+
+- `default_interactions/tree_view_virtualization.rs` now handles owner-level TreeView/MaterialTreeView wheel routes before generic default pointer actions. It resolves the tree owner from the hit stack, rejects captured drags and zero-delta scrolls, respects the shared interaction gate plus `disable_virtualization`/`disableVirtualization`, derives total rows from retained count aliases or flattened `nodes`/`items`, and writes `viewport_start`, `viewport_count`, `visible_end`/`visibleEnd`, requested range aliases, overscan aliases, total/count aliases, and `scroll_offset`/`scrollTop` before emitting `SetVisibleRange`.
+- `default_interactions/tree_view_reparent.rs` owns retained nested-tree mutation for drag release. It removes the source subtree from `nodes`/`items`/child arrays, rejects self and descendant drops, inserts the subtree under the target parent, returns flattened `from`/`to` indices for `MoveElement`, and lets the main TreeView drag route update selection, focus, anchor, expanded parent ids, and virtual-window scroll-to-index in one release path.
+- Focused `rustfmt --edition 2021 --check` passed for the touched TreeView route, virtualization helper, reparent helper, Material descriptor/schema files, and pointer-route tests. `cargo test -p zircon_runtime --lib --no-default-features --features core-min tree_view_pointer_routes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-tree-virtual-reparent-0614 --message-format short --color never` and same-target `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --message-format short --color never` are currently blocked by unrelated dirty graphics history texture E0451 at `zircon_runtime\src\graphics\scene\scene_renderer\history\scene_frame_history_textures\new.rs:115:13`; no TreeView diagnostics were emitted.
+
+Snackbar/Toast timer route evidence from 2026-06-15:
+
+- `surface/input/toast_timer.rs` is the leaf route for `UiInputEvent::ToastTimer`. It asks `UiSurface::apply_default_toast_timeout_component_event(...)` to re-check that the target is an enabled `Snackbar`/`Toast` and that the timer `toast_id` still matches retained `current_toast_id`, then emits `Commit { property = "expired_toast_id" }` through the component binding path. Stale or disabled timer events are unhandled and annotated with `toast_timer.stale`.
+- `default_interactions/toast_timer.rs` keeps the Snackbar/Toast retained-state parsing out of the large default interaction root. It reads `current_toast_id` plus `auto_hide_duration_ms`/`autoHideDuration` from component state first, then template metadata, and supports `Snackbar`/`Toast` component names or `role = "snackbar"|"toast"`.
+- Focused `rustfmt --edition 2021 --check` passed for the interface event, input manager timer, ToastTimer surface route, route policy/owner-route/IME-context dispatch files, and public route tests. Scoped `git diff --check` passed with LF-to-CRLF warnings only, and conflict/trailing-whitespace scans had no matches. Cargo validation was deferred because active cargo/rustc lanes were present in the shared Windows workspace.
 
 Popup/tooltip explicit owner-gate evidence from 2026-05-23:
 

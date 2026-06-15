@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui"
+version = 2
+display_name = "Workbench Confirm Dialog"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchConfirmDialog]
+root = "root"
+default_classes = ["workbench-confirm-dialog", "workbench-dialog", "workbench-primitive"]
+
+[nodes.root]
+component = "ConfirmDialog"
+control_id = "WorkbenchConfirmDialogRoot"
+classes = ["workbench-confirm-dialog", "workbench-dialog"]
+props = { open = true, popup_open = true, title = "Delete selected node?", message = "This removes the node from the scene hierarchy.", confirm_text = "Delete", cancel_text = "Cancel", confirm_action_id = "delete-node", cancel_action_id = "cancel-delete-node", severity = "warning", default_action = "cancel", destructive = true, confirm_enabled = true, requires_explicit_action = true, placement = "center", popup_anchor_x = 640.0, popup_anchor_y = 360.0, popup_anchor_width = 0.0, popup_anchor_height = 0.0, anchor_origin_vertical = "center", anchor_origin_horizontal = "center", transform_origin_vertical = "center", transform_origin_horizontal = "center", popup_offset_x = 0.0, popup_offset_y = 0.0, disable_auto_focus = false, disable_enforce_focus = false, disable_restore_focus = false, disable_escape_key_down = false, close_on_backdrop_click = true, keep_mounted = false, aria_modal = true, aria_labelledby = "Workbench confirmation dialog", aria_describedby = "Confirm or cancel a destructive editor action", z_index = 1460, disable_portal = false, portal_layer = "dialog", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 420.0, preferred = 460.0, max = 540.0, stretch = "Fixed" }, height = { min = 174.0, preferred = 210.0, max = 300.0, stretch = "Fixed" } }

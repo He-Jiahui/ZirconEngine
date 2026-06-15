@@ -36,7 +36,7 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_partially_bound_binding_array: caps.supports_partially_bound_binding_array,
         supports_fxaa: caps.supports_offscreen,
         supports_smaa: false,
-        supports_taa: false,
+        supports_taa: caps.supports_offscreen,
         supports_cas: false,
         supports_dlss: false,
         supports_neural_compute: caps.supports_neural_compute,
@@ -44,5 +44,24 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         max_supported_msaa_samples: 1,
         virtual_geometry_supported: flagship_baseline_supported,
         hybrid_global_illumination_supported: flagship_baseline_supported,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rhi::RenderBackendCaps;
+
+    use super::capability_summary;
+
+    #[test]
+    fn capability_summary_reports_taa_when_offscreen_postprocess_is_available() {
+        let with_offscreen =
+            capability_summary(&RenderBackendCaps::new("taa-capable").with_offscreen_support(true));
+        let without_offscreen = capability_summary(
+            &RenderBackendCaps::new("taa-disabled").with_offscreen_support(false),
+        );
+
+        assert!(with_offscreen.supports_taa);
+        assert!(!without_offscreen.supports_taa);
     }
 }

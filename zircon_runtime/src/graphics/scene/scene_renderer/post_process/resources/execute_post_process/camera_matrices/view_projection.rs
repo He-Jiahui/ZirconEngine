@@ -1,18 +1,10 @@
-use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
-use crate::core::math::{view_matrix, Mat4, UVec2};
-
-use super::orthographic_projection::orthographic_projection;
-use super::perspective_projection::perspective_projection;
+use crate::core::framework::render::{ViewProjectionMatrixPair, ViewportCameraSnapshot};
+use crate::core::math::{Mat4, UVec2};
 
 pub(in super::super) fn view_projection(
     camera: &ViewportCameraSnapshot,
     viewport_size: UVec2,
-) -> (Mat4, Mat4) {
-    let aspect = viewport_size.x.max(1) as f32 / viewport_size.y.max(1) as f32;
-    let projection = match camera.projection_mode {
-        ProjectionMode::Perspective => perspective_projection(camera, aspect),
-        ProjectionMode::Orthographic => orthographic_projection(camera, aspect),
-    };
-    let view = view_matrix(camera.transform);
-    (view, projection)
+) -> Mat4 {
+    // Post-process screen-space inputs must not inherit temporal jitter.
+    ViewProjectionMatrixPair::from_camera(camera, viewport_size).clip_from_world_unjittered
 }

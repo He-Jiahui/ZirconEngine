@@ -1,2 +1,4 @@
 pub(in crate::graphics::scene::scene_renderer::particle) const PARTICLE_SHADER: &str =
     include_str!("../shaders/particle.wgsl");
+pub(in crate::graphics::scene::scene_renderer::particle) const PARTICLE_VELOCITY_SHADER: &str =
+    include_str!("../shaders/particle_velocity.wgsl");

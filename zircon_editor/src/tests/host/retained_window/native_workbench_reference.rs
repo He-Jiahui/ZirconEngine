@@ -21,6 +21,11 @@ const OUTSIDE_WORKBENCH_POPUP_X: f32 = 16.0;
 const OUTSIDE_WORKBENCH_POPUP_Y: f32 = 16.0;
 const WORKBENCH_PREVIEW_CAPTURE_ENV: &str = "ZIRCON_WRITE_WORKBENCH_PREVIEW";
 const WORKBENCH_PREVIEW_CAPTURE_PATH_ENV: &str = "ZIRCON_WORKBENCH_PREVIEW_PATH";
+const COMPONENT_LAB_INPUT_TEXT_COMMIT_ACTION_ID: &str = "component_lab.input_text.commit";
+const WORKBENCH_ABILITY_NAME_EDIT_ACTION_ID: &str = "workbench.module.ability.name.edit";
+const WORKBENCH_ABILITY_NAME_COMMIT_ACTION_ID: &str = "workbench.module.ability.name.commit";
+const WORKBENCH_MENU_NEW_ACTION_ID: &str = "menu.item.new";
+const WORKBENCH_MENU_MORE_TOOLS_ACTION_ID: &str = "menu.item.more_tools";
 
 #[test]
 fn host_window_template_bridge_keeps_workbench_reference_out_of_projection() {
@@ -143,7 +148,7 @@ fn native_workbench_text_input_focuses_edits_and_commits_from_keyboard() {
             ),
             (
                 "WorkbenchInputText".to_string(),
-                "ComponentLab/InputTextCommit".to_string(),
+                COMPONENT_LAB_INPUT_TEXT_COMMIT_ACTION_ID.to_string(),
                 "Text field!".to_string()
             )
         ]
@@ -169,11 +174,11 @@ fn native_workbench_module_field_focuses_edits_and_commits_from_keyboard() {
     assert_eq!(input.value_text.as_str(), "GA_DashAttack");
     assert_eq!(
         input.edit_action_id.as_str(),
-        "WorkbenchModule/AbilityNameEdit"
+        WORKBENCH_ABILITY_NAME_EDIT_ACTION_ID
     );
     assert_eq!(
         input.commit_action_id.as_str(),
-        "WorkbenchModule/AbilityNameCommit"
+        WORKBENCH_ABILITY_NAME_COMMIT_ACTION_ID
     );
     assert!(
         input.frame.width > 0.0 && input.frame.height > 0.0,
@@ -195,12 +200,12 @@ fn native_workbench_module_field_focuses_edits_and_commits_from_keyboard() {
         [
             (
                 "WorkbenchAbilityNameField".to_string(),
-                "WorkbenchModule/AbilityNameEdit".to_string(),
+                WORKBENCH_ABILITY_NAME_EDIT_ACTION_ID.to_string(),
                 "GA_DashAttack_Preview".to_string()
             ),
             (
                 "WorkbenchAbilityNameField".to_string(),
-                "WorkbenchModule/AbilityNameCommit".to_string(),
+                WORKBENCH_ABILITY_NAME_COMMIT_ACTION_ID.to_string(),
                 "GA_DashAttack_Preview".to_string()
             )
         ]
@@ -417,7 +422,7 @@ fn native_workbench_popup_menu_row_hover_updates_structured_row_state() {
             .pane_interaction_state
             .hovered_template_action_id
             .as_str(),
-        "New"
+        WORKBENCH_MENU_NEW_ACTION_ID
     );
     let menu = workbench_node(&after, "WorkbenchPopupMenu");
     let hovered = structured_menu_item(&menu, 0);
@@ -488,7 +493,10 @@ fn native_workbench_popup_menu_item_primary_press_keeps_menu_selection_path() {
     assert!(result.requires_frame_update());
     assert_eq!(
         clicked_items.borrow().as_slice(),
-        [("WorkbenchPopupMenu".to_string(), "New".to_string())]
+        [(
+            "WorkbenchPopupMenu".to_string(),
+            WORKBENCH_MENU_NEW_ACTION_ID.to_string()
+        )]
     );
 }
 
@@ -543,7 +551,7 @@ fn native_workbench_popup_menu_submenu_primary_press_keeps_menu_selection_path()
     let menu = workbench_node(&before, "WorkbenchPopupMenu");
     assert_eq!(
         structured_menu_item(&menu, 4).action_id.as_str(),
-        "More Tools"
+        WORKBENCH_MENU_MORE_TOOLS_ACTION_ID
     );
     let (x, y) = menu_item_row_point(&menu, 4);
     let result = ui.dispatch_native_primary_press_for_test(x, y);
@@ -552,7 +560,10 @@ fn native_workbench_popup_menu_submenu_primary_press_keeps_menu_selection_path()
     assert!(result.requires_frame_update());
     assert_eq!(
         clicked_items.borrow().as_slice(),
-        [("WorkbenchPopupMenu".to_string(), "More Tools".to_string())]
+        [(
+            "WorkbenchPopupMenu".to_string(),
+            WORKBENCH_MENU_MORE_TOOLS_ACTION_ID.to_string()
+        )]
     );
 }
 
@@ -609,6 +620,63 @@ fn native_workbench_dropdown_keyboard_moves_row_hover_and_enter_dispatches_optio
             "dropdown".to_string()
         )]
     );
+}
+
+#[test]
+fn native_workbench_dropdown_home_jumps_to_first_enabled_option() {
+    let ui = host_with_open_workbench_dropdown_nodes();
+
+    let before = ui.get_host_presentation();
+    let dropdown = workbench_node(&before, "WorkbenchInputDropdown");
+    assert!(dropdown.popup_open);
+    assert!(structured_option(&dropdown, 1).hovered);
+
+    let home_result = ui.dispatch_native_popup_home_for_test();
+
+    assert!(home_result.request_redraw());
+    let after = ui.get_host_presentation();
+    assert_eq!(
+        after
+            .pane_interaction_state
+            .hovered_template_dispatch_kind
+            .as_str(),
+        "workbench_option"
+    );
+    assert_eq!(
+        after
+            .pane_interaction_state
+            .hovered_template_value_text
+            .as_str(),
+        "dropdown"
+    );
+    let dropdown = workbench_node(&after, "WorkbenchInputDropdown");
+    assert!(structured_option(&dropdown, 0).hovered);
+    assert!(!structured_option(&dropdown, 1).hovered);
+}
+
+#[test]
+fn native_workbench_dropdown_text_search_jumps_to_matching_enabled_option() {
+    let ui = host_with_open_workbench_dropdown_nodes();
+
+    let before = ui.get_host_presentation();
+    let dropdown = workbench_node(&before, "WorkbenchInputDropdown");
+    assert!(dropdown.popup_open);
+    assert!(structured_option(&dropdown, 1).hovered);
+
+    let search_result = ui.dispatch_native_popup_text_for_test("d");
+
+    assert!(search_result.request_redraw());
+    let after = ui.get_host_presentation();
+    assert_eq!(
+        after
+            .pane_interaction_state
+            .hovered_template_value_text
+            .as_str(),
+        "dropdown"
+    );
+    let dropdown = workbench_node(&after, "WorkbenchInputDropdown");
+    assert!(structured_option(&dropdown, 0).hovered);
+    assert!(!structured_option(&dropdown, 1).hovered);
 }
 
 #[test]
@@ -728,7 +796,7 @@ fn native_workbench_popup_menu_keyboard_moves_row_hover_and_enter_dispatches_men
             .pane_interaction_state
             .hovered_template_action_id
             .as_str(),
-        "More Tools"
+        WORKBENCH_MENU_MORE_TOOLS_ACTION_ID
     );
     let menu = workbench_node(&after, "WorkbenchPopupMenu");
     assert!(structured_menu_item(&menu, 4).hovered);
@@ -740,8 +808,83 @@ fn native_workbench_popup_menu_keyboard_moves_row_hover_and_enter_dispatches_men
     assert!(enter_result.requires_frame_update());
     assert_eq!(
         clicked_items.borrow().as_slice(),
-        [("WorkbenchPopupMenu".to_string(), "More Tools".to_string())]
+        [(
+            "WorkbenchPopupMenu".to_string(),
+            WORKBENCH_MENU_MORE_TOOLS_ACTION_ID.to_string()
+        )]
     );
+}
+
+#[test]
+fn native_workbench_popup_menu_home_end_jump_to_boundary_rows() {
+    let ui = host_with_componentized_workbench_nodes();
+
+    let before = ui.get_host_presentation();
+    let menu = workbench_node(&before, "WorkbenchPopupMenu");
+    assert!(menu.popup_open);
+    assert!(structured_menu_item(&menu, 3).hovered);
+
+    let home_result = ui.dispatch_native_popup_home_for_test();
+
+    assert!(home_result.request_redraw());
+    let after_home = ui.get_host_presentation();
+    assert_eq!(
+        after_home
+            .pane_interaction_state
+            .hovered_template_dispatch_kind
+            .as_str(),
+        "workbench_menu_item"
+    );
+    assert_eq!(
+        after_home
+            .pane_interaction_state
+            .hovered_template_action_id
+            .as_str(),
+        WORKBENCH_MENU_NEW_ACTION_ID
+    );
+    let menu = workbench_node(&after_home, "WorkbenchPopupMenu");
+    assert!(structured_menu_item(&menu, 0).hovered);
+    assert!(!structured_menu_item(&menu, 3).hovered);
+
+    let end_result = ui.dispatch_native_popup_end_for_test();
+
+    assert!(end_result.request_redraw());
+    let after_end = ui.get_host_presentation();
+    assert_eq!(
+        after_end
+            .pane_interaction_state
+            .hovered_template_action_id
+            .as_str(),
+        WORKBENCH_MENU_MORE_TOOLS_ACTION_ID
+    );
+    let menu = workbench_node(&after_end, "WorkbenchPopupMenu");
+    assert!(!structured_menu_item(&menu, 0).hovered);
+    assert!(structured_menu_item(&menu, 4).hovered);
+}
+
+#[test]
+fn native_workbench_popup_menu_text_search_jumps_to_matching_item() {
+    let ui = host_with_componentized_workbench_nodes();
+
+    let before = ui.get_host_presentation();
+    let menu = workbench_node(&before, "WorkbenchPopupMenu");
+    assert!(menu.popup_open);
+    assert!(structured_menu_item(&menu, 3).hovered);
+
+    let search_result = ui.dispatch_native_popup_text_for_test("m");
+
+    assert!(search_result.request_redraw());
+    let after = ui.get_host_presentation();
+    assert_eq!(
+        after
+            .pane_interaction_state
+            .hovered_template_action_id
+            .as_str(),
+        WORKBENCH_MENU_MORE_TOOLS_ACTION_ID
+    );
+    let menu = workbench_node(&after, "WorkbenchPopupMenu");
+    assert!(!structured_menu_item(&menu, 3).hovered);
+    assert!(structured_menu_item(&menu, 4).hovered);
 }
 
 #[test]
@@ -763,7 +906,7 @@ fn native_workbench_popup_menu_escape_dispatches_popup_cancel() {
         ui.get_pane_interaction_state()
             .hovered_template_action_id
             .as_str(),
-        "More Tools"
+        WORKBENCH_MENU_MORE_TOOLS_ACTION_ID
     );
 
     let escape_result = ui.dispatch_native_popup_escape_for_test();
@@ -805,7 +948,7 @@ fn native_workbench_popup_menu_outside_primary_press_dispatches_popup_cancel() {
         ui.get_pane_interaction_state()
             .hovered_template_action_id
             .as_str(),
-        "New"
+        WORKBENCH_MENU_NEW_ACTION_ID
     );
 
     let outside_result = ui.dispatch_native_primary_press_for_test(

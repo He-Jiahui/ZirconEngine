@@ -450,6 +450,25 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
         UiWidgetContract::default().resolved_behavior("RangeSlider"),
         UiWidgetBehavior::Range
     );
+    for component in [
+        "Dropdown",
+        "Menu",
+        "PopupMenu",
+        "MenuPopup",
+        "ContextMenu",
+        "ContextActionMenu",
+        "DropdownPopup",
+    ] {
+        assert_eq!(
+            UiWidgetContract::default().resolved_behavior(component),
+            UiWidgetBehavior::Popup,
+            "{component} should infer popup widget behavior"
+        );
+    }
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("MenuList"),
+        UiWidgetBehavior::Passive
+    );
     assert_eq!(
         UiWidgetContract::default().resolved_behavior("ScrollBar"),
         UiWidgetBehavior::Scrollbar
@@ -540,6 +559,7 @@ fn ui_binding_update_contract_represents_attribute_state_and_ecs_domains() {
     let mut pointer_result = UiPointerDispatchResult::new(UiPointerRoute {
         kind: UiPointerEventKind::Down,
         button: None,
+        modifiers: Default::default(),
         activation_phase: UiPointerActivationPhase::PrimaryPress,
         point: UiPoint::default(),
         scroll_delta: 0.0,

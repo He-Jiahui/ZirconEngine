@@ -24,6 +24,12 @@ impl EditorUiBindingPayload {
         }
     }
 
+    pub fn editor_command(command_id: impl Into<String>) -> Self {
+        Self::EditorCommand {
+            command_id: command_id.into(),
+        }
+    }
+
     pub fn editor_operation(operation_id: impl Into<String>) -> Self {
         Self::EditorOperation {
             operation_id: operation_id.into(),

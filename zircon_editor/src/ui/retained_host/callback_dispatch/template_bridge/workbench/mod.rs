@@ -1,4 +1,5 @@
 mod bridge;
+mod command_palette;
 mod component_property_rows;
 mod componentized_window;
 mod data_sync;
@@ -22,5 +23,6 @@ mod transform_edit;
 mod window_menu_state;
 
 pub(crate) use bridge::BuiltinHostWindowTemplateBridge;
+pub(crate) use command_palette::WorkbenchCommandPaletteOpenState;
 pub(crate) use componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 pub(crate) use root_shell_frames::BuiltinHostRootShellFrames;

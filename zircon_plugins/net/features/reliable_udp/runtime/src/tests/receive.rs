@@ -35,3 +35,43 @@ fn reliable_udp_receiver_reassembles_out_of_order_fragments_once() {
     );
     assert_eq!(manager.stats().received_packets, 3);
 }
+
+#[test]
+fn oversize_payload_fragments_and_reassembles() {
+    let manager = NetReliableUdpRuntimeManager::new(ReliableDatagramConfig {
+        mtu_bytes: 4,
+        ..ReliableDatagramConfig::default()
+    });
+    let report = manager.enqueue_reliable_datagram("state", b"abcdefghij".to_vec());
+
+    assert_eq!(report.packets.len(), 3);
+    assert_eq!(
+        report
+            .packets
+            .iter()
+            .map(|packet| (
+                packet.fragment_index,
+                packet.fragment_count,
+                packet.payload.clone()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, 3, b"abcd".to_vec()),
+            (1, 3, b"efgh".to_vec()),
+            (2, 3, b"ij".to_vec()),
+        ]
+    );
+
+    assert_eq!(
+        manager.receive_packet(report.packets[2].clone()).status,
+        ReliableDatagramReceiveStatus::AcceptedFragment
+    );
+    assert_eq!(
+        manager.receive_packet(report.packets[0].clone()).status,
+        ReliableDatagramReceiveStatus::AcceptedFragment
+    );
+    let completed = manager.receive_packet(report.packets[1].clone());
+
+    assert_eq!(completed.status, ReliableDatagramReceiveStatus::Reassembled);
+    assert_eq!(completed.payload, Some(b"abcdefghij".to_vec()));
+}

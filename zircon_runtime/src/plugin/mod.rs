@@ -24,9 +24,15 @@ pub use bridge::{
 pub use capability_status::{CapabilityStatus, CapabilityStatusManifest};
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use core_profiles::{EditorCoreProfile, RuntimeCoreProfile};
-pub use export_build_plan::{ExportBuildPlan, ExportGeneratedFile, ExportMaterializeReport};
+pub use export_build_plan::{
+    ExportBuildPlan, ExportGeneratedFile, ExportMaterializeReport, ExportPipelineStage,
+    ExportValidateGeneratedFileSummary, ExportValidatePlanSummary, ExportValidateProfileSummary,
+    ExportValidateReport, LibraryEmbedCompileHostPlan, LibraryEmbedCompileHostTarget,
+    LibraryEmbedLinkedRuntimeCrate, NativeDynamicPackageAbiV3Contract,
+    NativeDynamicPackageExportPlan,
+};
 pub use export_profile::{
-    ExportPackagingStrategy, ExportPlatformHostKind, ExportPlatformPluginStrategy,
+    ExportBuildMode, ExportPackagingStrategy, ExportPlatformHostKind, ExportPlatformPluginStrategy,
     ExportPlatformPolicy, ExportPlatformResourceStrategy, ExportProfile, ExportTargetPlatform,
 };
 pub use extension_registry::{
@@ -49,9 +55,10 @@ pub use native_plugin_loader::{
     NativePluginLiveHost, NativePluginLiveHostBridgeLifecycleReport,
     NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,
     NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome, NativePluginLoadManifest,
-    NativePluginLoadManifestEntry, NativePluginLoadReport, NativePluginLoader,
-    NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3, NativePluginRuntimeBehaviorCall,
-    NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
+    NativePluginLoadManifestAbiV3Contract, NativePluginLoadManifestEntry, NativePluginLoadReport,
+    NativePluginLoader, NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3,
+    NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeHotUpdateReport,
     NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
     NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
     NativePluginRuntimeStateSnapshot, NativePluginSchemaVersionsV3,

@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
@@ -21,7 +22,11 @@ pub struct ProjectManifest {
     pub plugins: ProjectPluginManifest,
     #[serde(default, skip_serializing_if = "ProjectScriptManifest::is_empty")]
     pub scripts: ProjectScriptManifest,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_export_profiles",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub export_profiles: Vec<ExportProfile>,
 }
 
@@ -62,4 +67,29 @@ fn default_project_format_version() -> u32 {
 
 fn invalid_data(error: impl std::error::Error) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::InvalidData, error.to_string())
+}
+
+fn deserialize_export_profiles<'de, D>(deserializer: D) -> Result<Vec<ExportProfile>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum ExportProfilesInput {
+        List(Vec<ExportProfile>),
+        Map(BTreeMap<String, ExportProfile>),
+    }
+
+    Ok(match ExportProfilesInput::deserialize(deserializer)? {
+        ExportProfilesInput::List(profiles) => profiles,
+        ExportProfilesInput::Map(profiles) => profiles
+            .into_iter()
+            .map(|(name, mut profile)| {
+                if profile.name.is_empty() {
+                    profile.name = name;
+                }
+                profile
+            })
+            .collect(),
+    })
 }

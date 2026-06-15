@@ -28,7 +28,7 @@ fn render_framework_visualize_visbuffer_draws_only_execution_subset_in_captured_
                 .with_hybrid_global_illumination(false)
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_reflection_probes(false)

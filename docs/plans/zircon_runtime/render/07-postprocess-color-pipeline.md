@@ -1,8 +1,16 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/mod.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
@@ -43,7 +51,7 @@ plan_sources:
 
 ## 现状与差距
 
-- effect stack(`stack.rs`/`effect.rs`/`pass_graph.rs`)与 bloom/DoF/SSR/motion blur/color grading 执行器已存在,但:链顺序无权威定义;无 Volume 概念(参数只有全局 stack,无局部容器与空间混合);无自动曝光;tonemap 曲线与 HDR 格式未定稿;dither/vignette/grain/CA 缺失或散落。
+- effect stack(`stack.rs`/`effect.rs`/`pass_graph.rs`)与 bloom/DoF/SSR/motion blur/color grading 执行器已存在;PP-M2 已补 Volume DTO/evaluator,PP-M3-S1b 已补 WGPU histogram/resolve 自动曝光。剩余差距集中在:链路仍保留若干兼容构造器;LUT bake/uber 瘦身尚未硬切;tonemap 曲线与 HDR 输出档仍待 PP-M3/PP-M4 完成;dither/vignette/grain/CA 专项产物测试仍待补齐。
 - 色彩空间管理不明:哪些 pass 在 linear、LUT 是否含输出转换、UI 合成在前在后,均无文档与断言。
 
 ## 参考代码
@@ -136,7 +144,7 @@ plan_sources:
 
 ### 模块与文件落点
 
-现状基线:契约层 `core/framework/render/post_process/` 已有 `effect.rs`(`PostProcessEffectKind`/`PostProcessEffectSettings`)、`stack.rs`(`PostProcessGraphResourceNames`/`PostProcessStackDescriptor`)、`pass_graph.rs`/`pass_node.rs`/`validation.rs`、`volume.rs`(`RenderPostProcessVolume`/`RenderPostProcessVolumeStack`,局部权重 `local_blend` 由 extract 预算,无形状概念)、`effect_stack_settings/`(`RenderPostProcessEffectStackSettings` 含 tonemap/color_lookup/blur/motion_blur/DoF/SSR/vignette/grain/dither/CA/fog 全套字段)。实现层 `graphics/scene/scene_renderer/post_process/resources/` 已有 `execute_bloom`、`execute_post_process`(executor id `post.stack`,单 shader `post_process.wgsl` 混合承担 tonemap/LUT/vignette/grain/dither/CA/fog/motion blur)、motion vector 三件套与 SSR 六件套。
+现状基线:契约层 `core/framework/render/post_process/` 已有 `effect.rs`(`PostProcessEffectKind`/`PostProcessEffectSettings`)、`stack.rs`(`PostProcessGraphResourceNames`/`PostProcessStackDescriptor`)、`pass_graph.rs`/`pass_node.rs`/`validation.rs`、`resolved_stack.rs`(`RenderResolvedPostProcessSettings`)、`volume_profile.rs`(`RenderPostProcessVolumeProfile`)、`volume_component.rs`/`volume_registry.rs`(组件 schema 与内建注册表)、`volume_extract.rs`(`PostProcessVolumeExtract`/global/box/sphere 形状快照)、`volume_evaluator.rs`(`VolumeEvaluator` 每相机求值)、`effect_stack_settings/`(`RenderPostProcessEffectStackSettings` 含 tonemap/color_lookup/blur/motion_blur/DoF/SSR/vignette/grain/dither/CA/fog 全套字段)。实现层 `graphics/scene/scene_renderer/post_process/resources/` 已有 `execute_bloom`、`execute_post_process`(executor id `post.stack`,单 shader `post_process.wgsl` 混合承担 tonemap/LUT/vignette/grain/dither/CA/fog/motion blur)、motion vector 三件套与 SSR 六件套。
 
 **新增文件**:
 
@@ -144,14 +152,19 @@ plan_sources:
 |---|---|---|
 | `core/framework/render/post_process/volume_component.rs` | `VolumeComponentDescriptor`/`VolumeParamSchema`/`VolumeParamValue`/`VolumeParamInterpFn` | 契约 |
 | `core/framework/render/post_process/volume_registry.rs` | `VolumeComponentRegistry`(内建+插件效果注册,id 去重) | 契约 |
+| `core/framework/render/post_process/resolved_stack.rs` | `RenderResolvedPostProcessSettings` 强类型 resolved stack | 契约 |
+| `core/framework/render/post_process/volume_profile.rs` | `RenderPostProcessVolumeProfile` 运行时 volume profile 旧数据入口 | 契约 |
 | `core/framework/render/post_process/volume_extract.rs` | `PostProcessVolumeExtract`/`VolumeShapeExtract`/`VolumeComponentOverride` | 契约 |
 | `core/framework/render/post_process/volume_evaluator.rs` | `VolumeEvaluator`/`ResolvedPostProcessStack`(每相机求值) | 契约 |
 | `core/framework/render/post_process/exposure_settings.rs` | `RenderExposureSettings`/`RenderExposureMode` | 契约 |
 | `core/framework/render/post_process/chain.rs` | `PostProcessChainSlot` 枚举 + backbone 定稿表构建(`PostProcessStackDescriptor::from_resolved`) | 契约 |
 | `core/framework/render/post_process/color_space.rs` | `RenderOutputTransfer`、中间格式常量 `INTERMEDIATE_HDR_FORMAT_*`、LUT 尺寸常量 | 契约 |
 | `core/framework/render/post_process/dynamic_resolution.rs` | `DynamicResolutionSettings`/`UpscaleFilter` | 契约 |
-| `graphics/scene/scene_renderer/post_process/resources/execute_exposure_histogram/mod.rs` | histogram compute executor(`post.exposure-histogram`) | 实现 |
-| `graphics/scene/scene_renderer/post_process/resources/execute_exposure_resolve/mod.rs` | 直方图归约+曝光收敛 executor(`post.exposure-resolve`) | 实现 |
+| `graphics/scene/scene_renderer/post_process/params/exposure_params.rs` | `ExposureParams` GPU 上传布局与默认 exposure buffer words | 实现 |
+| `graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs` | histogram/resolve compute executor(`post.exposure.histogram`/`post.exposure.resolve`) | 实现 |
+| `graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/{exposure_histogram,exposure_resolve}.rs` | exposure 两个 compute layout | 实现 |
+| `graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/{exposure_histogram_pipeline,exposure_resolve_pipeline}.rs` | exposure 两个 compute pipeline | 实现 |
+| `graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/{exposure_params_buffer,default_exposure_buffer,default_exposure_histogram_buffer}.rs` | exposure 参数与 fallback buffer | 实现 |
 | `graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs` | grading+tonemap 烘 3D LUT(compute,`post.color-lut-bake`) | 实现 |
 | `graphics/scene/scene_renderer/post_process/resources/execute_uber/mod.rs` | uber 单 pass(`post.uber`) | 实现 |
 | `graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field/mod.rs` | DoF gather/composite(`post.depth-of-field`,prepare 已有) | 实现 |
@@ -159,17 +172,17 @@ plan_sources:
 | `graphics/scene/scene_renderer/post_process/resources/execute_upscale/mod.rs` | 链尾 upscale(`post.upscale`,bilinear;FSR1 留插件 executor 位) | 实现 |
 | `graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs` | 输出转换(`post.output-transfer`,sRGB/HDR10 PQ) | 实现 |
 | `graphics/scene/scene_renderer/post_process/shaders/{exposure_histogram,exposure_resolve,color_lut_bake,uber,depth_of_field,motion_blur,upscale,output_transfer}.wgsl` | 对应 WGSL;公共函数下沉 `zr_color.wgsl` include(§8.3) | 实现 |
-| `graphics/feature/builtin_render_feature_descriptor/feature_descriptors/exposure.rs` | exposure 两 pass 的 feature descriptor(经计划 16 `ComputePassDescriptor` 形态声明 compute) | 实现 |
+| `graphics/feature/builtin_render_feature_descriptor/feature_descriptors/{post_process,compute_workload}.rs` | exposure 两 pass 的 feature descriptor 与 compute workload | 实现 |
 
 **修改文件**:
 
 | 文件 | 改动 |
 |---|---|
 | `core/framework/render/post_process/effect.rs` | `PostProcessEffectKind` 增 `Taa`/`DepthOfField`/`MotionBlur`/`ExposureHistogram`/`ExposureResolve`/`SceneComposite`/`ColorLutBake`/`Uber`/`Upscale`/`OutputTransfer`;删 `HistoryResolve`/`EffectStack`/`ColorGrading`/`FinalComposite`(硬切换,迁移同变更内完成) |
-| `core/framework/render/post_process/stack.rs` | `from_extract_settings*` 四个构造器收敛为单一 `from_resolved(...)`;`PostProcessGraphResourceNames` 增 `EXPOSURE_HISTOGRAM`/`EXPOSURE_BUFFER`/`COLOR_LUT`/`TONEMAPPED`/`UPSCALED`,删 `EFFECT_STACKED`/`COLOR_GRADED`/`HISTORY_OUTPUT_SCENE_COLOR`(后者随计划 06 TP-M4) |
-| `core/framework/render/post_process/volume.rs` | 删除整文件:`RenderPostProcessVolume`/`RenderPostProcessVolumeStack`/`local_blend` 由 `volume_extract.rs`+`volume_evaluator.rs` 接管;`RenderResolvedPostProcessSettings` 更名 `ResolvedPostProcessStack` 迁入 `volume_evaluator.rs` |
+| `core/framework/render/post_process/stack.rs` | `from_extract_settings*` 四个构造器收敛为单一 `from_resolved(...)`;`PostProcessGraphResourceNames` 增 `EXPOSURE_HISTOGRAM`/`EXPOSURE_PREVIOUS`/`EXPOSURE_CURRENT`/`COLOR_LUT`/`TONEMAPPED`/`UPSCALED`,删 `EFFECT_STACKED`/`COLOR_GRADED`/`HISTORY_OUTPUT_SCENE_COLOR`(后者随计划 06 TP-M4) |
+| `core/framework/render/post_process/volume.rs` | 删除整文件:`RenderPostProcessVolume`/`RenderPostProcessVolumeStack`/`local_blend` 由 `volume_extract.rs`+`volume_evaluator.rs` 接管;`RenderResolvedPostProcessSettings` 迁入 `resolved_stack.rs`, `ResolvedPostProcessStack` 作为 evaluator 别名保留 |
 | `core/framework/render/post_process/mod.rs` | re-export 表按新 owner 路径更新(保持 thin) |
-| `core/framework/render/frame_extract.rs` | extract 增 `post_process_volumes: Vec<PostProcessVolumeExtract>` 字段 |
+| `core/framework/render/frame_extract.rs` | `PostProcessExtract` 增 `volumes: Vec<PostProcessVolumeExtract>` 字段与 `resolved_settings_for_camera(...)`;删旧 `volume_stack` 与 `resolved_settings_for_layers(...)` |
 | `core/framework/render/camera.rs` | `exposure_ev100` 保留为 Manual 模式来源;`render_scale`/`volume_mask` 落在计划 09 `CameraRenderDescriptor`,本计划只消费 |
 | `graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs` | pass 表按 backbone 重排;`post.stack` 改为 `post.scene-composite`(SSR 合成+屏幕空间雾) |
 | `feature_descriptors/{bloom.rs,anti_alias.rs}` | bloom 改能量守恒 downsample/upsample 链多 pass;FXAA 输入改 `TONEMAPPED` |
@@ -278,18 +291,19 @@ impl VolumeEvaluator {
 ```rust
 // exposure_settings.rs
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum RenderExposureMode { Manual, AutoHistogram }
+pub enum RenderExposureMode { Manual, Histogram }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderExposureSettings {
     pub mode: RenderExposureMode,    // Manual 时取相机 exposure_ev100,链上仍走同一 ExposureBuffer
+    pub manual_ev100: Real,
     pub compensation_ev: Real,
-    pub min_ev100: Real,             // 默认 -10
-    pub max_ev100: Real,             // 默认 20
-    pub speed_up: Real,              // EV/s,对照 UE ExposureSpeedUp,默认 3.0
-    pub speed_down: Real,            // 默认 1.0
-    pub low_percent: Real,           // 直方图截断下百分位,默认 80(对照 UE ExposureLowPercent)
-    pub high_percent: Real,          // 默认 98
+    pub min_ev100: Real,             // 默认 -8
+    pub max_ev100: Real,             // 默认 8
+    pub low_percent: Real,           // 直方图截断下百分位,默认 0.10
+    pub high_percent: Real,          // 默认 0.90
+    pub speed_brighten: Real,        // EV/s,默认 3.0
+    pub speed_darken: Real,          // 默认 1.0
 }
 
 // chain.rs —— backbone 槽位(顺序即定稿顺序,构建时只做开关不重排)
@@ -316,10 +330,10 @@ pub struct DynamicResolutionSettings { pub render_scale: Real /* 0.25..=1.0 */, 
 | 2 | DoF | history.current、scene-depth、DoF CoC/bokeh(prepare 已有) | `postprocess.dof` | `post.depth-of-field` | 否(需半分辨率中间 RT) | `post.depth-of-field` |
 | 3 | Motion blur | 上游 color、neighbor-max、scene-depth | `postprocess.motion-blurred` | `post.motion-blur` | 否 | `post.motion-blur` |
 | 4 | Bloom | 上游 color | `bloom-texture`(mip 链) | `post.bloom-extract` + downsample/upsample 链 | 否 | `post.bloom` |
-| 5 | Exposure | 上游 color(半分辨率读) | `EXPOSURE_HISTOGRAM` → `EXPOSURE_BUFFER` | `post.exposure-histogram`/`post.exposure-resolve`(compute) | 否 | `post.exposure` |
+| 5 | Exposure | 上游 color | `EXPOSURE_HISTOGRAM` → `EXPOSURE_CURRENT`(前帧为 `EXPOSURE_PREVIOUS`) | `post.exposure.histogram`/`post.exposure.resolve`(compute) | 否 | `post.exposure` |
 | 6 | SSR 合成+屏幕空间雾 | SSR 六件套产物、scene-depth、fog 参数 | `postprocess.scene-composited` | `post.scene-composite`(改造自 `post.stack`) | 否 | `post.screen-space-reflection`、`post.screen-space-fog` |
 | 7 | LUT bake | grading+tonemap 参数、用户 LUT(可选) | `COLOR_LUT`(3D 32^3 rgba16float) | `post.color-lut-bake`(compute) | 否 | `post.color-grading`、`post.tonemap` |
-| 8 | LUT 采样+vignette+grain+dither+CA | scene-composited、bloom、COLOR_LUT、EXPOSURE_BUFFER | `TONEMAPPED` | `post.uber` | 是(本体) | `post.vignette`/`post.grain`/`post.dither`/`post.chromatic-aberration`/`post.color-lookup` |
+| 8 | LUT 采样+vignette+grain+dither+CA | scene-composited、bloom、COLOR_LUT、`EXPOSURE_CURRENT` | `TONEMAPPED` | `post.uber` | 是(本体) | `post.vignette`/`post.grain`/`post.dither`/`post.chromatic-aberration`/`post.color-lookup` |
 | 9 | FXAA/SMAA | `TONEMAPPED` | `postprocess.anti-aliased` | `FXAA_EXECUTOR_ID`(SMAA 插件位) | 否 | — |
 | 10 | Upscale | anti-aliased(render_scale 尺寸) | `UPSCALED`(全尺寸) | `post.upscale` | 否 | — |
 | 11 | 输出转换 | UPSCALED | `viewport-output` | `post.output-transfer` | 否 | — |
@@ -328,31 +342,28 @@ pub struct DynamicResolutionSettings { pub render_scale: Real /* 0.25..=1.0 */, 
 
 ### GPU 数据布局与 WGSL 约定
 
-bind group 全链遵守 §8.1:group0 frame/view(相机矩阵、时间、jitter、**ExposureBuffer 只读绑定**),group1 pass 级输入,group2/3 后处理不用。数据布局遵守 §8.2(storage 一律 std430、显式 padding 注释)。
+bind group 全链遵守 §8.1:group0 frame/view(相机矩阵、时间、jitter),group1 pass 级输入,group2/3 后处理不用。Exposure 的 histogram/resolve compute pass 使用私有 group0 layout;最终 uber/post-process pass 在 group1 binding 28 只读绑定 resolved exposure storage buffer。数据布局遵守 §8.2(storage 一律 std430、显式 padding 注释)。
 
 **LUT**:内部 LUT 为 3D 纹理 `32x32x32`,格式 `rgba16float`(质量档高可升 `64^3`;常量 `COLOR_LUT_SIZE_DEFAULT=32`/`COLOR_LUT_SIZE_HIGH=64` 进 `color_space.rs`)。经 compute 烘焙(storage texture 写,workgroup `4x4x4`,dispatch `(size/4)^3`),避开 wgpu 对 3D color attachment 的兼容性差异;tonemap(ACES/neutral 双曲线)与 grading 全部烘入,运行时 uber 单次 `textureSampleLevel` 取回。uber 端 `lut_params = (size, 1/size, (size-1)/size, intensity)`,采样坐标 `uvw = saturate(color_log) * lut_params.z + 0.5 * lut_params.y`(URP `lutParameters` 同构)。用户 LUT(既有 `PostProcessLutTextureResource`,2D strip)在 bake pass 内按 `color_lookup.intensity` 叠加,不进 uber。
 
 **exposure histogram compute 布局**(对照 UE PostProcessHistogram.cpp / PostProcessEyeAdaptation.cpp):
 
 ```wgsl
-// exposure_histogram.wgsl —— group1
-struct ExposureHistogram { bins: array<atomic<u32>, 64> }   // 64 bins x u32 = 256 B,瞬态 storage
-@group(1) @binding(0) var scene_color: texture_2d<f32>;     // 读半分辨率链上 color
-@group(1) @binding(1) var<storage, read_write> histogram: ExposureHistogram;
-// workgroup 16x16,每线程读 2x2 texel;workgroup 私有 var<workgroup> bins 累加后 atomicAdd 归并
-// bin = clamp(log2(max(lum, 1e-6)) * histogram_scale + histogram_bias, 0.0, 63.0)
-//   histogram_scale = 1 / (max_ev - min_ev) * 64,histogram_bias = -min_ev * histogram_scale / 64 * 64
-//   (即 UE HistogramScale = 1/HistogramLogDelta、HistogramBias = -HistogramLogMin * HistogramScale)
+// exposure_histogram.wgsl —— private group0
+@group(0) @binding(0) var scene_color_tex: texture_2d<f32>;
+@group(0) @binding(1) var<uniform> params: ExposureParams;
+@group(0) @binding(2) var<storage, read_write> exposure_histogram: array<atomic<u32>, 64>; // 256 B
+// workgroup 16x16;workgroup 私有 var<workgroup> bins 累加后 atomicAdd 归并
+// bin = 0 保留暗值,bin 1..63 对应 clamp(log2(luminance), min_ev100, max_ev100)
 
-// exposure_resolve.wgsl —— 单 workgroup(64 线程)
-struct ExposureBuffer {            // std430,16 B;双缓冲持久资源(计划 01,绕过瞬态池)
-    exposure_scale: f32,           // 本帧应用值(含 compensation)
-    average_luminance_ev100: f32,  // 截断平均
-    exposure_scale_smoothed: f32,  // 按 speed_up/speed_down 指数收敛后的值
-    _pad0: f32,                    // offset 12,补齐 16
-}
+// exposure_resolve.wgsl —— private group0,单 workgroup
+@group(0) @binding(0) var<uniform> params: ExposureParams;
+@group(0) @binding(1) var<storage, read> exposure_histogram: array<u32, 64>;
+@group(0) @binding(2) var<storage, read> previous_exposure: array<vec4<f32>, 1>;
+@group(0) @binding(3) var<storage, read_write> current_exposure: array<vec4<f32>, 1>;
+// current_exposure[0] = (multiplier, resolved_ev100, average_ev100, valid_flag)
 // 前缀和 → 按 low_percent/high_percent 截断求加权平均 → 与上帧 ExposureBuffer 按
-// exp2(-dt * speed) 收敛 → clamp 到 [min_ev100, max_ev100] → 写本帧 buffer。
+// 1 - exp2(-dt * speed) 收敛 → clamp 到 [min_ev100, max_ev100] → 写本帧 buffer。
 // Manual 模式:跳过 histogram pass,resolve 直接用相机 exposure_ev100 写 buffer,链上消费方无分支。
 ```
 
@@ -428,7 +439,7 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 
 | 切片 | 触碰文件 | 改动要点 | 完成判据 |
 |---|---|---|---|
-| M3-S1 | `exposure_settings.rs`(新)、`execute_exposure_{histogram,resolve}/`、两 wgsl、`feature_descriptors/exposure.rs` | histogram + 收敛 compute;ExposureBuffer 双缓冲持久;Manual 直写 | 曝光 buffer 进 group0;手动/自动同一消费路径 |
+| M3-S1 | `exposure_settings.rs`(新)、`execute_exposure/`、两 wgsl、`feature_descriptors/post_process.rs`、history exposure buffer | histogram + 收敛 compute;ExposureBuffer 双缓冲持久;Manual 直写 | resolved exposure buffer 进 post-process binding 28;手动/自动同一消费路径 |
 | M3-S2 | `execute_color_lut_bake/`、`color_lut_bake.wgsl`、`post_process_lut_texture` 叠加路径 | 3D LUT compute 烘焙,ACES/neutral 双曲线;用户 LUT 叠加 | neutral 恒等 LUT readback 误差 < 1/1024 |
 | M3-S3 | `execute_uber/`、`uber.wgsl`、`execute_motion_blur/`、`execute_depth_of_field/`、瘦身 `execute_post_process/` | uber 合并五效果;motion blur/DoF 拆独立 pass;`post.stack` → `post.scene-composite` | 旧 post_process.wgsl 代码段删除;binding 表与本文档一致 |
 | M3-S4 | blur 组件(`execute_bloom` 旁挂高斯 blur executor 复用 downsample 设施) | `post.blur` 供 UI/局部模糊复用 | blur 单测产物方差下降断言 |
@@ -455,7 +466,7 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 | `render_post_chain_backbone_order_is_stable` | 全开时 node 序 == 定稿表序 | `chain.rs` |
 | `render_post_chain_disabled_effects_absent_from_graph` | 逐效果关闭后对应 pass 与孤立上游不在 compiled graph(接计划 01 culled 统计) | `chain.rs` + graph 测试 |
 | `render_post_linear_chain_no_gamma_before_output_transfer` | 灰阶测试图过 slot 1–7 线性度偏差 < 1e-3 | 产物测试 |
-| `render_post_exposure_histogram_buffer_layout` | bins=64、ExposureBuffer 16 B 偏移断言 | `execute_exposure_histogram` |
+| `render_post_exposure_histogram_buffer_layout` | bins=64、ExposureBuffer 16 B 偏移断言 | `execute_exposure`/bind group layout |
 | `render_post_exposure_converges_with_speed` | 暗→亮阶跃后第 N 帧 exposure_scale_smoothed 按 exp2(-dt*speed_up) 曲线,误差 < 5% | 产物测试(readback) |
 | `render_post_lut_bake_neutral_identity` | neutral + 默认 grading 烘出恒等 LUT | `execute_color_lut_bake` |
 | `render_post_uber_binding_layout_matches_contract` | binding 编号表静态断言 | `execute_uber` |
@@ -465,6 +476,20 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 | `render_product_post_volume_camera_transition` | 相机移入局部容器 bloom 强度逐帧平滑(PP-M2 验收证据的自动化形态) | `render_product_*` |
 
 里程碑测试命令沿用里程碑节(`cargo test -p zircon_runtime post_process --locked`、`volume`、`render_graph` 过滤词);新增过滤词 `render_volume` 与 `render_post`。
+
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|---|---|---|---|---|---|
+| 2026-06-15 | PP-M1-S1 post-process chain slot contract | 部分完成: 源码契约已接入, 源码测试编译未完成 | 新增 `post_process/chain.rs`;公开 `PostProcessChainSlot`;为 `PostProcessPassNode` 增加 `chain_slot` 与 `planned_chain_executor_id`;为 `PostProcessPassGraph` 增加 `planned_backbone_slots` 与 `active_chain_slots`;测试夹具改走 `PostProcessPassGraph::from_ordered_nodes(...)` | `rustfmt --edition 2021 --check` 通过 scoped Rust 文件;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-chain-0615 --message-format short --color never` 通过, 70 个既有 warning;`cargo test -p zircon_runtime --lib render_post_chain ...` 两次超过 604s/604s,未返回过滤测试结果,遗留 cargo/rustc 已停止;符号扫描确认链槽位写入 `chain.rs`、`pass_node.rs`、`pass_graph.rs`;`git diff --check` 仅 LF/CRLF 提示 | 重新跑 `render_post_chain` 过滤测试或生成 graph dump;PP-M1-S2 继续中间格式与 output-transfer 硬切;PP-M1-S3 再把旧 `FinalComposite`/`ColorGrading` pass 名清零 |
+| 2026-06-15 | PP-M1-S2a color-space/intermediate HDR format contract | 部分完成: color-space/RHI/RT 描述符已接入, output-transfer executor 未切 | 新增 `post_process/color_space.rs` 与 `RenderPostProcessTextureFormat`/`RenderOutputTransfer`;公开 `INTERMEDIATE_HDR_FORMAT_DEFAULT = rg11b10ufloat`;RHI 增加 `TextureFormat::Rg11b10Ufloat`;图编译将 HDR `scene-color`、`TAA_OUTPUT`、SSR reflection pyramid 走统一中间 HDR 常量,保留 HZB/TAA history/运动向量为高精度 `rgba16float`;TAA resolve 与 SSR reflection pyramid WGPU target 常量同步;渲染设备请求 `RG11B10UFLOAT_RENDERABLE`;WGPU transient 创建和 pool key 支持新格式 | `cargo fmt --package zircon_runtime -- --check` 通过;scoped `git diff --check` 仅 LF/CRLF 提示;符号扫描确认 `Rg11b10Ufloat` 覆盖 framework/RHI/compile/WGPU 常量/TAA pipeline/request_device;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,71 个既有 warning;`cargo test -p zircon_runtime --lib render_post_color_space ...` 超过 904s,停在 shared lib-test 编译,遗留 cargo/rustc 已停止 | PP-M1-S2b 继续落 `execute_output_transfer` + `output_transfer.wgsl`,并删除/替换旧 `FinalComposite`;PP-M1-S3 再清 pass 表旧名和模板顺序 |
+| 2026-06-15 | PP-M1-S2b output-transfer pass hard cut | 部分完成: WGPU output-transfer 已接入, terminal AA/uber 旧职责仍待 PP-M3/PP-M4 瘦身 | 删除 `PostProcessEffectKind::FinalComposite`,改为 `OutputTransfer`;`PostProcessPassGraph` 改报 `output_transfer_node`;运行时统计/诊断键同步为 output-transfer;新增 `PostProcessGraphResourceNames::TONEMAPPED`;`post.stack` 由写最终目标改为写 `postprocess.tonemapped`;新增 `output_transfer.wgsl`、output-transfer bind-group layout、pipeline、`execute_output_transfer` 与 `post.output-transfer` executor;post-process pass 表新增 `output-transfer` pass 写 `FINAL_COLOR`;旧 `post.final-composite` executor 名清零;FXAA 旧 no-op descriptor 在本切片过滤掉,等待 PP-M4 terminal AA 重接 | `cargo fmt --package zircon_runtime -- --check` 通过;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,71 个既有 warning;`cargo test -p zircon_runtime --lib output_transfer ...` 超过 304s,停在 shared lib-test 编译,匹配本 target 的 cargo/rustc 已停止;scoped `git diff --check` 仅 LF/CRLF 提示;源码扫描确认 `FinalComposite`/`post.final-composite`/`output-transferd` 清零,output-transfer shader/pipeline/executor/TONEMAPPED 符号存在 | PP-M1-S3 继续清 `ColorGrading`/`EffectStack` 旧 pass 名并同步模板 graph dump;PP-M3/PP-M4 再把 uber、FXAA 与 transfer 的职责彻底拆开;重新跑 `output_transfer`/`render_post_color_space` 过滤测试 |
+| 2026-06-15 | PP-M1-S3 planned pass table and legacy name cleanup | 部分完成: planned chain 名称已切到运行时契约,focused lib-test 仍待补跑 | `PostProcessEffectKind::{ColorGrading, EffectStack}` 硬切为 `ColorLutBake`/`Uber`;`feature_descriptors/color_grading.rs` pass 改 `color-lut-bake`/`post.color-lut-bake`;post-process 主 pass 改 `uber`/`post.uber`;执行器注册表移除旧 `post.color-grade`、`post.effect-stack`、`post.stack`;pipeline compile 过滤、运行时统计、post-process graph fixtures、forward/deferred 期望 pass dump 同步到 planned 名称;保留 `RenderColorGradingSettings` 与 `RenderPostProcessEffectStackSettings` 数据 schema,等待 PP-M2/PP-M3 schema 迁移 | `cargo fmt --package zircon_runtime` 通过;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,71 个既有 warning;源码扫描确认 `PostProcessEffectKind::ColorGrading`、`PostProcessEffectKind::EffectStack`、`post.color-grade`、`post.effect-stack`、`post.stack` 清零,仅 `RenderPhase::PostProcess` 的 phase label 仍为 `"post-process"` | 重新跑 `render_post_chain`/`pipeline_compile`/`render_pass_executor_registry` focused lib-tests;PP-M3 再把当前 `record_post_process_stack`/`execute_post_process` 内部实现拆成 `execute_uber`、`execute_motion_blur`、`execute_depth_of_field`、`execute_color_lut_bake`;PP-M4 重接 terminal AA |
+| 2026-06-15 | PP-M2-S1 Volume component registry contract | 部分完成: schema/registry 契约已落地,尚未接入 volume extract/evaluator | 新增 `post_process/volume_component.rs` 与 `post_process/volume_registry.rs`;公开 `VolumeParamValue`/`VolumeParamSchema`/`VolumeComponentDescriptor`/`VolumeComponentRegistry`;内建注册 14 个 component_id: DoF、motion blur、bloom、exposure、SSR、screen-space fog、color grading、tonemap、vignette、grain、dither、chromatic aberration、color lookup、blur;descriptor apply 可写回现有 `RenderResolvedPostProcessSettings`,exposure 先占 schema 位等待 PP-M3 | `cargo fmt --package zircon_runtime -- --check` 通过;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,当前 warning 仍为既有未清理项;scoped `git diff --check` 仅 LF/CRLF 提示;源码扫描确认新 registry/schema 符号与全部计划 component_id 存在,PP-M1-S3 退休名扫描仍清零 | PP-M2-S2 增 `PostProcessVolumeExtract` 与 global/box/sphere 形状;PP-M2-S3 用 evaluator 替换旧 `volume.rs` 的 `local_blend` 预算路径;focused `render_volume_registry`/`render_volume_component` lib-tests 待共享 lib-test 编译窗口稳定后补跑 |
+| 2026-06-15 | PP-M2-S2 Volume extract shape snapshot | 完成: frame extract 已携 planned volume DTO,空间求值交由 PP-M2-S3 evaluator | 新增 `post_process/volume_extract.rs`,公开 `PostProcessVolumeExtract`/`VolumeShapeExtract`/`VolumeComponentOverride`;`PostProcessExtract` 增 `volumes: Vec<PostProcessVolumeExtract>`;scene world 提取拆出 `scene/world/render_post_process.rs`,将全局 volume、box collider、sphere collider 投影为 planned shape snapshot,并把旧 profile 映射到 component override;capsule 按本阶段 planned DTO 范围不投影 | `cargo fmt --package zircon_runtime -- --check` 通过;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,71 个既有 warning;PP-M2-S2 符号扫描确认 extract/shape/override/frame volumes 接入;scoped `git diff --check` 仅 LF/CRLF 提示;`scene/world/render.rs` 由 979 行降至 793 行,post-process volume 提取职责移入 192 行新模块 | PP-M3 继续把 exposure/LUT/uber 运行时参数接入 volume component schema;需要 capsule/convex volume 时另开形状扩展切片 |
+| 2026-06-15 | PP-M2-S3 VolumeEvaluator hard cut | 完成: evaluator 接入提交路径,旧 `volume.rs`/`volume_stack` 公共求值面已删除 | 新增 `post_process/volume_evaluator.rs` 与 `VolumeEvaluator`/`VolumeEvaluationRequest`/`VolumeEvaluationError`/`ResolvedPostProcessStack`;新增 `resolved_stack.rs` 与 `volume_profile.rs` 作为拆分 owner;`VolumeComponentDescriptor` 增 `read` 函数指针与 `read_values`,evaluator 以 registry schema 读取当前强类型参数、应用 overrideState(None 保持当前值)、按 global/box/sphere shape 权重插值后写回;`PostProcessExtract::resolved_settings_for_camera(...)` 成为唯一 per-camera 求值入口;删除 `RenderPostProcessVolume`/`RenderPostProcessVolumeStack`/`PostProcessExtract.volume_stack`/`resolved_settings_for_layers(...)`;scene/submit/测试全部转向 planned `volumes` DTO | `cargo fmt --package zircon_runtime -- --check` 通过;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,当前 warning 仅既有未清理项;`cargo test -p zircon_runtime --lib render_volume_evaluator ...` 通过 6 个过滤测试;`cargo test -p zircon_runtime --lib render_post_process_extract ...` 通过 9 个过滤测试;`render_frame_extract_carries_scene_post_process_volumes_for_camera_layers`、`inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract`、`render_framework_stats_report_volume_effect_stack_product_node_when_authored` 过滤测试均通过 | PP-M3 继续 exposure histogram/LUT bake/uber pass;PP-M4 重接 terminal AA/dynamic resolution;后续再补 `render_volume_extract` 与更宽 `render_post_chain`/`pipeline_compile`/executor registry sweep |
+| 2026-06-15 | PP-M3-S1a exposure settings and volume contract | 部分完成: framework/submit 曝光参数契约已接入, WGPU histogram/resolve executor 未落地 | 新增 `post_process/exposure_settings.rs` 与 `RenderExposureSettings`/`RenderExposureMode`/histogram buffer 常量;`RenderResolvedPostProcessSettings`、`PostProcessExtract`、`VolumeEvaluationRequest`、`FrameSubmissionContext` 增 `exposure`;scene extract 将相机 `exposure_ev100` 写入 manual exposure;`post.exposure` descriptor 从 schema-only/no-op 改为真实 read/apply,支持 mode/manual_ev100/compensation/min/max/percent/speed 参数 | scoped `rustfmt --edition 2021` 通过 touched Rust 文件;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never` 通过,71 个既有 warning;`render_exposure` 过滤测试通过 2 个;`render_volume_component_descriptor_applies_exposure_values`、`render_volume_evaluator_blends_exposure_component`、`render_extract_projects_scene_camera_component_product_fields` 过滤测试均通过 | PP-M3-S1b 继续落 `execute_exposure_histogram`/`execute_exposure_resolve`、双缓冲 `ExposureBuffer`、WGSL 与 group0 消费路径;PP-M3-S2 再接 LUT bake |
+| 2026-06-15 | PP-M3-S1b WGPU exposure histogram/resolve | 完成: WGPU exposure histogram/resolve、历史双缓冲和最终 pass 消费路径已接入 | `PostProcessEffectKind` 增 `ExposureHistogram`/`ExposureResolve`;`PostProcessGraphResourceNames` 增 `EXPOSURE_HISTOGRAM`/`EXPOSURE_PREVIOUS`/`EXPOSURE_CURRENT`;histogram mode 编译 `exposure-histogram`,manual mode 跳过 histogram 但仍执行 resolve;`feature_descriptors/post_process.rs` 声明 `post.exposure.histogram`/`post.exposure.resolve` async compute workload;新增 exposure params/bind-group layouts/pipelines/default buffers/WGSL;`SceneFrameHistoryTextures` 持有 exposure read/write buffer 并在成功帧 flip;`post_process.wgsl` 通过 binding 28 读取 resolved exposure multiplier;`RenderHistoryCopyReport` 与 runtime diagnostics 增 `exposure_copied` | scoped `rustfmt --edition 2021` 通过 touched Rust 文件;`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 --message-format short --color never` 通过,71 个既有 warning;`cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 exposure_ -- --nocapture` 通过 9 个过滤测试;`effective_post_process_stack_culls_disabled_optional_post_process_passes`、`rendering_plugin_default_features_restore_legacy_forward_plus_pass_order`、`runtime_diagnostics` 过滤测试通过 | PP-M3-S2 继续 `color_lut_bake` compute 与 3D LUT 烘焙;PP-M3-S3 再把当前 uber/scene-composite 职责拆薄并补全 vignette/grain/dither/CA 专项产物测试 |
 
 ### 参考实现精读笔记
 

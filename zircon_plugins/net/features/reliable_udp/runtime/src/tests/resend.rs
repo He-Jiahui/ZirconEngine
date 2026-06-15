@@ -49,3 +49,33 @@ fn reliable_udp_resend_tick_disconnects_after_resend_attempt_cap() {
         Some("reliable datagram resend attempt cap exceeded")
     );
 }
+
+#[test]
+fn resend_due_with_byte_budget_caps_payload_bytes_per_tick() {
+    let manager = NetReliableUdpRuntimeManager::new(ReliableDatagramConfig {
+        resend_timeout_ms: 10,
+        max_resend_attempts: 3,
+        ..ReliableDatagramConfig::default()
+    });
+    manager.enqueue_reliable_datagram("state", b"aaaa".to_vec());
+    manager.enqueue_reliable_datagram("state", b"bbbb".to_vec());
+
+    let first_tick = manager.resend_due_with_byte_budget(10, 4);
+    assert_eq!(
+        first_tick
+            .iter()
+            .map(|packet| packet.payload.clone())
+            .collect::<Vec<_>>(),
+        vec![b"aaaa".to_vec()]
+    );
+
+    let same_tick = manager.resend_due_with_byte_budget(10, 4);
+    assert_eq!(
+        same_tick
+            .iter()
+            .map(|packet| packet.payload.clone())
+            .collect::<Vec<_>>(),
+        vec![b"bbbb".to_vec()]
+    );
+    assert_eq!(manager.stats().resent_packets, 2);
+}

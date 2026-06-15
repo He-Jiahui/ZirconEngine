@@ -28,6 +28,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
+  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
@@ -50,6 +52,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
+  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
 plan_sources:
   - user: 2026-05-06 Drawer/Window/Menu Slate 化推进计划，要求抽屉实例、含抽屉 window、普通 window 由 editor 内单例 registry 管理
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
@@ -58,6 +62,9 @@ plan_sources:
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/retained_document_tab_pointer/floating_strip_bounds.rs
+  - zircon_editor/src/tests/host/retained_tab_drag/floating_pointer.rs
+  - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
   - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
@@ -79,6 +86,9 @@ tests:
   - cargo test -p zircon_editor --lib default_registry --locked --target-dir target/codex-editor-ui-shell (2026-05-11: passed, 2 passed)
   - cargo test -p zircon_editor --lib applying_project_workspace_preserves_builtin_shell_drawers --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
   - cargo test -p zircon_editor --lib bootstrap_and_startup --locked --target-dir target/codex-shared-b (2026-05-11: passed, 10 passed)
+  - cargo test -p zircon_editor --lib window_host_manager --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 3 passed, 0 failed, 2020 filtered out)
+  - cargo test -p zircon_editor --lib opening_functional_editor_window_creates_instance_scoped_floating_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 1 passed, 0 failed, 2022 filtered out)
+  - cargo test -p zircon_editor --lib floating_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 47 passed, 0 failed, 1976 filtered out)
 doc_type: module-detail
 ---
 
@@ -97,6 +107,8 @@ The registry tracks three instance groups:
 `DrawerDockPosition` is the public dock-position contract used by registration and binding. The current UI exposes `LeftTop`, `LeftBottom`, `Bottom`, `RightTop`, and `RightBottom`; legacy `BottomLeft` and `BottomRight` persisted slots are normalized to the single public `Bottom` position. `primary_slot()` still maps `Bottom` back to a layout slot so the existing `ActivityDrawerLayout` storage can be reused without introducing a second persisted drawer model.
 
 `sync_from_layout` rebuilds a registry snapshot from `WorkbenchLayout.activity_windows()` and the current `ViewInstance` list. Windows with `activity_drawers` become `DrawerCapable`; windows without drawers become `Ordinary`. Floating windows are projected as `DrawerWindowInstance` only when their page id uses the `drawer-window:` prefix created by drawer detach routing; plain document floating windows remain ordinary floating workspaces and are not exposed as drawer windows. During sync, drawer tabs are still registered for typed lookup, but the owning window's `selected_drawer` is copied from drawer `active_view` only; a collapsed drawer with retained tabs and `active_view = None` therefore stays unselected instead of reopening the first tab. The same sync copies each window's `menu_overflow_mode`, so host-side registry queries observe the persisted menu popup preference. `workspace_state` calls this sync while recomputing session metadata so the host observes the same active-window drawer and menu facts that layout, projection, and hit testing use.
+
+Native floating-window ownership is paired with the host-side `WindowHostManager`. The registry remains the typed editor data view, while the host manager is the native runtime ledger: each tracked floating window owns an independent `UiSurface`, exposed to projections as `NativeWindowHostState.surface_tree_id`. Layout sync preserves that surface when only frame bounds change and removes it when the floating page leaves `WorkbenchLayout.floating_windows`, so a child window never silently shares the main workbench surface.
 
 `ActivityWindowLayout.menu_overflow_mode` is the durable per-window setting for menu popup overflow. Its serde default is `Auto`, which keeps older project/global layouts compatible. `EditorChromeSnapshot::build(...)` reads the active activity window's setting and exposes it as `EditorChromeSnapshot.menu_overflow_mode`; the retained menu pointer builder then projects that value into `HostMenuPointerLayout`. This gives `MenuOverflowMode::MultiColumn` a production layout/config path instead of leaving it as a test-only layout override.
 

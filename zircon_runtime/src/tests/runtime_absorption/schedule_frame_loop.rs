@@ -30,9 +30,26 @@ const EXPECTED_RUNTIME_03_GUARD_FILES: &[&str] = &[
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
 ];
 
+const EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
+    "schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration",
+    "session_ui_extract_remains_documented_dynamic_session_side_path",
+    "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
+    "level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps",
+    "level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained",
+    "level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance",
+    "fixed_step_plan_reports_overstep_fraction_in_unit_range",
+    "schedule_parallel_executor_can_run_parallel_batches_serially_with_report",
+    "schedule_parallel_execution_report_records_diagnostic_counts",
+    "schedule_parallel_report_keeps_run_batches_compatible",
+    "schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts",
+    "representative_schedule_produces_multi_system_parallel_batches",
+    "parallel_and_serial_execution_reach_identical_world_state",
+];
+
 #[test]
 fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    assert_eq!(EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS.len(), 13);
 
     for source_file in EXPECTED_RUNTIME_03_SOURCE_FILES {
         assert!(
@@ -92,10 +109,31 @@ fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    let behavior_test_sources = [
+        include_str!("../../scene/tests/ecs_schedule.rs"),
+        include_str!("../../scene/tests/ecs_schedule/fixed_update.rs"),
+        include_str!("../../scene/tests/ecs_schedule/parallel_executor.rs"),
+        include_str!("../../scene/tests/ecs_schedule_parallel_executor_structure.rs"),
+        include_str!("../../dynamic_api/tests/session_profiles.rs"),
+        include_str!("../../tests/time.rs"),
+    ];
+    for behavior_anchor in EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS {
+        assert!(
+            behavior_test_sources
+                .iter()
+                .any(|source| source.contains(behavior_anchor)),
+            "Runtime 03 behavior test anchor `{behavior_anchor}` should stay visible to schedule_frame_loop_boundary"
+        );
+    }
+
     let mirror_docs = [
         (
             "Runtime 03 plan",
             include_str!("../../../../docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"),
+        ),
+        (
+            "frame schedule doc",
+            include_str!("../../../../docs/zircon_runtime/core/frame_schedule.md"),
         ),
         (
             "runtime index",
@@ -120,6 +158,9 @@ fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
             "fixed-loop stages 3/3",
             "dynamic-session `.tick_time(...)` calls 1/1",
             "Runtime 03 guard anchors 14/14",
+            "behavior_test_anchor_count = 13",
+            "missing_behavior_test_anchors = []",
+            "doc_anchors = 10/10",
             "no `WorldDriver` second `advance_time_by(...)` references",
             "no dynamic-session raw-delta level tick references",
             "risks = []",

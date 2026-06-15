@@ -396,6 +396,155 @@ fn menu_keyboard_activate_and_cancel_cycle_submenu_focus_scope() {
     assert_eq!(state.value("popup_open"), Some(&UiValue::Bool(false)));
 }
 
+#[test]
+fn context_menu_keyboard_navigation_reuses_menu_option_focus_rules() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let context_menu = registry
+        .descriptor("ContextMenu")
+        .expect("ContextMenu descriptor");
+    assert!(context_menu.supports_event(UiComponentEventKind::KeyboardAction));
+    assert!(context_menu.prop("focused_index").is_some());
+
+    let mut state = UiComponentState::new()
+        .with_value(
+            "options",
+            UiValue::Array(vec![
+                menu_option("open", "Open Scene"),
+                menu_option("delete", "Delete Selection"),
+                menu_option("close", "Close View"),
+            ]),
+        )
+        .with_value(
+            "disabled_options",
+            UiValue::Array(vec![UiValue::String("delete".to_string())]),
+        )
+        .with_value("focused_index", UiValue::Int(0))
+        .with_value("selected_index", UiValue::Int(0))
+        .with_value("value", UiValue::String("open".to_string()));
+
+    state
+        .apply_event(
+            context_menu,
+            UiComponentEvent::KeyboardAction {
+                action: UiComponentKeyboardAction::Next,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.value("focused_index"),
+        Some(&UiValue::Int(2)),
+        "ContextMenu should skip disabled popup options while moving focus"
+    );
+    assert_eq!(
+        state.value("selected_index"),
+        Some(&UiValue::Int(0)),
+        "popup option focus movement must not commit selection"
+    );
+    assert_eq!(
+        state.value("value"),
+        Some(&UiValue::String("open".to_string()))
+    );
+
+    state
+        .apply_event(
+            context_menu,
+            UiComponentEvent::KeyboardAction {
+                action: UiComponentKeyboardAction::Previous,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.value("focused_index"),
+        Some(&UiValue::Int(0)),
+        "ContextMenu should wrap through focusable popup options by default"
+    );
+}
+
+#[test]
+fn dropdown_popup_keyboard_text_reuses_menu_typeahead_focus_rules() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let dropdown_popup = registry
+        .descriptor("DropdownPopup")
+        .expect("DropdownPopup descriptor");
+    assert!(dropdown_popup.supports_event(UiComponentEventKind::KeyboardText));
+    assert!(dropdown_popup.supports_event(UiComponentEventKind::TypeaheadExpired));
+    assert!(dropdown_popup.prop("typeahead_buffer").is_some());
+
+    let selected = UiValue::Array(vec![UiValue::String("atlas".to_string())]);
+    let mut state = UiComponentState::new()
+        .with_value(
+            "options",
+            UiValue::Array(vec![
+                menu_option("atlas", "Atlas"),
+                menu_option("asset", "Asset"),
+                menu_option("archive", "Archive"),
+            ]),
+        )
+        .with_value(
+            "disabled_options",
+            UiValue::Array(vec![UiValue::String("archive".to_string())]),
+        )
+        .with_value("selected_options", selected.clone())
+        .with_value("focused_index", UiValue::Int(0));
+
+    state
+        .apply_event(
+            dropdown_popup,
+            UiComponentEvent::KeyboardText {
+                text: "as".to_string(),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.value("focused_index"),
+        Some(&UiValue::Int(1)),
+        "DropdownPopup typeahead should move roving focus by option label"
+    );
+    assert_eq!(
+        state.value("selected_options"),
+        Some(&selected),
+        "typeahead focus movement must not commit dropdown selection"
+    );
+    assert_eq!(
+        state.value("typeahead_buffer"),
+        Some(&UiValue::String("as".to_string()))
+    );
+
+    state
+        .apply_event(dropdown_popup, UiComponentEvent::TypeaheadExpired)
+        .unwrap();
+    assert_eq!(
+        state.value("typeahead_buffer_expired"),
+        Some(&UiValue::Bool(true))
+    );
+
+    state
+        .apply_event(
+            dropdown_popup,
+            UiComponentEvent::KeyboardText {
+                text: "a".to_string(),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.value("focused_index"),
+        Some(&UiValue::Int(0)),
+        "expired popup typeahead should reset before applying the next key"
+    );
+    assert_eq!(
+        state.value("typeahead_buffer"),
+        Some(&UiValue::String("a".to_string()))
+    );
+    assert_eq!(
+        state.value("typeahead_buffer_expired"),
+        Some(&UiValue::Bool(false))
+    );
+}
+
 fn menu_option(id: &str, label: &str) -> UiValue {
     UiValue::Map(
         [

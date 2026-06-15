@@ -334,7 +334,7 @@ fn native_template_painter_matches_slint_state_layer_priority() {
     let bytes = paint_template_nodes_for_test(96, 116, nodes);
 
     assert_eq!(pixel(&bytes, 96, 8, 8), SURFACE_DISABLED);
-    assert_eq!(pixel(&bytes, 96, 8, 36), SURFACE_SELECTED);
+    assert_eq!(pixel(&bytes, 96, 8, 36), SURFACE_PRESSED);
     assert_eq!(pixel(&bytes, 96, 8, 64), SURFACE_PRESSED);
     assert_eq!(pixel(&bytes, 96, 8, 92), SURFACE_HOVER);
 }

@@ -15,6 +15,8 @@ impl EditorUiBindingPayload {
             Self::MenuAction { action_id } => {
                 UiBindingCall::new("MenuAction").with_argument(UiBindingValue::string(action_id))
             }
+            Self::EditorCommand { command_id } => UiBindingCall::new("EditorCommand")
+                .with_argument(UiBindingValue::string(command_id)),
             Self::EditorOperation {
                 operation_id,
                 arguments,
@@ -74,6 +76,15 @@ impl EditorUiBindingPayload {
                     .and_then(UiBindingValue::as_str)
                     .ok_or(EditorUiBindingError::InvalidPayload(
                         "MenuAction expects string action_id".to_string(),
+                    ))?
+                    .to_string(),
+            }),
+            "EditorCommand" => Ok(Self::EditorCommand {
+                command_id: call
+                    .argument(0)
+                    .and_then(UiBindingValue::as_str)
+                    .ok_or(EditorUiBindingError::InvalidPayload(
+                        "EditorCommand expects string command_id".to_string(),
                     ))?
                     .to_string(),
             }),

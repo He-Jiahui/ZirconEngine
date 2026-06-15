@@ -1,6 +1,7 @@
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
+use crate::ui::host::ExportWizardPanelViewModel;
 use crate::ui::layouts::views::{SceneViewportChromeData, ViewTemplateNodeData};
 
 #[derive(Clone, Default)]
@@ -273,6 +274,7 @@ pub(crate) struct BuildExportTargetViewData {
 pub(crate) struct BuildExportPaneViewData {
     pub targets: ModelRc<BuildExportTargetViewData>,
     pub diagnostics: SharedString,
+    pub wizard_view_model: Option<ExportWizardPanelViewModel>,
 }
 
 #[derive(Clone, Default)]
@@ -356,6 +358,7 @@ pub(crate) struct HostWindowShellData {
     pub shell_min_height_px: f32,
     pub native_floating_window_mode: bool,
     pub native_floating_window_id: SharedString,
+    pub native_surface_tree_id: SharedString,
     pub native_window_title: SharedString,
     pub native_window_bounds: FrameRect,
 }
@@ -551,6 +554,7 @@ pub(crate) struct HostWindowSceneData {
 pub(crate) struct HostNativeFloatingWindowSurfaceData {
     pub floating_windows: ModelRc<FloatingWindowData>,
     pub native_floating_window_id: SharedString,
+    pub native_surface_tree_id: SharedString,
     pub native_window_bounds: FrameRect,
     pub header_height_px: f32,
 }

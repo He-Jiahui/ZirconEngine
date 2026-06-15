@@ -286,6 +286,8 @@ fn texture_descriptors_cover_hdr_arrays_cubes_mips_and_storage() {
     assert_eq!(cube_texture.depth, 6);
     assert!(!cube_texture.format.is_hdr_color());
     assert_eq!(TextureFormat::Depth24PlusStencil8.bytes_per_pixel(), 4);
+    assert_eq!(TextureFormat::Rg11b10Ufloat.bytes_per_pixel(), 4);
+    assert!(TextureFormat::Rg11b10Ufloat.is_hdr_color());
 }
 
 #[test]

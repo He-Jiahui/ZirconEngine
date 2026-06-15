@@ -263,6 +263,162 @@ fn unified_keyboard_arrow_right_prefers_semantic_tabs_keyboard_action_binding() 
 }
 
 #[test]
+fn unified_keyboard_arrow_right_prefers_tree_view_expand_keyboard_action_binding() {
+    let mut surface = semantic_tree_view_route_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_navigation_key_event("ArrowRight", 39, None, false),
+        )
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert!(result.applied_effects.is_empty());
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.component_action")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_component_action=Increment"));
+    assert!(!result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note.starts_with("keyboard_navigation=")));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::KeyboardAction {
+            action: UiComponentKeyboardAction::Increment,
+        }
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(surface.focus.focused_inputs[0].focused, UiNodeId::new(2));
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(2))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+}
+
+#[test]
+fn unified_keyboard_arrow_left_prefers_tree_view_collapse_keyboard_action_binding() {
+    let mut surface = semantic_tree_view_route_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_navigation_key_event("ArrowLeft", 37, None, false),
+        )
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert!(result.applied_effects.is_empty());
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.component_action")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_component_action=Decrement"));
+    assert!(!result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note.starts_with("keyboard_navigation=")));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::KeyboardAction {
+            action: UiComponentKeyboardAction::Decrement,
+        }
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(surface.focus.focused_inputs[0].focused, UiNodeId::new(2));
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(2))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+}
+
+#[test]
+fn unified_keyboard_f2_prefers_tree_view_begin_edit_keyboard_action_binding() {
+    let mut surface = semantic_tree_view_route_surface();
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_navigation_key_event("F2", 113, None, false),
+        )
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(UiNodeId::new(2)));
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert!(result.applied_effects.is_empty());
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.component_action")
+    );
+    assert!(result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note == "keyboard_component_action=BeginEdit"));
+    assert!(!result
+        .diagnostics
+        .notes
+        .iter()
+        .any(|note| note.starts_with("keyboard_navigation=")));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::KeyboardAction {
+            action: UiComponentKeyboardAction::BeginEdit,
+        }
+    );
+    assert_eq!(surface.focus.focused_inputs.len(), 1);
+    assert_eq!(
+        surface.focus.focused_inputs[0].kind,
+        UiFocusedInputKind::Keyboard
+    );
+    assert_eq!(surface.focus.focused_inputs[0].focused, UiNodeId::new(2));
+    assert_eq!(
+        surface.focus.focused_inputs[0].handled_by,
+        Some(UiNodeId::new(2))
+    );
+    assert!(surface.focus.focused_inputs[0].accepted);
+}
+
+#[test]
 fn unified_keyboard_printable_text_prefers_semantic_menu_keyboard_text_binding() {
     let mut surface = semantic_menu_list_text_route_surface();
     surface.focus_node(UiNodeId::new(2)).unwrap();
@@ -423,6 +579,51 @@ fn submenu_hover_timer_dispatches_ready_value_changed_event() {
             assert_eq!(timer.option_id, "file");
         }
         other => panic!("expected submenu hover timer input event, got {other:?}"),
+    }
+}
+
+#[test]
+fn toast_timer_dispatches_expired_commit_event() {
+    let mut surface = semantic_snackbar_toast_route_surface();
+    let mut manager = UiInputManager::default();
+
+    let result = manager
+        .dispatch_input_event(
+            &mut surface,
+            UiInputEvent::ToastTimer(UiToastTimerInputEvent {
+                metadata: input_metadata(),
+                target: UiNodeId::new(2),
+                toast_id: "save".to_string(),
+            }),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("toast_timer.component_event")
+    );
+    assert_eq!(
+        result.diagnostics.route_policy,
+        UiInputRoutePolicy::DefaultAction
+    );
+    assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::Commit {
+            property: "expired_toast_id".to_string(),
+            value: UiValue::String("save".to_string()),
+        }
+    );
+    match &result.event {
+        UiInputEvent::ToastTimer(timer) => {
+            assert_eq!(timer.target, UiNodeId::new(2));
+            assert_eq!(timer.toast_id, "save");
+        }
+        other => panic!("expected toast timer input event, got {other:?}"),
     }
 }
 
@@ -665,6 +866,19 @@ fn semantic_tabs_route_surface() -> UiSurface {
     surface
 }
 
+fn semantic_tree_view_route_surface() -> UiSurface {
+    let mut surface = route_surface();
+    let target = surface.tree.nodes.get_mut(&UiNodeId::new(2)).unwrap();
+    target.template_metadata = Some(UiTemplateNodeMetadata {
+        component: "TreeView".to_string(),
+        control_id: Some("AssetTree".to_string()),
+        bindings: vec![binding("TreeView/KeyboardAction", UiEventKind::Change)],
+        ..Default::default()
+    });
+    surface.rebuild();
+    surface
+}
+
 fn semantic_menu_list_text_route_surface() -> UiSurface {
     let mut surface = route_surface();
     let target = surface.tree.nodes.get_mut(&UiNodeId::new(2)).unwrap();
@@ -703,6 +917,27 @@ fn semantic_menu_list_submenu_hover_route_surface() -> UiSurface {
         control_id: Some("SceneMenu".to_string()),
         bindings: vec![binding("MenuList/ValueChanged", UiEventKind::Change)],
         attributes: toml::from_str("submenu_hover_delay_ms = 100").unwrap(),
+        ..Default::default()
+    });
+    surface.rebuild();
+    surface
+}
+
+fn semantic_snackbar_toast_route_surface() -> UiSurface {
+    let mut surface = route_surface();
+    let target = surface.tree.nodes.get_mut(&UiNodeId::new(2)).unwrap();
+    target.template_metadata = Some(UiTemplateNodeMetadata {
+        component: "Snackbar".to_string(),
+        control_id: Some("StatusToast".to_string()),
+        bindings: vec![binding("Snackbar/Commit", UiEventKind::Change)],
+        attributes: toml::from_str(
+            r#"
+current_toast_id = "save"
+auto_hide_duration_ms = 4000
+open = true
+"#,
+        )
+        .unwrap(),
         ..Default::default()
     });
     surface.rebuild();

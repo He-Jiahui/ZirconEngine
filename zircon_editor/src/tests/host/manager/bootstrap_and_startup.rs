@@ -254,10 +254,15 @@ fn opening_functional_editor_window_creates_instance_scoped_floating_window() {
         .expect("material editor should open in a floating window");
     assert_eq!(floating.focused_view, Some(instance_id.clone()));
     assert!(floating.workspace.contains(&instance_id));
-    assert!(manager
+    let native_host = manager
         .native_window_hosts()
-        .iter()
-        .any(|host| host.window_id == window_id));
+        .into_iter()
+        .find(|host| host.window_id == window_id)
+        .expect("floating editor window should own a native host state");
+    assert_eq!(
+        native_host.surface_tree_id.0,
+        "zircon.editor.native_window.window:editor.material_editor_window#1"
+    );
     assert_eq!(
         manager
             .current_view_instances()

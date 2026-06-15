@@ -1,0 +1,6 @@
+Zircon export-template placeholder host.
+
+This file exists only to exercise the M3-T1 template package manifest,
+version lock, and content-hash contract. M3-T2 must replace it with a
+real precompiled windows-x86_64 LibraryEmbed host binary before runnable
+bundle validation is claimed.

@@ -4,6 +4,7 @@ pub(crate) mod animation_editor_sessions;
 pub(crate) mod asset_editor_sessions;
 mod builtin_layout;
 mod builtin_views;
+mod commands;
 pub(crate) mod editor_asset_manager;
 mod editor_capabilities;
 mod editor_error;
@@ -49,14 +50,48 @@ mod window_host_manager;
 mod workspace_state;
 
 pub(crate) use builtin_layout::builtin_hybrid_layout;
+pub use commands::{
+    EditorCommandAction, EditorCommandCategory, EditorCommandContext, EditorCommandDescriptor,
+    EditorCommandDispatchError, EditorCommandEnablement, EditorCommandPaletteEntry,
+    EditorCommandRegistry, EditorKeyBinding, EditorKeyChord, EditorKeyChordParseError,
+    EditorKeymap, EditorKeymapError,
+};
 pub use editor_capabilities::EditorCapabilitySnapshot;
 pub use editor_error::EditorError;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
-    EditorExportBuildProgress, EditorExportBuildReport, EditorExportCargoInvocation,
-    EditorPluginEnableReport, EditorPluginFeatureDependencyStatus,
-    EditorPluginFeatureSelectionUpdateReport, EditorPluginFeatureStatus,
-    EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
+    apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
+    execute_export_wizard_stage, export_pipeline_stage_cli_id, export_pipeline_stage_report_name,
+    export_pipeline_stages, export_wizard_compile_host_executable_path,
+    export_wizard_compile_host_target_dir, export_wizard_panel_action_call,
+    export_wizard_panel_action_for_control, export_wizard_panel_binding_entries,
+    export_wizard_panel_bindings, export_wizard_panel_retained_projection,
+    export_wizard_panel_template_state, export_wizard_pipeline_plan, parse_export_pipeline_stage,
+    project_export_wizard_panel, register_export_wizard_panel_bindings,
+    register_export_wizard_panel_template, run_export_wizard_job, EditorExportBuildProgress,
+    EditorExportBuildReport, EditorExportCargoInvocation, EditorPluginEnableReport,
+    EditorPluginFeatureDependencyStatus, EditorPluginFeatureSelectionUpdateReport,
+    EditorPluginFeatureStatus, EditorPluginSelectionUpdateReport, EditorPluginStatus,
+    EditorPluginStatusReport, ExportStageProgressKind, ExportWizardCancelSignal,
+    ExportWizardCommandExecution, ExportWizardCommandRunner, ExportWizardControlState,
+    ExportWizardJobController, ExportWizardJobEvent, ExportWizardJobEventKind,
+    ExportWizardJobHandle, ExportWizardJobSnapshot, ExportWizardJobState, ExportWizardJobStatus,
+    ExportWizardNeverCancel, ExportWizardPanelAction, ExportWizardPanelBinding,
+    ExportWizardPanelControlBindingState, ExportWizardPanelEntrySeverity, ExportWizardPanelRequest,
+    ExportWizardPanelSession, ExportWizardPanelSessionError, ExportWizardPanelSlotEntry,
+    ExportWizardPanelSlotKind, ExportWizardPanelSlotState, ExportWizardPanelTemplateState,
+    ExportWizardPanelUpdate, ExportWizardPanelViewModel, ExportWizardPipelineExecution,
+    ExportWizardPipelineOptions, ExportWizardPipelinePlan, ExportWizardPipelineStageCommand,
+    ExportWizardProgressState, ExportWizardStageArtifactPath, ExportWizardStageExecution,
+    ExportWizardStageMissingInputs, ExportWizardStagePlannedArtifacts,
+    ExportWizardStageProgressSnapshot, ExportWizardStageViewRow, ExportWizardStreamEvent,
+    ProcessCommandRunner, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT, DESKTOP_EXPORT_CANCEL_BINDING_ID,
+    DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_GENERATE_PLAN_BINDING_ID,
+    DESKTOP_EXPORT_GENERATE_PLAN_BUTTON, DESKTOP_EXPORT_MISSING_INPUTS_SLOT,
+    DESKTOP_EXPORT_REPORT_BODY_SLOT, DESKTOP_EXPORT_STAGE_ROWS_SLOT,
+    DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
+    DESKTOP_EXPORT_TERMINAL_OUTPUT_SLOT, EXPORT_WIZARD_BINDING_SYMBOL,
+    EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };
 pub use editor_runtime_client::{
     DetachedEditorRuntimeClient, EditorRuntimeClient, SharedEditorRuntimeClient,

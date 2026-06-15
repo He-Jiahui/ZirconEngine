@@ -70,7 +70,7 @@ fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
         RenderQualityProfile::new("bloom-on")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false),
+            .with_temporal_history(false),
     );
     let bloom_off = fixture.render_extract(
         &server,
@@ -78,7 +78,7 @@ fn bloom_quality_profile_spreads_bright_pixels_when_enabled() {
         RenderQualityProfile::new("bloom-off")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false)
+            .with_temporal_history(false)
             .with_bloom(false),
     );
 
@@ -128,7 +128,7 @@ fn color_grading_extract_tints_scene_after_post_process() {
         RenderQualityProfile::new("grade-on")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false),
+            .with_temporal_history(false),
     );
     let neutral = fixture.render_extract(
         &server,
@@ -136,7 +136,7 @@ fn color_grading_extract_tints_scene_after_post_process() {
         RenderQualityProfile::new("grade-off")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false)
+            .with_temporal_history(false)
             .with_color_grading(false),
     );
 
@@ -211,7 +211,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
         RenderQualityProfile::new("baked-on")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false),
+            .with_temporal_history(false),
     );
     let unbaked_frame = fixture.render_extract(
         &server,
@@ -219,7 +219,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
         RenderQualityProfile::new("baked-off")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false)
+            .with_temporal_history(false)
             .with_baked_lighting(false)
             .with_reflection_probes(false),
     );
@@ -239,6 +239,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
         extract.particles.emitters = vec![42];
         extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
             entity: 42,
+            stable_sprite_key: 0,
             position: Vec3::ZERO,
             size: 0.9,
             aspect_ratio: 1.0,
@@ -265,7 +266,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
         RenderQualityProfile::new("particle-on")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false),
+            .with_temporal_history(false),
     );
     let no_particle_frame = fixture.render_extract(
         &particle_server,
@@ -273,7 +274,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
         RenderQualityProfile::new("particle-off")
             .with_clustered_lighting(false)
             .with_screen_space_ambient_occlusion(false)
-            .with_history_resolve(false)
+            .with_temporal_history(false)
             .with_particle_rendering(false),
     );
 

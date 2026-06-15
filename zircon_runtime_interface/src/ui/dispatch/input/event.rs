@@ -23,6 +23,7 @@ pub enum UiInputEvent {
     TooltipTimer(UiTooltipTimerInputEvent),
     TypeaheadTimer(UiTypeaheadTimerInputEvent),
     SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent),
+    ToastTimer(UiToastTimerInputEvent),
     Accessibility(UiAccessibilityInputEvent),
 }
 
@@ -209,6 +210,13 @@ pub struct UiSubmenuHoverTimerInputEvent {
     pub metadata: UiInputEventMetadata,
     pub target: UiNodeId,
     pub option_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiToastTimerInputEvent {
+    pub metadata: UiInputEventMetadata,
+    pub target: UiNodeId,
+    pub toast_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

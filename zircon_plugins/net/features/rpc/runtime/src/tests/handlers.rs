@@ -49,6 +49,23 @@ fn rpc_feature_manager_validates_schema_then_invokes_handler() {
 }
 
 #[test]
+fn rpc_payload_schema_uses_reflect_schema_request() {
+    let rpc = net_rpc_runtime_manager();
+    rpc.register_rpc(
+        RpcDescriptor::command("chat.schema").with_payload_schema("gameplay.ChatMessage"),
+    )
+    .unwrap();
+
+    let descriptor = rpc.rpc_descriptor("chat.schema").unwrap();
+    let schema = descriptor.payload_schema.as_ref().unwrap();
+    assert_eq!(schema.schema_id(), "gameplay.ChatMessage");
+    assert_eq!(
+        schema.reflect_schema_request.filter.type_path.as_deref(),
+        Some("gameplay.ChatMessage")
+    );
+}
+
+#[test]
 fn rpc_feature_manager_reports_schema_handler_and_missing_handler_failures() {
     let rpc = net_rpc_runtime_manager();
     let session = complete_joined_session(&rpc, "handler-player");
@@ -178,5 +195,34 @@ fn rpc_feature_manager_marks_slow_handler_timed_out_without_response_payload() {
         timed_out.diagnostic.as_deref(),
         Some("RPC handler exceeded invocation timeout")
     );
+    assert!(rpc.pending_request(request).is_none());
+}
+
+#[test]
+fn request_response_timeout_fires() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "request-timeout-player");
+    rpc.register_rpc_handler(RpcDescriptor::command("chat.request_timeout"), |_| {
+        thread::sleep(Duration::from_millis(50));
+        Ok(b"late".to_vec())
+    })
+    .unwrap();
+
+    let request = NetRequestId::new(191);
+    let timed_out = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new(
+            "chat.request_timeout",
+            RpcDirection::ClientToServer,
+            Vec::new(),
+        )
+        .with_source_session(session)
+        .with_request(request)
+        .with_timeout_ms(10),
+        RpcPeerRole::Client,
+    );
+
+    assert_eq!(timed_out.status, RpcDispatchStatus::TimedOut);
+    assert_eq!(timed_out.request, Some(request));
+    assert_eq!(timed_out.response_payload, None);
     assert!(rpc.pending_request(request).is_none());
 }

@@ -9,14 +9,24 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
         .expect("deferred lighting shader should declare SceneUniform");
 
     let view_proj = scene_uniform.find("view_proj").unwrap();
+    let view_proj_unjittered = scene_uniform.find("view_proj_unjittered").unwrap();
     let inverse_view_proj = scene_uniform.find("inverse_view_proj").unwrap();
     let ambient_color = scene_uniform.find("ambient_color").unwrap();
-    let previous_view_proj = scene_uniform.find("previous_view_proj").unwrap();
+    let previous_view_proj_unjittered =
+        scene_uniform.find("previous_view_proj_unjittered").unwrap();
+    let motion_params = scene_uniform.find("motion_params").unwrap();
+    let jitter_params = scene_uniform.find("jitter_params").unwrap();
 
     assert!(
-        view_proj < inverse_view_proj && inverse_view_proj < ambient_color && ambient_color < previous_view_proj,
-        "deferred lighting shader must match the Rust SceneUniform matrix, ambient, and motion layout"
+        view_proj < view_proj_unjittered
+            && view_proj_unjittered < inverse_view_proj
+            && inverse_view_proj < ambient_color
+            && ambient_color < previous_view_proj_unjittered
+            && previous_view_proj_unjittered < motion_params
+            && motion_params < jitter_params,
+        "deferred lighting shader must match the Rust SceneUniform matrix, ambient, motion, and jitter layout"
     );
+    assert!(!scene_uniform.contains("previous_view_proj:"));
     assert!(!scene_uniform.contains("light_dir"));
     assert!(!scene_uniform.contains("light_color"));
     assert!(!scene_uniform.contains("point_light_position_range"));

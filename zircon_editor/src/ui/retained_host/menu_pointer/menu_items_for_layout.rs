@@ -11,39 +11,39 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout(
 
     match menu_index {
         0 => vec![
-            menu_action("workbench.project.open", true),
-            menu_action("workbench.project.save", layout.save_project_enabled),
-            menu_action("workbench.layout.save", true),
-            menu_action("workbench.layout.reset", true),
+            menu_action("file.project.open", true),
+            menu_action("file.project.save", layout.save_project_enabled),
+            menu_action("window.layout.save", true),
+            menu_action("window.layout.reset", true),
             disabled_item(),
         ],
         1 => vec![
-            menu_action("workbench.history.undo", layout.undo_enabled),
-            menu_action("workbench.history.redo", layout.redo_enabled),
+            menu_action("edit.history.undo", layout.undo_enabled),
+            menu_action("edit.history.redo", layout.redo_enabled),
         ],
         2 => vec![
-            menu_action("workbench.scene.node.create.cube", true),
-            menu_action("workbench.scene.node.create.camera", true),
-            menu_action("workbench.scene.node.create.ambient_light", true),
-            menu_action("workbench.scene.node.create.directional_light", true),
-            menu_action("workbench.scene.node.create.point_light", true),
-            menu_action("workbench.scene.node.create.rect_light", true),
-            menu_action("workbench.scene.node.create.spot_light", true),
-            menu_action("workbench.selection.delete_selected", layout.delete_enabled),
+            menu_action("scene.node.create_cube", true),
+            menu_action("scene.node.create_camera", true),
+            menu_action("scene.node.create_ambient_light", true),
+            menu_action("scene.node.create_directional_light", true),
+            menu_action("scene.node.create_point_light", true),
+            menu_action("scene.node.create_rect_light", true),
+            menu_action("scene.node.create_spot_light", true),
+            menu_action("scene.node.delete_selected", layout.delete_enabled),
         ],
         3 => vec![
-            menu_action("workbench.play_mode.enter", true),
-            menu_action("workbench.play_mode.exit", false),
+            menu_action("runtime.play_mode.enter", true),
+            menu_action("runtime.play_mode.exit", false),
         ],
         4 => vec![
-            menu_action("workbench.view.open.editor.project", true),
-            menu_action("workbench.view.open.editor.hierarchy", true),
-            menu_action("workbench.view.open.editor.inspector", true),
-            menu_action("workbench.view.open.editor.scene", true),
-            menu_action("workbench.view.open.editor.game", true),
-            menu_action("workbench.view.open.editor.assets", true),
-            menu_action("workbench.view.open.editor.console", true),
-            menu_action("workbench.view.open.editor.prefab", true),
+            menu_action("view.project.open", true),
+            menu_action("view.hierarchy.open", true),
+            menu_action("view.inspector.open", true),
+            menu_action("view.scene.open", true),
+            menu_action("view.game.open", true),
+            menu_action("view.assets.open", true),
+            menu_action("view.console.open", true),
+            menu_action("view.prefab.open", true),
         ],
         5 => {
             let mut items = vec![
@@ -54,23 +54,17 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout(
                     ),
                     true,
                 ),
-                menu_action("workbench.layout.reset", true),
+                menu_action("window.layout.reset", true),
             ];
             items.extend(
                 layout.preset_names.iter().map(|preset| {
                     menu_action(format!("workbench.layout.preset.load.{preset}"), true)
                 }),
             );
-            items.push(menu_action(
-                "workbench.view.open.editor.debug_observatory",
-                true,
-            ));
+            items.push(menu_action("window.debug_observatory.open", true));
             items
         }
-        6 => vec![menu_action(
-            "workbench.view.open.editor.asset_browser",
-            true,
-        )],
+        6 => vec![menu_action("view.asset_browser.open", true)],
         _ => Vec::new(),
     }
 }

@@ -2,33 +2,55 @@ use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
     vec![
-        data_view("MaterialTreeView", "MUI X Tree View", "mui-x-tree-view")
-            .with_prop(string_prop("query"))
-            .with_prop(expanded_prop())
-            .with_prop(bool_prop("editable", true))
-            .with_prop(bool_prop("checkboxSelection", false))
-            .with_prop(bool_prop("multiSelect", false))
-            .with_prop(bool_prop("disabledItemsFocusable", false))
-            .with_prop(int_prop("focused_index", 0))
-            .with_prop(int_prop("selected_index", 0))
-            .with_prop(array_prop("disabled_options"))
-            .with_prop(bool_prop("selection_follows_focus", false))
-            .with_prop(bool_prop("keyboard_navigation", true))
-            .with_prop(array_prop("defaultExpandedItems"))
-            .with_prop(array_prop("selectedItems"))
-            .with_prop(float_prop("itemChildrenIndentation", 16.0))
-            .slot(UiSlotSchema::new("items").multiple(true))
-            .slot(UiSlotSchema::new("item").multiple(true))
-            .slot(UiSlotSchema::new("content").multiple(true))
-            .slot(UiSlotSchema::new("label"))
-            .slot(UiSlotSchema::new("icon"))
-            .slot(UiSlotSchema::new("checkbox"))
-            .events([
-                UiComponentEventKind::KeyboardAction,
-                UiComponentEventKind::SelectOption,
-                UiComponentEventKind::ToggleExpanded,
-                UiComponentEventKind::Commit,
-            ]),
+        virtualized_range_props(
+            data_view("MaterialTreeView", "MUI X Tree View", "mui-x-tree-view")
+                .layout_role(UiComponentLayoutRole::VirtualList)
+                .with_prop(string_prop("query"))
+                .with_prop(expanded_prop())
+                .with_prop(bool_prop("editable", true))
+                .with_prop(bool_prop("editing", false))
+                .with_prop(default_string_prop("editingNodeId", ""))
+                .with_prop(default_string_prop("editingText", ""))
+                .with_prop(int_prop("editingIndex", -1))
+                .with_prop(bool_prop("renameCommitted", false))
+                .with_prop(default_string_prop("renamedNodeId", ""))
+                .with_prop(default_string_prop("renamedText", ""))
+                .with_prop(bool_prop("checkboxSelection", false))
+                .with_prop(bool_prop("multiSelect", false))
+                .with_prop(bool_prop("itemsReordering", false))
+                .with_prop(bool_prop("range_selecting", false))
+                .with_prop(bool_prop("rangeSelecting", false))
+                .with_prop(int_prop("selection_anchor_index", 0))
+                .with_prop(int_prop("selectionAnchorIndex", 0))
+                .with_prop(bool_prop("disabledItemsFocusable", false))
+                .with_prop(int_prop("focused_index", 0))
+                .with_prop(int_prop("selected_index", 0))
+                .with_prop(array_prop("disabled_options"))
+                .with_prop(bool_prop("selection_follows_focus", false))
+                .with_prop(bool_prop("keyboard_navigation", true))
+                .with_prop(array_prop("expandedItems"))
+                .with_prop(array_prop("defaultExpandedItems"))
+                .with_prop(array_prop("selectedItems"))
+                .with_prop(float_prop("itemChildrenIndentation", 16.0))
+                .slot(UiSlotSchema::new("items").multiple(true))
+                .slot(UiSlotSchema::new("item").multiple(true))
+                .slot(UiSlotSchema::new("content").multiple(true))
+                .slot(UiSlotSchema::new("label"))
+                .slot(UiSlotSchema::new("icon"))
+                .slot(UiSlotSchema::new("checkbox")),
+        )
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::SelectOption,
+            UiComponentEventKind::ToggleExpanded,
+            UiComponentEventKind::BeginDrag,
+            UiComponentEventKind::EndDrag,
+            UiComponentEventKind::MoveElement,
+            UiComponentEventKind::Commit,
+            UiComponentEventKind::SetVisibleRange,
+        ])
+        .requires_host_capability(UiHostCapability::VirtualizedLayout)
+        .requires_render_capability(UiRenderCapability::VirtualizedLayout),
         virtualized_range_props(
             data_view("DataGrid", "MUI X Data Grid", "mui-x-data-grid")
                 .descriptor_kind(UiComponentDescriptorKind::Layout)
@@ -39,6 +61,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(bool_prop("loading", false))
         .with_prop(bool_prop("checkboxSelection", false))
         .with_prop(bool_prop("disableColumnMenu", false))
+        .with_prop(bool_prop("disableColumnResize", false))
         .with_prop(bool_prop("disableRowSelectionOnClick", false))
         .with_prop(bool_prop("autoHeight", false))
         .with_prop(bool_prop("showToolbar", false))
@@ -49,6 +72,14 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(bool_prop("showColumnVerticalBorder", false))
         .with_prop(int_prop("focused_index", 0))
         .with_prop(int_prop("selected_index", 0))
+        .with_prop(map_prop("column_widths"))
+        .with_prop(default_string_prop("sort_column", ""))
+        .with_prop(mui_enum_prop(
+            "sort_direction",
+            "none",
+            ["none", "asc", "desc"],
+        ))
+        .with_prop(float_prop("min_column_width", 40.0))
         .with_prop(array_prop("disabled_options"))
         .with_prop(bool_prop("selection_follows_focus", false))
         .with_prop(bool_prop("keyboard_navigation", true))
@@ -82,7 +113,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .slot(UiSlotSchema::new("loadingOverlay"))
         .slot(UiSlotSchema::new("noRowsOverlay"))
         .events([
+            UiComponentEventKind::ValueChanged,
             UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::BeginDrag,
+            UiComponentEventKind::DragDelta,
+            UiComponentEventKind::EndDrag,
             UiComponentEventKind::SetVisibleRange,
             UiComponentEventKind::SelectOption,
             UiComponentEventKind::Commit,

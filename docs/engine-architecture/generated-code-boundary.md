@@ -17,6 +17,7 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - docs/zircon_app/export-bootstrap.md
   - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - docs/engine-architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -27,6 +28,7 @@ implementation_files:
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
@@ -89,7 +91,7 @@ The structural audit now includes `generated_code_boundary`. Its implementation 
 
 Current evidence:
 
-- `template_file_count = 9` under `zircon_runtime/src/plugin/export_build_plan`;
+- `template_file_count = 10` under `zircon_runtime/src/plugin/export_build_plan`, including the `SourceTemplate` build-validation plan owner;
 - `behavior_location_count = 6` architecture-sensitive generated behavior locations after the M4 export-bootstrap and provider-table migration slices;
 - current flagged categories include thin export-bootstrap facade calls, generated `main`, and generated runtime selection functions. All 6 current locations are allowed generated adapters. Direct generated native loader use and direct generated `plugin_registration()` calls are no longer present. Provider-table rows are accepted as generated table adapters and are guarded separately against immediate execution.
 - current broad `generated` term scan under `zircon_runtime/src/**/*.rs` hits 42 files. These are classified as domain wording, tests, export-build-plan source/template owners, or the runtime absorption guard itself; they are not all generated artifacts.
@@ -109,7 +111,7 @@ Current behavior classification:
 
 Current gate evidence:
 
-- `template_file_count = 9`
+- `template_file_count = 10`
 - `behavior_location_count = 6`
 - `allowed_adapter_location_count = 6`
 - `migration_debt_location_count = 0`
@@ -196,3 +198,5 @@ Before editing export templates, inspect:
 The gate is clear only while `m1_gate_status` is `classified-and-clear` and `migration_debt_location_count = 0`.
 
 Runtime 02 still keeps a separate plan-status validation gate, `runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation`. That guard records that the generated boundary is structurally clear but still needs the generated/export_build_plan/app validation lane to rerun cleanly alongside the broader core/root checks before Runtime 02 can close.
+
+Runtime 02 also mirrors this generated boundary through `core_spine_root_generated_boundary` and `runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts`: core root entries 6/6, core public modules 5/5, retired core root entries 0, runtime root public modules 20/20, public `pub use` sites 3/3, crate-visible graphics alias debt 80/80, root-surface M1 gate `migration-debt-present`, generated export templates 10/10, generated behavior 6/6, generated allowed adapters 6/6, generated migration debt 0/0, generated-code M1 gate `classified-and-clear`, root_entries guard tests 13, root_surface guard tests 6/6, generated-code guard tests 7/7, `guard_test_anchor_count = 21`, `missing_guard_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`.

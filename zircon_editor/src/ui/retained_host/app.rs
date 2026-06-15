@@ -105,8 +105,10 @@ mod asset_tree_pointer;
 mod assets;
 pub(crate) mod backend_refresh;
 mod build_export_actions;
+mod build_export_wizard_session;
 mod callback_wiring;
 mod close_prompt;
+mod command_palette_actions;
 mod component_showcase_runtime;
 mod detail_scroll_pointer;
 mod helpers;
@@ -116,6 +118,7 @@ mod inspector;
 mod invalidation;
 mod menu_pointer;
 mod module_plugin_actions;
+mod native_keyboard_actions;
 mod native_window_close;
 mod native_windows;
 mod pane_payload_visibility;
@@ -200,6 +203,7 @@ struct RetainedEditorHost {
     desktop_export_reports: BTreeMap<String, build_export_actions::DesktopExportExecutionSummary>,
     desktop_export_jobs: build_export_actions::DesktopExportJobQueue,
     desktop_export_output_overrides: BTreeMap<String, std::path::PathBuf>,
+    desktop_export_wizard_sessions: build_export_wizard_session::DesktopExportWizardSessions,
     viewport: RetainedViewportController,
     asset_manager: Arc<dyn AssetManager>,
     editor_asset_manager: Arc<dyn EditorAssetManagerContract>,

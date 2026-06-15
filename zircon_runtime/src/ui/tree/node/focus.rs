@@ -6,7 +6,8 @@ use zircon_runtime_interface::ui::{
         UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationGroupId, UiTabIndex,
     },
     surface::UiNavigationEventKind,
-    tree::{UiTree, UiTreeError},
+    tree::{UiTemplateNodeMetadata, UiTree, UiTreeError},
+    widget::UiWidgetBehavior,
 };
 
 pub trait UiRuntimeTreeFocusExt {
@@ -490,26 +491,35 @@ fn is_active_mui_modal_focus_scope(node: &zircon_runtime_interface::ui::tree::Ui
     let Some(metadata) = node.template_metadata.as_ref() else {
         return false;
     };
-    is_mui_modal_focus_component(metadata.component.as_str())
+    is_mui_modal_focus_metadata(metadata)
         && node.state_flags.enabled
         && node.is_render_visible()
         && (bool_attribute(metadata, "open") || bool_attribute(metadata, "popup_open"))
-        && !bool_attribute(metadata, "disable_enforce_focus")
+        && !bool_attribute_any(metadata, &["disable_enforce_focus", "disableEnforceFocus"])
+}
+
+fn is_mui_modal_focus_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
+    is_mui_modal_focus_component(metadata.component.as_str())
+        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup
 }
 
 fn is_mui_modal_focus_component(component: &str) -> bool {
-    matches!(component, "Dialog" | "Modal" | "Popover" | "Menu")
+    matches!(
+        component,
+        "Dialog" | "ConfirmDialog" | "Modal" | "Popover" | "Menu"
+    )
 }
 
-fn bool_attribute(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> bool {
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
     metadata
         .attributes
         .get(key)
         .and_then(toml::Value::as_bool)
         .unwrap_or(false)
+}
+
+fn bool_attribute_any(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> bool {
+    keys.iter().any(|key| bool_attribute(metadata, key))
 }
 
 fn nearest_focusable_in_direction(

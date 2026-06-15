@@ -18,6 +18,7 @@ use zircon_runtime::ui::v2::{
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     template::{UiAssetDocument, UiAssetError},
+    tree::UiTreeError,
     v2::{UiV2AssetDocument, UiV2AssetError},
 };
 
@@ -48,6 +49,8 @@ pub enum EditorUiHostRuntimeError {
     UiV2Asset(#[from] UiV2AssetError),
     #[error(transparent)]
     UiTemplateBuild(#[from] UiTemplateBuildError),
+    #[error(transparent)]
+    UiTree(#[from] UiTreeError),
     #[error("retained host projection is missing binding {binding_id}")]
     MissingProjectionBinding { binding_id: String },
     #[error("shared surface node {node_path} is missing template metadata")]

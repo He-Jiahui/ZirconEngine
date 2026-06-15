@@ -3,14 +3,16 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PostProcessEffectKind {
     Bloom,
-    ColorGrading,
-    HistoryResolve,
-    EffectStack,
+    ColorLutBake,
+    ExposureHistogram,
+    ExposureResolve,
+    TaaResolve,
+    Uber,
     ScreenSpaceReflectionReflectionPyramid,
     ScreenSpaceReflectionReflectionPyramidCoarse,
     ScreenSpaceReflectionSpecularOcclusion,
     ScreenSpaceReflectionResolve,
-    FinalComposite,
+    OutputTransfer,
     Fxaa,
 }
 
@@ -18,9 +20,11 @@ impl PostProcessEffectKind {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Bloom => "bloom",
-            Self::ColorGrading => "color-grading",
-            Self::HistoryResolve => "history-resolve",
-            Self::EffectStack => "effect-stack",
+            Self::ColorLutBake => "color-lut-bake",
+            Self::ExposureHistogram => "exposure-histogram",
+            Self::ExposureResolve => "exposure-resolve",
+            Self::TaaResolve => "taa-resolve",
+            Self::Uber => "uber",
             Self::ScreenSpaceReflectionReflectionPyramid => {
                 "screen-space-reflection-reflection-pyramid"
             }
@@ -31,7 +35,7 @@ impl PostProcessEffectKind {
                 "screen-space-reflection-specular-occlusion"
             }
             Self::ScreenSpaceReflectionResolve => "screen-space-reflection-resolve",
-            Self::FinalComposite => "final-composite",
+            Self::OutputTransfer => "output-transfer",
             Self::Fxaa => "fxaa",
         }
     }

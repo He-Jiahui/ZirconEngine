@@ -26,11 +26,11 @@ fn native_floating_window_targets_fall_back_to_shared_projection_when_host_bound
         &model,
         shared_source,
         &WorkbenchChromeMetrics::default(),
-        &[NativeWindowHostState {
-            window_id: window_id.clone(),
-            handle: None,
-            bounds: [0.0, 0.0, 0.0, 0.0],
-        }],
+        &[NativeWindowHostState::new_for_test(
+            window_id.clone(),
+            None,
+            [0.0, 0.0, 0.0, 0.0],
+        )],
     );
     let targets = crate::ui::retained_host::collect_native_floating_window_targets(
         &model,
@@ -40,6 +40,10 @@ fn native_floating_window_targets_fall_back_to_shared_projection_when_host_bound
     assert_eq!(targets.len(), 1);
     assert_eq!(targets[0].window_id, window_id);
     assert_eq!(targets[0].title, "Native Preview");
+    assert_eq!(
+        targets[0].surface_tree_id.0,
+        "zircon.editor.native_window.window:native-preview"
+    );
     let expected = resolve_floating_window_projection_base_outer_frame(
         &model.floating_windows[0],
         0,

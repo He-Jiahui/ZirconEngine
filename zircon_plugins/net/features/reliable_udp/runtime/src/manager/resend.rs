@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use zircon_runtime::core::framework::net::{
     ReliableDatagramAck, ReliableDatagramPacket, ReliableDatagramRecoveryState,
 };
 
 use super::{NetReliableUdpRuntimeManager, RESEND_ATTEMPT_CAP_DIAGNOSTIC};
+use crate::ReliableUdpWireHeader;
 
 impl NetReliableUdpRuntimeManager {
     pub(in crate::manager) fn acknowledge_impl(&self, ack: ReliableDatagramAck) -> usize {
@@ -15,6 +18,33 @@ impl NetReliableUdpRuntimeManager {
             .outbound
             .retain(|packet| packet.sequence != ack.sequence);
         state.resend_state.remove(&ack.sequence);
+        let removed = before - state.outbound.len();
+        state.stats.received_packets += removed as u64;
+        removed
+    }
+
+    pub(in crate::manager) fn acknowledge_wire_header_impl(
+        &self,
+        header: ReliableUdpWireHeader,
+    ) -> usize {
+        let acked_sequences = header.acked_sequences().into_iter().collect::<HashSet<_>>();
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        let before = state.outbound.len();
+        let acknowledged = state
+            .outbound
+            .iter()
+            .filter(|packet| acked_sequences.contains(&(packet.sequence as u16)))
+            .map(|packet| packet.sequence)
+            .collect::<HashSet<_>>();
+        state
+            .outbound
+            .retain(|packet| !acknowledged.contains(&packet.sequence));
+        for sequence in &acknowledged {
+            state.resend_state.remove(sequence);
+        }
         let removed = before - state.outbound.len();
         state.stats.received_packets += removed as u64;
         removed
@@ -39,6 +69,14 @@ impl NetReliableUdpRuntimeManager {
     }
 
     pub(in crate::manager) fn resend_due_impl(&self, now_ms: u64) -> Vec<ReliableDatagramPacket> {
+        self.resend_due_with_byte_budget_impl(now_ms, usize::MAX)
+    }
+
+    pub(in crate::manager) fn resend_due_with_byte_budget_impl(
+        &self,
+        now_ms: u64,
+        max_payload_bytes: usize,
+    ) -> Vec<ReliableDatagramPacket> {
         let mut state = self
             .state
             .lock()
@@ -52,21 +90,35 @@ impl NetReliableUdpRuntimeManager {
         let mut due_packets = Vec::new();
         let mut capped_sequences = Vec::new();
         let max_attempts = state.config.max_resend_attempts;
+        let mut remaining_bytes = max_payload_bytes;
         for sequence in due_sequences {
-            let resend_state = state.resend_state.entry(sequence).or_default();
-            if resend_state.attempts >= max_attempts {
+            if state
+                .resend_state
+                .get(&sequence)
+                .is_some_and(|resend_state| resend_state.attempts >= max_attempts)
+            {
                 capped_sequences.push(sequence);
                 continue;
             }
+            let packets = state
+                .outbound
+                .iter()
+                .filter(|packet| packet.sequence == sequence)
+                .cloned()
+                .collect::<Vec<_>>();
+            let byte_cost = packets
+                .iter()
+                .map(|packet| packet.payload.len())
+                .sum::<usize>();
+            if byte_cost > remaining_bytes {
+                continue;
+            }
+
+            let resend_state = state.resend_state.entry(sequence).or_default();
             resend_state.attempts += 1;
             resend_state.last_sent_at_ms = now_ms;
-            due_packets.extend(
-                state
-                    .outbound
-                    .iter()
-                    .filter(|packet| packet.sequence == sequence)
-                    .cloned(),
-            );
+            remaining_bytes -= byte_cost;
+            due_packets.extend(packets);
         }
 
         if !capped_sequences.is_empty() {

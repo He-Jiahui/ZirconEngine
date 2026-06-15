@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::popup_rows::{
-    option_popup_frame_within, option_row_frame_within, popup_base_z, push_popup_background,
-    push_popup_row_label, push_popup_row_surface, PopupRowPaintState,
+    option_popup_frame_within, option_popup_layout_bounds, option_row_frame_within, popup_base_z,
+    push_popup_background, push_popup_row_label, push_popup_row_surface, PopupRowPaintState,
 };
 
 pub(super) fn popup_option_render_commands(
@@ -31,7 +31,7 @@ pub(super) fn popup_option_render_commands(
     }
 
     let layout_bounds = option_popup_layout_bounds(frame, clip_frame);
-    let popup_frame = option_popup_frame_within(frame, options.len(), layout_bounds);
+    let popup_frame = option_popup_frame_within(metadata, frame, options.len(), layout_bounds);
     let Some(popup_frame) = popup_frame else {
         return Vec::new();
     };
@@ -48,7 +48,8 @@ pub(super) fn popup_option_render_commands(
     );
 
     for (row, option) in options.iter().enumerate() {
-        let Some(row_frame) = option_row_frame_within(frame, options.len(), row, layout_bounds)
+        let Some(row_frame) =
+            option_row_frame_within(metadata, frame, options.len(), row, layout_bounds)
         else {
             continue;
         };
@@ -79,29 +80,24 @@ pub(super) fn popup_option_render_commands(
     commands
 }
 
-fn option_popup_layout_bounds(
-    control_frame: UiFrame,
-    clip_frame: Option<UiFrame>,
-) -> Option<UiFrame> {
-    clip_frame.filter(|clip_frame| *clip_frame != control_frame)
-}
-
 fn is_open_option_component(metadata: &UiTemplateNodeMetadata) -> bool {
     matches!(
         metadata.component.as_str(),
-        "ComboBox" | "Dropdown" | "Select"
+        "ComboBox" | "Dropdown" | "Select" | "DropdownPopup"
     ) && bool_attribute(metadata, "popup_open").or_else(|| bool_attribute(metadata, "open"))
         == Some(true)
 }
 
 fn option_rows(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupOption> {
-    let selected = selected_option_ids(metadata.attributes.get("value"));
+    let selected = selected_option_ids(metadata);
     let disabled = option_id_set(metadata.attributes.get("disabled_options"));
     let special = option_id_set(metadata.attributes.get("special_options"));
     let focused = option_id_set(metadata.attributes.get("focused_options"));
     let hovered = option_id_set(metadata.attributes.get("hovered_options"));
     let pressed = option_id_set(metadata.attributes.get("pressed_options"));
     let loading = option_id_set(metadata.attributes.get("loading_options"));
+    let focused_index = usize_attribute(metadata, "focused_index");
+    let hovered_id = string_attribute(metadata, "hovered_option_id");
 
     metadata
         .attributes
@@ -110,10 +106,20 @@ fn option_rows(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupOption> {
         .map(|values| {
             values
                 .iter()
-                .filter_map(|value| {
+                .enumerate()
+                .filter_map(|(index, value)| {
                     option_row(
-                        value, &selected, &disabled, &special, &focused, &hovered, &pressed,
+                        value,
+                        index,
+                        &selected,
+                        &disabled,
+                        &special,
+                        &focused,
+                        &hovered,
+                        &pressed,
                         &loading,
+                        focused_index,
+                        hovered_id,
                     )
                 })
                 .collect()
@@ -123,6 +129,7 @@ fn option_rows(metadata: &UiTemplateNodeMetadata) -> Vec<RuntimePopupOption> {
 
 fn option_row(
     value: &Value,
+    index: usize,
     selected: &BTreeSet<String>,
     disabled: &BTreeSet<String>,
     special: &BTreeSet<String>,
@@ -130,8 +137,11 @@ fn option_row(
     hovered: &BTreeSet<String>,
     pressed: &BTreeSet<String>,
     loading: &BTreeSet<String>,
+    focused_index: Option<usize>,
+    hovered_id: Option<&str>,
 ) -> Option<RuntimePopupOption> {
     let mut option = RuntimePopupOption::from_value(value)?;
+    option.index = index;
     if selected.contains(&option.id) || selected.contains(&option.label) {
         option.selected = true;
     }
@@ -144,7 +154,13 @@ fn option_row(
     if focused.contains(&option.id) || focused.contains(&option.label) {
         option.focused = true;
     }
+    if focused_index == Some(option.index) {
+        option.focused = true;
+    }
     if hovered.contains(&option.id) || hovered.contains(&option.label) {
+        option.hovered = true;
+    }
+    if hovered_id.is_some_and(|value| option.matches_id(value)) {
         option.hovered = true;
     }
     if pressed.contains(&option.id) || pressed.contains(&option.label) {
@@ -164,7 +180,14 @@ fn option_id_set(value: Option<&Value>) -> BTreeSet<String> {
     option_values(value).into_iter().collect()
 }
 
-fn selected_option_ids(value: Option<&Value>) -> BTreeSet<String> {
+fn selected_option_ids(metadata: &UiTemplateNodeMetadata) -> BTreeSet<String> {
+    let mut selected = value_selected_option_ids(metadata.attributes.get("value"));
+    selected.extend(option_values(metadata.attributes.get("selected_options")));
+    selected.extend(option_values(metadata.attributes.get("selectedOptions")));
+    selected
+}
+
+fn value_selected_option_ids(value: Option<&Value>) -> BTreeSet<String> {
     let Some(value) = value else {
         return BTreeSet::new();
     };
@@ -203,8 +226,21 @@ fn option_values(value: Option<&Value>) -> Vec<String> {
     }
 }
 
+fn string_attribute<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a str> {
+    metadata.attributes.get(key).and_then(Value::as_str)
+}
+
+fn usize_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<usize> {
+    match metadata.attributes.get(key)? {
+        Value::Integer(value) => (*value >= 0).then_some(*value as usize),
+        Value::Float(value) if value.is_finite() && *value >= 0.0 => Some(*value as usize),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct RuntimePopupOption {
+    index: usize,
     id: String,
     label: String,
     selected: bool,
@@ -249,6 +285,7 @@ impl RuntimePopupOption {
                     .unwrap_or(id.as_str())
                     .to_string();
                 Some(Self {
+                    index: 0,
                     id,
                     label,
                     selected: table_bool(table.get("selected")) || table_bool(table.get("checked")),
@@ -272,6 +309,7 @@ impl RuntimePopupOption {
             .or_else(|| flag_value(flags, "text"))
             .unwrap_or_else(|| id.clone());
         Self {
+            index: 0,
             id,
             label,
             selected: has_flag(flags, "selected") || has_flag(flags, "checked"),
@@ -282,6 +320,10 @@ impl RuntimePopupOption {
             pressed: has_flag(flags, "pressed"),
             loading: has_flag(flags, "loading"),
         }
+    }
+
+    fn matches_id(&self, value: &str) -> bool {
+        !value.is_empty() && (self.id == value || self.label == value)
     }
 }
 

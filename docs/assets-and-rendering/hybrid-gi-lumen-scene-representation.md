@@ -46,7 +46,7 @@ related_code:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/normalize.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs
@@ -301,7 +301,7 @@ implementation_files:
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/mod.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/normalize.rs
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs

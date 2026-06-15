@@ -1,7 +1,7 @@
 use crate::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime_interface::ui::component::UiValue;
+use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiHostCapability, UiValue};
 
-use super::super::assert_has_prop;
+use super::super::{assert_has_event, assert_has_prop};
 use super::assert_enum_options;
 
 pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
@@ -13,6 +13,7 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     assert_card_content(registry);
     assert_card_header(registry);
     assert_card_media(registry);
+    assert_property_rows(registry);
     assert_toolbar(registry);
 }
 
@@ -165,6 +166,106 @@ fn assert_card_media(registry: &UiComponentDescriptorRegistry) {
         .expect("CardMedia descriptor");
     for prop in ["component", "image", "src"] {
         assert_has_prop(card_media, prop);
+    }
+}
+
+fn assert_property_rows(registry: &UiComponentDescriptorRegistry) {
+    let property_row = registry
+        .descriptor("PropertyRow")
+        .expect("PropertyRow descriptor");
+    assert!(property_row
+        .required_host_capabilities
+        .contains(&UiHostCapability::Editor));
+    assert_enum_options(
+        property_row,
+        "editor_kind",
+        &[
+            "auto",
+            "text",
+            "number",
+            "boolean",
+            "enum",
+            "reference",
+            "vector",
+            "custom",
+        ],
+    );
+    for prop in [
+        "property_path",
+        "label",
+        "value",
+        "value_text",
+        "value_type",
+        "depth",
+        "name_column_width",
+        "read_only",
+        "inherited",
+        "overridden",
+        "modified",
+    ] {
+        assert_has_prop(property_row, prop);
+    }
+    for slot_name in ["label", "editor", "actions", "context_menu"] {
+        assert!(
+            property_row
+                .slot_schema
+                .iter()
+                .any(|slot| slot.name == slot_name),
+            "PropertyRow missing inspector slot `{slot_name}`"
+        );
+    }
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+        UiComponentEventKind::OpenPopupAt,
+    ] {
+        assert_has_event(property_row, event);
+    }
+
+    let vector_row = registry
+        .descriptor("VectorRow")
+        .expect("VectorRow descriptor");
+    assert!(vector_row
+        .required_host_capabilities
+        .contains(&UiHostCapability::Editor));
+    assert_enum_options(
+        vector_row,
+        "axis_value_field",
+        &["components", "array", "object"],
+    );
+    for prop in [
+        "property_path",
+        "label",
+        "dimension",
+        "axes",
+        "x",
+        "y",
+        "z",
+        "w",
+        "min",
+        "max",
+        "step",
+        "read_only",
+        "overridden",
+    ] {
+        assert_has_prop(vector_row, prop);
+    }
+    for slot_name in ["label", "x", "y", "z", "w", "actions"] {
+        assert!(
+            vector_row
+                .slot_schema
+                .iter()
+                .any(|slot| slot.name == slot_name),
+            "VectorRow missing inspector slot `{slot_name}`"
+        );
+    }
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+    ] {
+        assert_has_event(vector_row, event);
     }
 }
 

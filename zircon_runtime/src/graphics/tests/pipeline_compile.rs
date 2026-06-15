@@ -1,14 +1,15 @@
 use crate::core::framework::render::{
-    FallbackSkyboxKind, PostProcessGraphResourceNames, PostProcessStackDescriptor,
-    PreviewEnvironmentExtract, ProjectionMode, RenderCameraTarget, RenderDynamicResolutionSettings,
-    RenderFrameExtract, RenderPhase, RenderPostProcessEffectStackSettings,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderScreenSpaceReflectionSettings,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    AntiAliasSettings, FallbackSkyboxKind, PostProcessGraphResourceNames,
+    PostProcessStackDescriptor, PreviewEnvironmentExtract, ProjectionMode, RenderCameraTarget,
+    RenderDynamicResolutionSettings, RenderFrameExtract, RenderPhase,
+    RenderPostProcessEffectStackSettings, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderScreenSpaceReflectionSettings, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
-    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphComputeWorkload, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
+    RenderGraphResourceKind,
 };
 use crate::rhi::TextureFormat;
 
@@ -54,15 +55,14 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
-            "motion-vector-clear",
+            "velocity-object",
+            "velocity-camera",
             "shadow-atlas",
             "hzb-build",
             "light-grid-build",
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
-            "motion-vector-camera",
-            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
@@ -71,9 +71,9 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "post-process",
+            "uber",
             "bloom-extract",
-            "color-grade",
+            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -94,12 +94,18 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     assert_eq!(
         pass_resource_access(
             &compiled,
-            "motion-vector-clear",
-            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            "velocity-object",
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
             RenderGraphResourceAccessKind::Write,
         )
         .attachment_ops,
         Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "velocity-object",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
     );
     pass_resource_access(
         &compiled,
@@ -185,15 +191,15 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
-        "motion-vector-camera",
+        "velocity-camera",
         PostProcessGraphResourceNames::SCENE_DEPTH,
         RenderGraphResourceAccessKind::Read,
     );
     assert_eq!(
         pass_resource_access(
             &compiled,
-            "motion-vector-camera",
-            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            "velocity-camera",
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
             RenderGraphResourceAccessKind::Write,
         )
         .attachment_ops,
@@ -202,7 +208,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     pass_resource_access(
         &compiled,
         "motion-vector-tile-max",
-        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
         RenderGraphResourceAccessKind::Read,
     );
     assert_eq!(
@@ -345,25 +351,25 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
-        "post-process",
+        "uber",
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
         RenderGraphResourceAccessKind::Read,
     );
     pass_resource_access(
         &compiled,
-        "post-process",
+        "uber",
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
         RenderGraphResourceAccessKind::Read,
     );
     pass_resource_access(
         &compiled,
-        "post-process",
+        "uber",
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
         RenderGraphResourceAccessKind::Read,
     );
     let screen_space_reflection_history_read = pass_resource_access(
         &compiled,
-        "post-process",
+        "uber",
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
         RenderGraphResourceAccessKind::Read,
     );
@@ -425,15 +431,14 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
-            "motion-vector-clear",
+            "velocity-object",
+            "velocity-camera",
             "shadow-atlas",
             "gbuffer-mesh",
             "hzb-build",
             "light-grid-build",
             "deferred-lighting",
             "transparent-mesh",
-            "motion-vector-camera",
-            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
@@ -442,9 +447,9 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "post-process",
+            "uber",
             "bloom-extract",
-            "color-grade",
+            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -465,8 +470,8 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     assert_eq!(
         pass_resource_access(
             &compiled,
-            "motion-vector-clear",
-            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            "velocity-object",
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
             RenderGraphResourceAccessKind::Write,
         )
         .attachment_ops,
@@ -474,15 +479,21 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
-        "motion-vector-camera",
+        "velocity-object",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "velocity-camera",
         PostProcessGraphResourceNames::SCENE_DEPTH,
         RenderGraphResourceAccessKind::Read,
     );
     assert_eq!(
         pass_resource_access(
             &compiled,
-            "motion-vector-camera",
-            PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+            "velocity-camera",
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
             RenderGraphResourceAccessKind::Write,
         )
         .attachment_ops,
@@ -491,7 +502,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     pass_resource_access(
         &compiled,
         "motion-vector-tile-max",
-        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
         RenderGraphResourceAccessKind::Read,
     );
     assert_eq!(
@@ -716,7 +727,6 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("opaque-sprite", Some("sprite.opaque")),
             ("alpha-mask-sprite", Some("sprite.alpha-mask")),
             ("transparent-sprite", Some("sprite.transparent")),
-            ("motion-vector-camera", Some("post.motion-vector-camera")),
             (
                 "motion-vector-tile-max",
                 Some("post.motion-vector-tile-max"),
@@ -749,7 +759,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
                 "screen-space-reflection-resolve",
                 Some("post.screen-space-reflection-resolve"),
             ),
-            ("post-process", Some("post.stack")),
+            ("uber", Some("post.uber")),
             ("runtime-ui", Some("ui.screen-space")),
             ("overlay-gizmo", Some("overlay.gizmo")),
         ]
@@ -785,7 +795,8 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
-            "motion-vector-clear",
+            "velocity-object",
+            "velocity-camera",
             "shadow-atlas",
             "hzb-build",
             "ssao-evaluate",
@@ -796,8 +807,6 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
-            "motion-vector-camera",
-            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
@@ -806,8 +815,8 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "post-process",
-            "color-grade",
+            "uber",
+            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -839,7 +848,8 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "preview-sky",
             "depth-prepass",
             "hzb-occlusion-cull",
-            "motion-vector-clear",
+            "velocity-object",
+            "velocity-camera",
             "shadow-atlas",
             "gbuffer-mesh",
             "hzb-build",
@@ -850,8 +860,6 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
-            "motion-vector-camera",
-            "motion-vector-object",
             "motion-vector-tile-max",
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
@@ -860,8 +868,8 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "post-process",
-            "color-grade",
+            "uber",
+            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -870,72 +878,234 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
 }
 
 #[test]
-fn history_resolve_compiles_only_with_explicit_feature_opt_in() {
-    let pipeline = RenderPipelineAsset::default_forward_plus();
-
-    let default_compiled = pipeline.compile(&test_extract()).unwrap();
-    let default_pass_names = default_compiled
-        .graph
-        .passes()
-        .iter()
-        .map(|pass| pass.name.as_str())
-        .collect::<Vec<_>>();
-    assert!(!default_pass_names.contains(&"history-resolve"));
-    assert!(!default_compiled
-        .history_bindings
-        .contains(&FrameHistoryBinding::read_write(
-            FrameHistorySlot::SceneColor
-        )));
-
-    let enabled_compiled = pipeline
+fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &Default::default(),
+        true,
+        true,
+        &AntiAliasSettings::taa(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
         .compile_with_options(
             &test_extract(),
             &RenderPipelineCompileOptions::default()
-                .with_feature_enabled(BuiltinRenderFeature::HistoryResolve),
+                .with_feature_enabled(BuiltinRenderFeature::Temporal)
+                .with_post_process_stack(stack),
         )
         .unwrap();
-    let enabled_pass_names = enabled_compiled
+    let live_pass_names = compiled
         .graph
         .passes()
         .iter()
+        .filter(|pass| !pass.culled)
         .map(|pass| pass.name.as_str())
         .collect::<Vec<_>>();
-    assert!(enabled_pass_names.contains(&"history-resolve"));
-    assert!(enabled_compiled
-        .history_bindings
-        .contains(&FrameHistoryBinding::read_write(
-            FrameHistorySlot::SceneColor
-        )));
 
-    let history_pass = enabled_compiled
+    assert!(live_pass_names.contains(&"taa-resolve"));
+    assert!(live_pass_names.contains(&"taa-reactive-mask-clear"));
+    assert!(live_pass_names.contains(&"taa-reactive-mask-mesh"));
+    assert!(live_pass_names.contains(&"velocity-object"));
+    assert!(live_pass_names.contains(&"velocity-camera"));
+    for pass_name in [
+        "motion-vector-tile-max",
+        "motion-vector-tile-max-coarse",
+        "motion-vector-neighbor-max",
+    ] {
+        assert!(
+            !live_pass_names.contains(&pass_name),
+            "`{pass_name}` should stay culled for TAA-only scene velocity; live={live_pass_names:?}"
+        );
+    }
+
+    let taa_pass = compiled
         .graph
         .passes()
         .iter()
-        .find(|pass| pass.name == "history-resolve")
-        .expect("history resolve pass should be compiled after opt in");
-    assert!(
-        history_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR
-                && resource.kind == RenderGraphResourceKind::External
-                && resource.access == RenderGraphResourceAccessKind::Read
-        }),
-        "history resolve must read the previous history slot"
+        .find(|pass| pass.name == "taa-resolve")
+        .expect("TAA resolve pass should be compiled when TAA is effective");
+    assert_eq!(
+        taa_pass.executor_id.as_deref(),
+        Some("temporal.taa-resolve")
     );
-    assert!(
-        history_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR
-                && resource.kind == RenderGraphResourceKind::External
-                && resource.access == RenderGraphResourceAccessKind::Write
-        }),
-        "history resolve must write a separate output slot"
+    let reactive_mask_clear_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "taa-reactive-mask-clear")
+        .expect("TAA reactive mask clear pass should be compiled when TAA is effective");
+    assert_eq!(
+        reactive_mask_clear_pass.executor_id.as_deref(),
+        Some("temporal.taa-reactive-mask-clear")
     );
-    assert!(
-        !history_pass
-            .resources
-            .iter()
-            .any(|resource| resource.name == "history-scene-color"),
-        "legacy single history resource name must not survive in the SRP graph"
+    let reactive_mask_clear_write = pass_resource_access(
+        &compiled,
+        "taa-reactive-mask-clear",
+        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
+        RenderGraphResourceAccessKind::Write,
     );
+    assert_eq!(
+        reactive_mask_clear_write.kind,
+        RenderGraphResourceKind::TransientTexture
+    );
+    assert_eq!(
+        reactive_mask_clear_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    let reactive_mask_mesh_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "taa-reactive-mask-mesh")
+        .expect("TAA reactive mask mesh pass should be compiled when TAA is effective");
+    assert_eq!(
+        reactive_mask_mesh_pass.executor_id.as_deref(),
+        Some("temporal.taa-reactive-mask-mesh")
+    );
+    pass_resource_access(
+        &compiled,
+        "taa-reactive-mask-mesh",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    let reactive_mask_mesh_write = pass_resource_access(
+        &compiled,
+        "taa-reactive-mask-mesh",
+        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
+        RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        reactive_mask_mesh_write.kind,
+        RenderGraphResourceKind::TransientTexture
+    );
+    assert_eq!(
+        reactive_mask_mesh_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::load_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "taa-resolve",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "taa-resolve",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "taa-resolve",
+        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "taa-resolve",
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
+        RenderGraphResourceAccessKind::Read,
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "taa-resolve",
+            PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+            RenderGraphResourceAccessKind::Read,
+        )
+        .kind,
+        RenderGraphResourceKind::External
+    );
+    assert_eq!(
+        pass_resource_access(
+            &compiled,
+            "taa-resolve",
+            PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .kind,
+        RenderGraphResourceKind::External
+    );
+    let taa_output_write = pass_resource_access(
+        &compiled,
+        "taa-resolve",
+        PostProcessGraphResourceNames::TAA_OUTPUT,
+        RenderGraphResourceAccessKind::Write,
+    );
+    assert_eq!(
+        taa_output_write.kind,
+        RenderGraphResourceKind::TransientTexture
+    );
+    assert_eq!(
+        taa_output_write.attachment_ops,
+        Some(RenderGraphAttachmentOps::clear_store())
+    );
+    pass_resource_access(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::TAA_OUTPUT,
+        RenderGraphResourceAccessKind::Read,
+    );
+
+    let taa_output = graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::TAA_OUTPUT);
+    assert!(matches!(
+        &taa_output.desc,
+        RenderGraphResourceDesc::Texture(desc)
+            if desc.format == TextureFormat::Rg11b10Ufloat && desc.sample_count == 1
+    ));
+    let reactive_mask =
+        graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::TAA_REACTIVE_MASK);
+    assert!(matches!(
+        &reactive_mask.desc,
+        RenderGraphResourceDesc::Texture(desc)
+            if desc.format == TextureFormat::R8Unorm && desc.sample_count == 1
+    ));
+}
+
+#[test]
+fn taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &Default::default(),
+        true,
+        true,
+        &AntiAliasSettings::off(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::Temporal)
+                .with_post_process_stack(stack),
+        )
+        .unwrap();
+    let live_pass_names = compiled
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| !pass.culled)
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+    let lifetimes = compiled
+        .graph
+        .resource_lifetimes()
+        .iter()
+        .map(|lifetime| lifetime.name.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(!live_pass_names.contains(&"taa-resolve"));
+    for resource_name in [
+        PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+        PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+        PostProcessGraphResourceNames::TAA_OUTPUT,
+    ] {
+        assert!(
+            !lifetimes.contains(&resource_name),
+            "`{resource_name}` should not be allocated when TAA is disabled; lifetimes={lifetimes:?}"
+        );
+    }
 }
 
 #[test]
@@ -1128,9 +1298,9 @@ fn history_binding_accessors_construct_expected_bindings() {
         }
     );
     assert_eq!(
-        FrameHistoryBinding::write(FrameHistorySlot::SceneColor),
+        FrameHistoryBinding::write(FrameHistorySlot::TaaSceneColor),
         FrameHistoryBinding {
-            slot: FrameHistorySlot::SceneColor,
+            slot: FrameHistorySlot::TaaSceneColor,
             access: FrameHistoryAccess::Write,
         }
     );
@@ -1142,7 +1312,7 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
         .with_plugin_render_features(default_rendering_feature_descriptors());
     let options = RenderPipelineCompileOptions::default()
         .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
-        .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+        .with_feature_disabled(BuiltinRenderFeature::Temporal)
         .with_plugin_feature_disabled("screen_space_ambient_occlusion");
 
     let compiled = pipeline
@@ -1157,7 +1327,7 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
 
     assert!(!pass_names.contains(&"ssao-evaluate"));
     assert!(!pass_names.contains(&"light-grid-build"));
-    assert!(!pass_names.contains(&"history-resolve"));
+    assert!(!pass_names.contains(&"taa-resolve"));
     assert!(!compiled
         .history_bindings
         .contains(&FrameHistoryBinding::read_write(
@@ -1243,7 +1413,7 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         ssao_output.attachment_ops, None,
         "compute storage writes must not inherit render attachment load/store ops"
     );
-    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 3);
+    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 4);
 }
 
 #[test]
@@ -1332,51 +1502,58 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         "preview sky should initialize scene depth through the render graph"
     );
 
-    let motion_vector_clear_pass = compiled
+    let velocity_object_pass = compiled
         .graph
         .passes()
         .iter()
-        .find(|pass| pass.name == "motion-vector-clear")
-        .expect("default forward pipeline should include motion vector target clear");
+        .find(|pass| pass.name == "velocity-object")
+        .expect("default forward pipeline should include object velocity pass");
     assert_eq!(
-        motion_vector_clear_pass.executor_id.as_deref(),
-        Some("post.motion-vector-clear")
+        velocity_object_pass.executor_id.as_deref(),
+        Some("temporal.velocity-object")
     );
     assert!(
-        motion_vector_clear_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+        velocity_object_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
+                && resource.access == RenderGraphResourceAccessKind::Read
+        }),
+        "object velocity pass should read scene depth for depth-tested dynamic object writes"
+    );
+    assert!(
+        velocity_object_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY
                 && resource.kind == RenderGraphResourceKind::TransientTexture
                 && resource.access == RenderGraphResourceAccessKind::Write
                 && resource.attachment_ops == Some(RenderGraphAttachmentOps::clear_store())
         }),
-        "motion vector clear should initialize the graph-owned motion-vector target"
+        "object velocity pass should initialize the graph-owned velocity target"
     );
 
-    let motion_vector_camera_pass = compiled
+    let velocity_camera_pass = compiled
         .graph
         .passes()
         .iter()
-        .find(|pass| pass.name == "motion-vector-camera")
-        .expect("default forward pipeline should include camera motion-vector pass");
+        .find(|pass| pass.name == "velocity-camera")
+        .expect("default forward pipeline should include camera velocity pass");
     assert_eq!(
-        motion_vector_camera_pass.executor_id.as_deref(),
-        Some("post.motion-vector-camera")
+        velocity_camera_pass.executor_id.as_deref(),
+        Some("temporal.velocity-camera")
     );
     assert!(
-        motion_vector_camera_pass.resources.iter().any(|resource| {
+        velocity_camera_pass.resources.iter().any(|resource| {
             resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
                 && resource.access == RenderGraphResourceAccessKind::Read
         }),
-        "camera motion-vector pass should read scene depth for per-pixel reconstruction"
+        "camera velocity pass should read scene depth for per-pixel reconstruction"
     );
     assert!(
-        motion_vector_camera_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+        velocity_camera_pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY
                 && resource.kind == RenderGraphResourceKind::TransientTexture
                 && resource.access == RenderGraphResourceAccessKind::Write
                 && resource.attachment_ops == Some(RenderGraphAttachmentOps::load_store())
         }),
-        "camera motion-vector pass should load the cleared target before writing camera velocity"
+        "camera velocity pass should load the object velocity target before filling static pixels"
     );
 
     let motion_vector_tile_max_pass = compiled
@@ -1394,7 +1571,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
             .resources
             .iter()
             .any(|resource| {
-                resource.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+                resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY
                     && resource.kind == RenderGraphResourceKind::TransientTexture
                     && resource.access == RenderGraphResourceAccessKind::Read
             }),
@@ -1512,7 +1689,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         lifetime.name == "scene-color" && lifetime.kind == RenderGraphResourceKind::TransientTexture
     }));
     assert!(lifetimes.iter().any(|lifetime| {
-        lifetime.name == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+        lifetime.name == PostProcessGraphResourceNames::SCENE_VELOCITY
             && lifetime.kind == RenderGraphResourceKind::TransientTexture
     }));
     assert!(lifetimes.iter().any(|lifetime| {
@@ -1561,7 +1738,7 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
         RenderGraphResourceDesc::Texture(desc)
             if desc.width == 1280
                 && desc.height == 720
-                && desc.format == TextureFormat::Rgba16Float
+                && desc.format == TextureFormat::Rg11b10Ufloat
                 && desc.sample_count == 4
     ));
 
@@ -1581,6 +1758,12 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
     ));
 
     for (resource_name, expected_width, expected_height, expected_format) in [
+        (
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
+            1280,
+            720,
+            TextureFormat::Rg16Float,
+        ),
         (
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
             1280,
@@ -1656,6 +1839,10 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("ao.ssao-evaluate")
+        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            "zircon-ssao-pipeline",
+            [8, 8, 1],
+        ))
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
@@ -1706,33 +1893,12 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                "motion-vector-clear",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-clear")
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "motion-vector-camera",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-camera")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::load_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "motion-vector-tile-max",
                 QueueLane::Graphics,
             )
             .with_executor_id("post.motion-vector-tile-max")
-            .read_texture(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),
@@ -1833,10 +1999,10 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "post-process",
+                "uber",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
@@ -1929,8 +2095,8 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
         .collect::<Vec<_>>();
 
     assert!(
-        !pass_names.contains(&"post-process"),
-        "post-process pass should be removed when the feature is disabled"
+        !pass_names.contains(&"uber"),
+        "uber pass should be removed when the feature is disabled"
     );
     assert!(
         !pass_names.contains(&"depth-of-field-prepare"),
@@ -1961,12 +2127,12 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
         "screen-space reflection specular occlusion should be removed with the post-process feature"
     );
     assert!(
-        !pass_names.contains(&"motion-vector-clear"),
-        "motion-vector target initialization should be removed with the post-process feature"
+        pass_names.contains(&"velocity-object"),
+        "object velocity producer belongs to the temporal feature, not post-process"
     );
     assert!(
-        !pass_names.contains(&"motion-vector-camera"),
-        "motion-vector camera producer should be removed with the post-process feature"
+        pass_names.contains(&"velocity-camera"),
+        "camera velocity producer belongs to the temporal feature, not post-process"
     );
     assert!(
         !pass_names.contains(&"motion-vector-tile-max"),
@@ -2016,11 +2182,13 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         .map(|pass| pass.name.as_str())
         .collect::<Vec<_>>();
 
-    assert!(live_pass_names.contains(&"post-process"));
+    assert!(live_pass_names.contains(&"uber"));
     for pass_name in [
-        "motion-vector-clear",
-        "motion-vector-camera",
-        "motion-vector-object",
+        "velocity-object",
+        "velocity-camera",
+        "taa-reactive-mask-clear",
+        "taa-reactive-mask-mesh",
+        "taa-resolve",
         "motion-vector-tile-max",
         "motion-vector-tile-max-coarse",
         "motion-vector-neighbor-max",
@@ -2043,7 +2211,11 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         .map(|lifetime| lifetime.name.as_str())
         .collect::<Vec<_>>();
     for resource_name in [
-        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
+        PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+        PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+        PostProcessGraphResourceNames::TAA_OUTPUT,
+        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
@@ -2093,8 +2265,8 @@ fn effective_post_process_stack_keeps_screen_space_reflection_passes_when_reques
         .collect::<Vec<_>>();
 
     for pass_name in [
-        "motion-vector-camera",
-        "motion-vector-object",
+        "velocity-object",
+        "velocity-camera",
         "motion-vector-tile-max",
         "motion-vector-neighbor-max",
         "hzb-occlusion-cull",
@@ -2164,7 +2336,7 @@ fn pipeline_compile_validates_quality_gated_descriptor_overrides_even_when_gate_
                 "bad-gated-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")],
+            .with_executor_id("post.uber")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -2225,7 +2397,7 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
                 "custom-bloom-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .read_texture("scene-color")
             .write_external("viewport-output")],
         ));
@@ -2268,7 +2440,7 @@ fn pipeline_compile_rejects_descriptor_passes_for_undeclared_stages() {
                 "custom-gbuffer-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .with_side_effects()],
         ));
 
@@ -2297,17 +2469,17 @@ fn pipeline_compile_rejects_duplicate_descriptor_pass_names() {
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "color-grade",
+                "color-lut-bake",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.color-grade")
+            .with_executor_id("post.color-lut-bake")
             .with_side_effects()],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
 
     assert!(
-        error.contains("duplicate render graph pass name `color-grade`"),
+        error.contains("duplicate render graph pass name `color-lut-bake`"),
         "unexpected error: {error}"
     );
 }
@@ -2332,7 +2504,7 @@ fn pipeline_compile_rejects_conflicting_descriptor_resource_kinds() {
                 "bad-resource-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .write_buffer("scene-color")],
         ));
 
@@ -2364,7 +2536,7 @@ fn pipeline_compile_rejects_explicit_external_resource_name_conflicts() {
                 "bad-external-resource-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .write_external("scene-color")],
         ));
 
@@ -2428,7 +2600,7 @@ fn pipeline_compile_rejects_empty_descriptor_pass_names_after_descriptor_name_is
                 "",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")],
+            .with_executor_id("post.uber")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
@@ -2491,7 +2663,7 @@ fn pipeline_compile_rejects_empty_descriptor_resource_names_after_executor_is_va
                 "empty-resource-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .write_texture("")],
         ));
 
@@ -2517,7 +2689,7 @@ fn pipeline_compile_rejects_storage_write_mode_on_read_access() {
         "bad-storage-mode-pass",
         QueueLane::Graphics,
     )
-    .with_executor_id("post.stack");
+    .with_executor_id("post.uber");
     invalid_pass
         .resources
         .push(RenderFeatureResourceDescriptor {
@@ -2564,7 +2736,7 @@ fn pipeline_compile_rejects_empty_descriptor_extract_section_names() {
                 "post-stack-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .read_texture("scene-color")],
         ));
 
@@ -2591,22 +2763,22 @@ fn pipeline_compile_rejects_duplicate_history_bindings_in_one_descriptor() {
             "duplicate-history-feature",
             Vec::new(),
             vec![
-                FrameHistoryBinding::read(FrameHistorySlot::SceneColor),
-                FrameHistoryBinding::write(FrameHistorySlot::SceneColor),
+                FrameHistoryBinding::read(FrameHistorySlot::TaaSceneColor),
+                FrameHistoryBinding::write(FrameHistorySlot::TaaSceneColor),
             ],
             vec![RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "history-using-pass",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .read_texture("scene-color")],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
 
     assert!(
-        error.contains("duplicate history binding for slot `SceneColor`"),
+        error.contains("duplicate history binding for slot `TaaSceneColor`"),
         "unexpected error: {error}"
     );
 }

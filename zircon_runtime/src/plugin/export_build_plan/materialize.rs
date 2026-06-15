@@ -4,7 +4,10 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::plugin::PluginPackageManifest;
 
-use super::native_plugin_load_manifest_template::native_dynamic_package_directory;
+use super::native_dynamic_package_plan::{
+    native_dynamic_package_directory, native_dynamic_package_report_template,
+    NativeDynamicPackageExportPlan, NATIVE_DYNAMIC_PACKAGE_REPORT_FILE,
+};
 use super::{ExportBuildPlan, ExportMaterializeReport};
 
 impl ExportBuildPlan {
@@ -69,10 +72,26 @@ impl ExportBuildPlan {
                 &destination,
                 package_id,
             )?);
+            let package_export = self
+                .native_dynamic_package_export(package_id)
+                .cloned()
+                .unwrap_or_else(|| {
+                    NativeDynamicPackageExportPlan::for_package_id(package_id.as_str())
+                });
+            write_native_dynamic_package_report(&destination, &package_export)?;
             report.copied_packages.push(destination);
         }
 
         Ok(report)
+    }
+
+    fn native_dynamic_package_export(
+        &self,
+        package_id: &str,
+    ) -> Option<&NativeDynamicPackageExportPlan> {
+        self.native_dynamic_package_exports
+            .iter()
+            .find(|package| package.package_id == package_id)
     }
 }
 
@@ -169,6 +188,16 @@ fn copy_native_dynamic_package(
         ));
     }
     Ok(diagnostics)
+}
+
+fn write_native_dynamic_package_report(
+    destination: &Path,
+    package: &NativeDynamicPackageExportPlan,
+) -> Result<(), std::io::Error> {
+    fs::write(
+        destination.join(NATIVE_DYNAMIC_PACKAGE_REPORT_FILE),
+        native_dynamic_package_report_template(package),
+    )
 }
 
 fn should_copy_native_resource_dir(name: &str) -> bool {

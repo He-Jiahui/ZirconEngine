@@ -1,4 +1,5 @@
 mod asset_editor;
+pub(crate) mod command;
 pub(crate) mod component_drawer;
 mod inspector;
 mod reflection;

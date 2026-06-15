@@ -340,6 +340,15 @@ MS-M4(变体缓存与预热):
 
 里程碑过滤词:`cargo test -p zircon_runtime shader --locked` / `material` / `skinning`;插件接缝按 index.md §7 跑 `zircon_plugins` 受影响包。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | MS-M1 GeometrySource and WGSL assembly | 部分完成: GPUScene include 与 group2/3 ABI 已硬切,通用 GeometrySource 管线未完成 | 计划 03 已让内建 forward/normal/shadow/deferred/PBR shader 拼接 `zr_gpu_scene.wgsl`,自定义测试 WGSL 也按 group2 material + group3 GPUScene 读取;但计划 08 的 GeometrySource registry、模板编译 owner 与磁盘缓存未落地。 | 计划 03 GS-M2 状态表记录 shader ABI hard cut、旧 model uniform/cache/replay 删除和 scoped `cargo check` 通过。 | 建立 shader template graph、GeometrySource key 和 shader source provenance dump。 |
+| 2026-06-15 | MS-M2 GPU skinning/morph for all materials | 部分完成: GPUScene skinned palette 与 CPU-morphed previous source 已支撑内建路径 | 计划 03/06 已把 current/previous skinned palette、CPU-morphed morph-shape signature、changing-shape previous source velocity 接回 GPUScene/velocity path;但所有材质域统一 skin/morph 仍未完成。 | 计划 06 TP-M1/S23 状态表记录 previous source velocity tests 通过;计划 03 GS-M2 状态表记录 current/previous skinned palette group3 binding。 | 把 GPU skinning/morph 入口从 fallback shader 扩展到所有 shader permutation。 |
+| 2026-06-15 | MS-M3 shading model registry | 未启动: 文档设计已成文 | 现有运行时仍以 StandardPBR/固定 G-buffer 路径为主;clearcoat、anisotropy、transmission、SSS 等已在计划 18 标为后续扩展。 | 计划 18 现状与差距明确 StandardPBR 不含高级材质族;本文件尚无状态表前的实现记录。 | 实施 shading model id、G-buffer packing policy 和材质资产验证。 |
+| 2026-06-15 | MS-M4 shader variant cache and warmup | 未启动: 仍缺磁盘缓存与预热 | `definition_value.rs` 等变体基础存在,但无几何源/pass 维度完整 key、无磁盘缓存、无预热队列。 | 本文件 `现状与差距` 明确首次遇到变体即时编译造成卡顿。 | 与计划 17 PF-M4 联动建立 compile cache、warmup manifest 与回归指标。 |
+
 ### 参考实现精读笔记
 
 仅记录本次实际读到的符号:

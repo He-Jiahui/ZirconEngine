@@ -1,7 +1,12 @@
+mod command_palette;
 mod control;
 mod menu_action;
 mod pointer;
 
+pub(crate) use command_palette::{
+    dispatch_componentized_workbench_command_palette_committed,
+    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+};
 pub(crate) use control::dispatch_componentized_workbench_binding;
 pub(crate) use control::dispatch_componentized_workbench_control;
 pub(crate) use control::dispatch_componentized_workbench_menu_item_selected;

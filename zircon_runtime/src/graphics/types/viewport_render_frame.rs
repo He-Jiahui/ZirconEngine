@@ -15,8 +15,6 @@ pub struct ViewportRenderFrame {
     pub ui: Option<UiRenderExtract>,
     pub(crate) output_target: super::ViewportRenderOutputTarget,
     pub(crate) previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
-    pub(crate) previous_motion_vector_object_history:
-        Option<super::ViewportMotionVectorObjectHistory>,
     pub(crate) frame_visibility: Option<FrameVisibility>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
@@ -44,12 +42,6 @@ impl ViewportRenderFrame {
 
     pub(crate) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
         self.previous_motion_vector_camera.as_ref()
-    }
-
-    pub(crate) fn previous_motion_vector_object_history(
-        &self,
-    ) -> Option<&super::ViewportMotionVectorObjectHistory> {
-        self.previous_motion_vector_object_history.as_ref()
     }
 
     pub(crate) fn frame_visibility(&self) -> Option<&FrameVisibility> {

@@ -37,7 +37,7 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - source scans for retired raw-delta level tick and world-driver second advance paths
-  - schedule_frame_loop_boundary targeted audit: source files 18/18, guard files 7/7, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, guard anchors 13/13, risks = []
+  - schedule_frame_loop_boundary targeted audit: source files 18/18, guard/test files 8/8, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, Runtime 03 guard anchors 14/14, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], doc_anchors = 10/10, mirror-doc aggregate guard present, frame schedule module-doc anchors 3/3, risks = []
   - schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration
   - session_ui_extract_remains_documented_dynamic_session_side_path
   - world_driver_consumes_runtime_time_advance_without_advancing_clocks_again
@@ -184,7 +184,7 @@ Detailed owner notes live in `docs/zircon_runtime/scene/ecs/schedule_parallel_ex
 
 ## Structural Audit Mirror
 
-`schedule_frame_loop_boundary` mirrors this document without running Cargo. Current static evidence reports source files 18/18, guard files 7/7, `SystemStage` count and declared variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 13/13, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`.
+`schedule_frame_loop_boundary` mirrors this document without running Cargo. Current static evidence reports source files 18/18, guard/test files 8/8, `SystemStage` count and variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 14/14, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `doc_anchors = 10/10`, `mirror_docs_guard_present = true`, frame schedule module-doc anchors 3/3, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`. `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 03, the runtime index, the M0 review, and runtime-interface convergence.
 
 ## Follow-Up Work
 

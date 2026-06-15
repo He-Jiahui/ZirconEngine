@@ -11,6 +11,7 @@ use zircon_runtime::core::{
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 
+use crate::ui::host::commands::{EditorCommandRegistry, EditorKeymap};
 use crate::ui::host::editor_asset_manager::{
     DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManagerHandle,
 };
@@ -20,6 +21,8 @@ pub const EDITOR_MODULE_NAME: &str = "EditorModule";
 pub const EDITOR_HOST_DRIVER_NAME: &str = "EditorModule.Driver.EditorHostDriver";
 pub const EDITOR_MANAGER_NAME: &str = "EditorModule.Manager.EditorManager";
 pub const EDITOR_ASSET_MANAGER_NAME: &str = "EditorModule.Manager.EditorAssetManager";
+pub const EDITOR_COMMAND_REGISTRY_NAME: &str = "EditorModule.Manager.EditorCommandRegistry";
+pub const EDITOR_KEYMAP_NAME: &str = "EditorModule.Manager.EditorKeymap";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EditorModule;
@@ -68,6 +71,22 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ));
             Ok(Arc::new(EditorAssetManagerHandle::new(manager)) as ServiceObject)
         }),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(
+            EDITOR_MODULE_NAME,
+            ServiceKind::Manager,
+            "EditorCommandRegistry",
+        ),
+        StartupMode::Lazy,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(EditorCommandRegistry::default_workbench()) as ServiceObject)),
+    ))
+    .with_manager(ManagerDescriptor::new(
+        qualified_name(EDITOR_MODULE_NAME, ServiceKind::Manager, "EditorKeymap"),
+        StartupMode::Lazy,
+        Vec::new(),
+        factory(|_| Ok(Arc::new(EditorKeymap::default_workbench()) as ServiceObject)),
     ))
 }
 

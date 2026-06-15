@@ -371,6 +371,7 @@ impl MaterialAsset {
             render_queue: self.render_queue(),
             material_queue: self.material_queue(),
             depth_bias: self.depth_bias(),
+            taa_reactive_mask_strength: self.taa_reactive_mask_strength(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         }
     }
@@ -476,6 +477,11 @@ impl MaterialAsset {
 
     pub fn depth_bias(&self) -> f32 {
         self.depth_bias_from_property().unwrap_or_default()
+    }
+
+    pub fn taa_reactive_mask_strength(&self) -> f32 {
+        self.taa_reactive_mask_strength_from_property()
+            .unwrap_or_default()
     }
 
     pub fn all_texture_slots(&self) -> Vec<(String, &AssetReference)> {
@@ -605,6 +611,10 @@ impl MaterialAsset {
 
     fn depth_bias_from_property(&self) -> Option<f32> {
         material_control::depth_bias(&self.property_values)
+    }
+
+    fn taa_reactive_mask_strength_from_property(&self) -> Option<f32> {
+        material_control::taa_reactive_mask_strength(&self.property_values)
     }
 
     fn readiness_report_from_texture_slots(

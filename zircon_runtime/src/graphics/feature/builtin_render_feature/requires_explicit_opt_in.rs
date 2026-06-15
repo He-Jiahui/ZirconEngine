@@ -7,7 +7,6 @@ impl BuiltinRenderFeature {
             || matches!(
                 self,
                 Self::GlobalIllumination
-                    | Self::HistoryResolve
                     | Self::NeuralCompute
                     | Self::RayTracing
                     | Self::VirtualGeometry

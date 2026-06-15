@@ -9,16 +9,14 @@ pub(in crate::graphics::scene::scene_renderer::mesh) const SKINNED_MESH_MAX_JOIN
     256;
 
 #[repr(C, align(16))]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-pub(in crate::graphics::scene::scene_renderer::mesh) struct SkinnedMeshJointPaletteUniform {
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+pub(in crate::graphics::scene) struct SkinnedMeshJointPaletteUniform {
     joint_matrices: [[[f32; 4]; 4]; SKINNED_MESH_MAX_JOINT_MATRICES],
     params: [u32; 4],
 }
 
 impl SkinnedMeshJointPaletteUniform {
-    pub(in crate::graphics::scene::scene_renderer::mesh) fn from_matrices(
-        matrices: &[Mat4],
-    ) -> Result<Self, String> {
+    pub(in crate::graphics::scene) fn from_matrices(matrices: &[Mat4]) -> Result<Self, String> {
         let joint_count = matrices.len();
         if joint_count > SKINNED_MESH_MAX_JOINT_MATRICES {
             return Err(format!(
@@ -37,7 +35,7 @@ impl SkinnedMeshJointPaletteUniform {
         })
     }
 
-    pub(in crate::graphics::scene::scene_renderer::mesh) fn joint_count(&self) -> u32 {
+    pub(in crate::graphics::scene) fn joint_count(&self) -> u32 {
         self.params[0]
     }
 

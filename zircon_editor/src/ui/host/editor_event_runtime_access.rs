@@ -26,6 +26,9 @@ use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentAdapterResult, UiComponentEventEnvelope,
 };
+use zircon_runtime_interface::ui::dispatch::{
+    UiDispatchDisposition, UiInputDispatchResult, UiInputEvent, UiKeyboardInputEvent,
+};
 
 impl EditorEventRuntime {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
@@ -91,6 +94,11 @@ impl EditorEventRuntime {
         if envelope.target.domain == "component_drawer" {
             return self.dispatch_component_drawer_adapter_event(envelope);
         }
+        if envelope.target.domain
+            == crate::ui::template_runtime::component_adapter::command::COMMAND_DOMAIN
+        {
+            return self.dispatch_command_component_adapter_event(envelope);
+        }
         let mut inner = self.lock_inner();
         let manager = inner.manager.clone();
         let result =
@@ -103,6 +111,47 @@ impl EditorEventRuntime {
             Self::refresh_reflection_locked(&mut inner);
         }
         Ok(result)
+    }
+
+    pub(crate) fn dispatch_unhandled_input_keymap_command(
+        &self,
+        result: &UiInputDispatchResult,
+        source: EditorEventSource,
+    ) -> Result<Option<EditorEventRecord>, String> {
+        if result.reply.disposition != UiDispatchDisposition::Unhandled {
+            return Ok(None);
+        }
+        let UiInputEvent::Keyboard(keyboard) = &result.event else {
+            return Ok(None);
+        };
+        self.dispatch_keyboard_keymap_command(keyboard, source)
+    }
+
+    pub(crate) fn dispatch_keyboard_keymap_command(
+        &self,
+        keyboard: &UiKeyboardInputEvent,
+        source: EditorEventSource,
+    ) -> Result<Option<EditorEventRecord>, String> {
+        let keymap = crate::ui::host::EditorKeymap::default_workbench();
+        let Some(command_id) = keymap.resolve_keyboard_input(keyboard) else {
+            return Ok(None);
+        };
+        self.dispatch_keymap_command_id(command_id, source)
+            .map(Some)
+    }
+
+    fn dispatch_keymap_command_id(
+        &self,
+        command_id: &str,
+        source: EditorEventSource,
+    ) -> Result<EditorEventRecord, String> {
+        let binding = crate::ui::binding::EditorUiBinding::new(
+            "EditorKeymap",
+            command_id,
+            crate::ui::binding::EditorUiEventKind::Submit,
+            crate::ui::binding::EditorUiBindingPayload::editor_command(command_id),
+        );
+        self.dispatch_binding(binding, source)
     }
 
     fn dispatch_component_drawer_adapter_event(
@@ -133,6 +182,34 @@ impl EditorEventRuntime {
         Ok(
             crate::ui::template_runtime::component_adapter::component_drawer::component_drawer_operation_result(
                 &operation_path,
+            ),
+        )
+    }
+
+    fn dispatch_command_component_adapter_event(
+        &self,
+        envelope: &UiComponentEventEnvelope,
+    ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
+        let binding =
+            crate::ui::template_runtime::component_adapter::command::editor_command_binding_for_envelope(
+                envelope,
+            )?;
+        let command_id = match binding.payload() {
+            crate::ui::binding::EditorUiBindingPayload::EditorCommand { command_id } => {
+                command_id.clone()
+            }
+            _ => unreachable!("command adapter must build EditorCommand bindings"),
+        };
+
+        self.dispatch_binding(binding, EditorEventSource::RetainedHost)
+            .map_err(|error| UiComponentAdapterError::HostMutation {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+                reason: error,
+            })?;
+        Ok(
+            crate::ui::template_runtime::component_adapter::command::command_adapter_result(
+                &command_id,
             ),
         )
     }

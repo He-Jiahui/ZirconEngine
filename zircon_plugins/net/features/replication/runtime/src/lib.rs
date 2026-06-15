@@ -6,7 +6,10 @@ pub use feature::{
     NetReplicationRuntimeFeature, NET_REPLICATION_FEATURE_CAPABILITY, NET_REPLICATION_FEATURE_ID,
     NET_REPLICATION_FEATURE_MANAGER_NAME, NET_REPLICATION_FEATURE_MODULE_NAME,
 };
-pub use manager::{net_replication_runtime_manager, NetReplicationRuntimeManager};
+pub use manager::{
+    net_replication_runtime_manager, NetReplicationRuntimeManager, NetReplicationTable,
+    NetReplicationTableEntry,
+};
 
 #[cfg(test)]
 mod tests;

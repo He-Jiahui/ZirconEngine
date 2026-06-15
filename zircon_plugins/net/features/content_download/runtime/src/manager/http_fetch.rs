@@ -61,7 +61,16 @@ impl NetContentDownloadRuntimeManager {
         }
         let actual_sha256 = crate::manager::hash::sha256_hex(&bytes);
         if !self.chunk_hash_matches(download, chunk_id, &actual_sha256) {
-            self.fail_progress(download, format!("chunk hash mismatch: {chunk_id}"))
+            let progress = self.mark_attempt_failed(
+                download,
+                chunk_id,
+                format!("chunk hash mismatch: {chunk_id}"),
+            )?;
+            if progress.status == zircon_runtime::core::framework::net::NetDownloadStatus::Failed {
+                self.fail_progress(download, format!("chunk hash mismatch: {chunk_id}"))
+            } else {
+                Some(progress)
+            }
         } else {
             self.store_partial_chunk(download, chunk_id.to_string(), bytes);
             self.mark_chunk_complete(download, chunk_id, &actual_sha256)

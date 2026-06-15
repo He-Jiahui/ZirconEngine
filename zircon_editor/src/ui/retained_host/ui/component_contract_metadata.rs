@@ -63,6 +63,8 @@ fn fallback_category_for_component_role(component_role: &str) -> &'static str {
         | "segmented-control"
         | "tab"
         | "menu"
+        | "context-menu"
+        | "dropdown-popup"
         | "context-action-menu" => "selection",
         "reference-field" | "asset-field" | "scene-reference-field" => "reference",
         "table" | "table-row" | "list" | "list-item" | "tree-row" | "virtual-list" => "collection",
@@ -71,8 +73,8 @@ fn fallback_category_for_component_role(component_role: &str) -> &'static str {
         "alert" | "tooltip" | "toast" | "snackbar" | "progress" | "badge" | "skeleton" => {
             "feedback"
         }
-        "button" | "icon-button" | "toggle-button" | "input-field" | "text-field" | "checkbox"
-        | "radio" | "switch" | "toggle" => "input",
+        "button" | "icon-button" | "toggle-button" | "input-field" | "text-field"
+        | "command-palette" | "checkbox" | "radio" | "switch" | "toggle" => "input",
         _ => "",
     }
 }
@@ -85,13 +87,21 @@ fn fallback_layout_role_for_component_role(
         "HorizontalBox" | "HorizontalGroup" | "VerticalBox" | "VerticalGroup" | "Container"
         | "Panel" | "Toolbar" | "Drawer" | "Card" | "Paper" => "flex",
         "Grid" | "GridBox" | "Table" => "grid",
-        "Popup" | "Popover" | "Popper" | "Tooltip" | "Menu" | "ContextActionMenu" => "popup",
+        "Popup" | "Popover" | "Popper" | "Tooltip" | "Menu" | "ContextActionMenu"
+        | "CommandPalette" => "popup",
         "Canvas" => "canvas",
         "VirtualList" => "virtual-list",
         _ => match component_role {
             "container" | "panel" | "paper" | "card" | "toolbar" | "drawer" => "flex",
             "table" => "grid",
-            "tooltip" | "popover" | "popper" | "menu" | "context-action-menu" => "popup",
+            "tooltip"
+            | "popover"
+            | "popper"
+            | "menu"
+            | "command-palette"
+            | "context-menu"
+            | "context-action-menu"
+            | "dropdown-popup" => "popup",
             "virtual-list" => "virtual-list",
             _ => "leaf",
         },

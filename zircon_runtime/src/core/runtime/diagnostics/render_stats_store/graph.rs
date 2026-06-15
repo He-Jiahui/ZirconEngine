@@ -539,9 +539,9 @@ fn record_post_process_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_bool(
         store,
-        "render.post_process.graph.final_composite_present",
+        "render.post_process.graph.output_transfer_present",
         frame_index,
-        stats.last_post_process_final_composite_node.is_some(),
-        &["render", "post_process", "graph", "final_composite"],
+        stats.last_post_process_output_transfer_node.is_some(),
+        &["render", "post_process", "graph", "output_transfer"],
     );
 }

@@ -12,7 +12,10 @@ use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 
 use super::component_contract_metadata::tokens_for_component_role;
-use super::pane_data_conversion::{structured_menu_items, structured_options_for_node};
+use super::pane_data_conversion::{
+    projected_command_palette_options, projected_command_palette_structured_options,
+    structured_menu_items, structured_options_for_node,
+};
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
 const WORKBENCH_STATUS_RIGHT_TEXT_COLOR: host_contract::primitives::Color =
@@ -84,7 +87,7 @@ fn to_host_contract_workbench_window_node(
     nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id.clone()?;
-    let component_role = node
+    let mut component_role = node
         .component_role
         .clone()
         .filter(|role| !role.is_empty())
@@ -93,6 +96,11 @@ fn to_host_contract_workbench_window_node(
             (!role.is_empty()).then(|| role.to_string())
         })
         .unwrap_or_default();
+    if component_role.is_empty()
+        && is_workbench_command_palette_mount(node.component.as_str(), control_id.as_str())
+    {
+        component_role = "command-palette".to_string();
+    }
     let value_text = node
         .value_text
         .clone()
@@ -108,7 +116,10 @@ fn to_host_contract_workbench_window_node(
     let icon_name = node.icon.clone().unwrap_or_default();
     let preview_image = load_preview_image(&media_source, &icon_name);
     let preview_size = preview_image.size();
-    let option_values = string_array_property(&node.properties, "options", &node.options);
+    let button_style_values = toml_values_from_host_properties(&node.properties);
+    let option_values =
+        projected_command_palette_options(component_role.as_str(), &button_style_values)
+            .unwrap_or_else(|| string_array_property(&node.properties, "options", &node.options));
     let menu_item_values = string_array_property(&node.properties, "menu_items", &node.menu_items);
     let collection_item_values =
         string_array_property(&node.properties, "collection_items", &node.collection_items);
@@ -121,8 +132,9 @@ fn to_host_contract_workbench_window_node(
         preferred_route_action_id(&node.routes, [UiEventKind::Change]).unwrap_or_default();
     let commit_action_id =
         preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
-    let button_style_values = toml_values_from_host_properties(&node.properties);
-    let structured_options = structured_options_for_node(&option_values, &button_style_values);
+    let structured_options =
+        projected_command_palette_structured_options(component_role.as_str(), &button_style_values)
+            .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
         .or_else(|| default_workbench_surface_variant(&node.component, &component_role))
         .unwrap_or_default();
@@ -417,6 +429,10 @@ fn default_workbench_surface_variant(component: &str, component_role: &str) -> O
         ("Label", _) | ("Text", _) => None,
         _ => Some("panel".to_string()),
     }
+}
+
+fn is_workbench_command_palette_mount(component: &str, control_id: &str) -> bool {
+    component == "WorkbenchCommandPalette" || control_id == "WorkbenchCommandPalette"
 }
 
 fn default_text_tone(component: &str, component_role: &str, surface_variant: &str) -> String {

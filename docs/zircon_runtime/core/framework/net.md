@@ -74,7 +74,7 @@ The framework is folder-backed and `mod.rs` is only the re-export surface.
 - `rpc.rs` and `session.rs` define RPC direction, peer-role gates, invocation/report records, control messages, and handshake policy.
 - `sync.rs` defines replication component schemas, object snapshots, deltas, interest groups, budgets, and schedule reports.
 - `reliable.rs` defines reliable datagram configuration, simulation profiles, fragment packets, ACKs, delivery reports, receive reports, and recovery state.
-- `download.rs` defines chunked content download manifests, range-resume attempts, and progress state.
+- `download.rs` defines chunked content download manifests, shared `ZrPackManifest`/`ZrChunkEntry` pack metadata, range-resume attempts, and progress state.
 - `event.rs` and `diagnostics.rs` expose transport-independent runtime events and copied status counters. Lifecycle events include socket bind/close, listener start/close, connection state/accept/close, HTTP route register/unregister, WebSocket pair open, and queued WebSocket frames.
 
 ## Behavior Model
@@ -91,9 +91,11 @@ The base transport set is explicit:
 
 `NetEvent` is the stable copied lifecycle stream for manager-owned handles. Runtime implementations should push start/open events after a handle enters the manager table, and push close/unregister events only after the handle has actually been removed or marked closed. Connection accepted and connection closed events include `NetTransportKind`, so consumers can classify TCP and WebSocket lifecycle changes without re-reading runtime tables after handle removal. This keeps event consumers from inferring lifecycle changes from diagnostics counters alone and lets RPC/session systems ignore non-connection events while still receiving deterministic connection-close notifications.
 
-`NetDiagnostics` is the stable copied snapshot for manager-owned handles. It separates UDP sockets, TCP listeners, HTTP listeners, WebSocket listeners, TCP connections, HTTP routes, WebSocket connections, and queued events so editor tools and export/profile checks can distinguish passive listener exposure from outbound-only or data-only plugin selections.
+`NetDiagnostics` is the stable copied snapshot for manager-owned handles. It separates UDP sockets, TCP listeners, HTTP listeners, WebSocket listeners, TCP connections, HTTP routes, WebSocket connections, queued events, accumulated outbound/inbound bytes, and the last observed request latency so editor tools and export/profile checks can distinguish passive listener exposure from outbound-only, inbound, latency-sensitive, or data-only plugin selections.
 
 `NetSecurityPolicy` is also a DTO. It records TLS requirement, certificate pinning, certificate pins, and local development loopback policy. The framework does not open TLS sessions or validate certificates by itself.
+
+`ZrPackManifest` and `ZrChunkEntry` are shared data contracts for content-download and export/packaging code. The framework records version, chunk offsets, byte sizes, total size, and 32-byte chunk hash bytes, and exposes deterministic helpers for covered byte totals, chunk end offsets, and complete byte-plan checks. Hash computation and refetch policy remain plugin/export responsibilities, so the framework can stay dependency-neutral.
 
 ## Reference Alignment
 
@@ -120,13 +122,15 @@ App, editor, export, VM, and gameplay systems should:
 
 ## Edge Cases
 
-Data construction is intentionally permissive. Runtime implementations still own validation for unsupported URL schemes, missing HTTP/WebSocket feature backends, invalid endpoint strings, oversized payloads, session mismatch, quota enforcement, replication budget exhaustion, unreliable network simulation, content hash mismatch, and resume range validation.
+Data construction is intentionally permissive. Runtime implementations still own validation for unsupported URL schemes, missing HTTP/WebSocket feature backends, invalid endpoint strings, oversized payloads, session mismatch, quota enforcement, replication budget exhaustion, unreliable network simulation, content hash mismatch, resume bitmap persistence, and resume range validation.
 
 `SyncReplicationBudget::SYNC_REPLICATION_UNBOUNDED_BUDGET` uses `0` as the unlimited sentinel for local tests and tooling. A limited snapshot budget accepts `count < max_snapshots`; reaching the limit defers further snapshots. Interest filters allow snapshots without an interest group by default.
 
 ## Test Coverage
 
-Framework tests now lock endpoint/transport/security DTO behavior, `NetDiagnostics` listener-count serde, HTTP/WebSocket descriptor defaults and serde, NetEvent lifecycle serde for close/unregister variants plus transport-qualified accept/close variants, RPC/session/handshake records, reliable datagram recovery/download resume records, and replication interest/budget/delta semantics. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
+Framework tests now lock endpoint/transport/security DTO behavior, `NetDiagnostics` listener-count/bandwidth/latency serde, HTTP/WebSocket descriptor defaults and serde, NetEvent lifecycle serde for close/unregister variants plus transport-qualified accept/close variants, RPC/session/handshake records, reliable datagram recovery/download resume records, `ZrPackManifest`/`ZrChunkEntry` serde and byte-plan helpers, and replication interest/budget/delta semantics. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
+
+Focused validation for the M7 Net diagnostics DTO update ran on 2026-06-14 as part of the Net runtime/editor slice. Rustfmt and path-scoped `git diff --check` passed for the touched Net framework/runtime/editor files. The Net runtime and editor package checks each passed once after implementation with lockfiles restored, but the final rerun was blocked before Net tests by an unrelated untracked UI `tree_view.rs` compile drift. No final framework/runtime test pass is claimed until that external file state is resolved.
 
 Focused validation after transport-qualified connection lifecycle events ran on 2026-06-07. `rustfmt --edition 2021 --check` passed over the touched Net framework/runtime/feature Rust files; path-scoped `git diff --check`, conflict-marker scans, and trailing-whitespace scans passed for touched Rust/docs/session paths. Plugin workspace `cargo check --tests` passed for base Net runtime, RPC feature runtime, and WebSocket feature runtime with existing `zircon_runtime` warnings. Focused base/RPC tests passed for TCP accept/close transport, WebSocket explicit close transport, and transport-agnostic RPC session cleanup. The framework `cargo check -p zircon_runtime --tests --no-default-features --features core-min` command initially saw a concurrent runtime-assembly file-state mismatch outside the Net contract and failed on stale `RuntimeExtensionRegistry` visibility; the rerun against the settled worktree passed with existing warnings only, type-checking the transport-qualified `NetEvent` serde coverage.
 

@@ -4,14 +4,13 @@ use crate::core::framework::render::{
     PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
     RenderGraphExecutionCoverageReport, RenderLightReadinessReport,
     RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
-    RenderShadowExecutionReport, RenderStats,
+    RenderPostProcessEffectStackSettings, RenderShadowExecutionReport, RenderStats,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::RenderGraphLightGridReport;
 use crate::graphics::visibility::{
     FrameVisibility, HzbBuilder, HzbOcclusionCullReport, VisibilityStaticIndexReport,
 };
-use crate::graphics::ViewportMotionVectorObjectHistory;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
 use super::super::super::compiled_feature_names::compiled_feature_names;
@@ -119,6 +118,8 @@ pub(super) fn update_base_stats(
         state.renderer.last_render_graph_execution_resource_report();
     state.stats.last_graph_stage_execution_report =
         state.renderer.last_render_graph_stage_execution_report();
+    state.stats.last_scene_velocity_readback_report =
+        state.renderer.last_scene_velocity_readback_report();
     let post_process_graph = state
         .renderer
         .last_render_graph_post_process_graph()
@@ -126,24 +127,14 @@ pub(super) fn update_base_stats(
     state.stats.last_post_process_graph_node_count = post_process_graph.node_count();
     state.stats.last_post_process_graph_skipped_node_count =
         post_process_graph.skipped_node_count();
-    state.stats.last_post_process_final_composite_node =
-        post_process_graph.final_composite_node.clone();
+    state.stats.last_post_process_output_transfer_node =
+        post_process_graph.output_transfer_node.clone();
     state.stats.last_post_process_graph_executed_nodes = state
         .renderer
         .last_render_graph_executed_post_process_nodes()
         .to_vec();
     let motion_vector_camera_status = state.renderer.last_motion_vector_camera_status();
     state.stats.last_motion_vector_camera_status = motion_vector_camera_status;
-    let previous_object_history = context.previous_motion_vector_object_history();
-    let current_object_history =
-        ViewportMotionVectorObjectHistory::from_meshes(context.scene_meshes());
-    state.stats.last_motion_vector_previous_object_history_count =
-        previous_object_history.map_or(0, ViewportMotionVectorObjectHistory::len);
-    state.stats.last_motion_vector_current_object_history_count = current_object_history.len();
-    state.stats.last_motion_vector_matched_object_history_count =
-        current_object_history.matched_transform_count(previous_object_history);
-    state.stats.last_motion_vector_missing_object_history_count =
-        current_object_history.missing_transform_count(previous_object_history);
     state.stats.last_post_process_effect_stack_report =
         RenderPostProcessEffectStackReport::from_settings_with_resources(
             context.post_process_effect_stack(),
@@ -174,7 +165,11 @@ pub(super) fn update_base_stats(
     state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
     state.stats.last_anti_alias_graph_executed_pass_count =
-        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "post.fxaa");
+        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "post.fxaa")
+            + count_executor_prefix(
+                &state.stats.last_graph_executed_executor_ids,
+                "temporal.taa-resolve",
+            );
     let hzb_plan = HzbBuilder::new(context.render_size()).build_plan();
     state.stats.last_hzb_mip_count = hzb_plan.mip_count as usize;
     state.stats.last_hzb_graph_executed_pass_count = count_executor_prefix(
@@ -197,6 +192,22 @@ pub(super) fn update_base_stats(
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "hybrid-gi.");
     state.stats.last_particle_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
+    state.stats.last_particle_velocity_missing_sprite_count =
+        particle_velocity_missing_sprite_count(
+            context.post_process_effect_stack(),
+            &state.stats.last_graph_executed_executor_ids,
+            context.particle_sprite_count(),
+            context.particle_previous_state_sprite_count(),
+        );
+    state
+        .stats
+        .last_particle_velocity_anonymous_stream_ambiguity_count =
+        particle_velocity_anonymous_stream_ambiguity_count(
+            context.post_process_effect_stack(),
+            &state.stats.last_graph_executed_executor_ids,
+            context.particle_sprite_count(),
+            context.particle_anonymous_stream_ambiguity_sprite_count(),
+        );
     state.stats.last_shadow_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "shadow.");
     let shadow_atlas_write_count = state
@@ -263,20 +274,22 @@ pub(super) fn update_base_stats(
         .stats
         .last_mesh_skinned_gpu_cpu_morphed_source_candidate_count =
         prepared_mesh_queue_stats.skinned_gpu_cpu_morphed_source_candidate_count;
+    state
+        .stats
+        .last_mesh_skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count =
+        prepared_mesh_queue_stats.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count;
     state.stats.last_mesh_skinned_gpu_skinning_draw_count =
         prepared_mesh_queue_stats.skinned_gpu_skinning_draw_count;
-    state.stats.last_mesh_skinned_gpu_motion_vector_draw_count =
-        prepared_mesh_queue_stats.skinned_gpu_motion_vector_draw_count;
+    state.stats.last_mesh_skinned_gpu_velocity_draw_count =
+        prepared_mesh_queue_stats.skinned_gpu_velocity_draw_count;
     state.stats.last_mesh_indirect_draw_count = prepared_mesh_queue_stats.indirect_draw_count;
     state.stats.last_mesh_lod_draw_count = prepared_mesh_queue_stats.lod_draw_count;
-    state
-        .stats
-        .last_mesh_previous_motion_vector_transform_draw_count =
-        prepared_mesh_queue_stats.previous_motion_vector_transform_draw_count;
-    state
-        .stats
-        .last_mesh_missing_motion_vector_transform_draw_count =
-        prepared_mesh_queue_stats.missing_motion_vector_transform_draw_count;
+    state.stats.last_mesh_previous_velocity_transform_draw_count =
+        prepared_mesh_queue_stats.previous_velocity_transform_draw_count;
+    state.stats.last_mesh_missing_velocity_transform_draw_count =
+        prepared_mesh_queue_stats.missing_velocity_transform_draw_count;
+    state.stats.last_mesh_taa_reactive_mask_command_count =
+        prepared_mesh_queue_stats.taa_reactive_mask_command_count;
     state.stats.last_mesh_static_batch_candidate_group_count =
         prepared_mesh_queue_stats.static_batch_candidate_group_count;
     state.stats.last_mesh_static_batch_candidate_draw_count =
@@ -572,10 +585,10 @@ fn effect_stack_resource_status(
     );
     let motion_vector_camera_available = executed_executor_ids
         .iter()
-        .any(|executor_id| executor_id == "post.motion-vector-camera");
+        .any(|executor_id| executor_id == "temporal.velocity-camera");
     let motion_vector_object_available = executed_executor_ids
         .iter()
-        .any(|executor_id| executor_id == "post.motion-vector-object");
+        .any(|executor_id| executor_id == "temporal.velocity-object");
     let motion_vector_tile_max_available = executed_executor_ids
         .iter()
         .any(|executor_id| executor_id == "post.motion-vector-tile-max");
@@ -610,12 +623,62 @@ fn effect_stack_uses_resource(
     resource_name: &str,
 ) -> bool {
     post_process_graph.nodes.iter().any(|node| {
-        node.kind == PostProcessEffectKind::EffectStack
+        node.kind == PostProcessEffectKind::Uber
             && node
                 .required_inputs
                 .iter()
                 .any(|resource| resource == resource_name)
     })
+}
+
+fn particle_velocity_missing_sprite_count(
+    effect_stack: RenderPostProcessEffectStackSettings,
+    executed_executor_ids: &[String],
+    particle_sprite_count: usize,
+    particle_previous_state_sprite_count: usize,
+) -> usize {
+    if particle_velocity_diagnostics_enabled(
+        effect_stack,
+        executed_executor_ids,
+        particle_sprite_count,
+    ) {
+        particle_sprite_count.saturating_sub(particle_previous_state_sprite_count)
+    } else {
+        0
+    }
+}
+
+fn particle_velocity_anonymous_stream_ambiguity_count(
+    effect_stack: RenderPostProcessEffectStackSettings,
+    executed_executor_ids: &[String],
+    particle_sprite_count: usize,
+    particle_anonymous_stream_ambiguity_sprite_count: usize,
+) -> usize {
+    if particle_velocity_diagnostics_enabled(
+        effect_stack,
+        executed_executor_ids,
+        particle_sprite_count,
+    ) {
+        particle_anonymous_stream_ambiguity_sprite_count
+    } else {
+        0
+    }
+}
+
+fn particle_velocity_diagnostics_enabled(
+    effect_stack: RenderPostProcessEffectStackSettings,
+    executed_executor_ids: &[String],
+    particle_sprite_count: usize,
+) -> bool {
+    if particle_sprite_count == 0 {
+        return false;
+    }
+    let reconstructed_velocity_requested =
+        effect_stack.motion_blur.is_enabled() || effect_stack.screen_space_reflection.is_enabled();
+    let particle_transparent_executed = executed_executor_ids
+        .iter()
+        .any(|executor_id| executor_id == "particle.transparent");
+    reconstructed_velocity_requested && particle_transparent_executed
 }
 
 fn runtime_ui_graph_pass_order(
@@ -626,9 +689,7 @@ fn runtime_ui_graph_pass_order(
         return None;
     }
 
-    let postprocess = executed_passes
-        .iter()
-        .position(|pass| pass == "post-process")?;
+    let postprocess = executed_passes.iter().position(|pass| pass == "uber")?;
     let runtime_ui = executed_passes
         .iter()
         .position(|pass| pass == "runtime-ui")?;
@@ -643,12 +704,14 @@ fn runtime_ui_graph_pass_order(
 mod tests {
     use super::{
         effect_stack_resource_status, graph_execution_coverage_report_from_names,
+        particle_velocity_anonymous_stream_ambiguity_count, particle_velocity_missing_sprite_count,
         runtime_ui_graph_pass_order, update_hzb_occlusion_stats, update_light_grid_stats,
         update_visibility_static_index_stats, update_visibility_stats,
     };
     use crate::core::framework::render::{
         MotionVectorCameraStatus, PostProcessEffectKind, PostProcessGraphResourceNames,
-        PostProcessPassGraph, PostProcessPassNode, RenderStats,
+        PostProcessPassGraph, PostProcessPassNode, RenderPostProcessEffectStackSettings,
+        RenderStats,
     };
     use crate::graphics::scene::RenderGraphLightGridReport;
     use crate::graphics::visibility::{
@@ -656,17 +719,28 @@ mod tests {
         ViewVisibilityContext, VisibilityStaticIndexReport,
     };
 
+    fn effect_stack_graph(required_inputs: Vec<String>) -> PostProcessPassGraph {
+        PostProcessPassGraph::from_ordered_nodes(
+            vec![
+                PostProcessPassNode::new("uber", PostProcessEffectKind::Uber)
+                    .with_required_inputs(required_inputs),
+            ],
+            Vec::new(),
+            None,
+        )
+    }
+
     #[test]
     fn graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passes() {
         let executed_passes = vec![
             "depth-prepass".to_string(),
             "depth-prepass".to_string(),
-            "post-process".to_string(),
+            "uber".to_string(),
             "unexpected-pass".to_string(),
         ];
 
         let report = graph_execution_coverage_report_from_names(
-            ["depth-prepass", "opaque", "post-process"],
+            ["depth-prepass", "opaque", "uber"],
             &executed_passes,
         );
 
@@ -901,7 +975,7 @@ mod tests {
 
     #[test]
     fn runtime_ui_graph_pass_order_requires_actual_graph_order() {
-        let passes = ["post-process", "runtime-ui", "overlay-gizmo"]
+        let passes = ["uber", "runtime-ui", "overlay-gizmo"]
             .into_iter()
             .map(str::to_string)
             .collect::<Vec<_>>();
@@ -911,7 +985,7 @@ mod tests {
             Some("postprocess-ui-overlay")
         );
 
-        let unordered = ["runtime-ui", "post-process", "overlay-gizmo"]
+        let unordered = ["runtime-ui", "uber", "overlay-gizmo"]
             .into_iter()
             .map(str::to_string)
             .collect::<Vec<_>>();
@@ -921,7 +995,7 @@ mod tests {
 
     #[test]
     fn runtime_ui_graph_pass_order_is_absent_without_ui_execution() {
-        let passes = ["post-process", "runtime-ui", "overlay-gizmo"]
+        let passes = ["uber", "runtime-ui", "overlay-gizmo"]
             .into_iter()
             .map(str::to_string)
             .collect::<Vec<_>>();
@@ -931,17 +1005,9 @@ mod tests {
 
     #[test]
     fn effect_stack_resource_status_detects_graph_bound_ssr_normal() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string()
+        ]);
 
         assert!(
             effect_stack_resource_status(&graph, &[], MotionVectorCameraStatus::NotRequested)
@@ -951,21 +1017,10 @@ mod tests {
 
     #[test]
     fn effect_stack_resource_status_detects_graph_bound_ssr_temporal_history_without_prepass() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![
-                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
-                        .to_string(),
-                    PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
-                ],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string(),
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+        ]);
 
         let status =
             effect_stack_resource_status(&graph, &[], MotionVectorCameraStatus::NotRequested);
@@ -978,19 +1033,9 @@ mod tests {
     #[test]
     fn effect_stack_resource_status_detects_graph_bound_motion_vector_neighbor_max_without_prepass()
     {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![
-                    PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()
-                ],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+        ]);
 
         let status =
             effect_stack_resource_status(&graph, &[], MotionVectorCameraStatus::NotRequested);
@@ -1006,22 +1051,12 @@ mod tests {
 
     #[test]
     fn effect_stack_resource_status_detects_executed_motion_vector_prepass_chain() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![
-                    PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()
-                ],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+        ]);
         let executed = vec![
-            "post.motion-vector-camera".to_string(),
-            "post.motion-vector-object".to_string(),
+            "temporal.velocity-camera".to_string(),
+            "temporal.velocity-object".to_string(),
             "post.motion-vector-tile-max".to_string(),
             "post.motion-vector-tile-max-coarse".to_string(),
             "post.motion-vector-neighbor-max".to_string(),
@@ -1045,21 +1080,11 @@ mod tests {
 
     #[test]
     fn effect_stack_resource_status_keeps_prepass_unavailable_without_object_vectors() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![
-                    PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()
-                ],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+        ]);
         let executed = vec![
-            "post.motion-vector-camera".to_string(),
+            "temporal.velocity-camera".to_string(),
             "post.motion-vector-tile-max".to_string(),
             "post.motion-vector-tile-max-coarse".to_string(),
             "post.motion-vector-neighbor-max".to_string(),
@@ -1079,22 +1104,12 @@ mod tests {
 
     #[test]
     fn effect_stack_resource_status_keeps_prepass_unavailable_when_camera_vectors_are_cut() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "effect-stack".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec![
-                    PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()
-                ],
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = effect_stack_graph(vec![
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string(),
+        ]);
         let executed = vec![
-            "post.motion-vector-camera".to_string(),
-            "post.motion-vector-object".to_string(),
+            "temporal.velocity-camera".to_string(),
+            "temporal.velocity-object".to_string(),
             "post.motion-vector-tile-max".to_string(),
             "post.motion-vector-tile-max-coarse".to_string(),
             "post.motion-vector-neighbor-max".to_string(),
@@ -1113,5 +1128,73 @@ mod tests {
             MotionVectorCameraStatus::CameraCutOrInvalid
         );
         assert!(!status.motion_vector_prepass_available);
+    }
+
+    #[test]
+    fn particle_velocity_gap_counts_sprites_only_when_reconstructed_velocity_is_requested() {
+        let mut effect_stack = RenderPostProcessEffectStackSettings::default();
+        let executed = vec!["particle.transparent".to_string()];
+
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &executed, 3, 0),
+            0
+        );
+
+        effect_stack.motion_blur.shutter_angle = 0.5;
+
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &executed, 3, 0),
+            3
+        );
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &[], 3, 0),
+            0
+        );
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &executed, 0, 0),
+            0
+        );
+    }
+
+    #[test]
+    fn particle_velocity_gap_excludes_sprites_with_previous_state() {
+        let mut effect_stack = RenderPostProcessEffectStackSettings::default();
+        effect_stack.motion_blur.shutter_angle = 0.5;
+        let executed = vec!["particle.transparent".to_string()];
+
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &executed, 3, 2),
+            1
+        );
+        assert_eq!(
+            particle_velocity_missing_sprite_count(effect_stack, &executed, 3, 8),
+            0
+        );
+    }
+
+    #[test]
+    fn particle_velocity_anonymous_stream_ambiguity_requires_velocity_diagnostics() {
+        let mut effect_stack = RenderPostProcessEffectStackSettings::default();
+        let executed = vec!["particle.transparent".to_string()];
+
+        assert_eq!(
+            particle_velocity_anonymous_stream_ambiguity_count(effect_stack, &executed, 2, 2),
+            0
+        );
+
+        effect_stack.motion_blur.shutter_angle = 0.5;
+
+        assert_eq!(
+            particle_velocity_anonymous_stream_ambiguity_count(effect_stack, &executed, 2, 2),
+            2
+        );
+        assert_eq!(
+            particle_velocity_anonymous_stream_ambiguity_count(effect_stack, &[], 2, 2),
+            0
+        );
+        assert_eq!(
+            particle_velocity_anonymous_stream_ambiguity_count(effect_stack, &executed, 0, 2),
+            0
+        );
     }
 }

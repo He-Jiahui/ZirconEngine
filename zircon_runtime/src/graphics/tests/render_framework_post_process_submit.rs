@@ -26,7 +26,7 @@ fn render_framework_skips_advanced_postprocess_work_when_effects_are_disabled() 
             RenderQualityProfile::new("default-postprocess-submit")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_anti_alias(false),
@@ -70,7 +70,7 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
             RenderQualityProfile::new("advanced-postprocess-submit")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_anti_alias(false),
@@ -89,19 +89,11 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
     );
     let first_stats = server.query_stats().unwrap();
     assert_eq!(
-        first_stats.last_motion_vector_previous_object_history_count,
+        first_stats.last_mesh_previous_velocity_transform_draw_count,
         0
     );
     assert_eq!(
-        first_stats.last_motion_vector_current_object_history_count,
-        2
-    );
-    assert_eq!(
-        first_stats.last_motion_vector_matched_object_history_count,
-        0
-    );
-    assert_eq!(
-        first_stats.last_motion_vector_missing_object_history_count,
+        first_stats.last_mesh_missing_velocity_transform_draw_count,
         2
     );
 
@@ -114,10 +106,8 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
         stats.last_motion_vector_camera_status,
         MotionVectorCameraStatus::Ready
     );
-    assert_eq!(stats.last_motion_vector_previous_object_history_count, 2);
-    assert_eq!(stats.last_motion_vector_current_object_history_count, 2);
-    assert_eq!(stats.last_motion_vector_matched_object_history_count, 2);
-    assert_eq!(stats.last_motion_vector_missing_object_history_count, 0);
+    assert_eq!(stats.last_mesh_previous_velocity_transform_draw_count, 2);
+    assert_eq!(stats.last_mesh_missing_velocity_transform_draw_count, 0);
     for (pass_name, executor_id) in ADVANCED_POST_PROCESS_GRAPH_PASSES {
         assert!(
             stats
@@ -174,10 +164,10 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
     assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 0);
     assert!(stats
         .last_post_process_graph_executed_nodes
-        .contains(&"effect-stack".to_string()));
+        .contains(&"uber".to_string()));
     assert!(stats
         .last_post_process_graph_executed_nodes
-        .contains(&"final-composite".to_string()));
+        .contains(&"output-transfer".to_string()));
     assert!(stats
         .last_post_process_effect_stack_report
         .active_families
@@ -204,9 +194,8 @@ fn render_framework_submits_advanced_postprocess_graph_passes() {
 }
 
 const ADVANCED_POST_PROCESS_GRAPH_PASSES: &[(&str, &str)] = &[
-    ("motion-vector-clear", "post.motion-vector-clear"),
-    ("motion-vector-camera", "post.motion-vector-camera"),
-    ("motion-vector-object", "post.motion-vector-object"),
+    ("velocity-object", "temporal.velocity-object"),
+    ("velocity-camera", "temporal.velocity-camera"),
     ("motion-vector-tile-max", "post.motion-vector-tile-max"),
     (
         "motion-vector-tile-max-coarse",
@@ -233,7 +222,7 @@ const ADVANCED_POST_PROCESS_GRAPH_PASSES: &[(&str, &str)] = &[
         "screen-space-reflection-resolve",
         "post.screen-space-reflection-resolve",
     ),
-    ("post-process", "post.stack"),
+    ("uber", "post.uber"),
 ];
 
 fn advanced_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {

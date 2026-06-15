@@ -1,0 +1,61 @@
+[asset]
+kind = "component"
+id = "asset://editor_build_export_desktop/editor/export_profile_drawer.zui"
+version = 2
+display_name = "Desktop Export Profile Drawer"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ExportProfileDrawer]
+root = "export_profile_drawer_root"
+default_classes = ["workbench-panel", "export-profile-drawer"]
+
+[nodes.profile_title]
+component = "Label"
+control_id = "DesktopExportProfileDrawerTitle"
+props = { text = "Desktop Export Profile" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.profile_name]
+component = "PropertyRow"
+control_id = "DesktopExportProfileName"
+props = { text = "Name", value = "windows-release" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.profile_platform]
+component = "PropertyRow"
+control_id = "DesktopExportProfilePlatform"
+props = { text = "Platform", value = "windows-x86_64" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.profile_packaging]
+component = "PropertyRow"
+control_id = "DesktopExportProfilePackaging"
+props = { text = "Packaging", value = "library_embed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.profile_mode]
+component = "PropertyRow"
+control_id = "DesktopExportProfileMode"
+props = { text = "Mode", value = "debug" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.profile_plugins]
+component = "Space"
+control_id = "DesktopExportProfilePlugins"
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 128.0, stretch = "Fixed" } }
+
+[nodes.profile_asset_filter]
+component = "PropertyRow"
+control_id = "DesktopExportProfileAssetFilter"
+props = { text = "Asset Filter", value = "shipping" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.export_profile_drawer_root]
+component = "VerticalGroup"
+control_id = "DesktopExportProfileDrawerRoot"
+classes = ["export-profile-drawer"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "profile_title" }, { node = "profile_name" }, { node = "profile_platform" }, { node = "profile_packaging" }, { node = "profile_mode" }, { node = "profile_plugins" }, { node = "profile_asset_filter" }]

@@ -41,12 +41,21 @@ const EXPECTED_INPUT_TEST_MODULES: &[&str] = &[
     "input_manager.rs",
     "mod.rs",
 ];
+const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
+    "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
+    "frame_input_clears_after_level_tick_not_before",
+    "action_map_resolves_chords_and_reports_just_activated",
+    "rebinding_action_does_not_require_recompilation",
+    "gamepad_disconnect_clears_held_state_without_panic",
+    "gamepad_host_bridge_uses_runtime_gamepad_abi_constructors",
+];
 
 #[test]
 fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 10);
     assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 17);
     assert_eq!(EXPECTED_INPUT_TEST_MODULES.len(), 5);
+    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 6);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_owner_files(
@@ -110,6 +119,20 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    let behavior_test_sources = [
+        include_str!("../../input/tests/input_manager.rs"),
+        include_str!("../../input/tests/action_mapping.rs"),
+        include_str!("../../input/tests/gamepad_bridge.rs"),
+    ];
+    for behavior_anchor in EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS {
+        assert!(
+            behavior_test_sources
+                .iter()
+                .any(|source| source.contains(behavior_anchor)),
+            "Runtime 12 behavior test anchor `{behavior_anchor}` should stay visible to input_stack_boundary"
+        );
+    }
+
     let mirror_docs = [
         (
             "Runtime input module doc",
@@ -143,8 +166,11 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
             "expected_test_module_count = 5",
             "public_surface_anchors = 10/10",
             "runtime_12_guard_anchors = 5/5",
+            "missing_gamepad_abi_anchors = []",
             "missing_doc_anchors = []",
             "missing_test_anchors = []",
+            "behavior_test_anchor_count = 6",
+            "missing_behavior_test_anchors = []",
             "missing_cargo_gate_anchors = []",
             "oversized_modules = []",
             "mirror_docs_guard_present = true",
@@ -315,6 +341,7 @@ fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
     let app_polling =
         include_str!("../../../../zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs");
     let session = include_str!("../../dynamic_api/session.rs");
+    let session_events = include_str!("../../dynamic_api/session/events.rs");
 
     for required_contract_anchor in [
         "GamepadConnectionInfo",
@@ -358,7 +385,8 @@ fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
         assert!(
             app_events.contains(required_bridge_anchor)
                 || app_polling.contains(required_bridge_anchor)
-                || session.contains(required_bridge_anchor),
+                || session.contains(required_bridge_anchor)
+                || session_events.contains(required_bridge_anchor),
             "Runtime 12 gamepad bridge should retain `{required_bridge_anchor}`"
         );
     }

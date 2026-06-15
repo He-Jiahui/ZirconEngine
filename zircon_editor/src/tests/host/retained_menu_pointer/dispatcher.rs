@@ -35,7 +35,7 @@ fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher(
         Some(HostMenuPointerRoute::MenuItem {
             menu_index: 0,
             item_index: 3,
-            action_id: "workbench.layout.reset".to_string(),
+            action_id: "window.layout.reset".to_string(),
         })
     );
     let effects = dispatched

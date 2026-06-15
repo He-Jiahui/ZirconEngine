@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::component::{
     UiValue, UiValueKind,
 };
 
-use super::{numeric, overlay, text_input};
+use super::{command_palette, notification_center, numeric, overlay, text_input, tree_view};
 
 mod menu;
 
@@ -15,10 +15,17 @@ pub(super) fn apply_keyboard_action(
     if component_disabled(state, descriptor) {
         return Ok(());
     }
+    if command_palette::apply_keyboard_action(state, descriptor, action)? {
+        return Ok(());
+    }
+    if notification_center::apply_keyboard_action(state, descriptor, action)? {
+        return Ok(());
+    }
 
     match action {
         UiComponentKeyboardAction::Activate => activate(state, descriptor),
         UiComponentKeyboardAction::Cancel => cancel(state, descriptor),
+        UiComponentKeyboardAction::BeginEdit => begin_edit(state, descriptor),
         UiComponentKeyboardAction::Next
         | UiComponentKeyboardAction::Previous
         | UiComponentKeyboardAction::First
@@ -36,6 +43,9 @@ pub(super) fn apply_keyboard_text(
     text: &str,
 ) -> Result<(), UiComponentEventError> {
     if component_disabled(state, descriptor) {
+        return Ok(());
+    }
+    if command_palette::apply_keyboard_text(state, descriptor, text)? {
         return Ok(());
     }
     if text_input::is_text_input_control(descriptor) {
@@ -93,6 +103,18 @@ fn cancel(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,
 ) -> Result<(), UiComponentEventError> {
+    if overlay::apply_cancel(state, descriptor)? {
+        state.flags.pressed = false;
+        state.flags.dragging = false;
+        return Ok(());
+    }
+
+    if tree_view::apply_cancel_editing(state, descriptor)? {
+        state.flags.pressed = false;
+        state.flags.dragging = false;
+        return Ok(());
+    }
+
     if menu::close_active_submenu(state, descriptor) {
         state.flags.pressed = false;
         state.flags.dragging = false;
@@ -104,6 +126,14 @@ fn cancel(
     }
     state.flags.pressed = false;
     state.flags.dragging = false;
+    Ok(())
+}
+
+fn begin_edit(
+    state: &mut UiComponentState,
+    descriptor: &UiComponentDescriptor,
+) -> Result<(), UiComponentEventError> {
+    tree_view::apply_begin_edit(state, descriptor)?;
     Ok(())
 }
 
@@ -153,6 +183,10 @@ fn numeric_step(
     descriptor: &UiComponentDescriptor,
     action: UiComponentKeyboardAction,
 ) -> Result<(), UiComponentEventError> {
+    if tree_view::apply_keyboard_expand_collapse(state, descriptor, action)? {
+        return Ok(());
+    }
+
     if !descriptor
         .prop("value")
         .is_some_and(|schema| matches!(schema.value_kind, UiValueKind::Float | UiValueKind::Int))
@@ -302,15 +336,9 @@ fn set_popup_open(
     open: bool,
 ) -> Result<(), UiComponentEventError> {
     if open {
-        overlay::open_popup(state)?;
+        overlay::open_popup(state, descriptor)?;
     } else {
-        overlay::close_popup(state)?;
-    }
-
-    for property in ["popup_open", "popupOpen", "open"] {
-        if descriptor.prop(property).is_some() || state.values.contains_key(property) {
-            super::set_value(state, property.to_string(), UiValue::Bool(open));
-        }
+        overlay::close_popup(state, descriptor)?;
     }
     Ok(())
 }
@@ -364,7 +392,7 @@ fn indexed_keyboard_entries(
 fn indexed_entry_property_candidates(
     descriptor: &UiComponentDescriptor,
 ) -> &'static [&'static str] {
-    if is_tree_keyboard_collection(descriptor) {
+    if tree_view::is_tree_view(descriptor) {
         &["nodes", "items", "options"]
     } else if is_row_keyboard_collection(descriptor) {
         &["rows", "items", "options"]
@@ -572,14 +600,6 @@ fn is_toggle_button_group(descriptor: &UiComponentDescriptor) -> bool {
     descriptor.role == "toggle-button-group" || descriptor.id == "ToggleButtonGroup"
 }
 
-fn is_tree_keyboard_collection(descriptor: &UiComponentDescriptor) -> bool {
-    matches!(descriptor.role.as_str(), "tree-view" | "folder-tree")
-        || matches!(
-            descriptor.id.as_str(),
-            "TreeView" | "MaterialTreeView" | "FolderTree"
-        )
-}
-
 fn is_row_keyboard_collection(descriptor: &UiComponentDescriptor) -> bool {
     matches!(
         descriptor.role.as_str(),
@@ -594,7 +614,7 @@ fn is_indexed_keyboard_selection_control(descriptor: &UiComponentDescriptor) -> 
     is_tabs(descriptor)
         || is_radio_group(descriptor)
         || is_toggle_button_group(descriptor)
-        || is_tree_keyboard_collection(descriptor)
+        || tree_view::is_tree_view(descriptor)
         || is_row_keyboard_collection(descriptor)
 }
 

@@ -828,7 +828,6 @@ fn record_effect_stack(store: &mut DiagnosticStore, stats: &RenderStats) {
         &["render", "post_process", "lut", "unsupported_shape"],
     );
     record_motion_vector_camera_status(store, frame_index, stats.last_motion_vector_camera_status);
-    record_motion_vector_object_history(store, frame_index, stats);
 }
 
 fn record_motion_vector_camera_status(
@@ -863,67 +862,6 @@ fn record_motion_vector_camera_status(
         frame_index,
         status == MotionVectorCameraStatus::Ready,
         &["render", "post_process", "motion_vector", "camera", "ready"],
-    );
-}
-
-fn record_motion_vector_object_history(
-    store: &mut DiagnosticStore,
-    frame_index: u64,
-    stats: &RenderStats,
-) {
-    record_count(
-        store,
-        "render.post_process.motion_vector.object.previous_history_count",
-        frame_index,
-        stats.last_motion_vector_previous_object_history_count,
-        &[
-            "render",
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-        ],
-    );
-    record_count(
-        store,
-        "render.post_process.motion_vector.object.current_history_count",
-        frame_index,
-        stats.last_motion_vector_current_object_history_count,
-        &[
-            "render",
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-        ],
-    );
-    record_count(
-        store,
-        "render.post_process.motion_vector.object.matched_history_count",
-        frame_index,
-        stats.last_motion_vector_matched_object_history_count,
-        &[
-            "render",
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-            "matched",
-        ],
-    );
-    record_count(
-        store,
-        "render.post_process.motion_vector.object.missing_history_count",
-        frame_index,
-        stats.last_motion_vector_missing_object_history_count,
-        &[
-            "render",
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-            "missing",
-        ],
     );
 }
 
@@ -1144,6 +1082,22 @@ fn record_mesh_queue(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count",
+        frame_index,
+        stats.last_mesh_skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count,
+        &[
+            "render",
+            "mesh",
+            "queue",
+            "skinned",
+            "gpu_source",
+            "cpu_morphed",
+            "previous_shape_missing",
+            "velocity",
+        ],
+    );
+    record_count(
+        store,
         "render.mesh.queue.skinned_gpu_skinning_draw_count",
         frame_index,
         stats.last_mesh_skinned_gpu_skinning_draw_count,
@@ -1151,16 +1105,16 @@ fn record_mesh_queue(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
-        "render.mesh.queue.skinned_gpu_motion_vector_draw_count",
+        "render.mesh.queue.skinned_gpu_velocity_draw_count",
         frame_index,
-        stats.last_mesh_skinned_gpu_motion_vector_draw_count,
+        stats.last_mesh_skinned_gpu_velocity_draw_count,
         &[
             "render",
             "mesh",
             "queue",
             "skinned",
             "gpu_skinning",
-            "motion_vector",
+            "velocity",
         ],
     );
     record_count(
@@ -1179,17 +1133,24 @@ fn record_mesh_queue(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
-        "render.mesh.queue.previous_motion_vector_transform_draw_count",
+        "render.mesh.queue.previous_velocity_transform_draw_count",
         frame_index,
-        stats.last_mesh_previous_motion_vector_transform_draw_count,
-        &["render", "mesh", "queue", "motion_vector", "previous"],
+        stats.last_mesh_previous_velocity_transform_draw_count,
+        &["render", "mesh", "queue", "velocity", "previous"],
     );
     record_count(
         store,
-        "render.mesh.queue.missing_motion_vector_transform_draw_count",
+        "render.mesh.queue.missing_velocity_transform_draw_count",
         frame_index,
-        stats.last_mesh_missing_motion_vector_transform_draw_count,
-        &["render", "mesh", "queue", "motion_vector", "missing"],
+        stats.last_mesh_missing_velocity_transform_draw_count,
+        &["render", "mesh", "queue", "velocity", "missing"],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.taa_reactive_mask_command_count",
+        frame_index,
+        stats.last_mesh_taa_reactive_mask_command_count,
+        &["render", "mesh", "queue", "taa", "reactive_mask"],
     );
     record_count(
         store,
@@ -1985,8 +1946,9 @@ mod tests {
             last_mesh_skinned_previous_palette_upload_count: 1,
             last_mesh_skinned_gpu_source_candidate_count: 1,
             last_mesh_skinned_gpu_cpu_morphed_source_candidate_count: 1,
+            last_mesh_skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count: 1,
             last_mesh_skinned_gpu_skinning_draw_count: 1,
-            last_mesh_skinned_gpu_motion_vector_draw_count: 1,
+            last_mesh_skinned_gpu_velocity_draw_count: 1,
             ..RenderStats::default()
         };
 
@@ -2019,13 +1981,19 @@ mod tests {
         );
         assert_series(
             &store,
+            "render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
             "render.mesh.queue.skinned_gpu_skinning_draw_count",
             1.0,
             "count",
         );
         assert_series(
             &store,
-            "render.mesh.queue.skinned_gpu_motion_vector_draw_count",
+            "render.mesh.queue.skinned_gpu_velocity_draw_count",
             1.0,
             "count",
         );
@@ -2126,6 +2094,25 @@ mod tests {
         record(&mut store, &stats);
 
         assert_series(&store, "render.mesh.queue.lod_draw_count", 4.0, "count");
+    }
+
+    #[test]
+    fn render_product_diagnostics_record_taa_reactive_mask_queue_count() {
+        let mut store = DiagnosticStore::default();
+        let stats = RenderStats {
+            submitted_frames: 12,
+            last_mesh_taa_reactive_mask_command_count: 3,
+            ..RenderStats::default()
+        };
+
+        record(&mut store, &stats);
+
+        assert_series(
+            &store,
+            "render.mesh.queue.taa_reactive_mask_command_count",
+            3.0,
+            "count",
+        );
     }
 
     fn assert_series(store: &DiagnosticStore, path: &str, value: f64, unit: &str) {

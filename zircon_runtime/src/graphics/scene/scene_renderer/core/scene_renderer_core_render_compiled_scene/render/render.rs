@@ -1,6 +1,11 @@
+#[cfg(test)]
+use crate::core::framework::render::RenderSceneVelocityReadbackReport;
 use crate::core::framework::render::{
-    RenderCameraTargetGraphImportReport, RenderCapabilitySummary, RenderPluginRendererOutputs,
+    AntiAliasMode, PostProcessGraphResourceNames, RenderCameraTargetGraphImportReport,
+    RenderCapabilitySummary, RenderPluginRendererOutputs,
 };
+#[cfg(test)]
+use crate::graphics::backend::read_texture_rgba;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
     insert_marker, pop_group, push_group, RENDERDOC_MARKER_FRAME_EXTRACT,
@@ -27,6 +32,8 @@ use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
 use crate::render_graph::RenderGraphResourceAccessKind;
+#[cfg(test)]
+use crate::rhi::TextureFormat;
 use crate::CompiledRenderPipeline;
 use std::sync::Arc;
 
@@ -164,6 +171,13 @@ impl SceneRendererCore {
             prepared_mesh_queue_stats.velocity_command_count,
             mesh_pass_command_buffers.velocity().commands().len()
         );
+        debug_assert_eq!(
+            prepared_mesh_queue_stats.taa_reactive_mask_command_count,
+            mesh_pass_command_buffers
+                .taa_reactive_mask()
+                .commands()
+                .len()
+        );
         let prepared_sprite_queue_stats = runtime_features
             .sprite_rendering_enabled
             .then(|| prepare_sprite_queue_stats(frame, active_sprite_graph_stages(pipeline)))
@@ -184,19 +198,28 @@ impl SceneRendererCore {
                 alpha_mask_commands: mesh_pass_command_buffers.alpha_mask().commands(),
                 transparent_commands: mesh_pass_command_buffers.transparent().commands(),
                 velocity_commands: mesh_pass_command_buffers.velocity().commands(),
+                taa_reactive_mask_commands: mesh_pass_command_buffers
+                    .taa_reactive_mask()
+                    .commands(),
                 depth_prepass_indirect: mesh_pass_indirect_draws.depth_prepass(),
                 shadow_indirect: mesh_pass_indirect_draws.shadow(),
                 opaque_indirect: mesh_pass_indirect_draws.opaque(),
                 alpha_mask_indirect: mesh_pass_indirect_draws.alpha_mask(),
                 transparent_indirect: mesh_pass_indirect_draws.transparent(),
                 velocity_indirect: mesh_pass_indirect_draws.velocity(),
+                taa_reactive_mask_indirect: mesh_pass_indirect_draws.taa_reactive_mask(),
             };
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
-        let material_gbuffer_valid = pipeline_writes_resource(
-            pipeline,
-            crate::core::framework::render::PostProcessGraphResourceNames::GBUFFER_MATERIAL,
-        );
-        let screen_space_reflection_history_enabled = runtime_features.history_resolve_enabled
+        let material_gbuffer_valid =
+            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::GBUFFER_MATERIAL);
+        let history_textures_present = history_textures.is_some();
+        let taa_history_enabled = history_textures_present
+            && frame.extract.view.anti_alias.mode == AntiAliasMode::Taa
+            && pipeline_writes_resource(
+                pipeline,
+                PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+            );
+        let screen_space_reflection_history_enabled = runtime_features.temporal_history_enabled
             && frame
                 .extract
                 .post_process
@@ -205,12 +228,12 @@ impl SceneRendererCore {
                 .is_enabled()
             && pipeline_writes_resource(
                 pipeline,
-                crate::core::framework::render::PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
             );
-        let hzb_history_enabled = pipeline_writes_resource(
-            pipeline,
-            crate::core::framework::render::PostProcessGraphResourceNames::HZB_FURTHEST,
-        );
+        let hzb_history_enabled =
+            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
+        let exposure_history_enabled =
+            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::EXPOSURE_CURRENT);
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
@@ -232,28 +255,39 @@ impl SceneRendererCore {
         let direct_import_report = direct_imported_final_target
             .as_ref()
             .map(|resource| RenderCameraTargetGraphImportReport::direct_imported(resource.size()));
-        if let Some(history_textures) = history_available
-            .then(|| history_textures.as_deref())
-            .flatten()
-        {
-            graph_resources.import_texture_view(
-                crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR,
-                history_textures
-                    .scene_color
-                    .create_view(&wgpu::TextureViewDescriptor::default()),
-            );
-            if screen_space_reflection_history_enabled {
+        if let Some(history_textures) = history_textures.as_deref() {
+            if taa_history_enabled {
                 graph_resources.import_texture_view(
-                    crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
+                    PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+                    history_textures.taa_scene_color_previous_view(),
+                );
+                graph_resources.import_texture_view(
+                    PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+                    history_textures.taa_scene_color_current_view(),
+                );
+            }
+            if history_available && screen_space_reflection_history_enabled {
+                graph_resources.import_texture_view(
+                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
                     history_textures
                         .screen_space_reflection
                         .create_view(&wgpu::TextureViewDescriptor::default()),
                 );
             }
-            if hzb_history_enabled {
+            if history_available && hzb_history_enabled {
                 graph_resources.import_texture_view(
-                    crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
+                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
                     history_textures.hzb_furthest_view.clone(),
+                );
+            }
+            if exposure_history_enabled {
+                graph_resources.insert_buffer(
+                    PostProcessGraphResourceNames::EXPOSURE_PREVIOUS,
+                    history_textures.exposure_previous_buffer(),
+                );
+                graph_resources.insert_buffer(
+                    PostProcessGraphResourceNames::EXPOSURE_CURRENT,
+                    history_textures.exposure_current_buffer(),
                 );
             }
         }
@@ -292,6 +326,12 @@ impl SceneRendererCore {
             } else {
                 None
             };
+            let depth_prepass_streamer = is_depth_prepass.then_some(streamer);
+            let depth_prepass_mesh_pipelines = if is_depth_prepass {
+                Some(&mut self.mesh_pipelines)
+            } else {
+                None
+            };
             let stage_result = execute_graph_stage(
                 pipeline,
                 render_pass_executors,
@@ -309,8 +349,8 @@ impl SceneRendererCore {
                 None,
                 None,
                 None,
-                None,
-                None,
+                depth_prepass_streamer,
+                depth_prepass_mesh_pipelines,
                 (is_depth_prepass || is_shadow).then_some(mesh_draw_lists),
                 self.hzb_occlusion_culler.as_ref(),
                 is_shadow.then_some(&self.shadow_map_renderer),
@@ -413,12 +453,13 @@ impl SceneRendererCore {
             &mut graph_execution,
         )?;
         graph_execution.record_post_process_graph(&runtime_frame.extract.post_process.graph);
-        let history_copy_required = history_textures.is_some()
-            && (runtime_features.history_resolve_enabled
+        let history_copy_required = history_textures_present
+            && (taa_history_enabled
                 || runtime_features.hybrid_global_illumination_enabled
                 || runtime_features.ssao_enabled
                 || screen_space_reflection_history_enabled
-                || hzb_history_enabled);
+                || hzb_history_enabled
+                || exposure_history_enabled);
         if history_copy_required {
             insert_marker(&mut encoder, RENDERDOC_MARKER_HISTORY_COPY);
         }
@@ -428,8 +469,10 @@ impl SceneRendererCore {
             &*graph_execution.resources,
             history_textures,
             runtime_features,
+            taa_history_enabled,
             screen_space_reflection_history_enabled,
             hzb_history_enabled,
+            exposure_history_enabled,
         );
         graph_execution
             .record
@@ -477,6 +520,13 @@ impl SceneRendererCore {
             &graph_execution_record,
         );
         queue.submit([encoder.finish()]);
+        #[cfg(test)]
+        attach_scene_velocity_readback_stats(
+            device,
+            queue,
+            &graph_resources,
+            &mut graph_execution_record,
+        );
         if let Some(hzb_occlusion_culler) = self.hzb_occlusion_culler.as_ref() {
             attach_hzb_occlusion_readback_stats(
                 hzb_occlusion_culler,
@@ -508,11 +558,44 @@ impl SceneRendererCore {
             prepared_sprite_queue_stats,
         );
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
+        let _prev_skinned_palette_roll_report =
+            self.gpu_scene.roll_prev_skinned_palettes_after_success();
+        let _prev_skinned_source_roll_report =
+            self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
         Ok(match direct_import_report {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,
         })
     }
+}
+
+#[cfg(test)]
+fn attach_scene_velocity_readback_stats(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    graph_resources: &RenderGraphExecutionResources,
+    graph_execution_record: &mut RenderGraphExecutionRecord,
+) {
+    let resource_name = PostProcessGraphResourceNames::SCENE_VELOCITY;
+    let Some(texture) = graph_resources.owned_texture(resource_name) else {
+        return;
+    };
+    let Some(desc) = graph_resources.owned_texture_desc(resource_name) else {
+        return;
+    };
+    if desc.format != TextureFormat::Rg16Float || desc.sample_count != 1 || desc.depth != 1 {
+        return;
+    }
+    let size = crate::core::math::UVec2::new(desc.width, desc.height);
+    if size.x == 0 || size.y == 0 {
+        return;
+    }
+    let Ok(bytes) = read_texture_rgba(device, queue, texture, size) else {
+        return;
+    };
+    graph_execution_record.set_scene_velocity_readback_report(
+        RenderSceneVelocityReadbackReport::from_raw_rg16_float_bytes(size, &bytes),
+    );
 }
 
 fn attach_hzb_occlusion_readback_stats(

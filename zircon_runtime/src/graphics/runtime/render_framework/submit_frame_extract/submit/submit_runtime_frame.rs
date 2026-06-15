@@ -16,7 +16,8 @@ use super::super::viewport_generation_guard::validate_viewport_generation;
 use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
-use super::update_motion_vector_history::update_motion_vector_history_after_success;
+use super::update_particle_previous_state::update_particle_previous_state_after_success;
+use super::update_temporal_camera_history::update_temporal_camera_history_after_success;
 
 pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     server: &WgpuRenderFramework,
@@ -38,6 +39,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     apply_submission_visibility_to_runtime_frame(&mut frame, &context);
     apply_effective_advanced_extracts_to_runtime_frame(&mut frame, &context);
     apply_effective_post_process_graph_to_runtime_frame(&mut frame, &context);
+    apply_effective_particle_previous_state_to_runtime_frame(&mut frame, &context);
     let mut state = server.lock_state();
     let active_capture = begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = match prepare_runtime_submission(&mut state, viewport, &context) {
@@ -101,10 +103,18 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
         rendered_frame,
         runtime_feedback,
     );
-    update_motion_vector_history_after_success(record, &runtime_frame);
+    update_temporal_camera_history_after_success(record, &runtime_frame);
+    update_particle_previous_state_after_success(record, &runtime_frame);
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);
     Ok(())
+}
+
+fn apply_effective_particle_previous_state_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.extract.particles.previous_sprites = context.particle_previous_sprites().to_vec();
 }
 
 fn fail_pending_capture_after_preflight_error(
@@ -153,10 +163,12 @@ fn apply_effective_post_process_graph_to_runtime_frame(
     context: &super::super::frame_submission_context::FrameSubmissionContext,
 ) {
     frame.extract.post_process.bloom = context.post_process_bloom();
+    frame.extract.post_process.exposure = context.post_process_exposure();
     frame.extract.post_process.color_grading = context.post_process_color_grading();
     frame.extract.post_process.effect_stack = context.post_process_effect_stack();
-    frame.extract.post_process.volume_stack = Default::default();
+    frame.extract.post_process.volumes.clear();
     frame.extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
+    frame.extract.view.camera.temporal_jitter = context.temporal_jitter();
     frame.extract.post_process.stack = context.post_process_stack().clone();
     frame.extract.post_process.graph = context.post_process_graph().clone();
 }
@@ -294,7 +306,6 @@ mod tests {
             RenderCapabilitySummary::default(),
             crate::VisibilityContext::from_extract(&extract),
             None,
-            None,
             Default::default(),
             None,
             output_target,
@@ -305,6 +316,8 @@ mod tests {
             Default::default(),
             Default::default(),
             Default::default(),
+            Default::default(),
+            1,
             default_render_advanced_runtime_plan(),
             Default::default(),
             Default::default(),
@@ -321,6 +334,10 @@ mod tests {
             Vec::new(),
             Vec::new(),
             Vec::new(),
+            Vec::new(),
+            0,
+            0,
+            0,
             None,
             Default::default(),
             Vec::new(),

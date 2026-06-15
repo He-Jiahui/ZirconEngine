@@ -6,13 +6,18 @@ use zircon_runtime::core::framework::net::{
     SyncReplicationScheduleReport,
 };
 
+mod apply;
 mod budget;
+mod collect;
 mod interest;
 mod lifecycle;
 mod registry;
 mod schedule;
 mod snapshot;
 mod state;
+mod table;
+
+pub use table::{NetReplicationTable, NetReplicationTableEntry};
 
 pub(in crate::manager) const MILLIS_PER_SECOND: u64 = 1_000;
 
@@ -40,7 +45,7 @@ impl NetReplicationRuntimeManager {
         component_type: &str,
         fields: impl IntoIterator<Item = SyncFieldValue>,
     ) -> Option<SyncDelta> {
-        self.publish_snapshot_impl(object, component_type, fields)
+        self.collect_snapshot_delta(object, component_type, fields)
     }
 
     pub fn visible_snapshots(&self, session: NetSessionId) -> Vec<SyncObjectSnapshot> {

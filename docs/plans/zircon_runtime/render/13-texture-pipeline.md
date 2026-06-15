@@ -493,6 +493,15 @@ SVT 帧间流水(帧 N):
 
 命令基线:切片期 `cargo check -p zircon_runtime --lib --locked`;里程碑末 `cargo test -p zircon_runtime render_texture --locked`、`render_mipgen`、`render_svt` 过滤词收窄;插件侧 `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --locked`。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | TX-M1 metadata and color-space authority | 部分完成: 上传/就绪追踪存在,权威元数据未完成 | `gpu_texture` 上传和 `texture_slot_summary` 可用,KTX importer 有基础;但 sRGB/linear 仍缺 asset metadata contract。 | 本文件 `现状与差距` 记录 texture upload/KTX 基础和色彩空间后缀猜测问题;计划 07 已独立定稿 postprocess HDR/intermediate format。 | 建立 texture asset metadata、色彩空间校验和 material/shader sampling contract。 |
+| 2026-06-15 | TX-M2 mip generation and normal pipeline | 未启动: 仍依赖源数据自带 mip | 当前无 runtime/import mip generation,normal map 压缩、重建和 Toksvig/specular AA 烘焙也未落地。 | 本文件 `现状与差距` 明确 mip 全靠源数据自带、normal map 无压缩与重建约定;计划 19 也把 specular AA 列为未覆盖。 | 实现 mip compute/import pipeline、normal map 标记、roughness adjustment 与验证图。 |
+| 2026-06-15 | TX-M3 array and cubemap assets | 未启动: 资产语义未定稿 | texture array、cubemap、reflection/skybox 所需格式仍未形成资产契约。 | 本文件 `现状与差距` 明确无 texture array/cubemap 资产语义;计划 11 skybox/IBL 依赖该能力。 | 定义 array/cubemap importer、view creation、sampler policy 与 bind group ABI。 |
+| 2026-06-15 | TX-M4 sparse virtual texture | 未启动: 可选 feature 等待地基 | SVT 仍只在计划中描述,无 page table、feedback pass 或 streamer。 | 本文件 `现状与差距` 明确无 SVT;计划 19 将常规 mip streaming 也列为缺口。 | 等 13-M1/M2/M3 与计划 19 bandwidth policy 后再实施。 |
+
 ### 参考实现精读笔记
 
 **UE `VT/VirtualTextureSystem.cpp`**:`FVirtualTextureSystem::BeginUpdate` 在帧更新入口调用 `GVirtualTextureFeedback.Map(GraphBuilder.RHICmdList)` 拿上一(几)帧 feedback;`FFeedbackAnalysisTask`/`FeedbackAnalysisTask` 把原始 buffer 去重进 `FUniquePageList`(可多任务并行,分段后合并);`GatherRequests`/`FGatherRequestsTask` 把页列表转成 `FUniqueRequestList`(`MergeRequests` 合并多任务结果),再 `SubmitRequests` 按预算(`Updater->PageUploadBudgetSVT`,来自 `Settings.MaxSVTPageUploads`)产页;`LoadPendingTiles` 展示了无 feedback 的显式区域请求路径(`EncodePage(SpaceID, MipLevel, TileX, TileY)` 打包 u32);`bFlushCaches` 分支对每个 `FVirtualTexturePhysicalSpace` 调 `GetPagePool().EvictAllPages`。Zircon 对应:`SvtStreamer::ingest_feedback`(去重+合并)与帧首 `apply_pending_pages`;取舍:V1 不做 UE 的异步任务化(`bAsyncTaskAllowed`)与 adaptive VT,单线程分析在 readback 回调内完成,数据量(1/8 栅格)足够小。

@@ -91,6 +91,8 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
         read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
     let project_delivery_actions =
         read_crate_file("src/tauri_app/runtime_state/project_delivery_actions.rs");
+    let device_install = read_crate_file("src/projects/device_install.rs");
+    let install_receipt = read_crate_file("src/projects/install_receipt.rs");
     let output_actions = read_crate_file("src/tauri_app/runtime_state/output_actions.rs");
     let settings_actions = read_crate_file("src/tauri_app/runtime_state/settings_actions.rs");
     let settings_dto = read_crate_file("src/tauri_app/view_model/settings_dto.rs");
@@ -290,10 +292,35 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "pub(in crate::tauri_app) fn complete_background_device_install",
             "package_project(&self.request)",
             "install_package_to_device(&install_request)",
+            "report.receipt_path",
             "record_package_success(",
             "background_package_prepares_request_without_copying_or_recording_history",
             "background_package_completion_records_success_after_copy_result",
             "background_install_runs_package_then_device_copy_before_recording_history",
+        ],
+    );
+    assert_contains_all(
+        "projects/device_install.rs",
+        &device_install,
+        &[
+            "pub receipt_path: PathBuf",
+            "pub total_bytes: u64",
+            "write_install_receipt(install_dir)?",
+            "content_download_manifest",
+            "project/zircon-project.toml",
+        ],
+    );
+    assert_contains_all(
+        "projects/install_receipt.rs",
+        &install_receipt,
+        &[
+            "pub struct DeviceInstallReceipt",
+            "pub content_download_manifest: HubContentDownloadManifest",
+            "pub struct HubContentDownloadManifest",
+            "pub struct HubContentDownloadChunk",
+            "allow_range_resume: true",
+            "fn sha256_hex(bytes: &[u8]) -> String",
+            "sha256_hex_matches_known_vectors",
         ],
     );
     assert_contains_all(

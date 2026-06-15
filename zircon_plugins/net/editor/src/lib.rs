@@ -1,11 +1,17 @@
-use zircon_plugin_editor_support::{
-    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
+use zircon_plugin_editor_support::{register_authoring_extensions, EditorAuthoringExtensions};
+
+mod authoring;
+
+pub use authoring::{
+    NET_AUTHORING_CAPABILITY, NET_AUTHORING_SURFACES, NET_AUTHORING_VIEW_ID,
+    NET_DIAGNOSTICS_VIEW_ID, NET_DRAWER_ID, NET_LISTENER_CONFIG_OPERATION,
+    NET_REPLICATION_SCHEMA_ASSET_KIND, NET_REPLICATION_SCHEMA_COMPILE_OPERATION,
+    NET_REPLICATION_SCHEMA_CREATE_OPERATION, NET_REPLICATION_SCHEMA_OPEN_OPERATION,
+    NET_REPLICATION_SCHEMA_PALETTE_ID, NET_REPLICATION_SCHEMA_TEMPLATE_ID,
+    NET_REPLICATION_SCHEMA_VALIDATE_OPERATION, NET_ROUTE_CONFIG_OPERATION, NET_TEMPLATE_ID,
 };
 
 pub const PLUGIN_ID: &str = zircon_plugin_net_runtime::PLUGIN_ID;
-pub const NET_AUTHORING_VIEW_ID: &str = "net.authoring";
-pub const NET_DRAWER_ID: &str = "net.drawer";
-pub const NET_TEMPLATE_ID: &str = "net.authoring";
 
 #[derive(Clone, Debug)]
 pub struct NetEditorPlugin {
@@ -36,20 +42,16 @@ impl zircon_editor::EditorPlugin for NetEditorPlugin {
                 drawer_display_name: "Network Tools",
                 template_id: NET_TEMPLATE_ID,
                 template_document: "plugins://net/editor/authoring.zui",
-                surfaces: &[EditorAuthoringSurface::new(
-                    NET_AUTHORING_VIEW_ID,
-                    "Network",
-                    "Networking",
-                    "Plugins/Network",
-                )],
+                surfaces: NET_AUTHORING_SURFACES,
             },
-        )
+        )?;
+        authoring::register_net_authoring_workflows(registry)
     }
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {
     zircon_editor::EditorPluginDescriptor::new(PLUGIN_ID, "Network", "zircon_plugin_net_editor")
-        .with_capability("editor.extension.net_authoring")
+        .with_capability(NET_AUTHORING_CAPABILITY)
 }
 
 pub fn editor_plugin() -> NetEditorPlugin {

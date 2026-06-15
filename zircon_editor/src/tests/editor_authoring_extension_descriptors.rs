@@ -3,7 +3,10 @@ use crate::core::editor_authoring_extension::{
     GraphNodePaletteDescriptor, GraphPinDescriptor, TimelineEditorDescriptor,
     TimelineTrackDescriptor, ViewportToolModeDescriptor,
 };
-use crate::core::editor_extension::EditorExtensionRegistry;
+use crate::core::editor_extension::{
+    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorUiTemplateDescriptor,
+};
 use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 
 #[test]
@@ -173,4 +176,39 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
     assert!(error
         .to_string()
         .contains("operation payload schema id `material_editor. compile.v1` is invalid"));
+}
+
+#[test]
+fn authoring_registry_accepts_view_templates_but_keeps_drawers_component_only() {
+    let mut registry = EditorExtensionRegistry::default();
+
+    registry
+        .register_ui_template(EditorUiTemplateDescriptor::new(
+            "authoring.material.panel",
+            "asset://material_editor/editor/panel.v2.ui.toml",
+        ))
+        .unwrap();
+    registry
+        .register_ui_template(EditorUiTemplateDescriptor::new(
+            "authoring.material.drawer",
+            "asset://material_editor/editor/drawer.zui",
+        ))
+        .unwrap();
+
+    let error = registry
+        .register_component_drawer(ComponentDrawerDescriptor::new(
+            "material.Component.Graph",
+            "asset://material_editor/editor/graph_drawer.v2.ui.toml",
+            "material.GraphDrawerController",
+        ))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        EditorExtensionRegistryError::InvalidUiDocument {
+            kind: "component drawer document",
+            ..
+        }
+    ));
+    assert_eq!(registry.ui_templates().len(), 2);
 }

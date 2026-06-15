@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::reflect::{ReflectSchemaRequest, ReflectTypePath};
 
 use super::{NetRequestId, NetSessionId};
 
@@ -7,6 +8,7 @@ pub enum RpcDirection {
     ClientToServer,
     ServerToClient,
     TargetClient,
+    Bidirectional,
 }
 
 impl RpcDirection {
@@ -14,7 +16,43 @@ impl RpcDirection {
         match self {
             Self::ClientToServer => caller == RpcPeerRole::Client,
             Self::ServerToClient | Self::TargetClient => caller == RpcPeerRole::Server,
+            Self::Bidirectional => true,
         }
+    }
+
+    pub fn allows_invocation(
+        self,
+        invocation_direction: RpcDirection,
+        caller: RpcPeerRole,
+    ) -> bool {
+        match self {
+            Self::Bidirectional => invocation_direction.allows_caller(caller),
+            _ => self == invocation_direction && self.allows_caller(caller),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RpcPayloadSchema {
+    pub schema_id: String,
+    pub reflect_schema_request: ReflectSchemaRequest,
+}
+
+impl RpcPayloadSchema {
+    pub fn for_type_path(type_path: impl Into<String>) -> Self {
+        let type_path = type_path.into();
+        Self {
+            schema_id: type_path.clone(),
+            reflect_schema_request: ReflectSchemaRequest::for_type(type_path),
+        }
+    }
+
+    pub fn from_reflect_type_path(type_path: ReflectTypePath) -> Self {
+        Self::for_type_path(type_path.type_path)
+    }
+
+    pub fn schema_id(&self) -> &str {
+        &self.schema_id
     }
 }
 
@@ -28,7 +66,7 @@ pub enum RpcPeerRole {
 pub struct RpcDescriptor {
     pub id: String,
     pub direction: RpcDirection,
-    pub payload_schema: Option<String>,
+    pub payload_schema: Option<RpcPayloadSchema>,
     pub max_calls_per_second: Option<u32>,
     pub max_payload_bytes: Option<usize>,
 }
@@ -57,7 +95,12 @@ impl RpcDescriptor {
     }
 
     pub fn with_payload_schema(mut self, schema: impl Into<String>) -> Self {
-        self.payload_schema = Some(schema.into());
+        self.payload_schema = Some(RpcPayloadSchema::for_type_path(schema));
+        self
+    }
+
+    pub fn with_reflect_payload_schema(mut self, type_path: ReflectTypePath) -> Self {
+        self.payload_schema = Some(RpcPayloadSchema::from_reflect_type_path(type_path));
         self
     }
 

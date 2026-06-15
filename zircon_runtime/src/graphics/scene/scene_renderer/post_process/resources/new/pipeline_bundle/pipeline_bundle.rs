@@ -5,9 +5,15 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) hzb_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) exposure_histogram_pipeline:
+        wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) exposure_resolve_pipeline:
+        wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) depth_of_field_prepare_pipeline:
         wgpu::RenderPipeline,
-    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_camera_pipeline:
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) taa_resolve_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) velocity_camera_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) motion_vector_tile_max_pipeline:
         wgpu::RenderPipeline,
@@ -22,5 +28,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) screen_space_reflection_specular_occlusion_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) post_process_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) output_transfer_pipeline:
         wgpu::RenderPipeline,
 }

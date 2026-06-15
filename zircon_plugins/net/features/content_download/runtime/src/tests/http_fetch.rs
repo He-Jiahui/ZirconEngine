@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{
@@ -125,4 +125,64 @@ fn content_download_manager_preserves_partial_prefix_after_corrupt_resume() {
         manager.partial_chunk_bytes(download, "chunk-corrupt"),
         b"prefix"
     );
+}
+
+#[test]
+fn corrupt_chunk_refetched() {
+    let http = zircon_plugin_net_http_runtime::http_runtime_manager();
+    let primary_hits = Arc::new(AtomicUsize::new(0));
+    let primary_hits_for_handler = primary_hits.clone();
+    http.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/chunks/refetch", [NetHttpMethod::Get]),
+        move |request| {
+            primary_hits_for_handler.fetch_add(1, Ordering::SeqCst);
+            NetHttpResponseDescriptor::new(request.request, 200, b"corrupt".to_vec())
+        },
+    )
+    .unwrap();
+    let mirror_hits = Arc::new(AtomicUsize::new(0));
+    let mirror_hits_for_handler = mirror_hits.clone();
+    http.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/mirror/chunk-refetch", [NetHttpMethod::Get]),
+        move |request| {
+            mirror_hits_for_handler.fetch_add(1, Ordering::SeqCst);
+            NetHttpResponseDescriptor::new(request.request, 200, b"correct".to_vec())
+        },
+    )
+    .unwrap();
+    let listener = http.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = http.listener_endpoint(listener).unwrap();
+
+    let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
+    let download = NetDownloadId::new(18);
+    let manifest = NetDownloadManifest::new(download, "asset://download/refetch")
+        .with_chunk(NetDownloadChunk::new(
+            "chunk-refetch",
+            format!("http://{}:{}/chunks/refetch", endpoint.host, endpoint.port),
+            0,
+            7,
+            sha256_hex(b"correct"),
+        ))
+        .with_mirror_url(format!("http://{}:{}/mirror", endpoint.host, endpoint.port));
+
+    manager.queue_manifest(manifest);
+    let failed_primary = manager.fetch_next_chunk(download, "chunk-refetch").unwrap();
+    assert_eq!(failed_primary.status, NetDownloadStatus::Downloading);
+    assert_eq!(
+        failed_primary.diagnostic.as_deref(),
+        Some("chunk attempt failed, switching mirror: chunk-refetch")
+    );
+    assert_eq!(
+        manager.failed_attempts(download, "chunk-refetch"),
+        vec!["chunk hash mismatch: chunk-refetch".to_string()]
+    );
+
+    let fetched_mirror = manager.fetch_next_chunk(download, "chunk-refetch").unwrap();
+    assert_eq!(fetched_mirror.status, NetDownloadStatus::Complete);
+    assert_eq!(
+        fetched_mirror.completed_chunks,
+        vec!["chunk-refetch".to_string()]
+    );
+    assert_eq!(primary_hits.load(Ordering::SeqCst), 1);
+    assert_eq!(mirror_hits.load(Ordering::SeqCst), 1);
 }

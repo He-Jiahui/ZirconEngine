@@ -58,6 +58,7 @@ pub(super) fn focused_input_kind_for_event(event: &UiInputEvent) -> Option<UiFoc
         | UiInputEvent::TooltipTimer(_)
         | UiInputEvent::TypeaheadTimer(_)
         | UiInputEvent::SubmenuHoverTimer(_)
+        | UiInputEvent::ToastTimer(_)
         | UiInputEvent::Accessibility(_) => None,
     }
 }

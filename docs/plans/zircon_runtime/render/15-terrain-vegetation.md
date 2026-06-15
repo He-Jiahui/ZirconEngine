@@ -439,6 +439,15 @@ editor crate(同 manifest `-p zircon_plugin_terrain_editor`):`terrain_brush_ops_
 
 验收证据归档:LOD 连续切级抓帧序列与接缝特写(`ZR_RENDERDOC_CAPTURE_NEXT=1`)、百万草实例 stats(draw 数、`last_foliage_instances`)、编辑脏区 stats,按 milestone 记入 `docs/zircon_runtime/**` 模块文档。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | TV-M1 terrain data plane and renderer plugin skeleton | 未启动: 等待 mesh/GPUScene/texture 地基稳定 | 当前引擎无 terrain renderer、heightfield asset、patch mesh 或 terrain material path。 | 本文件 `现状与差距` 明确无任何 terrain/植被能力。 | 在计划 03/10/13 基础完成后创建 terrain plugin skeleton 与 patch renderer。 |
+| 2026-06-15 | TV-M2 editor contract and incremental updates | 未启动: 等待 TV-M1 | 无 terrain editing delta、height/weight map update 或 editor brush contract。 | 本文件将 terrain/vegetation 定位为上层消费者,依赖前置计划。 | 定义编辑器 brush operation、dirty tiles、undo/redo 和 runtime upload。 |
+| 2026-06-15 | TV-M3 grass scatter layer | 未启动: 等待 GPU instancing/LOD/texture array | grass scatter、density map、wind animation 与 culling 均未实现。 | 计划 03/10/13 状态表显示 GPUScene/renderer/texture 地基仍有后续验收项。 | 基于 GPUScene instance batches 实现 grass scatter 与 visibility culling。 |
+| 2026-06-15 | TV-M4 tree and imposter | 未启动: 等待 LOD Group 与 texture pipeline | tree billboard/imposter、LOD transition、wind 和 shadow integration 未实现。 | 计划 10 RF-M3、计划 13 TX-M3 均未完成。 | 等 LOD Group、array/cubemap/atlas 能力后再实施 tree/imposter。 |
+
 ### 参考实现精读笔记
 
 以下符号均为实际读到的代码(`dev/UnrealEngine/Engine/Source/Runtime/Landscape/Private/`):

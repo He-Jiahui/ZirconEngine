@@ -1,4 +1,4 @@
-use super::assert_contains_all;
+use super::support::assert_contains_all;
 
 #[test]
 fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
@@ -111,6 +111,8 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
     ];
     let runtime_02_plan_anchors = [
         "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
+        "core_spine_root_generated_boundary",
+        "runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts",
         "pre_m3_type_alias_guard_static_passed_pending_render_owner",
         "core/root/generated/export_build_plan/app/editor/plugin",
     ];
@@ -138,12 +140,16 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
         "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
         "pending_full_scene_cargo",
         "cargo test -p zircon_runtime --lib scene:: --locked",
+        "runtime_02_generated_status_guard_present = true",
+        "runtime_07_owner_budget_status_guard_present = true",
     ];
     let runtime_06_anchors = [
         "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
         "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
         "native_plugin_public_surface",
-        "root_reexport_count = 68",
+        "root_reexport_count = 70",
+        "plugin_surface_lifecycle_boundary",
+        "runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts",
     ];
     let runtime_07_plan_anchors = [
         "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
@@ -413,10 +419,14 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
             "runtime_absorption/ui_architecture.rs",
             "runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs",
             "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
+            "core_spine_root_generated_boundary",
+            "runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts",
             "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
             "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
             "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
             "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
+            "runtime_02_generated_status_guard_present = true",
+            "runtime_07_owner_budget_status_guard_present = true",
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
             "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
@@ -441,9 +451,12 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
             "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
             "runtime_frame_schedule_stage.<SystemStage>",
             "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
+            "runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts",
             "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
             "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
             "runtime_05_closeout_status_waits_for_full_scene_cargo_gate",
+            "runtime_02_generated_status_guard_present = true",
+            "runtime_07_owner_budget_status_guard_present = true",
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
             "runtime_absorption::ui_architecture",

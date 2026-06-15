@@ -10,6 +10,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
@@ -21,6 +22,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
@@ -31,12 +34,15 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
 implementation_files:
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
@@ -48,6 +54,8 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
@@ -58,6 +66,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
 plan_sources:
   - user: 2026-05-18 continue Render M8A anti-alias product surface
@@ -67,6 +77,14 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
   - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
+  - zircon_runtime/src/core/framework/render/backend_types.rs::tests::render_quality_profile_preserves_taa_quality_preset
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_starts_invalid_and_flips_read_write_slots
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_invalidation_keeps_slots_but_drops_validity
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs::tests::capability_summary_reports_taa_when_offscreen_postprocess_is_available
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_uses_temporal_resolve_seed_frame_when_requested
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --locked render_product_anti_alias --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked render_product_post_process --jobs 1 --message-format short --color never
@@ -84,7 +102,7 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::render::anti_alias` owns the neutral M8A anti-alias contract. It turns `RenderProductFeature::AntiAlias` from profile vocabulary into a per-view product setting with explicit resolution and fallback reporting.
 
-The framework layer only describes requested and effective modes. Concrete pixels remain in `zircon_runtime::graphics`, where the first implemented path is FXAA inside the postprocess product surface.
+The framework layer only describes requested and effective modes. Concrete pixels remain in `zircon_runtime::graphics`, where FXAA is the default screen-space fallback and explicit TAA can now enter the Plan 06 WGPU seed-frame resolve path.
 
 ## Bevy Evidence
 
@@ -96,15 +114,17 @@ The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/l
 
 `dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs:47-72` registers TAA extraction, jitter, pipeline, and history-texture preparation, then schedules TAA in Core3d early post-process. `taa/mod.rs:101-115` requires temporal jitter, mip bias, depth prepass, and motion-vector prepass; `taa/mod.rs:152` rejects TAA when MSAA is enabled. `dev/bevy/crates/bevy_anti_alias/src/contrast_adaptive_sharpening/mod.rs:40-122` defines camera-facing CAS sharpening settings and schedules CAS after FXAA for Core2d/Core3d.
 
-`dev/bevy/examples/3d/anti_aliasing.rs` is the practical product target: it lets one camera switch between no AA, MSAA, FXAA, SMAA, TAA, and optional DLSS. Zircon's current product surface names the same families, but only FXAA is a concrete renderer path.
+`dev/bevy/examples/3d/anti_aliasing.rs` is the practical product target: it lets one camera switch between no AA, MSAA, FXAA, SMAA, TAA, and optional DLSS. Zircon's current product surface names the same families; FXAA is the default concrete fallback, explicit TAA has a WGPU resolve seed-frame path, and the other families still degrade through fallback reporting.
 
 ## Product Surface
 
 `AntiAliasMode` names the product vocabulary: `Off`, `Auto`, `Fxaa`, `Msaa`, `Taa`, `Smaa`, `Cas`, and `Dlss`. The modes are intentionally broader than the first concrete implementation so authoring code can request future modes without the renderer silently claiming support.
 
-`AntiAliasSettings` currently stores one mode and defaults to `Auto`. `RenderViewExtract` carries the settings beside the camera and core pipeline. Camera snapshots with `msaa_samples > 1` map to `AntiAliasMode::Msaa { samples }`; otherwise the view defaults to `Auto`.
+`AntiAliasSettings` stores the requested mode plus a `TaaQualityPreset`. It defaults to `Auto` with Medium TAA quality. `RenderViewExtract` carries the settings beside the camera and core pipeline. Camera snapshots with `msaa_samples > 1` map to `AntiAliasMode::Msaa { samples }`; otherwise the view defaults to `Auto`.
 
-`AntiAliasFallbackReport` records `requested_mode`, `effective_mode`, and an optional `AntiAliasFallbackReason`. `Auto` resolving to FXAA is reported as `AutoResolvedToFxaa`, while unsupported SMAA/CAS/DLSS, unsupported MSAA sample counts, unsupported TAA, missing TAA history, and unsupported FXAA each have distinct reasons.
+`TaaQualityPreset::{Low, Medium, High}` is intentionally framework-owned rather than shader-owned. `RenderQualityProfile::with_taa_quality(...)` lets product profiles select the preset, and `build_frame_submission_context(...)` applies that profile value before resolving the effective AA mode. The renderer-side `TaaResolveParams` maps the preset to uniform values, so changing the preset does not rebuild the TAA pipeline.
+
+`AntiAliasFallbackReport` records `requested_mode`, `effective_mode`, the preserved TAA quality preset, and an optional `AntiAliasFallbackReason`. `Auto` resolving to FXAA is reported as `AutoResolvedToFxaa`, while unsupported SMAA/CAS/DLSS, unsupported MSAA sample counts, unsupported TAA, missing TAA history, and unsupported FXAA each have distinct reasons.
 
 ## Capability Resolution
 
@@ -117,7 +137,7 @@ The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/l
 - `supports_dlss`
 - `max_supported_msaa_samples`
 
-The current WGPU summary reports FXAA support when offscreen rendering is available, keeps SMAA/TAA/CAS/DLSS disabled, and reports `max_supported_msaa_samples = 1`. That makes default 3D resolve `Auto -> Fxaa` without pretending MSAA or temporal modes are implemented.
+The current WGPU summary reports FXAA and TAA support when offscreen rendering is available, keeps SMAA/CAS/DLSS disabled, and reports `max_supported_msaa_samples = 1`. Default 3D `Auto` still resolves to FXAA, while explicit `AntiAliasSettings::taa()` can enter the TAA seed-frame path when the history feature is present. Product convergence/disocclusion parity remains a Plan 06 acceptance item.
 
 `RenderCapabilityKind::ScreenSpaceAntiAlias` and `RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias` are the validation hook for default AA. `RenderProfileBundle::default_render()` requires this capability through its `AntiAlias` feature, and `RenderQualityProfile::with_anti_alias(false)` disables the built-in AA render feature for profiles that intentionally want no AA pass.
 
@@ -145,7 +165,7 @@ The fallback report proves what the renderer actually used for the submitted fra
 | FXAA | Concrete DefaultRender path. `Auto` resolves to FXAA when the backend supports offscreen rendering, and the post-process graph records the `fxaa` node. | Add Bevy-style sensitivity controls if user-facing tuning becomes part of the profile surface. |
 | MSAA | Named through `AntiAliasMode::Msaa { samples }` and camera MSAA projection, but current capability reports max supported samples as `1`. Unsupported counts degrade through `AntiAliasFallbackReport`. | Add multisampled render targets, resolve/writeback policy, and sorted-camera writeback behavior before claiming Bevy parity. |
 | SMAA | Named but unsupported. It degrades to FXAA or Off with `UnsupportedSmaa`. | Add three-pass temporary resources, LUT handling, presets, and Core2d/Core3d graph nodes. |
-| TAA | Named but unsupported. Missing history and unsupported temporal capability are distinct fallback reasons. | Add temporal jitter, mip-bias, depth/motion-vector prepass ownership, history reset, and Core3d early post-process scheduling. |
+| TAA | Named and now carries `TaaQualityPreset`; offscreen-capable WGPU backends report `supports_taa`, explicit TAA enters `temporal.taa-resolve`, and TAA scene-color history is owned by `TemporalHistoryStore`. Missing store availability and unsupported temporal capability remain distinct fallback reasons. | Finish authored reactive masks, MSAA/dynamic-resolution conflict diagnostics, product convergence/disocclusion captures, and RenderDoc evidence before claiming product parity. |
 | CAS | Named but unsupported. It degrades with `UnsupportedCas`. | Add camera-facing sharpening settings and schedule CAS after the chosen screen-space AA pass. |
 | DLSS | Named but unsupported and treated as optional capability-gated provider work. | Add explicit backend/provider capability checks before exposing it as anything other than a degraded optional mode. |
 
@@ -158,7 +178,7 @@ M10.6 uses this document as the anti-alias side of the post-process/AA breadth g
 | FXAA | Concrete graph pass and submit stats exist for DefaultRender. | Keep it as the accepted screen-space fallback and add sensitivity controls only when they become user-facing product settings. |
 | MSAA | Camera MSAA requests are projected into `AntiAliasMode::Msaa`, but capability summary reports only one sample today. | Add multisampled render targets, resolve/writeback policy, sorted-camera writeback diagnostics, and interaction rules with TAA before accepting MSAA parity. |
 | SMAA | `AntiAliasMode::Smaa` names the family and degrades with `UnsupportedSmaa`. | Add three graph passes, temporary edge/blend textures, area/search LUT handling, quality presets, missing-LUT diagnostics, and Core2d/Core3d pass-order tests. |
-| TAA | `AntiAliasMode::Taa` names the family and distinguishes missing history from unsupported temporal capability. | Add temporal jitter, mip bias, depth and motion-vector prepass ownership, history reset behavior, MSAA conflict diagnostics, and Core3d early-postprocess ordering. |
+| TAA | `AntiAliasMode::Taa` names the family, preserves `TaaQualityPreset`, distinguishes missing history-store availability from unsupported temporal capability, and has a Plan 06 WGPU resolve path plus `TemporalHistoryStore` on offscreen-capable WGPU backends. The 2026-06-15 audit found no recoverable in-repo pre-jitter hash artifact, so the current Off-path product parity test is the repository-local baseline. | Finish MSAA/dynamic-resolution conflict diagnostics, product acceptance captures, and RenderDoc review; add an external historical hash only if that artifact becomes available. |
 | CAS | `AntiAliasMode::Cas` names the family and degrades with `UnsupportedCas`. | Add camera-facing sharpening settings, denoise mode, a graph node after the chosen AA pass, and pass-order diagnostics. |
 | DLSS | `AntiAliasMode::Dlss` names an optional provider-backed family and degrades with `UnsupportedDlss`. | Keep it capability/provider gated; do not expose it as accepted behavior without backend/provider checks and fallback diagnostics. |
 
@@ -174,4 +194,4 @@ Promotion requires `cargo test -p zircon_runtime --locked render_product_anti_al
 
 ## Out Of Scope
 
-M8A does not implement MSAA render targets, TAA history jitter/resolution, SMAA, CAS, DLSS, editor material UI, `.zmaterial` schema work, or plugin-provider arbitration. Unsupported modes must degrade through `AntiAliasFallbackReport`; they must not appear as silently successful product paths.
+M8A does not implement MSAA render targets, final TAA product parity evidence, authored reactive masks, SMAA, CAS, DLSS, editor material UI, `.zmaterial` schema work, or plugin-provider arbitration. Unsupported modes must degrade through `AntiAliasFallbackReport`; they must not appear as silently successful product paths.

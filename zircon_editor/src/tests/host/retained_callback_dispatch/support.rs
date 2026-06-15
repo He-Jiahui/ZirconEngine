@@ -18,6 +18,7 @@ pub(super) use crate::ui::retained_host::callback_dispatch::{
     dispatch_builtin_host_menu_action, dispatch_builtin_host_page_activation,
     dispatch_builtin_inspector_surface_control, dispatch_builtin_pane_surface_control,
     dispatch_builtin_viewport_toolbar_control, dispatch_builtin_welcome_surface_control,
+    dispatch_componentized_workbench_command_palette_committed,
     dispatch_componentized_workbench_control, dispatch_componentized_workbench_menu_item_selected,
     dispatch_componentized_workbench_option_selected,
     dispatch_componentized_workbench_pointer_event,
@@ -31,6 +32,7 @@ pub(super) use crate::ui::retained_host::callback_dispatch::{
     BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
     BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
     BuiltinWorkbenchWindowTemplateSurfaceBridge, SharedViewportPointerBridge,
+    WorkbenchCommandPaletteOpenState,
 };
 pub(super) use crate::ui::retained_host::tab_drag::{
     HostDragTargetGroup, ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop,
@@ -41,6 +43,6 @@ pub(super) use crate::ui::workbench::layout::{
 };
 pub(super) use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 pub(super) use zircon_runtime_interface::ui::{
-    binding::UiEventKind, dispatch::UiPointerEvent, layout::UiFrame, layout::UiPoint,
-    layout::UiSize, surface::UiPointerButton, surface::UiPointerEventKind,
+    binding::UiEventKind, component::UiValue, dispatch::UiPointerEvent, layout::UiFrame,
+    layout::UiPoint, layout::UiSize, surface::UiPointerButton, surface::UiPointerEventKind,
 };

@@ -32,6 +32,12 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "SaveProject",
         EditorUiBindingPayload::menu_action("workbench.project.save"),
     );
+    insert_submit(
+        &mut bindings,
+        "CommandPalette",
+        "Commit",
+        EditorUiBindingPayload::editor_command("editor.command_palette"),
+    );
 
     insert_click(
         &mut bindings,
@@ -290,6 +296,18 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "InputFocusedCommit",
         EditorUiBindingPayload::menu_action("component_lab.input_focused.commit"),
     );
+    insert_change(
+        &mut bindings,
+        "ComponentLab",
+        "InputSearchEdit",
+        EditorUiBindingPayload::menu_action("component_lab.input_search.edit"),
+    );
+    insert_submit(
+        &mut bindings,
+        "ComponentLab",
+        "InputSearchCommit",
+        EditorUiBindingPayload::menu_action("component_lab.input_search.commit"),
+    );
     insert_click(
         &mut bindings,
         "ComponentLab",
@@ -478,6 +496,60 @@ fn insert_change(
         EditorUiEventKind::Change,
         payload,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn component_lab_search_input_has_edit_and_commit_bindings() {
+        let bindings = workbench_window_template_bindings();
+
+        assert_menu_binding(
+            &bindings,
+            "ComponentLab/InputSearchEdit",
+            EditorUiEventKind::Change,
+            "component_lab.input_search.edit",
+        );
+        assert_menu_binding(
+            &bindings,
+            "ComponentLab/InputSearchCommit",
+            EditorUiEventKind::Submit,
+            "component_lab.input_search.commit",
+        );
+    }
+
+    #[test]
+    fn workbench_command_palette_commit_binding_is_registered() {
+        let bindings = workbench_window_template_bindings();
+        let binding = bindings
+            .get("CommandPalette/Commit")
+            .expect("command palette commit binding should be registered");
+
+        assert_eq!(binding.path().event_kind, EditorUiEventKind::Submit);
+        assert_eq!(
+            binding.payload(),
+            &EditorUiBindingPayload::editor_command("editor.command_palette")
+        );
+    }
+
+    fn assert_menu_binding(
+        bindings: &BTreeMap<String, EditorUiBinding>,
+        binding_id: &str,
+        event_kind: EditorUiEventKind,
+        action_id: &str,
+    ) {
+        let binding = bindings
+            .get(binding_id)
+            .unwrap_or_else(|| panic!("{binding_id} should be registered"));
+
+        assert_eq!(binding.path().event_kind, event_kind);
+        assert_eq!(
+            binding.payload(),
+            &EditorUiBindingPayload::menu_action(action_id)
+        );
+    }
 }
 
 fn insert_click(

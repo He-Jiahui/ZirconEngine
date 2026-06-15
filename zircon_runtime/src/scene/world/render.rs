@@ -2,24 +2,23 @@ use crate::core::framework::render::{
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
     sort_render_cameras, DebugOverlayExtract, FallbackSkyboxKind, GeometryExtract,
     GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
-    PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot, RenderCameraOrderInput,
-    RenderCameraOrderReport, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    PostProcessVolumeExtract, PreviewEnvironmentExtract, ProjectionMode,
+    RenderAmbientLightSnapshot, RenderCameraOrderInput, RenderCameraOrderReport,
+    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFrameExtract,
     RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
-    RenderPostProcessVolumeStack, RenderRectLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot, RenderViewExtract,
-    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot, VisibilityInput,
-    VisibilityRenderableInput,
+    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot, RenderRectLightSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
+    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
+    VisibilityInput, VisibilityRenderableInput,
 };
 use crate::core::framework::scene::Mobility;
-use crate::core::math::{Real, Transform, Vec3, Vec4};
+use crate::core::math::{Transform, Vec3, Vec4};
 
 use super::World;
 use crate::scene::components::{
-    default_render_layer_mask, ColliderComponent, ColliderShape, MeshRenderer,
-    MeshRendererLodLevel, MeshRendererPrimitiveBinding, PostProcessSettingsComponent,
-    Sprite2dComponent,
+    default_render_layer_mask, MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding,
+    PostProcessSettingsComponent, Sprite2dComponent,
 };
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
@@ -142,8 +141,9 @@ impl World {
             .and_then(|entity| self.post_process_settings.get(&entity))
             .cloned()
             .unwrap_or_default();
-        let post_process_volume_stack = self
-            .collect_post_process_volume_stack(&camera_layers, view.camera.transform.translation);
+        let post_process_volumes =
+            self.collect_post_process_volumes(&camera_layers, view.camera.transform.translation);
+        let camera_exposure_ev100 = view.camera.exposure_ev100;
 
         RenderFrameExtract {
             world,
@@ -174,8 +174,9 @@ impl World {
             },
             post_process: build_post_process_extract(
                 request,
+                camera_exposure_ev100,
                 post_process_settings,
-                post_process_volume_stack,
+                post_process_volumes.extracts,
             ),
             debug: DebugOverlayExtract {
                 overlays: RenderOverlayExtract {
@@ -519,56 +520,6 @@ impl World {
         camera_layers.intersects_legacy_mask(render_layer_mask)
     }
 
-    fn collect_post_process_volume_stack(
-        &self,
-        camera_layers: &RenderLayerSet,
-        camera_position: Vec3,
-    ) -> RenderPostProcessVolumeStack {
-        let mut volumes = self
-            .post_process_volumes
-            .iter()
-            .filter(|(entity, _)| {
-                self.active_in_hierarchy(**entity) == Some(true)
-                    && self.entity_intersects_camera_layers(**entity, camera_layers)
-            })
-            .filter(|(_, volume)| volume.active)
-            .filter_map(|(entity, volume)| {
-                let mut render_volume = volume.to_render_volume(RenderLayerSet::from_legacy_mask(
-                    self.render_layer_mask(*entity)
-                        .unwrap_or(default_render_layer_mask()),
-                ));
-                if !render_volume.is_global {
-                    render_volume.local_blend =
-                        self.post_process_volume_local_influence(*entity, volume, camera_position);
-                    if render_volume.local_blend <= 0.0 {
-                        return None;
-                    }
-                }
-                Some((*entity, render_volume))
-            })
-            .collect::<Vec<_>>();
-        volumes.sort_by_key(|(entity, _)| *entity);
-        RenderPostProcessVolumeStack::from_volumes(volumes.into_iter().map(|(_, volume)| volume))
-    }
-
-    fn post_process_volume_local_influence(
-        &self,
-        entity: crate::scene::EntityId,
-        volume: &crate::scene::components::PostProcessVolumeComponent,
-        camera_position: Vec3,
-    ) -> Real {
-        let Some(collider) = self.colliders.get(&entity) else {
-            return 0.0;
-        };
-        let world_transform = self.world_transform(entity).unwrap_or_default();
-        local_volume_influence(
-            camera_position,
-            world_transform,
-            collider,
-            volume.blend_distance,
-        )
-    }
-
     fn build_render_camera(
         &self,
         request: &SceneViewportExtractRequest,
@@ -733,74 +684,6 @@ fn mesh_lod_for_camera<'a>(
     choice
 }
 
-fn local_volume_influence(
-    camera_position: Vec3,
-    world_transform: Transform,
-    collider: &ColliderComponent,
-    blend_distance: Real,
-) -> Real {
-    let distance_sq =
-        closest_distance_squared_to_collider(camera_position, world_transform, collider);
-    influence_from_distance_squared(distance_sq, blend_distance)
-}
-
-fn closest_distance_squared_to_collider(
-    camera_position: Vec3,
-    world_transform: Transform,
-    collider: &ColliderComponent,
-) -> Real {
-    let collider_transform = collider.local_transform;
-    let center = world_transform.translation
-        + world_transform.rotation * (world_transform.scale * collider_transform.translation);
-    let rotation = world_transform.rotation * collider_transform.rotation;
-    let scale = (world_transform.scale * collider_transform.scale).abs();
-    let local_position = rotation.inverse() * (camera_position - center);
-
-    match &collider.shape {
-        ColliderShape::Box { half_extents } => {
-            let half_extents = (*half_extents * scale).abs();
-            (local_position.abs() - half_extents)
-                .max(Vec3::ZERO)
-                .length_squared()
-        }
-        ColliderShape::Sphere { radius } => {
-            let radius = (*radius * max_component(scale)).max(0.0);
-            (local_position.length() - radius).max(0.0).powi(2)
-        }
-        ColliderShape::Capsule {
-            radius,
-            half_height,
-        } => {
-            let radius = (*radius * scale.x.max(scale.z)).max(0.0);
-            let half_height = (*half_height * scale.y).max(0.0);
-            let closest_y = local_position.y.clamp(-half_height, half_height);
-            let closest = Vec3::new(0.0, closest_y, 0.0);
-            ((local_position - closest).length() - radius)
-                .max(0.0)
-                .powi(2)
-        }
-    }
-}
-
-fn influence_from_distance_squared(distance_sq: Real, blend_distance: Real) -> Real {
-    if distance_sq <= 0.0 {
-        return 1.0;
-    }
-    let blend_distance = blend_distance.max(0.0);
-    if blend_distance <= 0.0 {
-        return 0.0;
-    }
-    let blend_distance_sq = blend_distance * blend_distance;
-    if distance_sq > blend_distance_sq {
-        return 0.0;
-    }
-    1.0 - (distance_sq / blend_distance_sq)
-}
-
-fn max_component(value: Vec3) -> Real {
-    value.x.max(value.y).max(value.z)
-}
-
 fn empty_scene_geometry(camera: ViewportCameraSnapshot) -> RenderSceneGeometryExtract {
     RenderSceneGeometryExtract {
         camera,
@@ -823,6 +706,7 @@ fn inactive_camera_frame_extract(
         Vec::new(),
         Vec::new(),
     );
+    let camera_exposure_ev100 = view.camera.exposure_ev100;
     geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         debug: request.virtual_geometry_debug.unwrap_or_default(),
         ..RenderVirtualGeometryExtract::default()
@@ -846,8 +730,9 @@ fn inactive_camera_frame_extract(
         },
         post_process: build_post_process_extract(
             request,
+            camera_exposure_ev100,
             PostProcessSettingsComponent::default(),
-            RenderPostProcessVolumeStack::default(),
+            Vec::new(),
         ),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract {
@@ -924,8 +809,9 @@ fn empty_visibility_input() -> VisibilityInput {
 
 fn build_post_process_extract(
     request: &SceneViewportExtractRequest,
+    camera_exposure_ev100: crate::core::math::Real,
     settings: PostProcessSettingsComponent,
-    volume_stack: RenderPostProcessVolumeStack,
+    volumes: Vec<PostProcessVolumeExtract>,
 ) -> PostProcessExtract {
     let mut post_process = PostProcessExtract::from_parts_with_effect_stack(
         build_preview_environment(request),
@@ -936,7 +822,8 @@ fn build_post_process_extract(
         false,
         false,
     );
-    post_process.volume_stack = volume_stack;
+    post_process.exposure = RenderExposureSettings::manual_ev100(camera_exposure_ev100);
+    post_process.volumes = volumes;
     post_process
 }
 

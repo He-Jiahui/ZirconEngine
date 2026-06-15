@@ -144,7 +144,6 @@ fn import_final_target_aliases(
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
         PostProcessGraphResourceNames::COLOR_GRADED,
         PostProcessGraphResourceNames::EFFECT_STACKED,
-        PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR,
     ];
     if let Some(imported_final_target) = imported_final_target {
         for alias in final_target_aliases {
@@ -238,17 +237,14 @@ mod tests {
 
     #[test]
     fn stage_execution_records_post_process_graph_through_record_owner() {
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "final-composite".to_string(),
-                kind: PostProcessEffectKind::FinalComposite,
-                required_inputs: Vec::new(),
-                produced_outputs: Vec::new(),
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: Some("final-composite".to_string()),
-        };
+        let graph = PostProcessPassGraph::from_ordered_nodes(
+            vec![PostProcessPassNode::new(
+                "output-transfer",
+                PostProcessEffectKind::OutputTransfer,
+            )],
+            Vec::new(),
+            Some("output-transfer".to_string()),
+        );
         let mut resources = RenderGraphExecutionResources::new();
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
@@ -260,7 +256,7 @@ mod tests {
         assert_eq!(record.post_process_graph(), Some(&graph));
         assert_eq!(
             record.executed_post_process_nodes(),
-            &["final-composite".to_string()]
+            &["output-transfer".to_string()]
         );
         assert!(record.executed_passes().is_empty());
     }
@@ -372,7 +368,7 @@ mod tests {
     }
 
     const ADVANCED_POST_PROCESS_TRANSIENTS: &[&str] = &[
-        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
@@ -391,7 +387,6 @@ mod tests {
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
         PostProcessGraphResourceNames::COLOR_GRADED,
         PostProcessGraphResourceNames::EFFECT_STACKED,
-        PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR,
     ];
 }
 

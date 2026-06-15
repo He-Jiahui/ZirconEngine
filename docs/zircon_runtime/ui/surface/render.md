@@ -16,10 +16,18 @@ related_code:
   - zircon_runtime/src/ui/surface/render/collection_rows/tree.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/render/dropdowns.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+  - zircon_runtime/src/ui/surface/render/command_palette.rs
+  - zircon_runtime/src/ui/surface/render/drag_overlay.rs
+  - zircon_runtime/src/ui/surface/render/notification_center.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
   - zircon_runtime/src/ui/surface/render/popup_menu.rs
   - zircon_runtime/src/ui/surface/render/popup_options.rs
+  - zircon_runtime/src/ui/surface/render/popup_position.rs
   - zircon_runtime/src/ui/surface/render/popup_rows.rs
   - zircon_runtime/src/ui/surface/render/selection_controls.rs
   - zircon_runtime/src/ui/surface/render/segmented_controls.rs
@@ -37,6 +45,10 @@ related_code:
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
   - zircon_runtime/src/ui/tests/render_dropdowns.rs
+  - zircon_runtime/src/ui/tests/render_dialog.rs
+  - zircon_runtime/src/ui/tests/render_command_palette.rs
+  - zircon_runtime/src/ui/tests/render_drag_overlay.rs
+  - zircon_runtime/src/ui/tests/render_notification_center.rs
   - zircon_runtime/src/ui/tests/render_selection_controls.rs
   - zircon_runtime/src/ui/tests/render_segmented_controls.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
@@ -66,10 +78,18 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/collection_rows/tree.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/render/dropdowns.rs
+  - zircon_runtime/src/ui/surface/render/dialog.rs
+  - zircon_runtime/src/ui/surface/render/command_palette.rs
+  - zircon_runtime/src/ui/surface/render/drag_overlay.rs
+  - zircon_runtime/src/ui/surface/render/notification_center.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
   - zircon_runtime/src/ui/surface/render/popup_menu.rs
   - zircon_runtime/src/ui/surface/render/popup_options.rs
+  - zircon_runtime/src/ui/surface/render/popup_position.rs
   - zircon_runtime/src/ui/surface/render/popup_rows.rs
   - zircon_runtime/src/ui/surface/render/selection_controls.rs
   - zircon_runtime/src/ui/surface/render/segmented_controls.rs
@@ -86,6 +106,12 @@ implementation_files:
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
   - zircon_runtime/src/ui/tests/render_dropdowns.rs
+  - zircon_runtime/src/ui/tests/render_dialog.rs
+  - zircon_runtime/src/ui/tests/render_command_palette.rs
+  - zircon_runtime/src/ui/tests/render_drag_overlay.rs
+  - zircon_runtime/src/ui/tests/render_notification_center.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
   - zircon_runtime/src/ui/tests/render_selection_controls.rs
   - zircon_runtime/src/ui/tests/render_segmented_controls.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
@@ -100,6 +126,20 @@ plan_sources:
   - user: 2026-06-03 native editor workbench window comparison screenshot request
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/command_palette.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_command_palette.rs zircon_runtime/src/ui/tests/mod.rs (2026-06-15 M3.S3 CommandPalette render-state baseline: passed after formatting)
+  - git diff --check -- touched CommandPalette render/native painter code and docs (2026-06-15 M3.S3 CommandPalette render/native painter styling baseline: passed with LF-to-CRLF warnings only)
+  - conflict marker and trailing-whitespace scans over touched CommandPalette render/native painter code and docs (2026-06-15: passed with no matches)
+  - cargo test -p zircon_runtime --lib render_extract_command_palette_draws_search_panel_and_filtered_command_rows --locked (2026-06-15 M3.S3 CommandPalette render-state baseline: deferred because active cargo/rustc lanes were present in the shared Windows workspace)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/command_palette.rs (2026-06-15 CommandPalette row collection type recovery: passed)
+  - cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never (2026-06-15 CommandPalette row collection type recovery: passed with existing warnings; validates the runtime UI render module as a dependency of editor)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_runtime/src/ui/surface/render/drag_overlay.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_drag_overlay.rs zircon_runtime/src/ui/tests/mod.rs (2026-06-15 M3.S4 DragOverlay descriptor/render baseline: passed after formatting)
+  - scoped git diff --check for M3.S4 DragOverlay descriptor/render baseline docs/code/session files (2026-06-15: passed with LF-to-CRLF warnings only)
+  - conflict marker and trailing-whitespace scans for M3.S4 DragOverlay descriptor/render baseline docs/code/session files (2026-06-15: passed with no matches)
+  - cargo test -p zircon_runtime --lib render_extract_drag_overlay_draws_preview_chip_and_drop_indicator --locked (2026-06-15 M3.S4 DragOverlay render baseline: deferred because active cargo/rustc lanes were present in the shared Windows workspace)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_runtime/src/ui/surface/render/notification_center.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_notification_center.rs zircon_runtime/src/ui/tests/mod.rs (2026-06-15 L3 NotificationCenter descriptor/render baseline: passed after formatting)
+  - scoped git diff --check for L3 NotificationCenter descriptor/render baseline docs/code/session files (2026-06-15: passed with LF-to-CRLF warnings only)
+  - conflict marker and trailing-whitespace scans for L3 NotificationCenter descriptor/render baseline docs/code/session files (2026-06-15: passed with no matches)
+  - cargo test -p zircon_runtime --lib render_extract_notification_center_draws_panel_header_and_notifications --locked (2026-06-15 L3 NotificationCenter render baseline: deferred because active cargo/rustc lanes were present in the shared Windows workspace)
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/resolve.rs zircon_runtime/src/ui/tests/shared_core.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/render/selection_controls.rs zircon_runtime/src/ui/tests/render_selection_controls.rs zircon_runtime/src/ui/tests/mod.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/segmented_controls.rs zircon_runtime/src/ui/tests/render_segmented_controls.rs zircon_runtime/src/ui/tests/mod.rs
@@ -121,6 +161,9 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never (passed with existing warning noise only)
   - cargo test -p zircon_runtime --lib render_extract_loading_dropdown_option_uses_unavailable_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1 (1 passed, 0 failed, 3158 filtered out; existing warnings only)
   - cargo test -p zircon_runtime --lib render_extract_loading_context_menu_item_uses_unavailable_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1 (1 passed, 0 failed, 3158 filtered out; existing warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/popup_menu.rs zircon_runtime/src/ui/surface/render/popup_options.rs zircon_runtime/src/ui/surface/render/popup_rows.rs zircon_runtime/src/ui/tests/render_popup_menu.rs zircon_runtime/src/ui/tests/render_popup_options.rs (2026-06-14 M3.S1 ContextMenu/DropdownPopup render state baseline: passed)
+  - git diff --check -- zircon_runtime/src/ui/surface/render/popup_menu.rs zircon_runtime/src/ui/surface/render/popup_options.rs zircon_runtime/src/ui/surface/render/popup_rows.rs zircon_runtime/src/ui/tests/render_popup_menu.rs zircon_runtime/src/ui/tests/render_popup_options.rs docs/plans/zircon_editor/editor_ui/06-component-library-mui.md docs/zircon_runtime/ui/components.md docs/zircon_runtime/ui/component/catalog/material_foundation.md docs/zircon_runtime/ui/component/state_reducer.md docs/zircon_runtime/ui/surface/render.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-14 M3.S1 ContextMenu/DropdownPopup render state baseline: passed with LF-to-CRLF warnings only)
+  - conflict marker scan for M3.S1 ContextMenu/DropdownPopup render state baseline docs/code/session files (2026-06-14: passed with no matches)
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\text\mod.rs zircon_runtime\src\ui\surface\render\extract.rs zircon_runtime\src\ui\surface\render\text_fields.rs zircon_runtime\src\ui\tests\text_layout.rs (2026-06-13: passed after TextField preedit layout request routing)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin --message-format short --color never (2026-06-13: passed with existing warnings only)
   - cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-preedit-layout-0613-coremin ui::tests::text_layout::render_extract_injects_preedit_span_without_document_value_mutation --message-format short --color never -- --exact --nocapture (2026-06-13: timed out after 1204s during Windows lib-test compile/link; no Rust diagnostics, no zircon_runtime-*.exe test binary, matching cargo/rustc processes stopped)
@@ -144,6 +187,9 @@ tests:
   - cargo test -p zircon_runtime --lib render_extract_loading_collection_rows_use_unavailable_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1 timed out at the desktop tool boundary while the Cargo/rustc process continued compiling; after it produced D:\cargo-targets\zircon-ui-style-selector-0607\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe, running that binary directly with `render_extract_loading_collection_rows_use_unavailable_visuals --nocapture --test-threads=1` passed: 1 passed, 0 failed, 3161 filtered out.
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/feedback.rs zircon_runtime/src/ui/surface/render/feedback/state.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_feedback.rs zircon_runtime/src/ui/tests/mod.rs
   - git diff --check -- zircon_runtime/src/ui/surface/render/feedback.rs zircon_runtime/src/ui/surface/render/feedback/state.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_feedback.rs zircon_runtime/src/ui/tests/mod.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/dialog.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/tests/render_dialog.rs zircon_runtime/src/ui/tests/mod.rs (2026-06-15 M3.S3 Dialog/ConfirmDialog render-state baseline: passed)
+  - git diff --check -- zircon_runtime/src/ui/surface/render/dialog.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/tests/render_dialog.rs zircon_runtime/src/ui/tests/mod.rs docs/plans/zircon_editor/editor_ui/06-component-library-mui.md docs/zircon_runtime/ui/surface/render.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-15 M3.S3 Dialog/ConfirmDialog render-state baseline: passed with LF-to-CRLF warnings only)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-dialog-render-coremin-0615 --message-format short --color never (2026-06-15 M3.S3 Dialog/ConfirmDialog render-state baseline: passed with existing warnings only)
   - cargo test -p zircon_runtime --lib render_extract_expands_feedback_primitives --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-workbench-feedback --message-format short --color never -- --nocapture --test-threads=1 timed out while compiling under shared desktop build load; the target lane later produced D:\cargo-targets\zircon-editor-workbench-feedback\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe
   - D:\cargo-targets\zircon-editor-workbench-feedback\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe render_extract_expands_feedback_primitives --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib render_extract_loading_feedback_controls_use_unavailable_visuals --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1
@@ -231,9 +277,9 @@ Shared row state now consumes retained component flags for selected, checked, an
 
 `popup_rows.rs` owns the shared row visual vocabulary for popup surfaces: background, border, selected and hovered row fill, separator lines, selected edge marker, and compact popup text. Menu and dropdown renderers use this file rather than copying row colors and z-order math into each component family. Like Slate menu entries, popup rows use a button-like interactive state path: disabled and loading rows are treated as unavailable before selected, hover, press, focus, danger, or checked visuals can apply.
 
-`popup_menu.rs` expands an open `ContextActionMenu` into additional runtime render commands. The owner node keeps its normal value/text command, then `menu_items` produces a popup background, row highlights, separators, selected markers, and row text with higher z order. Menu item flags now include `loading`, so a row such as `Delete|checked,hovered,pressed,danger,loading` resolves to `UiPainterResolvedState::Loading`, suppresses the selected row fill and selection mark, and uses disabled text instead of danger or active colors. This keeps menu visibility in the same `UiRenderExtract` stream used by the native editor screenshot path, instead of relying on a browser sample or a post-process overlay.
+`popup_menu.rs` expands open menu-shell nodes into additional runtime render commands. The legacy `ContextActionMenu` path still consumes `menu_items`, while real `ContextMenu`, `PopupMenu`, and `MenuPopup` shells can now consume `options` plus `disabled_options`, `checked_options`, `focused_options`, `focused_index`, `hovered_options`, `hovered_option_id`, `pressed_options`, and `loading_options`. The owner node keeps its normal value/text command, then the normalized popup rows produce a popup background, row highlights, separators, selected markers, and row text with higher z order. Menu item flags now include `loading`, so a row such as `Delete|checked,hovered,pressed,danger,loading` resolves to `UiPainterResolvedState::Loading`, suppresses the selected row fill and selection mark, and uses disabled text instead of danger or active colors. This keeps menu visibility in the same `UiRenderExtract` stream used by the native editor screenshot path, instead of relying on a browser sample or a post-process overlay.
 
-`popup_options.rs` applies the same row vocabulary to open `Dropdown`, `ComboBox`, and `Select` nodes. It reads `options`, `value`, `disabled_options`, `special_options`, `focused_options`, `hovered_options`, `pressed_options`, and `loading_options` from `UiTemplateNodeMetadata`, plus per-option `loading` flags in table or pipe syntax, then appends option-row commands below the control using the same minimum row height and 4 px popup gap as the native host popup layout. If the arranged clip frame is only the control frame, option rows deliberately render without that self-clip so a dropdown trigger does not clip its own popup.
+`popup_options.rs` applies the same row vocabulary to open `Dropdown`, `ComboBox`, `Select`, and `DropdownPopup` nodes. It reads `options`, `value`, `selected_options`/`selectedOptions`, `disabled_options`, `special_options`, `focused_options`, `focused_index`, `hovered_options`, `hovered_option_id`, `pressed_options`, and `loading_options` from `UiTemplateNodeMetadata`, plus per-option `loading` flags in table or pipe syntax. Trigger components append option-row commands below the control using the same minimum row height and 4 px popup gap as the native host popup layout. Real `DropdownPopup` shells instead split their own popup frame by option count when no explicit anchor metadata exists, so authored popup surfaces are not treated as dropdown triggers. If the arranged clip frame is only the control frame, trigger option rows deliberately render without that self-clip so a dropdown trigger does not clip its own popup.
 
 ## Dropdown Triggers
 
@@ -246,6 +292,14 @@ The trigger follows the same Slate shape as `SComboButton`: the combo trigger is
 `feedback.rs` expands low-level `Alert`, `AlertTitle`, `Tooltip`, `Toast`, `Snackbar`, and `SnackbarContent` nodes into component-level render commands. The extractor suppresses the owner fallback text and image payload for those feedback components, then appends surface, title/body or message/action text, status/icon, and state-colored chrome through `UiPainterFamily::Alert`, `UiPainterFamily::Tooltip`, or `UiPainterFamily::Toast`. `feedback/state.rs` owns the shared feedback-family state adapter so the large command emitter does not keep accumulating local state-priority logic. This keeps transient feedback visuals in the same `UiRenderExtract` stream as buttons, popups, fields, and rows instead of relying on retained-host-only drawing or a browser prototype.
 
 Alert rendering reads severity/color/tone aliases, optional icon visibility, message text, title text, and action labels while routing disabled, loading, pressed, focused, and hover state through `UiPainterFamily::Alert`. Tooltip rendering reads title/body/icon aliases plus focus, press, hover, disabled, loading, and open state, while Toast/Snackbar rendering reads message/action/icon aliases and routes hover/focus/pressed/disabled/loading state through the shared interactive painter priority. Disabled and loading feedback commands use one unavailable lane for surface, border, title/body/message/action text, and status/icon colors; that lane also suppresses declared colors and active focus/pressed/hover output. These families deliberately stay scoped to render extraction; popup timing, auto-hide, and input side effects remain owned by `surface/input` and the default interaction layer.
+
+`dialog.rs` keeps `Dialog` and `ConfirmDialog` on the overlay feedback lane without growing `feedback.rs` further. It only emits commands while `open`/`popup_open`/`popupOpen` is true, suppresses generic owner text/image/surface output in `extract.rs`, then appends a modal panel, title, body, and action labels with `UiPainterFamily::Alert` state. `ConfirmDialog` additionally projects `severity`/`destructive` into the border, title color, and left severity mark, and maps `confirm_enabled = false` to disabled confirm-action text/state while leaving the cancel action available.
+
+`command_palette.rs` owns the runtime render-extract side of `CommandPalette`. It suppresses generic owner text/image/surface output, emits only while `open`/`popup_open`/`popupOpen` is true, draws a popup panel and focused search field inside the component frame, and reuses `popup_rows.rs` for filtered command rows. Command entries can be map-style metadata or pipe strings; explicit `filtered_commands` order wins when present, while the fallback path filters by `command_source` and `query`. The row collection remains an ordered `Vec<CommandPaletteRow>` before mutation so selection, recent, focused, and disabled state updates apply deterministically. Selected, recent, focused, and disabled command rows stay visible in the shared popup-row state lane, with disabled rows skipped only by reducer-side navigation/commit behavior.
+
+`notification_center.rs` owns the editor notification overlay render baseline. `NotificationCenter` suppresses generic owner text/image/surface output, consumes closed nodes as paint-silent group shells, and emits visible commands only while `open`/`popup_open`/`popupOpen` or retained popup state is active. The open path draws a Toast-family panel, unread-count header, severity marker bars, selected/focused/unread row surfaces, title/message text, and empty-state fallback from `notifications`, `selected_notification_id`, `focused_index`, `visible_limit`, `title`, `unread_count`, and `empty_text` metadata. It accepts table-style notification entries and pipe-string rows so retained hosts can project either structured editor events or compact data-binding values without changing the render contract.
+
+`drag_overlay.rs` owns the M3.S4 drag-shadow render baseline. `DragOverlay` suppresses generic owner text/image/surface output, consumes closed overlays as paint-silent group nodes, and emits visible commands only while `open` or `dragging` state is true. The open path draws a cursor-relative preview chip from `payload_kind`, `payload_label`, `payload_reference`, `cursor_x/y`, and preview sizing props, then draws a drop indicator from `drop_target_*`, `drop_indicator_edge`, and `drop_allowed`. It deliberately reuses `UiPainterFamily::Chrome` plus `UiPainterResolvedState::Dragging`/`DropHovered` instead of adding a new cross-interface painter family for the first drag overlay baseline.
 
 ## Selection Controls
 
@@ -283,7 +337,21 @@ The first focused atom Cargo command used a cold `D:\cargo-targets\zircon-editor
 
 `render_extract_expands_open_dropdown_options` covers the shared Workbench dropdown path: an open `Dropdown` with authored `options` must emit visible option text commands such as `Surface`, `Post Process`, and `Volume`, plus a higher z-order popup background command below the trigger even when the trigger's own clip frame matches its control frame.
 
+`popup_position.rs` owns render-time popup anchoring for dropdown option popups and explicitly positioned context menus. It reads `popup_anchor_x`, `popup_anchor_y`, optional anchor width/height, `placement`, `popup_offset_x`/`popup_offset_y`, and origin overrides, then flips on the primary axis and clamps to the effective overlay bounds when a real clip frame is available. `render_extract_positions_dropdown_popup_from_explicit_anchor_and_bounds` locks the dropdown path where an explicit anchor near the bottom-right edge flips above and clamps horizontally. `render_extract_positions_context_menu_from_explicit_anchor_and_flip` locks the context-menu path where a right-start placement overflows and flips left. ContextActionMenu nodes without explicit positioning metadata still render at their arranged frame to preserve the existing authored popup-surface path.
+
 `render_extract_loading_context_menu_item_uses_unavailable_visuals` and `render_extract_loading_dropdown_option_uses_unavailable_visuals` lock the popup-row loading path: loading checked/selected, hovered, pressed, and danger rows must resolve to `UiPainterResolvedState::Loading`, paint text with disabled color, and suppress selected row backgrounds and edge marks. This mirrors the retained Workbench popup-row selector and Slate's menu-entry button path, where unavailable rows cannot keep active foreground or selection chrome.
+
+`render_extract_context_menu_options_use_popup_row_state_matrix` and `render_extract_dropdown_popup_options_use_popup_row_state_matrix` lock the M3.S1 real-shell popup state baseline. The ContextMenu test proves `options` plus disabled/loading arrays, focused index, hovered id, and checked state map into selected, focused, disabled, and loading `PopupRow` commands without requiring legacy `menu_items`. The DropdownPopup test proves `selected_options`, `disabled_options`, focused index, and hovered id map into selected/focused/disabled row commands while the shell frame itself is used as the popup bounds when no explicit anchor metadata is present.
+
+`render_extract_command_palette_draws_search_panel_and_filtered_command_rows` locks the M3.S3 `CommandPalette` baseline. It verifies the open palette emits its own panel and search field, carries focused text-field state for the query, renders `filtered_commands` in order through `PopupRow` commands, paints disabled command rows with unavailable text, and suppresses the generic owner label so the overlay does not double-draw its title.
+
+`render_extract_drag_overlay_draws_preview_chip_and_drop_indicator` locks the M3.S4 drag overlay baseline. It verifies an open asset drag draws the cursor-offset preview surface, payload icon and label, bottom drop indicator, `Chrome` dragging/drop-hover painter states, and no duplicate owner fallback text. `render_extract_closed_drag_overlay_suppresses_owner_fallback` covers the closed shell path: the overlay may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/painter/drag_overlay.md`; it uses `workbench_drag_overlay.zui`, `pane_component_projection/drag_overlay.rs`, and `template_drag_overlay.rs` to keep Workbench-native preview chip and drop-indicator geometry aligned with the runtime render path.
+
+`render_extract_notification_center_draws_panel_header_and_notifications` locks the L3 `NotificationCenter` render baseline. It verifies the open center emits the Toast-family panel, unread header, selected and focused notification rows, severity markers, title/message text, and no generic owner fallback. `render_extract_closed_notification_center_suppresses_owner_fallback` covers the closed shell path: the notification center may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/painter/notification_center.md` and must keep the same open/closed and row-state distinctions.
+
+2026-06-14 scoped validation for the popup anchor positioning slice passed focused rustfmt for `popup_position.rs`, popup render modules, and the two render tests. Scoped `git diff --check` also passed with LF-to-CRLF warnings only. Runtime Cargo check/test execution is deferred while a separate render Cargo lane is still active in the shared checkout.
+
+2026-06-14 scoped validation for the M3.S1 ContextMenu/DropdownPopup render state baseline passed focused rustfmt for `popup_menu.rs`, `popup_options.rs`, `popup_rows.rs`, and the two render test files. Scoped `git diff --check` passed with LF-to-CRLF warnings only, and conflict marker scan returned no matches. Cargo execution is deferred to the M3.S1 testing stage because active cargo/rustc lanes were already present in the shared Windows workspace.
 
 2026-06-08 scoped validation for the PopupRow loading/unavailable slice passed: scoped rustfmt, `git diff --check`, and touched-file trailing whitespace scan passed; `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never` finished with existing warning noise only; and both focused runtime tests ran through the lib-test binary with 1 passed, 0 failed, 3158 filtered out each.
 

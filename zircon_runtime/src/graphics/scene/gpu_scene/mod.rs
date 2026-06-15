@@ -4,6 +4,8 @@ mod binding;
 mod gpu_scene;
 mod id_allocator;
 mod layout;
+mod prev_skinned_palette;
+mod prev_skinned_source;
 mod prev_transform;
 mod update_queue;
 mod upload;
@@ -31,6 +33,12 @@ pub(crate) use layout::{
     GPU_PRIMITIVE_DATA_STRIDE, GPU_PRIMITIVE_DATA_TINT_OFFSET, GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
     GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM, GPU_PRIMITIVE_FLAG_VISIBLE,
     GPU_SCENE_INVALID_PAYLOAD_SLOT,
+};
+pub(crate) use prev_skinned_palette::{
+    GpuScenePrevSkinnedPaletteRollReport, GpuSceneSkinnedJointPaletteState,
+};
+pub(crate) use prev_skinned_source::{
+    GpuScenePrevSkinnedSourceRollReport, GpuSceneSkinnedGpuSourceState,
 };
 pub(crate) use prev_transform::GpuScenePrevTransformRollReport;
 pub(crate) use update_queue::{

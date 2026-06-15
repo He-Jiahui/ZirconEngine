@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/pipeline/types.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
 implementation_files:
   - zircon_runtime/src/asset/module.rs
@@ -15,6 +16,7 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
@@ -91,4 +93,4 @@ The Runtime 04/11 plan-status mirror is protected by `asset_worker_pool_matches_
 
 The test-only `AssetWorkerPool::new_without_workers_for_test(...)` constructor must derive diagnostics from normalized options before moving those options into the returned struct. This keeps the workerless test path aligned with production diagnostics initialization and avoids a move-after-borrow compile error when unrelated lib-test filters compile the asset worker pool.
 
-The Runtime 04 structural mirror is `asset_pipeline_boundary`. Its current focused evidence reports asset pipeline source files 19/19, guard/test files 9/9, worker diagnostics 5/5, artifact-store scene roundtrip guards 4/4, Runtime 04 guard anchors 20/20, retired worker-count constructor references 0, old watch-loop `WATCH_DEBOUNCE` references 0, and `risks = []`. This is static structure evidence only; broader `asset::` / `worker_pool` Cargo filters remain pending.
+The Runtime 04 structural mirror is `asset_pipeline_boundary`. Its current focused evidence reports `expected_source_file_count = 19`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 5`, `expected_worker_diagnostic_count = 5`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 22`, `behavior_test_anchor_count = 18`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this worker-pool doc, Runtime 04, the runtime index, facade/watcher/artifact/core-resource docs, M0 review, and runtime-interface convergence aligned with those counts. This is static structure evidence only; broader `asset::` / `worker_pool` Cargo filters remain pending.

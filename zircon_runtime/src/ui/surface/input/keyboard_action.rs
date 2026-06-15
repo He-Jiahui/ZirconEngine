@@ -41,6 +41,33 @@ pub(super) fn keyboard_component_action(
     }
 }
 
+pub(super) fn tree_view_keyboard_component_action(
+    keyboard: &UiKeyboardInputEvent,
+) -> Option<UiComponentKeyboardAction> {
+    if keyboard.state != UiKeyboardInputState::Pressed {
+        return None;
+    }
+
+    let normalized = normalized_key_name(keyboard.logical_key.as_str());
+    if is_begin_edit_key(keyboard, normalized.as_str()) {
+        return Some(UiComponentKeyboardAction::BeginEdit);
+    }
+
+    match normalized.as_str() {
+        "arrowright" | "right" | "gamepaddpadright" => Some(UiComponentKeyboardAction::Increment),
+        "arrowleft" | "left" | "gamepaddpadleft" => Some(UiComponentKeyboardAction::Decrement),
+        "arrowdown" | "down" | "gamepaddpaddown" => Some(UiComponentKeyboardAction::Next),
+        "arrowup" | "up" | "gamepaddpadup" => Some(UiComponentKeyboardAction::Previous),
+        _ => match keyboard.key_code {
+            39 => Some(UiComponentKeyboardAction::Increment),
+            37 => Some(UiComponentKeyboardAction::Decrement),
+            40 => Some(UiComponentKeyboardAction::Next),
+            38 => Some(UiComponentKeyboardAction::Previous),
+            _ => keyboard_component_action(keyboard),
+        },
+    }
+}
+
 pub(super) fn keyboard_component_text(keyboard: &UiKeyboardInputEvent) -> Option<&str> {
     if !matches!(
         keyboard.state,
@@ -91,6 +118,10 @@ fn is_activation_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool 
 
 fn is_cancel_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
     matches!(normalized, "escape" | "esc" | "virtualback") || keyboard.key_code == 27
+}
+
+fn is_begin_edit_key(keyboard: &UiKeyboardInputEvent, normalized: &str) -> bool {
+    normalized == "f2" || keyboard.key_code == 113
 }
 
 fn normalized_key_name(key: &str) -> String {

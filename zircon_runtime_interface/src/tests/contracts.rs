@@ -26,8 +26,9 @@ use crate::{
             UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource,
             UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
             UiRedrawRequestReason, UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent, UiSurfaceId,
-            UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
-            UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent, UiUserId, UiWindowId,
+            UiTextByteRange, UiTextInputEvent, UiToastTimerInputEvent, UiTooltipEffectKind,
+            UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent,
+            UiUserId, UiWindowId,
         },
         event_ui::{
             UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
@@ -1456,6 +1457,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         route: crate::ui::surface::UiPointerRoute {
             kind: event.kind,
             button: event.button,
+            modifiers: Default::default(),
             activation_phase: crate::ui::surface::UiPointerActivationPhase::Hover,
             point: event.point,
             scroll_delta: event.scroll_delta,
@@ -1733,18 +1735,24 @@ fn ui_input_event_contract_constructs_every_event_family() {
             target: UiNodeId::new(11),
         }),
         UiInputEvent::SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent {
-            metadata,
+            metadata: metadata.clone(),
             target: UiNodeId::new(11),
             option_id: "file".to_string(),
         }),
+        UiInputEvent::ToastTimer(UiToastTimerInputEvent {
+            metadata,
+            target: UiNodeId::new(11),
+            toast_id: "save-toast".to_string(),
+        }),
     ];
 
-    assert_eq!(events.len(), 12);
+    assert_eq!(events.len(), 13);
     assert!(matches!(events[0], UiInputEvent::Pointer(_)));
     assert!(matches!(events[6], UiInputEvent::MouseMotion(_)));
     assert!(matches!(events[9], UiInputEvent::TooltipTimer(_)));
     assert!(matches!(events[10], UiInputEvent::TypeaheadTimer(_)));
     assert!(matches!(events[11], UiInputEvent::SubmenuHoverTimer(_)));
+    assert!(matches!(events[12], UiInputEvent::ToastTimer(_)));
     let UiInputEvent::Pointer(pointer) = ui_input_round_trip(&events[0]) else {
         panic!("pointer event family changed");
     };
@@ -2187,9 +2195,14 @@ fn ui_input_payloads_round_trip_through_serde() {
         target: UiNodeId::new(77),
     });
     let submenu_hover = UiInputEvent::SubmenuHoverTimer(UiSubmenuHoverTimerInputEvent {
-        metadata,
+        metadata: metadata.clone(),
         target: UiNodeId::new(77),
         option_id: "file".to_string(),
+    });
+    let toast = UiInputEvent::ToastTimer(UiToastTimerInputEvent {
+        metadata,
+        target: UiNodeId::new(77),
+        toast_id: "save-toast".to_string(),
     });
     let input_method_request = UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {
@@ -2233,6 +2246,7 @@ fn ui_input_payloads_round_trip_through_serde() {
     assert_eq!(ui_input_round_trip(&tooltip), tooltip);
     assert_eq!(ui_input_round_trip(&typeahead), typeahead);
     assert_eq!(ui_input_round_trip(&submenu_hover), submenu_hover);
+    assert_eq!(ui_input_round_trip(&toast), toast);
     assert_eq!(
         ui_input_round_trip(&input_method_request),
         input_method_request

@@ -1,10 +1,11 @@
 use crate::core::framework::render::RenderCapabilitySummary;
 
-use super::{AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode};
+use super::{AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, TaaQualityPreset};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AntiAliasSettings {
     pub mode: AntiAliasMode,
+    pub taa_quality: TaaQualityPreset,
 }
 
 impl Default for AntiAliasSettings {
@@ -15,7 +16,15 @@ impl Default for AntiAliasSettings {
 
 impl AntiAliasSettings {
     pub const fn new(mode: AntiAliasMode) -> Self {
-        Self { mode }
+        Self {
+            mode,
+            taa_quality: TaaQualityPreset::Medium,
+        }
+    }
+
+    pub const fn with_taa_quality(mut self, taa_quality: TaaQualityPreset) -> Self {
+        self.taa_quality = taa_quality;
+        self
     }
 
     pub const fn off() -> Self {
@@ -36,6 +45,10 @@ impl AntiAliasSettings {
 
     pub const fn taa() -> Self {
         Self::new(AntiAliasMode::Taa)
+    }
+
+    pub const fn taa_with_quality(taa_quality: TaaQualityPreset) -> Self {
+        Self::taa().with_taa_quality(taa_quality)
     }
 
     pub const fn smaa() -> Self {
@@ -68,7 +81,7 @@ impl AntiAliasSettings {
             AntiAliasMode::Auto => resolve_auto(capabilities),
             AntiAliasMode::Fxaa => resolve_fxaa(capabilities),
             AntiAliasMode::Msaa { samples } => resolve_msaa(samples, capabilities),
-            AntiAliasMode::Taa => resolve_taa(capabilities, history_available),
+            AntiAliasMode::Taa => resolve_taa(capabilities, history_available, self.taa_quality),
             AntiAliasMode::Smaa => fallback_to_screen_space(
                 AntiAliasMode::Smaa,
                 AntiAliasFallbackReason::UnsupportedSmaa,
@@ -90,7 +103,7 @@ impl AntiAliasSettings {
 
 impl AntiAliasFallbackReport {
     pub const fn effective_settings(self) -> AntiAliasSettings {
-        AntiAliasSettings::new(self.effective_mode)
+        AntiAliasSettings::new(self.effective_mode).with_taa_quality(self.taa_quality)
     }
 }
 
@@ -137,20 +150,23 @@ fn resolve_msaa(samples: u32, capabilities: &RenderCapabilitySummary) -> AntiAli
 fn resolve_taa(
     capabilities: &RenderCapabilitySummary,
     history_available: bool,
+    taa_quality: TaaQualityPreset,
 ) -> AntiAliasFallbackReport {
     if !history_available {
-        return fallback_to_screen_space(
+        return fallback_to_screen_space_with_quality(
             AntiAliasMode::Taa,
             AntiAliasFallbackReason::MissingHistory,
+            taa_quality,
             capabilities,
         );
     }
     if capabilities.supports_taa {
-        AntiAliasFallbackReport::exact(AntiAliasMode::Taa)
+        AntiAliasFallbackReport::exact_with_taa_quality(AntiAliasMode::Taa, taa_quality)
     } else {
-        fallback_to_screen_space(
+        fallback_to_screen_space_with_quality(
             AntiAliasMode::Taa,
             AntiAliasFallbackReason::UnsupportedTaa,
+            taa_quality,
             capabilities,
         )
     }
@@ -161,10 +177,61 @@ fn fallback_to_screen_space(
     reason: AntiAliasFallbackReason,
     capabilities: &RenderCapabilitySummary,
 ) -> AntiAliasFallbackReport {
+    fallback_to_screen_space_with_quality(
+        requested_mode,
+        reason,
+        TaaQualityPreset::Medium,
+        capabilities,
+    )
+}
+
+fn fallback_to_screen_space_with_quality(
+    requested_mode: AntiAliasMode,
+    reason: AntiAliasFallbackReason,
+    taa_quality: TaaQualityPreset,
+    capabilities: &RenderCapabilitySummary,
+) -> AntiAliasFallbackReport {
     let effective_mode = if capabilities.supports_fxaa {
         AntiAliasMode::Fxaa
     } else {
         AntiAliasMode::Off
     };
-    AntiAliasFallbackReport::fallback(requested_mode, effective_mode, reason)
+    AntiAliasFallbackReport::fallback_with_taa_quality(
+        requested_mode,
+        effective_mode,
+        taa_quality,
+        reason,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{
+        AntiAliasMode, AntiAliasSettings, RenderCapabilitySummary, TaaQualityPreset,
+    };
+
+    #[test]
+    fn taa_quality_survives_exact_and_fallback_resolution() {
+        let capabilities = RenderCapabilitySummary {
+            supports_fxaa: true,
+            supports_taa: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let exact = AntiAliasSettings::taa_with_quality(TaaQualityPreset::High)
+            .resolve(&capabilities, true);
+        assert_eq!(exact.effective_mode, AntiAliasMode::Taa);
+        assert_eq!(
+            exact.effective_settings().taa_quality,
+            TaaQualityPreset::High
+        );
+
+        let fallback = AntiAliasSettings::taa_with_quality(TaaQualityPreset::Low)
+            .resolve(&capabilities, false);
+        assert_eq!(fallback.effective_mode, AntiAliasMode::Fxaa);
+        assert_eq!(
+            fallback.effective_settings().taa_quality,
+            TaaQualityPreset::Low
+        );
+    }
 }

@@ -5,7 +5,7 @@ pub enum FrameHistorySlot {
     AmbientOcclusion,
     GlobalIllumination,
     HzbFurthest,
-    SceneColor,
+    TaaSceneColor,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -408,7 +408,7 @@ fn render_ui_extract_frame(
             RenderQualityProfile::new("runtime-ui-text")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
 

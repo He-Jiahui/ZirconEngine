@@ -49,7 +49,7 @@ pub(crate) use template_bridge::{
     BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
     BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
     BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge, WorkbenchCommandPaletteOpenState,
 };
 pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]
@@ -65,11 +65,13 @@ pub(crate) use workbench::{
     dispatch_builtin_host_control, dispatch_builtin_host_menu_action, retained_menu_action,
 };
 pub(crate) use workbench::{
-    dispatch_componentized_workbench_binding, dispatch_componentized_workbench_control,
-    dispatch_componentized_workbench_menu_item_selected,
+    dispatch_componentized_workbench_binding,
+    dispatch_componentized_workbench_command_palette_committed,
+    dispatch_componentized_workbench_control, dispatch_componentized_workbench_menu_item_selected,
     dispatch_componentized_workbench_option_selected,
     dispatch_componentized_workbench_pointer_event,
     dispatch_componentized_workbench_popup_cancelled,
     dispatch_componentized_workbench_surface_control_edited,
     dispatch_host_menu_action_with_template_fallback, dispatch_menu_action,
+    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
 };

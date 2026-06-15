@@ -12,6 +12,8 @@ use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
     GpuInstanceData, GpuPrimitiveData, GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE,
 };
+use super::prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
+use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
 use super::update_queue::GpuSceneUpdateQueue;
 use super::upload::{write_full_pod_buffer, write_upload_ranges};
 
@@ -90,6 +92,10 @@ pub(crate) struct GpuScene {
     primitive_ids: GpuSceneIdAllocator,
     instance_ids: GpuSceneIdAllocator,
     pub(super) entries: HashMap<u64, GpuSceneEntry>,
+    pub(super) current_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
+    pub(super) previous_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
+    pub(super) current_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
+    pub(super) previous_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) updates: GpuSceneUpdateQueue,
     stats: GpuSceneStats,
     primitive_capacity: u32,
@@ -166,6 +172,10 @@ impl GpuScene {
             primitive_ids: GpuSceneIdAllocator::new(),
             instance_ids: GpuSceneIdAllocator::new(),
             entries: HashMap::new(),
+            current_skinned_joint_palettes: HashMap::new(),
+            previous_skinned_joint_palettes: HashMap::new(),
+            current_skinned_gpu_sources: HashMap::new(),
+            previous_skinned_gpu_sources: HashMap::new(),
             updates: GpuSceneUpdateQueue::new(),
             stats: GpuSceneStats {
                 primitive_capacity: GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
@@ -232,6 +242,14 @@ impl GpuScene {
 
     pub(crate) fn unregister(&mut self, stable_instance_key: u64) -> Option<GpuSceneEntry> {
         let entry = self.entries.remove(&stable_instance_key)?;
+        self.current_skinned_joint_palettes
+            .remove(&stable_instance_key);
+        self.previous_skinned_joint_palettes
+            .remove(&stable_instance_key);
+        self.current_skinned_gpu_sources
+            .remove(&stable_instance_key);
+        self.previous_skinned_gpu_sources
+            .remove(&stable_instance_key);
         self.primitive_ids.free(entry.primitive_index);
         self.instance_ids
             .free_span(entry.first_instance_index, entry.instance_count);
@@ -249,6 +267,14 @@ impl GpuScene {
         for key in stale_keys {
             self.unregister(key);
         }
+        self.current_skinned_joint_palettes
+            .retain(|key, _| live_keys.contains(key));
+        self.previous_skinned_joint_palettes
+            .retain(|key, _| live_keys.contains(key));
+        self.current_skinned_gpu_sources
+            .retain(|key, _| live_keys.contains(key));
+        self.previous_skinned_gpu_sources
+            .retain(|key, _| live_keys.contains(key));
     }
 
     pub(crate) fn set_transform_revision(

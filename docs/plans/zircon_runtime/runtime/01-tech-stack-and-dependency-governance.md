@@ -12,13 +12,15 @@ related_code:
   - zircon_runtime/src/ui/text
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
+  - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
   - zircon_runtime/src/platform/tests/feature_manifest.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: in_progress
-last_refined: 2026-06-13
+last_refined: 2026-06-15
 ---
 
 # 01 技术选型与依赖治理
@@ -228,12 +230,14 @@ last_refined: 2026-06-13
 | M3 | 3.1 物理选型 spike | 决策与守卫完成；Cargo 待共享测试窗口 | 2026-06-12 | 新增 `docs/zircon_plugins/physics-plugin-options.md`，并从 `docs/zircon_plugins/physics/runtime.md` 交叉引用；裁决 builtin 为 V1 唯一可执行后端，Jolt 为未来 native 方向但保持 unavailable，Rapier 不进入主路径；新增 `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`，守卫两处 `jolt = []` 空 feature、`JOLT_BACKEND_AVAILABLE = false`、Jolt 不降级 builtin、Rapier/Avian 不进 manifest、物理 backend 仍由插件持有 |
 | M3 | 3.2 导出归档决策 | 决策与守卫完成；Cargo 待共享测试窗口 | 2026-06-12 | `docs/engine-architecture/runtime-tech-stack.md` 写入 Export Archive Decision：当前目录优先，未来桌面/editor 归档容器选 ZIP，拒绝 V1 自定义容器；新增 `export_archive_policy_is_documented_without_manifest_container_dependency` |
 | M3 | 3.3 rfd/arboard 裁决 | 决策与守卫完成；Cargo 待共享测试窗口 | 2026-06-12 | 新增 `docs/editor-and-tooling/runtime-editor-only-dependency-backlog.md` 并挂接 `docs/editor-and-tooling/index.md`；`rfd` = native file/folder dialog 候选，`arboard` = clipboard 候选，owner 均为 editor host/retained host，runtime/interface 不引入；新增 `editor_only_dependency_candidates_have_editor_backlog_owner` |
+| 横切 | Tech-stack 镜像文档守卫 | mirror_docs_static_passed_cargo_pending | 2026-06-14 | 新增 `runtime_absorption::tech_stack::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` 并在 `runtime_absorption/mod.rs` 挂接，锁定 Runtime 01 计划、runtime index、M0 review、runtime-interface convergence 与 `runtime-tech-stack.md` 必须同步 `tech_stack_boundary` 的 `expected_manifest_count = 5`、`expected_non_dependency_count = 6`、`tech_stack_guard_count = 12`、`editor_only_candidate_count = 3`、`jolt_feature_slot_count = 2`、`declared_removed_dependencies = []`、`rapier_or_avian_dependencies = []`、`mirror_docs_guard_present = true` 与 `risks = []`。验证：rustfmt check、Python py_compile、direct `tech_stack_boundary_audit`、standalone rustc 1/1、stale old-count scan、scoped conflict/diff checks 通过（diff 仅 LF-to-CRLF warnings）；Cargo tech_stack/extensions/text_shaper/plugin physics gates 仍 pending。 |
+| 横切 | Tech-stack 行为测试锚审计同步 | mirror_docs_static_passed_cargo_pending | 2026-06-15 | `tech_stack_boundary` 与 `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` 现在锁定 Runtime 01 M2/M3 的 4 个现状验收锚：`heuristic_text_shaper_matches_public_layout_entrypoint`、`text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land`、`empty_jolt_feature_slot_reports_unavailable_not_ready`、`unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick`；当前 `behavior_test_anchor_count = 4`、`missing_behavior_test_anchors = []`。Runtime 01、`runtime-tech-stack.md`、runtime index、M0 review、runtime-interface convergence 与状态输出表守卫已同步；验证：rustfmt check、Python py_compile、direct `tech_stack_boundary_audit`、aggregate Runtime 01 + plan-status assertions、standalone tech_stack 1/1、standalone status-output 2/2；tech_stack/extensions/text_shaper/plugin physics Cargo gates pending。 |
 
 2026-06-13 状态复核：Runtime 01 M3 三个完备性缺口已由上述文档和 `tech_stack_dependency_guard.rs` 守卫静态闭合，runtime 总览 P10 已同步为已裁决状态；本次复核的锚点扫描覆盖 `physics-plugin-options.md`、`runtime-tech-stack.md`、`runtime-editor-only-dependency-backlog.md`、`tech_stack_dependency_guard.rs` 与三处索引交叉引用。07:41 追加物理后端选项守卫 `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`，以源码/manifest/doc 三点锁定 Jolt 仍不可用且插件持有、builtin 为唯一 V1 可执行后端、Rapier/Avian 不进 manifest。Cargo 仍未重跑：当前有其他 active cargo/rustc lanes。
 
 2026-06-13 16:20 状态复核：新增 `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation`，把 M1/M2/M3 的 `tech_stack` / `extensions` / `text_shaper` / plugin physics Cargo gates 统一锁定为 pending；该守卫要求 Runtime 01 保持 `in_progress`，并把 `runtime-tech-stack.md`、`text.md`、`physics-plugin-options.md`、editor-only backlog、runtime 总览 P10/子计划行与 M0 评审同步到同一待验证状态。16:28 之后尝试 `cargo test -p zircon_runtime --lib runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-01-plan-status-0613 --message-format short --color never -- --nocapture`，20 分钟超时且无通过/失败测试结果；残留的该目标目录 cargo/rustc 进程已停止。
 
-2026-06-13 23:18 状态复核：新增 `tech_stack_boundary` 结构审计 owner 并接入 `audit_runtime_structure.py`；聚合 JSON/Markdown 均报告 manifest 5/5、corrected non-dependencies 6、tech-stack Rust/static guard anchors 11/11、editor-only dependency candidates 3、Jolt visible-unavailable feature slots 2、removed/editor-only manifest dependencies 0、Rapier/Avian manifest dependencies 0、`risks = []`。这仍是静态结构证据；`tech_stack` / `extensions` / `text_shaper` / plugin physics Cargo gates 继续待 active lanes 清空后补跑。
+2026-06-13 23:18 状态复核：新增 `tech_stack_boundary` 结构审计 owner 并接入 `audit_runtime_structure.py`；2026-06-15 行为锚同步后当前报告 `expected_manifest_count = 5`、`expected_non_dependency_count = 6`、`tech_stack_guard_count = 12`、`behavior_test_anchor_count = 4`、`missing_behavior_test_anchors = []`、`editor_only_candidate_count = 3`、`jolt_feature_slot_count = 2`、`declared_removed_dependencies = []`、`rapier_or_avian_dependencies = []`、`mirror_docs_guard_present = true` 与 `risks = []`。这仍是静态结构证据；`tech_stack` / `extensions` / `text_shaper` / plugin physics Cargo gates 继续待 active lanes 清空后补跑。
 
 基线数值（开工首日记录，完工时复核漂移）：
 

@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ui::retained_host::primitives::{
     CloseRequestResponse, ModelRc, PhysicalPosition, PhysicalSize, PlatformError, SharedString,
@@ -11,10 +12,13 @@ use winit::event::{
     ButtonSource, ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent,
 };
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::{Key, NamedKey};
+use winit::keyboard::{Key, ModifiersState, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, write_error, DiagnosticLogLevel,
+};
+use zircon_runtime_interface::ui::dispatch::{
+    UiInputEvent, UiInputEventMetadata, UiInputSequence, UiInputTimestamp, UiWindowId,
 };
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
@@ -27,9 +31,10 @@ use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::globals::{
     HostContractGlobal, HostContractState, PaneSurfaceHostContext, UiHostContext,
 };
+use super::native_input_translation::native_keyboard_event_to_shared_input;
 use super::native_keyboard::{
-    dispatch_workbench_popup_keyboard_command, workbench_popup_keyboard_command,
-    WorkbenchPopupKeyboardCommand,
+    dispatch_workbench_popup_keyboard_command, dispatch_workbench_popup_text_search,
+    workbench_popup_keyboard_command, WorkbenchPopupKeyboardCommand,
 };
 use super::native_pointer::{
     dispatch_native_pointer_button, dispatch_native_pointer_move, dispatch_native_pointer_scroll,
@@ -47,6 +52,7 @@ use crate::ui::retained_host::ui_perf::{
 // style studies while the retained shell is componentized.
 const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1672;
 const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 941;
+const NATIVE_HOST_WINDOW_ID: &str = "editor.main";
 
 #[derive(Clone)]
 pub(crate) struct UiHostWindow {
@@ -352,6 +358,12 @@ impl UiHostWindow {
                     return result;
                 }
             }
+            if let Some(text) = event.text.as_deref() {
+                let result = dispatch_workbench_popup_text_search(self, text);
+                if result.request_redraw() {
+                    return result;
+                }
+            }
         }
         match &event.logical_key {
             Key::Named(NamedKey::Backspace) => self.dispatch_focused_text_backspace(),
@@ -367,6 +379,40 @@ impl UiHostWindow {
                     self.dispatch_focused_text_insert(text)
                 }),
         }
+    }
+
+    fn dispatch_native_keyboard_event(
+        &self,
+        event: &KeyEvent,
+        modifiers: ModifiersState,
+        metadata: UiInputEventMetadata,
+        synthetic: bool,
+    ) -> NativePointerDispatchResult {
+        let text_focus_was_active = self.text_input_focus_active();
+        let result = self.dispatch_focused_key_event(event);
+        if !native_keyboard_event_consumed(text_focus_was_active, event, &result) {
+            self.dispatch_unhandled_keyboard_input(event, modifiers, metadata, synthetic);
+        }
+        result
+    }
+
+    fn dispatch_unhandled_keyboard_input(
+        &self,
+        event: &KeyEvent,
+        modifiers: ModifiersState,
+        metadata: UiInputEventMetadata,
+        synthetic: bool,
+    ) {
+        if event.state != ElementState::Pressed {
+            return;
+        }
+        let UiInputEvent::Keyboard(keyboard) =
+            native_keyboard_event_to_shared_input(metadata, event, modifiers, synthetic)
+        else {
+            return;
+        };
+        self.global::<UiHostContext>()
+            .invoke_unhandled_keyboard_input(keyboard);
     }
 
     fn dispatch_focused_text_commit(&self) -> NativePointerDispatchResult {
@@ -452,6 +498,20 @@ impl UiHostWindow {
     #[cfg(test)]
     pub(crate) fn presentation_rebuild_count_for_test(&self) -> u64 {
         self.state.borrow().presentation_rebuild_count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_key_for_test(
+        &self,
+        event: KeyEvent,
+        modifiers: ModifiersState,
+    ) -> NativePointerDispatchResult {
+        self.dispatch_native_keyboard_event(
+            &event,
+            modifiers,
+            native_keyboard_test_metadata(),
+            true,
+        )
     }
 
     #[cfg(test)]
@@ -564,6 +624,24 @@ impl UiHostWindow {
     #[cfg(test)]
     pub(crate) fn dispatch_native_popup_arrow_up_for_test(&self) -> NativePointerDispatchResult {
         dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Previous)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_home_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::First)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_end_for_test(&self) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_keyboard_command(self, WorkbenchPopupKeyboardCommand::Last)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_popup_text_for_test(
+        &self,
+        text: &str,
+    ) -> NativePointerDispatchResult {
+        dispatch_workbench_popup_text_search(self, text)
     }
 
     #[cfg(test)]
@@ -801,6 +879,51 @@ fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
     dispatch_kind.strip_prefix("asset:")
 }
 
+fn native_keyboard_event_consumed(
+    text_focus_was_active: bool,
+    event: &KeyEvent,
+    result: &NativePointerDispatchResult,
+) -> bool {
+    if result.request_redraw() {
+        return true;
+    }
+    text_focus_was_active && text_focus_consumes_keyboard_event(event)
+}
+
+fn text_focus_consumes_keyboard_event(event: &KeyEvent) -> bool {
+    if event.state != ElementState::Pressed {
+        return false;
+    }
+    match &event.logical_key {
+        Key::Named(NamedKey::Backspace | NamedKey::Escape | NamedKey::Enter) => true,
+        _ => event
+            .text
+            .as_deref()
+            .is_some_and(|text| text.chars().any(|ch| !ch.is_control())),
+    }
+}
+
+fn native_input_metadata(sequence: u64) -> UiInputEventMetadata {
+    let micros = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_micros().min(u128::from(u64::MAX)) as u64)
+        .unwrap_or_default();
+    let mut metadata = UiInputEventMetadata::new(
+        UiInputTimestamp::from_micros(micros),
+        UiInputSequence::new(sequence),
+    );
+    metadata.window_id = Some(UiWindowId::new(NATIVE_HOST_WINDOW_ID));
+    metadata
+}
+
+#[cfg(test)]
+fn native_keyboard_test_metadata() -> UiInputEventMetadata {
+    let mut metadata =
+        UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));
+    metadata.window_id = Some(UiWindowId::new(NATIVE_HOST_WINDOW_ID));
+    metadata
+}
+
 fn text_input_focus_redraw(focus: &HostTextInputFocusData) -> NativePointerDispatchResult {
     let result = NativePointerDispatchResult::region(focus.edit_frame.clone());
     if result.request_redraw() {
@@ -818,6 +941,8 @@ struct UiHostWindowEventLoop {
     last_pointer_position: Option<(f32, f32)>,
     pending_redraw: HostRedrawRequest,
     ime_allowed: bool,
+    current_modifiers: ModifiersState,
+    next_input_sequence: u64,
 }
 
 impl UiHostWindowEventLoop {
@@ -833,6 +958,8 @@ impl UiHostWindowEventLoop {
                 true,
             ),
             ime_allowed: false,
+            current_modifiers: ModifiersState::empty(),
+            next_input_sequence: 1,
         }
     }
 
@@ -884,6 +1011,12 @@ impl UiHostWindowEventLoop {
             set_window_ime_allowed(window.as_ref(), allowed);
             self.ime_allowed = allowed;
         }
+    }
+
+    fn next_input_metadata(&mut self) -> UiInputEventMetadata {
+        let metadata = native_input_metadata(self.next_input_sequence);
+        self.next_input_sequence = self.next_input_sequence.saturating_add(1);
+        metadata
     }
 }
 
@@ -1037,9 +1170,18 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                let result = self.host.dispatch_focused_key_event(&event);
+                let metadata = self.next_input_metadata();
+                let result = self.host.dispatch_native_keyboard_event(
+                    &event,
+                    self.current_modifiers,
+                    metadata,
+                    false,
+                );
                 self.dispatch_pointer_result(result);
                 self.sync_ime_allowed();
+            }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                self.current_modifiers = modifiers.state();
             }
             WindowEvent::Ime(Ime::Commit(text)) => {
                 let result = self.host.dispatch_focused_text_insert(&text);

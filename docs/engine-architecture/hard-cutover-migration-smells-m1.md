@@ -12,7 +12,11 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/asset/assets/animation/mod.rs
+  - zircon_runtime/src/asset/assets/animation/binary.rs
+  - zircon_runtime/src/asset/assets/animation/clip.rs
+  - zircon_runtime/src/asset/assets/animation/graph.rs
+  - zircon_runtime/src/asset/assets/animation/sequence.rs
   - docs/zircon_runtime/asset/assets/animation.md
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
@@ -104,14 +108,14 @@ The structural audit now reports `hard_cutover_migration_smells.hard_cutover_gat
 
 Current evidence:
 
-- `source_file_count = 5839`
-- `legacy_reference_count = 212`
+- `source_file_count = 5901`
+- `legacy_reference_count = 213`
 - `compat_reference_count = 0`
 - `shim_reference_count = 0`
 - `bridge_reference_count = 300`
 - `allowed_business_bridge_reference_count = 300`
 - `migration_bridge_smell_count = 0`
-- `smell_decision_count = 212`
+- `smell_decision_count = 213`
 - `smell_decision_group_count = 7`
 - `classification_count = 7`
 - `hard_cutover_migration_debt_count = 7`
@@ -122,7 +126,7 @@ Current classification:
 
 - `legacy-runtime-ui-input-debt = 63`
 - `legacy-hybrid-gi-render-debt = 56`
-- `legacy-runtime-graphics-debt = 30`
+- `legacy-runtime-graphics-debt = 31`
 - `legacy-hub-message-archived-text-debt = 58`
 - `legacy-texture-importer-dds-debt = 1`
 - `legacy-net-hyper-client-api-debt = 1`
@@ -168,7 +172,7 @@ The editor UI asset/session source-schema branch was hard-renamed from `UiAssetS
 
 The editor view-projection rejection path was narrowed on 2026-06-05. `ViewTemplateProjectionError::LegacyAssetPath` became `ViewTemplateProjectionError::NonV2AssetPath`, the corresponding source guards now look for the current non-v2 path contract, and the old `view.legacy.project_overview` fixture id was renamed to `view.archived.project_overview`. The remaining editor fixture debt is confined to retained-host/workbench fixture labels owned by active editor UI sessions.
 
-The animation asset binary migration path was narrowed on 2026-06-05. `zircon_runtime/src/asset/assets/animation.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)` with `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
+The animation asset binary migration path was narrowed on 2026-06-05 and then split on 2026-06-14. `zircon_runtime/src/asset/assets/animation/binary.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)`, while `clip.rs`, `sequence.rs`, and `graph.rs` own the `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
 
 Runtime asset importer source-template suffix guards were narrowed on 2026-06-05. `AssetImporterRegistryError::{UiTomlSourceImporter,V2UiTomlSourceImporter}` now reject `.ui.toml` and `.v2.ui.toml` production registration with current source-template policy language, while exact test fixture allowances use `ui_toml_source_importer_allowed_for_tests(...)` and `v2_ui_toml_source_importer_allowed_for_tests(...)`. The production runtime asset importer files no longer use generic `legacy` wording; the remaining `legacy-texture-importer-dds-debt` count is confined to the plugin-owned DDS container path.
 

@@ -1,8 +1,10 @@
 use zircon_runtime_interface::ui::{
+    component::UiComponentKeyboardAction,
     dispatch::{
         UiDispatchDisposition, UiDispatchPhase, UiDispatchReply, UiInputDispatchResult,
         UiInputEvent, UiKeyboardInputEvent, UiNavigationInputEvent,
     },
+    event_ui::UiNodeId,
     focus::UiFocusedInputKind,
     tree::UiTreeError,
 };
@@ -15,7 +17,7 @@ use super::{
     is_valid_input_owner,
     keyboard_action::{
         keyboard_component_action, keyboard_component_text, keyboard_requests_default_activation,
-        keyboard_requests_popup_dismissal,
+        keyboard_requests_popup_dismissal, tree_view_keyboard_component_action,
     },
     keyboard_navigation::keyboard_navigation_kind,
     owner_route::owner_routed_result,
@@ -64,7 +66,7 @@ pub(super) fn dispatch_keyboard_input(
                 .insert(0, format!("focused_route_len={}", route.len()));
             return Ok(with_keyboard_route_policy(surface, text_result));
         }
-        if let Some(action) = keyboard_component_action(&keyboard) {
+        if let Some(action) = keyboard_component_action_for_target(surface, target, &keyboard) {
             let report =
                 surface.apply_default_semantic_keyboard_component_action(target, action)?;
             if report.handled {
@@ -167,6 +169,36 @@ pub(super) fn dispatch_keyboard_input(
         );
     }
     Ok(with_keyboard_route_policy(surface, result))
+}
+
+fn keyboard_component_action_for_target(
+    surface: &UiSurface,
+    target: UiNodeId,
+    keyboard: &UiKeyboardInputEvent,
+) -> Option<UiComponentKeyboardAction> {
+    if is_tree_view_keyboard_target(surface, target) {
+        return tree_view_keyboard_component_action(keyboard);
+    }
+    keyboard_component_action(keyboard)
+}
+
+fn is_tree_view_keyboard_target(surface: &UiSurface, target: UiNodeId) -> bool {
+    let Some(metadata) = surface
+        .tree
+        .node(target)
+        .and_then(|node| node.template_metadata.as_ref())
+    else {
+        return false;
+    };
+
+    matches!(
+        metadata.component.as_str(),
+        "TreeView" | "MaterialTreeView" | "FolderTree"
+    ) || metadata
+        .attributes
+        .get("role")
+        .and_then(toml::Value::as_str)
+        .is_some_and(|role| matches!(role, "tree-view" | "mui-x-tree-view" | "folder-tree"))
 }
 
 fn with_keyboard_route_policy(

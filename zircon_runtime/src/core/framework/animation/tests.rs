@@ -188,7 +188,7 @@ fn runtime_status_reports_player_rig_and_gpu_readiness() {
     let roundtrip =
         serde_json::from_value::<AnimationRuntimeStatus>(serde_json::to_value(&status).unwrap())
             .unwrap();
-    assert_eq!(roundtrip, status);
+    assert_eq!(roundtrip, status.sanitized_snapshot());
 }
 
 fn sample_animation_sequence_asset() -> AnimationSequenceAsset {

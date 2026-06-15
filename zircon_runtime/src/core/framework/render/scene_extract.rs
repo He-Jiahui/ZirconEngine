@@ -396,9 +396,25 @@ impl Default for RenderHybridGiExtract {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RenderParticleSpriteIdentity {
+    pub entity: EntityId,
+    pub stable_sprite_key: u64,
+}
+
+impl RenderParticleSpriteIdentity {
+    pub const fn new(entity: EntityId, stable_sprite_key: u64) -> Self {
+        Self {
+            entity,
+            stable_sprite_key,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderParticleSpriteSnapshot {
     pub entity: EntityId,
+    pub stable_sprite_key: u64,
     pub position: Vec3,
     pub size: Real,
     pub aspect_ratio: Real,
@@ -411,10 +427,70 @@ pub struct RenderParticleSpriteSnapshot {
     pub texture: Option<ResourceHandle<TextureMarker>>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderParticleBillboardBasisSnapshot {
+    pub right: Vec3,
+    pub up: Vec3,
+}
+
+impl RenderParticleBillboardBasisSnapshot {
+    pub const fn new(right: Vec3, up: Vec3) -> Self {
+        Self { right, up }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderParticlePreviousSpriteSnapshot {
+    pub entity: EntityId,
+    pub stable_sprite_key: u64,
+    pub position: Vec3,
+    pub size: Real,
+    pub aspect_ratio: Real,
+    pub billboard_offset: Vec2,
+    pub rotation: Real,
+    pub billboard_basis: Option<RenderParticleBillboardBasisSnapshot>,
+}
+
+impl RenderParticlePreviousSpriteSnapshot {
+    pub fn from_current(sprite: &RenderParticleSpriteSnapshot) -> Self {
+        Self {
+            entity: sprite.entity,
+            stable_sprite_key: sprite.stable_sprite_key,
+            position: sprite.position,
+            size: sprite.size,
+            aspect_ratio: sprite.aspect_ratio,
+            billboard_offset: sprite.billboard_offset,
+            rotation: sprite.rotation,
+            billboard_basis: None,
+        }
+    }
+
+    pub fn from_current_with_billboard_basis(
+        sprite: &RenderParticleSpriteSnapshot,
+        right: Vec3,
+        up: Vec3,
+    ) -> Self {
+        let mut previous = Self::from_current(sprite);
+        previous.billboard_basis = Some(RenderParticleBillboardBasisSnapshot::new(right, up));
+        previous
+    }
+
+    pub const fn identity(&self) -> RenderParticleSpriteIdentity {
+        RenderParticleSpriteIdentity::new(self.entity, self.stable_sprite_key)
+    }
+}
+
+impl RenderParticleSpriteSnapshot {
+    pub const fn identity(&self) -> RenderParticleSpriteIdentity {
+        RenderParticleSpriteIdentity::new(self.entity, self.stable_sprite_key)
+    }
+}
+
 impl Default for RenderParticleSpriteSnapshot {
     fn default() -> Self {
         Self {
             entity: 0,
+            stable_sprite_key: 0,
             position: Vec3::ZERO,
             size: 0.0,
             aspect_ratio: 1.0,

@@ -334,6 +334,40 @@ pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
     )
 }
 
+pub(super) fn particle_render_feature_descriptor_with_velocity() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "particle",
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-velocity",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.velocity")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_VELOCITY,
+                RenderGraphAttachmentOps::load_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-render",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.transparent")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
+        ],
+    )
+}
+
 fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "screen_space_ambient_occlusion",
@@ -405,22 +439,12 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                "motion-vector-clear",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-clear")
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "motion-vector-tile-max",
                 QueueLane::Graphics,
             )
             .with_executor_id("post.motion-vector-tile-max")
-            .read_texture(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),
@@ -521,10 +545,10 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "post-process",
+                "uber",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)

@@ -407,7 +407,7 @@ fn install_log_excerpt(project_name: &str, report: &DeviceInstallReport) -> HubM
         HubMessageId::Delivery(DeliveryMessageId::InstallLogExcerpt),
         [
             project_name.to_string(),
-            report.install_dir.to_string_lossy().into_owned(),
+            report.receipt_path.to_string_lossy().into_owned(),
             report.files_copied.to_string(),
         ],
     )

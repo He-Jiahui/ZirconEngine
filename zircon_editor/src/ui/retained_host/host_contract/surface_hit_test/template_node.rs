@@ -13,7 +13,7 @@ use super::super::painter::frame_from_template;
 use super::super::template_component_family::{template_component_family, TemplateComponentFamily};
 use super::super::template_geometry::template_nodes_bounds;
 use super::super::template_popup_layout::{
-    dropdown_option_popup_frame_within, dropdown_option_row_frame_within, menu_item_row_frame,
+    menu_item_row_frame, template_option_popup_frame_within, template_option_row_frame_within,
 };
 use super::surface_frame::hit_test_host_surface_frame;
 
@@ -182,13 +182,14 @@ fn hit_test_template_option_rows(
         width: local.width,
         height: local.height,
     };
-    let popup_frame = dropdown_option_popup_frame_within(&control_frame, row_count, origin)?;
+    let popup_frame = template_option_popup_frame_within(node, &control_frame, row_count, origin)?;
     for row in 0..row_count {
         let option = node.structured_options.row_data(row)?;
         if option.disabled {
             continue;
         }
-        let row_frame = dropdown_option_row_frame_within(&control_frame, row_count, row, origin)?;
+        let row_frame =
+            template_option_row_frame_within(node, &control_frame, row_count, row, origin)?;
         if contains_point(&row_frame, x, y) {
             return Some(TemplatePopupRowHit::Hit(template_popup_row_hit(
                 node,

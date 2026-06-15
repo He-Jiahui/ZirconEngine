@@ -1,4 +1,4 @@
-use super::AntiAliasMode;
+use super::{AntiAliasMode, TaaQualityPreset};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AntiAliasFallbackReason {
@@ -31,6 +31,7 @@ impl AntiAliasFallbackReason {
 pub struct AntiAliasFallbackReport {
     pub requested_mode: AntiAliasMode,
     pub effective_mode: AntiAliasMode,
+    pub taa_quality: TaaQualityPreset,
     pub reason: Option<AntiAliasFallbackReason>,
 }
 
@@ -42,9 +43,17 @@ impl Default for AntiAliasFallbackReport {
 
 impl AntiAliasFallbackReport {
     pub const fn exact(mode: AntiAliasMode) -> Self {
+        Self::exact_with_taa_quality(mode, TaaQualityPreset::Medium)
+    }
+
+    pub const fn exact_with_taa_quality(
+        mode: AntiAliasMode,
+        taa_quality: TaaQualityPreset,
+    ) -> Self {
         Self {
             requested_mode: mode,
             effective_mode: mode,
+            taa_quality,
             reason: None,
         }
     }
@@ -54,9 +63,24 @@ impl AntiAliasFallbackReport {
         effective_mode: AntiAliasMode,
         reason: AntiAliasFallbackReason,
     ) -> Self {
+        Self::fallback_with_taa_quality(
+            requested_mode,
+            effective_mode,
+            TaaQualityPreset::Medium,
+            reason,
+        )
+    }
+
+    pub const fn fallback_with_taa_quality(
+        requested_mode: AntiAliasMode,
+        effective_mode: AntiAliasMode,
+        taa_quality: TaaQualityPreset,
+        reason: AntiAliasFallbackReason,
+    ) -> Self {
         Self {
             requested_mode,
             effective_mode,
+            taa_quality,
             reason: Some(reason),
         }
     }

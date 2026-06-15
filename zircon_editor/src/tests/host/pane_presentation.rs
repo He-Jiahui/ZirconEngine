@@ -436,6 +436,7 @@ fn build_export_fixture() -> BuildExportPaneViewData {
             fatal: false,
         }]),
         diagnostics: "export catalog ready".into(),
+        ..BuildExportPaneViewData::default()
     }
 }
 

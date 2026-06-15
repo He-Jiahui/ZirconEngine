@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::core::framework::scene::{EntityId, WorldHandle};
 use crate::core::math::Real;
@@ -33,8 +33,20 @@ pub struct AnimationPlayerRuntimeStatus {
     pub state: AnimationPlayerRuntimeState,
     pub source: Option<AssetReference>,
     pub active_state: Option<String>,
+    #[serde(
+        serialize_with = "serialize_sanitized_non_negative_real",
+        deserialize_with = "deserialize_sanitized_non_negative_real"
+    )]
     pub time_seconds: Real,
+    #[serde(
+        serialize_with = "serialize_sanitized_non_negative_real",
+        deserialize_with = "deserialize_sanitized_non_negative_real"
+    )]
     pub playback_speed: Real,
+    #[serde(
+        serialize_with = "serialize_normalized_real",
+        deserialize_with = "deserialize_normalized_real"
+    )]
     pub weight: Real,
     pub looping: bool,
     pub diagnostics: Vec<String>,
@@ -93,6 +105,14 @@ impl AnimationPlayerRuntimeStatus {
     pub fn with_diagnostic(mut self, diagnostic: impl Into<String>) -> Self {
         self.diagnostics.push(diagnostic.into());
         self
+    }
+
+    pub fn sanitized_snapshot(&self) -> Self {
+        let mut snapshot = self.clone();
+        snapshot.time_seconds = self.sanitized_time_seconds();
+        snapshot.playback_speed = self.sanitized_playback_speed();
+        snapshot.weight = self.normalized_weight();
+        snapshot
     }
 }
 
@@ -207,5 +227,59 @@ impl AnimationRuntimeStatus {
     pub fn with_diagnostic(mut self, diagnostic: impl Into<String>) -> Self {
         self.diagnostics.push(diagnostic.into());
         self
+    }
+
+    pub fn sanitized_snapshot(&self) -> Self {
+        let mut snapshot = self.clone();
+        snapshot.players = self
+            .players
+            .iter()
+            .map(AnimationPlayerRuntimeStatus::sanitized_snapshot)
+            .collect();
+        snapshot
+    }
+}
+
+fn serialize_sanitized_non_negative_real<S>(value: &Real, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_f32(sanitize_non_negative_real(*value))
+}
+
+fn deserialize_sanitized_non_negative_real<'de, D>(deserializer: D) -> Result<Real, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Real::deserialize(deserializer).map(sanitize_non_negative_real)
+}
+
+fn serialize_normalized_real<S>(value: &Real, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_f32(normalize_real(*value))
+}
+
+fn deserialize_normalized_real<'de, D>(deserializer: D) -> Result<Real, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Real::deserialize(deserializer).map(normalize_real)
+}
+
+fn sanitize_non_negative_real(value: Real) -> Real {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn normalize_real(value: Real) -> Real {
+    if value.is_finite() {
+        value.clamp(0.0, 1.0)
+    } else {
+        0.0
     }
 }

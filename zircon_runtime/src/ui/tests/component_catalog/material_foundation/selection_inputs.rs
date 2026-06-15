@@ -1,5 +1,7 @@
 use crate::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiHostCapability, UiValue};
+use zircon_runtime_interface::ui::component::{
+    UiComponentDescriptor, UiComponentEventKind, UiHostCapability, UiValue,
+};
 
 use super::super::{assert_has_event, assert_has_prop};
 use super::assert_enum_options;
@@ -74,6 +76,88 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
         .expect("Dropdown descriptor");
     assert_has_event(dropdown, UiComponentEventKind::KeyboardAction);
     assert_has_event(dropdown, UiComponentEventKind::ValueChanged);
+
+    let dropdown_popup = registry
+        .descriptor("DropdownPopup")
+        .expect("DropdownPopup descriptor");
+    for prop in [
+        "open",
+        "popup_open",
+        "options",
+        "selected_options",
+        "selectedOptions",
+        "disabled_options",
+        "focused_options",
+        "hovered_options",
+        "pressed_options",
+        "focused_index",
+        "keyboard_navigation",
+        "typeahead_buffer",
+        "typeahead_buffer_expired",
+        "typeahead_timeout_ms",
+        "hovered_option_id",
+        "submenu_pending_option_id",
+        "submenu_open_option_id",
+        "submenu_hover_ready",
+        "submenu_hover_delay_ms",
+        "submenu_focus_scope",
+        "submenu_focus_loop",
+        "placement",
+        "popup_anchor_x",
+        "popup_anchor_y",
+        "popup_anchor_width",
+        "popup_anchor_height",
+        "anchor_origin_vertical",
+        "anchor_origin_horizontal",
+        "transform_origin_vertical",
+        "transform_origin_horizontal",
+        "popup_offset_x",
+        "popup_offset_y",
+        "disable_auto_focus",
+        "disable_enforce_focus",
+        "disable_restore_focus",
+        "disable_escape_key_down",
+        "close_on_backdrop_click",
+        "keep_mounted",
+        "aria_modal",
+        "z_index",
+        "disable_portal",
+        "portal_layer",
+    ] {
+        assert_has_prop(dropdown_popup, prop);
+    }
+    for slot_name in [
+        "paper",
+        "listbox",
+        "transition",
+        "option",
+        "groupLabel",
+        "groupUl",
+    ] {
+        assert_has_slot(dropdown_popup, slot_name);
+    }
+    for event in [
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::KeyboardText,
+        UiComponentEventKind::TypeaheadExpired,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::SelectOption,
+        UiComponentEventKind::ClosePopup,
+    ] {
+        assert_has_event(dropdown_popup, event);
+    }
+    assert_default_value(
+        dropdown_popup,
+        "placement",
+        UiValue::Enum("bottom-start".to_string()),
+    );
+    assert_default_value(dropdown_popup, "popup_open", UiValue::Bool(false));
+    assert_default_value(
+        dropdown_popup,
+        "close_on_backdrop_click",
+        UiValue::Bool(true),
+    );
 
     let autocomplete = registry
         .descriptor("Autocomplete")
@@ -219,4 +303,26 @@ pub(super) fn assert_descriptors(registry: &UiComponentDescriptorRegistry) {
     ] {
         assert_has_event(toggle_button_group, event);
     }
+}
+
+fn assert_has_slot(descriptor: &UiComponentDescriptor, slot_name: &str) {
+    assert!(
+        descriptor
+            .slot_schema
+            .iter()
+            .any(|slot| slot.name == slot_name),
+        "{} missing slot `{slot_name}`",
+        descriptor.id
+    );
+}
+
+fn assert_default_value(descriptor: &UiComponentDescriptor, prop_name: &str, expected: UiValue) {
+    assert_eq!(
+        descriptor
+            .prop(prop_name)
+            .and_then(|prop| prop.default_value.as_ref()),
+        Some(&expected),
+        "{} should default `{prop_name}` to {expected:?}",
+        descriptor.id
+    );
 }

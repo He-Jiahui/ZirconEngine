@@ -40,6 +40,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     )?;
     let mut sized_extract = extract.clone();
     sized_extract.apply_viewport_size(submission_size);
+    apply_renderer_owned_particle_previous_state(&mut sized_extract, &viewport_state);
     let extract = &sized_extract;
     let effective_view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
@@ -67,20 +68,27 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .enabled_features
         .iter()
         .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::ColorGrading));
-    let history_resolve_enabled = compiled_pipeline
+    let temporal_history_enabled = compiled_pipeline
         .enabled_features
         .iter()
-        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::HistoryResolve));
+        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::Temporal));
     let anti_alias_feature_enabled = compiled_pipeline
         .enabled_features
         .iter()
         .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::AntiAlias));
     let resolved_post_process = extract
         .post_process
-        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+        .resolved_settings_for_camera(
+            extract.view.camera.transform.translation,
+            &extract.view.camera.render_layers,
+        )
+        .map_err(|error| {
+            RenderFrameworkError::Backend(format!("post-process volume evaluation failed: {error}"))
+        })?;
     let effective_bloom = bloom_enabled
         .then_some(resolved_post_process.bloom)
         .unwrap_or_else(RenderBloomSettings::default);
+    let effective_exposure = resolved_post_process.exposure;
     let effective_color_grading = color_grading_enabled
         .then_some(resolved_post_process.color_grading)
         .unwrap_or_else(RenderColorGradingSettings::default);
@@ -145,21 +153,39 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         &compiled_pipeline,
         &history_validation_key,
     );
-    let history_available = history_resolve_enabled && history_invalidation_reason.is_none();
+    let history_available = temporal_history_enabled && history_invalidation_reason.is_none();
     let requested_anti_alias = if anti_alias_feature_enabled {
-        extract.view.anti_alias
+        extract.view.anti_alias.with_taa_quality(
+            viewport_state
+                .quality_profile_taa_quality()
+                .unwrap_or(extract.view.anti_alias.taa_quality),
+        )
     } else {
         AntiAliasSettings::off()
     };
+    let taa_history_store_available =
+        temporal_history_enabled && viewport_state.capabilities().supports_taa;
+    let anti_alias_history_available = if requested_anti_alias.mode
+        == crate::core::framework::render::AntiAliasMode::Taa
+        && taa_history_store_available
+    {
+        true
+    } else {
+        history_available
+    };
     let anti_alias_report =
-        requested_anti_alias.resolve(viewport_state.capabilities(), history_available);
+        requested_anti_alias.resolve(viewport_state.capabilities(), anti_alias_history_available);
+    let post_process_history_available = history_available
+        || (anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa
+            && taa_history_store_available);
     let post_process_stack =
-        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
             &effective_bloom,
             &effective_color_grading,
+            effective_exposure,
             &effective_effect_stack,
-            history_resolve_enabled,
-            history_available,
+            temporal_history_enabled,
+            post_process_history_available,
             &anti_alias_report.effective_settings(),
         );
     let compiled_pipeline = compile_submission_pipeline_with_options(
@@ -195,9 +221,6 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.capabilities().clone(),
         visibility_context,
         viewport_state.previous_motion_vector_camera().cloned(),
-        viewport_state
-            .previous_motion_vector_object_history()
-            .cloned(),
         history_validation_key,
         history_invalidation_reason,
         output_target,
@@ -207,9 +230,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
         effective_bloom,
+        effective_exposure,
         effective_color_grading,
         effective_effect_stack,
         anti_alias_report,
+        viewport_state.temporal_frame_index(),
         advanced_runtime_plan,
         solari_runtime_report,
         post_process_stack,
@@ -228,6 +253,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         extract.lighting.spot_lights.clone(),
         extract.lighting.ambient_lights.clone(),
         extract.lighting.rect_lights.clone(),
+        extract.particles.previous_sprites.clone(),
+        extract.particles.sprites.len(),
+        extract.particles.previous_state_sprite_count(),
+        extract.particles.anonymous_stream_ambiguity_sprite_count(),
         virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
@@ -240,6 +269,16 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     ))
 }
 
+fn apply_renderer_owned_particle_previous_state(
+    extract: &mut RenderFrameExtract,
+    viewport_state: &super::viewport_record_state::ViewportRecordState,
+) {
+    if !extract.particles.previous_sprites.is_empty() {
+        return;
+    }
+    extract.particles.previous_sprites = viewport_state.previous_particle_sprites().to_vec();
+}
+
 fn post_process_extract_with_effective_settings(
     extract: &RenderFrameExtract,
     bloom: RenderBloomSettings,
@@ -250,7 +289,7 @@ fn post_process_extract_with_effective_settings(
     extract.post_process.bloom = bloom;
     extract.post_process.color_grading = color_grading;
     extract.post_process.effect_stack = effect_stack;
-    extract.post_process.volume_stack = Default::default();
+    extract.post_process.volumes.clear();
     extract.post_process.rebuild_graph(false, false);
     extract
 }

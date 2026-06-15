@@ -27,7 +27,7 @@ fn render_framework_reuses_static_index_and_reports_main_view_prefilter() {
             RenderQualityProfile::new("visibility-static-index-submit")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_anti_alias(false),

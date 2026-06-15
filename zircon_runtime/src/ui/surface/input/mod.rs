@@ -23,6 +23,7 @@ mod text_constraints;
 mod text_keyboard;
 mod text_pointer;
 mod text_state;
+mod toast_timer;
 mod tooltip_timer;
 mod typeahead_timer;
 mod validation;

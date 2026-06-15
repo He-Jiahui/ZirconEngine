@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::dispatch::UiInputModifiers;
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::UiPoint;
 use crate::ui::surface::UiHitPath;
@@ -10,6 +11,8 @@ use super::{UiPointerActivationPhase, UiPointerButton, UiPointerEventKind};
 pub struct UiPointerRoute {
     pub kind: UiPointerEventKind,
     pub button: Option<UiPointerButton>,
+    #[serde(default)]
+    pub modifiers: UiInputModifiers,
     #[serde(default)]
     pub activation_phase: UiPointerActivationPhase,
     pub point: UiPoint,

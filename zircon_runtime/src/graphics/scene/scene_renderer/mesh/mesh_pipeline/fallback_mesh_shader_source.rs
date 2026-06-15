@@ -131,18 +131,35 @@ mod tests {
     }
 
     #[test]
-    fn fallback_mesh_shader_exposes_object_motion_vector_entries() {
-        assert!(FALLBACK_MESH_SHADER.contains("previous_view_proj: mat4x4<f32>"));
-        assert!(FALLBACK_MESH_SHADER.contains("fn vs_motion_vector"));
-        assert!(FALLBACK_MESH_SHADER.contains("fn fs_motion_vector"));
+    fn fallback_mesh_shader_exposes_object_velocity_entries() {
+        assert!(FALLBACK_MESH_SHADER.contains("view_proj_unjittered: mat4x4<f32>"));
+        assert!(FALLBACK_MESH_SHADER.contains("previous_view_proj_unjittered: mat4x4<f32>"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn vs_velocity_object"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn fs_velocity_object"));
         assert!(FALLBACK_MESH_SHADER
             .contains("let previous_local_position = skin_previous_vertex_position"));
         assert!(FALLBACK_MESH_SHADER.contains(
             "let previous_world = zr_previous_world_from_local(instance_index) * vec4<f32>(previous_local_position, 1.0);"
         ));
         assert!(FALLBACK_MESH_SHADER
-            .contains("let previous_clip = scene.previous_view_proj * previous_world"));
+            .contains("let current_clip = scene.view_proj_unjittered * current_world"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("let previous_clip = scene.previous_view_proj_unjittered * previous_world"));
         assert!(FALLBACK_MESH_SHADER.contains("input.motion_params.x <= 0.5"));
+    }
+
+    #[test]
+    fn fallback_mesh_shader_exposes_taa_reactive_mask_entry() {
+        assert!(FALLBACK_MESH_SHADER.contains("fn sampled_base_color"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn fs_taa_reactive_mask"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn fs_taa_reactive_material_mask"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("let authored_strength = clamp(material_properties.data8.x, 0.0, 1.0);"));
+        assert!(FALLBACK_MESH_SHADER.contains("let reactive_mask = max(alpha, authored_strength);"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("let reactive_mask = clamp(material_properties.data8.x, 0.0, 1.0);"));
+        assert!(FALLBACK_MESH_SHADER.contains("return reactive_mask;"));
+        assert!(FALLBACK_MESH_SHADER.contains("discard;"));
     }
 
     #[test]

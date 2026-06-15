@@ -30,7 +30,11 @@ pub(crate) struct MeshPipelineCache {
         HashMap<String, wgpu::ShaderModule>,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipelines:
         HashMap<PipelineKey, wgpu::RenderPipeline>,
-    pub(in crate::graphics::scene::scene_renderer::mesh) motion_vector_mesh_pipelines:
+    pub(in crate::graphics::scene::scene_renderer::mesh) velocity_mesh_pipelines:
+        HashMap<PipelineKey, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) taa_reactive_mask_mesh_pipelines:
+        HashMap<PipelineKey, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) taa_reactive_material_mask_mesh_pipelines:
         HashMap<PipelineKey, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) pipeline_variant_registry:
         MeshPipelineVariantRegistry,

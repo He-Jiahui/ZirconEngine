@@ -2,7 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::{
     PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessStackDescriptor,
-    RenderFrameExtract, RenderPhase,
+    RenderFrameExtract, RenderPhase, RenderPostProcessTextureFormat, EXPOSURE_BUFFER_WORD_COUNT,
+    EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, TONEMAPPED_SDR_FORMAT,
 };
 use crate::core::math::UVec2;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphBuilder};
@@ -381,6 +383,12 @@ fn feature_descriptor_for_options(
         descriptor = filter_hzb_occlusion_descriptor(descriptor);
     }
     let Some(post_process_stack) = options.post_process_stack.as_ref() else {
+        if feature.is_builtin(BuiltinRenderFeature::Temporal) {
+            descriptor = filter_taa_resolve_descriptor(descriptor);
+        }
+        if feature.is_builtin(BuiltinRenderFeature::PostProcess) {
+            descriptor = filter_taa_post_process_resources(descriptor);
+        }
         return descriptor;
     };
     let Some(builtin_feature) = feature.builtin_feature() else {
@@ -402,12 +410,38 @@ fn filter_hzb_occlusion_descriptor(
     descriptor
 }
 
+fn filter_taa_resolve_descriptor(
+    mut descriptor: RenderFeatureDescriptor,
+) -> RenderFeatureDescriptor {
+    descriptor.stage_passes.retain(|pass| {
+        !matches!(
+            pass.executor_id.as_str(),
+            "temporal.taa-reactive-mask-clear"
+                | "temporal.taa-reactive-mask-mesh"
+                | "temporal.taa-resolve"
+        )
+    });
+    descriptor
+}
+
+fn filter_taa_post_process_resources(
+    mut descriptor: RenderFeatureDescriptor,
+) -> RenderFeatureDescriptor {
+    for pass in &mut descriptor.stage_passes {
+        pass.resources.retain(|resource| {
+            resource.name != PostProcessGraphResourceNames::TAA_OUTPUT
+                && resource.name != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
+        });
+    }
+    descriptor
+}
+
 fn post_process_stack_filters_feature(feature: BuiltinRenderFeature) -> bool {
     matches!(
         feature,
         BuiltinRenderFeature::Bloom
             | BuiltinRenderFeature::ColorGrading
-            | BuiltinRenderFeature::HistoryResolve
+            | BuiltinRenderFeature::Temporal
             | BuiltinRenderFeature::AntiAlias
             | BuiltinRenderFeature::PostProcess
     )
@@ -448,13 +482,17 @@ fn filter_post_process_pass(
 
 fn post_process_pass_can_be_filtered(feature: BuiltinRenderFeature, executor_id: &str) -> bool {
     match (feature, executor_id) {
-        (BuiltinRenderFeature::PostProcess, "post.motion-vector-clear")
-        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-camera")
-        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-object")
+        (BuiltinRenderFeature::Temporal, "temporal.velocity-object")
+        | (BuiltinRenderFeature::Temporal, "temporal.velocity-camera")
+        | (BuiltinRenderFeature::Temporal, "temporal.taa-reactive-mask-clear")
+        | (BuiltinRenderFeature::Temporal, "temporal.taa-reactive-mask-mesh")
+        | (BuiltinRenderFeature::Temporal, "temporal.taa-resolve")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max-coarse")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-neighbor-max")
         | (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare")
+        | (BuiltinRenderFeature::PostProcess, "post.exposure.histogram")
+        | (BuiltinRenderFeature::PostProcess, "post.exposure.resolve")
         | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid")
         | (
             BuiltinRenderFeature::PostProcess,
@@ -462,10 +500,10 @@ fn post_process_pass_can_be_filtered(feature: BuiltinRenderFeature, executor_id:
         )
         | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-specular-occlusion")
         | (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-resolve")
-        | (BuiltinRenderFeature::PostProcess, "post.stack")
+        | (BuiltinRenderFeature::PostProcess, "post.uber")
+        | (BuiltinRenderFeature::PostProcess, "post.output-transfer")
         | (BuiltinRenderFeature::Bloom, "post.bloom-extract" | "post.bloom")
-        | (BuiltinRenderFeature::ColorGrading, "post.color-grade")
-        | (BuiltinRenderFeature::HistoryResolve, "history.scene-color" | "post.history-resolve")
+        | (BuiltinRenderFeature::ColorGrading, "post.color-lut-bake")
         | (BuiltinRenderFeature::AntiAlias, _) => true,
         _ => false,
     }
@@ -480,25 +518,33 @@ fn optional_post_process_pass_enabled(
         (BuiltinRenderFeature::Bloom, "post.bloom-extract" | "post.bloom") => {
             stack_effect_enabled(stack, PostProcessEffectKind::Bloom)
         }
-        (BuiltinRenderFeature::ColorGrading, "post.color-grade") => {
-            stack_effect_enabled(stack, PostProcessEffectKind::ColorGrading)
+        (BuiltinRenderFeature::ColorGrading, "post.color-lut-bake") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::ColorLutBake)
         }
-        (BuiltinRenderFeature::HistoryResolve, "history.scene-color" | "post.history-resolve") => {
-            stack_effect_enabled(stack, PostProcessEffectKind::HistoryResolve)
+        (BuiltinRenderFeature::AntiAlias, _) => false,
+        (
+            BuiltinRenderFeature::Temporal,
+            "temporal.taa-reactive-mask-clear"
+            | "temporal.taa-reactive-mask-mesh"
+            | "temporal.taa-resolve",
+        ) => stack_effect_enabled(stack, PostProcessEffectKind::TaaResolve),
+        (BuiltinRenderFeature::Temporal, "temporal.velocity-object")
+        | (BuiltinRenderFeature::Temporal, "temporal.velocity-camera") => {
+            post_process_stack_uses_scene_velocity(stack)
         }
-        (BuiltinRenderFeature::AntiAlias, _) => {
-            stack_effect_enabled(stack, PostProcessEffectKind::Fxaa)
-        }
-        (BuiltinRenderFeature::PostProcess, "post.motion-vector-clear")
-        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-camera")
-        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-object")
-        | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
+        (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max-coarse")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-neighbor-max") => {
-            post_process_stack_uses_motion_vectors(stack)
+            post_process_stack_uses_reconstructed_motion_vectors(stack)
         }
         (BuiltinRenderFeature::PostProcess, "post.depth-of-field-prepare") => {
             post_process_stack_uses_depth_of_field(stack)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.exposure.histogram") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::ExposureHistogram)
+        }
+        (BuiltinRenderFeature::PostProcess, "post.exposure.resolve") => {
+            stack_effect_enabled(stack, PostProcessEffectKind::ExposureResolve)
         }
         (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-reflection-pyramid") => {
             stack_effect_enabled(
@@ -522,14 +568,25 @@ fn optional_post_process_pass_enabled(
         (BuiltinRenderFeature::PostProcess, "post.screen-space-reflection-resolve") => {
             stack_effect_enabled(stack, PostProcessEffectKind::ScreenSpaceReflectionResolve)
         }
-        (BuiltinRenderFeature::PostProcess, "post.stack") => true,
+        (BuiltinRenderFeature::PostProcess, "post.uber")
+        | (BuiltinRenderFeature::PostProcess, "post.output-transfer") => true,
         _ => true,
     }
 }
 
-fn post_process_stack_uses_motion_vectors(stack: &PostProcessStackDescriptor) -> bool {
+fn post_process_stack_uses_scene_velocity(stack: &PostProcessStackDescriptor) -> bool {
+    stack
+        .initial_resources
+        .iter()
+        .any(|resource| resource == PostProcessGraphResourceNames::SCENE_VELOCITY)
+}
+
+fn post_process_stack_uses_reconstructed_motion_vectors(
+    stack: &PostProcessStackDescriptor,
+) -> bool {
     stack.initial_resources.iter().any(|resource| {
-        resource == PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
+        resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+            || resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
             || resource == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
     })
 }
@@ -565,6 +622,7 @@ fn post_process_resource_is_active(
         resource.name.as_str(),
         PostProcessGraphResourceNames::FINAL_COLOR
             | PostProcessGraphResourceNames::FINAL_COMPOSITED
+            | PostProcessGraphResourceNames::TONEMAPPED
             | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION
             | PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION
     ) || active_resources.contains(&resource.name)
@@ -857,7 +915,7 @@ fn texture_desc_for(
         Some(format) => format,
         None if name.contains("depth") || name.contains("shadow") => TextureFormat::Depth32Float,
         None if extract.view.camera.hdr && is_scene_color_resource(name) => {
-            TextureFormat::Rgba16Float
+            post_process_intermediate_hdr_format()
         }
         None => TextureFormat::Rgba8UnormSrgb,
     };
@@ -878,25 +936,57 @@ fn texture_desc_for(
 
 fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
     match name {
-        PostProcessGraphResourceNames::SCENE_MOTION_VECTOR
-        | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+        PostProcessGraphResourceNames::SCENE_VELOCITY => Some(post_process_texture_format(
+            RenderPostProcessTextureFormat::Rg16Float,
+        )),
+        PostProcessGraphResourceNames::TAA_REACTIVE_MASK => Some(post_process_texture_format(
+            RenderPostProcessTextureFormat::R8Unorm,
+        )),
+        PostProcessGraphResourceNames::TONEMAPPED => {
+            Some(post_process_texture_format(TONEMAPPED_SDR_FORMAT))
+        }
+        PostProcessGraphResourceNames::TAA_OUTPUT
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
+            Some(post_process_intermediate_hdr_format())
+        }
+        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
         | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
         | PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
         | PostProcessGraphResourceNames::HZB_FURTHEST
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => {
-            Some(TextureFormat::Rgba16Float)
+        | PostProcessGraphResourceNames::TAA_HISTORY_CURRENT => {
+            Some(post_process_high_quality_hdr_format())
         }
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC
         | PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION => {
-            Some(TextureFormat::Rgba8Unorm)
-        }
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION => Some(
+            post_process_texture_format(RenderPostProcessTextureFormat::Rgba8Unorm),
+        ),
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY => {
-            Some(TextureFormat::Rgba8UnormSrgb)
-        }
+        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY => Some(
+            post_process_texture_format(RenderPostProcessTextureFormat::Rgba8UnormSrgb),
+        ),
         _ => None,
+    }
+}
+
+const fn post_process_intermediate_hdr_format() -> TextureFormat {
+    post_process_texture_format(INTERMEDIATE_HDR_FORMAT_DEFAULT)
+}
+
+const fn post_process_high_quality_hdr_format() -> TextureFormat {
+    post_process_texture_format(INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY)
+}
+
+const fn post_process_texture_format(format: RenderPostProcessTextureFormat) -> TextureFormat {
+    match format {
+        RenderPostProcessTextureFormat::R8Unorm => TextureFormat::R8Unorm,
+        RenderPostProcessTextureFormat::Rg16Float => TextureFormat::Rg16Float,
+        RenderPostProcessTextureFormat::Rgba8Unorm => TextureFormat::Rgba8Unorm,
+        RenderPostProcessTextureFormat::Rgba8UnormSrgb => TextureFormat::Rgba8UnormSrgb,
+        RenderPostProcessTextureFormat::Rg11b10Ufloat => TextureFormat::Rg11b10Ufloat,
+        RenderPostProcessTextureFormat::Rgba16Float => TextureFormat::Rgba16Float,
+        RenderPostProcessTextureFormat::Rgba32Float => TextureFormat::Rgba32Float,
     }
 }
 
@@ -940,17 +1030,24 @@ fn half_extent(value: u32) -> u32 {
 
 fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
     use crate::graphics::scene::lighting::light_grid_builder::{
-        LightGridParams, LIGHT_GRID_MAX_TILE_WORDS, LIGHT_GRID_MAX_ZBIN_WORDS,
+        LIGHT_GRID_MAX_TILE_WORDS, LIGHT_GRID_MAX_ZBIN_WORDS, LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES,
     };
 
     let view_size = extract.view.effective_render_size();
     let pixel_count = u64::from(view_size.x.max(1)) * u64::from(view_size.y.max(1));
     let size_bytes = match name {
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
-            std::mem::size_of::<LightGridParams>() as u64
+            LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES as u64
         }
         PostProcessGraphResourceNames::LIGHT_ZBINS => u64::from(LIGHT_GRID_MAX_ZBIN_WORDS) * 4,
         PostProcessGraphResourceNames::LIGHT_TILE_MASKS => u64::from(LIGHT_GRID_MAX_TILE_WORDS) * 4,
+        PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM => {
+            u64::from(EXPOSURE_HISTOGRAM_BIN_COUNT) * 4
+        }
+        PostProcessGraphResourceNames::EXPOSURE_PREVIOUS
+        | PostProcessGraphResourceNames::EXPOSURE_CURRENT => {
+            u64::from(EXPOSURE_BUFFER_WORD_COUNT) * 4
+        }
         _ => pixel_count.max(1) * 4,
     };
     let usage = match name {
@@ -965,7 +1062,11 @@ fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
 fn is_scene_color_resource(name: &str) -> bool {
     matches!(
         name,
-        "scene-color" | "final-color" | "final-composited" | "bloom-texture" | "ambient-occlusion"
+        "scene-color"
+            | "final-color"
+            | "postprocess.terminal-aa-input"
+            | "bloom-texture"
+            | "ambient-occlusion"
     ) || name.starts_with("gbuffer-")
 }
 
@@ -1111,6 +1212,10 @@ mod tests {
         );
         assert_eq!(reflection_pyramid.mip_levels, 7);
         assert_eq!(
+            reflection_pyramid.format,
+            crate::rhi::TextureFormat::Rg11b10Ufloat
+        );
+        assert_eq!(
             (
                 reflection_pyramid_coarse.width,
                 reflection_pyramid_coarse.height
@@ -1118,6 +1223,10 @@ mod tests {
             (32, 16)
         );
         assert_eq!(reflection_pyramid_coarse.mip_levels, 1);
+        assert_eq!(
+            reflection_pyramid_coarse.format,
+            crate::rhi::TextureFormat::Rg11b10Ufloat
+        );
     }
 
     #[test]

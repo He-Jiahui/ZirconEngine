@@ -327,6 +327,15 @@ GC-M4:①失效键纯函数 → ②缓存命中 copy 路径与 bit-exact 对拍 
 | `render_specular_aa_bake_*` | avg normal length → 方差 → roughness 合成数值对 Unity 公式样例 |
 | `render_capability_pipeline_stats_*` | gate=false 时字段 None;样本字段仅观测导出、不进任何断言 |
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | GC-M1 capability surface and compute base | 未启动: 现状审计已完成,能力请求/gate 修复未实施 | 文档已盘点 binding array gate 探测但未请求、subgroup/timestamp/statistics 能力位缺失、compute reduce 全标量等问题;尚未改 device request 或 capability summary。 | 本文件 `现状与差距` 实读代码列出 `request_device.rs` 与 `capabilities.rs` 断链;计划 16 CN-M1 状态表记录 compute framework 仍未统一。 | 修复 required_features/gate 对齐,新增 subgroup/statistics/timestamp 能力位并接入 diagnostics。 |
+| 2026-06-15 | GC-M2 submit hot path: bindless and indirect-count | 部分完成: fixed-count multi-draw/occlusion compact 基础存在,bindless 和 count buffer 未完成 | 计划 03 GS-M4 已有 fixed-count `multi_draw_indexed_indirect`,计划 04 VC-M3 已有 HZB compact replay 和 draw-count buffer;但 `multi_draw_indirect_count` 提交升档和 bindless material texture arrays 仍未接入。 | 计划 03/04 状态表记录 fixed-count replay、compact draw-count/visible-remap 与相关 `cargo check`;本文件明确 `MULTI_DRAW_INDIRECT_COUNT` 已请求但无人消费。 | 接入 count buffer replay、bindless material set、fallback policy 和 product parity tests。 |
+| 2026-06-15 | GC-M3 bandwidth: streaming and half-resolution translucency | 未启动: 仍为优化扩展计划 | 常规 texture mip streaming、透明半分辨率段、separate translucency 均未实现。 | 本文件 `现状与差距` 记录 texture streamer 全量加载 mip 链、透明全分辨率直绘;计划 13 TX-M4/计划 12 FX-M2 尚未完成。 | 建立 distance-driven mip residency、separate translucency target 和 bandwidth diagnostics。 |
+| 2026-06-15 | GC-M4 cache and quality improvements | 未启动: 静态阴影缓存/GPU 排序/specular AA 均待后续 | cached shadow maps、GPU bitonic sort、Toksvig/specular AA 仍无实现。 | 本文件 `现状与差距` 明确阴影逐帧全量重画、GPU 排序空缺、specular AA 空缺;计划 05/12/13 状态表也记录相关后续项。 | 在 LS/FX/TX 地基完成后分项实施 cache invalidation、GPU sorting 和 normal variance bake。 |
+
 ### 参考实现精读笔记
 
 - **bevy `material_bind_groups.rs`**:bindless 不是"全局一张大表"而是 per-material-class slab,槽位回收走 free list;空槽必须填 fallback image,否则 `PARTIALLY_BOUND_BINDING_ARRAY` 缺失的平台直接校验失败——Zircon 的 slab 容量取 limits 下界并静态断言变体位与 gate 同步。
@@ -358,4 +367,3 @@ GC-M4:①失效键纯函数 → ②缓存命中 copy 路径与 bit-exact 对拍 
 | `SHADER_F16` | wgpu 已有 feature,本工作区未请求 | 归 index §8 第 2 条"fp16 走能力检测";待计划 08 变体体系稳定后评估 |
 | sparse binding(真 sparse texture) | wgpu 无;`supports_sparse_texture` 字段现为软件 SVT gate | 上游暴露后 mip 流送可去掉重建-换绑 |
 | `TIMESTAMP_QUERY_INSIDE_PASSES` | wgpu 有,计划 17 已决策不需要(pass 边界粒度足够) | 仅记录,不消费 |
-

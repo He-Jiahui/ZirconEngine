@@ -1010,6 +1010,7 @@ fn to_host_contract_host_shell(
         shell_min_height_px: shell.shell_min_height_px,
         native_floating_window_mode: shell.native_floating_window_mode,
         native_floating_window_id: shell.native_floating_window_id.clone(),
+        native_surface_tree_id: shell.native_surface_tree_id.clone(),
         native_window_title: shell.native_window_title.clone(),
         native_window_bounds: to_host_contract_frame_rect(&shell.native_window_bounds),
     }
@@ -1368,6 +1369,7 @@ fn to_host_contract_native_floating_surface_data_with_runtime(
             welcome,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
+        native_surface_tree_id: surface.native_surface_tree_id.clone(),
         native_window_bounds: to_host_contract_frame_rect(&surface.native_window_bounds),
         header_height_px: surface.header_height_px,
     }

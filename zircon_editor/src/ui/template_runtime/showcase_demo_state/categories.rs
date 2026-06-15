@@ -63,19 +63,35 @@ fn demo_category_for_control(control_id: &str) -> Option<&'static str> {
     match control_id {
         "LabelDemo" | "RichLabelDemo" | "ImageDemo" | "IconDemo" | "SvgIconDemo"
         | "SeparatorDemo" => Some(CATEGORY_VISUAL),
-        "ProgressBarDemo" | "SpinnerDemo" | "BadgeDemo" | "HelpRowDemo" => Some(CATEGORY_FEEDBACK),
+        "ProgressBarDemo"
+        | "SkeletonDemo"
+        | "SpinnerDemo"
+        | "BadgeDemo"
+        | "HelpRowDemo"
+        | "DialogDemo"
+        | "ConfirmDialogDemo"
+        | "CommandPaletteDemo"
+        | "NotificationCenterDemo" => Some(CATEGORY_FEEDBACK),
         "ButtonDemo"
+        | "ButtonOutlinedDemo"
+        | "ButtonTextDemo"
+        | "ButtonDangerDemo"
+        | "ButtonDisabledDemo"
         | "IconButtonDemo"
         | "ToggleButtonDemo"
         | "CheckboxDemo"
         | "RadioDemo"
         | "SegmentedControlDemo"
+        | "TabDemo"
+        | "TabStripDemo"
         | "InputFieldDemo"
         | "TextFieldDemo" => Some(CATEGORY_INPUT),
-        "NumberFieldDemo" | "RangeFieldDemo" | "ColorFieldDemo" | "Vector2FieldDemo"
-        | "Vector3FieldDemo" | "Vector4FieldDemo" => Some(CATEGORY_NUMERIC),
+        "NumberFieldDemo" | "RangeFieldDemo" | "SliderDemo" | "RangeSliderDemo"
+        | "ColorFieldDemo" | "Vector2FieldDemo" | "Vector3FieldDemo" | "Vector4FieldDemo" => {
+            Some(CATEGORY_NUMERIC)
+        }
         "DropdownDemo" | "ComboBoxDemo" | "EnumFieldDemo" | "FlagsFieldDemo"
-        | "SearchSelectDemo" => Some(CATEGORY_SELECTION),
+        | "SearchSelectDemo" | "ContextMenuDemo" | "DropdownPopupDemo" => Some(CATEGORY_SELECTION),
         "AssetFieldDemo" | "InstanceFieldDemo" | "ObjectFieldDemo" => Some(CATEGORY_REFERENCE),
         "GroupDemo"
         | "FoldoutDemo"
@@ -84,6 +100,10 @@ fn demo_category_for_control(control_id: &str) -> Option<&'static str> {
         | "ArrayFieldDemo"
         | "MapFieldDemo"
         | "ListRowDemo"
+        | "TableRowDemo"
+        | "VirtualListDemo"
+        | "PagedListDemo"
+        | "WorldSpaceSurfaceDemo"
         | "TreeRowDemo"
         | "ContextActionMenuDemo" => Some(CATEGORY_COLLECTIONS),
         _ => None,

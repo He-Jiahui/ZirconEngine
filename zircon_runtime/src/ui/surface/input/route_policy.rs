@@ -49,6 +49,7 @@ pub(super) fn route_policy_for_input_event(
         | UiInputEvent::TooltipTimer(_)
         | UiInputEvent::TypeaheadTimer(_)
         | UiInputEvent::SubmenuHoverTimer(_)
+        | UiInputEvent::ToastTimer(_)
         | UiInputEvent::Accessibility(_) => UiInputRoutePolicy::DefaultAction,
     }
 }
@@ -219,6 +220,7 @@ fn event_owner(event: &UiInputEvent) -> Option<UiNodeId> {
         UiInputEvent::TooltipTimer(tooltip) => tooltip.owner,
         UiInputEvent::TypeaheadTimer(typeahead) => Some(typeahead.target),
         UiInputEvent::SubmenuHoverTimer(submenu_hover) => Some(submenu_hover.target),
+        UiInputEvent::ToastTimer(toast) => Some(toast.target),
         UiInputEvent::Accessibility(accessibility) => Some(accessibility.request.target),
         _ => None,
     }

@@ -83,7 +83,7 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: EditorUiTemplateDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_zui_document("ui template document", descriptor.ui_document())?;
+        validate_ui_template_document("ui template document", descriptor.ui_document())?;
         insert_unique(
             &mut self.ui_templates,
             descriptor.id.clone(),
@@ -547,7 +547,7 @@ impl ComponentDrawerDescriptor {
 fn validate_component_drawer(
     descriptor: &ComponentDrawerDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
-    validate_zui_document("component drawer document", descriptor.ui_document())?;
+    validate_zui_component_document("component drawer document", descriptor.ui_document())?;
     if let Some(template_id) = descriptor.template_id() {
         validate_contribution_id("component drawer template", template_id)?;
     }
@@ -561,17 +561,36 @@ fn validate_component_drawer(
     Ok(())
 }
 
-fn validate_zui_document(
+fn validate_ui_template_document(
     kind: &'static str,
     document: &str,
 ) -> Result<(), EditorExtensionRegistryError> {
-    if document.trim().is_empty() || document.trim() != document || !document.ends_with(".zui") {
+    if is_invalid_ui_document(document)
+        || !(document.ends_with(".zui") || document.ends_with(".v2.ui.toml"))
+    {
         return Err(EditorExtensionRegistryError::InvalidUiDocument {
             kind,
             document: document.to_string(),
         });
     }
     Ok(())
+}
+
+fn validate_zui_component_document(
+    kind: &'static str,
+    document: &str,
+) -> Result<(), EditorExtensionRegistryError> {
+    if is_invalid_ui_document(document) || !document.ends_with(".zui") {
+        return Err(EditorExtensionRegistryError::InvalidUiDocument {
+            kind,
+            document: document.to_string(),
+        });
+    }
+    Ok(())
+}
+
+fn is_invalid_ui_document(document: &str) -> bool {
+    document.trim().is_empty() || document.trim() != document
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -846,7 +865,7 @@ impl fmt::Display for EditorExtensionRegistryError {
             }
             Self::InvalidUiDocument { kind, document } => write!(
                 formatter,
-                "editor {kind} `{document}` must reference a .zui component asset"
+                "editor {kind} `{document}` must reference a supported editor UI asset"
             ),
             Self::InvalidAssetImporterExtensions(id) => {
                 write!(

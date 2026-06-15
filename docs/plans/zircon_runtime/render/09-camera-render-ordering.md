@@ -408,6 +408,15 @@ pub struct RenderPhaseSortComponents {
 | `render_product_split_screen_viewports` | 双相机各占半屏,边界无串扰 |
 | `render_product_queue_override_reorders_draws` | queue=2900 不透明材质绘于 Geometry 之后、Transparent 之前(抓帧事件序) |
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | CO-M1 camera contract and multi-camera loop | 部分完成: camera snapshot/layer 基础存在,Base/Overlay 语义未落地 | `ViewportCameraSnapshot`、`RenderCameraTarget`、`RenderLayer`、temporal jitter 与 view/projection matrix pair 已被计划 06 使用;计划 04 shadow view 也有独立 view key,但多 camera render loop/target 合成仍未统一。 | 计划 06 TP-M2 状态表记录 `temporal_jitter`、Halton、matrix pair 与 scene uniform ABI;计划 04 状态表记录 per-view visibility。 | 实施 `RenderFrameExtract` 多相机快照、相机 depth 顺序和 custom target 输出链。 |
+| 2026-06-15 | CO-M2 camera stack and overlay composition | 未启动: 仍为计划设计 | 当前多 viewport 不等于 Base/Overlay camera stack,无 overlay 合成语义。 | 本文件 `现状与差距` 明确无相机栈和相机间 depth 顺序概念。 | 定稿 Base/Overlay target reuse、clear flags、UI/scene overlay 顺序和 history 共享规则。 |
+| 2026-06-15 | CO-M3 RenderQueue and unified sort key | 部分完成: phase sort 已有,统一 queue override 未完成 | `phase_queue.rs`/`phase_sort.rs` 有 Opaque/AlphaMask/Transparent/Sprite2d 等 phase 排序;计划 03/04/05 已依赖 source entity、view visibility 和 shadow sorting,但材质 queue 数值覆写、sprite/UI/3D 统一 sort key 尚未落地。 | 本文件 `现状与差距` 记录 phase 硬编码;计划 05/06 状态表记录 shadow/TAA pass order 依赖现有 phase。 | 实施统一 sort key 位段、材质 queue override 和 world-space UI/sprite 混排规则。 |
+| 2026-06-15 | CO-M4 layer filtering across the stack | 部分完成: visibility/shadow layer 使用已接入,多相机全线贯通未完成 | 计划 04 的 FrameVisibility 与计划 05 shadow view 已按 view key/layer mask 消费可见集;但 custom render target camera 与 UI/2D/overlay layer 仍未统一。 | 计划 04 VC-M1 状态表记录 directional cascade/point face/spot shadow view;计划 05 LS-M3 状态表记录 shadow atlas view key 消费。 | 等 CO-M1 多相机快照完成后贯通 render queue、UI、2D、shadow 和 post history。 |
+
 ### 参考实现精读笔记
 
 | 真实符号 | 要点 | Zircon 对应物与取舍 |

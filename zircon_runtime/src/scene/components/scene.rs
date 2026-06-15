@@ -6,10 +6,9 @@ use crate::core::framework::physics::{
 };
 use crate::core::framework::render::{
     ProjectionMode, RenderBloomSettings, RenderCameraClearColor, RenderCameraTarget,
-    RenderColorGradingSettings, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderPostProcessEffectStackSettings, RenderPostProcessVolume, RenderPostProcessVolumeProfile,
-    RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
-    DEFAULT_RENDER_LAYER_MASK,
+    RenderColorGradingSettings, RenderMaterialAlphaMode, RenderPostProcessEffectStackSettings,
+    RenderPostProcessVolumeProfile, RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100,
+    DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec2, Vec3, Vec4};
@@ -590,18 +589,6 @@ impl PostProcessVolumeComponent {
     pub const fn with_weight(mut self, weight: Real) -> Self {
         self.weight = weight;
         self
-    }
-
-    pub fn to_render_volume(&self, layer_mask: RenderLayerSet) -> RenderPostProcessVolume {
-        RenderPostProcessVolume {
-            active: self.active,
-            is_global: self.is_global,
-            priority: self.priority,
-            weight: self.weight,
-            layer_mask,
-            local_blend: if self.is_global { 1.0 } else { 0.0 },
-            profile: self.profile,
-        }
     }
 }
 

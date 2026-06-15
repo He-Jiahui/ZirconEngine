@@ -49,7 +49,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         overlay_layer_props(modal_interaction_props(
             composite("Dialog", "Dialog", UiComponentCategory::Feedback, "dialog")
                 .with_prop(bool_prop("open", false))
-                .with_prop(text_prop()),
+                .with_prop(bool_prop("popup_open", false))
+                .with_prop(text_prop())
+                .with_prop(default_string_prop("title", ""))
+                .with_prop(default_string_prop("message", ""))
+                .with_prop(default_string_prop("dialog_action_id", "")),
         ))
         .slot(UiSlotSchema::new("title"))
         .slot(UiSlotSchema::new("content").multiple(true))
@@ -58,6 +62,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::OpenPopup,
             UiComponentEventKind::ClosePopup,
             UiComponentEventKind::Commit,
+            UiComponentEventKind::KeyboardAction,
         ]),
         overlay_layer_props(modal_interaction_props(
             composite("Modal", "Modal", UiComponentCategory::Container, "modal")
@@ -128,6 +133,11 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .with_prop(bool_prop("open", false))
         .with_prop(text_prop())
         .with_prop(default_string_prop("message", ""))
+        .with_prop(array_prop("toast_queue"))
+        .with_prop(default_string_prop("current_toast_id", ""))
+        .with_prop(default_string_prop("expired_toast_id", ""))
+        .with_prop(int_prop("queue_length", 0))
+        .with_prop(default_string_prop("action_label", ""))
         .with_prop(int_prop("auto_hide_duration_ms", 0))
         .with_prop(int_prop("autoHideDuration", 0))
         .with_prop(int_prop("resume_hide_duration_ms", 0))
@@ -151,6 +161,8 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .events([
             UiComponentEventKind::OpenPopup,
             UiComponentEventKind::ClosePopup,
+            UiComponentEventKind::ValueChanged,
+            UiComponentEventKind::Commit,
         ]),
         composite(
             "SnackbarContent",

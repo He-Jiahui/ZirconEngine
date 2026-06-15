@@ -90,13 +90,23 @@ impl NativePluginLiveHost {
         plugin_id: &str,
         module_kind: PluginModuleKind,
     ) -> Result<NativePluginLiveHostOutcome, String> {
+        let report = load_for_module_kind(&self.loader, root, module_kind)?;
+        self.hot_reload_reported_plugin(report, root, plugin_id, module_kind)
+    }
+
+    pub(super) fn hot_reload_reported_plugin(
+        &self,
+        mut report: NativePluginLoadReport,
+        root: &Path,
+        plugin_id: &str,
+        module_kind: PluginModuleKind,
+    ) -> Result<NativePluginLiveHostOutcome, String> {
         let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
         let key = live_key(module_kind, plugin_id);
         let mut diagnostics = Vec::new();
         let existing = loaded.remove(&key);
         let mut reload_state = NativePluginHotReloadState::new(module_kind, key, existing);
 
-        let mut report = load_for_module_kind(&self.loader, root, module_kind)?;
         diagnostics.extend(load_report_diagnostics(&report));
         diagnostics.extend(diagnostics_for_plugin(&report, plugin_id, module_kind));
         diagnostics.sort();

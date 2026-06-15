@@ -1,7 +1,7 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
-    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection,
-    plugin::RuntimeProfileId, RuntimeTargetMode,
+    plugin::ExportBuildMode, plugin::ExportPackagingStrategy, plugin::ExportProfile,
+    plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
+    plugin::ProjectPluginSelection, plugin::RuntimeProfileId, RuntimeTargetMode,
 };
 
 use super::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
@@ -45,14 +45,18 @@ pub(super) fn plugin_selection_template(
         .join(",\n");
     let entry_profile = entry_profile_expr(profile.target_mode);
     format!(
-        "use zircon_app::{{EntryProfile, ExportRuntimeBootstrapConfig, ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider}};\nuse zircon_runtime::{{plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimeProfileId, RuntimeTargetMode}};\n\npub fn export_runtime_bootstrap_config() -> ExportRuntimeBootstrapConfig {{\n    ExportRuntimeBootstrapConfig::new(\n        {},\n        target_mode(),\n        project_plugins(),\n        export_profile(),\n    )\n    .with_runtime_plugin_registration_providers(runtime_plugin_registration_providers())\n    .with_runtime_plugin_feature_registration_providers(runtime_plugin_feature_registration_providers())\n}}\n\npub fn target_mode() -> RuntimeTargetMode {{\n    {}\n}}\n\npub fn export_profile() -> ExportProfile {{\n    ExportProfile {{\n        name: {:?}.to_string(),\n        target_mode: target_mode(),\n        runtime_profile_id: {},\n        target_platform: {},\n        strategies: vec![{}],\n        output_name: {:?}.to_string(),\n    }}\n}}\n\npub fn project_plugins() -> ProjectPluginManifest {{\n    ProjectPluginManifest {{\n        selections: vec![\n{}\n        ],\n    }}\n}}\n\npub fn runtime_plugin_registration_providers() -> Vec<ExportRuntimePluginRegistrationProvider> {{\n    vec![\n{}\n    ]\n}}\n\npub fn runtime_plugin_feature_registration_providers() -> Vec<ExportRuntimePluginFeatureRegistrationProvider> {{\n    vec![\n{}\n    ]\n}}\n",
+        "use std::collections::BTreeMap;\nuse zircon_app::{{EntryProfile, ExportRuntimeBootstrapConfig, ExportRuntimePluginFeatureRegistrationProvider, ExportRuntimePluginRegistrationProvider}};\nuse zircon_runtime::{{plugin::ExportBuildMode, plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimeProfileId, RuntimeTargetMode}};\n\npub fn export_runtime_bootstrap_config() -> ExportRuntimeBootstrapConfig {{\n    ExportRuntimeBootstrapConfig::new(\n        {},\n        target_mode(),\n        project_plugins(),\n        export_profile(),\n    )\n    .with_runtime_plugin_registration_providers(runtime_plugin_registration_providers())\n    .with_runtime_plugin_feature_registration_providers(runtime_plugin_feature_registration_providers())\n}}\n\npub fn target_mode() -> RuntimeTargetMode {{\n    {}\n}}\n\npub fn export_profile() -> ExportProfile {{\n    ExportProfile {{\n        name: {:?}.to_string(),\n        target_mode: target_mode(),\n        runtime_profile_id: {},\n        target_platform: {},\n        strategies: vec![{}],\n        build_mode: {},\n        output_name: {:?}.to_string(),\n        selected_plugins: vec![{}],\n        features: {},\n        asset_filter: {},\n    }}\n}}\n\npub fn project_plugins() -> ProjectPluginManifest {{\n    ProjectPluginManifest {{\n        selections: vec![\n{}\n        ],\n    }}\n}}\n\npub fn runtime_plugin_registration_providers() -> Vec<ExportRuntimePluginRegistrationProvider> {{\n    vec![\n{}\n    ]\n}}\n\npub fn runtime_plugin_feature_registration_providers() -> Vec<ExportRuntimePluginFeatureRegistrationProvider> {{\n    vec![\n{}\n    ]\n}}\n",
         entry_profile,
         target_mode_expr(profile.target_mode),
         profile.name,
         runtime_profile_id_expr(profile.runtime_profile_id),
         target_platform_expr(profile.target_platform),
         strategies,
+        build_mode_expr(profile.build_mode),
         profile.output_name,
+        string_vec_expr(&profile.selected_plugins),
+        feature_map_expr(profile),
+        option_string_expr(profile.asset_filter.as_deref()),
         indent_lines(&selections, 12),
         indent_lines(&registration_calls, 8),
         indent_lines(&feature_registration_calls, 8)
@@ -157,6 +161,13 @@ fn target_platform_expr(platform: ExportTargetPlatform) -> &'static str {
     }
 }
 
+fn build_mode_expr(build_mode: ExportBuildMode) -> &'static str {
+    match build_mode {
+        ExportBuildMode::Debug => "ExportBuildMode::Debug",
+        ExportBuildMode::Release => "ExportBuildMode::Release",
+    }
+}
+
 fn packaging_strategy_expr(strategy: ExportPackagingStrategy) -> &'static str {
     match strategy {
         ExportPackagingStrategy::SourceTemplate => "ExportPackagingStrategy::SourceTemplate",
@@ -170,6 +181,30 @@ fn option_string_expr(value: Option<&str>) -> String {
         Some(value) => format!("Some({value:?}.to_string())"),
         None => "None".to_string(),
     }
+}
+
+fn string_vec_expr(values: &[String]) -> String {
+    values
+        .iter()
+        .map(|value| format!("{value:?}.to_string()"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn feature_map_expr(profile: &ExportProfile) -> String {
+    if profile.features.is_empty() {
+        return "BTreeMap::new()".to_string();
+    }
+
+    let mut lines = vec!["BTreeMap::from([".to_string()];
+    for (owner, features) in &profile.features {
+        lines.push(format!(
+            "    ({owner:?}.to_string(), vec![{}]),",
+            string_vec_expr(features)
+        ));
+    }
+    lines.push("])".to_string());
+    lines.join("\n")
 }
 
 fn indent_lines(value: &str, spaces: usize) -> String {

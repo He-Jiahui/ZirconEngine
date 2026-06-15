@@ -1,6 +1,7 @@
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
-    UiComponentDescriptor, UiComponentDescriptorKind, UiComponentEventKind, UiValue,
+    UiComponentDescriptor, UiComponentDescriptorKind, UiComponentEventKind, UiComponentLayoutRole,
+    UiHostCapability, UiRenderCapability, UiValue,
 };
 
 use super::super::{assert_has_event, assert_has_prop};
@@ -104,11 +105,108 @@ fn assert_foundation_layout(registry: &UiComponentDescriptorRegistry) {
         "VerticalGroup",
         "GridGroup",
         "Overlay",
+        "ScrollBox",
         "ScrollView",
+        "SplitView",
+        "PanelGroup",
     ] {
         registry
             .descriptor(component_id)
             .unwrap_or_else(|| panic!("missing layout descriptor `{component_id}`"));
+    }
+
+    assert_scroll_box(registry);
+    assert_split_view(registry);
+    assert_panel_group(registry);
+}
+
+fn assert_scroll_box(registry: &UiComponentDescriptorRegistry) {
+    let scroll_box = registry
+        .descriptor("ScrollBox")
+        .expect("ScrollBox descriptor");
+    assert_eq!(scroll_box.layout_role, UiComponentLayoutRole::Flex);
+    assert!(scroll_box
+        .required_render_capabilities
+        .contains(&UiRenderCapability::Scroll));
+    assert_enum_options(
+        scroll_box,
+        "scroll_axis",
+        &["vertical", "horizontal", "both"],
+    );
+    for prop in [
+        "scroll_x",
+        "scroll_y",
+        "scroll_offset_x",
+        "scroll_offset_y",
+        "viewport_width",
+        "viewport_height",
+        "content_width",
+        "content_height",
+        "show_scrollbars",
+        "clip_content",
+    ] {
+        assert_has_prop(scroll_box, prop);
+    }
+    assert_has_event(scroll_box, UiComponentEventKind::ValueChanged);
+}
+
+fn assert_split_view(registry: &UiComponentDescriptorRegistry) {
+    let split_view = registry
+        .descriptor("SplitView")
+        .expect("SplitView descriptor");
+    assert_eq!(split_view.layout_role, UiComponentLayoutRole::Size);
+    assert_enum_options(split_view, "orientation", &["horizontal", "vertical"]);
+    for prop in [
+        "split_ratio",
+        "splitter_size",
+        "min_first",
+        "min_second",
+        "resizable",
+        "collapsed_pane",
+    ] {
+        assert_has_prop(split_view, prop);
+    }
+    for slot in ["first", "second", "splitter"] {
+        assert_has_slot(split_view, slot);
+    }
+    for event in [
+        UiComponentEventKind::BeginDrag,
+        UiComponentEventKind::DragDelta,
+        UiComponentEventKind::EndDrag,
+        UiComponentEventKind::ValueChanged,
+    ] {
+        assert_has_event(split_view, event);
+    }
+}
+
+fn assert_panel_group(registry: &UiComponentDescriptorRegistry) {
+    let panel_group = registry
+        .descriptor("PanelGroup")
+        .expect("PanelGroup descriptor");
+    assert_eq!(panel_group.layout_role, UiComponentLayoutRole::EditorDock);
+    assert!(panel_group
+        .required_host_capabilities
+        .contains(&UiHostCapability::Editor));
+    assert_enum_options(panel_group, "orientation", &["vertical", "horizontal"]);
+    for prop in [
+        "group_id",
+        "active_panel",
+        "panel_order",
+        "resizable",
+        "collapsible",
+    ] {
+        assert_has_prop(panel_group, prop);
+    }
+    for slot in ["header", "panels", "toolbar"] {
+        assert_has_slot(panel_group, slot);
+    }
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::SelectOption,
+        UiComponentEventKind::BeginDrag,
+        UiComponentEventKind::EndDrag,
+    ] {
+        assert_has_event(panel_group, event);
     }
 }
 

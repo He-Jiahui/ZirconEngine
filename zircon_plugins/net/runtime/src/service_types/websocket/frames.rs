@@ -12,13 +12,16 @@ impl DefaultNetManager {
         connection: NetConnectionId,
         frame: NetWebSocketFrame,
     ) -> Result<(), NetError> {
+        let frame_bytes = websocket_frame_bytes(&frame);
         let mut websockets = self
             .state
             .websocket_connections
             .lock()
             .expect("net WebSocket connections mutex poisoned");
         if let Some(ManagedWebSocketConnection::Network(entry)) = websockets.get(&connection) {
-            return entry.send(&self.state.runtime, frame);
+            entry.send(&self.state.runtime, frame)?;
+            self.state.record_outbound_bytes(frame_bytes);
+            return Ok(());
         }
         let peer = websockets
             .get(&connection)
@@ -47,6 +50,7 @@ impl DefaultNetManager {
             connection: peer,
             queued_frames,
         });
+        self.state.record_outbound_bytes(frame_bytes);
         Ok(())
     }
 
@@ -76,9 +80,26 @@ impl DefaultNetManager {
                         None => break,
                     }
                 }
+                self.state
+                    .record_inbound_bytes(frames.iter().map(websocket_frame_bytes).sum());
                 Ok(frames)
             }
-            ManagedWebSocketConnection::Network(entry) => Ok(entry.drain_frames(max_frames)),
+            ManagedWebSocketConnection::Network(entry) => {
+                let frames = entry.drain_frames(max_frames);
+                self.state
+                    .record_inbound_bytes(frames.iter().map(websocket_frame_bytes).sum());
+                Ok(frames)
+            }
         }
+    }
+}
+
+fn websocket_frame_bytes(frame: &NetWebSocketFrame) -> usize {
+    match frame {
+        NetWebSocketFrame::Text(payload) => payload.len(),
+        NetWebSocketFrame::Binary(payload) => payload.len(),
+        NetWebSocketFrame::Ping(payload) => payload.len(),
+        NetWebSocketFrame::Pong(payload) => payload.len(),
+        NetWebSocketFrame::Close(reason) => reason.reason.len(),
     }
 }

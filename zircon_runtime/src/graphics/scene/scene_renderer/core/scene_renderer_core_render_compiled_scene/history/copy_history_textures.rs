@@ -17,28 +17,28 @@ impl SceneRendererCore {
         graph_resources: &RenderGraphExecutionResources,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
         runtime_features: SceneRuntimeFeatureFlags,
+        taa_history_enabled: bool,
         screen_space_reflection_history_enabled: bool,
         hzb_history_enabled: bool,
+        exposure_history_enabled: bool,
     ) -> RenderHistoryCopyReport {
-        let requested_copy_count = runtime_features.history_resolve_enabled as usize
+        let requested_copy_count = taa_history_enabled as usize
             + runtime_features.hybrid_global_illumination_enabled as usize
             + runtime_features.ssao_enabled as usize
             + screen_space_reflection_history_enabled as usize
-            + hzb_history_enabled as usize;
+            + hzb_history_enabled as usize
+            + exposure_history_enabled as usize;
         let history_target_present = history_textures.is_some();
         let mut scene_color_copied = false;
         let mut global_illumination_copied = false;
         let mut ambient_occlusion_copied = false;
         let mut screen_space_reflection_copied = false;
         let mut hzb_furthest_copied = false;
+        let mut exposure_copied = false;
 
         if let Some(history) = history_textures {
-            if runtime_features.history_resolve_enabled {
-                encoder.copy_texture_to_texture(
-                    target.scene_color.as_image_copy(),
-                    history.scene_color.as_image_copy(),
-                    texture_extent(target.size),
-                );
+            if taa_history_enabled {
+                history.flip_taa_scene_color_history();
                 scene_color_copied = true;
             }
             if runtime_features.hybrid_global_illumination_enabled {
@@ -73,6 +73,10 @@ impl SceneRendererCore {
                 hzb_furthest_copied =
                     copy_hzb_furthest_mip_chain(encoder, graph_resources, history);
             }
+            if exposure_history_enabled {
+                history.flip_exposure_history();
+                exposure_copied = true;
+            }
         }
         RenderHistoryCopyReport::new(
             history_target_present,
@@ -83,6 +87,7 @@ impl SceneRendererCore {
             ambient_occlusion_copied,
             screen_space_reflection_copied,
             hzb_furthest_copied,
+            exposure_copied,
         )
     }
 }

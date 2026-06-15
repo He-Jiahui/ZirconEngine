@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -9,7 +9,10 @@ use zircon_runtime::core::framework::net::{
 
 use crate::feature::NET_RPC_FEATURE_CAPABILITY;
 
-use super::{RpcHandler, RpcSchemaValidator, DEFAULT_RPC_QUEUE_DEPTH, RPC_PROTOCOL_VERSION};
+use super::{
+    RpcChannelMessage, RpcHandler, RpcSchemaValidator, DEFAULT_RPC_QUEUE_DEPTH,
+    RPC_PROTOCOL_VERSION,
+};
 
 #[derive(Clone)]
 pub struct NetRpcRuntimeManager {
@@ -29,6 +32,8 @@ pub(in crate::manager) struct NetRpcRuntimeState {
     pub(in crate::manager) pending_requests: HashMap<NetRequestId, PendingRpcRequest>,
     pub(in crate::manager) next_queue_sequence: u64,
     pub(in crate::manager) max_queue_depth: usize,
+    pub(in crate::manager) channel_queues: HashMap<u8, VecDeque<RpcChannelMessage>>,
+    pub(in crate::manager) channel_sequences: HashMap<u8, u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -116,6 +121,8 @@ impl NetRpcRuntimeManager {
                 pending_requests: HashMap::new(),
                 next_queue_sequence: 0,
                 max_queue_depth: DEFAULT_RPC_QUEUE_DEPTH,
+                channel_queues: HashMap::new(),
+                channel_sequences: HashMap::new(),
             })),
         }
     }

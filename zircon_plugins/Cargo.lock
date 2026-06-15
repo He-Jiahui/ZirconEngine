@@ -6001,6 +6001,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]

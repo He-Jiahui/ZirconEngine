@@ -1,9 +1,13 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
-use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
+use super::compute_workload::{
+    EXPOSURE_HISTOGRAM_PIPELINE_LABEL, EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+    EXPOSURE_RESOLVE_PIPELINE_LABEL, EXPOSURE_RESOLVE_WORKGROUP_SIZE,
+};
 
 pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
 ) -> RenderFeatureDescriptor {
@@ -13,44 +17,12 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         Vec::new(),
         vec![
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::DepthPrepass,
-                "motion-vector-clear",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-clear")
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::clear_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "motion-vector-camera",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-camera")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::load_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
-                "motion-vector-object",
-                QueueLane::Graphics,
-            )
-            .with_executor_id("post.motion-vector-object")
-            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture_with_ops(
-                PostProcessGraphResourceNames::SCENE_MOTION_VECTOR,
-                RenderGraphAttachmentOps::load_store(),
-            ),
-            RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "motion-vector-tile-max",
                 QueueLane::Graphics,
             )
             .with_executor_id("post.motion-vector-tile-max")
-            .read_texture(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR)
+            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),
@@ -93,6 +65,32 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
                 RenderGraphAttachmentOps::clear_store(),
             ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "exposure-histogram",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("post.exposure.histogram")
+            .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                EXPOSURE_HISTOGRAM_PIPELINE_LABEL,
+                EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+            ))
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_buffer(PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "exposure-resolve",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("post.exposure.resolve")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                EXPOSURE_RESOLVE_PIPELINE_LABEL,
+                EXPOSURE_RESOLVE_WORKGROUP_SIZE,
+                [1, 1, 1],
+            ))
+            .read_buffer(PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM)
+            .read_external(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS)
+            .write_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "screen-space-reflection-reflection-pyramid",
@@ -151,12 +149,13 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "post-process",
+                "uber",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.stack")
+            .with_executor_id("post.uber")
             .with_side_effects()
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
             .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
@@ -165,9 +164,23 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
-            .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-            .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
+            .read_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::TONEMAPPED,
+                RenderGraphAttachmentOps::clear_store(),
+            )
             .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "output-transfer",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.output-transfer")
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_external_with_ops(
+                PostProcessGraphResourceNames::FINAL_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
         ],
     )
 }

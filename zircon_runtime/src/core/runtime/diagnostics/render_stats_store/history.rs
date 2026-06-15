@@ -192,6 +192,13 @@ fn record_history_copy_report(store: &mut DiagnosticStore, stats: &RenderStats) 
         report.hzb_furthest_copied,
         &["render", "history", "copy", "hzb"],
     );
+    record_bool(
+        store,
+        "render.history.copy.exposure_copied",
+        frame_index,
+        report.exposure_copied,
+        &["render", "history", "copy", "exposure"],
+    );
 }
 
 fn record_invalidation_reason(

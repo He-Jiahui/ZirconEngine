@@ -27,6 +27,13 @@ struct WorkbenchShellSurfaceContract {
     required_control_ids: &'static [&'static str],
 }
 
+struct WorkbenchOverlayPrimitiveContract {
+    file_name: &'static str,
+    component_name: &'static str,
+    placement: &'static str,
+    required_props: &'static [&'static str],
+}
+
 const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
     WorkbenchPrimitiveContract {
         file_name: "workbench/primitives/inputs/workbench_button.zui",
@@ -183,6 +190,62 @@ const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
         sampled_in_component_drawer: true,
     },
     WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_context_menu.zui",
+        component_name: "WorkbenchContextMenu",
+        root_component: "ContextMenu",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_dropdown_popup.zui",
+        component_name: "WorkbenchDropdownPopup",
+        root_component: "DropdownPopup",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_command_palette.zui",
+        component_name: "WorkbenchCommandPalette",
+        root_component: "CommandPalette",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_notification_center.zui",
+        component_name: "WorkbenchNotificationCenter",
+        root_component: "NotificationCenter",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_drag_overlay.zui",
+        component_name: "WorkbenchDragOverlay",
+        root_component: "DragOverlay",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_alert.zui",
+        component_name: "WorkbenchAlert",
+        root_component: "Alert",
+        interactive: false,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_dialog.zui",
+        component_name: "WorkbenchDialog",
+        root_component: "Dialog",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_confirm_dialog.zui",
+        component_name: "WorkbenchConfirmDialog",
+        root_component: "ConfirmDialog",
+        interactive: true,
+        sampled_in_component_drawer: false,
+    },
+    WorkbenchPrimitiveContract {
         file_name: "workbench/primitives/feedback/workbench_progress_bar.zui",
         component_name: "WorkbenchProgressBar",
         root_component: "Progress",
@@ -252,6 +315,258 @@ const WORKBENCH_PRIMITIVE_CONTRACTS: &[WorkbenchPrimitiveContract] = &[
         interactive: false,
         sampled_in_component_drawer: false,
     },
+];
+
+const OVERLAY_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "popup_open",
+    "options",
+    "focused_index",
+    "keyboard_navigation",
+    "typeahead_buffer",
+    "typeahead_buffer_expired",
+    "typeahead_timeout_ms",
+    "hovered_option_id",
+    "submenu_pending_option_id",
+    "submenu_open_option_id",
+    "submenu_hover_ready",
+    "submenu_hover_delay_ms",
+    "submenu_focus_scope",
+    "submenu_focus_loop",
+    "placement",
+    "popup_anchor_x",
+    "popup_anchor_y",
+    "popup_anchor_width",
+    "popup_anchor_height",
+    "anchor_origin_vertical",
+    "anchor_origin_horizontal",
+    "transform_origin_vertical",
+    "transform_origin_horizontal",
+    "popup_offset_x",
+    "popup_offset_y",
+    "disable_auto_focus",
+    "disable_enforce_focus",
+    "disable_restore_focus",
+    "disable_escape_key_down",
+    "close_on_backdrop_click",
+    "keep_mounted",
+    "aria_modal",
+    "aria_labelledby",
+    "aria_describedby",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
+];
+
+const WORKBENCH_OVERLAY_PRIMITIVE_CONTRACTS: &[WorkbenchOverlayPrimitiveContract] = &[
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_command_palette.zui",
+        component_name: "WorkbenchCommandPalette",
+        placement: "top",
+        required_props: COMMAND_PALETTE_REQUIRED_PROPS,
+    },
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_notification_center.zui",
+        component_name: "WorkbenchNotificationCenter",
+        placement: "bottom-end",
+        required_props: NOTIFICATION_CENTER_REQUIRED_PROPS,
+    },
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_dialog.zui",
+        component_name: "WorkbenchDialog",
+        placement: "center",
+        required_props: DIALOG_REQUIRED_PROPS,
+    },
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_confirm_dialog.zui",
+        component_name: "WorkbenchConfirmDialog",
+        placement: "center",
+        required_props: CONFIRM_DIALOG_REQUIRED_PROPS,
+    },
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_context_menu.zui",
+        component_name: "WorkbenchContextMenu",
+        placement: "right-start",
+        required_props: OVERLAY_REQUIRED_PROPS,
+    },
+    WorkbenchOverlayPrimitiveContract {
+        file_name: "workbench/primitives/feedback/workbench_dropdown_popup.zui",
+        component_name: "WorkbenchDropdownPopup",
+        placement: "bottom-start",
+        required_props: OVERLAY_REQUIRED_PROPS,
+    },
+];
+
+const COMMAND_PALETTE_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "popup_open",
+    "query",
+    "placeholder",
+    "commands",
+    "filtered_commands",
+    "recent_commands",
+    "disabled_commands",
+    "selected_command_id",
+    "focused_index",
+    "keyboard_navigation",
+    "empty_text",
+    "command_source",
+    "placement",
+    "popup_anchor_x",
+    "popup_anchor_y",
+    "popup_anchor_width",
+    "popup_anchor_height",
+    "anchor_origin_vertical",
+    "anchor_origin_horizontal",
+    "transform_origin_vertical",
+    "transform_origin_horizontal",
+    "popup_offset_x",
+    "popup_offset_y",
+    "disable_auto_focus",
+    "disable_enforce_focus",
+    "disable_restore_focus",
+    "disable_escape_key_down",
+    "close_on_backdrop_click",
+    "keep_mounted",
+    "aria_modal",
+    "aria_labelledby",
+    "aria_describedby",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
+];
+
+const NOTIFICATION_CENTER_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "popup_open",
+    "title",
+    "unread_count",
+    "notifications",
+    "selected_notification_id",
+    "focused_index",
+    "visible_limit",
+    "empty_text",
+    "placement",
+    "popup_anchor_x",
+    "popup_anchor_y",
+    "popup_anchor_width",
+    "popup_anchor_height",
+    "anchor_origin_vertical",
+    "anchor_origin_horizontal",
+    "transform_origin_vertical",
+    "transform_origin_horizontal",
+    "popup_offset_x",
+    "popup_offset_y",
+    "disable_auto_focus",
+    "disable_enforce_focus",
+    "disable_restore_focus",
+    "disable_escape_key_down",
+    "close_on_backdrop_click",
+    "keep_mounted",
+    "aria_modal",
+    "aria_labelledby",
+    "aria_describedby",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
+];
+
+const DRAG_OVERLAY_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "dragging",
+    "drop_hovered",
+    "active_drag_target",
+    "payload_kind",
+    "payload_label",
+    "payload_reference",
+    "source_control_id",
+    "target_control_id",
+    "cursor_x",
+    "cursor_y",
+    "offset_x",
+    "offset_y",
+    "preview_width",
+    "preview_height",
+    "drop_allowed",
+    "drop_target_x",
+    "drop_target_y",
+    "drop_target_width",
+    "drop_target_height",
+    "drop_indicator_edge",
+    "drop_indicator_text",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
+];
+
+const DIALOG_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "popup_open",
+    "text",
+    "title",
+    "message",
+    "placement",
+    "popup_anchor_x",
+    "popup_anchor_y",
+    "popup_anchor_width",
+    "popup_anchor_height",
+    "anchor_origin_vertical",
+    "anchor_origin_horizontal",
+    "transform_origin_vertical",
+    "transform_origin_horizontal",
+    "popup_offset_x",
+    "popup_offset_y",
+    "disable_auto_focus",
+    "disable_enforce_focus",
+    "disable_restore_focus",
+    "disable_escape_key_down",
+    "close_on_backdrop_click",
+    "keep_mounted",
+    "aria_modal",
+    "aria_labelledby",
+    "aria_describedby",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
+];
+
+const CONFIRM_DIALOG_REQUIRED_PROPS: &[&str] = &[
+    "open",
+    "popup_open",
+    "title",
+    "message",
+    "confirm_text",
+    "cancel_text",
+    "confirm_action_id",
+    "cancel_action_id",
+    "severity",
+    "default_action",
+    "destructive",
+    "confirm_enabled",
+    "requires_explicit_action",
+    "placement",
+    "popup_anchor_x",
+    "popup_anchor_y",
+    "popup_anchor_width",
+    "popup_anchor_height",
+    "anchor_origin_vertical",
+    "anchor_origin_horizontal",
+    "transform_origin_vertical",
+    "transform_origin_horizontal",
+    "popup_offset_x",
+    "popup_offset_y",
+    "disable_auto_focus",
+    "disable_enforce_focus",
+    "disable_restore_focus",
+    "disable_escape_key_down",
+    "close_on_backdrop_click",
+    "keep_mounted",
+    "aria_modal",
+    "aria_labelledby",
+    "aria_describedby",
+    "z_index",
+    "disable_portal",
+    "portal_layer",
 ];
 
 const WORKBENCH_SHELL_SURFACE_CONTRACTS: &[WorkbenchShellSurfaceContract] = &[
@@ -530,12 +845,134 @@ fn workbench_primitive_component_assets_keep_native_component_contract() {
     }
 
     assert!(
-        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 32,
+        WORKBENCH_PRIMITIVE_CONTRACTS.len() >= 39,
         "workbench primitive contract should cover the low-level atom/collection/property/shell-leaf set"
     );
     assert!(
         offenders.is_empty(),
         "workbench primitive .zui component assets must stay componentized, layout-explicit, and input-ready before module assembly: {offenders:#?}"
+    );
+}
+
+#[test]
+fn workbench_overlay_primitives_expose_popup_shell_contract() {
+    let mut offenders = Vec::new();
+
+    for contract in WORKBENCH_OVERLAY_PRIMITIVE_CONTRACTS {
+        let path = editor_asset_root()
+            .join("ui/editor/components")
+            .join(contract.file_name);
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+        let document = UiZuiAssetLoader::load_zui_str(&source)
+            .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+        let Some(component) = document.components.get(contract.component_name) else {
+            offenders.push(format!(
+                "{} should declare component `{}`",
+                path.display(),
+                contract.component_name
+            ));
+            continue;
+        };
+        let Some(root_node) = document.nodes.get(&component.root) else {
+            offenders.push(format!(
+                "{} component `{}` references missing root `{}`",
+                path.display(),
+                contract.component_name,
+                component.root
+            ));
+            continue;
+        };
+
+        for prop in contract.required_props {
+            if !root_node.props.contains_key(*prop) {
+                offenders.push(format!(
+                    "{} component `{}` should expose popup-shell prop `{prop}`",
+                    path.display(),
+                    contract.component_name
+                ));
+            }
+        }
+        if root_node.props.get("placement").and_then(Value::as_str) != Some(contract.placement) {
+            offenders.push(format!(
+                "{} component `{}` should set placement `{}`",
+                path.display(),
+                contract.component_name,
+                contract.placement
+            ));
+        }
+        if root_node
+            .props
+            .get("close_on_backdrop_click")
+            .and_then(Value::as_bool)
+            != Some(true)
+        {
+            offenders.push(format!(
+                "{} component `{}` should keep outside-click dismissal enabled",
+                path.display(),
+                contract.component_name
+            ));
+        }
+        if root_node
+            .props
+            .get("disable_portal")
+            .and_then(Value::as_bool)
+            != Some(false)
+        {
+            offenders.push(format!(
+                "{} component `{}` should stay attached to the overlay portal layer",
+                path.display(),
+                contract.component_name
+            ));
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "workbench overlay primitives must expose the retained popup shell contract before higher-level surfaces compose them: {offenders:#?}"
+    );
+}
+
+#[test]
+fn workbench_drag_overlay_exposes_drag_visual_contract() {
+    let path = editor_asset_root()
+        .join("ui/editor/components")
+        .join("workbench/primitives/feedback/workbench_drag_overlay.zui");
+    let source = fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
+    let document = UiZuiAssetLoader::load_zui_str(&source)
+        .unwrap_or_else(|error| panic!("parse `{}`: {error}", path.display()));
+    let component = document
+        .components
+        .get("WorkbenchDragOverlay")
+        .expect("WorkbenchDragOverlay component should be declared");
+    let root = document
+        .nodes
+        .get(&component.root)
+        .expect("WorkbenchDragOverlay root node should exist");
+
+    let missing_props = DRAG_OVERLAY_REQUIRED_PROPS
+        .iter()
+        .filter(|prop| !root.props.contains_key(**prop))
+        .copied()
+        .collect::<Vec<_>>();
+    assert!(
+        missing_props.is_empty(),
+        "WorkbenchDragOverlay should expose DragOverlay descriptor props for retained/native projection: {missing_props:#?}"
+    );
+    assert_eq!(
+        root.props.get("payload_kind").and_then(Value::as_str),
+        Some("asset")
+    );
+    assert_eq!(
+        root.props
+            .get("drop_indicator_edge")
+            .and_then(Value::as_str),
+        Some("bottom")
+    );
+    assert_eq!(
+        root.props.get("disable_portal").and_then(Value::as_bool),
+        Some(false)
     );
 }
 

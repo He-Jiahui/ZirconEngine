@@ -53,7 +53,7 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
                 .with_pipeline_asset(RenderPipelineHandle::new(1))
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false),
         )
@@ -86,7 +86,7 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
     let post = stats
         .last_graph_executed_passes
         .iter()
-        .position(|pass| pass == "post-process")
+        .position(|pass| pass == "uber")
         .expect("postprocess pass should stay before runtime UI");
     let ui = stats
         .last_graph_executed_passes
@@ -122,7 +122,7 @@ fn render_product_ui_submit_keeps_presentation_target_under_dynamic_resolution()
                 .with_pipeline_asset(RenderPipelineHandle::new(1))
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false),
         )
@@ -183,7 +183,7 @@ fn render_product_ui_submit_targets_direct_import_texture_under_dynamic_resoluti
                 .with_pipeline_asset(RenderPipelineHandle::new(1))
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false),
         )

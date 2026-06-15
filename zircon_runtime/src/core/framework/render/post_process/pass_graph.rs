@@ -1,18 +1,35 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use super::{
-    PostProcessEffectKind, PostProcessGraphValidationError, PostProcessPassNode,
-    PostProcessStackDescriptor,
+    PostProcessChainSlot, PostProcessEffectKind, PostProcessGraphValidationError,
+    PostProcessPassNode, PostProcessStackDescriptor,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PostProcessPassGraph {
     pub nodes: Vec<PostProcessPassNode>,
     pub skipped_nodes: Vec<PostProcessPassNode>,
-    pub final_composite_node: Option<String>,
+    pub planned_backbone_slots: Vec<PostProcessChainSlot>,
+    pub active_chain_slots: Vec<PostProcessChainSlot>,
+    pub output_transfer_node: Option<String>,
 }
 
 impl PostProcessPassGraph {
+    pub fn from_ordered_nodes(
+        nodes: Vec<PostProcessPassNode>,
+        skipped_nodes: Vec<PostProcessPassNode>,
+        output_transfer_node: Option<String>,
+    ) -> Self {
+        let active_chain_slots = nodes.iter().map(|node| node.chain_slot).collect::<Vec<_>>();
+        Self {
+            nodes,
+            skipped_nodes,
+            planned_backbone_slots: PostProcessChainSlot::fixed_backbone().to_vec(),
+            active_chain_slots,
+            output_transfer_node,
+        }
+    }
+
     pub fn validate_stack(
         stack: &PostProcessStackDescriptor,
     ) -> Result<Self, PostProcessGraphValidationError> {
@@ -66,16 +83,15 @@ impl PostProcessPassGraph {
             ordered_nodes.push(node);
         }
 
-        let final_composite_node = ordered_nodes
+        let output_transfer_node = ordered_nodes
             .iter()
-            .find(|node| node.kind == PostProcessEffectKind::FinalComposite)
+            .find(|node| node.kind == PostProcessEffectKind::OutputTransfer)
             .map(|node| node.name.clone());
-
-        Ok(Self {
-            nodes: ordered_nodes,
+        Ok(Self::from_ordered_nodes(
+            ordered_nodes,
             skipped_nodes,
-            final_composite_node,
-        })
+            output_transfer_node,
+        ))
     }
 
     pub fn node_count(&self) -> usize {

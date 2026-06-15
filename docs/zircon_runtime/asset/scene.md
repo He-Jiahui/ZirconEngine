@@ -4,11 +4,11 @@ related_code:
   - dev/bevy/crates/bevy_scene/src/scene.rs
   - dev/bevy/crates/bevy_light/src/ambient_light.rs
   - dev/bevy/crates/bevy_light/src/rect_light.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/world/project_io.rs
 implementation_files:
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs

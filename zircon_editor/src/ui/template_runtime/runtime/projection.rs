@@ -457,6 +457,7 @@ fn node_bindings_from_ids(
 fn retained_action_id_for_binding(binding: &EditorUiBinding) -> String {
     match &binding.payload {
         EditorUiBindingPayload::MenuAction { action_id } => action_id.clone(),
+        EditorUiBindingPayload::EditorCommand { command_id } => command_id.clone(),
         _ => String::new(),
     }
 }

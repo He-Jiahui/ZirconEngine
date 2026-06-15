@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/plugin/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/Cargo.toml
@@ -17,6 +18,7 @@ implementation_files:
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/plugin/export_profile.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
 plan_sources:
   - user: 2026-06-12 implement runtime architecture from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/index.md
@@ -26,6 +28,7 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/Cargo.toml
 tests:
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
   - cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture
 doc_type: module-detail
 ---
@@ -39,6 +42,8 @@ This document is the runtime-side dependency authority for `zirconEngine`. It se
 ## Executable Guard Anchors
 
 Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_is_documented_without_manifest_container_dependency`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
+
+`tech_stack_boundary` mirrors these Runtime 01 dependency-governance facts through the Python structural audit. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 6`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-15 static validation passed rustfmt check, Python py_compile, direct `tech_stack_boundary_audit`, aggregate Runtime 01 + plan-status assertions, standalone tech_stack 1/1, and standalone status-output 2/2. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, and plugin physics Cargo filters remain pending.
 
 ## Dependency Matrix
 

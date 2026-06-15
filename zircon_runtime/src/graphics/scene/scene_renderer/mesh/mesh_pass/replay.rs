@@ -85,7 +85,7 @@ struct MeshPipelineStateKey {
 pub(crate) struct MeshDrawCommandReplayer {
     last_pipeline: Option<MeshPipelineStateKey>,
     last_bind_ids: [Option<u64>; TRACKED_BIND_GROUP_COUNT],
-    last_geometry: Option<u64>,
+    last_geometry: Option<(u64, u64)>,
     stats: MeshDrawReplayStats,
 }
 
@@ -155,7 +155,7 @@ impl MeshDrawCommandReplayer {
         pass: &mut wgpu::RenderPass<'pass>,
         command: &'pass MeshDrawCommand,
     ) {
-        let geometry_id = command.geometry.id();
+        let geometry_id = command.geometry_bind_key();
         if self.last_geometry == Some(geometry_id) {
             return;
         }

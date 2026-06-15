@@ -7,11 +7,15 @@ use crate::{
 
 mod feature_selection;
 mod profile;
+mod profile_projection;
 
 use self::feature_selection::{
     external_feature_selection, external_feature_selections, feature_selection,
 };
 use self::profile::runtime_profile_for_export_profile;
+use self::profile_projection::{
+    export_profile_selection_diagnostics, project_plugins_for_export_profile,
+};
 use super::cargo_manifest_template::plugin_path_for_runtime_crate;
 use super::default_profile::default_profile;
 use super::export_profile_validation::{
@@ -22,6 +26,7 @@ use super::export_profile_validation::{
     sanitize_export_profile_strategies,
 };
 use super::generated_files::generated_files_for_profile;
+use super::library_embed_compile_plan::library_embed_compile_host_plan;
 use super::native_dynamic_package_plan::NativeDynamicPackageAccumulator;
 use super::project_manifest_validation::{
     project_duplicate_selection_diagnostics, project_editor_crate_diagnostics,
@@ -32,6 +37,7 @@ use super::project_manifest_validation::{
     sanitize_invalid_project_crate_overrides, sanitize_invalid_project_provider_package_overrides,
     sanitize_project_identity_rows, sanitize_project_target_mode_rows,
 };
+use super::source_template_build_plan::source_template_build_validation_plan;
 use super::{ExportBuildPlan, ExportLinkedRuntimeCrate};
 
 impl ExportBuildPlan {
@@ -62,6 +68,9 @@ impl ExportBuildPlan {
 
         let catalog = RuntimePluginCatalog::builtin();
         let mut completed_plugins = catalog.complete_project_manifest(&manifest.plugins);
+        let profile_selection_diagnostics =
+            export_profile_selection_diagnostics(&profile, &completed_plugins);
+        project_plugins_for_export_profile(&profile, &mut completed_plugins);
         // Keep diagnostics source-faithful while preventing malformed crate tokens from
         // leaking into generated SourceTemplate project metadata.
         sanitize_invalid_project_crate_overrides(&mut completed_plugins, profile.target_mode);
@@ -90,7 +99,7 @@ impl ExportBuildPlan {
                     && project_plugin_package_id_is_valid(&selection.id)
                     && project_runtime_crate_override_is_valid(selection.runtime_crate.as_deref())
                     && selection.packaging != ExportPackagingStrategy::NativeDynamic
-                    && profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+                    && linked_rust_strategy_enabled(&profile)
             })
             .map(|selection| selection.runtime_crate_name())
             .filter(|crate_name| linked_runtime_crate_names.insert(crate_name.clone()))
@@ -105,7 +114,7 @@ impl ExportBuildPlan {
                 && project_plugin_package_id_is_valid(&selection.id)
                 && project_runtime_crate_override_is_valid(selection.runtime_crate.as_deref())
                 && selection.packaging != ExportPackagingStrategy::NativeDynamic
-                && profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+                && linked_rust_strategy_enabled(&profile)
         }) {
             linked_runtime_package_ids.insert(selection.id.clone());
         }
@@ -153,9 +162,7 @@ impl ExportBuildPlan {
                 }
                 continue;
             }
-            if feature.runtime_crate.is_none()
-                || !profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
-            {
+            if feature.runtime_crate.is_none() || !linked_rust_strategy_enabled(&profile) {
                 continue;
             }
             let crate_name = feature.runtime_crate_name();
@@ -209,9 +216,7 @@ impl ExportBuildPlan {
                 }
                 continue;
             }
-            if feature.runtime_crate.is_some()
-                && profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
-            {
+            if feature.runtime_crate.is_some() && linked_rust_strategy_enabled(&profile) {
                 let crate_name = feature.runtime_crate_name();
                 if !project_runtime_crate_name_is_valid(&crate_name) {
                     continue;
@@ -243,6 +248,7 @@ impl ExportBuildPlan {
         }
         let native_dynamic_package_plan = native_dynamic_package_accumulator.finish();
         let native_dynamic_packages = native_dynamic_package_plan.packages;
+        let native_dynamic_package_exports = native_dynamic_package_plan.package_exports;
         let native_dynamic_diagnostics = native_dynamic_package_plan.diagnostics;
         let mut diagnostics = enabled_plugins
             .iter()
@@ -299,6 +305,7 @@ impl ExportBuildPlan {
         diagnostics.extend(profile_output_name_diagnostics);
         diagnostics.extend(profile_strategy_diagnostics);
         diagnostics.extend(profile_strategy_fatal_diagnostics.iter().cloned());
+        diagnostics.extend(profile_selection_diagnostics.diagnostics);
         diagnostics.extend(feature_packaging_diagnostics);
         fatal_diagnostics.extend(project_plugin_id_fatal_diagnostics);
         fatal_diagnostics.extend(project_feature_id_fatal_diagnostics);
@@ -310,6 +317,7 @@ impl ExportBuildPlan {
         fatal_diagnostics.extend(profile_duplicate_name_fatal_diagnostics);
         fatal_diagnostics.extend(profile_name_fatal_diagnostics);
         fatal_diagnostics.extend(profile_strategy_fatal_diagnostics);
+        fatal_diagnostics.extend(profile_selection_diagnostics.fatal_diagnostics);
         fatal_diagnostics.extend(feature_packaging_fatal_diagnostics);
         if profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
             || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
@@ -373,7 +381,7 @@ impl ExportBuildPlan {
             &profile,
             &project_plugin_selections,
             &linked_runtime_crate_links,
-            &native_dynamic_packages,
+            &native_dynamic_package_exports,
         );
         let runtime_plugin_descriptors = RuntimePluginDescriptor::builtin_catalog();
         let runtime_plugin_availability = runtime_profile.availability_report_with_providers(
@@ -387,11 +395,21 @@ impl ExportBuildPlan {
             &enabled_plugins,
             linked_runtime_crates,
             native_dynamic_packages,
+            native_dynamic_package_exports,
             runtime_plugin_availability,
             generated_files,
         );
         plan.diagnostics = diagnostics;
         plan.fatal_diagnostics = fatal_diagnostics;
+        let compile_host_plan = library_embed_compile_host_plan(&plan, &linked_runtime_crate_links);
+        plan.set_library_embed_compile_host_plan(compile_host_plan);
+        let source_template_build_plan = source_template_build_validation_plan(&plan);
+        plan.set_source_template_build_validation_plan(source_template_build_plan);
         Ok(plan)
     }
+}
+
+fn linked_rust_strategy_enabled(profile: &crate::plugin::ExportProfile) -> bool {
+    profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
+        || profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
 }

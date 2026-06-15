@@ -52,6 +52,7 @@ fn input_event_refreshes_context(event: &UiInputEvent) -> bool {
         | UiInputEvent::TooltipTimer(_)
         | UiInputEvent::TypeaheadTimer(_)
         | UiInputEvent::SubmenuHoverTimer(_)
+        | UiInputEvent::ToastTimer(_)
         | UiInputEvent::Accessibility(_) => false,
     }
 }

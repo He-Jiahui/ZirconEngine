@@ -23,6 +23,7 @@ mod slot;
 mod slot_schema;
 mod style;
 mod workbench_primitives;
+mod workbench_shell;
 
 use self::metadata::string_metadata_offender;
 use self::support::{

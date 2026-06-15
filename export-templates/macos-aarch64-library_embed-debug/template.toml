@@ -1,0 +1,32 @@
+format_version = 1
+template_id = "macos-aarch64-library_embed-debug"
+engine_version = "0.1.0"
+target_platform = "macos-aarch64"
+host_kind = "desktop"
+resource_strategy = "filesystem_bundle"
+plugin_strategy = "native_dynamic_allowed"
+bundle_format = "app_bundle"
+compatible_profiles = ["macos-release"]
+content_hash = "e49a5ff5c944c20a9e41b91355d2b7b685468cd748b48a74bc3356e0ca18f363"
+
+[paths]
+host_executable = "bin/zircon_runtime.host-placeholder"
+
+[bundle]
+root = "ZirconRuntime.app"
+host_path = "Contents/MacOS/ZirconRuntime"
+pack_path = "Contents/Resources/assets.zrpack"
+delta_pack_path = "Contents/Resources/patches/assets.delta.zrpd"
+manifest_path = "Contents/Resources/zircon-export.json"
+
+[[files]]
+path = "bin/zircon_runtime.host-placeholder"
+bundle_path = "Contents/MacOS/ZirconRuntime"
+purpose = "M3-T2 placeholder host path for macOS app bundle layout validation"
+sha256 = "cc47d0f36b868276c42206f0c2f277b9ab1193149afb3fde629d679359a47372"
+
+[[files]]
+path = "platform/macos/Info.plist"
+bundle_path = "Contents/Info.plist"
+purpose = "macOS app bundle metadata placeholder"
+sha256 = "63a11249a72b18203d0d35a91826710a3d8a3461fe7d4b004384d1302d09976f"

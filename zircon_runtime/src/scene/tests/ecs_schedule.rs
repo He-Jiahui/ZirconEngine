@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::core::framework::render::{
-    DisplayMode, ProjectionMode, RenderCameraClearColor, RenderExtractContext, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderPhase, RenderViewportRect, RenderVirtualGeometryDebugState,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    DisplayMode, ProjectionMode, RenderCameraClearColor, RenderExposureMode, RenderExtractContext,
+    RenderLayerSet, RenderMaterialAlphaMode, RenderPhase, RenderViewportRect,
+    RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::core::CoreRuntime;
@@ -1031,6 +1031,11 @@ fn render_extract_projects_scene_camera_component_product_fields() {
     assert!(!extract.view.camera.is_active);
     assert!(extract.view.camera.hdr);
     assert_eq!(extract.view.camera.exposure_ev100, 12.0);
+    assert_eq!(
+        extract.post_process.exposure.mode,
+        RenderExposureMode::Manual
+    );
+    assert_eq!(extract.post_process.exposure.manual_ev100, 12.0);
     assert_eq!(
         extract.view.camera.clear_color,
         RenderCameraClearColor::None

@@ -56,17 +56,15 @@ mod tests {
         });
         let mut resources = RenderGraphExecutionResources::new();
         resources.insert_buffer("postprocess.compute-sideband", buffer);
-        let graph = PostProcessPassGraph {
-            nodes: vec![PostProcessPassNode {
-                name: "buffer-backed-effect".to_string(),
-                kind: PostProcessEffectKind::EffectStack,
-                required_inputs: vec!["postprocess.compute-sideband".to_string()],
-                produced_outputs: vec!["postprocess.effect-stacked".to_string()],
-                after: Vec::new(),
-            }],
-            skipped_nodes: Vec::new(),
-            final_composite_node: None,
-        };
+        let graph = PostProcessPassGraph::from_ordered_nodes(
+            vec![
+                PostProcessPassNode::new("buffer-backed-effect", PostProcessEffectKind::Uber)
+                    .with_required_inputs(["postprocess.compute-sideband"])
+                    .with_produced_outputs(["postprocess.effect-stacked"]),
+            ],
+            Vec::new(),
+            None,
+        );
         let mut record = RenderGraphExecutionRecord::default();
 
         execute_post_process_pass_graph(&graph, &resources, &mut record);

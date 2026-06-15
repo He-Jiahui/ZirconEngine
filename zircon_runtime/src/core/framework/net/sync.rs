@@ -12,6 +12,26 @@ pub enum SyncAuthority {
     ClientOwned,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncReplicationStrategy {
+    #[default]
+    OnChange,
+    Interval,
+    Once,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetworkIdentity {
+    pub object: NetObjectId,
+    pub authority: SyncAuthority,
+}
+
+impl NetworkIdentity {
+    pub fn new(object: NetObjectId, authority: SyncAuthority) -> Self {
+        Self { object, authority }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SyncFieldDescriptor {
     pub name: String,
@@ -38,6 +58,8 @@ impl SyncFieldDescriptor {
 pub struct SyncComponentDescriptor {
     pub component_type: String,
     pub authority: SyncAuthority,
+    #[serde(default)]
+    pub replication_strategy: SyncReplicationStrategy,
     pub fields: Vec<SyncFieldDescriptor>,
     pub update_hz: u16,
     pub replication_priority: u16,
@@ -49,6 +71,7 @@ impl SyncComponentDescriptor {
         Self {
             component_type: component_type.into(),
             authority,
+            replication_strategy: SyncReplicationStrategy::default(),
             fields: Vec::new(),
             update_hz: SYNC_DEFAULT_COMPONENT_UPDATE_HZ,
             replication_priority: SYNC_DEFAULT_REPLICATION_PRIORITY,
@@ -63,6 +86,11 @@ impl SyncComponentDescriptor {
 
     pub fn with_update_hz(mut self, update_hz: u16) -> Self {
         self.update_hz = update_hz;
+        self
+    }
+
+    pub fn with_replication_strategy(mut self, strategy: SyncReplicationStrategy) -> Self {
+        self.replication_strategy = strategy;
         self
     }
 
@@ -201,6 +229,9 @@ pub struct SyncDelta {
     pub object: NetObjectId,
     pub component_type: String,
     pub sequence: u64,
+    /// Tombstone deltas remove the object/component snapshot instead of merging fields.
+    #[serde(default)]
+    pub despawned: bool,
     pub changed_fields: Vec<SyncFieldValue>,
 }
 
@@ -215,8 +246,23 @@ impl SyncDelta {
             object,
             component_type: component_type.into(),
             sequence,
+            despawned: false,
             changed_fields: changed_fields.into_iter().collect(),
         }
+    }
+
+    pub fn despawn(object: NetObjectId, component_type: impl Into<String>, sequence: u64) -> Self {
+        Self {
+            object,
+            component_type: component_type.into(),
+            sequence,
+            despawned: true,
+            changed_fields: Vec::new(),
+        }
+    }
+
+    pub fn is_despawn(&self) -> bool {
+        self.despawned
     }
 }
 

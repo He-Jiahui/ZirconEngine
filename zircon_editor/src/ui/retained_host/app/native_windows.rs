@@ -7,6 +7,7 @@ use crate::ui::retained_host::primitives::{
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
 use super::{FrameRect, UiHostWindow};
 
@@ -15,6 +16,7 @@ pub(crate) struct NativeFloatingWindowTarget {
     pub window_id: MainPageId,
     pub title: String,
     pub bounds: [f32; 4],
+    pub surface_tree_id: UiTreeId,
 }
 
 #[derive(Default)]
@@ -33,14 +35,16 @@ pub(crate) fn collect_native_floating_window_targets(
             floating_window_projection_bundle
                 .frames(&window.window_id)
                 .filter(|frames| frames.native_host_present)
-                .map(|frames| {
+                .filter_map(|frames| {
+                    let surface_tree_id = frames.surface_tree_id.clone()?;
                     let frame = frames.outer_frame;
                     let bounds = [frame.x, frame.y, frame.width, frame.height];
-                    NativeFloatingWindowTarget {
+                    Some(NativeFloatingWindowTarget {
                         window_id: window.window_id.clone(),
                         title: window.title.clone(),
                         bounds,
-                    }
+                        surface_tree_id,
+                    })
                 })
         })
         .collect()
@@ -53,6 +57,7 @@ pub(crate) fn configure_native_floating_window_presentation(
     let mut host_presentation = ui.get_host_presentation();
     host_presentation.host_shell.native_floating_window_mode = true;
     host_presentation.host_shell.native_floating_window_id = target.window_id.0.clone().into();
+    host_presentation.host_shell.native_surface_tree_id = target.surface_tree_id.0.clone().into();
     host_presentation.host_shell.native_window_title = target.title.clone().into();
     host_presentation.host_shell.native_window_bounds = FrameRect {
         x: target.bounds[0],
@@ -60,6 +65,15 @@ pub(crate) fn configure_native_floating_window_presentation(
         width: target.bounds[2],
         height: target.bounds[3],
     };
+    host_presentation
+        .native_floating_surface_data
+        .native_floating_window_id = target.window_id.0.clone().into();
+    host_presentation
+        .native_floating_surface_data
+        .native_surface_tree_id = target.surface_tree_id.0.clone().into();
+    host_presentation
+        .native_floating_surface_data
+        .native_window_bounds = host_presentation.host_shell.native_window_bounds.clone();
     ui.set_host_presentation(host_presentation);
     ui.window().set_position(PhysicalPosition::new(
         target.bounds[0].round() as i32,

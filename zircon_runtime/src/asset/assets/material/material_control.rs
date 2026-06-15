@@ -10,6 +10,7 @@ const RECEIVE_SHADOWS_PROPERTY: &str = "receive_shadows";
 const RENDER_QUEUE_PROPERTY: &str = "render_queue";
 const MATERIAL_QUEUE_PROPERTY: &str = "material_queue";
 const DEPTH_BIAS_PROPERTY: &str = "depth_bias";
+const TAA_REACTIVE_MASK_STRENGTH_PROPERTY: &str = "taa_reactive_mask_strength";
 
 pub(super) fn lighting_model(
     values: &BTreeMap<String, toml::Value>,
@@ -40,6 +41,11 @@ pub(super) fn depth_bias(values: &BTreeMap<String, toml::Value>) -> Option<f32> 
     override_f32(values, DEPTH_BIAS_PROPERTY)
 }
 
+pub(super) fn taa_reactive_mask_strength(values: &BTreeMap<String, toml::Value>) -> Option<f32> {
+    override_f32(values, TAA_REACTIVE_MASK_STRENGTH_PROPERTY)
+        .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
+}
+
 pub(super) fn validation_errors(
     values: &BTreeMap<String, toml::Value>,
 ) -> Vec<RenderMaterialValidationError> {
@@ -62,6 +68,10 @@ pub(super) fn validation_errors(
         MATERIAL_QUEUE_PROPERTY,
     ));
     errors.extend(f32_override_validation_errors(values, DEPTH_BIAS_PROPERTY));
+    errors.extend(normalized_f32_override_validation_errors(
+        values,
+        TAA_REACTIVE_MASK_STRENGTH_PROPERTY,
+    ));
     errors
 }
 
@@ -102,6 +112,13 @@ pub(super) fn sync_material_control_overrides(
         depth_bias(source_values),
         0.0,
     );
+    sync_f32_override(
+        overrides,
+        source_values,
+        TAA_REACTIVE_MASK_STRENGTH_PROPERTY,
+        taa_reactive_mask_strength(source_values),
+        0.0,
+    );
 }
 
 pub(super) fn is_material_owned_property(name: &str) -> bool {
@@ -113,6 +130,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
             | RENDER_QUEUE_PROPERTY
             | MATERIAL_QUEUE_PROPERTY
             | DEPTH_BIAS_PROPERTY
+            | TAA_REACTIVE_MASK_STRENGTH_PROPERTY
     )
 }
 
@@ -177,6 +195,23 @@ fn f32_override_validation_errors(
         Vec::new()
     } else {
         type_mismatch_error(property, "number")
+    }
+}
+
+fn normalized_f32_override_validation_errors(
+    values: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(_) = values.get(property) else {
+        return Vec::new();
+    };
+    let Some(value) = override_f32(values, property) else {
+        return type_mismatch_error(property, "number in 0..=1");
+    };
+    if value.is_finite() && (0.0..=1.0).contains(&value) {
+        Vec::new()
+    } else {
+        type_mismatch_error(property, "number in 0..=1")
     }
 }
 

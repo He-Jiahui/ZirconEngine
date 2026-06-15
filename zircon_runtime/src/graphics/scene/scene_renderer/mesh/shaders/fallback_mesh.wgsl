@@ -1,9 +1,11 @@
 struct SceneUniform {
     view_proj: mat4x4<f32>,
+    view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
-    previous_view_proj: mat4x4<f32>,
+    previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
+    jitter_params: vec4<f32>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -14,6 +16,7 @@ struct MaterialPropertyUniform {
     data5: vec4<f32>,
     data6: vec4<f32>,
     data7: vec4<f32>,
+    data8: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(2) @binding(0) var albedo_tex: texture_2d<f32>;
@@ -39,6 +42,15 @@ struct VertexInput {
     @location(7) uv1: vec2<f32>,
 };
 
+struct VelocityVertexInput {
+    @location(0) position: vec3<f32>,
+    @location(2) uv: vec2<f32>,
+    @location(3) joint_indices: vec4<u32>,
+    @location(4) joint_weights: vec4<f32>,
+    @location(7) uv1: vec2<f32>,
+    @location(8) previous_position: vec3<f32>,
+};
+
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) world_normal: vec3<f32>,
@@ -53,7 +65,7 @@ struct VertexOutput {
     @location(9) motion_params: vec4<f32>,
 };
 
-struct MotionVectorVertexOutput {
+struct VelocityVertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,
     @location(1) current_clip_position: vec4<f32>,
@@ -310,12 +322,16 @@ fn sampled_world_normal(input: VertexOutput) -> vec3<f32> {
     return world_normal;
 }
 
-fn sampled_material(input: VertexOutput) -> SampledMaterial {
+fn sampled_base_color(input: VertexOutput) -> vec4<f32> {
     let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);
+    return textureSample(albedo_tex, albedo_sampler, base_color_uv).rgba * input.tint * input.vertex_color;
+}
+
+fn sampled_material(input: VertexOutput) -> SampledMaterial {
     let metallic_roughness_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data4, material_properties.data7.z);
     let occlusion_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data5, material_properties.data7.w);
     let emissive_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data6, material_properties.data1.w);
-    let albedo = textureSample(albedo_tex, albedo_sampler, base_color_uv).rgba * input.tint * input.vertex_color;
+    let albedo = sampled_base_color(input);
     let metallic_roughness = textureSample(metallic_roughness_tex, metallic_roughness_sampler, metallic_roughness_uv);
     let metallic = clamp(material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
     var roughness = material_properties.data0.y;
@@ -454,16 +470,36 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(shaded, material.albedo.a);
 }
 
+@fragment
+fn fs_taa_reactive_mask(input: VertexOutput) -> @location(0) f32 {
+    let alpha = clamp(sampled_base_color(input).a, 0.0, 1.0);
+    let authored_strength = clamp(material_properties.data8.x, 0.0, 1.0);
+    let reactive_mask = max(alpha, authored_strength);
+    if (reactive_mask <= EPSILON) {
+        discard;
+    }
+    return reactive_mask;
+}
+
+@fragment
+fn fs_taa_reactive_material_mask(_input: VertexOutput) -> @location(0) f32 {
+    let reactive_mask = clamp(material_properties.data8.x, 0.0, 1.0);
+    if (reactive_mask <= EPSILON) {
+        discard;
+    }
+    return reactive_mask;
+}
+
 @vertex
-fn vs_motion_vector(input: VertexInput, @builtin(instance_index) instance_index: u32) -> MotionVectorVertexOutput {
-    var output: MotionVectorVertexOutput;
+fn vs_velocity_object(input: VelocityVertexInput, @builtin(instance_index) instance_index: u32) -> VelocityVertexOutput {
+    var output: VelocityVertexOutput;
     let motion_params = zr_gpu_scene_motion_params(instance_index);
     let current_local_position = skin_vertex_position(input.position, input.joint_indices, input.joint_weights, motion_params);
-    let previous_local_position = skin_previous_vertex_position(input.position, input.joint_indices, input.joint_weights, motion_params);
+    let previous_local_position = skin_previous_vertex_position(input.previous_position, input.joint_indices, input.joint_weights, motion_params);
     let current_world = zr_world_from_local(instance_index) * vec4<f32>(current_local_position, 1.0);
     let previous_world = zr_previous_world_from_local(instance_index) * vec4<f32>(previous_local_position, 1.0);
-    let current_clip = scene.view_proj * current_world;
-    let previous_clip = scene.previous_view_proj * previous_world;
+    let current_clip = scene.view_proj_unjittered * current_world;
+    let previous_clip = scene.previous_view_proj_unjittered * previous_world;
     output.clip_position = current_clip;
     output.uv = input.uv;
     output.uv1 = input.uv1;
@@ -475,7 +511,7 @@ fn vs_motion_vector(input: VertexInput, @builtin(instance_index) instance_index:
     return output;
 }
 
-fn clip_to_motion_uv(clip_position: vec4<f32>) -> vec2<f32> {
+fn clip_to_velocity_uv(clip_position: vec4<f32>) -> vec2<f32> {
     if (abs(clip_position.w) <= EPSILON) {
         return vec2<f32>(0.5, 0.5);
     }
@@ -484,7 +520,7 @@ fn clip_to_motion_uv(clip_position: vec4<f32>) -> vec2<f32> {
 }
 
 @fragment
-fn fs_motion_vector(input: MotionVectorVertexOutput) -> @location(0) vec4<f32> {
+fn fs_velocity_object(input: VelocityVertexOutput) -> @location(0) vec4<f32> {
     if (scene.motion_params.x <= 0.5 || input.motion_params.x <= 0.5) {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
@@ -497,8 +533,8 @@ fn fs_motion_vector(input: MotionVectorVertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
-    let current_uv = clip_to_motion_uv(input.current_clip_position);
-    let previous_uv = clip_to_motion_uv(input.previous_clip_position);
+    let current_uv = clip_to_velocity_uv(input.current_clip_position);
+    let previous_uv = clip_to_velocity_uv(input.previous_clip_position);
     let velocity = clamp(current_uv - previous_uv, vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0));
     return vec4<f32>(velocity, 0.0, 1.0);
 }

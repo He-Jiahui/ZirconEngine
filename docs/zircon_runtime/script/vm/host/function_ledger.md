@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
@@ -17,6 +18,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
@@ -37,12 +39,15 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_function_without_required_capability_is_rejected_with_explicit_error
   - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_function_registry_ledger_guard_rejects_missing_entry
   - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi
+  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs::runtime_13_script_binding_mirror_docs_match_structure_audit_counts
+  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs::runtime_13_gameplay_host_owner_split_keeps_domain_files
   - zircon_runtime/src/script/vm/gameplay_host/tests.rs::script_held_entity_handle_reports_invalid_after_despawn
   - zircon_runtime/src/script/vm/tests.rs::script_call_table_pre_resolves_host_export_callbacks
   - zircon_runtime/src/script/vm/tests.rs::zr_vm_real_backend_uses_script_call_table_for_host_callbacks
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_script_call_table_calls_dense_id_without_name_lookup
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites
-  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-13 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 10, expected_test_file_count = 2, fixed_host_function_count = 50, host_capability_count = 11, native_ecs_abi_references = [], risks = [])
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 18, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 50, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 37, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
+  - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 47/47 passed)
   - "pending: cargo test -p zircon_runtime --lib script --locked -- --nocapture"
 doc_type: module-detail
 ---
@@ -148,6 +153,12 @@ Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an a
 | `nav_next_point_json` | `start_json:String`, `end_json:String` | `String` | `gameplay.navigation` |
 | `nav_move_towards_entity` | `entity:Int`, `target_entity:Int`, `speed:Float`, `dt:Float` | `Bool` | `gameplay.navigation` |
 
+## Gameplay Host Owner Layout
+
+`gameplay_host.rs` owns only the `zr.zircon.gameplay` module descriptor and the 37 `HostExportFunction::new(...)` registration anchors. The callback implementations are folder-backed domain owners: `input.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `script_bindings.rs`, and `values.rs`.
+
+`runtime_13_gameplay_host_owner_split_keeps_domain_files` keeps that layout executable. It requires each gameplay host owner file to exist, keeps each source owner under the 400-line budget, checks representative registration anchors remain in `gameplay_host.rs`, and keeps shared value parsing/resource/error helpers in `values.rs`.
+
 ## Dynamic Bridge Module
 
 | Module | Function source | Required capability rule | Runtime 13 judgement |
@@ -184,4 +195,4 @@ M2 aligns script-held entity ids with the ECS stable-id invalidation rule. `scri
 
 `script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi` keeps the access-path judgement executable. It scans the current `zircon_runtime/src/script` Rust files for native ECS ABI symbols such as `ZrHostEcsApiV1` and locks the `zr.zircon.gameplay` / `ScriptRuntimeCallContext` anchors as the script-facing gameplay facade.
 
-`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit. Current evidence reports audited source files 10/10, guard/test files 2/2, fixed host ledger 6 modules / 50 functions / 2 type descriptors, callback counts builtin=11/11, gameplay=37/37, macro=2/2, host capability anchors 11/11, Runtime 13 guard anchors 7/7, native ECS ABI references in script source = 0, and `risks = []`. This is structure evidence only; `cargo test -p zircon_runtime --lib script --locked -- --nocapture` remains pending.
+`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit. Current evidence reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 50`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 37`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 47/47 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.

@@ -304,6 +304,22 @@ impl UiComponentShowcaseDemoState {
             project_state_value_attribute(&mut node.attributes, &state, "depth_test");
             project_state_value_attribute(&mut node.attributes, &state, "render_order");
             project_state_value_attribute(&mut node.attributes, &state, "camera_target");
+            for key in [
+                "commands",
+                "filtered_commands",
+                "disabled_commands",
+                "selected_command_id",
+                "focused_index",
+                "recent_commands",
+                "notifications",
+                "selected_notification_id",
+                "visible_limit",
+                "unread_count",
+                "keyboard_navigation",
+                "empty_text",
+            ] {
+                project_state_value_attribute(&mut node.attributes, &state, key);
+            }
             let flags = &state.flags;
             let force_transient_flags = self.states.contains_key(control_id);
             project_bool_attribute(

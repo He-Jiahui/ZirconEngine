@@ -190,10 +190,16 @@ impl NetRpcRuntimeManager {
         };
 
         let mut report = RpcDispatchReport::for_invocation(invocation, RpcDispatchStatus::Accepted)
-            .with_schema(descriptor.payload_schema.clone());
+            .with_schema(
+                descriptor
+                    .payload_schema
+                    .as_ref()
+                    .map(|schema| schema.schema_id.clone()),
+            );
 
-        if descriptor.direction != invocation.direction
-            || !descriptor.direction.allows_caller(caller)
+        if !descriptor
+            .direction
+            .allows_invocation(invocation.direction, caller)
         {
             report.status = RpcDispatchStatus::DirectionDenied;
             return report;
@@ -229,8 +235,8 @@ impl NetRpcRuntimeManager {
             return report;
         }
 
-        if let Some(schema) = descriptor.payload_schema.as_deref() {
-            let Some(validator) = state.schema_validators.get(schema) else {
+        if let Some(schema) = descriptor.payload_schema.as_ref() {
+            let Some(validator) = state.schema_validators.get(schema.schema_id()) else {
                 report.status = RpcDispatchStatus::SchemaUnavailable;
                 return report.with_diagnostic("schema validator unavailable");
             };

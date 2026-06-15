@@ -382,6 +382,15 @@ pub(crate) enum BatchRejectReason {
 
 产物对拍(`render_product_*`,沿用既有 harness):`render_product_renderer_family_shadow_toggle_scene`(开关 cast_shadows 两帧对拍)、`render_product_batching_static_scene_pixel_identical`(合批前后逐像素一致,draw 数下降)、`render_product_lod_transition_sequence`(拉远序列无 pop)。里程碑测试命令沿用正文(`cargo test -p zircon_runtime mesh|lod|renderer --locked`);切片期只 `cargo check -p zircon_runtime --lib --locked`(milestone-first)。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | RF-M1 RendererCommon baseline | 部分完成: extract 字段和若干公共语义存在,统一 renderer 基座未落地 | Mesh/sprite/particle extract 已能提供 layer、source entity、material、shadow/velocity 相关字段;计划 03/04/05/06 已在 GPUScene、visibility、shadow 和 velocity 中消费这些字段。 | 计划 03/04/05/06 状态表分别记录 source entity、GPUScene instance source、shadow caster filtering、particle/mesh velocity 相关证据。 | 建立 `RendererCommon` 组件/DTO,把 layer、sorting、material override、shadow、motion flags 收束到单一基座。 |
+| 2026-06-15 | RF-M2 batching policy execution | 部分完成: GPUScene/indirect 机制存在,renderer 级策略未定稿 | 计划 03 GS-M4 已有 indirect batcher、multi-draw replay 与 diagnostics;但本计划定义的 static/dynamic/instancing 策略组件面仍未落地。 | 计划 03 GS-M4 状态表记录 indirect stats、WGPU replay 与 `cargo check` 证据。 | 补 renderer batching policy、batching reason diagnostics 和 material/renderer override。 |
+| 2026-06-15 | RF-M3 LOD Group | 未启动: 仍停留在计划描述 | 当前只具备距离阈值式 LOD 描述,无屏占比、过渡或 LOD Group 资产。 | 本文件 `现状与差距` 明确 LOD 仅为距离阈值选 mesh。 | 实施 LODGroup asset、screen-size evaluation、cross-fade 与 renderer stats。 |
+| 2026-06-15 | RF-M4 custom renderer registry | 未启动: 仍缺注册入口 | 新增渲染器类型仍需改内建枚举,无插件/运行时 renderer 注册位。 | 本文件 `现状与差距` 明确 custom renderer 无注册位。 | 与计划 12 trail/projector/terrain 等消费者联动建立 renderer family registry。 |
+
 ### 参考实现精读笔记
 
 **`dev/UnrealEngine/.../Engine/Private/PrimitiveSceneProxy.cpp`**

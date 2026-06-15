@@ -7,6 +7,13 @@ related_code:
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/scene/world/project_io/physics.rs
+  - zircon_runtime/src/scene/world/project_io/post_process.rs
+  - zircon_runtime/src/scene/world/project_io/references.rs
+  - zircon_runtime/src/scene/world/project_io/script.rs
+  - zircon_runtime/src/scene/world/project_io/transform.rs
+  - docs/zircon_runtime/scene/world/project_io.md
   - zircon_runtime/src/scene/dynamic_scene/document.rs
   - zircon_runtime/src/scene/dynamic_scene/entity.rs
   - zircon_runtime/src/scene/dynamic_scene/scene.rs

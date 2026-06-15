@@ -7,6 +7,7 @@ mod bridge_lifecycle;
 mod bridge_methods;
 mod diagnostics;
 mod hot_reload;
+mod hot_update_application;
 mod keys;
 mod lifecycle;
 mod loading;
@@ -32,10 +33,11 @@ pub use reports::{
     NativePluginLiveHostBridgeLifecycleReport, NativePluginLiveHostBridgeReloadReport,
     NativePluginLiveHostCommand, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
-    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
-    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
-    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
-    NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeHotUpdateReport,
+    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
+    NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimeStateSnapshot, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
+    NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
 };
 #[cfg(test)]
 use runtime_behavior::{allow_missing_unload_callback_to_drop_handle, unload_behavior};

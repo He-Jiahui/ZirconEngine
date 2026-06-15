@@ -4,7 +4,7 @@ pub(crate) mod mesh_pass;
 mod mesh_pipeline;
 mod mesh_pipeline_cache;
 mod prepared_queue;
-pub(in crate::graphics::scene::scene_renderer) mod skinning;
+pub(in crate::graphics::scene) mod skinning;
 
 pub(crate) use build_mesh_draws::{build_mesh_draws, BuiltMeshDraws, IndexedIndirectArgs};
 pub(crate) use mesh_draw::MeshDraw;

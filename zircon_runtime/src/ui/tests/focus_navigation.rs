@@ -17,6 +17,7 @@ use zircon_runtime_interface::ui::{
     },
     surface::UiNavigationEventKind,
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
+    widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
 #[test]
@@ -417,6 +418,85 @@ fn mui_modal_open_autofocus_traps_navigation_and_restores_previous_focus() {
 }
 
 #[test]
+fn confirm_dialog_popup_open_autofocus_traps_navigation_and_restores_previous_focus() {
+    let mut surface =
+        mui_modal_component_surface("ConfirmDialog", "popup_open", false, false, false);
+    surface.focus_node(id(2)).unwrap();
+
+    let open_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(4)));
+    assert_eq!(open_report.focus_change.unwrap().current, Some(id(4)));
+    assert_eq!(surface.focus.modal_restore_stack.len(), 1);
+    assert_eq!(surface.focus.modal_restore_stack[0].restore, Some(id(2)));
+    assert_eq!(
+        surface
+            .tree
+            .node(id(3))
+            .unwrap()
+            .template_metadata
+            .as_ref()
+            .unwrap()
+            .widget
+            .resolved_behavior("ConfirmDialog"),
+        UiWidgetBehavior::Passive
+    );
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root/modal"]
+    );
+
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Next,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(5)));
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Next,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(4)));
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Previous,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(5)));
+
+    surface.focus_node(id(2)).unwrap();
+    assert_eq!(surface.focus.focused, Some(id(4)));
+
+    let close_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(false),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert_eq!(close_report.focus_change.unwrap().current, Some(id(2)));
+    assert!(surface.focus.modal_restore_stack.is_empty());
+    assert!(surface.input.popup_stack.is_empty());
+}
+
+#[test]
 fn mui_modal_focus_flags_can_disable_auto_enforce_and_restore() {
     let mut surface = mui_modal_surface(true, true, true);
     surface.focus_node(id(2)).unwrap();
@@ -444,6 +524,69 @@ fn mui_modal_focus_flags_can_disable_auto_enforce_and_restore() {
 
     assert_eq!(surface.focus.focused, None);
     assert!(surface.focus.modal_restore_stack.is_empty());
+}
+
+#[test]
+fn widget_popup_open_traps_focus_loop_and_restores_previous_focus() {
+    let mut surface = popup_focus_surface();
+    surface.focus_node(id(2)).unwrap();
+
+    let open_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(4)));
+    assert_eq!(open_report.focus_change.unwrap().current, Some(id(4)));
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root/popup"]
+    );
+
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Next,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(5)));
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Next,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(4)));
+    surface
+        .dispatch_navigation_event(
+            &UiNavigationDispatcher::default(),
+            UiNavigationEventKind::Previous,
+        )
+        .unwrap();
+    assert_eq!(surface.focus.focused, Some(id(5)));
+
+    surface.focus_node(id(2)).unwrap();
+    assert_eq!(surface.focus.focused, Some(id(4)));
+
+    let close_report = surface
+        .mutate_property(crate::ui::surface::UiPropertyMutationRequest::new(
+            id(3),
+            "popup_open",
+            UiValue::Bool(false),
+        ))
+        .unwrap();
+
+    assert_eq!(surface.focus.focused, Some(id(2)));
+    assert_eq!(close_report.focus_change.unwrap().current, Some(id(2)));
+    assert!(surface.input.popup_stack.is_empty());
 }
 
 fn focus_surface() -> UiSurface {
@@ -474,6 +617,22 @@ fn mui_modal_surface(
     disable_enforce_focus: bool,
     disable_restore_focus: bool,
 ) -> UiSurface {
+    mui_modal_component_surface(
+        "Modal",
+        "open",
+        disable_auto_focus,
+        disable_enforce_focus,
+        disable_restore_focus,
+    )
+}
+
+fn mui_modal_component_surface(
+    component: &str,
+    open_property: &str,
+    disable_auto_focus: bool,
+    disable_enforce_focus: bool,
+    disable_restore_focus: bool,
+) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.mui.modal.focus"));
     surface.tree.insert_root(root_node());
     surface
@@ -493,9 +652,9 @@ fn mui_modal_surface(
                     ..Default::default()
                 })
                 .with_template_metadata(UiTemplateNodeMetadata {
-                    component: "Modal".to_string(),
+                    component: component.to_string(),
                     attributes: [
-                        ("open".to_string(), toml::Value::Boolean(false)),
+                        (open_property.to_string(), toml::Value::Boolean(false)),
                         (
                             "disable_auto_focus".to_string(),
                             toml::Value::Boolean(disable_auto_focus),
@@ -511,6 +670,10 @@ fn mui_modal_surface(
                     ]
                     .into_iter()
                     .collect(),
+                    widget: UiWidgetContract {
+                        open_property: Some(open_property.to_string()),
+                        ..Default::default()
+                    },
                     ..Default::default()
                 }),
         )
@@ -522,6 +685,51 @@ fn mui_modal_surface(
     surface
         .tree
         .insert_child(id(3), focus_node(5, "modal/second", 56.0, 48.0))
+        .unwrap();
+    surface.rebuild();
+    surface
+}
+
+fn popup_focus_surface() -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.popup.focus.loop"));
+    surface.tree.insert_root(root_node());
+    surface
+        .tree
+        .insert_child(id(1), focus_node(2, "outside", 0.0, 0.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/popup"))
+                .with_frame(UiFrame::new(0.0, 40.0, 120.0, 72.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    ..Default::default()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "MenuPopup".to_string(),
+                    attributes: [("popup_open".to_string(), toml::Value::Boolean(false))]
+                        .into_iter()
+                        .collect(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Popup,
+                        open_property: Some("popup_open".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(id(3), focus_node(4, "popup/first", 0.0, 48.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(id(3), focus_node(5, "popup/second", 56.0, 48.0))
         .unwrap();
     surface.rebuild();
     surface

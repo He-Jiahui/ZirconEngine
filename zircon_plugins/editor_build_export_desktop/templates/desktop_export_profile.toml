@@ -1,0 +1,8 @@
+[export_profile]
+name = "windows-release"
+platform = "windows-x86_64"
+path = "library_embed"
+mode = "debug"
+plugins = []
+features = {}
+asset_filter = "shipping"

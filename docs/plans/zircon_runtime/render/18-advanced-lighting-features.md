@@ -2,7 +2,8 @@
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/graphics/feature/render_feature_descriptor/render_feature_descriptor.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mod.rs
@@ -374,6 +375,15 @@ WGSL include 只暴露函数与 struct(index §8.3):`zr_volumetric_apply(color, 
 | `render_advanced_extract_empty_keeps_graph_baseline` | `AdvancedLightingExtract` 全空时 compiled graph == 基线 |
 
 产物对拍(`render_product_advanced_lighting.rs`,配 `ZR_RENDERDOC_CAPTURE_NEXT=1`):光柱窗口场景(对照 UE)、三 cookie 投影、clearcoat/aniso/玻璃三球、三层交叉透明 OIT vs 排序、volume 内外漫反射、镜面地板、皮肤球 SSS 开关;每项含 feature-off 回归基线断言。里程碑命令:切片期 `cargo check -p zircon_runtime --lib --locked`;测试阶段 `cargo test -p zircon_runtime advanced_lighting --locked`、`cargo test -p zircon_runtime render_product_advanced_lighting --locked`;插件接缝 `cargo test --manifest-path zircon_plugins/Cargo.toml -p <rendering 受影响 crate> --locked`。
+
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | AF-M1 material feature family | 未启动: 依赖计划 08 shading model registry | clearcoat、anisotropy、transmission 和 SSS 所需材质参数、G-buffer 位与 shading model 仍未落地。 | 本文件 `现状与差距` 明确 StandardPBR 不含这些参数,计划 08 MS-M3 状态表也标为未启动。 | 先完成计划 08 的 shading model registry、G-buffer packing 与材质资产验证。 |
+| 2026-06-15 | AF-M2 light cookies and irradiance volumes | 未启动: 依赖 05/11/13 | `GpuLightData` 尚无 cookie 槽位,计划 11 的 probe/lightmap 仍未完整,texture array/cubemap 资产也未完成;irradiance volumes 仍是后续设计。 | 本文件 `现状与差距` 记录 light cookies 和 irradiance volumes 缺口;计划 05/11/13 状态表分别记录相关基础仍有后续项。 | 扩展 light data ABI、cookie texture binding、local irradiance volume asset 和 sampling path。 |
+| 2026-06-15 | AF-M3 froxel volumetric fog and lighting | 未启动: 依赖 light grid/history/post/compute 地基 | 体积介质、froxel volume、volumetric shadowing 和 temporal reprojection 均未实现。 | 本文件 `现状与差距` 明确计划 11 只有解析雾、计划 07 只有 screen-space fog 槽位,不与 light grid/shadow 交互。 | 等计划 05/06/07/16 稳定后实施 froxel grid、lighting injection、history filter 和 composite pass。 |
+| 2026-06-15 | AF-M4 OIT, planar reflection and SSS | 未启动: 重型可选项待核心排序/G-buffer 完成 | OIT、planar reflection、Burley SSS 都无实现;当前透明仍依赖排序,反射探针为 cubemap 思路,无实时平面反射。 | 本文件 `现状与差距` 分别记录 OIT、planar reflection、SSS 空缺;计划 09 CO-M3 和计划 08 MS-M3 尚未完成。 | 等 camera/render queue、advanced material G-buffer 和 texture/cubemap 地基完成后分切片实施。 |
 
 ### 参考实现精读笔记
 

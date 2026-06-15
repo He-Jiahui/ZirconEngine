@@ -98,8 +98,9 @@ impl UiWidgetBehavior {
             "RadioGroup" | "ButtonGroup" => Self::RadioGroup,
             "Radio" | "RadioButton" => Self::Radio,
             "Group" | "Foldout" | "InspectorSection" | "TreeRow" | "TreeView" => Self::Disclosure,
-            "Dropdown" | "ComboBox" | "EnumField" | "FlagsField" | "SearchSelect"
-            | "ContextActionMenu" | "Popup" => Self::Popup,
+            "Dropdown" | "ComboBox" | "EnumField" | "FlagsField" | "SearchSelect" | "Menu"
+            | "PopupMenu" | "MenuPopup" | "ContextMenu" | "ContextActionMenu" | "DropdownPopup"
+            | "Popup" => Self::Popup,
             "RangeField" | "Slider" | "RangeSlider" => Self::Range,
             "Scrollbar" | "ScrollBar" | "ScrollBarTrack" => Self::Scrollbar,
             "ScrollbarThumb" | "ScrollThumb" | "ScrollBarThumb" => Self::ScrollbarThumb,

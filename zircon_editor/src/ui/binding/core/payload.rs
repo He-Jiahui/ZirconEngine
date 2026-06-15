@@ -13,6 +13,9 @@ pub enum EditorUiBindingPayload {
     MenuAction {
         action_id: String,
     },
+    EditorCommand {
+        command_id: String,
+    },
     EditorOperation {
         operation_id: String,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::ui::template_runtime::UiComponentShowcaseDemoEventInput;
 use zircon_runtime_interface::ui::component::{UiDragPayload, UiDragPayloadKind, UiValue};
 
@@ -108,6 +110,9 @@ pub(super) fn demo_input_for_showcase_action(
         action if action_matches(action, "number_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(47.0))
         }
+        action if action_matches(action, "range_field_drag_update") => {
+            UiComponentShowcaseDemoEventInput::DragDelta(5.0)
+        }
         action if action_matches(action, "range_field_changed") => {
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(72.0))
         }
@@ -143,6 +148,20 @@ pub(super) fn demo_input_for_showcase_action(
         action if action_matches(action, "segmented_control_changed") => {
             select_option("rotate", true)
         }
+        action if action_matches(action, "tab_changed") => select_option("scene", true),
+        action if action_matches(action, "tab_strip_changed") => select_option("assets", true),
+        action if action_matches(action, "slider_drag_update") => {
+            UiComponentShowcaseDemoEventInput::DragDelta(5.0)
+        }
+        action if action_matches(action, "slider_changed") => {
+            UiComponentShowcaseDemoEventInput::Value(UiValue::Float(47.0))
+        }
+        action if action_matches(action, "range_slider_drag_update") => {
+            UiComponentShowcaseDemoEventInput::DragDelta(5.0)
+        }
+        action if action_matches(action, "range_slider_changed") => {
+            UiComponentShowcaseDemoEventInput::Value(UiValue::Float(78.0))
+        }
         action if action_matches(action, "dropdown_changed") => select_option("editor", true),
         action if action_matches(action, "combo_box_changed") => select_option("native", true),
         action if action_matches(action, "enum_field_changed") => {
@@ -168,6 +187,12 @@ pub(super) fn demo_input_for_showcase_action(
                     "res://materials/runtime_demo.mat",
                 ),
             }
+        }
+        action if action_matches(action, "asset_field_drop_hovered") => {
+            UiComponentShowcaseDemoEventInput::DropHover(true)
+        }
+        action if action_matches(action, "asset_field_active_drag_target") => {
+            UiComponentShowcaseDemoEventInput::ActiveDragTarget(true)
         }
         action
             if action_matches_binding_suffix(action, ASSET_FIELD_CLEAR_BINDING_SUFFIX)
@@ -204,6 +229,9 @@ pub(super) fn demo_input_for_showcase_action(
         action if action_matches(action, "tree_row_toggled") => {
             UiComponentShowcaseDemoEventInput::Toggle(false)
         }
+        action if action_matches(action, "array_field_changed") => {
+            UiComponentShowcaseDemoEventInput::Value(demo_array_field_value())
+        }
         action if action_matches(action, "array_field_add_element") => {
             UiComponentShowcaseDemoEventInput::AddElement {
                 value: UiValue::String("MapField".to_string()),
@@ -221,6 +249,9 @@ pub(super) fn demo_input_for_showcase_action(
         action if action_matches(action, "array_field_move_element") => {
             UiComponentShowcaseDemoEventInput::MoveElement { from: 0, to: 1 }
         }
+        action if action_matches(action, "map_field_changed") => {
+            UiComponentShowcaseDemoEventInput::Value(demo_map_field_value())
+        }
         action if action_matches(action, "map_field_add_entry") => {
             UiComponentShowcaseDemoEventInput::AddMapEntry {
                 key: "layer".to_string(),
@@ -237,6 +268,12 @@ pub(super) fn demo_input_for_showcase_action(
             UiComponentShowcaseDemoEventInput::RemoveMapEntry {
                 key: "speed".to_string(),
             }
+        }
+        action if action_matches(action, "list_row_hovered") => {
+            UiComponentShowcaseDemoEventInput::Hover(true)
+        }
+        action if action_matches(action, "list_row_pressed") => {
+            UiComponentShowcaseDemoEventInput::Press(true)
         }
         action if action_matches(action, "list_row_clicked") => {
             UiComponentShowcaseDemoEventInput::None
@@ -320,6 +357,21 @@ fn parse_collection_edit_value(value: &str) -> UiValue {
         .parse::<f64>()
         .map(UiValue::Float)
         .unwrap_or_else(|_| UiValue::String(value.to_string()))
+}
+
+fn demo_array_field_value() -> UiValue {
+    UiValue::Array(vec![
+        UiValue::String("Label".to_string()),
+        UiValue::String("Transform".to_string()),
+        UiValue::String("Material".to_string()),
+    ])
+}
+
+fn demo_map_field_value() -> UiValue {
+    let mut entries = BTreeMap::new();
+    entries.insert("speed".to_string(), UiValue::Float(2.5));
+    entries.insert("visible".to_string(), UiValue::Bool(false));
+    UiValue::Map(entries)
 }
 
 fn parse_popup_anchor(value: &str) -> Option<(f64, f64)> {
@@ -533,6 +585,61 @@ mod tests {
                 page_index: 2,
                 page_size: DEFAULT_PAGED_LIST_PAGE_SIZE,
             }
+        );
+    }
+
+    #[test]
+    fn showcase_action_input_maps_transient_bool_events() {
+        assert_eq!(
+            demo_input_for_showcase_action("ListRowDemo", "ui_component_showcase.list_row_hovered"),
+            UiComponentShowcaseDemoEventInput::Hover(true)
+        );
+        assert_eq!(
+            demo_input_for_showcase_action("ListRowDemo", "ui_component_showcase.list_row_pressed"),
+            UiComponentShowcaseDemoEventInput::Press(true)
+        );
+        assert_eq!(
+            demo_input_for_showcase_action(
+                "AssetFieldDemo",
+                "ui_component_showcase.asset_field_drop_hovered",
+            ),
+            UiComponentShowcaseDemoEventInput::DropHover(true)
+        );
+        assert_eq!(
+            demo_input_for_showcase_action(
+                "AssetFieldDemo",
+                "ui_component_showcase.asset_field_active_drag_target",
+            ),
+            UiComponentShowcaseDemoEventInput::ActiveDragTarget(true)
+        );
+    }
+
+    #[test]
+    fn showcase_action_input_maps_collection_value_changes() {
+        assert_eq!(
+            demo_input_for_showcase_action(
+                "ArrayFieldDemo",
+                "ui_component_showcase.array_field_changed",
+            ),
+            UiComponentShowcaseDemoEventInput::Value(demo_array_field_value())
+        );
+        assert_eq!(
+            demo_input_for_showcase_action(
+                "MapFieldDemo",
+                "ui_component_showcase.map_field_changed"
+            ),
+            UiComponentShowcaseDemoEventInput::Value(demo_map_field_value())
+        );
+    }
+
+    #[test]
+    fn showcase_action_input_maps_range_field_drag_delta() {
+        assert_eq!(
+            demo_input_for_showcase_action(
+                "RangeFieldDemo",
+                "ui_component_showcase.range_field_drag_update",
+            ),
+            UiComponentShowcaseDemoEventInput::DragDelta(5.0)
         );
     }
 }

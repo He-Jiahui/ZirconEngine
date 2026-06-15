@@ -107,6 +107,26 @@ events = [
   { id = "UiComponentShowcase/SegmentedControlChanged", event = "Change", route = "component_lab.showcase.select_option.segmented_control" },
 ]
 
+[nodes.tab_demo]
+component = "Tab"
+control_id = "TabDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Scene", label = "Scene", value = "scene", selected = true, focused = true, hovered = false, pressed = false, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TabChanged", event = "Change", route = "component_lab.showcase.select_option.tab" },
+]
+
+[nodes.tab_strip_demo]
+component = "Tabs"
+control_id = "TabStripDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "scene", options = ["scene", "assets", "console"], selected_index = 0, focused_index = 1, hovered_options = ["assets"], disabled_options = ["console"], variant = "standard", orientation = "horizontal", selection_follows_focus = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TabStripChanged", event = "Change", route = "component_lab.showcase.select_option.tab_strip" },
+]
+
 [nodes.text_field_demo]
 component = "InputField"
 control_id = "InputFieldDemo"
@@ -154,6 +174,28 @@ events = [
   { id = "UiComponentShowcase/RangeFieldDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.range_field" },
   { id = "UiComponentShowcase/RangeFieldChanged", event = "Change", route = "component_lab.showcase.value_changed.range_field" },
   { id = "UiComponentShowcase/RangeFieldCommitted", event = "Submit", route = "component_lab.showcase.commit.range_field" },
+]
+
+[nodes.slider_demo]
+component = "Slider"
+control_id = "SliderDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, value_percent = 0.42, show_value_label = true, hovered = true, pressed = false, focused = true, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SliderDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.slider" },
+  { id = "UiComponentShowcase/SliderChanged", event = "Change", route = "component_lab.showcase.value_changed.slider" },
+]
+
+[nodes.range_slider_demo]
+component = "RangeSlider"
+control_id = "RangeSliderDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = 72.0, range_min = 28.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, value_percent = 0.72, range_min_percent = 0.28, focused_thumb = "upper", disable_swap = true, show_value_label = true, hovered = false, pressed = true, focused = true, disabled = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/RangeSliderDragUpdate", event = "DragUpdate", route = "component_lab.showcase.drag_delta.range_slider" },
+  { id = "UiComponentShowcase/RangeSliderChanged", event = "Change", route = "component_lab.showcase.value_changed.range_slider" },
 ]
 
 [nodes.color_field_demo]
@@ -211,10 +253,14 @@ children = [
   { node = "checkbox_demo", slot = { name = "content" } },
   { node = "radio_demo", slot = { name = "content" } },
   { node = "segmented_control_demo", slot = { name = "content" } },
+  { node = "tab_demo", slot = { name = "content" } },
+  { node = "tab_strip_demo", slot = { name = "content" } },
   { node = "text_field_demo", slot = { name = "content" } },
   { node = "text_area_demo", slot = { name = "content" } },
   { node = "number_field_demo", slot = { name = "content" } },
   { node = "range_field_demo", slot = { name = "content" } },
+  { node = "slider_demo", slot = { name = "content" } },
+  { node = "range_slider_demo", slot = { name = "content" } },
   { node = "color_field_demo", slot = { name = "content" } },
   { node = "vector2_field_demo", slot = { name = "content" } },
   { node = "vector3_field_demo", slot = { name = "content" } },

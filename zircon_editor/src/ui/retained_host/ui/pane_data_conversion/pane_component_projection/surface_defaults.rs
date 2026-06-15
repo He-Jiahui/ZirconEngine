@@ -82,6 +82,10 @@ pub(super) fn projected_component_variant(
         append_alert_variant_tokens(attributes, &mut variant);
     }
 
+    if matches!(component_role, "dialog" | "confirm-dialog" | "alert-dialog") {
+        append_dialog_variant_tokens(attributes, component_role, &mut variant);
+    }
+
     if component_role == "chip" {
         append_chip_variant_tokens(attributes, &mut variant);
     }
@@ -292,6 +296,47 @@ fn alert_has_action(attributes: &std::collections::BTreeMap<String, toml::Value>
 
 fn alert_has_close_action(attributes: &std::collections::BTreeMap<String, toml::Value>) -> bool {
     has_non_empty_attribute(attributes, &["onClose", "on_close"])
+}
+
+fn append_dialog_variant_tokens(
+    attributes: &std::collections::BTreeMap<String, toml::Value>,
+    component_role: &str,
+    variant: &mut String,
+) {
+    if component_role == "dialog" {
+        if has_non_empty_attribute(
+            attributes,
+            &[
+                "action",
+                "primary_action_text",
+                "confirm_text",
+                "close_text",
+            ],
+        ) {
+            append_variant_token(variant, "hasAction");
+        }
+        return;
+    }
+
+    let severity = dialog_severity(attributes);
+    append_variant_token(variant, &severity);
+    append_variant_token(variant, &format!("color{}", pascal_case(&severity)));
+    append_variant_token(variant, "hasAction");
+    if attributes
+        .get("destructive")
+        .and_then(value_as_bool)
+        .unwrap_or(false)
+    {
+        append_variant_token(variant, "destructive");
+    }
+    if attributes
+        .get("confirm_enabled")
+        .or_else(|| attributes.get("confirmEnabled"))
+        .and_then(value_as_bool)
+        == Some(false)
+    {
+        append_variant_token(variant, "confirmDisabled");
+    }
 }
 
 fn append_chip_variant_tokens(
@@ -514,7 +559,9 @@ fn default_mui_surface_variant(
         {
             "paper-outlined".to_string()
         }
-        "paper" | "dialog" | "alert-dialog" | "popover" | "menu" => "popup".to_string(),
+        "paper" | "dialog" | "confirm-dialog" | "alert-dialog" | "popover" | "menu" => {
+            "popup".to_string()
+        }
         "drawer" => "paper".to_string(),
         _ => String::new(),
     }
@@ -563,8 +610,8 @@ pub(super) fn projected_corner_radius(
                 0.0
             }
             "alert" => 4.0,
-            "card" | "paper" | "dialog" | "alert-dialog" | "popover" | "menu" | "tooltip"
-            | "snackbar" | "snackbar-content" => 4.0,
+            "card" | "paper" | "dialog" | "confirm-dialog" | "alert-dialog" | "popover"
+            | "menu" | "tooltip" | "snackbar" | "snackbar-content" => 4.0,
             "app-bar" => 0.0,
             "drawer" => 0.0,
             _ => 0.0,
@@ -588,6 +635,8 @@ pub(super) fn projected_border_width(
                     .split_whitespace()
                     .any(|part| part == "outlined")
             {
+                1.0
+            } else if matches!(component_role, "dialog" | "confirm-dialog" | "alert-dialog") {
                 1.0
             } else {
                 0.0
@@ -645,7 +694,7 @@ fn default_mui_elevation(
         }
         "card" => 1.0,
         "paper" => 1.0,
-        "dialog" | "alert-dialog" => 24.0,
+        "dialog" | "confirm-dialog" | "alert-dialog" => 24.0,
         "popover" | "menu" => 8.0,
         "snackbar" | "snackbar-content" => 6.0,
         "drawer" => 16.0,
@@ -672,6 +721,9 @@ pub(super) fn projected_validation_level(
     if component_role == "alert" {
         return alert_color_severity(attributes);
     }
+    if matches!(component_role, "confirm-dialog" | "alert-dialog") {
+        return dialog_severity(attributes);
+    }
     if has_component_descriptor {
         "normal".to_string()
     } else {
@@ -691,6 +743,14 @@ fn alert_color_severity(attributes: &std::collections::BTreeMap<String, toml::Va
                 .filter(|severity| !severity.is_empty())
         })
         .unwrap_or_else(|| MUI_ALERT_DEFAULT_SEVERITY.to_string())
+}
+
+fn dialog_severity(attributes: &std::collections::BTreeMap<String, toml::Value>) -> String {
+    attributes
+        .get("severity")
+        .and_then(value_as_string)
+        .filter(|severity| !severity.is_empty())
+        .unwrap_or_else(|| "warning".to_string())
 }
 
 fn app_bar_color(attributes: &std::collections::BTreeMap<String, toml::Value>) -> String {
@@ -724,7 +784,9 @@ fn default_mui_z_index(component_role: &str) -> i32 {
         // MUI Backdrop is normally nested under Modal; in the retained host it is a sibling,
         // so keep it immediately under modal surfaces while preserving the same global layer.
         "backdrop" => MUI_Z_INDEX_MODAL - 1,
-        "modal" | "dialog" | "alert-dialog" | "popover" | "popper" | "menu" => MUI_Z_INDEX_MODAL,
+        "modal" | "dialog" | "confirm-dialog" | "alert-dialog" | "popover" | "popper" | "menu" => {
+            MUI_Z_INDEX_MODAL
+        }
         "snackbar" | "snackbar-content" => MUI_Z_INDEX_SNACKBAR,
         "tooltip" => MUI_Z_INDEX_TOOLTIP,
         _ => 0,

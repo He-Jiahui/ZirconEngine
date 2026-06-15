@@ -5,8 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::asset::{AssetUri, ProjectManifest};
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportTargetPlatform, plugin::ExportValidateReport, plugin::NativePluginLoadManifest,
+    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, RuntimePluginId,
+    RuntimeTargetMode,
 };
 
 #[test]
@@ -64,10 +65,132 @@ fn native_dynamic_generates_loader_manifest_without_source_template() {
     assert!(native_manifest.contains("id = \"sound\""));
     assert!(native_manifest.contains("path = \"plugins/sound\""));
     assert!(native_manifest.contains("manifest = \"plugins/sound/plugin.toml\""));
+    assert!(
+        native_manifest.contains("package_report = \"plugins/sound/native_dynamic_package.toml\"")
+    );
+    assert!(native_manifest.contains("[plugins.abi]"));
+    assert!(native_manifest.contains("abi_version = 3"));
+    assert!(native_manifest.contains("descriptor_symbol = \"zircon_native_plugin_descriptor_v3\""));
+    assert!(native_manifest.contains("descriptor_contract = \"NativePluginAbiV3\""));
+    assert!(
+        native_manifest.contains("runtime_entry_source = \"NativePluginAbiV3.runtime_entry_name\"")
+    );
+    assert!(
+        native_manifest.contains("editor_entry_source = \"NativePluginAbiV3.editor_entry_name\"")
+    );
+    assert!(native_manifest.contains("host_function_table = \"NativePluginHostFunctionTableV3\""));
+    assert!(native_manifest.contains("entry_report_contract = \"NativePluginEntryReportV3\""));
+    assert!(native_manifest.contains("behavior_contract = \"NativePluginBehaviorV3\""));
+    assert!(native_manifest
+        .contains("state_snapshot_contract = \"NativePluginBehaviorV3.save_state/restore_state\""));
+    assert!(native_manifest.contains("bridge_method_table = \"NativePluginBridgeMethodTableV3\""));
+    assert_eq!(plan.native_dynamic_package_exports.len(), 1);
+    assert_eq!(plan.native_dynamic_package_exports[0].package_id, "sound");
+    assert_eq!(plan.native_dynamic_package_exports[0].directory, "sound");
+    assert_eq!(plan.native_dynamic_package_exports[0].path, "plugins/sound");
+    assert_eq!(
+        plan.native_dynamic_package_exports[0].manifest,
+        "plugins/sound/plugin.toml"
+    );
+    assert_eq!(plan.native_dynamic_package_exports[0].abi.abi_version, 3);
     assert!(plan
         .generated_files
         .iter()
         .all(|file| file.path != "Cargo.toml"));
+}
+
+#[test]
+fn validate_report_exposes_native_dynamic_abi_v3_package_exports() {
+    let plan = native_dynamic_plan();
+    let report = ExportValidateReport::from_build_plan(
+        "zircon-project.toml",
+        Some("stages/validate".to_string()),
+        &plan,
+    );
+    let summary = report.plan_summary.expect("validate report plan summary");
+
+    assert_eq!(summary.native_dynamic_packages, vec!["sound".to_string()]);
+    assert_eq!(summary.native_dynamic_package_exports.len(), 1);
+    let package = &summary.native_dynamic_package_exports[0];
+    assert_eq!(package.package_id, "sound");
+    assert_eq!(package.path, "plugins/sound");
+    assert_eq!(package.manifest, "plugins/sound/plugin.toml");
+    assert_eq!(package.abi.abi_version, 3);
+    assert_eq!(
+        package.abi.bridge_method_table,
+        "NativePluginBridgeMethodTableV3"
+    );
+}
+
+#[test]
+fn native_dynamic_only_profile_carries_minimal_compile_host_plan() {
+    let plan = native_dynamic_plan();
+    let compile_host = plan
+        .library_embed_compile_host
+        .as_ref()
+        .expect("NativeDynamic-only export should still compile a minimal runtime host");
+
+    assert_eq!(compile_host.package, "zircon_app");
+    assert_eq!(compile_host.binary, "zircon_runtime");
+    assert_eq!(compile_host.app_features, ["target-client"]);
+    assert_eq!(compile_host.runtime_features, ["target-client"]);
+    assert_eq!(compile_host.expected_runtime_plugins, ["sound"]);
+    assert!(compile_host.linked_runtime_crates.is_empty());
+    assert!(compile_host
+        .command
+        .contains(&"--no-default-features".to_string()));
+    assert!(compile_host.command.contains(&"--features".to_string()));
+    assert!(compile_host.command.contains(&"target-client".to_string()));
+
+    let report = ExportValidateReport::from_build_plan(
+        "zircon-project.toml",
+        Some("stages/validate".to_string()),
+        &plan,
+    );
+    let compile_host_report = report
+        .plan_summary
+        .expect("validate report should include plan summary")
+        .library_embed_compile_host
+        .expect("validate report should expose NativeDynamic minimal CompileHost plan");
+
+    assert_eq!(compile_host_report.command, compile_host.command);
+    assert!(compile_host_report.linked_runtime_crates.is_empty());
+}
+
+#[test]
+fn loader_manifest_deserializes_abi_v3_contract_fields() {
+    let plan = native_dynamic_plan();
+    let native_manifest = generated_file(&plan, "plugins/native_plugins.toml");
+    let load_manifest: NativePluginLoadManifest =
+        toml::from_str(native_manifest).expect("native manifest should parse");
+
+    assert_eq!(load_manifest.plugins.len(), 1);
+    let plugin = &load_manifest.plugins[0];
+    assert_eq!(plugin.id, "sound");
+    assert_eq!(
+        plugin.package_report.as_deref(),
+        Some("plugins/sound/native_dynamic_package.toml")
+    );
+    let abi = plugin.abi.as_ref().expect("ABI v3 contract");
+    assert_eq!(abi.abi_version, 3);
+    assert_eq!(abi.descriptor_symbol, "zircon_native_plugin_descriptor_v3");
+    assert_eq!(abi.descriptor_contract, "NativePluginAbiV3");
+    assert_eq!(
+        abi.runtime_entry_source,
+        "NativePluginAbiV3.runtime_entry_name"
+    );
+    assert_eq!(
+        abi.editor_entry_source,
+        "NativePluginAbiV3.editor_entry_name"
+    );
+    assert_eq!(abi.host_function_table, "NativePluginHostFunctionTableV3");
+    assert_eq!(abi.entry_report_contract, "NativePluginEntryReportV3");
+    assert_eq!(abi.behavior_contract, "NativePluginBehaviorV3");
+    assert_eq!(
+        abi.state_snapshot_contract,
+        "NativePluginBehaviorV3.save_state/restore_state"
+    );
+    assert_eq!(abi.bridge_method_table, "NativePluginBridgeMethodTableV3");
 }
 
 #[test]
@@ -111,6 +234,14 @@ fn native_dynamic_materialization_copies_runtime_package_without_source_crates()
     assert!(copied.join("plugin.toml").exists());
     assert!(copied.join("native/sound.dll").exists());
     assert!(copied.join("assets/material.toml").exists());
+    let package_report = fs::read_to_string(copied.join("native_dynamic_package.toml")).unwrap();
+    assert!(package_report.contains("format_version = 1"));
+    assert!(package_report.contains("package_id = \"sound\""));
+    assert!(package_report.contains("path = \"plugins/sound\""));
+    assert!(package_report.contains("[abi]"));
+    assert!(package_report.contains("abi_version = 3"));
+    assert!(package_report.contains("descriptor_symbol = \"zircon_native_plugin_descriptor_v3\""));
+    assert!(package_report.contains("bridge_method_table = \"NativePluginBridgeMethodTableV3\""));
     assert!(!copied.join("runtime/Cargo.toml").exists());
     assert!(!copied.join("runtime/src/lib.rs").exists());
     assert!(!copied.join("editor/src/lib.rs").exists());

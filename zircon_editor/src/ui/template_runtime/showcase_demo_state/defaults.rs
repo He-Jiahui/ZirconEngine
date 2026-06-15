@@ -1,19 +1,36 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime_interface::ui::component::{UiComponentState, UiValue};
+use zircon_runtime_interface::ui::component::{
+    UiComponentState, UiValidationLevel, UiValidationState, UiValue,
+};
 
 pub(super) fn component_id_for_control(control_id: &str) -> Option<&'static str> {
     match control_id {
-        "ButtonDemo" => Some("Button"),
+        "LabelDemo" => Some("Label"),
+        "RichLabelDemo" => Some("RichLabel"),
+        "ImageDemo" => Some("Image"),
+        "IconDemo" => Some("Icon"),
+        "SvgIconDemo" => Some("SvgIcon"),
+        "SeparatorDemo" => Some("Separator"),
+        "ProgressBarDemo" => Some("ProgressBar"),
+        "SpinnerDemo" => Some("Spinner"),
+        "BadgeDemo" => Some("Badge"),
+        "HelpRowDemo" => Some("HelpRow"),
+        "ButtonDemo" | "ButtonOutlinedDemo" | "ButtonTextDemo" | "ButtonDangerDemo"
+        | "ButtonDisabledDemo" => Some("Button"),
         "IconButtonDemo" => Some("IconButton"),
         "ToggleButtonDemo" => Some("ToggleButton"),
         "CheckboxDemo" => Some("Checkbox"),
         "RadioDemo" => Some("Radio"),
         "SegmentedControlDemo" => Some("SegmentedControl"),
+        "TabDemo" => Some("Tab"),
+        "TabStripDemo" => Some("Tabs"),
         "InputFieldDemo" => Some("InputField"),
         "TextFieldDemo" => Some("TextField"),
         "NumberFieldDemo" => Some("NumberField"),
         "RangeFieldDemo" => Some("RangeField"),
+        "SliderDemo" => Some("Slider"),
+        "RangeSliderDemo" => Some("RangeSlider"),
         "ColorFieldDemo" => Some("ColorField"),
         "Vector2FieldDemo" => Some("Vector2Field"),
         "Vector3FieldDemo" => Some("Vector3Field"),
@@ -23,6 +40,13 @@ pub(super) fn component_id_for_control(control_id: &str) -> Option<&'static str>
         "EnumFieldDemo" => Some("EnumField"),
         "FlagsFieldDemo" => Some("FlagsField"),
         "SearchSelectDemo" => Some("SearchSelect"),
+        "ContextMenuDemo" => Some("ContextMenu"),
+        "DropdownPopupDemo" => Some("DropdownPopup"),
+        "SkeletonDemo" => Some("Skeleton"),
+        "DialogDemo" => Some("Dialog"),
+        "ConfirmDialogDemo" => Some("ConfirmDialog"),
+        "CommandPaletteDemo" => Some("CommandPalette"),
+        "NotificationCenterDemo" => Some("NotificationCenter"),
         "AssetFieldDemo" => Some("AssetField"),
         "InstanceFieldDemo" => Some("InstanceField"),
         "ObjectFieldDemo" => Some("ObjectField"),
@@ -33,6 +57,7 @@ pub(super) fn component_id_for_control(control_id: &str) -> Option<&'static str>
         "ArrayFieldDemo" => Some("ArrayField"),
         "MapFieldDemo" => Some("MapField"),
         "ListRowDemo" => Some("ListRow"),
+        "TableRowDemo" => Some("TableRow"),
         "VirtualListDemo" => Some("VirtualList"),
         "PagedListDemo" => Some("PagedList"),
         "WorldSpaceSurfaceDemo" => Some("WorldSpaceSurface"),
@@ -46,6 +71,15 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
     match control_id {
         "NumberFieldDemo" => UiComponentState::new().with_value("value", UiValue::Float(42.0)),
         "RangeFieldDemo" => UiComponentState::new().with_value("value", UiValue::Float(68.0)),
+        "SliderDemo" => UiComponentState::new()
+            .with_value("value", UiValue::Float(42.0))
+            .with_value("value_percent", UiValue::Float(0.42)),
+        "RangeSliderDemo" => UiComponentState::new()
+            .with_value("value", UiValue::Float(72.0))
+            .with_value("range_min", UiValue::Float(28.0))
+            .with_value("value_percent", UiValue::Float(0.72))
+            .with_value("range_min_percent", UiValue::Float(0.28))
+            .with_value("focused_thumb", UiValue::Enum("upper".to_string())),
         "ColorFieldDemo" => {
             UiComponentState::new().with_value("value", UiValue::Color("#4d89ff".to_string()))
         }
@@ -78,6 +112,144 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
         "SearchSelectDemo" => UiComponentState::new()
             .with_value("value", UiValue::Enum("runtime.ui.NumberField".to_string()))
             .with_value("query", UiValue::String("number".to_string())),
+        "DialogDemo" => UiComponentState::new()
+            .with_value("open", UiValue::Bool(true))
+            .with_value("popup_open", UiValue::Bool(true))
+            .with_value("title", UiValue::String("Scene Settings".to_string()))
+            .with_value(
+                "message",
+                UiValue::String("Review scene-level settings before applying them.".to_string()),
+            )
+            .with_value("action", UiValue::String("Apply".to_string())),
+        "ConfirmDialogDemo" => {
+            let mut state = UiComponentState::new()
+                .with_value("open", UiValue::Bool(true))
+                .with_value("popup_open", UiValue::Bool(true))
+                .with_value(
+                    "title",
+                    UiValue::String("Delete selected prefab?".to_string()),
+                )
+                .with_value(
+                    "message",
+                    UiValue::String(
+                        "This removes the prefab reference from the scene.".to_string(),
+                    ),
+                )
+                .with_value("confirm_text", UiValue::String("Delete".to_string()))
+                .with_value("cancel_text", UiValue::String("Cancel".to_string()))
+                .with_value("severity", UiValue::String("error".to_string()))
+                .with_value("validation_level", UiValue::String("error".to_string()))
+                .with_value("destructive", UiValue::Bool(true))
+                .with_value("confirm_enabled", UiValue::Bool(false));
+            state.validation = UiValidationState {
+                level: UiValidationLevel::Error,
+                message: None,
+            };
+            state
+        }
+        "CommandPaletteDemo" => UiComponentState::new()
+            .with_value("open", UiValue::Bool(true))
+            .with_value("popup_open", UiValue::Bool(true))
+            .with_value("query", UiValue::String("build".to_string()))
+            .with_value(
+                "placeholder",
+                UiValue::String("Search commands".to_string()),
+            )
+            .with_value("command_source", UiValue::String("workbench".to_string()))
+            .with_value(
+                "commands",
+                UiValue::Array(vec![
+                    command_palette_command(
+                        "open_scene",
+                        "Open Scene",
+                        "workbench",
+                        "Ctrl+O",
+                        false,
+                    ),
+                    command_palette_command(
+                        "build_project",
+                        "Build Project",
+                        "workbench",
+                        "Ctrl+B",
+                        false,
+                    ),
+                    command_palette_command(
+                        "build_assets",
+                        "Build Assets",
+                        "workbench",
+                        "Ctrl+Shift+B",
+                        true,
+                    ),
+                    command_palette_command(
+                        "reload_runtime",
+                        "Reload Runtime",
+                        "runtime",
+                        "Ctrl+R",
+                        false,
+                    ),
+                ]),
+            )
+            .with_value(
+                "filtered_commands",
+                UiValue::Array(vec![
+                    UiValue::String("build_project".to_string()),
+                    UiValue::String("build_assets".to_string()),
+                ]),
+            )
+            .with_value(
+                "disabled_commands",
+                UiValue::Array(vec![UiValue::String("build_assets".to_string())]),
+            )
+            .with_value(
+                "selected_command_id",
+                UiValue::String("build_project".to_string()),
+            )
+            .with_value("focused_index", UiValue::Int(0)),
+        "NotificationCenterDemo" => UiComponentState::new()
+            .with_value("open", UiValue::Bool(true))
+            .with_value("popup_open", UiValue::Bool(true))
+            .with_value("title", UiValue::String("Notifications".to_string()))
+            .with_value(
+                "empty_text",
+                UiValue::String("No notifications".to_string()),
+            )
+            .with_value("visible_limit", UiValue::Int(2))
+            .with_value("unread_count", UiValue::Int(2))
+            .with_value("keyboard_navigation", UiValue::Bool(true))
+            .with_value(
+                "selected_notification_id",
+                UiValue::String("build".to_string()),
+            )
+            .with_value("focused_index", UiValue::Int(1))
+            .with_value(
+                "notifications",
+                UiValue::Array(vec![
+                    notification_center_notification(
+                        "build",
+                        "Build failed",
+                        "Shader compile error",
+                        "error",
+                        true,
+                        false,
+                    ),
+                    notification_center_notification(
+                        "asset",
+                        "Asset import complete",
+                        "StoneWall.mesh ready",
+                        "success",
+                        true,
+                        false,
+                    ),
+                    notification_center_notification(
+                        "source",
+                        "Source control synced",
+                        "No local conflicts",
+                        "info",
+                        false,
+                        true,
+                    ),
+                ]),
+            ),
         "AssetFieldDemo" => UiComponentState::new().with_value(
             "value",
             UiValue::AssetRef("res://textures/grid.albedo.png".to_string()),
@@ -115,6 +287,9 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
             UiComponentState::new().with_value("value", UiValue::Bool(true))
         }
         "RadioDemo" => UiComponentState::new().with_value("value", UiValue::Bool(false)),
+        "TabDemo" | "TabStripDemo" => {
+            UiComponentState::new().with_value("value", UiValue::Enum("scene".to_string()))
+        }
         "ListRowDemo" => {
             UiComponentState::new().with_value("value", UiValue::String("selected".to_string()))
         }
@@ -157,4 +332,41 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
         }
         _ => UiComponentState::new(),
     }
+}
+
+fn command_palette_command(
+    id: &str,
+    label: &str,
+    source: &str,
+    shortcut: &str,
+    disabled: bool,
+) -> UiValue {
+    let mut command = BTreeMap::new();
+    command.insert("id".to_string(), UiValue::String(id.to_string()));
+    command.insert("label".to_string(), UiValue::String(label.to_string()));
+    command.insert("source".to_string(), UiValue::String(source.to_string()));
+    command.insert(
+        "shortcut".to_string(),
+        UiValue::String(shortcut.to_string()),
+    );
+    command.insert("disabled".to_string(), UiValue::Bool(disabled));
+    UiValue::Map(command)
+}
+
+fn notification_center_notification(
+    id: &str,
+    title: &str,
+    message: &str,
+    tone: &str,
+    unread: bool,
+    disabled: bool,
+) -> UiValue {
+    let mut notification = BTreeMap::new();
+    notification.insert("id".to_string(), UiValue::String(id.to_string()));
+    notification.insert("title".to_string(), UiValue::String(title.to_string()));
+    notification.insert("message".to_string(), UiValue::String(message.to_string()));
+    notification.insert("tone".to_string(), UiValue::String(tone.to_string()));
+    notification.insert("unread".to_string(), UiValue::Bool(unread));
+    notification.insert("disabled".to_string(), UiValue::Bool(disabled));
+    UiValue::Map(notification)
 }

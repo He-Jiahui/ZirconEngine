@@ -4,13 +4,16 @@ use crate::core::editor_event::{
     EditorEventSource, EditorEventTransient, MenuAction,
 };
 use crate::core::editor_operation::{
-    EditorOperationDescriptor, EditorOperationPath, EditorOperationStackEntry,
+    EditorOperationDescriptor, EditorOperationInvocation, EditorOperationPath,
+    EditorOperationSource, EditorOperationStackEntry,
 };
-use crate::ui::binding::EditorUiBinding;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
+use crate::ui::host::{EditorCommandAction, EditorCommandDispatchError, EditorCommandRegistry};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
-use serde_json::Value;
-use zircon_runtime_interface::ui::binding::UiEventBinding;
+use crate::ui::workbench::model::operation_path_for_menu_action;
+use serde_json::{Number, Value};
+use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
 
@@ -208,6 +211,9 @@ impl EditorEventDispatcher for EditorEventRuntime {
         if let Some(action_id) = component_lab_preview_action_id(&binding) {
             return Ok(self.record_component_lab_preview_action(source, &binding, action_id));
         }
+        if let Some(record) = self.dispatch_operation_binding(&binding, source.clone())? {
+            return Ok(record);
+        }
         let event = normalize_editor_event_binding(&binding)?;
         self.dispatch_normalized_event(source, event)
     }
@@ -241,6 +247,58 @@ fn component_lab_preview_action_id(binding: &EditorUiBinding) -> Option<&str> {
 }
 
 impl EditorEventRuntime {
+    fn dispatch_operation_binding(
+        &self,
+        binding: &EditorUiBinding,
+        source: EditorEventSource,
+    ) -> Result<Option<EditorEventRecord>, String> {
+        match binding.payload() {
+            EditorUiBindingPayload::EditorOperation {
+                operation_id,
+                arguments,
+            } => {
+                let invocation = operation_invocation(operation_id, arguments)?;
+                self.invoke_operation(operation_source_for_event_source(source), invocation)
+                    .map(Some)
+            }
+            EditorUiBindingPayload::EditorCommand { command_id } => self
+                .dispatch_editor_command_binding(command_id, source)
+                .map(Some),
+            _ => Ok(None),
+        }
+    }
+
+    fn dispatch_editor_command_binding(
+        &self,
+        command_id: &str,
+        source: EditorEventSource,
+    ) -> Result<EditorEventRecord, String> {
+        let registry = EditorCommandRegistry::default_workbench();
+        let descriptor = registry.command(command_id).ok_or_else(|| {
+            EditorCommandDispatchError::UnknownCommand(command_id.to_string()).to_string()
+        })?;
+
+        match descriptor.action() {
+            EditorCommandAction::Menu(action) => {
+                if let Some(operation_id) = operation_path_for_menu_action(action) {
+                    return self.invoke_operation(
+                        operation_source_for_event_source(source),
+                        EditorOperationInvocation::new(operation_id),
+                    );
+                }
+                self.dispatch_normalized_event(source, EditorEvent::WorkbenchMenu(action.clone()))
+            }
+            EditorCommandAction::Operation(operation_id) => self.invoke_operation(
+                operation_source_for_event_source(source),
+                EditorOperationInvocation::new(operation_id.clone()),
+            ),
+            EditorCommandAction::OpenCommandPalette => self.dispatch_normalized_event(
+                source,
+                EditorEvent::Transient(EditorEventTransient::OpenCommandPalette),
+            ),
+        }
+    }
+
     fn record_material_component_lab_feedback(
         &self,
         source: EditorEventSource,
@@ -329,5 +387,48 @@ fn component_lab_preview_node_path(binding: &EditorUiBinding, action_id: &str) -
             action_id.to_string()
         }
         _ => binding_node_path(binding),
+    }
+}
+
+fn operation_invocation(
+    operation_id: &str,
+    arguments: &[UiBindingValue],
+) -> Result<EditorOperationInvocation, String> {
+    let operation_id =
+        EditorOperationPath::parse(operation_id.to_string()).map_err(|error| error.to_string())?;
+    Ok(EditorOperationInvocation::new(operation_id)
+        .with_arguments(ui_binding_arguments_to_json(arguments)))
+}
+
+fn operation_source_for_event_source(source: EditorEventSource) -> EditorOperationSource {
+    match source {
+        EditorEventSource::Cli => EditorOperationSource::Cli,
+        EditorEventSource::Headless | EditorEventSource::Mcp => EditorOperationSource::Remote,
+        EditorEventSource::RetainedHost | EditorEventSource::Replay => {
+            EditorOperationSource::UiBinding
+        }
+    }
+}
+
+fn ui_binding_arguments_to_json(arguments: &[UiBindingValue]) -> Value {
+    if arguments.is_empty() {
+        return Value::Null;
+    }
+    Value::Array(arguments.iter().map(ui_binding_value_to_json).collect())
+}
+
+fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
+    match value {
+        UiBindingValue::String(value) => Value::String(value.clone()),
+        UiBindingValue::Unsigned(value) => Value::Number(Number::from(*value)),
+        UiBindingValue::Signed(value) => Value::Number(Number::from(*value)),
+        UiBindingValue::Float(value) => Number::from_f64(*value)
+            .map(Value::Number)
+            .unwrap_or(Value::Null),
+        UiBindingValue::Bool(value) => Value::Bool(*value),
+        UiBindingValue::Null => Value::Null,
+        UiBindingValue::Array(values) => {
+            Value::Array(values.iter().map(ui_binding_value_to_json).collect())
+        }
     }
 }

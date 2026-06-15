@@ -97,11 +97,11 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
         false,
         &floating_windows,
         None,
-        &[NativeWindowHostState {
-            window_id: window_id.clone(),
-            handle: None,
-            bounds: [640.0, 320.0, 700.0, 420.0],
-        }],
+        &[NativeWindowHostState::new_for_test(
+            window_id.clone(),
+            None,
+            [640.0, 320.0, 700.0, 420.0],
+        )],
     );
 
     assert_eq!(

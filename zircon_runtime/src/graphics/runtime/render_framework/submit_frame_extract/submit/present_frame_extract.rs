@@ -21,7 +21,8 @@ use super::build_runtime_frame::build_runtime_frame;
 use super::collect_runtime_feedback::collect_runtime_feedback;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
-use super::update_motion_vector_history::update_motion_vector_history_after_success;
+use super::update_particle_previous_state::update_particle_previous_state_after_success;
+use super::update_temporal_camera_history::update_temporal_camera_history_after_success;
 
 pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
     framework: &WgpuRenderFramework,
@@ -149,7 +150,8 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         frame_generation,
         runtime_feedback,
     );
-    update_motion_vector_history_after_success(record, &runtime_frame);
+    update_temporal_camera_history_after_success(record, &runtime_frame);
+    update_particle_previous_state_after_success(record, &runtime_frame);
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);
     crate::profile_counter!(

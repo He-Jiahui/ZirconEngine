@@ -66,6 +66,13 @@ classes = ["showcase-field", "material-control"]
 props = { value = 0.62, indeterminate = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
+[nodes.skeleton_demo]
+component = "Skeleton"
+control_id = "SkeletonDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Skeleton", variant = "rounded", animation = "wave", width = 180.0, height = 20.0, with_children = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
 [nodes.spinner_demo]
 component = "Spinner"
 control_id = "SpinnerDemo"
@@ -87,6 +94,34 @@ classes = ["showcase-field"]
 props = { text = "Help row with inline validation guidance", validation_level = "warning", validation_message = "review" }
 layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 
+[nodes.dialog_demo]
+component = "Dialog"
+control_id = "DialogDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, title = "Scene Settings", text = "Scene Settings", message = "Review scene-level settings before applying them.", action = "Apply", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" } }
+
+[nodes.confirm_dialog_demo]
+component = "ConfirmDialog"
+control_id = "ConfirmDialogDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, title = "Delete selected prefab?", text = "Delete selected prefab?", message = "This removes the prefab reference from the scene.", confirm_text = "Delete", cancel_text = "Cancel", severity = "error", validation_level = "error", destructive = true, confirm_enabled = false, requires_explicit_action = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 210.0, preferred = 210.0, max = 210.0, stretch = "Fixed" } }
+
+[nodes.command_palette_demo]
+component = "CommandPalette"
+control_id = "CommandPaletteDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, query = "build", placeholder = "Search commands", command_source = "workbench", selected_command_id = "build_project", focused_index = 0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 176.0, preferred = 176.0, max = 176.0, stretch = "Fixed" } }
+
+[nodes.notification_center_demo]
+component = "NotificationCenter"
+control_id = "NotificationCenterDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, title = "Notifications", selected_notification_id = "build", focused_index = 1, visible_limit = 2, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 172.0, preferred = 172.0, max = 172.0, stretch = "Fixed" } }
+
 [nodes.visual_section_root]
 component = "VerticalGroup"
 layout = { width = { stretch = "Stretch" } }
@@ -99,7 +134,12 @@ children = [
   { node = "svg_icon_demo", slot = { name = "content" } },
   { node = "separator_demo", slot = { name = "content" } },
   { node = "progress_demo", slot = { name = "content" } },
+  { node = "skeleton_demo", slot = { name = "content" } },
   { node = "spinner_demo", slot = { name = "content" } },
   { node = "badge_demo", slot = { name = "content" } },
   { node = "help_row_demo", slot = { name = "content" } },
+  { node = "dialog_demo", slot = { name = "content" } },
+  { node = "confirm_dialog_demo", slot = { name = "content" } },
+  { node = "command_palette_demo", slot = { name = "content" } },
+  { node = "notification_center_demo", slot = { name = "content" } },
 ]

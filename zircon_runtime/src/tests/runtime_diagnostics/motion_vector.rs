@@ -6,7 +6,7 @@ use super::support::{
 };
 
 #[test]
-fn runtime_diagnostics_reports_motion_vector_object_history_and_mesh_draw_eligibility() {
+fn runtime_diagnostics_reports_motion_vector_camera_and_mesh_draw_eligibility() {
     let runtime = CoreRuntime::new();
     runtime.register_module(fake_render_module()).unwrap();
     runtime.activate_module(DIAGNOSTICS_TEST_MODULE).unwrap();
@@ -21,50 +21,28 @@ fn runtime_diagnostics_reports_motion_vector_object_history_and_mesh_draw_eligib
     );
     assert_render_count_series(
         &snapshot.store,
-        "render.post_process.motion_vector.object.previous_history_count",
-        3.0,
-        &["post_process", "motion_vector", "object", "history"],
-    );
-    assert_render_count_series(
-        &snapshot.store,
-        "render.post_process.motion_vector.object.current_history_count",
-        4.0,
-        &["post_process", "motion_vector", "object", "history"],
-    );
-    assert_render_count_series(
-        &snapshot.store,
-        "render.post_process.motion_vector.object.matched_history_count",
-        2.0,
-        &[
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-            "matched",
-        ],
-    );
-    assert_render_count_series(
-        &snapshot.store,
-        "render.post_process.motion_vector.object.missing_history_count",
-        2.0,
-        &[
-            "post_process",
-            "motion_vector",
-            "object",
-            "history",
-            "missing",
-        ],
-    );
-    assert_render_count_series(
-        &snapshot.store,
-        "render.mesh.queue.previous_motion_vector_transform_draw_count",
+        "render.mesh.queue.previous_velocity_transform_draw_count",
         5.0,
-        &["mesh", "queue", "motion_vector", "previous"],
+        &["mesh", "queue", "velocity", "previous"],
     );
     assert_render_count_series(
         &snapshot.store,
-        "render.mesh.queue.missing_motion_vector_transform_draw_count",
+        "render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count",
+        1.0,
+        &[
+            "mesh",
+            "queue",
+            "skinned",
+            "gpu_source",
+            "cpu_morphed",
+            "previous_shape_missing",
+            "velocity",
+        ],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.missing_velocity_transform_draw_count",
         2.0,
-        &["mesh", "queue", "motion_vector", "missing"],
+        &["mesh", "queue", "velocity", "missing"],
     );
 }

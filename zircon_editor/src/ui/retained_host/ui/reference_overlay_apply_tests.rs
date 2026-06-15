@@ -4,14 +4,16 @@ use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
 use crate::ui::retained_host::callback_dispatch::{
     BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    WorkbenchCommandPaletteOpenState,
 };
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::primitives::PhysicalSize;
 use crate::ui::retained_host::UiHostWindow;
+use crate::ui::template_runtime::RetainedUiHostProjection;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::{component::UiValue, layout::UiSize};
 
 const WORKBENCH_REFERENCE_WIDTH: u32 = 1672;
 const WORKBENCH_REFERENCE_HEIGHT: u32 = 941;
@@ -72,6 +74,60 @@ fn apply_presentation_carries_componentized_workbench_window_nodes_separately() 
     );
 }
 
+#[test]
+fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_input() {
+    let ui = reference_sized_host_window();
+    let mut workbench_window_bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
+            WORKBENCH_REFERENCE_WIDTH as f32,
+            WORKBENCH_REFERENCE_HEIGHT as f32,
+        ))
+        .expect("componentized workbench window template should project");
+    workbench_window_bridge
+        .open_command_palette(WorkbenchCommandPaletteOpenState {
+            commands: ui_string_values([
+                "workbench.project.open|label=Open Project",
+                "workbench.project.save|label=Save Project|disabled=true",
+            ]),
+            filtered_commands: ui_string_values([
+                "workbench.project.open",
+                "workbench.project.save",
+            ]),
+            disabled_commands: ui_string_values(["workbench.project.save"]),
+            selected_command_id: "workbench.project.open".to_string(),
+            focused_index: 0,
+        })
+        .expect("command palette state should apply to the workbench window bridge");
+    apply_template_projection_from_workbench_window_projection(
+        &ui,
+        workbench_window_bridge.host_projection(),
+    );
+
+    let presentation = ui.get_host_presentation();
+    let palette = find_workbench_window_node(&presentation, "WorkbenchCommandPalette")
+        .expect("workbench command palette mount should be present");
+
+    assert_eq!(palette.component_role.as_str(), "command-palette");
+    assert!(palette.popup_open);
+    assert_eq!(palette.structured_options.row_count(), 2);
+    let open_project = palette
+        .structured_options
+        .row_data(0)
+        .expect("open project command should project as a command palette row");
+    assert_eq!(open_project.id.as_str(), "workbench.project.open");
+    assert_eq!(open_project.label.as_str(), "Open Project");
+    assert!(open_project.focused);
+    assert!(open_project.selected);
+    assert!(!open_project.disabled);
+
+    let save_project = palette
+        .structured_options
+        .row_data(1)
+        .expect("save project command should project as a disabled command palette row");
+    assert_eq!(save_project.id.as_str(), "workbench.project.save");
+    assert!(save_project.disabled);
+}
+
 fn reference_sized_host_window() -> UiHostWindow {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -123,15 +179,24 @@ fn apply_template_projection_from_host_template_bridge(ui: &UiHostWindow) {
 }
 
 fn apply_template_projection_from_workbench_window_bridge(ui: &UiHostWindow) {
-    let fixture = default_preview_fixture();
-    let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
-
     let workbench_window_bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
         WORKBENCH_REFERENCE_WIDTH as f32,
         WORKBENCH_REFERENCE_HEIGHT as f32,
     ))
     .expect("componentized workbench window template should project");
+    apply_template_projection_from_workbench_window_projection(
+        ui,
+        workbench_window_bridge.host_projection(),
+    );
+}
+
+fn apply_template_projection_from_workbench_window_projection(
+    ui: &UiHostWindow,
+    workbench_window_projection: &RetainedUiHostProjection,
+) {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
     let ui_asset_panes: BTreeMap<String, UiAssetEditorPanePresentation> = BTreeMap::new();
     let animation_panes: BTreeMap<String, AnimationEditorPanePresentation> = BTreeMap::new();
     let module_plugins =
@@ -153,7 +218,7 @@ fn apply_template_projection_from_workbench_window_bridge(ui: &UiHostWindow) {
         &module_plugins,
         &build_export,
         None,
-        Some(workbench_window_bridge.host_projection()),
+        Some(workbench_window_projection),
         None,
         &floating_window_projection_bundle,
         None,
@@ -167,4 +232,13 @@ fn find_workbench_window_node(
     (0..presentation.workbench_window_nodes.row_count())
         .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
         .find(|node| node.control_id.as_str() == control_id)
+}
+
+fn ui_string_values<const N: usize>(values: [&str; N]) -> UiValue {
+    UiValue::Array(
+        values
+            .into_iter()
+            .map(|value| UiValue::String(value.to_string()))
+            .collect(),
+    )
 }

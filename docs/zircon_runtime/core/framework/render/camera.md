@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/temporal_jitter.rs
+  - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
@@ -17,17 +19,26 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -54,6 +65,8 @@ related_code:
   - dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/temporal_jitter.rs
+  - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
@@ -65,17 +78,26 @@ implementation_files:
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -160,6 +182,26 @@ tests:
   - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
   - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras
   - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/src/core/framework/render/temporal_jitter.rs::tests::render_taa_halton_matches_reference_values
+  - zircon_runtime/src/core/framework/render/temporal_jitter.rs::tests::render_taa_jitter_sequence_is_periodic_and_avoids_zero_index
+  - zircon_runtime/src/core/framework/render/temporal_jitter.rs::tests::render_taa_jitter_sequence_clamps_zero_period
+  - zircon_runtime/src/core/framework/render/view_matrix_pair.rs::tests::render_taa_matrix_pair_is_identical_without_jitter
+  - zircon_runtime/src/core/framework/render/view_matrix_pair.rs::tests::render_taa_matrix_pair_applies_pixel_jitter_in_clip_space
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs::tests::render_taa_jitter_zero_when_taa_inactive
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs::tests::successful_submit_records_camera_history_for_next_frame
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::tests::scene_uniform_exposes_jittered_and_unjittered_current_matrices
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::tests::scene_uniform_inverse_view_projection_is_unjittered
+  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs::tests::render_velocity_camera_params_use_unjittered_camera_matrices
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
+  - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_temporal_off_matches_anti_alias_feature_disabled_product
+  - rustfmt --edition 2021 --check on TP-M2-S1a jitter contract files
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-skinned-prev-palette-0614 --message-format short --color never (blocked by unrelated UI tree-view helper compile errors)
+  - cargo fmt --package zircon_runtime
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s1b-0614 --message-format short --color never
+  - cargo fmt --package zircon_runtime -- --check
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
+  - cargo fmt --package zircon_runtime
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s3-0614 --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -190,7 +232,14 @@ Zircon keeps the same product semantics but does not copy Bevy ECS components on
 - projection data: `projection_mode`, `fov_y_radians`, `ortho_size`, `z_near`, `z_far`, and `aspect_ratio`;
 - output data: `target`, optional `viewport`, `order`, `is_active`, `clear_color`, and `msaa_samples`;
 - imaging data: `hdr` and `exposure_ev100`;
-- visibility data: `render_layers`.
+- visibility data: `render_layers`;
+- temporal data: `temporal_jitter`, defaulting to a zero `TemporalJitterSample`.
+
+`temporal_jitter.rs` owns the neutral jitter sample and sequence types for Plan 06. `TemporalJitterSequence::sample(...)` uses Halton base 2/3 with `(frame_index % period) + 1`, matching the URP convention of avoiding Halton index 0. The render-framework submit path now chooses the sample from the effective anti-aliasing state: effective TAA reads `ViewportRecord.temporal_frame_index`, while Off/Fxaa/Msaa and TAA fallback modes force a zero sample. The index advances only after successful submit/present paths, so failed or skipped frames do not consume the jitter sequence.
+
+TP-M2-S3 adds a product-level guard for that neutral path: `render_product_temporal_off_matches_anti_alias_feature_disabled_product` submits the same world extract with `AntiAliasSettings::off()` through AA feature-enabled and feature-disabled WGPU viewports, then requires no AA/FXAA pass execution and byte-identical captured RGBA. The 2026-06-15 artifact audit found no in-repository pre-jitter hash or golden file to recover, so this Off-path product parity test is the accepted repository-local baseline; an external historical artifact can still be added later as supplemental evidence.
+
+`view_matrix_pair.rs` owns `ViewProjectionMatrixPair::from_camera(...)`. It derives an unjittered projection/view matrix from `ViewportCameraSnapshot` and `viewport_size`, then builds the jittered variant as `translate(2*jx/width, 2*jy/height, 0) * unjittered`. `SceneUniform::from_frame(...)` now consumes this pair for the current jittered `view_proj`, explicit `view_proj_unjittered`, `inverse_view_proj` as unjittered world-from-clip, `previous_view_proj_unjittered`, and `jitter_params`; the previous-camera fallback uses the unjittered current matrix. Velocity camera/object paths and screen-space reconstruction use the unjittered matrices, while raster paths keep the jittered current matrix. Post-process SSR projection parameters and reflection-probe screen projection also derive from the unjittered pair or camera scalars, so enabling TAA jitter does not perturb view-space reconstruction.
 
 `RenderViewportRect` stores physical position, physical size, and normalized depth range. `clamped_to_size(...)` mirrors Bevy's viewport containment rule by keeping the rectangle inside the target size before the camera recomputes aspect ratio.
 

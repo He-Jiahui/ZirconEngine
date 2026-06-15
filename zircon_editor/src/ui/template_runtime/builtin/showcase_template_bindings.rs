@@ -88,6 +88,18 @@ pub(super) fn showcase_template_bindings() -> Vec<(String, EditorUiBinding)> {
             "SelectOption.SegmentedControl",
         ),
         showcase_binding_entry(
+            "UiComponentShowcase/TabChanged",
+            "TabDemo",
+            EditorUiEventKind::Change,
+            "SelectOption.Tab",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/TabStripChanged",
+            "TabStripDemo",
+            EditorUiEventKind::Change,
+            "SelectOption.TabStrip",
+        ),
+        showcase_binding_entry(
             "UiComponentShowcase/InputFieldChanged",
             "InputFieldDemo",
             EditorUiEventKind::Change,
@@ -164,6 +176,30 @@ pub(super) fn showcase_template_bindings() -> Vec<(String, EditorUiBinding)> {
             "RangeFieldDemo",
             EditorUiEventKind::Submit,
             "Commit.RangeField",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/SliderDragUpdate",
+            "SliderDemo",
+            EditorUiEventKind::DragUpdate,
+            "DragDelta.Slider",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/SliderChanged",
+            "SliderDemo",
+            EditorUiEventKind::Change,
+            "ValueChanged.Slider",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/RangeSliderDragUpdate",
+            "RangeSliderDemo",
+            EditorUiEventKind::DragUpdate,
+            "DragDelta.RangeSlider",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/RangeSliderChanged",
+            "RangeSliderDemo",
+            EditorUiEventKind::Change,
+            "ValueChanged.RangeSlider",
         ),
         showcase_binding_entry(
             "UiComponentShowcase/ColorFieldChanged",

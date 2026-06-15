@@ -478,6 +478,15 @@ GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 insta
 
 里程碑命令:切片期 `cargo check -p zircon_runtime --lib --locked`;测试阶段 `cargo test -p zircon_runtime environment --locked`、`cargo test -p zircon_runtime render_product_environment --locked`;插件接缝 `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_reflection_probes_runtime --locked`(crate 名见 `zircon_plugins/rendering/plugin.toml`)。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | EL-M1 skybox and IBL | 部分完成: preview sky 存在,正式 skybox/IBL 未落地 | 当前有 preview-sky executor 和环境色基础,但无 skybox 材质域、IBL cubemap 预滤波链与正式资产格式。 | 本文件 `现状与差距` 明确只有 preview-sky executor;计划 13 纹理 cubemap 资产也尚未完成。 | 实施 skybox material、cubemap import、diffuse/specular IBL prefilter 和 shader binding。 |
+| 2026-06-15 | EL-M2 reflection probes | 部分完成: descriptor/占位链路存在,捕获/烘焙未完成 | reflection probe feature/合成入口已有占位;计划 06 已把反射探针投屏 helper 改走 unjittered matrix pair,但探针捕获、烘焙数据和采样 ABI 仍缺。 | 计划 06 TP-M2-S2 状态表记录 reflection probe projection helper 审计完成。 | 建立 probe capture camera、cubemap storage、parallax correction 与 blending。 |
+| 2026-06-15 | EL-M3 lightmap and light probe consumption | 部分完成: 单一 SH grid 设计面存在,完整 lightmap/probe 消费未完成 | 计划 18 现状记录当前只有全局单个均匀 SH 网格概念,无局部/可变换/逐像素 irradiance volume;lightmap asset 与 shader sampling 尚未闭环。 | 计划 18 `现状与差距` 将 irradiance volumes 标为后续扩展;本文件未记录完成实现。 | 落地 lightmap UV/channel、LightProbeGridData 上传、instance 采样和编辑器 bake 输入。 |
+| 2026-06-15 | EL-M4 analytic fog and ambient modes | 未启动: 与 post fog/advanced fog 尚未贯通 | ambient 仍是基础单色/占位,解析雾与计划 07 screen-space fog、计划 18 froxel fog 尚未形成分层实现。 | 本文件 `现状与差距` 明确无解析雾、ambient 只有单色。 | 先实现 distance/height fog 与 ambient modes,再由计划 18 扩展到 froxel volumetric。 |
+
 ### 参考实现精读笔记
 
 **UE `ReflectionEnvironmentShared.ush` — `GetLookupVectorForBoxCapture`**:把反射射线变换到盒本地空间(`RelativeWorldToBox`,盒归一到 ±1),`InvRayDir` 倒数后分别求与三对 min/max 面的交点 `FirstPlaneIntersections`/`SecondPlaneIntersections`,`max` 取每轴远交点、`min` 取三轴最近者得 `Intersection`,交点减捕获位置即校正向量;另用 `ComputeDistanceFromBoxToPoint` 对收缩过渡带(`BoxScales.w`)的盒求距,`DistanceAlpha = 1 - smoothstep(0, 0.7*transition, dist)` 做影响淡出。Zircon 对应:`zr_box_project` 直接采用该 AABB 求交式(本地空间用四元数逆旋转代替矩阵,省 64B/probe);淡出权重不用 smoothstep,改用 URP 的边距/blend_distance 线性式(更便宜,且与 sphere 形状权重公式统一)。

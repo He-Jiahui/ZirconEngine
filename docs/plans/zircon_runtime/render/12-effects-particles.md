@@ -429,6 +429,15 @@ pub struct ParticleSimOutput {
 
 命令:切片期 `cargo check -p zircon_runtime --lib --locked`;里程碑期 `cargo test -p zircon_runtime effects --locked`、`cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_particles_runtime --locked`、`-p zircon_plugin_rendering_decals_runtime`、`-p zircon_plugin_rendering_lens_flare_runtime`。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | FX-M1 billboard and trail renderers | 部分完成: billboard/particle sprite 路径存在,trail renderer 未落地 | Particle transparent pass、billboard basis、particle previous-state/velocity writer 已由计划 06 大量使用;trail renderer、mesh particle renderer 和独立 effect renderer family 仍未实现。 | 计划 06 TP-M1-S9..S23 与 TP-M4-S4e 状态表记录 particle transparent pass、previous state、billboard basis、velocity writer 和产品过滤测试。 | 补 trail strip geometry、mesh particle mode 和 renderer family registry 对接。 |
+| 2026-06-15 | FX-M2 particle modes and GPU indirect | 部分完成: CPU/renderer-owned 粒子状态与 velocity 已完成多项基线,GPU indirect 未完成 | 已有 particle transparent pass、stable sprite identity、renderer-owned previous rows、previous billboard basis、scene-velocity writer、readback/product tests;GPU simulation feedback 到 indirect args 仍未接入。 | 计划 06 状态表记录 `render_product_particle_velocity` 过滤产品测试、`render_product_taa_particle_transparent_pass_contributes_before_resolve` 通过。 | 接入 GPU simulation alive count、indirect draw args 与 per-view particle sorting。 |
+| 2026-06-15 | FX-M3 projector/decals convergence | 未启动: 仍需语义合并 | decals feature 与 projector 语义仍重复,尚未统一到一个 renderer/effect contract。 | 本文件 `现状与差距` 明确 decals/projector 需要收敛。 | 定义 projector/decal 共同数据模型、receiver filtering 与 deferred/forward 消费路径。 |
+| 2026-06-15 | FX-M4 lens flare and halo | 未启动: 仍为后续计划 | halo/lens flare 缺失,无 occlusion query、screen-space placement 或 asset contract。 | 本文件 `现状与差距` 明确 billboard/trail/projector/halo/lens flare 全部缺失。 | 等 camera ordering、light data 和 post chain 稳定后实施 screen-space flare pass。 |
+
 ### 参考实现精读笔记
 
 **`LensFlareCommonSRP.cs`(Unity SRP core)**:遮挡走专用 `occlusionRT`(`RTHandle`,宽 = `maxLensFlareWithOcclusion` = 128,即每 flare 占 1 像素列;高 = `maxLensFlareWithOcclusionTemporalSample` = 8 + `mergeNeeded`,做跨帧"一致投票"合并)。`ComputeOcclusion(...)` 对每个 `LensFlareCompInfo` 设 `FLARE_COMPUTE_OCCLUSION` keyword、打包 `_FlareData0/2/3` 全局量后,把 viewport 设为 `(x = info.index, w = 1, h = 1)` 用材质 pass `"LensFlareOcclusion"` 画 1×1 —— 即"GPU 写可见因子、绘制时 GPU 读"零 readback 方案的纹理版。元素放置由 `GetFlareData0(screenPos, translationScale, rayOff0, vLocalScreenRatio, angleDeg, position, angularOffset, positionOffset, autoRotate)` 打包;光源形状衰减按灯型分函数(`ShapeAttenuationDirLight` / `ShapeAttenuationSpotConeLight` / `ShapeAttenuationAreaTubeLight` 等)。**Zircon 对应**:可见因子用 storage buffer(stride 16 槽)替代 1×N RT —— 我们无 XR slice 与材质 pass 约束,compute 直采 `HzbBuilder` furthest 链比 Unity 的深度比较绘制更直接;时域用 `fade_speed` 指数平滑替代 8 帧投票纹理行。**取舍**:不做 panini 投影修正、cloud/sun occlusion 纹理输入;灯型衰减 V1 只做方向光/点光两档。

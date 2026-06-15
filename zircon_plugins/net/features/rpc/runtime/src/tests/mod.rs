@@ -1,3 +1,4 @@
+mod channel;
 mod dispatch;
 mod feature_registration;
 mod handlers;

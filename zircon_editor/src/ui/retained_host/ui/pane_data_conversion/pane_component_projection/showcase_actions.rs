@@ -57,10 +57,14 @@ pub(super) fn preferred_showcase_action_id(
     let preferred = match control_id {
         "NumberFieldDemo" => Some("NumberFieldDragUpdate"),
         "RangeFieldDemo" => Some("RangeFieldChanged"),
+        "SliderDemo" => Some("SliderChanged"),
+        "RangeSliderDemo" => Some("RangeSliderChanged"),
         "ColorFieldDemo" => Some("ColorFieldChanged"),
         "Vector2FieldDemo" => Some("Vector2FieldChanged"),
         "Vector3FieldDemo" => Some("Vector3FieldChanged"),
         "Vector4FieldDemo" => Some("Vector4FieldChanged"),
+        "TabDemo" => Some("TabChanged"),
+        "TabStripDemo" => Some("TabStripChanged"),
         "DropdownDemo" => Some(if popup_open {
             "DropdownChanged"
         } else {
@@ -124,6 +128,8 @@ pub(super) fn preferred_showcase_drag_action_id(
     let suffix = match control_id {
         "NumberFieldDemo" => Some("NumberFieldDragUpdate"),
         "RangeFieldDemo" => Some("RangeFieldDragUpdate"),
+        "SliderDemo" => Some("SliderDragUpdate"),
+        "RangeSliderDemo" => Some("RangeSliderDragUpdate"),
         _ => None,
     }?;
     bindings
@@ -163,7 +169,11 @@ pub(super) fn preferred_showcase_edit_action_id(
         "TextFieldDemo" => Some("TextFieldChanged"),
         "NumberFieldDemo" => Some("NumberFieldChanged"),
         "RangeFieldDemo" => Some("RangeFieldChanged"),
+        "SliderDemo" => Some("SliderChanged"),
+        "RangeSliderDemo" => Some("RangeSliderChanged"),
         "SearchSelectDemo" => Some("SearchSelectQueryChanged"),
+        "TabDemo" => Some("TabChanged"),
+        "TabStripDemo" => Some("TabStripChanged"),
         _ => None,
     }?;
     bindings

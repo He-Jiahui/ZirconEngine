@@ -24,6 +24,14 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<RetainedEditor
     });
 
     let weak = Rc::downgrade(host);
+    host_shell.on_unhandled_keyboard_input(move |keyboard| {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut()
+                .dispatch_unhandled_native_keyboard_input(keyboard);
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_close_prompt_action_clicked(move |action_id| {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut()

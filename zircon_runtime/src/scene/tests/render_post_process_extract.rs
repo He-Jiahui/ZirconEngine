@@ -6,10 +6,11 @@ use crate::asset::{
     TransformAsset,
 };
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderExtractContext, RenderLayerSet,
-    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
-    RenderTonemapSettings, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    ViewportCameraSnapshot,
+    RenderBloomSettings, RenderColorGradingSettings, RenderExtractContext, RenderFrameExtract,
+    RenderLayerSet, RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile,
+    RenderResolvedPostProcessSettings, RenderTonemapOperator, RenderTonemapSettings,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    VolumeShapeExtract,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::{
@@ -158,11 +159,9 @@ fn scene_asset_post_process_settings_feed_render_extract() {
     );
     assert_near(extract.post_process.effect_stack.vignette.intensity, 0.35);
     assert_near(extract.post_process.effect_stack.fog.density, 0.07);
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+    assert_eq!(extract.post_process.volumes.len(), 1);
 
-    let resolved = extract
-        .post_process
-        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+    let resolved = resolved_post_process_settings(&extract);
     assert_near(resolved.bloom.intensity, 0.7);
     assert_eq!(
         resolved.effect_stack.tonemap.operator,
@@ -209,11 +208,9 @@ fn scene_camera_post_process_settings_seed_frame_extract_before_volume_resolutio
     assert_eq!(extract.post_process.bloom, settings.bloom);
     assert_eq!(extract.post_process.color_grading, settings.color_grading);
     assert_eq!(extract.post_process.effect_stack, settings.effect_stack);
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+    assert_eq!(extract.post_process.volumes.len(), 1);
 
-    let resolved = extract
-        .post_process
-        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+    let resolved = resolved_post_process_settings(&extract);
     assert_near(resolved.bloom.intensity, 0.7);
     assert_near(resolved.bloom.radius, 0.65);
     assert_eq!(
@@ -271,18 +268,22 @@ fn local_sphere_post_process_volume_uses_camera_distance_for_full_influence() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+    assert_eq!(extract.post_process.volumes.len(), 1);
     assert_eq!(
-        extract.post_process.volume_stack.volumes[0].local_blend,
-        1.0
+        extract.post_process.volumes[0].shape,
+        VolumeShapeExtract::Sphere {
+            center: Vec3::ZERO,
+            radius: 1.0,
+            blend_distance: 2.0,
+        }
     );
-    assert_eq!(extract.post_process.volume_stack.volumes[0].priority, 2.0);
+    assert!(extract.post_process.volumes[0]
+        .overrides
+        .iter()
+        .any(|override_entry| override_entry.component_id == "post.bloom"));
+    assert_eq!(extract.post_process.volumes[0].priority, 2.0);
     assert_near(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom
-            .intensity,
+        resolved_post_process_settings(&extract).bloom.intensity,
         1.0,
     );
     assert!(world.get::<PostProcessVolumeComponent>(volume).is_some());
@@ -305,23 +306,15 @@ fn local_sphere_post_process_volume_fades_in_blend_band() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
+    assert_eq!(extract.post_process.volumes.len(), 1);
     assert_near(
-        extract.post_process.volume_stack.volumes[0].local_blend,
-        0.75,
-    );
-    assert_near(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom
-            .intensity,
+        resolved_post_process_settings(&extract).bloom.intensity,
         0.75,
     );
 }
 
 #[test]
-fn local_sphere_post_process_volume_outside_blend_band_is_excluded() {
+fn local_sphere_post_process_volume_outside_blend_band_has_zero_influence() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world
@@ -337,12 +330,17 @@ fn local_sphere_post_process_volume_outside_blend_band_is_excluded() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert!(extract.post_process.volume_stack.volumes.is_empty());
+    assert_eq!(extract.post_process.volumes.len(), 1);
     assert_eq!(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom,
+        extract.post_process.volumes[0].shape,
+        VolumeShapeExtract::Sphere {
+            center: Vec3::ZERO,
+            radius: 1.0,
+            blend_distance: 2.0,
+        }
+    );
+    assert_eq!(
+        resolved_post_process_settings(&extract).bloom,
         RenderBloomSettings::default()
     );
 }
@@ -373,23 +371,24 @@ fn local_box_post_process_volume_uses_camera_distance_for_blend() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
-    assert_near(
-        extract.post_process.volume_stack.volumes[0].local_blend,
-        0.75,
+    assert_eq!(extract.post_process.volumes.len(), 1);
+    assert_eq!(
+        extract.post_process.volumes[0].shape,
+        VolumeShapeExtract::Box {
+            center: Vec3::ZERO,
+            half_extents: Vec3::splat(1.0),
+            rotation: crate::core::math::Quat::IDENTITY,
+            blend_distance: 2.0,
+        }
     );
     assert_near(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom
-            .intensity,
+        resolved_post_process_settings(&extract).bloom.intensity,
         0.75,
     );
 }
 
 #[test]
-fn local_capsule_post_process_volume_uses_axis_distance_for_blend() {
+fn local_capsule_post_process_volume_is_not_projected_to_planned_extract() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
     world
@@ -415,18 +414,10 @@ fn local_capsule_post_process_volume_uses_axis_distance_for_blend() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
-    assert_near(
-        extract.post_process.volume_stack.volumes[0].local_blend,
-        0.75,
-    );
-    assert_near(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom
-            .intensity,
-        0.75,
+    assert!(extract.post_process.volumes.is_empty());
+    assert_eq!(
+        resolved_post_process_settings(&extract).bloom,
+        RenderBloomSettings::default()
     );
 }
 
@@ -445,14 +436,23 @@ fn local_post_process_volume_without_collider_is_excluded() {
     ));
 
     assert!(world.get::<PostProcessVolumeComponent>(volume).is_some());
-    assert!(extract.post_process.volume_stack.volumes.is_empty());
+    assert!(extract.post_process.volumes.is_empty());
     assert_eq!(
-        extract
-            .post_process
-            .resolved_settings_for_layers(&extract.view.camera.render_layers)
-            .bloom,
+        resolved_post_process_settings(&extract).bloom,
         RenderBloomSettings::default()
     );
+}
+
+fn resolved_post_process_settings(
+    extract: &RenderFrameExtract,
+) -> RenderResolvedPostProcessSettings {
+    extract
+        .post_process
+        .resolved_settings_for_camera(
+            extract.view.camera.transform.translation,
+            &extract.view.camera.render_layers,
+        )
+        .expect("planned volume evaluation should resolve")
 }
 
 fn camera_post_process_settings() -> PostProcessSettingsComponent {

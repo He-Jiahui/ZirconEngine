@@ -1,53 +1,40 @@
-use crate::core::framework::render::ProjectionMode;
-use crate::core::math::{view_matrix, Mat4, Real, RenderMat4, RenderVec3};
+use crate::core::framework::render::ViewProjectionMatrixPair;
+use crate::core::math::{Mat4, RenderMat4, RenderVec3};
 
-use crate::graphics::scene::scene_renderer::post_process::MotionVectorCameraParams;
+use crate::graphics::scene::scene_renderer::temporal::velocity::velocity_camera_params::VelocityCameraParams;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::fallback::{render_mat4_or, render_vec3_or};
 use super::SceneUniform;
 
 impl SceneUniform {
-    pub(crate) fn from_frame(frame: &ViewportRenderFrame, aspect: Real) -> Self {
+    pub(crate) fn from_frame(frame: &ViewportRenderFrame) -> Self {
         let camera = frame.camera();
-        let projection = match camera.projection_mode {
-            ProjectionMode::Perspective => Mat4::perspective_rh(
-                camera.fov_y_radians,
-                aspect.max(0.001),
-                camera.z_near.max(0.001),
-                camera.z_far,
-            ),
-            ProjectionMode::Orthographic => {
-                let half_height = camera.ortho_size.max(0.01);
-                let half_width = half_height * aspect.max(0.001);
-                Mat4::orthographic_rh(
-                    -half_width,
-                    half_width,
-                    -half_height,
-                    half_height,
-                    camera.z_near.max(0.001),
-                    camera.z_far,
-                )
-            }
-        };
-        let view = view_matrix(camera.transform);
         let ambient_color = if frame.preview().lighting_enabled {
             authored_ambient_color(frame, RenderVec3::splat(0.2))
         } else {
             RenderVec3::splat(0.55).extend(1.0).to_array()
         };
 
-        let view_proj = projection * view;
-        let (previous_view_proj, motion_params) =
-            previous_motion_view_projection(frame, camera, view_proj);
+        let matrix_pair = ViewProjectionMatrixPair::from_camera(
+            camera,
+            frame.extract.view.effective_render_size(),
+        );
+        let view_proj = matrix_pair.clip_from_world_jittered;
+        let view_proj_unjittered = matrix_pair.clip_from_world_unjittered;
+        let (previous_view_proj_unjittered, motion_params) =
+            previous_motion_view_projection(frame, camera, view_proj_unjittered);
 
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
-            inverse_view_proj: render_mat4_or(view_proj.inverse(), RenderMat4::IDENTITY)
+            view_proj_unjittered: render_mat4_or(view_proj_unjittered, RenderMat4::IDENTITY)
+                .to_cols_array_2d(),
+            inverse_view_proj: render_mat4_or(view_proj_unjittered.inverse(), RenderMat4::IDENTITY)
                 .to_cols_array_2d(),
             ambient_color,
-            previous_view_proj,
+            previous_view_proj_unjittered,
             motion_params,
+            jitter_params: jitter_params(camera),
         }
     }
 }
@@ -64,7 +51,7 @@ fn previous_motion_view_projection(
         );
     };
     let params =
-        MotionVectorCameraParams::from_cameras(frame.viewport_size, camera, previous_camera, true);
+        VelocityCameraParams::from_cameras(frame.viewport_size, camera, previous_camera, true);
     if !params.is_enabled() {
         return (
             render_mat4_or(fallback_view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
@@ -73,6 +60,19 @@ fn previous_motion_view_projection(
     }
 
     (params.previous_clip_from_world(), [1.0, 0.0, 0.0, 0.0])
+}
+
+fn jitter_params(camera: &crate::core::framework::render::ViewportCameraSnapshot) -> [f32; 4] {
+    [
+        camera.temporal_jitter.offset_pixels.x,
+        camera.temporal_jitter.offset_pixels.y,
+        camera.temporal_jitter.sequence_index as f32,
+        if camera.temporal_jitter.sequence_index > 0 {
+            1.0
+        } else {
+            0.0
+        },
+    ]
 }
 
 fn authored_ambient_color(
@@ -99,9 +99,10 @@ mod tests {
     use crate::core::framework::render::{
         FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
         RenderFrameExtract, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+        RenderWorldSnapshotHandle, TemporalJitterSample, ViewProjectionMatrixPair,
+        ViewportCameraSnapshot,
     };
-    use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+    use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
     use crate::graphics::types::ViewportRenderFrame;
 
     #[test]
@@ -131,7 +132,7 @@ mod tests {
             });
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
-        let uniform = SceneUniform::from_frame(&frame, 1.0);
+        let uniform = SceneUniform::from_frame(&frame);
 
         assert_close(uniform.ambient_color[0], 0.0225);
         assert_close(uniform.ambient_color[1], 0.031);
@@ -150,10 +151,67 @@ mod tests {
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
             .with_previous_motion_vector_camera(Some(previous_camera));
 
-        let uniform = SceneUniform::from_frame(&frame, 1.0);
+        let uniform = SceneUniform::from_frame(&frame);
 
         assert_eq!(uniform.motion_params, [1.0, 0.0, 0.0, 0.0]);
-        assert_ne!(uniform.previous_view_proj, uniform.view_proj);
+        assert_ne!(
+            uniform.previous_view_proj_unjittered,
+            uniform.view_proj_unjittered
+        );
+    }
+
+    #[test]
+    fn scene_uniform_exposes_jittered_and_unjittered_current_matrices() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.temporal_jitter = TemporalJitterSample {
+            offset_pixels: Vec2::new(0.5, -0.25),
+            sequence_index: 3,
+        };
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(100, 50));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_ne!(uniform.view_proj, uniform.view_proj_unjittered);
+        assert_eq!(
+            uniform.previous_view_proj_unjittered,
+            uniform.view_proj_unjittered
+        );
+        assert_eq!(uniform.jitter_params, [0.5, -0.25, 3.0, 1.0]);
+    }
+
+    #[test]
+    fn scene_uniform_inverse_view_projection_is_unjittered() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.temporal_jitter = TemporalJitterSample {
+            offset_pixels: Vec2::new(0.5, -0.25),
+            sequence_index: 3,
+        };
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(100, 50));
+
+        let uniform = SceneUniform::from_frame(&frame);
+        let matrix_pair =
+            ViewProjectionMatrixPair::from_camera(frame.camera(), UVec2::new(100, 50));
+
+        assert_eq!(
+            uniform.inverse_view_proj,
+            matrix_pair
+                .clip_from_world_unjittered
+                .inverse()
+                .to_cols_array_2d()
+        );
+        assert_ne!(
+            uniform.inverse_view_proj,
+            matrix_pair
+                .clip_from_world_jittered
+                .inverse()
+                .to_cols_array_2d()
+        );
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

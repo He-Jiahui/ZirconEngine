@@ -14,6 +14,7 @@ use super::{assert_has_event, assert_has_prop};
 mod button_inputs;
 mod data_display;
 mod data_display_subcomponents;
+mod feedback;
 mod form_controls;
 mod inputs;
 mod lab_subcomponents;
@@ -70,7 +71,9 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Chip",
         "ClickAwayListener",
         "Collapse",
+        "CommandPalette",
         "Composite",
+        "ConfirmDialog",
         "Container",
         "ContextMenu",
         "CssBaseline",
@@ -84,8 +87,10 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Divider",
         "DockHost",
         "DocumentNode",
+        "DragOverlay",
         "Drawer",
         "Dropdown",
+        "DropdownPopup",
         "Fade",
         "FieldEditor",
         "FilterBar",
@@ -138,6 +143,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Modal",
         "MobileStepper",
         "NativeSelect",
+        "NotificationCenter",
         "NoSsr",
         "NumberField",
         "Overlay",
@@ -145,6 +151,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Pagination",
         "PaginationItem",
         "Panel",
+        "PanelGroup",
         "PaneToolbar",
         "Paper",
         "PieChart",
@@ -154,10 +161,12 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "PreviewPane",
         "Progress",
         "PropertyGrid",
+        "PropertyRow",
         "Radio",
         "RadioGroup",
         "RangeSlider",
         "Rating",
+        "ScrollBox",
         "ScrollView",
         "Scrollbar",
         "SearchField",
@@ -175,6 +184,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "SpeedDial",
         "SpeedDialAction",
         "SpeedDialIcon",
+        "SplitView",
         "Splitter",
         "Stack",
         "Step",
@@ -224,6 +234,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         "Typography",
         "UseMediaQuery",
         "VerticalGroup",
+        "VectorRow",
         "View",
         "ViewTab",
         "ViewportHost",
@@ -298,6 +309,7 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
 
     button_inputs::assert_descriptors(&registry);
     data_display::assert_descriptors(&registry);
+    feedback::assert_descriptors(&registry);
     let text_field = registry
         .descriptor("TextField")
         .expect("TextField descriptor");
@@ -998,6 +1010,7 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         "data_display_subcomponents.rs",
         "data_display_table.rs",
         "feedback.rs",
+        "feedback_editor_overlays.rs",
         "surfaces.rs",
         "navigation.rs",
         "navigation_subcomponents.rs",

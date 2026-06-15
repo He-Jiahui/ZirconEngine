@@ -34,10 +34,18 @@ related_code:
   - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/asset/assets/animation/mod.rs
+  - zircon_runtime/src/asset/assets/animation/binary.rs
+  - zircon_runtime/src/asset/assets/animation/channel.rs
+  - zircon_runtime/src/asset/assets/animation/clip.rs
+  - zircon_runtime/src/asset/assets/animation/graph.rs
+  - zircon_runtime/src/asset/assets/animation/reference.rs
+  - zircon_runtime/src/asset/assets/animation/sequence.rs
+  - zircon_runtime/src/asset/assets/animation/skeleton.rs
+  - zircon_runtime/src/asset/assets/animation/state_machine.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
@@ -175,10 +183,18 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_plugins/animation/runtime/src/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/scene_hook.rs
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/asset/assets/animation/mod.rs
+  - zircon_runtime/src/asset/assets/animation/binary.rs
+  - zircon_runtime/src/asset/assets/animation/channel.rs
+  - zircon_runtime/src/asset/assets/animation/clip.rs
+  - zircon_runtime/src/asset/assets/animation/graph.rs
+  - zircon_runtime/src/asset/assets/animation/reference.rs
+  - zircon_runtime/src/asset/assets/animation/sequence.rs
+  - zircon_runtime/src/asset/assets/animation/skeleton.rs
+  - zircon_runtime/src/asset/assets/animation/state_machine.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
@@ -598,7 +614,7 @@ doc_type: module-detail
 
 ## Scene Asset Mapping
 
-`zircon_runtime/src/asset/assets/scene.rs` 现在对 entity 暴露了这些新字段：
+`zircon_runtime/src/asset/assets/scene/mod.rs` 现在对 entity 暴露了这些新字段：
 
 - `rigid_body`
 - `collider`

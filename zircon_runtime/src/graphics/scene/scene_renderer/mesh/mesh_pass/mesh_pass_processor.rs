@@ -28,11 +28,13 @@ pub(crate) struct MeshBatchRef {
     pub(crate) primitive_relevance: Option<PrimitiveRelevance>,
     pub(crate) main_view_visible: bool,
     pub(crate) shadow_view_visible: bool,
-    pub(crate) has_previous_motion_vector_transform: bool,
+    pub(crate) has_previous_velocity_transform: bool,
+    pub(crate) taa_reactive_mask_strength: f32,
     pub(crate) static_state: RenderMeshStaticState,
     pub(crate) pipeline_key: PipelineKey,
     pub(crate) sort_key: u64,
     pub(crate) geometry: MeshGeometryHandle,
+    pub(crate) previous_velocity_geometry: Option<MeshGeometryHandle>,
     pub(crate) draw_args: MeshDrawArgs,
     pub(crate) gpu_scene_instance_span: Option<(u32, u32)>,
     pub(crate) gpu_scene_bind_group: Option<MeshBindHandle>,
@@ -58,11 +60,13 @@ impl MeshBatchRef {
             primitive_relevance: None,
             main_view_visible: true,
             shadow_view_visible: true,
-            has_previous_motion_vector_transform: false,
+            has_previous_velocity_transform: false,
+            taa_reactive_mask_strength: 0.0,
             static_state: RenderMeshStaticState::default(),
             pipeline_key,
             sort_key,
             geometry,
+            previous_velocity_geometry: None,
             draw_args,
             gpu_scene_instance_span: None,
             gpu_scene_bind_group: None,
@@ -108,9 +112,27 @@ impl MeshBatchRef {
         self
     }
 
-    pub(crate) fn with_previous_motion_vector_transform(mut self, present: bool) -> Self {
-        self.has_previous_motion_vector_transform = present;
+    pub(crate) fn with_previous_velocity_transform(mut self, present: bool) -> Self {
+        self.has_previous_velocity_transform = present;
         self
+    }
+
+    pub(crate) fn with_previous_velocity_geometry(mut self, geometry: MeshGeometryHandle) -> Self {
+        self.previous_velocity_geometry = Some(geometry);
+        self
+    }
+
+    pub(crate) fn with_taa_reactive_mask_strength(mut self, strength: f32) -> Self {
+        self.taa_reactive_mask_strength = if strength.is_finite() {
+            strength.clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        self
+    }
+
+    pub(crate) fn has_taa_reactive_material_mask(&self) -> bool {
+        self.taa_reactive_mask_strength > f32::EPSILON
     }
 
     pub(crate) fn with_gpu_scene_instance_span(
@@ -222,6 +244,12 @@ impl MeshBatchRef {
         if let Some(gpu_scene_bind_group) = &self.gpu_scene_bind_group {
             command = command.with_gpu_scene_bind_group(gpu_scene_bind_group.clone());
         }
+        if pipeline_kind == MeshPassPipelineKind::Velocity {
+            if let Some(previous_velocity_geometry) = &self.previous_velocity_geometry {
+                command =
+                    command.with_previous_velocity_geometry(previous_velocity_geometry.clone());
+            }
+        }
         command
     }
 
@@ -264,4 +292,58 @@ pub(crate) trait MeshPassProcessor {
         out: &mut MeshDrawCommandList,
     ) where
         R: MeshPipelineVariantResolver + ?Sized;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::RenderPhase;
+    use crate::core::framework::scene::Mobility;
+    use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
+        MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
+    };
+
+    use super::{
+        MeshBatchRef, MeshDrawArgs, MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
+    };
+
+    #[test]
+    fn mesh_batch_ref_attaches_previous_geometry_only_to_velocity_commands() {
+        let batch = MeshBatchRef::new(
+            MeshDrawQueueProfile::new(
+                MeshDrawQueuePhase::Opaque,
+                MeshDrawGeometrySource::DynamicGpuSkinningSource,
+                Mobility::Dynamic,
+                true,
+                true,
+                true,
+            ),
+            default_pipeline_key(),
+            10,
+            MeshGeometryHandle::test(1),
+            MeshDrawArgs::direct_indexed(0, 3),
+        )
+        .with_gpu_scene_instance_span(0, 1)
+        .with_previous_velocity_geometry(MeshGeometryHandle::test(2));
+
+        let velocity = batch.command(
+            RenderPhase::PostProcess,
+            MeshPassPipelineKind::Velocity,
+            MeshPipelineVariantId::new(1),
+        );
+        let base = batch.command(
+            RenderPhase::Opaque3d,
+            MeshPassPipelineKind::Base,
+            MeshPipelineVariantId::new(2),
+        );
+
+        assert_eq!(
+            velocity
+                .previous_velocity_geometry
+                .as_ref()
+                .map(MeshGeometryHandle::id),
+            Some(2)
+        );
+        assert!(base.previous_velocity_geometry.is_none());
+    }
 }

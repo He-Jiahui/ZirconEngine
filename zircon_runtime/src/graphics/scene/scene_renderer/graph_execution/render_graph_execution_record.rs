@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::core::framework::render::PostProcessPassGraph;
 use crate::core::framework::render::{
     MotionVectorCameraStatus, RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
-    RenderHistoryCopyReport,
+    RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -264,6 +264,7 @@ pub struct RenderGraphExecutionRecord {
     motion_vector_camera_status: MotionVectorCameraStatus,
     resource_report: RenderGraphExecutionResourceReport,
     history_copy_report: RenderHistoryCopyReport,
+    scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
 }
@@ -397,6 +398,14 @@ impl RenderGraphExecutionRecord {
 
     pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
         self.history_copy_report = report;
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn set_scene_velocity_readback_report(
+        &mut self,
+        report: RenderSceneVelocityReadbackReport,
+    ) {
+        self.scene_velocity_readback_report = report;
     }
 
     pub fn set_hzb_occlusion_cull_report(&mut self, report: HzbOcclusionCullReport) {
@@ -537,6 +546,10 @@ impl RenderGraphExecutionRecord {
         self.history_copy_report
     }
 
+    pub fn scene_velocity_readback_report(&self) -> RenderSceneVelocityReadbackReport {
+        self.scene_velocity_readback_report
+    }
+
     pub fn hzb_occlusion_cull_report(&self) -> Option<HzbOcclusionCullReport> {
         self.hzb_occlusion_cull_report
     }
@@ -675,7 +688,7 @@ impl RenderGraphExecutionRecord {
 mod tests {
     use crate::core::framework::render::{
         RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
-        RenderHistoryCopyReport,
+        RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
     };
     use crate::core::math::UVec2;
     use crate::graphics::pipeline::RenderPassStage;
@@ -713,17 +726,36 @@ mod tests {
             true,
             UVec2::new(640, 360),
             4,
-            true,
-            true,
-            true,
-            false,
-            false,
-        );
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+    );
 
         record.set_history_copy_report(report);
 
         assert_eq!(record.history_copy_report(), report);
         assert!(record.history_copy_report().debug_marker_emitted);
+    }
+
+    #[test]
+    fn execution_record_preserves_scene_velocity_readback_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = RenderSceneVelocityReadbackReport::from_raw_rg16_float_bytes(
+            UVec2::new(2, 2),
+            &[0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0],
+        );
+
+        record.set_scene_velocity_readback_report(report);
+
+        assert_eq!(record.scene_velocity_readback_report(), report);
+        assert!(record.scene_velocity_readback_report().available);
+        assert_eq!(
+            record.scene_velocity_readback_report().nonzero_pixel_count,
+            2
+        );
     }
 
     #[test]
@@ -826,12 +858,12 @@ mod tests {
         let mut record = RenderGraphExecutionRecord::default();
 
         record.push_executed_pass("overlay-gizmo", "overlay.gizmo", QueueLane::Graphics);
-        record.push_executed_post_process_node("final-composite");
+        record.push_executed_post_process_node("output-transfer");
 
         assert_eq!(record.executed_passes(), &["overlay-gizmo".to_string()]);
         assert_eq!(
             record.executed_post_process_nodes(),
-            &["final-composite".to_string()]
+            &["output-transfer".to_string()]
         );
         assert_eq!(record.executed_queue_lane_count(QueueLane::Graphics), 1);
     }
@@ -862,7 +894,7 @@ mod tests {
         record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
             Some(RenderPassStage::PostProcess),
             "post-stack",
-            "post.stack",
+            "post.uber",
             QueueLane::Graphics,
             QueueLane::Graphics,
             Vec::new(),
@@ -954,7 +986,7 @@ mod tests {
         record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
             Some(RenderPassStage::PostProcess),
             "post-stack",
-            "post.stack",
+            "post.uber",
             QueueLane::Graphics,
             QueueLane::Graphics,
             Vec::new(),

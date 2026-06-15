@@ -277,6 +277,43 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
 }
 
 #[test]
+fn editor_command_operation_action_invokes_operation_registry() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_command_operation_dispatch");
+    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+    let binding = EditorUiBinding::new(
+        "CommandPalette",
+        "CreateCube",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::editor_command("workbench.scene.node.create.cube"),
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .expect("operation-backed command should dispatch through operation registry");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Cube))
+    );
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("scene.node.create_cube")
+    );
+    assert_eq!(
+        runtime.runtime.operation_stack().undo_stack()[0]
+            .operation_id
+            .as_str(),
+        "scene.node.create_cube"
+    );
+    assert_eq!(
+        runtime.runtime.editor_snapshot().scene_entries.len(),
+        before + 1
+    );
+}
+
+#[test]
 fn operation_invocation_dispatches_rect_light_creation() {
     use crate::core::editor_operation::{
         EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
@@ -2935,6 +2972,33 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
     assert_eq!(
         runtime.runtime.editor_snapshot().status_line,
         "Open an existing project or create a renderable empty project."
+    );
+}
+
+#[test]
+fn command_palette_command_requests_open_effect() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_command_palette_open");
+    let binding = EditorUiBinding::new(
+        "CommandPalette",
+        "OpenCommandPalette",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::editor_command("editor.command_palette"),
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .expect("command palette editor command should dispatch");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Transient(EditorEventTransient::OpenCommandPalette)
+    );
+    assert_eq!(
+        record.effects,
+        vec![EditorEventEffect::CommandPaletteOpenRequested]
     );
 }
 

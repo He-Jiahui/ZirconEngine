@@ -15,6 +15,7 @@ use super::{
     pointer::dispatch_pointer_input,
     popup::dispatch_popup_input,
     submenu_hover_timer::dispatch_submenu_hover_timer_input,
+    toast_timer::dispatch_toast_timer_input,
     tooltip_timer::dispatch_tooltip_timer_input,
     typeahead_timer::dispatch_typeahead_timer_input,
 };
@@ -58,6 +59,7 @@ pub(crate) fn dispatch_input_event(
         UiInputEvent::SubmenuHoverTimer(submenu_hover) => {
             Ok(dispatch_submenu_hover_timer_input(surface, submenu_hover))
         }
+        UiInputEvent::ToastTimer(toast) => Ok(dispatch_toast_timer_input(surface, toast)),
         UiInputEvent::Accessibility(accessibility) => {
             Ok(dispatch_accessibility_input(surface, accessibility))
         }

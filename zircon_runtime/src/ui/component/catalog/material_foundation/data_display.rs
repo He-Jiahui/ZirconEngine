@@ -141,46 +141,90 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .event(UiComponentEventKind::SetVisibleRange)
         .requires_host_capability(UiHostCapability::VirtualizedLayout)
         .requires_render_capability(UiRenderCapability::VirtualizedLayout),
-        data_view("TreeView", "Tree View", "tree-view")
-            .with_prop(string_prop("query"))
-            .with_prop(expanded_prop())
-            .with_prop(int_prop("focused_index", 0))
-            .with_prop(int_prop("selected_index", 0))
-            .with_prop(array_prop("disabled_options"))
-            .with_prop(bool_prop("selection_follows_focus", false))
-            .with_prop(bool_prop("keyboard_navigation", true))
-            .slot(UiSlotSchema::new("nodes").multiple(true))
-            .events([
-                UiComponentEventKind::KeyboardAction,
-                UiComponentEventKind::SelectOption,
-                UiComponentEventKind::ToggleExpanded,
-                UiComponentEventKind::OpenPopupAt,
-                UiComponentEventKind::Commit,
-            ]),
-        composite("Table", "Table", UiComponentCategory::Collection, "table")
-            .with_prop(array_prop("rows"))
-            .with_prop(array_prop("columns"))
-            .with_prop(int_prop("focused_index", 0))
-            .with_prop(int_prop("selected_index", 0))
-            .with_prop(array_prop("disabled_options"))
-            .with_prop(bool_prop("selection_follows_focus", false))
-            .with_prop(bool_prop("keyboard_navigation", true))
-            .with_prop(default_string_prop("component", "table"))
-            .with_prop(mui_enum_prop(
-                "padding",
-                "normal",
-                ["checkbox", "none", "normal"],
-            ))
-            .with_prop(mui_enum_prop("size", "medium", ["medium", "small"]))
-            .with_prop(bool_prop("stickyHeader", false))
-            .slot(UiSlotSchema::new("header").multiple(true))
-            .slot(UiSlotSchema::new("row").multiple(true))
-            .events([
-                UiComponentEventKind::KeyboardAction,
-                UiComponentEventKind::Hover,
-                UiComponentEventKind::Press,
-                UiComponentEventKind::SelectOption,
-            ]),
+        virtualized_range_props(
+            data_view("TreeView", "Tree View", "tree-view")
+                .layout_role(UiComponentLayoutRole::VirtualList)
+                .with_prop(string_prop("query"))
+                .with_prop(expanded_prop())
+                .with_prop(bool_prop("editable", true))
+                .with_prop(bool_prop("editing", false))
+                .with_prop(default_string_prop("editing_node_id", ""))
+                .with_prop(default_string_prop("editing_text", ""))
+                .with_prop(int_prop("editing_index", -1))
+                .with_prop(bool_prop("rename_committed", false))
+                .with_prop(default_string_prop("renamed_node_id", ""))
+                .with_prop(default_string_prop("renamed_text", ""))
+                .with_prop(array_prop("expanded_items"))
+                .with_prop(array_prop("selected_items"))
+                .with_prop(bool_prop("multi_select", false))
+                .with_prop(bool_prop("range_selecting", false))
+                .with_prop(bool_prop("reorderable", false))
+                .with_prop(int_prop("selection_anchor_index", 0))
+                .with_prop(int_prop("focused_index", 0))
+                .with_prop(int_prop("selected_index", 0))
+                .with_prop(array_prop("disabled_options"))
+                .with_prop(bool_prop("selection_follows_focus", false))
+                .with_prop(bool_prop("keyboard_navigation", true))
+                .slot(UiSlotSchema::new("nodes").multiple(true)),
+        )
+        .events([
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::SelectOption,
+            UiComponentEventKind::ToggleExpanded,
+            UiComponentEventKind::BeginDrag,
+            UiComponentEventKind::EndDrag,
+            UiComponentEventKind::MoveElement,
+            UiComponentEventKind::OpenPopupAt,
+            UiComponentEventKind::Commit,
+            UiComponentEventKind::SetVisibleRange,
+        ])
+        .requires_host_capability(UiHostCapability::VirtualizedLayout)
+        .requires_render_capability(UiRenderCapability::VirtualizedLayout),
+        virtualized_range_props(
+            composite("Table", "Table", UiComponentCategory::Collection, "table")
+                .layout_role(UiComponentLayoutRole::VirtualList)
+                .with_prop(array_prop("rows"))
+                .with_prop(array_prop("columns")),
+        )
+        .with_prop(map_prop("column_widths"))
+        .with_prop(default_string_prop("sort_column", ""))
+        .with_prop(mui_enum_prop(
+            "sort_direction",
+            "none",
+            ["none", "asc", "desc"],
+        ))
+        .with_prop(bool_prop("resizable_columns", false))
+        .with_prop(float_prop("min_column_width", 40.0))
+        .with_prop(int_prop("focused_index", 0))
+        .with_prop(int_prop("selected_index", 0))
+        .with_prop(array_prop("selected_rows"))
+        .with_prop(default_string_prop("value", ""))
+        .with_prop(array_prop("disabled_options"))
+        .with_prop(bool_prop("selection_follows_focus", false))
+        .with_prop(bool_prop("keyboard_navigation", true))
+        .with_prop(default_string_prop("component", "table"))
+        .with_prop(mui_enum_prop(
+            "padding",
+            "normal",
+            ["checkbox", "none", "normal"],
+        ))
+        .with_prop(mui_enum_prop("size", "medium", ["medium", "small"]))
+        .with_prop(bool_prop("stickyHeader", false))
+        .slot(UiSlotSchema::new("header").multiple(true))
+        .slot(UiSlotSchema::new("row").multiple(true))
+        .events([
+            UiComponentEventKind::ValueChanged,
+            UiComponentEventKind::KeyboardAction,
+            UiComponentEventKind::Hover,
+            UiComponentEventKind::Press,
+            UiComponentEventKind::BeginDrag,
+            UiComponentEventKind::DragDelta,
+            UiComponentEventKind::EndDrag,
+            UiComponentEventKind::SelectOption,
+            UiComponentEventKind::SetVisibleRange,
+        ])
+        .requires_host_capability(UiHostCapability::VirtualizedLayout)
+        .requires_render_capability(UiRenderCapability::VirtualizedLayout),
         primitive(
             "Typography",
             "Typography",

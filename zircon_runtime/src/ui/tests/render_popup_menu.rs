@@ -69,6 +69,65 @@ corner_radius = 5.0
 }
 
 #[test]
+fn render_extract_positions_context_menu_from_explicit_anchor_and_flip() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.popup_menu.anchor_position",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 140.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/menu"))
+                .with_frame(UiFrame::new(20.0, 20.0, 120.0, 72.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "ContextActionMenu".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+popup_open = true
+placement = "right-start"
+popup_anchor_x = 184.0
+popup_anchor_y = 24.0
+popup_offset_x = -2.0
+menu_items = ["Rename", "Delete|danger"]
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("menu node should exist")
+        .layout_cache
+        .clip_frame = Some(UiFrame::new(0.0, 0.0, 200.0, 140.0));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let owner = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.text.as_deref() == Some("Rename")
+        })
+        .expect("open menu should render the first item label");
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.z_index < owner.z_index
+            && command.frame == UiFrame::new(58.0, 24.0, 120.0, 72.0)
+            && command.clip_frame == Some(UiFrame::new(0.0, 0.0, 200.0, 140.0))
+    }));
+}
+
+#[test]
 fn render_extract_loading_context_menu_item_uses_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.popup_menu.loading"));
     surface.tree.insert_root(
@@ -120,6 +179,90 @@ menu_items = ["Delete|checked,hovered,pressed,danger,loading", "Simulate"]
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.frame == UiFrame::new(8.0, 12.0, 3.0, 28.0)
+    }));
+}
+
+#[test]
+fn render_extract_context_menu_options_use_popup_row_state_matrix() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.popup_menu.context_menu_states",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 180.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/menu"))
+                .with_frame(UiFrame::new(12.0, 12.0, 160.0, 120.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "ContextMenu".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+open = true
+options = ["open|label=Open,checked", "rename|label=Rename", "delete|label=Delete,danger", "archive|label=Archive"]
+disabled_options = ["delete"]
+loading_options = ["archive"]
+focused_index = 1
+hovered_option_id = "rename"
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.frame == UiFrame::new(12.0, 12.0, 160.0, 30.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.frame == UiFrame::new(12.0, 16.0, 3.0, 22.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Rename")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Focused
+            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Delete")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Disabled
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Archive")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Loading
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.frame == UiFrame::new(12.0, 72.0, 160.0, 30.0)
     }));
 }
 

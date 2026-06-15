@@ -1,7 +1,7 @@
 use super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 
 pub(crate) struct ScenePostProcessResources {
-    pub(in crate::graphics::scene::scene_renderer::post_process) depth_sampling_mode:
+    pub(in crate::graphics::scene::scene_renderer) depth_sampling_mode:
         PostProcessDepthSamplingMode,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_bind_group_layout:
         wgpu::BindGroupLayout,
@@ -11,15 +11,23 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_bind_group_layout:
         wgpu::BindGroupLayout,
-    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_bind_group_layout:
+    pub(in crate::graphics::scene::scene_renderer) taa_resolve_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer) velocity_camera_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_neighbor_max_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) output_transfer_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
         wgpu::RenderPipeline,
@@ -29,10 +37,14 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_pipeline:
+        wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_pipeline:
+        wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_pipeline:
         wgpu::RenderPipeline,
-    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_pipeline:
-        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer) taa_resolve_pipeline: wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer) velocity_camera_pipeline: wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_neighbor_max_pipeline:
@@ -47,15 +59,23 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pipeline:
         wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) output_transfer_pipeline:
+        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_params_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) exposure_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) default_exposure_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) default_exposure_histogram_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer) taa_resolve_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_params_buffer:
         wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_camera_params_buffer:
-        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer) velocity_camera_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) light_buffer: wgpu::Buffer,
@@ -65,8 +85,7 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) reflection_probe_buffer:
         wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::post_process) black_texture_view:
-        wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer) black_texture_view: wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) white_texture_view:
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_source_texture_view:
@@ -90,5 +109,17 @@ impl ScenePostProcessResources {
         &self,
     ) -> &wgpu::TextureView {
         &self.white_texture_view
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn default_exposure_buffer(
+        &self,
+    ) -> &wgpu::Buffer {
+        &self.default_exposure_buffer
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn default_exposure_histogram_buffer(
+        &self,
+    ) -> &wgpu::Buffer {
+        &self.default_exposure_histogram_buffer
     }
 }

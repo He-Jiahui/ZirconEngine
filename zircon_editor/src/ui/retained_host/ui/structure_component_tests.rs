@@ -57,6 +57,7 @@ fn component_showcase_option_menu_and_tree_state_is_rust_owned() {
         "pub focused: bool",
         "pub hovered: bool",
         "pub pressed: bool",
+        "pub loading: bool",
         "pub matched: bool",
         "pub(crate) struct TemplatePaneMenuItemData",
         "pub shortcut: SharedString",

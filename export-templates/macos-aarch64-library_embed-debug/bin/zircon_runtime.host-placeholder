@@ -1,0 +1,5 @@
+Zircon macOS export-template placeholder host.
+
+This file exercises the M3-T2 macOS app bundle layout only. It is not a
+runnable Mach-O binary and must be replaced by a CI-built macos-aarch64
+LibraryEmbed host before runtime launch validation is claimed.

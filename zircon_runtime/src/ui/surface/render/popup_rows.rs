@@ -3,6 +3,12 @@ use zircon_runtime_interface::ui::{
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState, UiPainterState},
     surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
+    tree::UiTemplateNodeMetadata,
+};
+
+use super::popup_position::{
+    anchored_popup_frame, has_popup_position_metadata, popup_anchor_frame, popup_layout_bounds,
+    PopupPlacement,
 };
 
 const POPUP_BACKGROUND: &str = "#151b1f";
@@ -29,7 +35,15 @@ pub(super) fn menu_row_height(frame: UiFrame, row_count: usize) -> Option<f32> {
     (row_count > 0).then_some((frame.height / row_count as f32).max(POPUP_ROW_MIN_HEIGHT))
 }
 
+pub(super) fn option_popup_layout_bounds(
+    control_frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+) -> Option<UiFrame> {
+    popup_layout_bounds(control_frame, clip_frame)
+}
+
 pub(super) fn option_popup_frame_within(
+    metadata: &UiTemplateNodeMetadata,
     control_frame: UiFrame,
     row_count: usize,
     bounds: Option<UiFrame>,
@@ -37,31 +51,24 @@ pub(super) fn option_popup_frame_within(
     if row_count == 0 {
         return None;
     }
-    let row_height = option_row_height(control_frame);
-    let mut popup = UiFrame::new(
-        control_frame.x,
-        control_frame.y + control_frame.height + POPUP_OPTION_ROW_GAP,
+    let row_height = option_row_height(metadata, control_frame, row_count);
+    if metadata.component == "DropdownPopup" && !has_popup_position_metadata(metadata) {
+        return Some(control_frame);
+    }
+    let anchor_frame = popup_anchor_frame(metadata, control_frame);
+    anchored_popup_frame(
+        metadata,
+        anchor_frame,
         control_frame.width.max(1.0),
         row_height * row_count as f32,
-    );
-    let Some(bounds) = bounds.filter(valid_bounds) else {
-        return Some(popup);
-    };
-
-    let below_y = control_frame.y + control_frame.height + POPUP_OPTION_ROW_GAP;
-    let above_y = control_frame.y - POPUP_OPTION_ROW_GAP - popup.height;
-    if below_y + popup.height > bounds.bottom() && above_y >= bounds.y {
-        popup.y = above_y;
-    }
-
-    let popup_width = popup.width.min(bounds.width.max(1.0)).max(1.0);
-    let max_x = (bounds.x + bounds.width - popup_width).max(bounds.x);
-    popup.x = popup.x.clamp(bounds.x, max_x);
-    popup.width = popup_width;
-    Some(popup)
+        bounds,
+        PopupPlacement::BottomStart,
+        POPUP_OPTION_ROW_GAP,
+    )
 }
 
 pub(super) fn option_row_frame_within(
+    metadata: &UiTemplateNodeMetadata,
     control_frame: UiFrame,
     row_count: usize,
     row: usize,
@@ -70,8 +77,8 @@ pub(super) fn option_row_frame_within(
     if row >= row_count {
         return None;
     }
-    let popup = option_popup_frame_within(control_frame, row_count, bounds)?;
-    let row_height = option_row_height(control_frame);
+    let popup = option_popup_frame_within(metadata, control_frame, row_count, bounds)?;
+    let row_height = option_row_height(metadata, control_frame, row_count);
     Some(UiFrame::new(
         popup.x,
         popup.y + row as f32 * row_height,
@@ -305,17 +312,15 @@ impl PopupCommandPaintState {
     }
 }
 
-fn option_row_height(control_frame: UiFrame) -> f32 {
+fn option_row_height(
+    metadata: &UiTemplateNodeMetadata,
+    control_frame: UiFrame,
+    row_count: usize,
+) -> f32 {
+    if metadata.component == "DropdownPopup" && row_count > 0 {
+        return (control_frame.height / row_count as f32).max(POPUP_ROW_MIN_HEIGHT);
+    }
     control_frame.height.max(POPUP_ROW_MIN_HEIGHT)
-}
-
-fn valid_bounds(frame: &UiFrame) -> bool {
-    frame.x.is_finite()
-        && frame.y.is_finite()
-        && frame.width.is_finite()
-        && frame.height.is_finite()
-        && frame.width > 0.0
-        && frame.height > 0.0
 }
 
 fn quad_command(

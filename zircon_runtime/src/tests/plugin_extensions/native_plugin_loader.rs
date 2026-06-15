@@ -279,6 +279,64 @@ manifest = "plugins/weather/plugin.toml"
 }
 
 #[test]
+fn native_loader_loads_real_fixture_from_export_load_manifest_payload() {
+    let fixture_target = temp_export_root("native-dynamic-export-fixture-target");
+    let export_root = temp_export_root("native-dynamic-export-fixture-root");
+    let plugin_root = export_root.join("plugins").join("native_dynamic_fixture");
+    let native_root = plugin_root.join("native");
+    fs::create_dir_all(&native_root).unwrap();
+
+    let library_path = build_native_dynamic_fixture(&fixture_target);
+    fs::copy(
+        &library_path,
+        native_root.join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        )),
+    )
+    .unwrap();
+    fs::copy(
+        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
+        plugin_root.join("plugin.toml"),
+    )
+    .unwrap();
+    fs::write(
+        plugin_root.join("native_dynamic_package.toml"),
+        r#"
+format_version = 1
+package_id = "native_dynamic_fixture"
+path = "plugins/native_dynamic_fixture"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        export_root.join("plugins").join("native_plugins.toml"),
+        native_dynamic_fixture_load_manifest(),
+    )
+    .unwrap();
+
+    let report = NativePluginLoader.load_all_from_load_manifest(&export_root);
+
+    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    assert_eq!(report.loaded.len(), 1);
+    let plugin = &report.loaded[0];
+    assert_eq!(plugin.plugin_id, "native_dynamic_fixture");
+    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 3);
+    assert!(plugin.runtime_entry_report.is_some());
+    assert!(plugin.editor_entry_report.is_some());
+    assert!(report
+        .diagnostics_for_plugin("native_dynamic_fixture")
+        .iter()
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
+    assert!(report
+        .diagnostics_for_plugin("native_dynamic_fixture")
+        .iter()
+        .any(|message| message.contains("editor entry reached with v3 host ABI table")));
+
+    let _ = fs::remove_dir_all(fixture_target);
+    let _ = fs::remove_dir_all(export_root);
+}
+
+#[test]
 fn native_loader_calls_real_fixture_descriptor_and_entries() {
     let fixture_target = temp_export_root("native-dynamic-fixture-target");
     let package_root = temp_export_root("native-dynamic-fixture-package");
@@ -768,6 +826,28 @@ kind = "runtime"
 crate_name = "zircon_plugin_sound_timeline_animation_runtime"
 target_modes = ["client_runtime"]
 capabilities = ["runtime.feature.sound.timeline_animation_track"]
+"#
+}
+
+fn native_dynamic_fixture_load_manifest() -> &'static str {
+    r#"
+[[plugins]]
+id = "native_dynamic_fixture"
+path = "plugins/native_dynamic_fixture"
+manifest = "plugins/native_dynamic_fixture/plugin.toml"
+package_report = "plugins/native_dynamic_fixture/native_dynamic_package.toml"
+
+[plugins.abi]
+abi_version = 3
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+descriptor_contract = "NativePluginAbiV3"
+runtime_entry_source = "NativePluginAbiV3.runtime_entry_name"
+editor_entry_source = "NativePluginAbiV3.editor_entry_name"
+host_function_table = "NativePluginHostFunctionTableV3"
+entry_report_contract = "NativePluginEntryReportV3"
+behavior_contract = "NativePluginBehaviorV3"
+state_snapshot_contract = "NativePluginBehaviorV3.save_state/restore_state"
+bridge_method_table = "NativePluginBridgeMethodTableV3"
 "#
 }
 

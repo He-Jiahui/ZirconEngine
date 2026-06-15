@@ -1,10 +1,49 @@
 use std::collections::HashSet;
 
-use super::native_plugin_load_manifest_template::native_dynamic_package_directory;
+use serde::{Deserialize, Serialize};
+
+pub(super) const NATIVE_DYNAMIC_PACKAGE_REPORT_FILE: &str = "native_dynamic_package.toml";
+
+const NATIVE_DYNAMIC_PACKAGE_REPORT_FORMAT_VERSION: u32 = 1;
+const NATIVE_DYNAMIC_ABI_VERSION_V3: u32 = 3;
+const NATIVE_DYNAMIC_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
+const NATIVE_DYNAMIC_DESCRIPTOR_CONTRACT_V3: &str = "NativePluginAbiV3";
+const NATIVE_DYNAMIC_RUNTIME_ENTRY_SOURCE_V3: &str = "NativePluginAbiV3.runtime_entry_name";
+const NATIVE_DYNAMIC_EDITOR_ENTRY_SOURCE_V3: &str = "NativePluginAbiV3.editor_entry_name";
+const NATIVE_DYNAMIC_HOST_FUNCTION_TABLE_V3: &str = "NativePluginHostFunctionTableV3";
+const NATIVE_DYNAMIC_ENTRY_REPORT_CONTRACT_V3: &str = "NativePluginEntryReportV3";
+const NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V3: &str = "NativePluginBehaviorV3";
+const NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V3: &str =
+    "NativePluginBehaviorV3.save_state/restore_state";
+const NATIVE_DYNAMIC_BRIDGE_METHOD_TABLE_V3: &str = "NativePluginBridgeMethodTableV3";
 
 pub(super) struct NativeDynamicPackagePlan {
     pub(super) packages: Vec<String>,
+    pub(super) package_exports: Vec<NativeDynamicPackageExportPlan>,
     pub(super) diagnostics: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeDynamicPackageExportPlan {
+    pub package_id: String,
+    pub directory: String,
+    pub path: String,
+    pub manifest: String,
+    pub abi: NativeDynamicPackageAbiV3Contract,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NativeDynamicPackageAbiV3Contract {
+    pub abi_version: u32,
+    pub descriptor_symbol: String,
+    pub descriptor_contract: String,
+    pub runtime_entry_source: String,
+    pub editor_entry_source: String,
+    pub host_function_table: String,
+    pub entry_report_contract: String,
+    pub behavior_contract: String,
+    pub state_snapshot_contract: String,
+    pub bridge_method_table: String,
 }
 
 #[derive(Default)]
@@ -12,6 +51,7 @@ pub(super) struct NativeDynamicPackageAccumulator {
     package_ids: HashSet<String>,
     package_directories: HashSet<String>,
     packages: Vec<String>,
+    package_exports: Vec<NativeDynamicPackageExportPlan>,
     diagnostics: Vec<String>,
 }
 
@@ -20,7 +60,8 @@ impl NativeDynamicPackageAccumulator {
         if !self.package_ids.insert(package_id.to_string()) {
             return;
         }
-        let package_directory = native_dynamic_package_directory(package_id);
+        let package_export = NativeDynamicPackageExportPlan::for_package_id(package_id);
+        let package_directory = package_export.directory.clone();
         if !self.package_directories.insert(package_directory.clone()) {
             self.diagnostics.push(format!(
                 "plugin {package_id} uses NativeDynamic packaging but resolves to duplicate output directory plugins/{package_directory}"
@@ -28,13 +69,132 @@ impl NativeDynamicPackageAccumulator {
             return;
         }
         self.packages.push(package_id.to_string());
+        self.package_exports.push(package_export);
     }
 
     pub(super) fn finish(self) -> NativeDynamicPackagePlan {
         NativeDynamicPackagePlan {
             packages: self.packages,
+            package_exports: self.package_exports,
             diagnostics: self.diagnostics,
         }
+    }
+}
+
+impl NativeDynamicPackageExportPlan {
+    pub fn for_package_id(package_id: impl Into<String>) -> Self {
+        let package_id = package_id.into();
+        let directory = native_dynamic_package_directory(&package_id);
+        let path = format!("plugins/{directory}");
+        let manifest = format!("{path}/plugin.toml");
+        Self {
+            package_id,
+            directory,
+            path,
+            manifest,
+            abi: NativeDynamicPackageAbiV3Contract::native_abi_v3(),
+        }
+    }
+}
+
+impl NativeDynamicPackageAbiV3Contract {
+    pub fn native_abi_v3() -> Self {
+        Self {
+            abi_version: NATIVE_DYNAMIC_ABI_VERSION_V3,
+            descriptor_symbol: NATIVE_DYNAMIC_DESCRIPTOR_SYMBOL_V3.to_string(),
+            descriptor_contract: NATIVE_DYNAMIC_DESCRIPTOR_CONTRACT_V3.to_string(),
+            runtime_entry_source: NATIVE_DYNAMIC_RUNTIME_ENTRY_SOURCE_V3.to_string(),
+            editor_entry_source: NATIVE_DYNAMIC_EDITOR_ENTRY_SOURCE_V3.to_string(),
+            host_function_table: NATIVE_DYNAMIC_HOST_FUNCTION_TABLE_V3.to_string(),
+            entry_report_contract: NATIVE_DYNAMIC_ENTRY_REPORT_CONTRACT_V3.to_string(),
+            behavior_contract: NATIVE_DYNAMIC_BEHAVIOR_CONTRACT_V3.to_string(),
+            state_snapshot_contract: NATIVE_DYNAMIC_STATE_SNAPSHOT_CONTRACT_V3.to_string(),
+            bridge_method_table: NATIVE_DYNAMIC_BRIDGE_METHOD_TABLE_V3.to_string(),
+        }
+    }
+}
+
+impl Default for NativeDynamicPackageAbiV3Contract {
+    fn default() -> Self {
+        Self::native_abi_v3()
+    }
+}
+
+pub(super) fn native_dynamic_package_report_template(
+    package: &NativeDynamicPackageExportPlan,
+) -> String {
+    let mut output = String::from("# Generated by Zircon export. Native dynamic package report.\n");
+    output.push_str(&format!(
+        "format_version = {NATIVE_DYNAMIC_PACKAGE_REPORT_FORMAT_VERSION}\n"
+    ));
+    output.push_str(&format!("package_id = {:?}\n", package.package_id));
+    output.push_str(&format!("directory = {:?}\n", package.directory));
+    output.push_str(&format!("path = {:?}\n", package.path));
+    output.push_str(&format!("manifest = {:?}\n", package.manifest));
+    append_native_dynamic_abi_contract_toml(&mut output, "abi", &package.abi);
+    output
+}
+
+pub(super) fn append_native_dynamic_abi_contract_toml(
+    output: &mut String,
+    table_name: &str,
+    abi: &NativeDynamicPackageAbiV3Contract,
+) {
+    output.push_str(&format!("\n[{table_name}]\n"));
+    output.push_str(&format!("abi_version = {}\n", abi.abi_version));
+    output.push_str(&format!(
+        "descriptor_symbol = {:?}\n",
+        abi.descriptor_symbol
+    ));
+    output.push_str(&format!(
+        "descriptor_contract = {:?}\n",
+        abi.descriptor_contract
+    ));
+    output.push_str(&format!(
+        "runtime_entry_source = {:?}\n",
+        abi.runtime_entry_source
+    ));
+    output.push_str(&format!(
+        "editor_entry_source = {:?}\n",
+        abi.editor_entry_source
+    ));
+    output.push_str(&format!(
+        "host_function_table = {:?}\n",
+        abi.host_function_table
+    ));
+    output.push_str(&format!(
+        "entry_report_contract = {:?}\n",
+        abi.entry_report_contract
+    ));
+    output.push_str(&format!(
+        "behavior_contract = {:?}\n",
+        abi.behavior_contract
+    ));
+    output.push_str(&format!(
+        "state_snapshot_contract = {:?}\n",
+        abi.state_snapshot_contract
+    ));
+    output.push_str(&format!(
+        "bridge_method_table = {:?}\n",
+        abi.bridge_method_table
+    ));
+}
+
+pub(super) fn native_dynamic_package_directory(package_id: &str) -> String {
+    let sanitized: String = package_id
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    if sanitized.is_empty() {
+        "_".to_string()
+    } else {
+        sanitized
     }
 }
 
@@ -51,6 +211,18 @@ mod tests {
         let plan = accumulator.finish();
 
         assert_eq!(plan.packages, vec!["sound".to_string()]);
+        assert_eq!(plan.package_exports.len(), 1);
+        assert_eq!(plan.package_exports[0].package_id, "sound");
+        assert_eq!(plan.package_exports[0].path, "plugins/sound");
+        assert_eq!(
+            plan.package_exports[0].manifest,
+            "plugins/sound/plugin.toml"
+        );
+        assert_eq!(plan.package_exports[0].abi.abi_version, 3);
+        assert_eq!(
+            plan.package_exports[0].abi.descriptor_symbol,
+            "zircon_native_plugin_descriptor_v3"
+        );
         assert!(plan.diagnostics.is_empty());
     }
 

@@ -300,12 +300,12 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
 }
 
 #[test]
-fn history_resolve_rotates_history_when_scene_material_changes() {
-    let root = unique_temp_project_root("graphics_history_resolve");
+fn temporal_history_rotates_history_when_scene_material_changes() {
+    let root = unique_temp_project_root("graphics_temporal_history");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
     ProjectManifest::new(
-        "GraphicsHistoryResolve",
+        "GraphicsTemporalHistory",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
         1,
     )
@@ -361,7 +361,7 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
             RenderQualityProfile::new("history-only")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(true),
+                .with_temporal_history(true),
         )
         .unwrap();
 
@@ -424,7 +424,7 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
             RenderQualityProfile::new("no-history")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let no_history_frame = submit_snapshot(
@@ -552,7 +552,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
             ao_viewport,
             RenderQualityProfile::new("ao-on")
                 .with_clustered_lighting(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let ao_frame = submit_snapshot(&server, ao_viewport, snapshot.clone());
@@ -565,7 +565,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
             no_ao_viewport,
             RenderQualityProfile::new("ao-off")
                 .with_clustered_lighting(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_screen_space_ambient_occlusion(false),
         )
         .unwrap();
@@ -657,7 +657,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
             clustered_viewport,
             RenderQualityProfile::new("clustered-on")
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let clustered_frame = submit_snapshot(&server, clustered_viewport, snapshot.clone());
@@ -672,7 +672,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
             RenderQualityProfile::new("clustered-off")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let flat_frame = submit_snapshot(&server, flat_viewport, snapshot);
@@ -796,7 +796,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
             RenderQualityProfile::new("forward-clean")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let forward_frame = submit_snapshot(&server, forward_viewport, snapshot.clone());
@@ -813,7 +813,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
             RenderQualityProfile::new("deferred-clean")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
     let deferred_frame = submit_snapshot(&server, deferred_viewport, snapshot);

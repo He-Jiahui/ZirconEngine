@@ -14,6 +14,7 @@ mod formats;
 pub mod importer;
 mod load;
 mod management;
+pub mod pack;
 pub mod pipeline;
 pub mod project;
 mod runtime_asset_path;

@@ -17,8 +17,8 @@ pub use event::{
     UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
     UiMouseMotionInputEvent, UiNavigationInputEvent, UiPointerInputEvent, UiPopupInputEvent,
     UiPopupInputEventKind, UiPreciseScrollDelta, UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent,
-    UiTextByteRange, UiTextInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
-    UiTypeaheadTimerInputEvent,
+    UiTextByteRange, UiTextInputEvent, UiToastTimerInputEvent, UiTooltipTimerInputEvent,
+    UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent,
 };
 pub use metadata::{
     UiDeviceId, UiDragSessionId, UiInputEventMetadata, UiInputModifiers, UiInputSequence,

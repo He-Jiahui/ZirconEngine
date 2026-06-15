@@ -78,6 +78,10 @@ impl SceneRendererCore {
         );
         queue.submit([encoder.finish()]);
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();
+        let _prev_skinned_palette_roll_report =
+            self.gpu_scene.roll_prev_skinned_palettes_after_success();
+        let _prev_skinned_source_roll_report =
+            self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
         Ok(())
     }
 }

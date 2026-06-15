@@ -1,5 +1,6 @@
+use super::super::particle_velocity_vertex::ParticleVelocityVertex;
 use super::super::particle_vertex::ParticleVertex;
-use super::shader_source::PARTICLE_SHADER;
+use super::shader_source::{PARTICLE_SHADER, PARTICLE_VELOCITY_SHADER};
 use super::ParticleRenderer;
 
 impl ParticleRenderer {
@@ -11,6 +12,10 @@ impl ParticleRenderer {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("zircon-particle-shader"),
             source: wgpu::ShaderSource::Wgsl(PARTICLE_SHADER.into()),
+        });
+        let velocity_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("zircon-particle-velocity-shader"),
+            source: wgpu::ShaderSource::Wgsl(PARTICLE_VELOCITY_SHADER.into()),
         });
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("zircon-particle-layout"),
@@ -59,7 +64,41 @@ impl ParticleRenderer {
             multiview_mask: None,
             cache: None,
         });
+        let velocity_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("zircon-particle-velocity-pipeline"),
+            layout: Some(&layout),
+            vertex: wgpu::VertexState {
+                module: &velocity_shader,
+                entry_point: Some("vs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                buffers: &[ParticleVelocityVertex::layout()],
+            },
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: Some(wgpu::DepthStencilState {
+                format: super::super::super::core::DEPTH_FORMAT,
+                depth_write_enabled: Some(false),
+                depth_compare: Some(wgpu::CompareFunction::LessEqual),
+                stencil: wgpu::StencilState::default(),
+                bias: wgpu::DepthBiasState::default(),
+            }),
+            multisample: wgpu::MultisampleState::default(),
+            fragment: Some(wgpu::FragmentState {
+                module: &velocity_shader,
+                entry_point: Some("fs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::Rg16Float,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            multiview_mask: None,
+            cache: None,
+        });
 
-        Self { pipeline }
+        Self {
+            pipeline,
+            velocity_pipeline,
+        }
     }
 }

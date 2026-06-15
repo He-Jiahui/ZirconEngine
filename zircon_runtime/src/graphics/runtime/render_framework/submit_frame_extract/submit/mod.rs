@@ -6,7 +6,8 @@ mod release_previous_history;
 mod resolve_history_handle;
 mod submit;
 mod submit_runtime_frame;
-mod update_motion_vector_history;
+mod update_particle_previous_state;
+mod update_temporal_camera_history;
 
 pub(in crate::graphics::runtime::render_framework) use present_frame_extract::{
     present_frame_extract, present_frame_extract_with_ui,

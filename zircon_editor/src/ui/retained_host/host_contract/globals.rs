@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::ui::retained_host::primitives::{
     CloseRequestResponse, Image, ModelRc, PhysicalPosition, PhysicalSize, SharedString,
 };
+use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 use super::data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, HostDragStateData,
@@ -100,6 +101,7 @@ struct UiHostCallbacks {
     drawer_header_pointer_clicked: Option<Callback6<SharedString, i32, f32, f32, f32, f32>>,
     host_drag_pointer_event: Option<Callback3<i32, f32, f32>>,
     host_resize_pointer_event: Option<Callback3<i32, f32, f32>>,
+    unhandled_keyboard_input: Option<Callback1<UiKeyboardInputEvent>>,
 }
 
 #[derive(Default)]
@@ -242,6 +244,7 @@ impl UiHostContext<'_> {
     callback_methods!(ui_callbacks, on_drawer_header_pointer_clicked, invoke_drawer_header_pointer_clicked, drawer_header_pointer_clicked, (surface_key: SharedString, tab_index: i32, tab_x: f32, tab_width: f32, point_x: f32, point_y: f32));
     callback_methods!(ui_callbacks, on_host_drag_pointer_event, invoke_host_drag_pointer_event, host_drag_pointer_event, (kind: i32, x: f32, y: f32));
     callback_methods!(ui_callbacks, on_host_resize_pointer_event, invoke_host_resize_pointer_event, host_resize_pointer_event, (kind: i32, x: f32, y: f32));
+    callback_methods!(ui_callbacks, on_unhandled_keyboard_input, invoke_unhandled_keyboard_input, unhandled_keyboard_input, (keyboard: UiKeyboardInputEvent));
 }
 
 pub(crate) struct PaneSurfaceHostContext<'a> {

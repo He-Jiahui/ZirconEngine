@@ -46,6 +46,7 @@ pub enum UiComponentEventKind {
 pub enum UiComponentKeyboardAction {
     Activate,
     Cancel,
+    BeginEdit,
     Next,
     Previous,
     First,

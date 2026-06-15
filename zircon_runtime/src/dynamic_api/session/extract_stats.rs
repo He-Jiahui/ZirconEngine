@@ -108,12 +108,12 @@ fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {
         bytes += slice_bytes(&hybrid_gi.trace_regions);
     }
 
-    bytes += slice_bytes(&extract.post_process.volume_stack.volumes);
+    bytes += slice_bytes(&extract.post_process.volumes);
     bytes += strings_bytes(&extract.post_process.stack.initial_resources);
     bytes += slice_bytes(&extract.post_process.stack.effects);
     bytes += post_process_nodes_bytes(&extract.post_process.graph.nodes);
     bytes += post_process_nodes_bytes(&extract.post_process.graph.skipped_nodes);
-    bytes += option_string_bytes(&extract.post_process.graph.final_composite_node);
+    bytes += option_string_bytes(&extract.post_process.graph.output_transfer_node);
 
     let overlays = &extract.debug.overlays;
     bytes += slice_bytes(&overlays.selection);

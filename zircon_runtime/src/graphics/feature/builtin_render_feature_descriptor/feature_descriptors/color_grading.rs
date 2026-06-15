@@ -13,10 +13,10 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
             RenderPassStage::PostProcess,
-            "color-grade",
+            "color-lut-bake",
             QueueLane::Graphics,
         )
-        .with_executor_id("post.color-grade")
+        .with_executor_id("post.color-lut-bake")
         .read_texture("scene-color")
         .write_texture("scene-color")],
     )

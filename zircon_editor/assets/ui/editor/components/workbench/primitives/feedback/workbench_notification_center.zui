@@ -1,0 +1,20 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui"
+version = 2
+display_name = "Workbench Notification Center"
+
+[imports]
+widgets = []
+styles = []
+
+[components.WorkbenchNotificationCenter]
+root = "root"
+default_classes = ["workbench-notification-center", "workbench-primitive"]
+
+[nodes.root]
+component = "NotificationCenter"
+control_id = "WorkbenchNotificationCenterRoot"
+classes = ["workbench-notification-center"]
+props = { open = true, popup_open = true, title = "Notifications", unread_count = 2, notifications = ["build|title=Build failed|message=Shader compile error|severity=error|unread=true", "asset|title=Asset import complete|message=StoneWall.mesh ready|severity=success|unread=true", "source|title=Source control synced|message=No local conflicts|severity=info|unread=false"], selected_notification_id = "build", focused_index = 1, visible_limit = 4, empty_text = "No notifications", placement = "bottom-end", popup_anchor_x = 980.0, popup_anchor_y = 64.0, popup_anchor_width = 320.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = 18.0, disable_auto_focus = false, disable_enforce_focus = false, disable_restore_focus = false, disable_escape_key_down = false, close_on_backdrop_click = true, keep_mounted = false, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 280.0, preferred = 320.0, max = 380.0, stretch = "Fixed" }, height = { min = 160.0, preferred = 220.0, max = 320.0, stretch = "Fixed" } }

@@ -178,6 +178,7 @@ impl ShellPresentation {
                 shell_min_height_px: geometry.window_min_height,
                 native_floating_window_mode: false,
                 native_floating_window_id: "".into(),
+                native_surface_tree_id: "".into(),
                 native_window_title: "Zircon Editor".into(),
                 native_window_bounds: FrameRect {
                     x: 0.0,

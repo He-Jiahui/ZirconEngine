@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::plugin::{
     NativeHostBridgeCallScope, PluginModuleKind, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleOutcome,
@@ -86,6 +88,26 @@ pub struct NativePluginLiveHostLoadReport {
     pub runtime_plugin_feature_registration_reports: Vec<RuntimePluginFeatureRegistrationReport>,
     pub bridge_lifecycle_reports: Vec<NativePluginLiveHostBridgeLifecycleReport>,
     pub diagnostics: Vec<String>,
+}
+
+/// Manifest-driven runtime hot update report for NativeDynamic export roots.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativePluginRuntimeHotUpdateReport {
+    pub export_root: PathBuf,
+    pub manifest_plugin_ids: Vec<String>,
+    pub runtime_plugin_ids: Vec<String>,
+    pub loaded_plugin_ids: Vec<String>,
+    pub skipped_plugin_ids: Vec<String>,
+    pub outcomes: Vec<NativePluginLiveHostOutcome>,
+    pub diagnostics: Vec<String>,
+}
+
+impl NativePluginRuntimeHotUpdateReport {
+    pub fn is_clean(&self) -> bool {
+        self.diagnostics.is_empty()
+            && self.runtime_plugin_ids.len() == self.loaded_plugin_ids.len()
+            && self.skipped_plugin_ids.is_empty()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

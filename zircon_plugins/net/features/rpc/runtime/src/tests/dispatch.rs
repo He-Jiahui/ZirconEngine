@@ -62,6 +62,63 @@ fn rpc_feature_manager_validates_registry_authority_payload_and_quota() {
 }
 
 #[test]
+fn wrong_direction_rpc_rejected() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "direction-player");
+    rpc.register_rpc(RpcDescriptor::new(
+        "chat.notice",
+        RpcDirection::ServerToClient,
+    ))
+    .unwrap();
+
+    let wrong_payload_direction = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.notice", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(
+        wrong_payload_direction.status,
+        RpcDispatchStatus::DirectionDenied
+    );
+
+    let wrong_caller_role = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.notice", RpcDirection::ServerToClient, Vec::new()),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(wrong_caller_role.status, RpcDispatchStatus::DirectionDenied);
+}
+
+#[test]
+fn bidirectional_rpc_accepts_valid_client_and_server_calls() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "bidirectional-player");
+    rpc.register_rpc(RpcDescriptor::new(
+        "chat.moderate",
+        RpcDirection::Bidirectional,
+    ))
+    .unwrap();
+
+    let client_to_server = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(client_to_server.status, RpcDispatchStatus::Accepted);
+
+    let server_to_client = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ServerToClient, Vec::new()),
+        RpcPeerRole::Server,
+    );
+    assert_eq!(server_to_client.status, RpcDispatchStatus::Accepted);
+
+    let mismatched_role = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ServerToClient, Vec::new()),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(mismatched_role.status, RpcDispatchStatus::DirectionDenied);
+}
+
+#[test]
 fn rpc_feature_manager_denies_client_rpc_until_source_session_joined() {
     let rpc = net_rpc_runtime_manager();
     rpc.register_rpc(RpcDescriptor::command("chat.send"))

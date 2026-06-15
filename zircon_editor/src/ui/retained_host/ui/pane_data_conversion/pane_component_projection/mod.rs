@@ -8,6 +8,9 @@ use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
 
 mod collection_fields;
+mod command_palette;
+mod drag_overlay;
+mod notification_center;
 mod popup_frame;
 pub(crate) mod preview_images;
 mod progress_value;
@@ -16,6 +19,14 @@ mod surface_defaults;
 mod transition_metadata;
 
 use self::collection_fields::collection_fields_for_component;
+pub(in crate::ui::retained_host::ui) use self::command_palette::{
+    projected_command_palette_options, projected_command_palette_structured_options,
+};
+use self::drag_overlay::projected_drag_overlay_data;
+use self::notification_center::{
+    projected_notification_center_options, projected_notification_center_structured_options,
+    projected_notification_center_value_text,
+};
 use self::popup_frame::projected_popup_frame;
 use self::preview_images::load_preview_image;
 use self::progress_value::projected_value_percent;
@@ -71,7 +82,13 @@ pub(super) fn host_template_node(
             (!role.is_empty()).then(|| role.to_string())
         })
         .unwrap_or_default();
-    let value_text = projected_badge_value_text(component_role.as_str(), &node.attributes)
+    let drag_overlay = projected_drag_overlay_data(component_role.as_str(), &node.attributes);
+    let value_text = projected_dialog_value_text(component_role.as_str(), &node.attributes)
+        .or_else(|| drag_overlay.value_text.clone())
+        .or_else(|| {
+            projected_notification_center_value_text(component_role.as_str(), &node.attributes)
+        })
+        .or_else(|| projected_badge_value_text(component_role.as_str(), &node.attributes))
         .or_else(|| node.attributes.get("value_text").and_then(value_as_string))
         .or_else(|| {
             node.attributes
@@ -175,13 +192,22 @@ pub(super) fn host_template_node(
         .get("tree_indent_px")
         .and_then(value_as_f64)
         .unwrap_or_else(|| f64::from(tree_depth) * 12.0) as f32;
-    let options = node
-        .attributes
-        .get("options")
-        .and_then(value_as_options)
+    let options = projected_command_palette_options(component_role.as_str(), &node.attributes)
+        .or_else(|| {
+            projected_notification_center_options(component_role.as_str(), &node.attributes)
+        })
+        .or_else(|| node.attributes.get("options").and_then(value_as_options))
         .unwrap_or_default();
     let options_text = options.join(", ");
-    let structured_options = structured_options_for_node(&options, &node.attributes);
+    let structured_options =
+        projected_command_palette_structured_options(component_role.as_str(), &node.attributes)
+            .or_else(|| {
+                projected_notification_center_structured_options(
+                    component_role.as_str(),
+                    &node.attributes,
+                )
+            })
+            .unwrap_or_else(|| structured_options_for_node(&options, &node.attributes));
     let mut collection_items = node
         .attributes
         .get("collection_items")
@@ -309,6 +335,7 @@ pub(super) fn host_template_node(
         .or_else(|| node.attributes.get("open"))
         .and_then(value_as_bool)
         .unwrap_or(false);
+    let popup_open = drag_overlay.popup_open.unwrap_or(popup_open);
     let popup_anchor_x = node
         .attributes
         .get("popup_anchor_x")
@@ -368,7 +395,10 @@ pub(super) fn host_template_node(
         .and_then(|_| preferred_showcase_commit_action_id(&control_id, &node.bindings))
         .or_else(|| primary_submit_action_id(&node.bindings))
         .unwrap_or_default();
-    let actions = if component_descriptor.is_some() {
+    let dialog_actions = projected_dialog_actions(component_role.as_str(), &node.attributes);
+    let actions = if !dialog_actions.is_empty() {
+        dialog_actions
+    } else if component_descriptor.is_some() {
         preferred_showcase_action_buttons(&control_id, &node.bindings)
     } else {
         Vec::new()
@@ -380,10 +410,15 @@ pub(super) fn host_template_node(
     };
     let text_names: &[&str] = match component_role.as_str() {
         "card-header" => &["text", "label", "title", "subheader"],
+        "dialog" | "confirm-dialog" | "alert-dialog" => &["title", "text", "label"],
+        "notification-center" => &["title", "text", "label"],
         "snackbar" | "snackbar-content" => &["text", "label", "message"],
         _ => &["text", "label"],
     };
-    let text = first_non_empty_string_attribute(&node.attributes, text_names)
+    let text = drag_overlay
+        .text
+        .clone()
+        .or_else(|| first_non_empty_string_attribute(&node.attributes, text_names))
         .or_else(|| {
             (!node.bindings.is_empty() || should_humanize_control_label(&control_id))
                 .then(|| humanize_control_id(&control_id))
@@ -744,6 +779,24 @@ pub(super) fn host_template_node(
             .get("active_drag_target")
             .and_then(value_as_bool)
             .unwrap_or(false),
+        drag_payload_kind: drag_overlay.payload_kind.into(),
+        drag_payload_label: drag_overlay.payload_label.into(),
+        drag_payload_reference: drag_overlay.payload_reference.into(),
+        has_drag_cursor: drag_overlay.has_cursor,
+        drag_cursor_x: drag_overlay.cursor_x,
+        drag_cursor_y: drag_overlay.cursor_y,
+        drag_offset_x: drag_overlay.offset_x,
+        drag_offset_y: drag_overlay.offset_y,
+        drag_preview_width: drag_overlay.preview_width,
+        drag_preview_height: drag_overlay.preview_height,
+        drop_allowed: drag_overlay.drop_allowed,
+        has_drop_target: drag_overlay.has_drop_target,
+        drop_target_x: drag_overlay.drop_target_x,
+        drop_target_y: drag_overlay.drop_target_y,
+        drop_target_width: drag_overlay.drop_target_width,
+        drop_target_height: drag_overlay.drop_target_height,
+        drop_indicator_edge: drag_overlay.drop_indicator_edge.into(),
+        drop_indicator_text: drag_overlay.drop_indicator_text.into(),
         disabled,
         dispatch_kind: dispatch_kind.into(),
         action_id: action_id.into(),
@@ -802,6 +855,83 @@ fn projected_badge_value_text(
         return Some(format!("{}+", max.round() as i64));
     }
     Some(UiValue::from_toml(content).display_text())
+}
+
+fn projected_dialog_value_text(
+    component_role: &str,
+    attributes: &BTreeMap<String, toml::Value>,
+) -> Option<String> {
+    if !matches!(component_role, "dialog" | "confirm-dialog" | "alert-dialog") {
+        return None;
+    }
+    first_non_empty_string_attribute(attributes, &["message", "description", "body"])
+}
+
+fn projected_dialog_actions(
+    component_role: &str,
+    attributes: &BTreeMap<String, toml::Value>,
+) -> Vec<host_contract::TemplatePaneActionData> {
+    match component_role {
+        "dialog" => first_non_empty_string_attribute(
+            attributes,
+            &[
+                "action",
+                "primary_action_text",
+                "confirm_text",
+                "close_text",
+            ],
+        )
+        .map(|label| {
+            vec![host_contract::TemplatePaneActionData {
+                label: label.into(),
+                action_id: first_non_empty_string_attribute(
+                    attributes,
+                    &["dialog_action_id", "action_id", "commit_action_id"],
+                )
+                .unwrap_or_default()
+                .into(),
+            }]
+        })
+        .unwrap_or_default(),
+        "confirm-dialog" | "alert-dialog" => {
+            let cancel_label = first_non_empty_string_attribute(
+                attributes,
+                &["cancel_text", "cancelText", "close_text"],
+            )
+            .unwrap_or_else(|| "Cancel".to_string());
+            let confirm_label = first_non_empty_string_attribute(
+                attributes,
+                &[
+                    "confirm_text",
+                    "confirmText",
+                    "primary_action_text",
+                    "action",
+                ],
+            )
+            .unwrap_or_else(|| "Confirm".to_string());
+            vec![
+                host_contract::TemplatePaneActionData {
+                    label: cancel_label.into(),
+                    action_id: first_non_empty_string_attribute(
+                        attributes,
+                        &["cancel_action_id", "cancelActionId"],
+                    )
+                    .unwrap_or_else(|| "cancel".to_string())
+                    .into(),
+                },
+                host_contract::TemplatePaneActionData {
+                    label: confirm_label.into(),
+                    action_id: first_non_empty_string_attribute(
+                        attributes,
+                        &["confirm_action_id", "confirmActionId", "dialog_action_id"],
+                    )
+                    .unwrap_or_else(|| "confirm".to_string())
+                    .into(),
+                },
+            ]
+        }
+        _ => Vec::new(),
+    }
 }
 
 fn badge_content_number(value: &toml::Value) -> Option<f64> {
@@ -988,5 +1118,9 @@ fn alias_toml_value_key(values: &mut BTreeMap<String, toml::Value>, source: &str
     }
 }
 
+#[cfg(test)]
+mod drag_overlay_tests;
+#[cfg(test)]
+mod notification_center_tests;
 #[cfg(test)]
 mod tests;

@@ -28,6 +28,50 @@ fn material_virtualized_descriptors_expose_mui_web_aliases() {
     assert!(data_grid
         .required_render_capabilities
         .contains(&UiRenderCapability::VirtualizedLayout));
+
+    let table = registry.descriptor("Table").expect("Table descriptor");
+    assert_eq!(table.layout_role, UiComponentLayoutRole::VirtualList);
+    assert_has_prop(table, "rows");
+    assert_has_prop(table, "columns");
+    assert_virtual_range_schema(table);
+    assert_has_event(table, UiComponentEventKind::SetVisibleRange);
+    assert!(table
+        .required_host_capabilities
+        .contains(&UiHostCapability::VirtualizedLayout));
+    assert!(table
+        .required_render_capabilities
+        .contains(&UiRenderCapability::VirtualizedLayout));
+
+    let tree = registry
+        .descriptor("TreeView")
+        .expect("TreeView descriptor");
+    assert_eq!(tree.layout_role, UiComponentLayoutRole::VirtualList);
+    assert_has_prop(tree, "nodes");
+    assert_virtual_range_schema(tree);
+    assert_has_event(tree, UiComponentEventKind::SetVisibleRange);
+    assert!(tree
+        .required_host_capabilities
+        .contains(&UiHostCapability::VirtualizedLayout));
+    assert!(tree
+        .required_render_capabilities
+        .contains(&UiRenderCapability::VirtualizedLayout));
+
+    let material_tree = registry
+        .descriptor("MaterialTreeView")
+        .expect("MaterialTreeView descriptor");
+    assert_eq!(
+        material_tree.layout_role,
+        UiComponentLayoutRole::VirtualList
+    );
+    assert_has_prop(material_tree, "items");
+    assert_virtual_range_schema(material_tree);
+    assert_has_event(material_tree, UiComponentEventKind::SetVisibleRange);
+    assert!(material_tree
+        .required_host_capabilities
+        .contains(&UiHostCapability::VirtualizedLayout));
+    assert!(material_tree
+        .required_render_capabilities
+        .contains(&UiRenderCapability::VirtualizedLayout));
 }
 
 #[test]
@@ -111,8 +155,11 @@ fn assert_virtual_range_schema(
         "viewport_start",
         "viewport_count",
         "visible_end",
+        "visibleEnd",
         "requested_start",
+        "requestedStart",
         "requested_count",
+        "requestedCount",
         "item_extent",
         "itemSize",
         "row_height",

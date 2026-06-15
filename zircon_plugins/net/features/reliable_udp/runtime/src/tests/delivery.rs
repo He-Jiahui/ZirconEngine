@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::net::{
-    ReliableDatagramRecoveryState, ReliableDatagramSimulationProfile,
+    ReliableDatagramConfig, ReliableDatagramRecoveryState, ReliableDatagramSimulationProfile,
 };
 
 use crate::NetReliableUdpRuntimeManager;
@@ -45,4 +45,44 @@ fn reliable_udp_simulation_drops_and_reorders_packets_deterministically() {
         ReliableDatagramRecoveryState::Connected
     );
     assert_eq!(manager.stats().dropped_packets, 1);
+}
+
+#[test]
+fn thirty_percent_loss_delivers_in_order() {
+    let sender = NetReliableUdpRuntimeManager::new(ReliableDatagramConfig {
+        resend_timeout_ms: 10,
+        max_resend_attempts: 4,
+        ..ReliableDatagramConfig::default()
+    });
+    let receiver = NetReliableUdpRuntimeManager::default();
+    sender.set_simulation_profile(
+        ReliableDatagramSimulationProfile::new().with_drop_every_nth_packet(3),
+    );
+
+    let packets = (1_u8..=10)
+        .flat_map(|value| {
+            sender
+                .enqueue_reliable_datagram("state", vec![value])
+                .packets
+        })
+        .collect::<Vec<_>>();
+
+    let first_delivery = sender.simulate_outbound_delivery(packets);
+    let mut delivered = Vec::new();
+    for packet in first_delivery.delivered_packets {
+        for payload in receiver.receive_ordered_packet(packet) {
+            delivered.push(payload[0]);
+        }
+    }
+    assert_eq!(delivered, vec![1, 2]);
+
+    let resend = sender.resend_due(10);
+    for packet in resend {
+        for payload in receiver.receive_ordered_packet(packet) {
+            delivered.push(payload[0]);
+        }
+    }
+
+    assert_eq!(delivered, (1_u8..=10).collect::<Vec<_>>());
+    assert_eq!(receiver.pending_ordered_payload_count(), 0);
 }

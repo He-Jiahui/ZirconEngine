@@ -16,11 +16,27 @@ use super::collection_rows::{
     collection_row_render_commands, collection_row_suppresses_owner_image,
     collection_row_suppresses_owner_surface, collection_row_suppresses_owner_text,
 };
+use super::command_palette::{
+    command_palette_render_commands, command_palette_suppresses_owner_image,
+    command_palette_suppresses_owner_surface, command_palette_suppresses_owner_text,
+};
+use super::dialog::{
+    dialog_render_commands, dialog_suppresses_owner_image, dialog_suppresses_owner_surface,
+    dialog_suppresses_owner_text,
+};
+use super::drag_overlay::{
+    drag_overlay_render_commands, drag_overlay_suppresses_owner_image,
+    drag_overlay_suppresses_owner_surface, drag_overlay_suppresses_owner_text,
+};
 use super::dropdowns::{dropdown_render_commands, dropdown_suppresses_owner_text};
 use super::feedback::{
     feedback_render_commands, feedback_suppresses_owner_image, feedback_suppresses_owner_text,
 };
 use super::node_visual_data::UiNodeVisualData;
+use super::notification_center::{
+    notification_center_render_commands, notification_center_suppresses_owner_image,
+    notification_center_suppresses_owner_surface, notification_center_suppresses_owner_text,
+};
 use super::popup_menu::popup_menu_render_commands;
 use super::popup_options::popup_option_render_commands;
 use super::resolve::resolve_command_kind;
@@ -81,6 +97,10 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                     || segmented_control_suppresses_owner_text(node.template_metadata.as_ref())
                     || collection_row_suppresses_owner_text(node.template_metadata.as_ref())
                     || feedback_suppresses_owner_text(node.template_metadata.as_ref())
+                    || dialog_suppresses_owner_text(node.template_metadata.as_ref())
+                    || command_palette_suppresses_owner_text(node.template_metadata.as_ref())
+                    || notification_center_suppresses_owner_text(node.template_metadata.as_ref())
+                    || drag_overlay_suppresses_owner_text(node.template_metadata.as_ref())
                     || chrome_suppresses_owner_text(node.template_metadata.as_ref())
                 {
                     None
@@ -90,6 +110,10 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
             let owner_image = if button_suppresses_owner_image(node.template_metadata.as_ref())
                 || collection_row_suppresses_owner_image(node.template_metadata.as_ref())
                 || feedback_suppresses_owner_image(node.template_metadata.as_ref())
+                || dialog_suppresses_owner_image(node.template_metadata.as_ref())
+                || command_palette_suppresses_owner_image(node.template_metadata.as_ref())
+                || notification_center_suppresses_owner_image(node.template_metadata.as_ref())
+                || drag_overlay_suppresses_owner_image(node.template_metadata.as_ref())
                 || chrome_suppresses_owner_image(node.template_metadata.as_ref())
             {
                 None
@@ -98,6 +122,10 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
             };
             let owner_style =
                 if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || dialog_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || command_palette_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || notification_center_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || drag_overlay_suppresses_owner_surface(node.template_metadata.as_ref())
                     || chrome_suppresses_owner_surface(node.template_metadata.as_ref())
                 {
                     let mut style = visual.style.clone();
@@ -208,6 +236,46 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                 visual.opacity,
             ));
             commands.extend(feedback_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(dialog_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(command_palette_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(notification_center_render_commands(
+                node_id,
+                node.template_metadata.as_ref(),
+                &node.state_flags,
+                component_state,
+                arranged_node.frame,
+                Some(arranged_node.clip_frame),
+                arranged_node.z_index,
+                visual.opacity,
+            ));
+            commands.extend(drag_overlay_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
                 &node.state_flags,

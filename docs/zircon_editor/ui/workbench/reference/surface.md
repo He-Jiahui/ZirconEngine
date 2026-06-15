@@ -17,6 +17,17 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_module_workspace.zui
   - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_popup_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_context_menu.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_dropdown_popup.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_command_palette.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_alert.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_dialog.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_confirm_dialog.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs
   - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_property_row.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_rail_button.zui
@@ -59,6 +70,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs
@@ -74,17 +86,33 @@ related_code:
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_popup_actions.rs
+  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/event_bridge.rs
+  - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
+  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_command_palette.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
+  - zircon_runtime/src/ui/surface/render/command_palette.rs
+  - zircon_runtime/src/ui/tests/render_command_palette.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
@@ -106,7 +134,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
@@ -141,6 +172,13 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/workbench\modules\core\workbench_additional_module_workspaces.zui
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_radio.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_command_palette.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_alert.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_dialog.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_confirm_dialog.zui
+  - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_status_bar.zui
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/workbench/reference/mod.rs
@@ -162,6 +200,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs
@@ -177,12 +216,20 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_command_palette.rs
+  - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_sliders.rs
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_popup_actions.rs
+  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained_host/event_bridge.rs
+  - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
@@ -191,6 +238,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
@@ -217,7 +265,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_input_translation.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/support.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
@@ -252,6 +303,41 @@ tests:
   - zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup text-search keyboard baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-15: passed after native Workbench action-id expectation sync)
+  - cargo test -p zircon_editor --lib native_workbench --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15 after native Workbench popup/menu action-id expectation sync: passed, 24 passed / 0 failed / 1971 filtered; existing warning noise only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs (2026-06-14: passed after CommandPalette descriptor + Workbench asset skeleton)
+  - Python tomllib parse of workbench_command_palette.zui (2026-06-14 after CommandPalette Workbench asset skeleton: passed)
+  - Python tomllib parse of showcase_visual_section.zui (2026-06-15 after CommandPalette showcase visibility baseline: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs (2026-06-15: passed after CommandPalette showcase visibility baseline)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/command_palette.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_command_palette.rs zircon_runtime/src/ui/tests/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_command_palette.rs zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs zircon_editor/src/tests/host/retained_window/mod.rs (2026-06-15: passed after CommandPalette render/native painter styling baseline)
+  - cargo test -p zircon_editor --lib command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15 after CommandPalette editor focused evidence: passed, 3 passed / 0 failed / 1992 filtered; existing warning noise only)
+  - rustfmt --edition 2021 --check over CommandPalette open/effect route files (2026-06-15 after 08 M4.S3 CommandPalette open/effect route: passed)
+  - cargo test -p zircon_editor --lib command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 CommandPalette open/effect route: passed, 9 passed / 0 failed / 2005 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib command_palette_command_requests_open_effect --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 CommandPalette open/effect route: passed, 1 passed / 0 failed / 2013 filtered)
+  - cargo test -p zircon_editor --lib command_component_adapter_dispatches_palette_open_command --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 CommandPalette open/effect route: passed, 1 passed / 0 failed / 2013 filtered)
+  - cargo test -p zircon_editor --lib command_registry_maps_menu_command_ids_to_editor_events --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 CommandPalette open/effect route: passed, 1 passed / 0 failed / 2013 filtered)
+  - rustfmt --edition 2021 --check over retained native keymap pump files (2026-06-15 after 08 M4.S3 retained native keymap pump: passed)
+  - cargo test -p zircon_editor --lib native_unhandled_ctrl_shift_p_opens_workbench_command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 retained native keymap pump: passed, 1 passed / 0 failed / 2014 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 retained native keymap pump: passed, 10 passed / 0 failed / 2005 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib command_registry_maps_menu_command_ids_to_editor_events --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 retained native keymap pump: passed, 1 passed / 0 failed / 2014 filtered)
+  - rustfmt --edition 2021 --check over visible Workbench CommandPalette native activation files (2026-06-15 after 08 M4.S3 native activation: passed)
+  - cargo test -p zircon_editor --lib native_command_palette_enter_commits_focused_workbench_command --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 native activation: passed, 1 passed / 0 failed / 2017 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib apply_presentation_projects_open_workbench_command_palette_rows_for_native_input --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 native activation: passed, 1 passed / 0 failed / 2017 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib command_palette_option_routes_to_commit_activation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 native activation: passed, 1 passed / 0 failed / 2017 filtered)
+  - cargo test -p zircon_editor --lib command_palette --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 (2026-06-15 after 08 M4.S3 native activation: passed, 13 passed / 0 failed / 2005 filtered; existing warning noise only)
+  - cargo test -p zircon_editor --lib retained_menu_pointer --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15 after 08 M4.S3 operation-backed command fallback sync: passed, 22 passed / 0 failed / 1994 filtered, 4 screenshot tests ignored)
+  - direct execution of E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe workbench_overlay_primitives_expose_popup_shell_contract --nocapture --test-threads=1 (2026-06-15 after Cargo wrapper timed out with no diagnostics: passed, 1 passed / 0 failed / 1994 filtered)
+  - scoped git diff --check, conflict marker scan, and trailing-whitespace scan for CommandPalette render/native painter styling files (2026-06-15: passed; diff check had LF-to-CRLF warnings only)
+  - direct execution of E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe production_zui_component_assets_are_reachable_from_v2_widget_imports --nocapture --test-threads=1 (2026-06-15 after Workbench feedback overlay imports were added to workbench_window.v2.ui.toml: passed, 1 passed / 0 failed / 1994 filtered)
+  - direct execution of E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe zui_asset_governance --nocapture --test-threads=1 (2026-06-15 after the same import graph fix: passed, 66 passed / 0 failed / 1929 filtered)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs (2026-06-14: passed after Alert/Dialog/ConfirmDialog skeleton)
+  - Python tomllib parse of workbench_alert.zui, workbench_dialog.zui, workbench_confirm_dialog.zui, and workbench_command_palette.zui (2026-06-14 after Alert/Dialog/ConfirmDialog skeleton: passed)
+  - scoped git diff --check for M3.S3 Alert/Dialog/ConfirmDialog skeleton docs/code/assets/session files (2026-06-14: passed with LF-to-CRLF warnings only)
+  - conflict marker scan for M3.S3 Alert/Dialog/ConfirmDialog skeleton docs/code/assets/session files (2026-06-14: passed with no matches)
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/focus.rs zircon_runtime/src/ui/surface/popup_stack.rs zircon_runtime/src/ui/tree/node/focus.rs zircon_runtime_interface/src/ui/widget.rs zircon_runtime_interface/src/tests/ui_contract_spine.rs zircon_runtime/src/ui/tests/focus_navigation.rs (2026-06-14: passed after Dialog/ConfirmDialog modal focus-loop baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup Home/End keyboard boundary baseline)
   - Python tomllib parse of workbench_main_band.zui and workbench_module_workspace.zui (2026-06-03 after visible Effect module workspace: passed)
   - rustfmt --edition 2021 --check over template_component_family.rs and reference_surface.rs (2026-06-03 after visible Effect module workspace: passed)
   - cargo test -p zircon_editor --lib reference_workbench_componentized_window_surface_matches_reference_chrome_metrics --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-workbench-preview-0603 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-03 after visible Effect module workspace: passed, 1 passed / 1834 filtered)
@@ -278,6 +364,7 @@ tests:
   - cargo test -p zircon_editor --lib componentized_workbench_module_command_feedback_paints_native_preview_pixels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-workbench-command-feedback --message-format short --color never -- --nocapture --test-threads=1 with ZIRCON_WRITE_WORKBENCH_PREVIEW=1 and ZIRCON_WORKBENCH_PREVIEW_PATH=target/editor-workbench-visual-check/editor-workbench-native-command-feedback-1672x941.png (2026-06-03 after native module-command feedback bridge: passed, 1 passed / 1840 filtered)
   - Python tomllib parse of workbench_window.v2.ui.toml and workbench_top_toolbar.zui after moving toolbar menus to the window root Overlay with direct ContextActionMenu nodes (2026-06-03: passed)
   - rustfmt --edition 2021 --check over zircon_runtime/src/ui/surface/render/extract.rs, zircon_runtime/src/ui/surface/render/mod.rs, zircon_runtime/src/ui/surface/render/popup_menu.rs, zircon_runtime/src/ui/tests/render_popup_menu.rs, zircon_runtime/src/ui/tests/mod.rs, and native_workbench_window_menus.rs (2026-06-03: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
   - cargo test -p zircon_runtime --lib render_extract_expands_open_context_action_menu_items --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-workbench-command-feedback -- --nocapture (2026-06-03 after runtime ContextActionMenu row rendering: passed, 1 passed / 2529 filtered)
   - cargo test -p zircon_editor --lib componentized_workbench_toolbar_run_menu_paints_native_preview_pixels --locked --jobs 1 with ZIRCON_WRITE_WORKBENCH_PREVIEW=1 and ZIRCON_WORKBENCH_PREVIEW_PATH=target/editor-workbench-visual-check/editor-workbench-native-toolbar-run-menu-open-1672x941.png (2026-06-03 after native toolbar window-menu screenshot row rendering: passed, 1 passed / 1847 filtered)
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs
@@ -415,6 +502,7 @@ tests:
   - trailing-whitespace scan over all touched outside-click popup-dismiss Rust/docs/session files including new modules (2026-06-02 after outside-click popup dismissal: passed)
   - focused Cargo for native_workbench_dropdown_option_primary_press_keeps_selection_path, native_workbench_popup_menu_item_primary_press_keeps_menu_selection_path, native_workbench_dropdown_outside_primary_press_dispatches_popup_cancel, and native_workbench_popup_menu_outside_primary_press_dispatches_popup_cancel was attempted with cargo test -p zircon_editor --lib primary_press --locked --jobs 1 --message-format short --color never -- --nocapture and CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-popup-dismiss; the command timed out after 1204 seconds without a compiler diagnostic, and the owned cargo/rustc child processes were stopped while unrelated workspace/runtime validation lanes remained active
   - rustfmt --edition 2021 --check over template_popup_layout.rs, surface_hit_test/template_node.rs, painter/template_popup_rows.rs, painter/template_nodes.rs, native_keyboard.rs, and native_popup_dismiss.rs (2026-06-02 after bounded dropdown popup geometry: passed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14 after popup shell role/projected frame geometry baseline: passed)
   - git diff --check over the tracked bounded dropdown popup geometry Rust/docs files (2026-06-02 after bounded dropdown popup geometry: passed; Git reported only LF-to-CRLF working-tree warnings for existing Rust files)
   - trailing-whitespace scan over all touched bounded dropdown popup geometry Rust/docs/session files (2026-06-02 after bounded dropdown popup geometry: passed)
   - focused Cargo for dropdown_option_popup_frame_within_opens_above_when_below_overflows, workbench_hit_test_routes_dropdown_option_rows_above_control_when_bottom_clipped, and template_nodes_paint_open_dropdown_option_rows_above_control_when_below_clipped was deferred on 2026-06-02 because an unrelated workspace Cargo validation lane was still running; no new compiler diagnostic was produced by this slice
@@ -505,7 +593,7 @@ This module gives the editor a stable visual baseline for the large shell propor
 
 `template_surface.rs` exposes `EditorWorkbenchTemplateSurface`, `EditorWorkbenchTemplateFrames`, and `build_editor_workbench_template_surface(...)`. It uses the editor template runtime's built-in `editor.window.workbench` document, computes layout at the reference metrics, extracts the host-visible wrapper control frames that retained/native presentation code can address, and builds a retained host projection from the same arranged surface.
 
-`workbench_window.v2.ui.toml` is the declarative assembly target for the same visual language. It imports the `workbench_*.zui` primitive components and `editor_workbench_strict.v2.ui.toml` theme tokens, then composes them into the top toolbar, scene tree, viewport chrome, inspector, component drawer, and status bar.
+`workbench_window.v2.ui.toml` is the declarative assembly target for the same visual language. It imports the `workbench_*.zui` primitive components and `editor_workbench_strict.v2.ui.toml` theme tokens, then composes them into the top toolbar, scene tree, viewport chrome, inspector, component drawer, and status bar. The production import graph now also imports the feedback overlay primitives that can be opened by runtime state or command routes: Alert, CommandPalette, ConfirmDialog, ContextMenu, Dialog, DropdownPopup, DragOverlay, NotificationCenter, and PopupMenu. That keeps the assets reachable for governance even when a primitive is not permanently mounted in the first visible shell layout.
 
 `workbench_axis_value_field.zui` is the low-level Transform value primitive for Inspector vector rows. It wraps an `InputField` with compact height, fixed width, Workbench field chrome, and interactive/focusable input metadata so Position/Rotation/Scale can be assembled from real Taffy children rather than a single string-valued property row.
 
@@ -529,11 +617,11 @@ Dropdown selection now has a Workbench-specific host bridge path. The `Workbench
 
 Popup-menu row selection uses the same preview-only boundary. When `dispatch_pane_surface_control_clicked(...)` receives a Workbench control id plus a non-binding action id, it first asks the componentized Workbench bridge whether the action matches an authored `menu_items` row. A matched enabled row updates the popup menu's `value` and `value_text`, removes transient `focused` / `hovered` / `pressed` row flags from the authored menu list, closes the popup, refreshes projection, and requests paint-only invalidation. It deliberately does not invoke real editor menu actions such as Delete, because the component drawer menu is a visual interaction sample rather than an editor command surface.
 
-Native hit testing now gives those structured rows real pointer targets. `surface_hit_test/template_node.rs` checks open popup rows before the normal template-node surface hit-test: dropdown options synthesize `workbench_option` hits below the dropdown frame and carry the Change binding id plus option id; popup menu rows synthesize `workbench_menu_item` hits across the menu frame and carry a normalized row action id. Hand-authored sample rows such as `Delete` are normalized to `menu.item.delete`, while already canonical `menu.item.*` rows pass through unchanged. Points inside an open popup but on a disabled option, separator row, or other non-activatable popup area are blocked from falling through to the popup parent or underlying controls. `native_pointer.rs` routes `workbench_option` through the structured-option callback lane, which the retained host already redirects to the active Workbench bridge. Menu row hits continue through `surface_control_clicked`, where the Workbench bridge handles them as preview-only row selection before any generic menu command fallback runs.
+Native hit testing now gives those structured rows real pointer targets. `surface_hit_test/template_node.rs` checks open popup rows before the normal template-node surface hit-test: dropdown options synthesize `workbench_option` hits from the shared option-popup layout helper and carry the Change binding id plus option id; popup menu rows synthesize `workbench_menu_item` hits across the menu frame and carry a normalized row action id. Hand-authored sample rows such as `Delete` are normalized to `menu.item.delete`, while already canonical `menu.item.*` rows pass through unchanged. Points inside an open popup but on a disabled option, separator row, or other non-activatable popup area are blocked from falling through to the popup parent or underlying controls. `native_pointer.rs` routes `workbench_option` through the structured-option callback lane, which the retained host already redirects to the active Workbench bridge. Menu row hits continue through `surface_control_clicked`, where the Workbench bridge handles them as preview-only row selection before any generic menu command fallback runs.
 
-Native painting now renders the same structured rows instead of leaving them as invisible hit zones. `template_nodes.rs` remains the orchestration boundary for retained template-node painting, while `template_popup_rows.rs` draws open dropdown options below the control frame and popup-menu rows inside the menu frame. Selected and special rows receive the selected background plus a narrow accent marker; hovered, focused, and pressed rows share the hover surface; disabled rows keep disabled text and no active row fill; separators and shortcuts are painted from structured menu row metadata. Both painter and hit-test consume `template_popup_layout.rs` for dropdown option and menu row frames, so visible rows and pointer targets are derived from the same geometry.
+Native painting now renders the same structured rows instead of leaving them as invisible hit zones. `template_nodes.rs` remains the orchestration boundary for retained template-node painting, while `template_popup_rows.rs` draws open dropdown options from the shared option-popup layout helper and popup-menu rows inside the menu frame. Selected and special rows receive the selected background plus a narrow accent marker; hovered, focused, and pressed rows share the hover surface; disabled rows keep disabled text and no active row fill; separators and shortcuts are painted from structured menu row metadata. Both painter and hit-test consume `template_popup_layout.rs` for dropdown option and menu row frames, so visible rows and pointer targets are derived from the same geometry.
 
-Dropdown popup geometry now has a bounded variant in `template_popup_layout.rs`. The default geometry still opens below the control, but the bounded layout opens above the control when the below position would cross the workbench or pane bounds and the popup fully fits above. It also clamps the popup's right edge to the available bounds. `template_popup_rows.rs`, `surface_hit_test/template_node.rs`, `native_keyboard.rs`, and `native_popup_dismiss.rs` all use that bounded dropdown geometry, so painting, pointer hit testing, keyboard row focus, Escape/outside cancel damage, and popup containment share the same responsive placement. Shared frame conversion, native-window popup bounds, point containment, and damage-frame union logic live in `workbench_popup_geometry.rs`, keeping hit-test, keyboard, and outside-dismiss behavior on one geometry contract.
+Dropdown popup geometry now has a bounded variant in `template_popup_layout.rs`. The default trigger geometry still opens below the control, but the bounded layout opens above the control when the below position would cross the workbench or pane bounds and the popup fully fits above. It also clamps the popup's right edge to the available bounds. Standalone `DropdownPopup` shells are different: their `TemplatePaneNodeData.frame` is already the popup frame after `pane_component_projection::popup_frame` applies anchor metadata, so `template_option_popup_frame_within(...)` cuts rows directly inside that frame instead of offsetting it downward again. `template_popup_rows.rs`, `surface_hit_test/template_node.rs`, `native_keyboard.rs`, and `native_popup_dismiss.rs` all use the node-aware popup geometry, so painting, pointer hit testing, keyboard row focus, Escape/outside cancel damage, and popup containment share the same responsive placement. Shared frame conversion, native-window popup bounds, point containment, and damage-frame union logic live in `workbench_popup_geometry.rs`, keeping hit-test, keyboard, and outside-dismiss behavior on one geometry contract.
 
 The retained painter also splits surface style resolution into `template_style.rs`. That keeps disabled-state detection, button/material color selection, border width/radius resolution, and elevation shadow geometry shared by `template_nodes.rs` and `material_state_layer.rs` without pushing more style logic into the already large node painter.
 
@@ -601,9 +689,11 @@ The lower component table tail keeps its earlier measured shell, content, and ce
 
 The component-drawer body now has a coarse top/lower split. `WorkbenchComponentDrawerBody` is a vertical container with `WorkbenchComponentTopRow` for Buttons, Icon Buttons, Inputs, Checkboxes/Radios, Sliders, Labs, and the side List/Menu stack. `WorkbenchComponentLowerRow` owns `WorkbenchComponentTable` and `WorkbenchComponentFeedback`; table rows therefore live under a lower `Table` title instead of inside the side List column. The List column keeps `WorkbenchListGroup` plus a `Menu` title and `WorkbenchPopupMenu`. `WorkbenchComponentFeedback` is a three-column native feedback layout: a fixed `WorkbenchFeedbackAlerts` alert stack, the fixed `WorkbenchTooltipRoot`, and a fixed `WorkbenchFeedbackToastColumn` that mounts the standalone `feedback_toast` instance without an instance control id so the expanded component root remains `WorkbenchToastRoot`. That keeps the four inline alert ids separate from the notification toast sample.
 
+`workbench_command_palette.zui` now reserves the Workbench command overlay primitive for 06 M3.S3. It binds the runtime `CommandPalette` descriptor directly, exposes query/placeholder, command arrays, focused index, selected command id, modal dismissal, anchor, and portal props, and is covered by the same primitive plus overlay popup-shell governance as the context and dropdown popup assets. The runtime reducer now filters mixed string/map command entries by query and `command_source`, skips disabled commands for focus/commit while leaving them visible, and records the committed command id. The retained-host projection maps `commands` plus `filtered_commands` into structured popup rows with stable id/label/selected/focused/disabled/matched state, so native popup-row painting can consume command results without a bespoke host contract. `workbench_window.v2.ui.toml` now mounts `WorkbenchCommandPalette` as a collapsed Workbench root overlay with a `CommandPalette/Commit` submit route; the retained callback path turns native commit values into a `command` domain `committed_command_id` envelope and dispatches the resulting `EditorCommand` through the normal retained-host event path. `CommandPaletteDemo` still gives the Component Showcase a visible Feedback/All sample that exercises the same descriptor/projection path with workbench command-source defaults, a `build` query, selected/focused command row, and disabled command row. Runtime render extraction and retained native painter styling now both draw the open palette panel, focused search field, and embedded command rows while consuming closed palettes without generic fallback. The editor focused `command_palette` Cargo batch covers retained command-row projection plus open/closed native painter consumption, and the direct overlay-governance test-binary rerun proves `WorkbenchCommandPalette` still satisfies the shared popup-shell primitive contract. The 08 M4 editor command registry now provides the real descriptor/keymap source, `UiValue::Map` palette projection, operation-backed menu-bar projection, a low-level `EditorCommand` binding payload, a host command component adapter that accepts `committed_command_id` commit envelopes, and an unhandled-keyboard-result keymap bridge that dispatches unconsumed chords through the same `EditorCommand` payload. Built-in command ids with operation paths now execute through `EditorEventRuntime::invoke_operation(...)`, so command-palette and keymap execution record operation metadata and undo-stack entries while preserving the same static event shape for compatibility. The `editor.command_palette` command now normalizes to `EditorEvent::Transient(OpenCommandPalette)`, executes as `CommandPaletteOpenRequested`, and lets the retained host build the current command entries/filtered ids/disabled ids/initial focus before opening the mounted Workbench overlay through the template bridge. The retained native host now calls the unhandled keymap bridge after text/popup/focus handling declines a pressed key; `Ctrl+Shift+P` opens the mounted Workbench command palette through the same effect path. Remaining work is live/manual `Ctrl+Shift+P` plus Enter command acceptance and the later full runtime `UiSurface` hard-cutover pump.
+
 Native keyboard popup navigation now uses the same structured popup row identities as pointer hover and click. `native_keyboard.rs` maps ArrowDown and ArrowUp to the next enabled dropdown option or popup menu item, skipping disabled options and separator rows, then writes the row identity through the existing transient host interaction state so the cloned presentation highlights the keyboard row without mutating the bridge. Enter activates the current row through the same callback lanes as pointer selection: dropdown rows use `component_showcase_option_selected`, and menu rows use `surface_control_clicked`. Escape emits the shared `WorkbenchPopupCancel` action through `surface_control_clicked`; the retained app dispatch path routes that action into `BuiltinWorkbenchWindowTemplateSurfaceBridge::close_popup(...)`, clears transient option/menu flags, closes the popup/focus/selection state, and requests paint-only refresh without recording a value-selection event.
 
-Native outside-click popup dismissal is split into `native_popup_dismiss.rs` instead of expanding the already large pointer dispatcher. On primary press, `native_pointer.rs` first lets native window-menu clicks resolve, then asks the Workbench popup dismiss helper whether an open structured dropdown or popup menu owns the current interaction. The helper treats the dropdown trigger frame and popup rows as inside the active popup, and treats a menu's full menu frame as inside. A press outside those frames emits the same shared `WorkbenchPopupCancel` action as Escape, clears transient row hover identity, and requests a frame update over the union of the trigger and popup frames. Presses inside option/menu rows continue through the row hit-test path so selection and menu-item preview dispatch are not replaced by cancellation.
+Native outside-click popup dismissal is split into `native_popup_dismiss.rs` instead of expanding the already large pointer dispatcher. On primary press, `native_pointer.rs` first lets native window-menu clicks resolve, then asks the Workbench popup dismiss helper whether an open structured dropdown or popup menu owns the current interaction. The helper treats ordinary dropdown trigger frames plus their derived popup rows as inside the active popup, treats standalone `DropdownPopup` projected frames as the popup itself, and treats a menu's full menu frame as inside. A press outside those frames emits the same shared `WorkbenchPopupCancel` action as Escape, clears transient row hover identity, and requests a frame update over the union of the trigger and popup frames. Presses inside option/menu rows continue through the row hit-test path so selection and menu-item preview dispatch are not replaced by cancellation.
 
 ## Behavior Model
 
@@ -690,6 +780,16 @@ Label text must be written to both `label` and `text` metadata attributes. Butto
 
 `componentized_workbench_window_projection_exports_dropdown_and_popup_rows` verifies the new host-contract row projection for the component drawer. It asserts that `WorkbenchInputDropdown` exports three structured option rows with selected, special, focused, hovered, and disabled state, locks the bottom-row `WorkbenchInputDropdown` and `WorkbenchInputStepper` frames to the declared 30.5 height, and verifies that `WorkbenchPopupMenu` exports parsed menu rows with a real separator row plus the hovered Delete item.
 
+`runtime_component_projection_projects_popup_option_state_metadata_for_native_painter` and `runtime_component_projection_projects_popup_menu_loading_flags_for_native_painter` extend that projection contract from the synthetic component-drawer samples to real popup-shell metadata. `DropdownPopup` rows now parse `id|label=...`, merge `selected_options` / `selectedOptions`, and project disabled, pressed, loading, `focused_index`, and `hovered_option_id` into `TemplatePaneOptionData`. Menu rows now preserve a `loading` flag in `TemplatePaneMenuItemData`, so native `template_popup_rows.rs` reaches the same unavailable-state `PopupRow` selector lane as runtime render extract.
+
+`runtime_component_projection_applies_mui_overlay_surface_defaults` covers the retained-host surface defaults for MUI overlay components such as Dialog and ConfirmDialog. It verifies that the native template node receives the expected popup surface semantics before `template_dialogs.rs` paints the open modal panel. Direct warmed-binary execution of that test passed on 2026-06-15 with 1 test / 0 failures / 1994 filtered.
+
+`runtime_component_projection_projects_command_palette_commands_for_native_painter` covers the CommandPalette side of the same row contract. It verifies that `CommandPalette` projects as an input popup, preserves `query` as `search_query`, derives `options_text` from command labels, resolves filtered command ids back to authored command labels, and marks selected/focused/disabled/matched command rows for the native structured popup-row painter.
+
+`runtime_component_projection_projects_drag_overlay_for_native_painter` covers the DragOverlay side of the same retained-host projection lane. It verifies that runtime drag payload, cursor, preview, drop target, allowed-state, and indicator metadata become native `TemplatePaneNodeData` fields for `template_drag_overlay.rs`. Direct warmed-binary execution of the `drag_overlay` editor filter passed on 2026-06-15 with 4 tests / 0 failures / 1991 filtered, including Workbench primitive governance plus open/closed native DragOverlay painting.
+
+`runtime_component_projection_projects_notification_center_rows_for_native_painter` covers the NotificationCenter side of the overlay projection lane. It verifies that runtime notification entries become structured native rows with title/message/tone/unread/selected/focused state, while the native painter tests cover the open panel/header/rows and closed no-fallback path. Direct warmed-binary execution of the `notification_center` editor filter passed on 2026-06-15 with 3 tests / 0 failures / 1992 filtered.
+
 `componentized_workbench_dropdown_option_selection_updates_value_and_projection` covers the first option-selection state transition. It opens the dropdown, selects `option_a` through the Workbench callback-dispatch path, verifies the value text, popup/focus closure, typed host-contract selected/special row state, paint-only invalidation, and `ComponentLabPreview` event recording, then verifies disabled `option_b` does not change the value or record a second event.
 
 `componentized_workbench_popup_cancel_closes_dropdown_without_value_dispatch` covers the dropdown cancel transition. It opens `WorkbenchInputDropdown`, dispatches the shared popup-cancel action, verifies popup/focus/selection closure, preserves the existing dropdown value, clears transient option focus/hover/press state in the retained projection, requests paint-only invalidation, and confirms a repeated cancel on a closed dropdown is a no-op.
@@ -706,11 +806,13 @@ Label text must be written to both `label` and `text` metadata attributes. Butto
 
 `native_workbench_dropdown_option_row_hover_updates_structured_row_state` and `native_workbench_popup_menu_row_hover_updates_structured_row_state` cover the native pointer-move path for synthetic popup rows. They install the componentized Workbench projection into a host presentation, move the pointer over dropdown/menu rows, and assert that the cloned presentation changes the hovered structured row while clearing the previous authored demo hover/focus flags.
 
-`native_workbench_dropdown_keyboard_moves_row_hover_and_enter_dispatches_option` and `native_workbench_popup_menu_keyboard_moves_row_hover_and_enter_dispatches_menu_item` cover the matching native keyboard activation path. They open or use an open Workbench popup, move the highlighted row with ArrowDown, verify the cloned presentation row state, then press Enter and assert the host callback receives the same option/menu identity that pointer selection would dispatch. `native_workbench_dropdown_escape_dispatches_popup_cancel` and `native_workbench_popup_menu_escape_dispatches_popup_cancel` cover the cancellation path: ArrowDown first establishes a transient highlighted row, Escape then emits `WorkbenchPopupCancel` for the active popup control, clears the transient hover identity, and requests a frame update for the popup region.
+`native_workbench_dropdown_keyboard_moves_row_hover_and_enter_dispatches_option` and `native_workbench_popup_menu_keyboard_moves_row_hover_and_enter_dispatches_menu_item` cover the matching native keyboard activation path. They open or use an open Workbench popup, move the highlighted row with ArrowDown, verify the cloned presentation row state, then press Enter and assert the host callback receives the same stable option/menu action identity that pointer selection would dispatch. `native_workbench_dropdown_escape_dispatches_popup_cancel` and `native_workbench_popup_menu_escape_dispatches_popup_cancel` cover the cancellation path: ArrowDown first establishes a transient highlighted row, Escape then emits `WorkbenchPopupCancel` for the active popup control, clears the transient hover identity, and requests a frame update for the popup region.
 
 `native_workbench_dropdown_option_primary_press_keeps_selection_path` and `native_workbench_popup_menu_item_primary_press_keeps_menu_selection_path` cover the inside-row guard for outside dismissal: a press inside an open dropdown option still dispatches `component_showcase_option_selected`, and a press inside an open popup menu row still dispatches the row action id. `native_workbench_disabled_dropdown_option_primary_press_is_ignored_without_cancel` and `native_workbench_popup_menu_separator_primary_press_is_ignored_without_cancel` cover the disabled/separator lane: a primary press inside a disabled dropdown option or menu separator is treated as inside the popup but does not dispatch selection, does not cancel, and keeps the popup open. `native_workbench_dropdown_outside_primary_press_dispatches_popup_cancel` and `native_workbench_popup_menu_outside_primary_press_dispatches_popup_cancel` cover the outside-click path by establishing transient row hover, pressing at a point outside the popup frames, asserting `WorkbenchPopupCancel`, and verifying the transient hover identity is cleared.
 
-`native_workbench_text_input_focuses_edits_and_commits_from_keyboard` covers the first native keyboard editing lane for the component drawer text field. It clicks `WorkbenchInputText`, verifies the projected edit/commit action IDs, inserts text through the host text input path, and presses Enter to assert the host callback receives both `ComponentLab/InputTextEdit` and `ComponentLab/InputTextCommit` with the updated field value.
+`native_workbench_text_input_focuses_edits_and_commits_from_keyboard` covers the first native keyboard editing lane for the component drawer text field. It clicks `WorkbenchInputText`, verifies the projected edit/commit action IDs, inserts text through the host text input path, and presses Enter to assert the host callback receives both `component_lab.input_text.edit` and `component_lab.input_text.commit` with the updated field value.
+
+The native preview gate also now covers the Component Lab search input binding sync. `workbench_component_drawer.zui` already declares `ComponentLab/InputSearchEdit` and `ComponentLab/InputSearchCommit` on `WorkbenchInputSearch`; `workbench_window_template_bindings.rs` registers those as Change and Submit bindings with `component_lab.input_search.edit` and `component_lab.input_search.commit`. The focused `component_lab_search_input_has_edit_and_commit_bindings` regression keeps that asset/binding pair from drifting again, because missing bindings prevent the componentized Workbench bridge from constructing before native preview pixels can be painted. After the binding repair, `componentized_workbench_surface_paints_native_preview_pixels_and_interaction_state` renders a nonblank 1672x941 native Workbench preview, dispatches the Move tool, and proves the selected tool frame repaints. The acceptance artifact for this run is `target/editor-workbench-visual-check/m1s5-native-workbench-preview-1672x941.png`. The existing ignored `capture_m3_gui_acceptance_visual_artifacts` path also passes from the warmed editor lib-test binary and writes 8 software-rendered editor screenshots under `target/visual-layout`, covering Workbench, Welcome input, Asset Browser, drawer, popup, drag-release, and SVG icon scale scenes.
 
 `native_workbench_module_field_focuses_edits_and_commits_from_keyboard` extends the same native
 keyboard lane to module workspaces. It switches the componentized Workbench into the Ability panel,
@@ -921,6 +1023,49 @@ into visible render commands, so the native screenshot path shows menu rows from
 state while production `.v2.ui.toml` imports reach the Workbench `.zui` wrapper assets directly.
 This keeps the response model component-level and table-driven instead of adding per-button pixel
 tweaks.
+
+Native popup keyboard handling now covers boundary navigation and character search in the same
+workbench host path. `native_keyboard.rs` maps Home to the first enabled structured popup row, End
+to the last enabled row, and text input to the next enabled row whose label, value, or action id
+starts with the typed text. All three paths reuse the retained hover fields used by ArrowUp/ArrowDown
+and pointer movement. `native_workbench_reference.rs` covers the component drawer dropdown jumping
+to its first enabled option, the Workbench popup menu jumping from Delete to New and then More
+Tools, and single-character search jumping to matching dropdown/menu rows without committing a
+selection.
+
+The 2026-06-15 focused native Workbench executable batch now passes all 24 `native_workbench`
+tests. The rerun first exposed stale expectations that still treated menu labels and old binding IDs
+as callback identities; the test contract now matches the projection rule documented above by
+asserting explicit route/action IDs such as `menu.item.new`, `menu.item.more_tools`,
+`component_lab.input_text.commit`, and `workbench.module.ability.name.edit/commit`.
+
+M3.S3 adds the first Workbench feedback overlay skeletons beyond menus. `workbench_command_palette.zui`
+is the command search overlay shell, while `workbench_alert.zui`, `workbench_dialog.zui`, and
+`workbench_confirm_dialog.zui` provide standalone status, modal, and confirmation primitives for
+later surface composition. The three new assets are registered in `workbench_primitives.rs`; Dialog
+and ConfirmDialog also use the retained overlay governance contract for centered placement,
+backdrop dismissal, portal ownership, and modal props. ConfirmDialog is backed by the runtime
+`feedback_editor_overlays.rs` descriptor with explicit confirm/cancel action ids and required
+action semantics. The follow-up reducer slice now makes Dialog Escape close through the shared
+overlay reducer and keeps explicit-action ConfirmDialog open until a confirm/cancel commit records
+`dialog_action_id` and `confirmed`. The modal focus-loop continuation includes ConfirmDialog in the
+runtime MUI modal focus scope and lets Dialog/ConfirmDialog join the retained popup stack as overlay
+shells without inheriting generic Popup click/keyboard toggling. `popup_open` therefore drives
+popup-stack ownership, autofocus, focus trapping, outside-focus redirection, and restore-on-close
+through the same retained overlay contract. Dialog/ConfirmDialog render extraction, showcase
+visibility, and retained native painter parity now have focused baselines. CommandPalette now has
+runtime command-source filtering, retained command-row projection, visible Component Showcase
+placement, runtime render extraction, retained native painter styling, and an 08 M4 editor command
+registry/default keymap plus low-level command-id dispatch, command commit adapter, unhandled
+keymap dispatch bridge baseline, Workbench palette committed-id native callback routing,
+`editor.command_palette` open/effect routing with real command-entry injection, and a retained
+native keyboard pump that opens the Workbench palette on `Ctrl+Shift+P`. Native activation now also
+projects the mounted `WorkbenchCommandPalette` as command-palette
+structured rows, so Enter and primary pointer activation submit the visible command through
+`CommandPalette/Commit` and dispatch the same `EditorCommand` path. Operation-backed built-in
+commands execute through the editor operation registry, and the retained menu-pointer fallback now
+uses the same built-in operation ids when no projected menu model is available. Remaining work is
+live manual acceptance and the later full runtime `UiSurface` hard-cutover pump.
 
 The toolbar menu screenshot evidence was generated on 2026-06-03 with
 `ZIRCON_WRITE_WORKBENCH_PREVIEW=1`. The native open-state output is

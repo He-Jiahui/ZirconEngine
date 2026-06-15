@@ -105,7 +105,7 @@ impl MeshDrawQueueProfile {
         self.uses_mesh_lod
     }
 
-    pub(crate) fn motion_vector_history_eligible(self) -> bool {
+    pub(crate) fn velocity_history_eligible(self) -> bool {
         self.mobility == Mobility::Dynamic
     }
 

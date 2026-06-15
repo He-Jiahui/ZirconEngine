@@ -1,4 +1,5 @@
 use crate::graphics::scene::anti_alias::fxaa::FXAA_SHADER_ENTRY_POINT;
+use crate::graphics::scene::scene_renderer::post_process::POST_PROCESS_TONEMAPPED_FORMAT;
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::shader_sources::POST_PROCESS_SHADER;
@@ -38,7 +39,7 @@ pub(super) fn post_process_pipeline(
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[
                 Some(wgpu::ColorTargetState {
-                    format: target_format,
+                    format: POST_PROCESS_TONEMAPPED_FORMAT,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 }),
@@ -93,6 +94,14 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("textureLoad(contact_shadow_tex"));
         assert!(POST_PROCESS_SHADER
             .contains("occlusion_factor = occlusion_factor * max(contact_shadow"));
+    }
+
+    #[test]
+    fn post_process_shader_multiplies_color_grading_by_resolved_exposure() {
+        assert!(POST_PROCESS_SHADER
+            .contains("@group(0) @binding(28) var<storage, read> exposure_buffer"));
+        assert!(POST_PROCESS_SHADER
+            .contains("let exposure = params.grading.x * max(exposure_buffer[0].x, 0.0);"));
     }
 
     #[test]

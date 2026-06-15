@@ -1,5 +1,5 @@
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use tokio::runtime::{Builder, Runtime};
@@ -12,7 +12,9 @@ use crate::http::{ManagedHttpListener, ManagedHttpRoute};
 use crate::websocket::{
     ManagedWebSocketConnection, WebSocketRuntimeBackend, WebSocketRuntimeListener,
 };
-use crate::worker::{NetWorker, NetWorkerShutdownReport};
+use crate::worker::NetWorker;
+#[cfg(test)]
+use crate::worker::NetWorkerShutdownReport;
 use crate::HttpRuntimeBackend;
 
 #[derive(Debug)]
@@ -49,6 +51,10 @@ pub(crate) struct NetRuntimeState {
     pub(crate) http_backend: Mutex<Option<Arc<dyn HttpRuntimeBackend>>>,
     pub(crate) websocket_backend: Mutex<Option<Arc<dyn WebSocketRuntimeBackend>>>,
     pub(crate) events: Arc<Mutex<VecDeque<NetEvent>>>,
+    pub(crate) outbound_bytes: AtomicU64,
+    pub(crate) inbound_bytes: AtomicU64,
+    pub(crate) last_observed_latency_ms: AtomicU64,
+    pub(crate) latency_observed: AtomicBool,
 }
 
 impl NetRuntimeState {
@@ -78,6 +84,10 @@ impl NetRuntimeState {
             http_backend: Mutex::new(None),
             websocket_backend: Mutex::new(None),
             events: Arc::new(Mutex::new(VecDeque::new())),
+            outbound_bytes: AtomicU64::new(0),
+            inbound_bytes: AtomicU64::new(0),
+            last_observed_latency_ms: AtomicU64::new(0),
+            latency_observed: AtomicBool::new(false),
         }
     }
 
@@ -90,6 +100,34 @@ impl NetRuntimeState {
             .lock()
             .expect("net events mutex poisoned")
             .push_back(event);
+    }
+
+    pub(crate) fn record_outbound_bytes(&self, bytes: usize) {
+        self.outbound_bytes
+            .fetch_add(bytes as u64, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_inbound_bytes(&self, bytes: usize) {
+        self.inbound_bytes
+            .fetch_add(bytes as u64, Ordering::Relaxed);
+    }
+
+    pub(crate) fn record_latency_ms(&self, latency_ms: u64) {
+        self.last_observed_latency_ms
+            .store(latency_ms, Ordering::Relaxed);
+        self.latency_observed.store(true, Ordering::Relaxed);
+    }
+
+    pub(crate) fn diagnostic_counters(&self) -> (u64, u64, Option<u64>) {
+        let latency = self
+            .latency_observed
+            .load(Ordering::Relaxed)
+            .then(|| self.last_observed_latency_ms.load(Ordering::Relaxed));
+        (
+            self.outbound_bytes.load(Ordering::Relaxed),
+            self.inbound_bytes.load(Ordering::Relaxed),
+            latency,
+        )
     }
 
     pub(crate) fn poll_worker_ingress(&self, max_events: usize) -> usize {

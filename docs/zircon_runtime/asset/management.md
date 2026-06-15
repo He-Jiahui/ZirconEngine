@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/mod.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -19,7 +19,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/asset/management.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/mod.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs

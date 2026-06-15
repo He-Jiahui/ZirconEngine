@@ -14,11 +14,11 @@ pub(super) fn apply_disabled_profile_features(
             .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
             .with_plugin_feature_disabled("screen_space_ambient_occlusion");
     }
-    if profile.is_some_and(|profile| !profile.features.history_resolve) {
-        options = options.with_feature_disabled(BuiltinRenderFeature::HistoryResolve);
+    if profile.is_some_and(|profile| !profile.features.temporal_history) {
+        options = options.with_feature_disabled(BuiltinRenderFeature::Temporal);
     }
-    if profile.is_some_and(|profile| profile.features.history_resolve) {
-        options = options.with_feature_enabled(BuiltinRenderFeature::HistoryResolve);
+    if profile.is_some_and(|profile| profile.features.temporal_history) {
+        options = options.with_feature_enabled(BuiltinRenderFeature::Temporal);
     }
     if profile.is_some_and(|profile| !profile.features.bloom) {
         options = options.with_feature_disabled(BuiltinRenderFeature::Bloom);

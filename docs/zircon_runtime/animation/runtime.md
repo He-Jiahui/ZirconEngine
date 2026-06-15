@@ -78,6 +78,7 @@ The stable boundary is:
 - `core::framework::animation` defines contracts and DTOs.
 - `asset` owns serialized animation, graph, skeleton, and state machine asset shapes.
 - `animation` owns runtime evaluation and scene-hook application.
+- `zircon_plugins/animation/runtime` owns plugin package metadata and runtime-system registration, but currently wraps and re-exports the runtime-owned animation family instead of deleting `zircon_runtime::animation`.
 - `render` and `graphics` own GPU skinning and draw submission.
 
 Runtime 14 M0.1 is therefore complete as an architecture judgement. No code migration is required for this slice.

@@ -7,6 +7,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_hub/src/projects/metadata.rs
+  - zircon_runtime/src/ui/component/state_reducer/table.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
   - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
@@ -75,7 +77,7 @@ Current evidence:
 - `reference_decision_group_count = 2`;
 - `classification_count = 2`;
 - `observer_false_positive_count = 87`, because `observer` contains the letters `server` but is not server vocabulary;
-- `allowed_context_count = 94` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
+- `allowed_context_count = 99` for real network, target-runtime, dev-server, Hub UNC fixture, and external UI API contexts;
 - `non_network_server_migration_debt_count = 2`;
 - `unclassified_location_count = 0`;
 - `unclassified_locations = []`.
@@ -92,6 +94,8 @@ The classification means every current suspect reference has an explicit migrati
 `observer` and `Observer*` are not server naming. The audit ignores them so ECS observer work is not blocked by a substring false positive.
 
 Real target or network vocabulary remains allowed: `ServerRuntime`, `RuntimeProfileId::Server`, dedicated/listen server modes, network feature target rows, export target profiles, browser dev-server config, Windows UNC path fixtures, and third-party UI API values that literally use `"server"`.
+
+Runtime UI table/DataGrid code may preserve the third-party `sortingMode = "server"` literal. It describes client-versus-server sorting mode compatibility for the table API, not a Zircon runtime owner.
 
 The Hub project metadata test literals `\\?\UNC\server\share\Game` and `\\server\share\Game` are allowed fixture paths. Their `server` segment names the conventional UNC host component, not a Zircon runtime owner.
 

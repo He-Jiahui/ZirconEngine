@@ -1,8 +1,8 @@
 use super::super::builtin_render_feature::{descriptor_only_advanced_slot, BuiltinRenderFeature};
 use super::super::feature_descriptors::{
     advanced_slot, anti_alias, bloom, clustered_lighting, color_grading, debug_overlay,
-    deferred_geometry, deferred_lighting, history_resolve, hzb, mesh, neural_compute, post_process,
-    ray_tracing, screen_space_ambient_occlusion, shadows, sprite, ui,
+    deferred_geometry, deferred_lighting, hzb, mesh, neural_compute, post_process, ray_tracing,
+    screen_space_ambient_occlusion, shadows, sprite, temporal, ui,
 };
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
@@ -24,7 +24,7 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         }
         BuiltinRenderFeature::Bloom => bloom::descriptor(),
         BuiltinRenderFeature::ColorGrading => color_grading::descriptor(),
-        BuiltinRenderFeature::HistoryResolve => history_resolve::descriptor(),
+        BuiltinRenderFeature::Temporal => temporal::descriptor(),
         BuiltinRenderFeature::AntiAlias => anti_alias::descriptor(),
         BuiltinRenderFeature::Shadows => shadows::descriptor(),
         BuiltinRenderFeature::PostProcess => post_process::descriptor(),

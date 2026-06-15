@@ -27,6 +27,48 @@ fn runtime_editor_and_legacy_naming_is_classified_by_owner() {
     );
 }
 
+#[test]
+fn runtime_non_network_server_naming_is_classified_by_owner() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let source_root = manifest_root.join("src");
+    let files = rust_source_files(&source_root);
+    let references = collect_server_references(manifest_root, &files);
+
+    let mut classifications = BTreeSet::new();
+    let unclassified = references
+        .iter()
+        .filter(|reference| {
+            if allowed_server_context(&reference.path, &reference.snippet) {
+                return false;
+            }
+            match classify_server_reference(&reference.path, &reference.snippet) {
+                Some(classification) => {
+                    classifications.insert(classification);
+                    false
+                }
+                None => true,
+            }
+        })
+        .take(20)
+        .map(|reference| {
+            format!(
+                "{}:{}: {}",
+                reference.path, reference.line, reference.snippet
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert!(
+        classifications.contains("graphics-render-framework-debt"),
+        "runtime non-network server naming guard should keep render-framework owner debt classified"
+    );
+    assert!(
+        unclassified.is_empty(),
+        "runtime non-network server naming contains unclassified owner references:\n{}",
+        unclassified.join("\n")
+    );
+}
+
 fn rust_source_files(root: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
     collect_rust_source_files(root, &mut files);
@@ -69,9 +111,52 @@ fn collect_naming_references(
     references
 }
 
+fn collect_server_references(manifest_root: &Path, files: &[PathBuf]) -> Vec<NamingReference> {
+    let mut references = Vec::new();
+    for path in files {
+        let relative = relative_path(manifest_root, path);
+        let source = fs::read_to_string(path)
+            .unwrap_or_else(|error| panic!("failed to read {relative}: {error}"));
+        for (line_index, line) in source.lines().enumerate() {
+            if server_tokens(line).next().is_some() {
+                references.push(NamingReference {
+                    path: relative.clone(),
+                    line: line_index + 1,
+                    snippet: line.trim().to_string(),
+                });
+            }
+        }
+    }
+    references
+}
+
 fn line_has_term(line: &str, term: &str) -> bool {
     line.split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
         .any(|token| token.to_ascii_lowercase().contains(term))
+}
+
+fn server_tokens(line: &str) -> impl Iterator<Item = &str> {
+    line.split(|character: char| !(character.is_ascii_alphanumeric() || character == '_'))
+        .filter(|token| token_has_server_component(token))
+}
+
+fn token_has_server_component(token: &str) -> bool {
+    let lower = token.to_ascii_lowercase();
+    let mut search_start = 0;
+    while let Some(relative_index) = lower[search_start..].find("server") {
+        let start = search_start + relative_index;
+        let end = start + "server".len();
+        if start >= 2 && &lower[start - 2..end] == "observer" {
+            search_start = end;
+            continue;
+        }
+        if start >= 2 && end < lower.len() && &lower[start - 2..end + 1] == "observers" {
+            search_start = end;
+            continue;
+        }
+        return true;
+    }
+    false
 }
 
 fn assert_no_unclassified_naming(
@@ -109,6 +194,73 @@ fn assert_no_unclassified_naming(
     );
 }
 
+fn allowed_server_context(relative_path: &str, line: &str) -> bool {
+    let lower_line = line.to_ascii_lowercase();
+    if is_test_path(relative_path) {
+        return true;
+    }
+    if relative_path.contains("/net/")
+        || relative_path.contains("/network")
+        || relative_path.contains("/net_features/")
+    {
+        return true;
+    }
+    if lower_line.contains("serverruntime")
+        || lower_line.contains("runtimeprofileid::server")
+        || lower_line.contains("target-server")
+        || lower_line.contains("target_server")
+        || lower_line.contains("headless_server")
+        || lower_line.contains("headless server")
+        || lower_line.contains("dedicatedserver")
+        || lower_line.contains("listenserver")
+        || lower_line.contains("server_client_targets")
+    {
+        return true;
+    }
+    if matches!(
+        relative_path,
+        "src/plugin/runtime_profile/descriptor.rs"
+            | "src/plugin/runtime_profile/defaults.rs"
+            | "src/plugin/export_build_plan/default_profile.rs"
+    ) {
+        return true;
+    }
+    if relative_path == "src/plugin/export_build_plan/platform_host_files/browser.rs"
+        && (lower_line.contains("server config")
+            || lower_line.contains("dev server")
+            || lower_line.contains("server:"))
+    {
+        return true;
+    }
+    if relative_path == "src/ui/component/catalog/material_foundation/mui_x.rs"
+        && line.contains("\"server\"")
+        && line.contains("mui_enum_prop")
+    {
+        return true;
+    }
+    if matches!(
+        relative_path,
+        "src/ui/component/state_reducer/table.rs"
+            | "src/ui/surface/surface/default_interactions/table/mod.rs"
+    ) && line.contains("Some(\"server\")")
+    {
+        return true;
+    }
+    if relative_path == "src/platform/capability/matrix/mod.rs"
+        && (lower_line.contains("server/headless") || lower_line.contains("server runtime"))
+    {
+        return true;
+    }
+    false
+}
+
+fn classify_server_reference(relative_path: &str, _line: &str) -> Option<&'static str> {
+    if relative_path.starts_with("src/graphics/runtime/render_framework/") {
+        return Some("graphics-render-framework-debt");
+    }
+    None
+}
+
 fn classify_editor_reference(relative_path: &str) -> Option<&'static str> {
     if is_test_path(relative_path) {
         return Some("test-fixture");
@@ -122,6 +274,7 @@ fn classify_editor_reference(relative_path: &str) -> Option<&'static str> {
         return Some("dynamic-api-editor-host-mode");
     }
     if relative_path.starts_with("src/ui/component/catalog/")
+        || relative_path.starts_with("src/ui/component/state_reducer/")
         || relative_path.starts_with("src/ui/v2/surface_tree/")
     {
         return Some("runtime-ui-component-catalog-editor-controls");

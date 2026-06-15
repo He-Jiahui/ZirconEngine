@@ -1,3 +1,6 @@
+use crate::core::editor_event::{
+    EditorEvent, EditorEventEffect, EditorEventSource, EditorEventTransient, MenuAction,
+};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
@@ -7,6 +10,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope,
     UiValue, UiValueKind,
+};
+use zircon_runtime_interface::ui::dispatch::{
+    UiDispatchReply, UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputModifiers,
+    UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState,
 };
 use zircon_runtime_interface::ui::template::UiRootClassPolicy;
 
@@ -78,6 +85,57 @@ fn component_drawer_action_envelope(
         event,
     )
     .with_component_id("weather.cloud_layer.inspector")
+}
+
+fn command_commit_envelope(command_id: &str) -> UiComponentEventEnvelope {
+    command_commit_envelope_with_value(UiValue::String(command_id.to_string()))
+}
+
+fn command_commit_envelope_with_value(value: UiValue) -> UiComponentEventEnvelope {
+    UiComponentEventEnvelope::new(
+        "editor.window.workbench",
+        "WorkbenchCommandPalette",
+        UiComponentBindingTarget::new("command", "committed_command_id"),
+        UiComponentEvent::Commit {
+            property: "committed_command_id".to_string(),
+            value,
+        },
+    )
+    .with_component_id("CommandPalette")
+}
+
+fn keyboard_dispatch_result(
+    logical_key: &str,
+    key_code: u32,
+    modifiers: UiInputModifiers,
+    state: UiKeyboardInputState,
+    reply: UiDispatchReply,
+) -> UiInputDispatchResult {
+    let mut metadata =
+        UiInputEventMetadata::new(UiInputTimestamp::from_micros(1), UiInputSequence::new(1));
+    metadata.modifiers = modifiers;
+    UiInputDispatchResult::new(
+        UiInputEvent::Keyboard(UiKeyboardInputEvent {
+            metadata,
+            state,
+            key_code,
+            scan_code: None,
+            physical_key: logical_key.to_string(),
+            logical_key: logical_key.to_string(),
+            text: None,
+        }),
+        reply,
+    )
+}
+
+fn key_modifiers(ctrl: bool, shift: bool, alt: bool, meta: bool) -> UiInputModifiers {
+    UiInputModifiers {
+        control: ctrl,
+        shift,
+        alt,
+        super_key: meta,
+        ..UiInputModifiers::default()
+    }
 }
 
 #[test]
@@ -325,6 +383,154 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
             event_kind: zircon_runtime_interface::ui::component::UiComponentEventKind::ValueChanged,
         }
     );
+}
+
+#[test]
+fn command_component_adapter_dispatches_committed_command_id_through_editor_events() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_command_component_adapter_commit");
+    let envelope = command_commit_envelope("workbench.project.open");
+
+    let result = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&envelope)
+        .expect("committed menu command id should dispatch through editor events");
+
+    assert!(result.changed);
+    assert!(!result.dirty);
+    assert_eq!(
+        result.transaction_id.as_deref(),
+        Some("command:workbench.project.open")
+    );
+    assert_eq!(result.mutation_source.as_deref(), Some("command"));
+    let journal = harness.runtime.journal();
+    let record = journal
+        .records()
+        .last()
+        .expect("command should write an event");
+    assert_eq!(record.source, EditorEventSource::RetainedHost);
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::OpenProject)
+    );
+    assert_eq!(
+        harness.runtime.status_line(),
+        "Open an existing project or create a renderable empty project."
+    );
+}
+
+#[test]
+fn command_component_adapter_rejects_non_string_command_value() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_command_component_adapter_invalid_value");
+    let envelope = command_commit_envelope_with_value(UiValue::Int(42));
+
+    let error = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&envelope)
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        UiComponentAdapterError::InvalidValueKind {
+            domain: "command".to_string(),
+            path: "committed_command_id".to_string(),
+            expected: UiValueKind::String,
+            actual: UiValueKind::Int,
+        }
+    );
+    assert!(harness.runtime.journal().records().is_empty());
+}
+
+#[test]
+fn command_component_adapter_dispatches_palette_open_command() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_command_component_adapter_palette_open");
+    let envelope = command_commit_envelope("editor.command_palette");
+
+    let result = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&envelope)
+        .expect("palette open command should dispatch through command adapter");
+
+    assert!(result.changed);
+    let journal = harness.runtime.journal();
+    let record = journal
+        .records()
+        .last()
+        .expect("palette open command should append an editor event");
+    assert_eq!(
+        record.event,
+        EditorEvent::Transient(EditorEventTransient::OpenCommandPalette)
+    );
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::CommandPaletteOpenRequested));
+}
+
+#[test]
+fn keymap_dispatches_unhandled_keyboard_result_through_editor_command_binding() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_keymap_unhandled_keyboard");
+    let result = keyboard_dispatch_result(
+        "o",
+        79,
+        key_modifiers(true, false, false, false),
+        UiKeyboardInputState::Pressed,
+        UiDispatchReply::unhandled(),
+    );
+
+    let record = harness
+        .runtime
+        .dispatch_unhandled_input_keymap_command(&result, EditorEventSource::RetainedHost)
+        .expect("unhandled keymap command should dispatch")
+        .expect("Ctrl+O should resolve to a workbench command");
+
+    assert_eq!(record.source, EditorEventSource::RetainedHost);
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::OpenProject)
+    );
+    assert_eq!(
+        harness.runtime.status_line(),
+        "Open an existing project or create a renderable empty project."
+    );
+}
+
+#[test]
+fn keymap_dispatch_ignores_handled_and_released_keyboard_results() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_keymap_consumed_keyboard");
+    let handled = keyboard_dispatch_result(
+        "o",
+        79,
+        key_modifiers(true, false, false, false),
+        UiKeyboardInputState::Pressed,
+        UiDispatchReply::handled(),
+    );
+    let released = keyboard_dispatch_result(
+        "o",
+        79,
+        key_modifiers(true, false, false, false),
+        UiKeyboardInputState::Released,
+        UiDispatchReply::unhandled(),
+    );
+
+    assert_eq!(
+        harness
+            .runtime
+            .dispatch_unhandled_input_keymap_command(&handled, EditorEventSource::RetainedHost)
+            .expect("handled keyboard result should be accepted"),
+        None
+    );
+    assert_eq!(
+        harness
+            .runtime
+            .dispatch_unhandled_input_keymap_command(&released, EditorEventSource::RetainedHost)
+            .expect("released keyboard result should be accepted"),
+        None
+    );
+    assert!(harness.runtime.journal().records().is_empty());
 }
 
 #[test]

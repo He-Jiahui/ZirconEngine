@@ -1,4 +1,6 @@
-use crate::core::editor_event::{EditorEvent, EditorEventEffect, EditorOperationEvent};
+use crate::core::editor_event::{
+    EditorEvent, EditorEventEffect, EditorEventTransient, EditorOperationEvent,
+};
 
 use super::execution_outcome::ExecutionOutcome;
 use super::{
@@ -27,12 +29,18 @@ pub(crate) fn execute_event(
         },
         EditorEvent::Transient(update) => {
             inner.transient.apply(update);
-            Ok(ExecutionOutcome {
-                changed: true,
-                effects: vec![
+            let effects = match update {
+                EditorEventTransient::OpenCommandPalette => {
+                    vec![EditorEventEffect::CommandPaletteOpenRequested]
+                }
+                _ => vec![
                     EditorEventEffect::PresentationChanged,
                     EditorEventEffect::ReflectionChanged,
                 ],
+            };
+            Ok(ExecutionOutcome {
+                changed: true,
+                effects,
             })
         }
     }

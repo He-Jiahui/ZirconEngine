@@ -11,10 +11,14 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/input/mod.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
+  - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
   - zircon_runtime_interface/src/ui/window/mod.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
+  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
 implementation_files:
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
@@ -24,6 +28,9 @@ implementation_files:
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/input/toast_timer.rs
+  - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
 plan_sources:
   - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
   - docs/plans/zircon_editor/editor_ui/index.md
@@ -34,6 +41,9 @@ tests:
   - 2026-06-12: cargo test -p zircon_runtime_interface --lib ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults --locked --target-dir target/codex-editor-ui (passed)
   - 2026-06-12: target/codex-editor-ui-runtime/debug/deps/zircon_runtime-de6f737e1b69a0f9.exe runtime_input_manager --nocapture --test-threads=1 (passed, 3 passed)
   - 2026-06-12: cargo test -p zircon_runtime --lib runtime_input_manager --locked --jobs 1 --target-dir target/codex-editor-ui-runtime --message-format short --color never was blocked during rebuild by unrelated unresolved import crate::core::frame_clock in zircon_runtime/src/core/runtime/state/runtime_inner.rs.
+  - 2026-06-15: rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/dispatch/input/event.rs zircon_runtime_interface/src/ui/dispatch/input/mod.rs zircon_runtime_interface/src/ui/dispatch/mod.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/dispatch/input_manager/timers.rs zircon_runtime/src/ui/dispatch/input_manager/manager.rs zircon_runtime/src/ui/surface/surface/default_interactions.rs zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/toast_timer.rs zircon_runtime/src/ui/surface/input/route_policy.rs zircon_runtime/src/ui/surface/input/owner_route.rs zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs (M3.S2 Snackbar/Toast input-manager auto-hide timer dispatch: passed)
+  - 2026-06-15: git diff --check -- touched tracked ToastTimer dispatch Rust/docs/session files (passed with LF-to-CRLF warnings only); conflict marker and trailing-whitespace scans passed with no matches.
+  - 2026-06-15: cargo test -p zircon_runtime --lib toast_timer --locked and cargo test -p zircon_runtime_interface --lib ui_input_payloads_round_trip_through_serde --locked were deferred because active cargo/rustc lanes were present in the shared Windows workspace.
 doc_type: module-detail
 ---
 
@@ -50,7 +60,7 @@ The first slice is a non-invasive manager shell. Existing `UiSurface::dispatch_i
 - `UiPointerDispatcher` for pointer handlers and pointer-route callbacks.
 - `UiNavigationDispatcher` for keyboard/gamepad/navigation handlers.
 - `UiActivePointerTable` for per-pointer source, last known position, pressed-button mask, capture target, and primary-pointer status.
-- `UiInputTimerState` for manager-owned dispatch ticks.
+- `UiInputTimerState` for manager-owned dispatch ticks, including menu typeahead expiry, submenu hover readiness, and Snackbar/Toast auto-hide expiry.
 
 `UiSurface` still owns arranged-tree state, popup/tooltip state, focus state, component states, window state, dirty flags, and the actual dispatch effect application. The manager passes its dispatchers into `ui::surface::input` so the existing routing implementation remains the single behavior authority until later slices move pointer capture, preview tunneling, and timer injection behind the manager.
 
@@ -78,8 +88,16 @@ Concrete handlers do not iterate this constant yet. The constant is a contract a
 
 This gives the editor host a single result object for window-pump batches while preserving individual event diagnostics. The outcome is deliberately not serialized in this slice because it is runtime-local aggregation, not a cross-crate contract.
 
+## Timer Dispatch
+
+The manager injects synthetic input events from retained deadlines rather than asking component reducers to observe wall-clock time directly. Menu/MenuList typeahead expiry and submenu hover readiness already use this pattern; the M3.S2 Snackbar/Toast slice adds the same owner for auto-hide.
+
+`UiInputTimerState` stores Toast deadlines by target node together with the `toast_id` that was current when the timer was armed. `UiInputManager::arm_timers_from_component_events(...)` arms/replaces/clears that deadline from `toast_queue` payloads, `current_toast_id`, `auto_hide_duration_ms`/`autoHideDuration`, open/close events, or retained Snackbar/Toast state discovered through `UiSurface::toast_timer_for_component_node(...)`. `tick(...)` drains expired Toast timers and dispatches `UiInputEvent::ToastTimer`; `surface/input/toast_timer.rs` turns a matching current id into `Commit { property: "expired_toast_id" }` and annotates stale timers as ignored.
+
+The event is part of the public runtime-interface input contract through `UiToastTimerInputEvent`, so hosts and tests can observe the same route as internally injected manager ticks.
+
 ## Current Limits
 
-`UiInputManager::tick` currently records `last_tick` and returns no injected events. The plan expects future slices to inject tooltip timers, repeat actions, IME updates, drag-hover updates, and command-clock events from this owner. Until then, surface input timer modules remain the behavioral implementation.
+`UiInputManager::tick` now injects the implemented component timer families but still does not own every planned timed behavior. Tooltip timers, repeat actions, IME updates, drag-hover updates, and command-clock events remain future slices, and surface input timer modules still contain the leaf route behavior.
 
 The manager also does not yet mutate `UiActivePointerTable` during dispatch. The table is exposed now so later pointer normalization can capture mouse, touch, pen, and multi-pointer state before events enter surface routing.

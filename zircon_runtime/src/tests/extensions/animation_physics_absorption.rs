@@ -17,8 +17,8 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let physics_plugin_module =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/module.rs"))
             .unwrap_or_default();
-    let physics_plugin_manager =
-        std::fs::read_to_string(physics_plugin_root.join("runtime/src/manager.rs"))
+    let physics_plugin_manager_service =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/manager/service.rs"))
             .unwrap_or_default();
     let physics_plugin_runtime_system =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/runtime_system.rs"))
@@ -49,8 +49,9 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
         physics_plugin_module.contains("PhysicsDriver")
             && physics_plugin_module.contains("PhysicsManagerHandle")
             && physics_plugin_module.contains("module_descriptor")
-            && physics_plugin_manager.contains("impl PhysicsManager for DefaultPhysicsManager")
-            && physics_plugin_manager.contains("tick_scene_world")
+            && physics_plugin_manager_service
+                .contains("impl PhysicsManager for DefaultPhysicsManager")
+            && physics_plugin_manager_service.contains("tick_scene_world")
             && physics_plugin_runtime_system.contains("PhysicsRuntimeSystem")
             && physics_plugin_runtime_system.contains("PHYSICS_STEP_SYSTEM")
             && physics_plugin_lib.contains("register_runtime_system(registry, owner)"),
@@ -92,7 +93,7 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
 }
 
 #[test]
-fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
+fn animation_domain_keeps_framework_contract_and_plugin_wrapper_boundary() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
         .parent()
@@ -100,6 +101,8 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
     let runtime_manifest =
         std::fs::read_to_string(runtime_root.join("Cargo.toml")).unwrap_or_default();
     let runtime_lib = std::fs::read_to_string(runtime_root.join("src/lib.rs")).unwrap_or_default();
+    let runtime_animation_mod =
+        std::fs::read_to_string(runtime_root.join("src/animation/mod.rs")).unwrap_or_default();
     let workspace_manifest =
         std::fs::read_to_string(runtime_root.join("../Cargo.toml")).unwrap_or_default();
     let plugin_workspace_manifest =
@@ -125,12 +128,17 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
             .unwrap_or_default();
 
     assert!(
-        !runtime_root.join("src/animation").exists(),
-        "zircon_runtime should not keep concrete animation runtime files after plugin cutover"
+        runtime_root.join("src/animation").exists(),
+        "Runtime 14 keeps zircon_runtime::animation as the runtime-owned module family"
     );
     assert!(
-        !runtime_lib.contains("pub mod animation"),
-        "zircon_runtime crate root should not export a concrete animation module"
+        runtime_lib.contains("pub mod animation"),
+        "zircon_runtime crate root should keep the documented animation module-family seat"
+    );
+    assert!(
+        runtime_animation_mod.contains("pub use module::")
+            && runtime_animation_mod.contains("pub use sequence::apply_sequence_to_world"),
+        "zircon_runtime::animation should keep the runtime-owned module and sequence boundary"
     );
     assert!(
         runtime_root
@@ -143,7 +151,8 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
         "runtime framework should expose the neutral AnimationManager sequence apply contract"
     );
     assert!(
-        animation_plugin_module.contains("AnimationDriver")
+        animation_plugin_lib.contains("pub use zircon_runtime::animation")
+            && animation_plugin_module.contains("AnimationDriver")
             && animation_plugin_module.contains("AnimationManagerHandle")
             && animation_plugin_module.contains("module_descriptor")
             && animation_plugin_manager.contains("impl AnimationManager for DefaultAnimationManager")
@@ -152,7 +161,7 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
             && animation_plugin_runtime_system.contains("AnimationRuntimeSystem")
             && animation_plugin_runtime_system.contains("ANIMATION_EVALUATE_SYSTEM")
             && animation_plugin_lib.contains("register_runtime_system(registry, owner)"),
-        "animation plugin should own module wiring, manager behavior, sequence application, and runtime system registration"
+        "animation plugin should wrap the runtime-owned animation family with plugin metadata and runtime system registration"
     );
     assert!(
         !runtime_manifest.contains("zircon_animation"),

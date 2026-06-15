@@ -1,0 +1,140 @@
+use crate::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    layout::UiFrame,
+    style::{UiPainterFamily, UiPainterResolvedState},
+    surface::{UiRenderCommand, UiRenderCommandKind},
+    tree::{UiTemplateNodeMetadata, UiTreeNode},
+};
+
+#[test]
+fn render_extract_notification_center_draws_panel_header_and_notifications() {
+    let commands = commands_for_notification_center(
+        UiFrame::new(32.0, 24.0, 300.0, 160.0),
+        r##"
+open = true
+popup_open = true
+text = "Owner fallback"
+title = "Notifications"
+unread_count = 2
+focused_index = 1
+selected_notification_id = "build"
+visible_limit = 3
+notifications = [
+  { id = "build", title = "Build failed", message = "Shader compile error", severity = "error", unread = true },
+  { id = "asset", title = "Asset imported", message = "StoneWall.mesh ready", severity = "success" },
+]
+"##,
+    );
+
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(32.0, 24.0, 300.0, 160.0)
+            && command.style.background_color.as_deref() == Some("#11181d")
+            && command.style.border_color.as_deref() == Some("#2d3a42")
+            && command.style.corner_radius == 6.0
+            && command.style.painter_family == UiPainterFamily::Toast
+            && command.style.painter_state == UiPainterResolvedState::Open
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Notifications (2)")
+            && command.frame == UiFrame::new(44.0, 34.0, 276.0, 16.0)
+            && command.style.foreground_color.as_deref() == Some("#e7eef0")
+            && command.style.painter_family == UiPainterFamily::Toast
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(40.0, 60.0, 284.0, 48.0)
+            && command.style.background_color.as_deref() == Some("#153035")
+            && command.style.border_color.as_deref() == Some("#35c7d0")
+            && command.style.painter_state == UiPainterResolvedState::Selected
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(50.0, 68.0, 3.0, 32.0)
+            && command.style.background_color.as_deref() == Some("#ef7066")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Build failed")
+            && command.frame == UiFrame::new(62.0, 67.0, 250.0, 14.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Shader compile error")
+            && command.frame == UiFrame::new(62.0, 85.0, 250.0, 13.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(40.0, 114.0, 284.0, 48.0)
+            && command.style.background_color.as_deref() == Some("#183a3f")
+            && command.style.painter_state == UiPainterResolvedState::Focused
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(50.0, 122.0, 3.0, 32.0)
+            && command.style.background_color.as_deref() == Some("#42b883")
+    }));
+    assert_eq!(
+        commands
+            .iter()
+            .filter(|command| command.text.as_deref() == Some("Owner fallback"))
+            .count(),
+        0,
+        "NotificationCenter should suppress generic owner text rendering"
+    );
+}
+
+#[test]
+fn render_extract_closed_notification_center_suppresses_owner_fallback() {
+    let commands = commands_for_notification_center(
+        UiFrame::new(0.0, 0.0, 220.0, 80.0),
+        r##"
+open = false
+popup_open = false
+text = "Should not render"
+background_color = "#ff00ff"
+"##,
+    );
+
+    assert!(
+        commands
+            .iter()
+            .all(|command| command.kind == UiRenderCommandKind::Group),
+        "closed NotificationCenter should be paint-silent"
+    );
+}
+
+fn commands_for_notification_center(frame: UiFrame, attributes: &str) -> Vec<UiRenderCommand> {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.notification_center"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 640.0, 360.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/NotificationCenter"))
+                .with_frame(frame)
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "NotificationCenter".to_string(),
+                    attributes: toml::from_str(attributes).unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface.render_extract.list.commands
+}
+
+fn visible_state() -> UiStateFlags {
+    UiStateFlags {
+        visible: true,
+        enabled: true,
+        ..UiStateFlags::default()
+    }
+}

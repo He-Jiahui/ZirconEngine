@@ -176,4 +176,9 @@ fn package_matches_module_kinds(
         .modules
         .iter()
         .any(|module| module_kinds.contains(&module.kind))
+        || package_manifest
+            .feature_extensions
+            .iter()
+            .flat_map(|feature| feature.modules.iter())
+            .any(|module| module_kinds.contains(&module.kind))
 }

@@ -6,6 +6,12 @@ use super::NetRuntimeMode;
 pub struct NetDiagnostics {
     pub backend_name: String,
     pub mode: NetRuntimeMode,
+    #[serde(default)]
+    pub outbound_bytes: u64,
+    #[serde(default)]
+    pub inbound_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_observed_latency_ms: Option<u64>,
     pub open_udp_sockets: usize,
     pub open_tcp_listeners: usize,
     pub open_http_listeners: usize,

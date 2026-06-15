@@ -295,3 +295,95 @@ fn runtime_09_v2_verdict_matches_runtime_and_interface_modules() {
         );
     }
 }
+
+#[test]
+fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
+    let architecture_doc = include_str!("../../../../docs/zircon_runtime/ui/architecture.md");
+    let runtime_09_plan = include_str!(
+        "../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+    );
+    let runtime_index = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let architecture_review =
+        include_str!("../../../../docs/engine-architecture/runtime-architecture-review-m0.md");
+    let interface_doc =
+        include_str!("../../../../docs/engine-architecture/runtime-interface-convergence.md");
+    let audit_script = include_str!(
+        "../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py"
+    );
+    let ui_guard = include_str!("ui_architecture.rs");
+    let cargo_gate_guard = include_str!("plan_status/cargo_gates/middle.rs");
+
+    for guard_anchor in [
+        "runtime_09_ui_architecture_doc_records_current_boundaries",
+        "runtime_09_ui_architecture_baselines_match_current_source_scan",
+        "runtime_09_v2_verdict_matches_runtime_and_interface_modules",
+        "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",
+        "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
+    ] {
+        assert!(
+            ui_guard.contains(guard_anchor) || cargo_gate_guard.contains(guard_anchor),
+            "Runtime 09 guard anchor `{guard_anchor}` should stay visible to ui_architecture_boundary"
+        );
+    }
+
+    for audit_anchor in [
+        "EXPECTED_SOURCE_FILE_COUNT = 11",
+        "EXPECTED_UI_ENTRY_COUNT = 17",
+        "EXPECTED_SURFACE_ENTRY_COUNT = 20",
+        "EXPECTED_LEGACY_FULL_HITS = 167",
+        "EXPECTED_LEGACY_PRODUCTION_HITS = 102",
+        "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 12",
+        "EXPECTED_TAFFY_PRODUCTION_HITS = 161",
+        "EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 7",
+        "MIRROR_DOCS_GUARD",
+        "\"runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts\"",
+        "\"mirror_docs_guard_present\"",
+    ] {
+        assert!(
+            audit_script.contains(audit_anchor),
+            "ui_architecture_boundary should expose audit anchor `{audit_anchor}`"
+        );
+    }
+
+    let mirror_docs = [
+        ("UI architecture doc", architecture_doc),
+        ("Runtime 09 plan", runtime_09_plan),
+        ("runtime index", runtime_index),
+        ("runtime architecture review", architecture_review),
+        ("runtime interface convergence doc", interface_doc),
+    ];
+
+    for (doc_name, doc_source) in mirror_docs {
+        for expected_anchor in [
+            "ui_architecture_boundary",
+            "expected_source_file_count = 11",
+            "expected_ui_entry_count = 17",
+            "expected_surface_entry_count = 20",
+            "legacy_full_hits = 167",
+            "expected_legacy_full_hits = 167",
+            "legacy_production_hits = 102",
+            "expected_legacy_production_hits = 102",
+            "legacy_production_file_count = 12",
+            "expected_legacy_production_file_count = 12",
+            "taffy_production_hits = 161",
+            "expected_taffy_production_hits = 161",
+            "taffy_production_file_count = 7",
+            "expected_taffy_production_file_count = 7",
+            "runtime_v2_anchor_count = 10",
+            "interface_v2_anchor_count = 9",
+            "guard_anchor_count = 5",
+            "cargo_gate_anchor_count = 7",
+            "doc_anchor_count = 11",
+            "missing_doc_anchors = []",
+            "missing_cargo_gate_anchors = []",
+            "mirror_docs_guard_present = true",
+            "risks = []",
+            "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",
+        ] {
+            assert!(
+                doc_source.contains(expected_anchor),
+                "{doc_name} should mirror Runtime 09 UI architecture audit anchor `{expected_anchor}`"
+            );
+        }
+    }
+}

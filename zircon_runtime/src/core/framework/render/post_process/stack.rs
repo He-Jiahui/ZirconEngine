@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
     AntiAliasMode, AntiAliasSettings, RenderBloomSettings, RenderColorGradingSettings,
+    RenderExposureMode, RenderExposureSettings,
 };
 
 use super::{
@@ -13,7 +14,7 @@ impl PostProcessGraphResourceNames {
     pub const SCENE_COLOR: &'static str = "scene-color";
     pub const SCENE_DEPTH: &'static str = "scene-depth";
     pub const SHADOW_ATLAS: &'static str = "shadow-atlas";
-    pub const SCENE_MOTION_VECTOR: &'static str = "scene-motion-vector";
+    pub const SCENE_VELOCITY: &'static str = "scene-velocity";
     pub const MOTION_VECTOR_TILE_MAX: &'static str = "postprocess.motion-vector.tile-max";
     pub const MOTION_VECTOR_TILE_MAX_COARSE: &'static str =
         "postprocess.motion-vector.tile-max.coarse";
@@ -30,15 +31,20 @@ impl PostProcessGraphResourceNames {
     pub const LIGHT_TILE_MASKS: &'static str = "light-tile-masks";
     pub const HZB_FURTHEST: &'static str = "hzb-furthest";
     // Temporal resources use distinct names so a pass cannot silently read and overwrite the same history slot.
-    pub const HISTORY_PREVIOUS_SCENE_COLOR: &'static str = "history.previous.scene-color";
     pub const HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION: &'static str =
         "history.previous.screen-space-reflection";
     pub const HISTORY_PREVIOUS_HZB_FURTHEST: &'static str = "history.previous.hzb-furthest";
-    pub const HISTORY_CURRENT_SCENE_COLOR: &'static str = "history.current.scene-color";
-    pub const HISTORY_OUTPUT_SCENE_COLOR: &'static str = "postprocess.history-resolved";
+    pub const TAA_HISTORY_PREVIOUS: &'static str = "taa.history.previous.scene-color";
+    pub const TAA_HISTORY_CURRENT: &'static str = "taa.history.current.scene-color";
+    pub const TAA_OUTPUT: &'static str = "taa.output.scene-color";
+    pub const TAA_REACTIVE_MASK: &'static str = "taa.reactive-mask";
     pub const BLOOM: &'static str = "bloom-texture";
+    pub const EXPOSURE_HISTOGRAM: &'static str = "postprocess.exposure.histogram";
+    pub const EXPOSURE_PREVIOUS: &'static str = "history.previous.exposure";
+    pub const EXPOSURE_CURRENT: &'static str = "history.current.exposure";
     pub const COLOR_GRADED: &'static str = "postprocess.color-graded";
     pub const EFFECT_STACKED: &'static str = "postprocess.effect-stacked";
+    pub const TONEMAPPED: &'static str = "postprocess.tonemapped";
     pub const DEPTH_OF_FIELD_COC: &'static str = "postprocess.depth-of-field.coc";
     pub const DEPTH_OF_FIELD_BOKEH: &'static str = "postprocess.depth-of-field.bokeh";
     pub const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID: &'static str =
@@ -49,7 +55,7 @@ impl PostProcessGraphResourceNames {
         "postprocess.screen-space-reflection.specular-occlusion";
     pub const SCREEN_SPACE_REFLECTION_HISTORY: &'static str =
         "postprocess.screen-space-reflection.history";
-    pub const FINAL_COMPOSITED: &'static str = "postprocess.final-composited";
+    pub const FINAL_COMPOSITED: &'static str = "postprocess.terminal-aa-input";
     pub const FINAL_COLOR: &'static str = "final-color";
     pub const VIEWPORT_OUTPUT: &'static str = "viewport-output";
 }
@@ -75,13 +81,13 @@ impl PostProcessStackDescriptor {
     pub fn from_extract_settings(
         bloom: &RenderBloomSettings,
         color_grading: &RenderColorGradingSettings,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
         history_available: bool,
     ) -> Self {
         Self::from_extract_settings_with_anti_alias(
             bloom,
             color_grading,
-            history_resolve_enabled,
+            temporal_history_enabled,
             history_available,
             &AntiAliasSettings::off(),
         )
@@ -90,7 +96,7 @@ impl PostProcessStackDescriptor {
     pub fn from_extract_settings_with_anti_alias(
         bloom: &RenderBloomSettings,
         color_grading: &RenderColorGradingSettings,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
         history_available: bool,
         anti_alias: &AntiAliasSettings,
     ) -> Self {
@@ -98,7 +104,7 @@ impl PostProcessStackDescriptor {
             bloom,
             color_grading,
             &RenderPostProcessEffectStackSettings::default(),
-            history_resolve_enabled,
+            temporal_history_enabled,
             history_available,
             anti_alias,
         )
@@ -108,26 +114,50 @@ impl PostProcessStackDescriptor {
         bloom: &RenderBloomSettings,
         color_grading: &RenderColorGradingSettings,
         effect_stack: &RenderPostProcessEffectStackSettings,
-        history_resolve_enabled: bool,
+        temporal_history_enabled: bool,
+        history_available: bool,
+        anti_alias: &AntiAliasSettings,
+    ) -> Self {
+        Self::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
+            bloom,
+            color_grading,
+            RenderExposureSettings::default(),
+            effect_stack,
+            temporal_history_enabled,
+            history_available,
+            anti_alias,
+        )
+    }
+
+    pub fn from_extract_settings_with_effect_stack_exposure_and_anti_alias(
+        bloom: &RenderBloomSettings,
+        color_grading: &RenderColorGradingSettings,
+        exposure: RenderExposureSettings,
+        effect_stack: &RenderPostProcessEffectStackSettings,
+        temporal_history_enabled: bool,
         history_available: bool,
         anti_alias: &AntiAliasSettings,
     ) -> Self {
         let bloom_enabled = bloom.intensity > 0.0;
         let color_grading_enabled = *color_grading != RenderColorGradingSettings::default();
         let effect_stack_enabled = effect_stack.is_enabled();
-        let history_enabled = history_resolve_enabled && history_available;
-        let fxaa_enabled = anti_alias.mode == AntiAliasMode::Fxaa;
+        let taa_enabled = anti_alias.mode == AntiAliasMode::Taa && history_available;
+        let fxaa_enabled = false;
+        let exposure_histogram_enabled = exposure.mode == RenderExposureMode::Histogram;
         let ssr_enabled = effect_stack.screen_space_reflection.is_enabled();
-        let ssr_temporal_enabled = ssr_enabled && history_enabled;
+        let ssr_temporal_enabled = ssr_enabled && temporal_history_enabled && history_available;
+        let scene_velocity_enabled =
+            taa_enabled || effect_stack.motion_blur.is_enabled() || ssr_enabled;
         let motion_vector_effects_enabled = effect_stack.motion_blur.is_enabled() || ssr_enabled;
         let mut initial_resources = vec![
             PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
             PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
         ];
-        if history_available {
-            initial_resources
-                .push(PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string());
+        if taa_enabled {
+            initial_resources.push(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string());
+            initial_resources.push(PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string());
         }
+        initial_resources.push(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS.to_string());
         if ssr_temporal_enabled {
             initial_resources.push(
                 PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string(),
@@ -139,8 +169,10 @@ impl PostProcessStackDescriptor {
             initial_resources.push(PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string());
             initial_resources.push(PostProcessGraphResourceNames::HZB_FURTHEST.to_string());
         }
+        if scene_velocity_enabled {
+            initial_resources.push(PostProcessGraphResourceNames::SCENE_VELOCITY.to_string());
+        }
         if motion_vector_effects_enabled {
-            initial_resources.push(PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string());
             initial_resources
                 .push(PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string());
             initial_resources
@@ -149,22 +181,27 @@ impl PostProcessStackDescriptor {
                 .push(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string());
         }
 
-        let mut final_inputs = vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()];
+        let final_scene_color = if taa_enabled {
+            PostProcessGraphResourceNames::TAA_OUTPUT
+        } else {
+            PostProcessGraphResourceNames::SCENE_COLOR
+        };
+        let mut final_inputs = vec![final_scene_color.to_string()];
         let mut final_after = Vec::new();
+        if taa_enabled {
+            final_after.push(PostProcessEffectKind::TaaResolve);
+        }
         if bloom_enabled {
             final_inputs.push(PostProcessGraphResourceNames::BLOOM.to_string());
             final_after.push(PostProcessEffectKind::Bloom);
         }
         if color_grading_enabled {
             final_inputs.push(PostProcessGraphResourceNames::COLOR_GRADED.to_string());
-            final_after.push(PostProcessEffectKind::ColorGrading);
+            final_after.push(PostProcessEffectKind::ColorLutBake);
         }
-        if history_enabled {
-            final_inputs
-                .push(PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR.to_string());
-            final_after.push(PostProcessEffectKind::HistoryResolve);
-        }
+        final_after.push(PostProcessEffectKind::ExposureResolve);
         let mut effect_stack_inputs = final_inputs.clone();
+        effect_stack_inputs.push(PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string());
         if effect_stack_requires_scene_depth(effect_stack)
             && !effect_stack_inputs
                 .iter()
@@ -183,14 +220,14 @@ impl PostProcessStackDescriptor {
         let effect_stack_after = final_after.clone();
         if effect_stack_enabled {
             final_inputs = vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()];
-            final_after = vec![PostProcessEffectKind::EffectStack];
+            final_after = vec![PostProcessEffectKind::Uber];
         }
         if ssr_enabled {
             final_inputs
                 .push(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string());
             final_after.push(PostProcessEffectKind::ScreenSpaceReflectionResolve);
         }
-        let final_composite_output = if fxaa_enabled {
+        let output_transfer_output = if fxaa_enabled {
             PostProcessGraphResourceNames::FINAL_COMPOSITED
         } else {
             PostProcessGraphResourceNames::FINAL_COLOR
@@ -200,36 +237,50 @@ impl PostProcessStackDescriptor {
         } else {
             Vec::new()
         };
-        let history_after = if color_grading_enabled {
-            vec![PostProcessEffectKind::ColorGrading]
-        } else if bloom_enabled {
-            vec![PostProcessEffectKind::Bloom]
-        } else {
-            Vec::new()
-        };
-
-        let mut effects = vec![
+        let mut effects = Vec::new();
+        if taa_enabled {
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::TaaResolve)
+                    .with_required_inputs([
+                        PostProcessGraphResourceNames::SCENE_COLOR,
+                        PostProcessGraphResourceNames::SCENE_DEPTH,
+                        PostProcessGraphResourceNames::SCENE_VELOCITY,
+                        PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
+                        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
+                    ])
+                    .with_produced_outputs([
+                        PostProcessGraphResourceNames::TAA_OUTPUT,
+                        PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+                    ]),
+            );
+        }
+        if exposure_histogram_enabled {
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::ExposureHistogram)
+                    .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                    .with_produced_outputs([PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM]),
+            );
+        }
+        effects.push(
+            PostProcessEffectSettings::new(PostProcessEffectKind::ExposureResolve)
+                .with_required_inputs(exposure_resolve_inputs(exposure_histogram_enabled))
+                .with_produced_outputs([PostProcessGraphResourceNames::EXPOSURE_CURRENT])
+                .with_after(exposure_resolve_after(exposure_histogram_enabled)),
+        );
+        effects.extend([
             PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
                 .with_enabled(bloom_enabled)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
-            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorLutBake)
                 .with_enabled(color_grading_enabled)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
                 .with_after(color_grading_after),
-            PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
-                .with_enabled(history_enabled)
-                .with_required_inputs([
-                    PostProcessGraphResourceNames::SCENE_COLOR,
-                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR,
-                ])
-                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR])
-                .with_after(history_after),
-        ];
+        ]);
         if effect_stack_enabled {
             effects.push(
-                PostProcessEffectSettings::new(PostProcessEffectKind::EffectStack)
+                PostProcessEffectSettings::new(PostProcessEffectKind::Uber)
                     .with_required_inputs(effect_stack_inputs)
                     .with_produced_outputs(effect_stack_outputs(effect_stack))
                     .with_after(effect_stack_after.clone()),
@@ -282,9 +333,9 @@ impl PostProcessStackDescriptor {
             );
         }
         effects.push(
-            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+            PostProcessEffectSettings::new(PostProcessEffectKind::OutputTransfer)
                 .with_required_inputs(final_inputs)
-                .with_produced_outputs([final_composite_output])
+                .with_produced_outputs([output_transfer_output])
                 .with_after(final_after),
         );
         if anti_alias.mode != AntiAliasMode::Off {
@@ -293,7 +344,7 @@ impl PostProcessStackDescriptor {
                     .with_enabled(fxaa_enabled)
                     .with_required_inputs([PostProcessGraphResourceNames::FINAL_COMPOSITED])
                     .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
-                    .with_after([PostProcessEffectKind::FinalComposite]),
+                    .with_after([PostProcessEffectKind::OutputTransfer]),
             );
         }
 
@@ -311,29 +362,54 @@ impl PostProcessStackDescriptor {
     pub fn without_history_resources(&self) -> Self {
         let mut stack = self.clone();
         stack.initial_resources.retain(|resource| {
-            resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR
-                && resource
-                    != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
-                && resource != PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR
+            resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
+                && resource != PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS
+                && resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
+                && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
         });
         for effect in &mut stack.effects {
-            if effect.kind == PostProcessEffectKind::HistoryResolve {
+            if effect.kind == PostProcessEffectKind::TaaResolve {
                 effect.enabled = false;
             }
+            let had_taa_output_input = effect
+                .required_inputs
+                .iter()
+                .any(|resource| resource == PostProcessGraphResourceNames::TAA_OUTPUT);
             effect.required_inputs.retain(|resource| {
-                resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR
-                    && resource
-                        != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
-                    && resource != PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR
-                    && resource != PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR
+                resource != PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
+                    && resource != PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS
+                    && resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
+                    && resource != PostProcessGraphResourceNames::TAA_OUTPUT
+                    && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
             });
+            if had_taa_output_input
+                && !effect
+                    .required_inputs
+                    .iter()
+                    .any(|resource| resource == PostProcessGraphResourceNames::SCENE_COLOR)
+            {
+                effect
+                    .required_inputs
+                    .insert(0, PostProcessGraphResourceNames::SCENE_COLOR.to_string());
+            }
             effect.produced_outputs.retain(|resource| {
-                resource != PostProcessGraphResourceNames::HISTORY_CURRENT_SCENE_COLOR
-                    && resource != PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR
+                resource != PostProcessGraphResourceNames::TAA_HISTORY_CURRENT
+                    && resource != PostProcessGraphResourceNames::TAA_OUTPUT
+                    && resource != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
             });
             effect
                 .after
-                .retain(|dependency| *dependency != PostProcessEffectKind::HistoryResolve);
+                .retain(|dependency| *dependency != PostProcessEffectKind::TaaResolve);
+        }
+        let needs_reconstructed_motion_vectors = stack.initial_resources.iter().any(|resource| {
+            resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX
+                || resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
+                || resource == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
+        });
+        if !needs_reconstructed_motion_vectors {
+            stack
+                .initial_resources
+                .retain(|resource| resource != PostProcessGraphResourceNames::SCENE_VELOCITY);
         }
         stack
     }
@@ -352,6 +428,22 @@ fn effect_stack_outputs(effect_stack: &RenderPostProcessEffectStackSettings) -> 
         outputs.push(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH);
     }
     outputs
+}
+
+fn exposure_resolve_inputs(histogram_enabled: bool) -> Vec<&'static str> {
+    let mut inputs = vec![PostProcessGraphResourceNames::EXPOSURE_PREVIOUS];
+    if histogram_enabled {
+        inputs.push(PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM);
+    }
+    inputs
+}
+
+fn exposure_resolve_after(histogram_enabled: bool) -> Vec<PostProcessEffectKind> {
+    if histogram_enabled {
+        vec![PostProcessEffectKind::ExposureHistogram]
+    } else {
+        Vec::new()
+    }
 }
 
 fn screen_space_reflection_specular_occlusion_inputs() -> Vec<&'static str> {
@@ -392,10 +484,121 @@ fn screen_space_reflection_resolve_inputs(ssr_temporal_enabled: bool) -> Vec<&'s
 mod tests {
     use super::{PostProcessGraphResourceNames, PostProcessStackDescriptor};
     use crate::core::framework::render::{
-        AntiAliasSettings, PostProcessEffectKind, RenderDepthOfFieldSettings,
-        RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
+        AntiAliasSettings, PostProcessEffectKind, RenderDepthOfFieldSettings, RenderExposureMode,
+        RenderExposureSettings, RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
         RenderScreenSpaceReflectionSettings, RenderVignetteSettings,
     };
+
+    #[test]
+    fn manual_exposure_declares_resolve_without_histogram() {
+        let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
+            &Default::default(),
+            &Default::default(),
+            RenderExposureSettings {
+                mode: RenderExposureMode::Manual,
+                ..Default::default()
+            },
+            &RenderPostProcessEffectStackSettings::default(),
+            false,
+            false,
+            &AntiAliasSettings::off(),
+        );
+
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::EXPOSURE_PREVIOUS.to_string()));
+        assert!(!stack
+            .effects
+            .iter()
+            .any(|effect| effect.kind == PostProcessEffectKind::ExposureHistogram));
+        let resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ExposureResolve)
+            .expect("manual exposure still writes the unified exposure buffer");
+        assert_eq!(
+            resolve.required_inputs,
+            vec![PostProcessGraphResourceNames::EXPOSURE_PREVIOUS.to_string()]
+        );
+        assert_eq!(
+            resolve.produced_outputs,
+            vec![PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string()]
+        );
+
+        let graph = stack.validated_graph();
+        let resolve_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::ExposureResolve)
+            .expect("validated graph should keep exposure resolve");
+        let output_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::OutputTransfer)
+            .expect("validated graph should keep final transfer");
+        assert!(resolve_index < output_index);
+    }
+
+    #[test]
+    fn histogram_exposure_declares_histogram_before_resolve() {
+        let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
+            &Default::default(),
+            &Default::default(),
+            RenderExposureSettings {
+                mode: RenderExposureMode::Histogram,
+                ..Default::default()
+            },
+            &RenderPostProcessEffectStackSettings::default(),
+            false,
+            false,
+            &AntiAliasSettings::off(),
+        );
+
+        let histogram = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ExposureHistogram)
+            .expect("histogram mode should build the histogram node");
+        assert_eq!(
+            histogram.required_inputs,
+            vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()]
+        );
+        assert_eq!(
+            histogram.produced_outputs,
+            vec![PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM.to_string()]
+        );
+
+        let resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::ExposureResolve)
+            .expect("histogram mode should resolve exposure");
+        assert!(resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM.to_string()));
+        assert!(resolve
+            .after
+            .contains(&PostProcessEffectKind::ExposureHistogram));
+
+        let graph = stack.validated_graph();
+        let histogram_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::ExposureHistogram)
+            .expect("validated graph should keep exposure histogram");
+        let resolve_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::ExposureResolve)
+            .expect("validated graph should keep exposure resolve");
+        let output_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::OutputTransfer)
+            .expect("validated graph should keep final transfer");
+        assert!(histogram_index < resolve_index);
+        assert!(resolve_index < output_index);
+    }
 
     #[test]
     fn screen_space_reflection_declares_specular_occlusion_and_resolve_inputs() {
@@ -525,7 +728,7 @@ mod tests {
         let effect_stack = stack
             .effects
             .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .find(|effect| effect.kind == PostProcessEffectKind::Uber)
             .expect("SSR should keep an effect-stack color node");
         assert!(!effect_stack
             .required_inputs
@@ -554,15 +757,12 @@ mod tests {
                 &AntiAliasSettings::off(),
             );
 
-        assert!(stack
-            .initial_resources
-            .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
         assert!(stack.initial_resources.contains(
             &PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION.to_string()
         ));
         assert!(stack
             .initial_resources
-            .contains(&PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string()));
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
         assert!(stack
             .initial_resources
             .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string()));
@@ -601,6 +801,151 @@ mod tests {
     }
 
     #[test]
+    fn taa_resolve_declares_history_velocity_and_output_transfer_input() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings::default(),
+                true,
+                true,
+                &AntiAliasSettings::taa(),
+            );
+
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+        let taa_resolve = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::TaaResolve)
+            .expect("TAA should enable a temporal resolve node");
+        assert!(taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+        assert!(taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
+        assert!(taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+        assert!(taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
+        assert!(taa_resolve
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string()));
+        assert!(taa_resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
+        assert!(taa_resolve
+            .produced_outputs
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_CURRENT.to_string()));
+
+        let output_transfer = stack
+            .effects
+            .iter()
+            .find(|effect| effect.kind == PostProcessEffectKind::OutputTransfer)
+            .expect("TAA stack should keep final composite");
+        assert!(output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
+        assert!(!output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+        assert!(output_transfer
+            .after
+            .contains(&PostProcessEffectKind::TaaResolve));
+
+        let graph = stack.validated_graph();
+        let taa_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::TaaResolve)
+            .expect("validated graph should keep the TAA resolve node");
+        let final_index = graph
+            .nodes
+            .iter()
+            .position(|node| node.kind == PostProcessEffectKind::OutputTransfer)
+            .expect("validated graph should keep final composite");
+        assert!(taa_index < final_index);
+    }
+
+    #[test]
+    fn without_history_resources_disables_taa_and_restores_scene_color_input() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings::default(),
+                true,
+                true,
+                &AntiAliasSettings::taa(),
+            )
+            .without_history_resources();
+        let graph = stack.validated_graph();
+
+        assert!(!graph
+            .nodes
+            .iter()
+            .any(|node| node.kind == PostProcessEffectKind::TaaResolve));
+        assert!(!stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string()));
+        assert!(!stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+        assert!(!graph.nodes.iter().any(|node| node
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_REACTIVE_MASK.to_string())));
+
+        let output_transfer = graph
+            .nodes
+            .iter()
+            .find(|node| node.kind == PostProcessEffectKind::OutputTransfer)
+            .expect("history-stripped stack should keep final composite");
+        assert!(output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::SCENE_COLOR.to_string()));
+        assert!(!output_transfer
+            .required_inputs
+            .contains(&PostProcessGraphResourceNames::TAA_OUTPUT.to_string()));
+    }
+
+    #[test]
+    fn without_history_resources_keeps_scene_velocity_for_motion_blur() {
+        let stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &Default::default(),
+                &Default::default(),
+                &RenderPostProcessEffectStackSettings {
+                    motion_blur: RenderMotionBlurSettings {
+                        shutter_angle: 0.5,
+                        samples: 2,
+                    },
+                    ..Default::default()
+                },
+                true,
+                true,
+                &AntiAliasSettings::taa(),
+            )
+            .without_history_resources();
+
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+        assert!(stack
+            .initial_resources
+            .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
+    }
+
+    #[test]
     fn effect_stack_depth_of_field_declares_depth_and_intermediate_outputs() {
         let stack =
             PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
@@ -622,7 +967,7 @@ mod tests {
         let effect_stack = stack
             .effects
             .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .find(|effect| effect.kind == PostProcessEffectKind::Uber)
             .expect("DoF should enable the effect stack node");
 
         assert!(effect_stack
@@ -644,7 +989,7 @@ mod tests {
         let graph_effect_stack = graph
             .nodes
             .iter()
-            .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+            .find(|node| node.kind == PostProcessEffectKind::Uber)
             .expect("validated graph should keep the DoF effect-stack node");
         assert!(graph_effect_stack
             .produced_outputs
@@ -655,7 +1000,7 @@ mod tests {
     }
 
     #[test]
-    fn screen_space_reflection_resolve_produces_history_for_final_composite() {
+    fn screen_space_reflection_resolve_produces_history_for_output_transfer() {
         let stack =
             PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
                 &Default::default(),
@@ -692,15 +1037,15 @@ mod tests {
             .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion));
 
-        let final_composite = stack
+        let output_transfer = stack
             .effects
             .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::FinalComposite)
+            .find(|effect| effect.kind == PostProcessEffectKind::OutputTransfer)
             .expect("SSR should keep final composite node");
-        assert!(final_composite
+        assert!(output_transfer
             .required_inputs
             .contains(&PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY.to_string()));
-        assert!(final_composite
+        assert!(output_transfer
             .after
             .contains(&PostProcessEffectKind::ScreenSpaceReflectionResolve));
 
@@ -726,7 +1071,7 @@ mod tests {
         let graph_final = graph
             .nodes
             .iter()
-            .find(|node| node.kind == PostProcessEffectKind::FinalComposite)
+            .find(|node| node.kind == PostProcessEffectKind::OutputTransfer)
             .expect("validated graph should keep the final composite node");
         assert!(graph_final
             .required_inputs
@@ -753,7 +1098,7 @@ mod tests {
 
         assert!(stack
             .initial_resources
-            .contains(&PostProcessGraphResourceNames::SCENE_MOTION_VECTOR.to_string()));
+            .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
         assert!(stack
             .initial_resources
             .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX.to_string()));
@@ -766,7 +1111,7 @@ mod tests {
         let effect_stack = stack
             .effects
             .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .find(|effect| effect.kind == PostProcessEffectKind::Uber)
             .expect("motion blur should enable the effect stack node");
 
         assert!(effect_stack
@@ -805,7 +1150,7 @@ mod tests {
         let effect_stack = stack
             .effects
             .iter()
-            .find(|effect| effect.kind == PostProcessEffectKind::EffectStack)
+            .find(|effect| effect.kind == PostProcessEffectKind::Uber)
             .expect("vignette should enable the effect stack node");
 
         assert_eq!(

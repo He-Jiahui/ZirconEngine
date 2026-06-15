@@ -1,6 +1,18 @@
 ---
 related_code:
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
+  - zircon_runtime/src/asset/assets/scene/asset.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
+  - zircon_runtime/src/asset/assets/scene/defaults.rs
+  - zircon_runtime/src/asset/assets/scene/entity.rs
+  - zircon_runtime/src/asset/assets/scene/extensions.rs
+  - zircon_runtime/src/asset/assets/scene/lighting.rs
+  - zircon_runtime/src/asset/assets/scene/management.rs
+  - zircon_runtime/src/asset/assets/scene/mesh.rs
+  - zircon_runtime/src/asset/assets/scene/physics.rs
+  - zircon_runtime/src/asset/assets/scene/post_process.rs
+  - zircon_runtime/src/asset/assets/scene/transform.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -31,7 +43,19 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
 implementation_files:
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
+  - zircon_runtime/src/asset/assets/scene/animation.rs
+  - zircon_runtime/src/asset/assets/scene/asset.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
+  - zircon_runtime/src/asset/assets/scene/defaults.rs
+  - zircon_runtime/src/asset/assets/scene/entity.rs
+  - zircon_runtime/src/asset/assets/scene/extensions.rs
+  - zircon_runtime/src/asset/assets/scene/lighting.rs
+  - zircon_runtime/src/asset/assets/scene/management.rs
+  - zircon_runtime/src/asset/assets/scene/mesh.rs
+  - zircon_runtime/src/asset/assets/scene/physics.rs
+  - zircon_runtime/src/asset/assets/scene/post_process.rs
+  - zircon_runtime/src/asset/assets/scene/transform.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
@@ -65,6 +89,7 @@ plan_sources:
   - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md
   - user: 2026-06-10 vampire roguelite animation state-machine follow-up
   - user: 2026-06-10 vampire terrain-backed rugged forest, graphical HUD, and in-scene health bars
+  - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
 tests:
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_toml_roundtrip_preserves_entities_and_bindings
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_asset_toml_roundtrip_preserves_post_process_components
@@ -73,6 +98,7 @@ tests:
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_overview_handles_empty_scenes
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
+  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs::runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
   - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
@@ -122,6 +148,24 @@ The vampire example terrain demonstrates the scene-level terrain authoring path.
 Scene cameras can carry `post_process_settings`, and entities can carry `post_process_volume`. The authoring payload covers the current stylistic runtime stack used by scene-authored games: bloom, color grading, tonemapping, vignette, film grain, dithering, chromatic aberration, and fog. Volumes expose active/global/priority/weight/blend-distance controls plus optional profile overrides, so a scene file can seed the base camera look and blend global or local mood profiles without runtime-only setup code.
 
 The scene asset format remains authoring-focused. `SceneMeshInstanceAsset.mesh` is an optional direct `MeshAsset` reference beside the compatibility `model` envelope and material binding. `SceneMeshInstanceAsset.primitives` is the multi-primitive form: each `SceneMeshPrimitiveBindingAsset` pairs one direct mesh reference with the material that should shade that primitive. `SceneMeshInstanceAsset.render_queue`, `material_queue`, `order_in_layer`, and `depth_bias` store authored neutral mesh phase-sort overrides, with zero values skipped during serialization. `SceneMeshInstanceAsset.morph_weights` stores authored per-instance morph target weights beside those mesh bindings. `SceneMeshInstanceAsset.lods` stores conventional mesh LOD levels; each `SceneMeshLodLevelAsset` has a `min_distance` plus the same model, optional direct mesh, material, and primitive binding shape as the base mesh instance. Optional mesh, zero sort overrides, primitive, morph-weight, and LOD fields are skipped when absent or empty, so existing `.scene` assets and prefab scene payloads keep loading without serialized churn.
+
+## Module Layout
+
+The scene asset surface is folder-backed. `mod.rs` is the structural owner for module declarations, public re-exports, and the shared `SceneMobilityAsset` enum only. It does not own TOML parsing, direct-reference walking, management aggregation, or component DTO behavior. The split-drift repair on 2026-06-14 removed the stale `SceneMobilityAsset` copy from `physics.rs`; a scan now leaves `scene/mod.rs` as the single enum owner, while `SceneSpotLightAsset` remains exported through `lighting.rs`, `scene/mod.rs`, `asset/assets/mod.rs`, and `asset/mod.rs`. `runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner` now locks the same owner/export chain, the folder-backed child declarations, and the Runtime 07 split-drift status anchors so future scene asset edits cannot silently reintroduce the duplicate enum or hide the spot-light DTO from the asset root.
+The 2026-06-14 export Pack smoke also required the split DTOs to compile as ordinary runtime asset data, not only as partially imported module declarations. `SceneAsset`, `SceneEntityAsset`, `TransformAsset`, camera, light, mesh primitive, animation skeleton, terrain, bloom, and management DTO rows now derive the serde/debug/clone/equality traits needed by TOML roundtrip, world projection, asset-pack diagnostics, and Cargo compilation. `SceneSpotLightAsset` includes the `direction` field consumed by `World::from_scene_asset(...)` and `World::to_scene_asset(...)`, so spot lights round-trip with the runtime `SpotLight` component shape.
+
+
+The child files split the former large scene asset file by authoring responsibility:
+
+- `asset.rs` owns the `SceneAsset` root, TOML helpers, aggregate direct-reference collection, overview creation, and management-record constructors.
+- `entity.rs` owns `SceneEntityAsset`, per-entity direct-reference walking, and entity overview projection.
+- `management.rs` owns `SceneEntityOverview`, scene/entity management records, record-set summaries, and stable record sorting.
+- `camera.rs`, `mesh.rs`, `lighting.rs`, `post_process.rs`, `physics.rs`, and `animation.rs` own the matching component DTO families and their narrow helpers.
+- `extensions.rs` owns terrain, tilemap, and script binding payloads.
+- `transform.rs` owns `TransformAsset`.
+- `defaults.rs` owns serde default and zero-skip helpers with `pub(super)` visibility so the defaults stay private to the scene asset subtree.
+
+This split removed `scene.rs` from the 1000-line large-file hotspot list. The current Runtime 07 owner-budget mirror reports `large_file_hotspot_count = 41`, `runtime-other = 16`, `large_file_unclassified_hotspot_count = 0`, and `performance_hotpath_boundary.risks = []`. Split-drift validation has passed rustfmt and static owner/export scans; Cargo-level scene/asset validation remains pending while active build lanes are occupied.
 
 ## Direct References
 

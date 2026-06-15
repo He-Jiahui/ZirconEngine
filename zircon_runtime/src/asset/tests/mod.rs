@@ -3,6 +3,7 @@ mod assets;
 mod facade;
 mod formats;
 mod load;
+mod pack;
 mod pipeline;
 mod project;
 mod registry;

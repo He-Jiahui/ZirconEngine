@@ -114,9 +114,12 @@ fn role_family(role: &str) -> Option<TemplateComponentFamily> {
         "tree-row" | "tree-item" => Some(TemplateComponentFamily::TreeRow),
         "table" | "editable-table" => Some(TemplateComponentFamily::Table),
         "table-row" => Some(TemplateComponentFamily::TableRow),
-        "menu" | "context-action-menu" | "popover" | "popper" => {
-            Some(TemplateComponentFamily::Popup)
-        }
+        "menu"
+        | "context-menu"
+        | "context-action-menu"
+        | "dropdown-popup"
+        | "popover"
+        | "popper" => Some(TemplateComponentFamily::Popup),
         "tooltip" => Some(TemplateComponentFamily::Tooltip),
         "alert" | "toast" | "snackbar" => Some(TemplateComponentFamily::Alert),
         "container" | "panel" | "paper" | "card" | "toolbar" | "property-grid"

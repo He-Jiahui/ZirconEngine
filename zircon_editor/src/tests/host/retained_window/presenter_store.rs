@@ -7,6 +7,7 @@ use crate::ui::retained_host::{
     NativeWindowPresenterStore, UiHostContext,
 };
 use crate::ui::workbench::layout::MainPageId;
+use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
 fn native_target(
     window_id: &MainPageId,
@@ -17,6 +18,7 @@ fn native_target(
         window_id: window_id.clone(),
         title: title.to_string(),
         bounds,
+        surface_tree_id: UiTreeId::new(format!("zircon.editor.native_window.{}", window_id.0)),
     }
 }
 
@@ -47,12 +49,23 @@ fn native_window_presenter_store_creates_updates_and_hides_secondary_windows() {
         initial_shell.native_floating_window_id,
         "window:native-preview"
     );
+    assert_eq!(
+        initial_shell.native_surface_tree_id,
+        "zircon.editor.native_window.window:native-preview"
+    );
     assert_eq!(initial_shell.native_window_title, "Native Preview");
     let initial_bounds = initial_shell.native_window_bounds;
     assert_eq!(initial_bounds.x, 120.0);
     assert_eq!(initial_bounds.y, 80.0);
     assert_eq!(initial_bounds.width, 640.0);
     assert_eq!(initial_bounds.height, 480.0);
+    assert_eq!(
+        window
+            .get_host_presentation()
+            .native_floating_surface_data
+            .native_surface_tree_id,
+        "zircon.editor.native_window.window:native-preview"
+    );
     assert_eq!(window.window().size(), PhysicalSize::new(640, 480));
 
     let updated = native_target(

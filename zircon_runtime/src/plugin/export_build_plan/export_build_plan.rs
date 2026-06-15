@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::ExportGeneratedFile;
+use super::{
+    ExportGeneratedFile, LibraryEmbedCompileHostPlan, NativeDynamicPackageExportPlan,
+    SourceTemplateBuildValidationPlan,
+};
 use crate::{
     plugin::ExportPlatformPolicy, plugin::ExportProfile, plugin::ProjectPluginSelection,
     plugin::RuntimePluginAvailabilityReport,
@@ -14,8 +17,14 @@ pub struct ExportBuildPlan {
     pub enabled_runtime_plugins: Vec<String>,
     pub linked_runtime_crates: Vec<String>,
     pub native_dynamic_packages: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub native_dynamic_package_exports: Vec<NativeDynamicPackageExportPlan>,
     #[serde(default)]
     pub runtime_plugin_availability: RuntimePluginAvailabilityReport,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub library_embed_compile_host: Option<LibraryEmbedCompileHostPlan>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_template_build: Option<SourceTemplateBuildValidationPlan>,
     pub generated_files: Vec<ExportGeneratedFile>,
     pub diagnostics: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -66,6 +75,7 @@ impl ExportBuildPlan {
         enabled_plugins: &[&ProjectPluginSelection],
         linked_runtime_crates: Vec<String>,
         native_dynamic_packages: Vec<String>,
+        native_dynamic_package_exports: Vec<NativeDynamicPackageExportPlan>,
         runtime_plugin_availability: RuntimePluginAvailabilityReport,
         generated_files: Vec<ExportGeneratedFile>,
     ) -> Self {
@@ -79,7 +89,10 @@ impl ExportBuildPlan {
             platform_policy,
             linked_runtime_crates,
             native_dynamic_packages,
+            native_dynamic_package_exports,
             runtime_plugin_availability,
+            library_embed_compile_host: None,
+            source_template_build: None,
             generated_files,
             diagnostics: Vec::new(),
             fatal_diagnostics: Vec::new(),

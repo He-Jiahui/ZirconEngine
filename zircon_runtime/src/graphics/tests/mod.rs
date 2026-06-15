@@ -13,6 +13,7 @@ mod render_framework_post_process_submit;
 mod render_framework_visibility_submit;
 mod render_product_advanced;
 mod render_product_anti_alias;
+mod render_product_particle_velocity;
 mod render_product_shadows;
 mod render_product_solari;
 mod render_product_sprite;

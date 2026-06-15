@@ -27,6 +27,7 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -70,6 +71,7 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -114,7 +116,8 @@ tests:
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_mirror_docs_match_structure_audit_counts
-  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 12 input_stack_boundary targeted evidence: expected_runtime_module_count = 10, expected_framework_module_count = 17, expected_test_module_count = 5, public_surface_anchors = 10/10, runtime_12_guard_anchors = 5/5, missing_doc_anchors = [], missing_test_anchors = [], missing_cargo_gate_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = [])
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 12 input_stack_boundary targeted evidence: expected_runtime_module_count = 10, expected_framework_module_count = 17, expected_test_module_count = 5, public_surface_anchors = 10/10, runtime_12_guard_anchors = 5/5, behavior_test_anchor_count = 6, missing_doc_anchors = [], missing_test_anchors = [], missing_behavior_test_anchors = [], missing_cargo_gate_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = [])
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py direct import (2026-06-15 Runtime 12 gamepad event-owner drift sync: missing_gamepad_abi_anchors = [], risks = [])
   - cargo test -p zircon_runtime --lib input_snapshot_just_pressed_is_true_for_exactly_one_frame --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
   - cargo test -p zircon_runtime --lib frame_input_clears_after_level_tick_not_before --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
   - cargo test -p zircon_runtime --lib action_map_resolves_chords_and_reports_just_activated --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M1 action-map named anchor: pending after active Cargo lane clears; source/rustfmt static checks passed)
@@ -170,9 +173,9 @@ Gamepad button and axis values intentionally enter the runtime as raw host readi
 
 Gamepad rumble requests are runtime-to-host requests. Runtime systems submit `InputEvent::GamepadRumbleRequest`; `InputFrameSnapshot::gamepad_rumble_requests` exposes the current-frame view, and `InputManager::drain_gamepad_rumble_requests()` is the one-shot handoff used by the dynamic runtime host-request ABI. The request intensity is clamped when converted to the stable ABI so invalid caller values cannot leak to a native backend.
 
-Runtime 12 M2 adds named anchors for the gamepad bridge that already exists in the preview stack. `gamepad_disconnect_clears_held_state_without_panic` verifies that a disconnect clears the durable connected gamepad id, processed axis values, analog button values, and pressed gamepad buttons, while still surfacing a one-frame `just_released` transition. `gamepad_host_bridge_uses_runtime_gamepad_abi_constructors` is a source guard that locks the app-side gilrs path to `ZrRuntimeEventV1::gamepad_connection_with_ids`, `gamepad_button`, and `gamepad_axis`, and locks `RuntimeDynamicSession` to the matching `InputEvent::Gamepad*` reducers.
+Runtime 12 M2 adds named anchors for the gamepad bridge that already exists in the preview stack. `gamepad_disconnect_clears_held_state_without_panic` verifies that a disconnect clears the durable connected gamepad id, processed axis values, analog button values, and pressed gamepad buttons, while still surfacing a one-frame `just_released` transition. `gamepad_host_bridge_uses_runtime_gamepad_abi_constructors` is a source guard that locks the app-side gilrs path to `ZrRuntimeEventV1::gamepad_connection_with_ids`, `gamepad_button`, and `gamepad_axis`, and locks the dynamic-session event owner `zircon_runtime/src/dynamic_api/session/events.rs` to the matching `InputEvent::Gamepad*` reducers.
 
-`runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path` guards the gamepad contract, app-side ABI constructors, dynamic-session reducers, and M2 bridge test anchors.
+`runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path` guards the gamepad contract, app-side ABI constructors, dynamic-session event reducers, and M2 bridge test anchors.
 
 ## Frame Input Contract
 
@@ -186,7 +189,7 @@ Runtime 12 M0.2 settles the first arbitration boundary above this lower input st
 
 `runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` guards this contract at the plan/doc/source boundary. It keeps the frame contract anchors, `DefaultInputManager` / `InputFrameSnapshot` public surface, and named M0.1 test anchors synchronized while the Cargo input filter remains pending.
 
-`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 10`, `expected_framework_module_count = 17`, `expected_test_module_count = 5`, `public_surface_anchors = 10/10`, `runtime_12_guard_anchors = 5/5`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 10`, `expected_framework_module_count = 17`, `expected_test_module_count = 5`, `public_surface_anchors = 10/10`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 6`, `missing_gamepad_abi_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
 
 ## Action Mapping
 
@@ -303,6 +306,6 @@ Each winit wait cycle polls gilrs and translates events through the ABI instead 
 - `ButtonPressed`, `ButtonRepeated`, `ButtonReleased`, and `ButtonChanged` become `ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1`, carrying stable Zircon button codes and the analog value. `ButtonChanged` forwards the raw analog value without an app-side `value >= 0.5` threshold; runtime input state applies the Bevy-style button axis and digital hysteresis settings described above.
 - `AxisChanged` becomes `ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1`, carrying stable Zircon axis codes and value.
 
-`zircon_runtime::dynamic_api::session` reduces those ABI events into `InputEvent::GamepadConnection`, `InputEvent::GamepadButton`, and `InputEvent::GamepadAxis`. The runtime keeps Bevy-style durable gamepad state in `InputFrameSnapshot`: connected gamepads, pressed gamepad buttons, per-frame transitions, processed analog button values, and processed latest axis values. Disconnect still clears that gamepad's axes, analog button values, and pressed buttons.
+`zircon_runtime::dynamic_api::session` keeps the ABI session entry, while `zircon_runtime/src/dynamic_api/session/events.rs` reduces those ABI events into `InputEvent::GamepadConnection`, `InputEvent::GamepadButton`, and `InputEvent::GamepadAxis`. The runtime keeps Bevy-style durable gamepad state in `InputFrameSnapshot`: connected gamepads, pressed gamepad buttons, per-frame transitions, processed analog button values, and processed latest axis values. Disconnect still clears that gamepad's axes, analog button values, and pressed buttons.
 
 Current intentional gaps are browser Gamepad API support, additional non-mouse device events, and editor/native host convergence. Browser gamepad must remain a separate backend instead of being treated as a gilrs alias.

@@ -78,6 +78,7 @@ impl ScenePostProcessResources {
             &self.effect_lut_texture_view,
             &self.effect_lut_texture_3d_view,
             cluster_buffer,
+            self.default_exposure_buffer(),
         );
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

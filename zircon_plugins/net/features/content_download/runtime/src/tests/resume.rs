@@ -30,3 +30,33 @@ fn content_download_manager_fails_resumed_http_range_without_existing_prefix() {
         Some("chunk resume requires existing partial bytes: chunk-no-prefix")
     );
 }
+
+#[test]
+fn interrupted_download_resumes_from_bitmap() {
+    let manager = net_content_download_runtime_manager();
+    let download = NetDownloadId::new(17);
+    let manifest = NetDownloadManifest::new(download, "asset://download/bitmap")
+        .with_chunk(NetDownloadChunk::new(
+            "chunk-0",
+            "https://cdn.example/chunk-0",
+            0,
+            4,
+            "hash-0",
+        ))
+        .with_chunk(NetDownloadChunk::new(
+            "chunk-1",
+            "https://cdn.example/chunk-1",
+            4,
+            4,
+            "hash-1",
+        ));
+
+    manager.queue_manifest(manifest);
+    manager.store_resume_bitmap(download, [true, false]);
+    let resumed = manager.apply_resume_bitmap(download).unwrap();
+
+    assert_eq!(resumed.status, NetDownloadStatus::Downloading);
+    assert_eq!(resumed.downloaded_bytes, 4);
+    assert_eq!(resumed.completed_chunks, vec!["chunk-0".to_string()]);
+    assert_eq!(manager.resume_bitmap(download), vec![true, false]);
+}

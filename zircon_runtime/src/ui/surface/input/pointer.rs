@@ -173,7 +173,11 @@ fn dispatch_pointer_event_for_metadata(
         surface.focus.captured = None;
         surface.focus.pressed = None;
     }
-    let result = surface.dispatch_pointer_event(pointer_dispatcher, event);
+    let result = surface.dispatch_pointer_event_with_modifiers(
+        pointer_dispatcher,
+        event,
+        metadata.modifiers,
+    );
     let captured_by_incoming_pointer = result
         .as_ref()
         .ok()

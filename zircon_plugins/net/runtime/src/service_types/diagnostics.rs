@@ -41,9 +41,14 @@ impl DefaultNetManager {
 
     pub(in crate::service_types) fn diagnostics_impl(&self) -> NetDiagnostics {
         self.state.poll_worker_ingress(usize::MAX);
+        let (outbound_bytes, inbound_bytes, last_observed_latency_ms) =
+            self.state.diagnostic_counters();
         NetDiagnostics {
             backend_name: self.backend_name_impl(),
             mode: self.state.mode,
+            outbound_bytes,
+            inbound_bytes,
+            last_observed_latency_ms,
             open_udp_sockets: self
                 .state
                 .udp_sockets

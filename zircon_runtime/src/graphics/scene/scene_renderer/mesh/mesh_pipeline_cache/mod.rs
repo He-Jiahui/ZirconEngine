@@ -1,5 +1,6 @@
-mod ensure_motion_vector_pipeline;
 mod ensure_pipeline;
+mod ensure_taa_reactive_mask_pipeline;
+mod ensure_velocity_pipeline;
 mod forward_shadow_receiver;
 mod mesh_pipeline_cache;
 mod mesh_pipeline_variant_registry;

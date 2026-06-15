@@ -16,6 +16,9 @@ use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusC
 
 use super::super::behavior_calls::NativePluginBehavior;
 
+#[path = "tests/hot_update_application.rs"]
+mod hot_update_application;
+
 #[test]
 fn native_live_host_reports_missing_editor_package_on_hot_reload() {
     let project_root = std::env::temp_dir().join(format!(

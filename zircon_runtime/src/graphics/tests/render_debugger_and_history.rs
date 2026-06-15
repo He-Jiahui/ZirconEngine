@@ -268,14 +268,14 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
     let viewport_size = UVec2::new(320, 240);
     let pipeline = RenderPipelineHandle::new(1);
     let bindings = vec![FrameHistoryBinding::read_write(
-        FrameHistorySlot::SceneColor,
+        FrameHistorySlot::TaaSceneColor,
     )];
     let base_extract = extract_with_camera_and_mesh(
         ViewportCameraSnapshot::default(),
         Transform::from_translation(Vec3::ZERO),
     );
     let base_key =
-        FrameHistoryValidationKey::from_extract(&base_extract, vec!["history_resolve".to_string()]);
+        FrameHistoryValidationKey::from_extract(&base_extract, vec!["temporal".to_string()]);
     let history = ViewportFrameHistory::new(
         FrameHistoryHandle::new(1),
         viewport_size,
@@ -292,10 +292,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         viewport_size,
         pipeline,
         &bindings,
-        &FrameHistoryValidationKey::from_extract(
-            &base_extract,
-            vec!["history_resolve".to_string()],
-        ),
+        &FrameHistoryValidationKey::from_extract(&base_extract, vec!["temporal".to_string()],),
     ));
 
     let moved_camera = ViewportCameraSnapshot {
@@ -311,7 +308,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         &bindings,
         &FrameHistoryValidationKey::from_extract(
             &moved_camera_extract,
-            vec!["history_resolve".to_string()],
+            vec!["temporal".to_string()],
         ),
     ));
 
@@ -319,16 +316,18 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         ViewportCameraSnapshot::default(),
         Transform::from_translation(Vec3::new(0.0, 0.5, 0.0)),
     );
-    assert!(!history.is_compatible(
-        viewport_size,
-        viewport_size,
-        pipeline,
-        &bindings,
-        &FrameHistoryValidationKey::from_extract(
-            &moved_mesh_extract,
-            vec!["history_resolve".to_string()],
-        ),
-    ));
+    assert!(
+        !history.is_compatible(
+            viewport_size,
+            viewport_size,
+            pipeline,
+            &bindings,
+            &FrameHistoryValidationKey::from_extract(
+                &moved_mesh_extract,
+                vec!["temporal".to_string()],
+            ),
+        )
+    );
 }
 
 #[test]
@@ -336,7 +335,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
     let viewport_size = UVec2::new(320, 240);
     let pipeline = RenderPipelineHandle::new(1);
     let bindings = vec![FrameHistoryBinding::read_write(
-        FrameHistorySlot::SceneColor,
+        FrameHistorySlot::TaaSceneColor,
     )];
     let base_extract = extract_with_camera_and_mesh(
         ViewportCameraSnapshot::default(),
@@ -398,7 +397,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
 }
 
 #[test]
-fn history_resolve_requires_explicit_compile_opt_in() {
+fn temporal_history_requires_explicit_compile_opt_in() {
     let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
@@ -411,12 +410,12 @@ fn history_resolve_requires_explicit_compile_opt_in() {
         .query_stats()
         .unwrap()
         .last_effective_features
-        .contains(&"history_resolve".to_string()));
+        .contains(&"temporal".to_string()));
 
     framework
         .set_quality_profile(
             viewport,
-            RenderQualityProfile::new("temporal-debug").with_history_resolve(true),
+            RenderQualityProfile::new("temporal-debug").with_temporal_history(true),
         )
         .unwrap();
     framework
@@ -426,7 +425,7 @@ fn history_resolve_requires_explicit_compile_opt_in() {
         .query_stats()
         .unwrap()
         .last_effective_features
-        .contains(&"history_resolve".to_string()));
+        .contains(&"temporal".to_string()));
 }
 
 fn empty_extract() -> RenderFrameExtract {

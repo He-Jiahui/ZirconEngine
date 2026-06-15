@@ -125,6 +125,20 @@ fn unified_keyboard_escape_popup_dismiss_reports_focus_route_steps_and_close_eve
 }
 
 #[test]
+fn unified_keyboard_escape_context_menu_dismisses_editor_popup_shell() {
+    let mut surface = component_keyboard_popup_route_surface("ContextMenu");
+
+    assert_escape_closes_component_popup(&mut surface, "ContextMenu");
+}
+
+#[test]
+fn unified_keyboard_escape_dropdown_popup_dismisses_selection_popup_shell() {
+    let mut surface = component_keyboard_popup_route_surface("DropdownPopup");
+
+    assert_escape_closes_component_popup(&mut surface, "DropdownPopup");
+}
+
+#[test]
 fn unified_keyboard_virtual_back_routes_to_popup_dismiss_from_focused_path() {
     let mut surface = keyboard_popup_route_surface();
     surface.focus_node(UiNodeId::new(3)).unwrap();
@@ -281,7 +295,12 @@ fn unified_keyboard_escape_prefers_semantic_cancel_binding_before_popup_dismissa
 }
 
 fn keyboard_popup_route_surface() -> UiSurface {
+    component_keyboard_popup_route_surface("MenuPopup")
+}
+
+fn component_keyboard_popup_route_surface(component: &str) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.input.reply_route.popup_keyboard"));
+    let close_binding = format!("{component}/ClosePopup");
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
             .with_frame(UiFrame::new(0.0, 0.0, 180.0, 110.0)),
@@ -299,13 +318,15 @@ fn keyboard_popup_route_surface() -> UiSurface {
                     ..UiStateFlags::default()
                 })
                 .with_template_metadata(UiTemplateNodeMetadata {
-                    component: "MenuPopup".to_string(),
-                    attributes: [("popup_open".to_string(), toml::Value::Boolean(true))]
-                        .into_iter()
-                        .collect(),
-                    bindings: vec![binding("MenuPopup/ClosePopup", UiEventKind::Click)],
+                    component: component.to_string(),
+                    attributes: [
+                        ("open".to_string(), toml::Value::Boolean(true)),
+                        ("popup_open".to_string(), toml::Value::Boolean(true)),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    bindings: vec![binding(close_binding.as_str(), UiEventKind::Click)],
                     widget: UiWidgetContract {
-                        behavior: UiWidgetBehavior::Popup,
                         open_property: Some("popup_open".to_string()),
                         ..UiWidgetContract::default()
                     },
@@ -336,6 +357,43 @@ fn keyboard_popup_route_surface() -> UiSurface {
     surface
 }
 
+fn assert_escape_closes_component_popup(surface: &mut UiSurface, component: &str) {
+    assert_eq!(
+        surface
+            .input
+            .popup_stack
+            .iter()
+            .map(|popup| popup.popup_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root/popup"]
+    );
+    assert_eq!(popup_component(surface), Some(component));
+    surface.focus_node(UiNodeId::new(3)).unwrap();
+
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            keyboard_popup_event("Escape", 27),
+        )
+        .unwrap();
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.handler, Some(UiNodeId::new(3)));
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("keyboard.popup_dismiss")
+    );
+    assert_eq!(result.component_events.len(), 1);
+    assert_eq!(result.component_events[0].target, UiNodeId::new(2));
+    assert_eq!(
+        result.component_events[0].event,
+        UiComponentEvent::ClosePopup
+    );
+    assert!(surface.input.popup_stack.is_empty());
+    assert_eq!(popup_open(surface), Some(false));
+}
+
 fn semantic_popup_cancel_route_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.input.reply_route.popup_keyboard_semantic",
@@ -359,7 +417,6 @@ fn semantic_popup_cancel_route_surface() -> UiSurface {
                         .collect(),
                     bindings: vec![binding("Dropdown/KeyboardAction", UiEventKind::Click)],
                     widget: UiWidgetContract {
-                        behavior: UiWidgetBehavior::Popup,
                         open_property: Some("popup_open".to_string()),
                         ..UiWidgetContract::default()
                     },
@@ -404,4 +461,12 @@ fn popup_open(surface: &UiSurface) -> Option<bool> {
         .and_then(|node| node.template_metadata.as_ref())
         .and_then(|metadata| metadata.attributes.get("popup_open"))
         .and_then(toml::Value::as_bool)
+}
+
+fn popup_component(surface: &UiSurface) -> Option<&str> {
+    surface
+        .tree
+        .node(UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .map(|metadata| metadata.component.as_str())
 }

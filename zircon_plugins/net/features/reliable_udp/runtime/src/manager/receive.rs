@@ -77,4 +77,40 @@ impl NetReliableUdpRuntimeManager {
             }
         }
     }
+
+    pub(in crate::manager) fn receive_ordered_packet_impl(
+        &self,
+        packet: ReliableDatagramPacket,
+    ) -> Vec<Vec<u8>> {
+        let report = self.receive_packet(packet);
+        let Some(payload) = report.payload else {
+            return Vec::new();
+        };
+
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        state.ordered_payloads.insert(report.sequence, payload);
+        state.drain_ordered_payloads()
+    }
+
+    pub(in crate::manager) fn pending_ordered_payload_count_impl(&self) -> usize {
+        self.state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned")
+            .ordered_payloads
+            .len()
+    }
+}
+
+impl super::state::NetReliableUdpRuntimeState {
+    fn drain_ordered_payloads(&mut self) -> Vec<Vec<u8>> {
+        let mut delivered = Vec::new();
+        while let Some(payload) = self.ordered_payloads.remove(&self.next_ordered_sequence) {
+            self.next_ordered_sequence += 1;
+            delivered.push(payload);
+        }
+        delivered
+    }
 }

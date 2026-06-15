@@ -1,0 +1,10 @@
+[bindings]
+"editor.command_palette" = "Ctrl+Shift+P"
+"workbench.project.open" = "Ctrl+O"
+"workbench.project.save" = "Ctrl+S"
+"workbench.history.undo" = "Ctrl+Z"
+"workbench.history.redo" = "Ctrl+Shift+Z"
+"workbench.selection.delete_selected" = "Delete"
+"workbench.play_mode.enter" = "F5"
+"workbench.play_mode.exit" = "Shift+F5"
+"workbench.layout.reset" = "Ctrl+Alt+0"

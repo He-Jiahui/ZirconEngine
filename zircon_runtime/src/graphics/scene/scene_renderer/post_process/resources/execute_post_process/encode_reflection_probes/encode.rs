@@ -18,8 +18,7 @@ pub(in super::super) fn encode_reflection_probes(
     }
 
     let camera = &extract.view.camera;
-    let (view, projection) = view_projection(camera, viewport_size);
-    let view_proj = projection * view;
+    let view_proj = view_projection(camera, viewport_size);
     let camera_position = camera.transform.translation;
     let mut count = 0;
 

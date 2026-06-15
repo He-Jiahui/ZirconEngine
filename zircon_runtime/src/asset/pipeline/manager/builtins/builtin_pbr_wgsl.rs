@@ -11,6 +11,7 @@ pub(in crate::asset::pipeline::manager) fn builtin_pbr_wgsl() -> &'static str {
         r#"
 struct SceneUniform {
     view_proj: mat4x4<f32>,
+    view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
 };
@@ -149,10 +150,12 @@ mod tests {
         let shader = builtin_pbr_wgsl();
 
         let view_proj = shader.find("view_proj: mat4x4<f32>").unwrap();
+        let view_proj_unjittered = shader.find("view_proj_unjittered: mat4x4<f32>").unwrap();
         let inverse_view_proj = shader.find("inverse_view_proj: mat4x4<f32>").unwrap();
         let ambient_color = shader.find("ambient_color: vec4<f32>").unwrap();
 
-        assert!(view_proj < inverse_view_proj);
+        assert!(view_proj < view_proj_unjittered);
+        assert!(view_proj_unjittered < inverse_view_proj);
         assert!(inverse_view_proj < ambient_color);
         assert!(!shader.contains("light_dir: vec4<f32>"));
         assert!(!shader.contains("light_color: vec4<f32>"));

@@ -9,6 +9,7 @@ mod data_display_editor;
 mod data_display_subcomponents;
 mod data_display_table;
 mod feedback;
+mod feedback_editor_overlays;
 mod form_controls;
 mod inputs;
 mod lab_subcomponents;
@@ -62,6 +63,7 @@ fn material_editor_foundation_descriptors() -> Vec<UiComponentDescriptor> {
     descriptors.extend(data_display_subcomponents::descriptors());
     descriptors.extend(data_display_table::descriptors());
     descriptors.extend(feedback::descriptors());
+    descriptors.extend(feedback_editor_overlays::descriptors());
     descriptors.extend(surface_subcomponents::descriptors());
     descriptors.extend(surfaces::descriptors());
     descriptors.extend(navigation::descriptors());

@@ -154,6 +154,8 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .slot(UiSlotSchema::new("fields").multiple(true))
         .event(UiComponentEventKind::ToggleExpanded)
         .requires_host_capability(UiHostCapability::Editor),
+        property_row(),
+        vector_row(),
         editor_panel_component(
             "PreviewPane",
             "Preview Pane",
@@ -188,6 +190,94 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         ))
         .slot(UiSlotSchema::new("content").multiple(true)),
     ]
+}
+
+fn property_row() -> UiComponentDescriptor {
+    editor_panel_component(
+        "PropertyRow",
+        "Property Row",
+        UiComponentCategory::Container,
+        "property-row",
+    )
+    .with_prop(required_string_prop("property_path"))
+    .with_prop(text_prop())
+    .with_prop(default_string_prop("label", ""))
+    .with_prop(default_string_prop("value_text", ""))
+    .with_prop(default_string_prop("value_type", ""))
+    .with_prop(enum_prop_with_options(
+        "editor_kind",
+        "auto",
+        [
+            "auto",
+            "text",
+            "number",
+            "boolean",
+            "enum",
+            "reference",
+            "vector",
+            "custom",
+        ]
+        .into_iter()
+        .map(enum_option_descriptor),
+    ))
+    .with_prop(any_prop("value"))
+    .with_prop(int_prop("depth", 0))
+    .with_prop(float_prop("name_column_width", 150.0))
+    .with_prop(bool_prop("read_only", false))
+    .with_prop(bool_prop("inherited", false))
+    .with_prop(bool_prop("overridden", false))
+    .with_prop(bool_prop("modified", false))
+    .slot(UiSlotSchema::new("label"))
+    .slot(UiSlotSchema::new("editor").required(true))
+    .slot(UiSlotSchema::new("actions").multiple(true))
+    .slot(UiSlotSchema::new("context_menu"))
+    .events([
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+        UiComponentEventKind::OpenPopupAt,
+    ])
+}
+
+fn vector_row() -> UiComponentDescriptor {
+    editor_panel_component(
+        "VectorRow",
+        "Vector Row",
+        UiComponentCategory::Container,
+        "vector-row",
+    )
+    .with_prop(required_string_prop("property_path"))
+    .with_prop(text_prop())
+    .with_prop(default_string_prop("label", ""))
+    .with_prop(enum_prop_with_options(
+        "axis_value_field",
+        "components",
+        ["components", "array", "object"]
+            .into_iter()
+            .map(enum_option_descriptor),
+    ))
+    .with_prop(int_prop("dimension", 3))
+    .with_prop(array_prop("axes"))
+    .with_prop(float_prop("x", 0.0))
+    .with_prop(float_prop("y", 0.0))
+    .with_prop(float_prop("z", 0.0))
+    .with_prop(float_prop("w", 0.0))
+    .with_prop(optional_float_prop("min"))
+    .with_prop(optional_float_prop("max"))
+    .with_prop(float_prop("step", 0.01))
+    .with_prop(bool_prop("read_only", false))
+    .with_prop(bool_prop("overridden", false))
+    .slot(UiSlotSchema::new("label"))
+    .slot(UiSlotSchema::new("x"))
+    .slot(UiSlotSchema::new("y"))
+    .slot(UiSlotSchema::new("z"))
+    .slot(UiSlotSchema::new("w"))
+    .slot(UiSlotSchema::new("actions").multiple(true))
+    .events([
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+    ])
 }
 
 fn override_float_prop_defaults(

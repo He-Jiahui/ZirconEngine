@@ -144,6 +144,15 @@ impl RenderGraphExecutionResources {
             .and_then(|backing| self.owned_textures.get(backing))
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn owned_texture_desc(
+        &self,
+        name: &str,
+    ) -> Option<&TextureDesc> {
+        self.owned_texture_backing(name)
+            .and_then(|backing| self.owned_texture_descs.get(backing))
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture_mip_view(
         &self,
         name: &str,
@@ -667,6 +676,7 @@ fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat {
         TextureFormat::R16Float => wgpu::TextureFormat::R16Float,
         TextureFormat::R32Float => wgpu::TextureFormat::R32Float,
         TextureFormat::Rg16Float => wgpu::TextureFormat::Rg16Float,
+        TextureFormat::Rg11b10Ufloat => wgpu::TextureFormat::Rg11b10Ufloat,
         TextureFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
         TextureFormat::Rgba8UnormSrgb => wgpu::TextureFormat::Rgba8UnormSrgb,
         TextureFormat::Bgra8Unorm => wgpu::TextureFormat::Bgra8Unorm,
@@ -702,10 +712,7 @@ fn wgpu_texture_usages(format: TextureFormat, usage: TextureUsage) -> wgpu::Text
 fn supports_storage_binding_usage(format: TextureFormat) -> bool {
     matches!(
         format,
-        TextureFormat::R8Unorm
-            | TextureFormat::R16Float
-            | TextureFormat::R32Float
-            | TextureFormat::Rg16Float
+        TextureFormat::R32Float
             | TextureFormat::Rgba8Unorm
             | TextureFormat::Rgba16Float
             | TextureFormat::Rgba32Float
@@ -746,13 +753,56 @@ fn wgpu_buffer_usages(usage: BufferUsage) -> wgpu::BufferUsages {
 
 #[cfg(test)]
 mod tests {
-    use super::RenderGraphExecutionResources;
+    use super::{wgpu_texture_usages, RenderGraphExecutionResources};
     use crate::core::framework::render::PostProcessGraphResourceNames;
     use crate::graphics::backend::RenderBackend;
     use crate::render_graph::{
         PassFlags, QueueLane, RenderGraphBuilder, RenderGraphResource, RenderGraphResourceKind,
     };
     use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
+
+    #[test]
+    fn non_storage_texture_formats_do_not_request_storage_binding() {
+        for format in [
+            TextureFormat::R8Unorm,
+            TextureFormat::R16Float,
+            TextureFormat::Rg16Float,
+            TextureFormat::Rg11b10Ufloat,
+        ] {
+            let usages = storage_requested_usages_for(format);
+
+            assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
+            assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+            assert!(!usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
+            assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
+            assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
+        }
+    }
+
+    #[test]
+    fn storage_texture_formats_request_storage_binding() {
+        for format in [
+            TextureFormat::R32Float,
+            TextureFormat::Rgba8Unorm,
+            TextureFormat::Rgba16Float,
+            TextureFormat::Rgba32Float,
+        ] {
+            let usages = storage_requested_usages_for(format);
+
+            assert!(usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
+        }
+    }
+
+    fn storage_requested_usages_for(format: TextureFormat) -> wgpu::TextureUsages {
+        wgpu_texture_usages(
+            format,
+            TextureUsage::RENDER_ATTACHMENT
+                | TextureUsage::SAMPLED
+                | TextureUsage::STORAGE
+                | TextureUsage::COPY_SRC
+                | TextureUsage::COPY_DST,
+        )
+    }
 
     #[test]
     fn resource_registry_reports_missing_named_resources() {

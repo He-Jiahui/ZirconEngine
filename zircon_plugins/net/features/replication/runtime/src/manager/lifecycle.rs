@@ -22,6 +22,7 @@ impl NetReplicationRuntimeManager {
             .filter_map(|key| {
                 state.sequences.remove(&key);
                 state.remove_replication_times(object, &key.1);
+                state.remove_interpolation_samples(object, &key.1);
                 state.snapshots.remove(&key)
             })
             .collect()
@@ -29,7 +30,11 @@ impl NetReplicationRuntimeManager {
 }
 
 impl super::state::NetReplicationRuntimeState {
-    fn remove_replication_times(&mut self, object: NetObjectId, component_type: &str) {
+    pub(in crate::manager) fn remove_replication_times(
+        &mut self,
+        object: NetObjectId,
+        component_type: &str,
+    ) {
         self.last_replication_ms
             .retain(|(_, replicated_object, replicated_component), _| {
                 *replicated_object != object || replicated_component != component_type

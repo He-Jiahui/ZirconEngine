@@ -23,12 +23,13 @@ impl MeshDraw {
         .with_cache_identity(self.source_entity(), self.source_draw_ordinal())
         .with_static_state(self.static_state())
         .with_casts_shadow(self.casts_shadow())
+        .with_taa_reactive_mask_strength(self.taa_reactive_mask_strength)
         .with_visibility(
             self.primitive_relevance,
             self.main_view_visible,
             self.shadow_view_visible,
         )
-        .with_previous_motion_vector_transform(self.has_previous_motion_vector_transform)
+        .with_previous_velocity_transform(self.has_previous_velocity_transform)
         .with_material(MeshBindHandle::new(
             ref_id(&self.material_bind_group),
             self.material_bind_group.clone(),
@@ -48,7 +49,15 @@ impl MeshDraw {
         };
 
         if let Some((first_instance_index, instance_count)) = self.gpu_scene_instance_span {
-            batch.with_gpu_scene_instance_span(first_instance_index, instance_count)
+            let batch = batch.with_gpu_scene_instance_span(first_instance_index, instance_count);
+            if let Some(previous_source) = &self.previous_skinned_gpu_source {
+                batch.with_previous_velocity_geometry(MeshGeometryHandle::new(
+                    arc_id(previous_source),
+                    previous_source.clone(),
+                ))
+            } else {
+                batch
+            }
         } else {
             batch
         }

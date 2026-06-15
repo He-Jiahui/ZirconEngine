@@ -11,6 +11,7 @@ impl ViewportRecord {
             pipeline: None,
             quality_profile: None,
             generation: 0,
+            temporal_frame_index: 0,
             compiled_pipeline: None,
             hybrid_gi_runtime: None,
             virtual_geometry_runtime: None,
@@ -18,7 +19,7 @@ impl ViewportRecord {
             history: None,
             visibility_static_index: None,
             motion_vector_camera: None,
-            motion_vector_object_history: None,
+            particle_previous_sprites: Vec::new(),
             surface: None,
         }
     }

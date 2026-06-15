@@ -23,7 +23,9 @@ pub(crate) enum MeshPassPipelineKind {
     Base,
     ShadowDepth,
     ShadowDepthAlphaMask,
-    MotionVector,
+    Velocity,
+    TaaReactiveMask,
+    TaaReactiveMaterialMask,
 }
 
 #[derive(Clone)]
@@ -210,6 +212,7 @@ pub(crate) struct MeshDrawCommand {
     pub(crate) standard_material: Option<MeshBindHandle>,
     pub(crate) gpu_scene_bind_group: Option<MeshBindHandle>,
     pub(crate) geometry: MeshGeometryHandle,
+    pub(crate) previous_velocity_geometry: Option<MeshGeometryHandle>,
     pub(crate) draw_args: MeshDrawArgs,
 }
 
@@ -239,6 +242,7 @@ impl MeshDrawCommand {
             standard_material: None,
             gpu_scene_bind_group: None,
             geometry,
+            previous_velocity_geometry: None,
             draw_args,
         }
     }
@@ -282,13 +286,78 @@ impl MeshDrawCommand {
         self
     }
 
+    pub(crate) fn with_previous_velocity_geometry(mut self, handle: MeshGeometryHandle) -> Self {
+        self.previous_velocity_geometry = Some(handle);
+        self
+    }
+
     pub(crate) fn bind_geometry_buffers<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
         let mesh = self.geometry.mesh();
         pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+        if self.pipeline_kind == MeshPassPipelineKind::Velocity {
+            let previous_mesh = self
+                .previous_velocity_geometry
+                .as_ref()
+                .unwrap_or(&self.geometry)
+                .mesh();
+            pass.set_vertex_buffer(1, previous_mesh.vertex_buffer.slice(..));
+        }
         pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+    }
+
+    pub(crate) fn geometry_bind_key(&self) -> (u64, u64) {
+        let previous_velocity_geometry_id = if self.pipeline_kind == MeshPassPipelineKind::Velocity
+        {
+            self.previous_velocity_geometry
+                .as_ref()
+                .map(MeshGeometryHandle::id)
+                .unwrap_or_else(|| self.geometry.id())
+        } else {
+            0
+        };
+        (self.geometry.id(), previous_velocity_geometry_id)
     }
 
     pub(crate) fn record_indexed_draw<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
         self.draw_args.record_indexed_draw(pass);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::RenderPhase;
+    use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+        DrawInstanceSource, MeshDrawArgs, MeshGeometryHandle, MeshPassPipelineKind,
+        MeshPipelineVariantId,
+    };
+
+    use super::MeshDrawCommand;
+
+    #[test]
+    fn velocity_geometry_bind_key_includes_previous_geometry_slot() {
+        let velocity = command(MeshPassPipelineKind::Velocity)
+            .with_previous_velocity_geometry(MeshGeometryHandle::test(20));
+        let base = command(MeshPassPipelineKind::Base)
+            .with_previous_velocity_geometry(MeshGeometryHandle::test(20));
+
+        assert_eq!(velocity.geometry_bind_key(), (10, 20));
+        assert_eq!(base.geometry_bind_key(), (10, 0));
+    }
+
+    fn command(kind: MeshPassPipelineKind) -> MeshDrawCommand {
+        MeshDrawCommand::new(
+            RenderPhase::PostProcess,
+            kind,
+            default_pipeline_key(),
+            MeshPipelineVariantId::new(1),
+            0,
+            DrawInstanceSource::GpuSceneInstance {
+                first_instance_index: 0,
+                instance_count: 1,
+            },
+            MeshGeometryHandle::test(10),
+            MeshDrawArgs::direct_indexed(0, 3),
+        )
     }
 }

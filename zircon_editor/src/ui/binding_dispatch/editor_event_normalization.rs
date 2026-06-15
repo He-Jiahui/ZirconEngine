@@ -8,6 +8,7 @@ use crate::ui::binding_dispatch::{
     dispatch_draft_binding, dispatch_inspector_binding, dispatch_selection_binding,
     dispatch_viewport_binding, AnimationHostEvent, AssetHostEvent, DraftHostEvent,
 };
+use crate::ui::host::EditorCommandRegistry;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 pub(crate) fn normalize_editor_event_binding(
@@ -18,6 +19,11 @@ pub(crate) fn normalize_editor_event_binding(
             let EditorHostEvent::Menu(action) =
                 dispatch_editor_host_binding(binding).map_err(|error| error.to_string())?;
             Ok(EditorEvent::WorkbenchMenu(action))
+        }
+        EditorUiBindingPayload::EditorCommand { command_id } => {
+            EditorCommandRegistry::default_workbench()
+                .event_for_command(command_id)
+                .map_err(|error| error.to_string())
         }
         EditorUiBindingPayload::DockCommand(_) => Ok(EditorEvent::Layout(
             dispatch_docking_binding(binding).map_err(|error| error.to_string())?,

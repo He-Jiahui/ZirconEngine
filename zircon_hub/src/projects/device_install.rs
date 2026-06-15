@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::error::HubError;
 use crate::state::{DeliveryMessageId, HubMessage, HubMessageId};
 
+use super::install_receipt::write_install_receipt;
 use super::local_paths::{cleanup_dir_on_error, create_owned_dir, reject_inside_root};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,7 +16,9 @@ pub struct DeviceInstallRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeviceInstallReport {
     pub install_dir: PathBuf,
+    pub receipt_path: PathBuf,
     pub files_copied: usize,
+    pub total_bytes: u64,
 }
 
 impl DeviceInstallRequest {
@@ -59,14 +62,23 @@ pub fn install_package_to_device(
             [install_dir.to_string_lossy().into_owned()],
         )
     })?;
-    let result = copy_directory_tree(&request.package_dir, &install_dir).map(|files_copied| {
-        DeviceInstallReport {
-            install_dir: install_dir.clone(),
-            files_copied,
-        }
-    });
+    let result = fill_install_dir(&request.package_dir, &install_dir);
 
     cleanup_dir_on_error(&install_dir, result)
+}
+
+fn fill_install_dir(
+    package_dir: &Path,
+    install_dir: &Path,
+) -> Result<DeviceInstallReport, HubError> {
+    let files_copied = copy_directory_tree(package_dir, install_dir)?;
+    let (receipt_path, receipt) = write_install_receipt(install_dir)?;
+    Ok(DeviceInstallReport {
+        install_dir: install_dir.to_path_buf(),
+        receipt_path,
+        files_copied,
+        total_bytes: receipt.total_bytes,
+    })
 }
 
 fn reject_device_inside_package(package_dir: &Path, device_root: &Path) -> Result<(), HubError> {
@@ -135,6 +147,12 @@ mod tests {
             .join("zircon-project.toml")
             .is_file());
         assert_eq!(report.files_copied, 2);
+        assert!(report.receipt_path.is_file());
+        assert!(report.total_bytes > 0);
+        let receipt = fs::read_to_string(&report.receipt_path).unwrap();
+        assert!(receipt.contains("\"content_download_manifest\""));
+        assert!(receipt.contains("\"sha256\""));
+        assert!(receipt.contains("\"project/zircon-project.toml\""));
 
         fs::remove_dir_all(package).unwrap();
         fs::remove_dir_all(device).unwrap();

@@ -23,6 +23,7 @@ pub(super) fn build_runtime_frame(
 ) -> ViewportRenderFrame {
     let extract = apply_effective_advanced_extracts(extract, context);
     let extract = apply_effective_post_process_graph(extract, context);
+    let extract = apply_effective_particle_previous_state(extract, context);
     let extract = apply_submission_target_size(extract, context);
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let extract = augment_virtual_geometry_debug_overlays(
@@ -35,11 +36,16 @@ pub(super) fn build_runtime_frame(
         .with_ui(ui)
         .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
-        .with_previous_motion_vector_object_history(
-            context.previous_motion_vector_object_history().cloned(),
-        )
         .with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
+}
+
+fn apply_effective_particle_previous_state(
+    mut extract: RenderFrameExtract,
+    context: &FrameSubmissionContext,
+) -> RenderFrameExtract {
+    extract.particles.previous_sprites = context.particle_previous_sprites().to_vec();
+    extract
 }
 
 fn apply_submission_target_size(
@@ -55,9 +61,12 @@ fn apply_effective_post_process_graph(
     context: &FrameSubmissionContext,
 ) -> RenderFrameExtract {
     extract.post_process.bloom = context.post_process_bloom();
+    extract.post_process.exposure = context.post_process_exposure();
     extract.post_process.color_grading = context.post_process_color_grading();
     extract.post_process.effect_stack = context.post_process_effect_stack();
-    extract.post_process.volume_stack = Default::default();
+    extract.post_process.volumes.clear();
+    extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
+    extract.view.camera.temporal_jitter = context.temporal_jitter();
     extract.post_process.stack = context.post_process_stack().clone();
     extract.post_process.graph = context.post_process_graph().clone();
     extract
@@ -332,20 +341,18 @@ fn bvh_connector_color(node: &RenderVirtualGeometryBvhVisualizationNode) -> Vec4
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        AdvancedProfileRuntimePlan, AdvancedProviderAvailability, FallbackSkyboxKind,
-        PreviewEnvironmentExtract, RenderCameraTargetKind, RenderCapabilitySummary,
-        RenderMeshSnapshot, RenderOverlayExtract, RenderPipelineHandle,
-        RenderPluginRendererOutputs, RenderProfileBundle,
-        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
-        SceneViewportRenderPacket, ViewportCameraSnapshot,
+        AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AntiAliasFallbackReport,
+        AntiAliasMode, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTargetKind,
+        RenderCapabilitySummary, RenderMeshSnapshot, RenderOverlayExtract,
+        RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, RenderPluginRendererOutputs,
+        RenderProfileBundle, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderVirtualGeometryReadbackOutputs, SceneViewportRenderPacket, TemporalJitterSample,
+        ViewportCameraSnapshot,
     };
-    use crate::core::framework::scene::Mobility;
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL};
-    use crate::graphics::{
-        CompiledRenderPipeline, RenderPassStage, ViewportMotionVectorObjectHistory,
-    };
+    use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
     use crate::render_graph::RenderGraphBuilder;
     use crate::VisibilityContext;
 
@@ -362,12 +369,16 @@ mod tests {
         let output_texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
             "tests/runtime-frame/output-target",
         ));
-        let previous_object_transform = Transform::from_translation(Vec3::new(4.0, 5.0, 6.0));
-        let previous_object_history = ViewportMotionVectorObjectHistory::from_meshes(&[test_mesh(
-            42,
-            Mobility::Dynamic,
-            previous_object_transform,
-        )]);
+        let particle_previous_sprites = vec![RenderParticlePreviousSpriteSnapshot {
+            entity: 88,
+            stable_sprite_key: 5,
+            position: Vec3::new(-1.0, 0.0, -2.0),
+            size: 0.5,
+            aspect_ratio: 1.0,
+            billboard_offset: crate::core::math::Vec2::ZERO,
+            rotation: 0.0,
+            billboard_basis: None,
+        }];
         let context = FrameSubmissionContext::new(
             UVec2::new(640, 480),
             UVec2::new(640, 480),
@@ -378,7 +389,6 @@ mod tests {
             RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             Some(previous_camera.clone()),
-            Some(previous_object_history.clone()),
             Default::default(),
             None,
             crate::graphics::ViewportRenderOutputTarget::Texture {
@@ -392,6 +402,8 @@ mod tests {
             Default::default(),
             Default::default(),
             Default::default(),
+            AntiAliasFallbackReport::exact(AntiAliasMode::Taa),
+            1,
             advanced_runtime_plan_with_virtual_geometry(),
             Default::default(),
             Default::default(),
@@ -408,6 +420,10 @@ mod tests {
             Vec::new(),
             Vec::new(),
             Vec::new(),
+            particle_previous_sprites.clone(),
+            0,
+            0,
+            0,
             None,
             Default::default(),
             Vec::new(),
@@ -450,14 +466,6 @@ mod tests {
             frame.previous_motion_vector_camera(),
             Some(&previous_camera)
         );
-        let object_history = frame
-            .previous_motion_vector_object_history()
-            .expect("previous object-motion history should reach renderer frame");
-        assert_eq!(object_history.len(), 1);
-        assert_eq!(
-            object_history.transform(42),
-            Some(&previous_object_transform)
-        );
         assert_eq!(
             frame
                 .prepared_runtime_sidebands()
@@ -471,6 +479,15 @@ mod tests {
                 .prepared_runtime_sidebands()
                 .virtual_geometry_evictable_page_ids(),
             &[9]
+        );
+        assert_eq!(frame.extract.view.anti_alias.mode, AntiAliasMode::Taa);
+        assert_eq!(
+            frame.extract.particles.previous_sprites,
+            particle_previous_sprites
+        );
+        assert_ne!(
+            frame.extract.view.camera.temporal_jitter,
+            TemporalJitterSample::default()
         );
     }
 
@@ -531,7 +548,7 @@ mod tests {
         }
     }
 
-    fn test_mesh(node_id: u64, mobility: Mobility, transform: Transform) -> RenderMeshSnapshot {
+    fn test_mesh(node_id: u64, transform: Transform) -> RenderMeshSnapshot {
         RenderMeshSnapshot {
             node_id,
             stable_instance_key: node_id << 16,
@@ -543,7 +560,7 @@ mod tests {
             mesh_lod: None,
             morph_weights: Vec::new(),
             tint: Vec4::ONE,
-            mobility,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
             static_state: Default::default(),
             render_layer_mask: 1,
         }

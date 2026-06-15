@@ -16,6 +16,7 @@ pub(crate) struct UiHostEventEffects {
     pub refresh_visible_asset_previews: bool,
     pub import_model_requested: bool,
     pub reset_active_layout_preset: bool,
+    pub open_command_palette_requested: bool,
 }
 
 impl UiHostEventEffects {
@@ -105,6 +106,10 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             }
             EditorEventEffect::ImportModelRequested => {
                 target.import_model_requested = true;
+            }
+            EditorEventEffect::CommandPaletteOpenRequested => {
+                target.open_command_palette_requested = true;
+                target.request_presentation();
             }
             EditorEventEffect::ReflectionChanged => {}
         }

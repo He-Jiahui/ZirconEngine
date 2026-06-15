@@ -33,7 +33,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
         feature_flags: [
             u32::from(features.ssao_enabled),
             u32::from(features.clustered_lighting_enabled),
-            u32::from(features.history_resolve_enabled && history_available),
+            u32::from(features.temporal_history_enabled && history_available),
             reflection_probe_count,
         ],
         lighting_flags: [u32::from(features.contact_shadow_enabled), 0, 0, 0],
@@ -259,13 +259,13 @@ fn camera_axis_row(axis: Vec3, fallback: Vec3) -> [f32; 4] {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderChromaticAberrationSettings, RenderDepthOfFieldSettings, RenderDitherSettings,
-        RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderMotionBlurSettings,
-        RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
-        RenderTonemapOperator, RenderTonemapSettings, RenderVignetteSettings,
-        RenderWorldSnapshotHandle,
+        ProjectionMode, RenderChromaticAberrationSettings, RenderDepthOfFieldSettings,
+        RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract,
+        RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
+        RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
+        RenderVignetteSettings, RenderWorldSnapshotHandle, TemporalJitterSample,
     };
-    use crate::core::math::{Transform, UVec2, Vec3};
+    use crate::core::math::{Transform, UVec2, Vec2, Vec3};
     use crate::scene::World;
 
     use super::*;
@@ -467,6 +467,47 @@ mod tests {
         assert_near(params.effect_view_z[1], 0.0);
         assert_near(params.effect_view_z[2], 0.0);
         assert_near(params.effect_view_z[3], 0.0);
+    }
+
+    #[test]
+    fn post_process_projection_params_ignore_temporal_jitter() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            World::new().to_render_snapshot(),
+        );
+        extract.view.camera.fov_y_radians = std::f32::consts::FRAC_PI_2;
+        extract.view.camera.projection_mode = ProjectionMode::Perspective;
+
+        let unjittered = build_post_process_params(
+            UVec2::new(128, 96),
+            UVec2::new(8, 6),
+            &extract,
+            SceneRuntimeFeatureFlags::default(),
+            false,
+            0,
+            0,
+            0,
+        );
+
+        extract.view.camera.temporal_jitter = TemporalJitterSample {
+            offset_pixels: Vec2::new(0.5, -0.25),
+            sequence_index: 7,
+        };
+        let jittered = build_post_process_params(
+            UVec2::new(128, 96),
+            UVec2::new(8, 6),
+            &extract,
+            SceneRuntimeFeatureFlags::default(),
+            false,
+            0,
+            0,
+            0,
+        );
+
+        assert_eq!(jittered.effect_projection, unjittered.effect_projection);
+        assert_eq!(jittered.effect_view_x, unjittered.effect_view_x);
+        assert_eq!(jittered.effect_view_y, unjittered.effect_view_y);
+        assert_eq!(jittered.effect_view_z, unjittered.effect_view_z);
     }
 
     #[test]

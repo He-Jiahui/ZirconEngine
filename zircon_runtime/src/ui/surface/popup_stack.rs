@@ -43,7 +43,7 @@ impl UiSurface {
         let Some(metadata) = node.template_metadata.as_ref() else {
             return;
         };
-        if metadata.widget.resolved_behavior(&metadata.component) != UiWidgetBehavior::Popup {
+        if !is_popup_stack_metadata(metadata) {
             return;
         }
         let popup_id = popup_stack_id_for_node(node);
@@ -60,13 +60,21 @@ fn tree_popup_stack_record(
     node: &UiTreeNode,
 ) -> Option<(UiNodeId, (String, bool))> {
     let metadata = node.template_metadata.as_ref()?;
-    (metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup).then_some((
+    is_popup_stack_metadata(metadata).then_some((
         node_id,
         (
             popup_stack_id_for_node(node),
             tree_node_popup_open(metadata),
         ),
     ))
+}
+
+fn is_popup_stack_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
+    metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup
+        || matches!(
+            metadata.component.as_str(),
+            "Dialog" | "ConfirmDialog" | "Modal" | "Popover"
+        )
 }
 
 fn tree_node_popup_open(metadata: &UiTemplateNodeMetadata) -> bool {

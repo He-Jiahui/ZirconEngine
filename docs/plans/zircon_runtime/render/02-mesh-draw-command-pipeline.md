@@ -416,6 +416,15 @@ pub fn packed_sort_key_u64(
 
 `render_product_*` 场景:沿用既有产物对拍集(`cargo test -p zircon_runtime render_product --locked`),M1/M2/M3 每个测试阶段全量回归,断言像素产物不因命令化/缓存/去重改变;重复材质场景额外断言 `state_change_count` 显著小于 `draw_call_count`(阈值写死为 ≤ 命令数的 1/2,场景构造保证)。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | MD-M1 MeshDrawCommand and per-pass processors | 部分完成: 命令面已被 GPUScene/visibility/shadow/TAA 消费,完整 processor 收口仍待补齐 | `MeshDrawCommandList`、phase command buffers、source entity、view visibility filtering、TAA reactive mask processor 与 shadow atlas slot filtering 已在后续计划中使用;但旧 per-pass 判断仍有少量历史路径待清。 | 计划 03/04/05/06 状态表记录 mesh command replay、visibility view filtering、shadow atlas source guard、reactive mask command count 相关测试/检查。 | 回到计划 02 收口 per-pass processor 所有判断源,删除残余 scattered phase logic。 |
+| 2026-06-15 | MD-M2 static command cache and invalidation | 部分完成: 静态索引与 GPUScene diff 已接入,静态命令缓存未形成独立 owner | 计划 03 的 GPUScene direct-write diff upload 和计划 04 的 static index 降低了静态场景重复工作;但 cached mesh draw command 仍未独立成跨帧缓存资产。 | 计划 03 GS-M3 与计划 04 VC-M4 状态表记录静态第二帧 0 上传、10,001 静态实例第二帧 `full_rebuild_count == 0` 和 `visibility` sweep 通过。 | 实施 command cache key、失效原因诊断和静态 draw command 跨帧复用。 |
+| 2026-06-15 | MD-M3 state-deduplicated replay | 部分完成: replay 路径已有 indirect/multi-draw 基础,state bucket 仍未完整定稿 | `MeshDrawCommandReplayer` 已支持 phase-local indirect args 和 `multi_draw_indexed_indirect`;shadow/velocity/base/depth 等 pass 可 replay eligible batches。 | 计划 03 GS-M4 状态表记录 WGPU fixed-count multi-draw replay、`cargo check` 与 source scans;focused lib-test 仍因 shared lib-test 编译超时未完成。 | 补 PSO/material state bucket 排序、set_bind_group 去重与产物对拍。 |
+| 2026-06-15 | MD-M4 GPUScene handoff | 已完成(基础 handoff),更高阶 GPU count 提交待计划 19 | Mesh draw ABI 已从 model uniform 路径硬切到 GPUScene instance index;command-local skinned palette bind group 与 visible-instance remap 已被计划 03/04 使用。 | 计划 03 GS-M2/GS-M4 与计划 04 VC-M3 状态表记录 group3 GPUScene ABI、indirect args buffer、compact replay 和 visible remap。 | 计划 19 再升级 `multi_draw_indirect_count` 与 GPU-decided draw count。 |
+
 ### 参考实现精读笔记
 
 `dev/UnrealEngine/Engine/Source/Runtime/Renderer/Public/MeshPassProcessor.h`:

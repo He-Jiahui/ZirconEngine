@@ -1,10 +1,14 @@
 use std::collections::BTreeMap;
 
+use super::build_export_wizard_panel::{
+    build_export_pane_supports_wizard_projection, build_export_wizard_panel_nodes,
+};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, BuildExportTargetViewData, PaneContentSize, PaneData,
 };
 use crate::ui::retained_host as host_contract;
+
 const BUILD_EXPORT_ROW_HEIGHT: f32 = 118.0;
 const BUILD_EXPORT_ROW_GAP: f32 = 8.0;
 const BUILD_EXPORT_ROW_PADDING: f32 = 8.0;
@@ -18,8 +22,18 @@ pub(crate) fn to_host_contract_build_export_pane_from_host_pane(
     content_size: PaneContentSize,
 ) -> host_contract::BuildExportPaneData {
     let native = &data.native_body.build_export;
-    let mut nodes = build_export_template_projection(data, content_size).unwrap_or_default();
-    nodes.extend(build_export_target_row_nodes(native, &nodes, content_size));
+    let nodes = if build_export_pane_supports_wizard_projection(data) {
+        build_export_wizard_panel_nodes(native, content_size).unwrap_or_else(|| {
+            let mut nodes =
+                build_export_template_projection(data, content_size).unwrap_or_default();
+            nodes.extend(build_export_target_row_nodes(native, &nodes, content_size));
+            nodes
+        })
+    } else {
+        let mut nodes = build_export_template_projection(data, content_size).unwrap_or_default();
+        nodes.extend(build_export_target_row_nodes(native, &nodes, content_size));
+        nodes
+    };
 
     host_contract::BuildExportPaneData {
         nodes: model_rc(nodes),
@@ -388,7 +402,13 @@ fn build_export_node(
 
 #[cfg(test)]
 mod tests {
+    use super::super::build_export_wizard_panel::EXPORT_WIZARD_PANEL_DISPATCH_KIND;
     use super::*;
+    use crate::ui::host::{
+        DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON,
+        DESKTOP_EXPORT_STAGE_ROWS_SLOT, DESKTOP_EXPORT_START_BINDING_ID,
+        DESKTOP_EXPORT_START_BUTTON,
+    };
     use crate::ui::layouts::views::blank_viewport_chrome;
     use crate::ui::layouts::windows::workbench_host_window::{
         BuildExportPaneViewData, PaneNativeBodyData,
@@ -430,6 +450,7 @@ mod tests {
                         fatal: false,
                     }]),
                     diagnostics: "export ready".into(),
+                    ..BuildExportPaneViewData::default()
                 },
                 ..PaneNativeBodyData::default()
             },
@@ -533,6 +554,7 @@ mod tests {
                         fatal: false,
                     }]),
                     diagnostics: "export ready".into(),
+                    ..BuildExportPaneViewData::default()
                 },
                 ..PaneNativeBodyData::default()
             },
@@ -590,6 +612,75 @@ mod tests {
     }
 
     #[test]
+    fn build_export_wizard_panel_nodes_project_retained_export_wizard_panel() {
+        let pane = build_export_pane_fixture(vec![build_export_target_fixture(
+            "desktop_windows",
+            "Windows",
+            "Ready",
+            "native plugin package ready",
+            false,
+        )]);
+        let nodes = build_export_wizard_panel_nodes(
+            &pane.native_body.build_export,
+            PaneContentSize::new(960.0, 420.0),
+        )
+        .expect("desktop export wizard panel should project");
+
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id.as_str() == "DesktopExportRoot"));
+        assert!(!nodes
+            .iter()
+            .any(|node| node.control_id.as_str().starts_with("BuildExportRow.")));
+
+        let start_button = nodes
+            .iter()
+            .find(|node| node.control_id.as_str() == DESKTOP_EXPORT_START_BUTTON)
+            .expect("start button should project");
+        assert!(!start_button.disabled);
+        assert_eq!(
+            start_button.binding_id.as_str(),
+            DESKTOP_EXPORT_START_BINDING_ID
+        );
+        assert_eq!(
+            start_button.action_id.as_str(),
+            "workbench.build_export.execute.desktop_windows"
+        );
+        assert_eq!(
+            start_button.dispatch_kind.as_str(),
+            EXPORT_WIZARD_PANEL_DISPATCH_KIND
+        );
+
+        let cancel_button = nodes
+            .iter()
+            .find(|node| node.control_id.as_str() == DESKTOP_EXPORT_CANCEL_BUTTON)
+            .expect("cancel button should project");
+        assert!(cancel_button.disabled);
+        assert_eq!(
+            cancel_button.binding_id.as_str(),
+            DESKTOP_EXPORT_CANCEL_BINDING_ID
+        );
+        assert_eq!(
+            cancel_button.action_id.as_str(),
+            "workbench.build_export.cancel.desktop_windows"
+        );
+        assert_eq!(cancel_button.dispatch_kind.as_str(), "");
+
+        let stage_rows = nodes
+            .iter()
+            .filter(|node| {
+                node.control_id
+                    .as_str()
+                    .starts_with(&format!("{DESKTOP_EXPORT_STAGE_ROWS_SLOT}.stage."))
+            })
+            .collect::<Vec<_>>();
+        assert!(!stage_rows.is_empty());
+        assert!(stage_rows
+            .iter()
+            .any(|node| node.text.as_str().contains("Validate")));
+    }
+
+    #[test]
     fn build_export_duplicate_platform_profiles_get_unique_projection_ids() {
         let pane = build_export_pane_fixture(vec![
             build_export_target_fixture("desktop_windows", "Windows", "Ready", "", false),
@@ -643,6 +734,7 @@ mod tests {
                 build_export: BuildExportPaneViewData {
                     targets: model_rc(targets),
                     diagnostics: "export ready".into(),
+                    ..BuildExportPaneViewData::default()
                 },
                 ..PaneNativeBodyData::default()
             },

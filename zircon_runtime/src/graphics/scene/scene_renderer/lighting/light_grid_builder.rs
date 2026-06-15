@@ -8,6 +8,7 @@ use crate::core::math::{view_matrix, Mat4, UVec2, Vec3};
 pub(crate) const LIGHT_GRID_INITIAL_TILE_SIZE_PX: u32 = 8;
 pub(crate) const LIGHT_GRID_MAX_ZBIN_WORDS: u32 = 4096;
 pub(crate) const LIGHT_GRID_MAX_TILE_WORDS: u32 = 8192;
+pub(crate) const LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES: usize = 128;
 const ZBIN_HEADER_WORDS: u32 = 2;
 pub(crate) const LIGHT_GRID_EMPTY_ZBIN_HEADER: u32 = 0x0000_FFFF;
 
@@ -23,7 +24,9 @@ pub(crate) struct LightGridParams {
     pub(crate) tile_size_px: u32,
     pub(crate) light_count: u32,
     pub(crate) projection_mode: u32,
-    pub(crate) _padding: [u32; 3],
+    // WGSL uniform layout aligns the trailing vec3 padding member to 16 bytes and rounds the
+    // complete struct size to 128 bytes.
+    pub(crate) _uniform_padding: [u32; 7],
 }
 
 impl LightGridParams {
@@ -139,7 +142,7 @@ pub(crate) fn build_light_grid(
             LightGridProjection::Perspective => 0,
             LightGridProjection::Orthographic => 1,
         },
-        _padding: [0; 3],
+        _uniform_padding: [0; 7],
     };
     let mut zbins = vec![0; bin_count as usize * bin_stride as usize];
     for bin in 0..bin_count {
@@ -468,6 +471,14 @@ mod tests {
     use crate::core::math::{Quat, Transform};
 
     #[test]
+    fn light_grid_params_cpu_layout_matches_wgsl_uniform_size() {
+        assert_eq!(
+            std::mem::size_of::<LightGridParams>(),
+            LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES
+        );
+    }
+
+    #[test]
     fn light_grid_builder_marks_directional_light_across_all_tiles_and_bins() {
         let view = test_view(UVec2::new(16, 16));
         let output = build_light_grid(&[directional_light()], &view);
@@ -566,6 +577,7 @@ mod tests {
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
             render_layers: RenderLayerSet::default(),
             dynamic_resolution: Default::default(),
+            temporal_jitter: Default::default(),
         };
         LightGridViewInfo::from_camera(&camera, viewport_size)
     }

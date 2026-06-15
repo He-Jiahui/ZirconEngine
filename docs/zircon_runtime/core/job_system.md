@@ -51,7 +51,7 @@ tests:
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture
   - runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass
   - runtime_11_job_system_mirror_docs_match_structure_audit_counts
-  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 3, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, oversized_modules = [], mirror_docs_guard_present = true, risks = []
+  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 3, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 9, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
   - pre_m2_1_rayon_render_exception_guard_static_passed_pending_render_owner static checks passed 2026-06-13
 doc_type: module-detail
 ---
@@ -64,7 +64,7 @@ Runtime 11 extends the existing Bevy-style task pools into a small JobSystem lay
 
 This document records the M0 model decision before the M1 code surface: `JobHandle`, dependency scheduling, explicit synchronization points, a `parallel_for` primitive, and the first scheduler diagnostics surface. It also records which candidate primitives are intentionally not implemented yet.
 
-The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 3`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
+The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 3`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 9`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
 
 ## Consumer Matrix
 
@@ -115,7 +115,7 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors, and `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
+`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors. `job_system_boundary` now keeps `behavior_test_anchor_count = 9` with `missing_behavior_test_anchors = []` so those names cannot silently drift while Cargo validation is pending. `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
 
 - `job_handle_wait_blocks_until_task_completes`
 - `schedule_after_runs_task_only_after_all_dependencies`

@@ -38,6 +38,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
     };
     let particle = RenderParticleSpriteSnapshot {
         entity: sprite.entity,
+        stable_sprite_key: 1,
         position: sprite.transform.translation,
         size: 4.0,
         aspect_ratio: 1.0,

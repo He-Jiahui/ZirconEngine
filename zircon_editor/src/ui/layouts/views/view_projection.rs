@@ -307,7 +307,7 @@ fn resolve_role(
         "Label" | "Text" => "Label",
         "InputField" | "TextField" => "InputField",
         "NumberField" => "InputField",
-        "RangeField" | "Slider" => "RangeField",
+        "RangeField" | "Slider" | "RangeSlider" => "RangeField",
         "Progress" | "ProgressBar" | "LinearProgress" | "CircularProgress" | "Spinner" => {
             "Progress"
         }
@@ -315,7 +315,8 @@ fn resolve_role(
         "Backdrop" => "Backdrop",
         "Paper" | "Dialog" | "AlertDialog" | "Popover" | "Popper" | "Tooltip" | "Snackbar"
         | "Menu" | "Drawer" => "Panel",
-        "Toggle" | "Checkbox" | "Radio" | "RadioField" => "Toggle",
+        "Toggle" | "ToggleButton" | "Switch" | "Checkbox" | "Radio" | "RadioField" => "Toggle",
+        "SegmentedControl" | "Tab" | "Tabs" | "TabList" => "Toggle",
         "ComboBox" | "Dropdown" | "EnumField" | "FlagsField" | "SearchSelect" => "ComboBox",
         "TreeView" | "TreeRow" => "TreeView",
         "EditableTable" | "Table" => "Table",
@@ -348,12 +349,13 @@ pub(crate) fn resolve_component_role(component: &str) -> &'static str {
         "NumberField" => "number-field",
         "RangeField" => "range-field",
         "Slider" => "slider",
+        "RangeSlider" => "range-slider",
         "Progress" => "progress",
         "ProgressBar" => "progress-bar",
         "LinearProgress" => "linear-progress",
         "CircularProgress" => "circular-progress",
         "Spinner" => "spinner",
-        "Divider" => "divider",
+        "Divider" | "Separator" => "divider",
         "Skeleton" => "skeleton",
         "Backdrop" => "backdrop",
         "Paper" => "paper",
@@ -365,6 +367,9 @@ pub(crate) fn resolve_component_role(component: &str) -> &'static str {
         "Tooltip" => "tooltip",
         "Snackbar" => "snackbar",
         "Menu" => "menu",
+        "ContextMenu" => "context-menu",
+        "ContextActionMenu" => "context-action-menu",
+        "DropdownPopup" => "dropdown-popup",
         "Drawer" => "drawer",
         "Collapse" => "collapse",
         "Fade" => "fade",
@@ -373,7 +378,13 @@ pub(crate) fn resolve_component_role(component: &str) -> &'static str {
         "Zoom" => "zoom",
         "Popup" => "popup",
         "Toggle" => "toggle",
+        "ToggleButton" => "toggle-button",
+        "Switch" => "switch",
         "Checkbox" => "checkbox",
+        "SegmentedControl" => "segmented-control",
+        "Tab" => "tab",
+        "Tabs" => "tabs",
+        "TabList" => "tab-list",
         "ComboBox" => "combo-box",
         "Dropdown" => "dropdown",
         "EnumField" => "enum-field",
@@ -884,6 +895,12 @@ mod tests {
         assert_eq!(resolve_component_role("Dialog"), "dialog");
         assert_eq!(resolve_component_role("Popover"), "popover");
         assert_eq!(resolve_component_role("Tooltip"), "tooltip");
+        assert_eq!(resolve_component_role("ContextMenu"), "context-menu");
+        assert_eq!(
+            resolve_component_role("ContextActionMenu"),
+            "context-action-menu"
+        );
+        assert_eq!(resolve_component_role("DropdownPopup"), "dropdown-popup");
         assert_eq!(resolve_component_role("Snackbar"), "snackbar");
         assert_eq!(resolve_component_role("Drawer"), "drawer");
     }

@@ -689,7 +689,8 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
 fn welcome_startup_demo_routes_to_component_showcase_window() {
     let welcome_asset = source("assets/ui/editor/welcome.v2.ui.toml");
     assert!(welcome_asset.contains("text = \"Component Showcase\""));
-    assert!(welcome_asset.contains("route = \"Welcome.OpenStartupDemo\""));
+    assert!(welcome_asset.contains("id = \"Welcome/OpenStartupDemo\""));
+    assert!(welcome_asset.contains("route = \"workbench.welcome.open_startup_demo\""));
 
     let welcome_session = source("src/ui/retained_host/app/welcome_session.rs");
     assert!(welcome_session.contains("OpenStartupDemo"));

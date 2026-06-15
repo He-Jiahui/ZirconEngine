@@ -7,10 +7,21 @@ use crate::plugin::{
 use super::reports::{
     NativePluginLiveHostBridgeLifecycleReport, NativePluginLiveHostCommand,
     NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
+    NativePluginRuntimeHotUpdateReport,
 };
 use super::NativePluginLiveHost;
 
 impl NativePluginLiveHost {
+    pub fn hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle(
+        &self,
+        export_root: impl AsRef<Path>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> Result<NativePluginRuntimeHotUpdateReport, String> {
+        let mut report = self.hot_reload_runtime_plugins_from_export_root(export_root)?;
+        report.apply_runtime_bridge_lifecycle(lifecycle);
+        Ok(report)
+    }
+
     pub fn load_runtime_plugins_from_export_root_with_bridge_lifecycle(
         &self,
         export_root: impl AsRef<Path>,
@@ -101,6 +112,33 @@ impl NativePluginLiveHostLoadReport {
             );
             self.diagnostics.push(report.diagnostic());
             self.bridge_lifecycle_reports.push(report);
+        }
+        self.diagnostics.sort();
+        self.diagnostics.dedup();
+    }
+}
+
+impl NativePluginRuntimeHotUpdateReport {
+    pub fn apply_runtime_bridge_lifecycle(
+        &mut self,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) {
+        for outcome in &mut self.outcomes {
+            if outcome.module_kind != PluginModuleKind::Runtime
+                || outcome.command != NativePluginLiveHostCommand::HotReload
+                || outcome.bridge_lifecycle_report.is_some()
+            {
+                continue;
+            }
+
+            let report = runtime_bridge_lifecycle_report(
+                &outcome.plugin_id,
+                NativePluginLiveHostCommand::HotReload,
+                RuntimePluginBridgeLifecycleEvent::reload_provider(outcome.plugin_id.clone()),
+                lifecycle,
+            );
+            outcome.attach_bridge_lifecycle_report(report);
+            self.diagnostics.extend(outcome.diagnostics.clone());
         }
         self.diagnostics.sort();
         self.diagnostics.dedup();

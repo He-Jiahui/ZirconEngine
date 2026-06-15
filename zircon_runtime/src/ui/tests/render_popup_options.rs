@@ -86,6 +86,68 @@ corner_radius = 4.0
 }
 
 #[test]
+fn render_extract_positions_dropdown_popup_from_explicit_anchor_and_bounds() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.popup_options.anchor_position",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 240.0, 120.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/dropdown"))
+                .with_frame(UiFrame::new(12.0, 16.0, 148.0, 28.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Dropdown".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+value = "surface"
+popup_open = true
+placement = "bottom-start"
+popup_anchor_x = 160.0
+popup_anchor_y = 92.0
+popup_anchor_width = 56.0
+popup_anchor_height = 20.0
+popup_offset_y = 2.0
+options = ["surface|label=Surface", "post_process|label=Post Process", "volume|label=Volume"]
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("dropdown node should exist")
+        .layout_cache
+        .clip_frame = Some(UiFrame::new(0.0, 0.0, 220.0, 120.0));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let owner = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2) && command.text.as_deref() == Some("surface")
+        })
+        .expect("open dropdown owner should keep its visible value command");
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.z_index > owner.z_index
+            && command.frame == UiFrame::new(72.0, 6.0, 148.0, 84.0)
+            && command.clip_frame == Some(UiFrame::new(0.0, 0.0, 220.0, 120.0))
+    }));
+}
+
+#[test]
 fn render_extract_loading_dropdown_option_uses_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.popup_options.loading"));
     surface.tree.insert_root(
@@ -139,6 +201,89 @@ options = ["surface|label=Surface,loading,hovered,pressed,special", "post_proces
             && command.kind == UiRenderCommandKind::Quad
             && command.style.painter_family == UiPainterFamily::PopupRow
             && command.frame == UiFrame::new(12.0, 52.0, 3.0, 20.0)
+    }));
+}
+
+#[test]
+fn render_extract_dropdown_popup_options_use_popup_row_state_matrix() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.popup_options.dropdown_popup_states",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 260.0, 180.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/dropdown_popup"))
+                .with_frame(UiFrame::new(12.0, 16.0, 148.0, 112.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "DropdownPopup".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+open = true
+options = ["scene|label=Scene", "assets|label=Assets", "console|label=Console", "render|label=Render"]
+selected_options = ["assets"]
+disabled_options = ["render"]
+focused_index = 2
+hovered_option_id = "console"
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::Dropdown
+            && command.style.painter_state == UiPainterResolvedState::Open
+            && command.frame == UiFrame::new(12.0, 16.0, 148.0, 112.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.frame == UiFrame::new(12.0, 44.0, 148.0, 28.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.frame == UiFrame::new(12.0, 48.0, 3.0, 20.0)
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Console")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Focused
+            && command.style.foreground_color.as_deref() == Some("#35c7d0")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Render")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Disabled
+            && command.style.foreground_color.as_deref() == Some("#59656c")
+    }));
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.frame == UiFrame::new(12.0, 100.0, 148.0, 28.0)
     }));
 }
 

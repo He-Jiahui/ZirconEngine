@@ -17,6 +17,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
@@ -55,6 +56,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
@@ -93,6 +95,7 @@ tests:
   - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
+  - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
   - zircon_editor/tests/editor_main_frame_template.rs
   - zircon_editor/tests/activity_drawer_window_template.rs
@@ -117,6 +120,8 @@ tests:
   - 2026-05-24 drawer header visual follow-up: cargo test -p zircon_editor --lib native_root_bottom_drawer_header_click_activates_runtime_diagnostics_in_real_host --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260524 --message-format short --color never -- --test-threads=1 --nocapture (1 passed, 0 failed)
   - 2026-05-24 drawer header visual follow-up: cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-editor-debug-tree-stats-20260524 --message-format short --color never (passed with existing warnings)
   - 2026-05-24 drawer header visual follow-up: target/editor-visual-check/editor-runtime-diagnostics-window-20260524-after-fix.png captured after a window-coordinate click but still showed Console selected, so visual proof remains pending a client-coordinate recapture.
+  - cargo test -p zircon_editor --lib window_host_manager --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 3 passed, 0 failed, 2020 filtered out)
+  - cargo test -p zircon_editor --lib floating_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 47 passed, 0 failed, 1976 filtered out)
 doc_type: module-detail
 ---
 
@@ -140,4 +145,4 @@ Drawer registration is explicit. A `DrawerViewInstance` cannot bind to an ordina
 
 Dragging a drawer tab out of every dock target now resolves to a detached-window drop route. Drawer-origin drags receive a `drawer-window:` page id, the layout command folds repeated detaches with the same id into one floating tab stack, and registry sync treats only that drawer-window prefix as `DrawerWindowInstance`; ordinary document floating windows are not reclassified as drawers. Removing the selected drawer tab collapses the source drawer list by clearing `active_view`, so a folded rail means no drawer view is open even when tab order is retained.
 
-Native titlebar close requests participate in the same data layer. A floating drawer/document window asks the layout for all instances in that floating workspace, checks dirty `ViewInstance` metadata, and paints a host-owned `Save / Discard / Cancel` prompt into the corresponding native child window. `Cancel` clears only the prompt; `Discard` closes every tab in that floating window; `Save` attempts the registered UI-asset or animation-editor save path before closing. Main-window close uses the same prompt data and requests host exit only after the user chooses `Discard` or a successful `Save`. The 2026-05-07 Save-path regression opens a temporary `.ui.toml` UI asset, detaches it into a child window, marks it dirty, verifies the Save button is enabled, and closes the child window after the save action succeeds; the close-prompt screenshot artifact is recorded under `target/visual-layout/editor-window-20260507-close-prompt-900x620.png`.
+Native titlebar close requests participate in the same data layer. A floating drawer/document window asks the layout for all instances in that floating workspace, checks dirty `ViewInstance` metadata, and paints a host-owned `Save / Discard / Cancel` prompt into the corresponding native child window. The native host record also owns the floating window's independent runtime `UiSurface`; `NativeWindowHostState.surface_tree_id` keeps close prompts, pointer targets, and later runtime render/input cutover tied to a concrete child-window surface instead of the main workbench tree. `Cancel` clears only the prompt; `Discard` closes every tab in that floating window; `Save` attempts the registered UI-asset or animation-editor save path before closing. Main-window close uses the same prompt data and requests host exit only after the user chooses `Discard` or a successful `Save`. The 2026-05-07 Save-path regression opens a temporary `.ui.toml` UI asset, detaches it into a child window, marks it dirty, verifies the Save button is enabled, and closes the child window after the save action succeeds; the close-prompt screenshot artifact is recorded under `target/visual-layout/editor-window-20260507-close-prompt-900x620.png`.

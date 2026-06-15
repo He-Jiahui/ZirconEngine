@@ -1,19 +1,35 @@
 ---
 related_code:
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/asset/assets/animation/mod.rs
+  - zircon_runtime/src/asset/assets/animation/binary.rs
+  - zircon_runtime/src/asset/assets/animation/channel.rs
+  - zircon_runtime/src/asset/assets/animation/clip.rs
+  - zircon_runtime/src/asset/assets/animation/graph.rs
+  - zircon_runtime/src/asset/assets/animation/reference.rs
+  - zircon_runtime/src/asset/assets/animation/sequence.rs
+  - zircon_runtime/src/asset/assets/animation/skeleton.rs
+  - zircon_runtime/src/asset/assets/animation/state_machine.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
 implementation_files:
-  - zircon_runtime/src/asset/assets/animation.rs
+  - zircon_runtime/src/asset/assets/animation/mod.rs
+  - zircon_runtime/src/asset/assets/animation/binary.rs
+  - zircon_runtime/src/asset/assets/animation/channel.rs
+  - zircon_runtime/src/asset/assets/animation/clip.rs
+  - zircon_runtime/src/asset/assets/animation/graph.rs
+  - zircon_runtime/src/asset/assets/animation/reference.rs
+  - zircon_runtime/src/asset/assets/animation/sequence.rs
+  - zircon_runtime/src/asset/assets/animation/skeleton.rs
+  - zircon_runtime/src/asset/assets/animation/state_machine.rs
   - docs/zircon_runtime/asset/assets/animation.md
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 tests:
-  - rustfmt --edition 2021 --check zircon_runtime\src\asset\assets\animation.rs
+  - rustfmt --edition 2021 --check zircon_runtime\src\asset\assets\animation\mod.rs zircon_runtime\src\asset\assets\animation\binary.rs zircon_runtime\src\asset\assets\animation\channel.rs zircon_runtime\src\asset\assets\animation\clip.rs zircon_runtime\src\asset\assets\animation\graph.rs zircon_runtime\src\asset\assets\animation\reference.rs zircon_runtime\src\asset\assets\animation\sequence.rs zircon_runtime\src\asset\assets\animation\skeleton.rs zircon_runtime\src\asset\assets\animation\state_machine.rs
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - hard_cutover_migration_smells legacy-runtime-asset-debt count check
 doc_type: module-detail
@@ -24,6 +40,23 @@ doc_type: module-detail
 ## Purpose
 
 `zircon_runtime::asset::assets::animation` owns runtime animation asset payloads for skeletons, clips, sequences, animation graphs, and state machines. The module serializes these assets with the `ZRANIM01` binary envelope and exposes direct-reference helpers used by the asset manager and animation runtime.
+
+## Module Layout
+
+The public module is now folder-backed. `mod.rs` is only the structural entry point and public re-export list; it must not accumulate payload behavior.
+
+Payload owners are split by responsibility:
+
+- `binary.rs` owns `ZRANIM01` document headers, binary kind routing, version validation, and the v1 fallback decoder entry point.
+- `channel.rs` owns channel interpolation, channel values, channel keys, and binary channel value conversion.
+- `skeleton.rs` owns skeleton and bone payloads.
+- `clip.rs` owns clip tracks, event tracks, clip binary/v1 DTO conversion, and clip direct references.
+- `sequence.rs` owns sequence track/binding DTO conversion and target path extraction.
+- `graph.rs` owns graph node variants, graph binary/v1 DTO conversion, graph parameters, and graph direct references.
+- `state_machine.rs` owns states, transitions, transition conditions, state-machine binary conversion, and state-machine direct references.
+- `reference.rs` owns reusable direct-reference binary DTOs and de-duplication.
+
+This split removed the former animation asset file from the 1000-line large-file hotspot list. The current Runtime 07 owner-budget mirror records `large_file_hotspot_count = 41`, `runtime-other = 17`, and `large_file_unclassified_hotspot_count = 0`; Cargo-level asset/runtime validation remains pending while active build lanes are occupied.
 
 ## Versioned Payloads
 

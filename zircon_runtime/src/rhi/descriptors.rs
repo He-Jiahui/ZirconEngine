@@ -87,6 +87,7 @@ pub enum TextureFormat {
     R16Float,
     R32Float,
     Rg16Float,
+    Rg11b10Ufloat,
     Rgba8Unorm,
     Rgba8UnormSrgb,
     Bgra8Unorm,
@@ -103,7 +104,7 @@ impl TextureFormat {
         match self {
             Self::R8Unorm => 1,
             Self::R16Float => 2,
-            Self::R32Float | Self::Rg16Float => 4,
+            Self::R32Float | Self::Rg16Float | Self::Rg11b10Ufloat => 4,
             Self::Rgba8Unorm
             | Self::Rgba8UnormSrgb
             | Self::Bgra8Unorm
@@ -133,6 +134,7 @@ impl TextureFormat {
             Self::R16Float
                 | Self::R32Float
                 | Self::Rg16Float
+                | Self::Rg11b10Ufloat
                 | Self::Rgba16Float
                 | Self::Rgba32Float
         )

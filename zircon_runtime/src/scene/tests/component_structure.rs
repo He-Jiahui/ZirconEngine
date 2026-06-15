@@ -196,11 +196,17 @@ fn scene_project_serialization_sources_do_not_store_editor_authoring_state() {
     for relative in [
         "src/scene/world/world.rs",
         "src/scene/world/project_io.rs",
+        "src/scene/world/project_io/camera.rs",
+        "src/scene/world/project_io/physics.rs",
+        "src/scene/world/project_io/post_process.rs",
+        "src/scene/world/project_io/references.rs",
+        "src/scene/world/project_io/script.rs",
+        "src/scene/world/project_io/transform.rs",
         "src/scene/dynamic_scene/document.rs",
         "src/scene/dynamic_scene/entity.rs",
         "src/scene/dynamic_scene/scene.rs",
         "src/scene/dynamic_scene/value.rs",
-        "src/asset/assets/scene.rs",
+        "src/asset/assets/scene/mod.rs",
     ] {
         let path = manifest_root.join(relative);
         let source = std::fs::read_to_string(&path).unwrap();

@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -18,20 +19,20 @@ related_code:
   - zircon_runtime/src/core/framework/render/sprite/extract.rs
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_object_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
-  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_object_history.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -53,25 +54,26 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_object_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
-  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_object_history.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
@@ -125,7 +127,6 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_marks_srgb_texture_ready_for_direct_import
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_keeps_linear_texture_on_conversion_writeback_path
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_unsupported_target_format
-  - zircon_runtime/src/graphics/types/viewport_motion_vector_object_history.rs::tests::object_motion_history_keeps_only_dynamic_mesh_transforms
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs::tests::build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs::tests::direct_runtime_frame_submit_projects_resolved_output_target
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_uses_resolved_texture_target_only
@@ -154,6 +155,8 @@ tests:
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked unified_sort_components --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked render_product_sprite_phase_queue_honors --jobs 1 --message-format short --color never
+  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
+  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
 doc_type: module-detail
 ---
 
@@ -181,11 +184,17 @@ The renderer also records a separate graph-import report from that prepared outp
 
 `ViewportFrame` now carries `RenderCaptureReport` from the renderer readback path into `record_capture(...)`, and `CapturedFrame` stores the same report in the viewport record. `record_submission(...)` then forwards the stored report into `SubmissionRecordUpdate`, so `update_base_stats(...)` can publish `RenderStats.last_capture_report`. This is intentionally result metadata: it records whether the capture came from framework offscreen color, an imported texture target, a converted texture writeback, or a copied texture writeback, while `RenderFrameExtract` remains the authored-frame DTO and still carries no backend texture handle.
 
-## Motion Vector History Handoff
+## Temporal History Handoff
 
-The submit context also carries renderer-private temporal state that is derived from previous successful submissions rather than from editor state. `ViewportRecord` stores the previous camera snapshot separately from color-history validation, and it also stores `ViewportMotionVectorObjectHistory`, a dynamic-mesh-only map from entity id to prior transform. `build_frame_submission_context(...)` copies both histories into `FrameSubmissionContext`, and `build_runtime_frame(...)` attaches both to the renderer-bound `ViewportRenderFrame`.
+The submit context carries renderer-private temporal camera state derived from previous successful submissions rather than from editor state. `ViewportRecord` stores the previous camera snapshot separately from color-history validation; `build_frame_submission_context(...)` copies that camera snapshot into `FrameSubmissionContext`, and `build_runtime_frame(...)` attaches it to the renderer-bound `ViewportRenderFrame`.
 
-This slice is a handoff contract only. It makes previous dynamic object transforms visible to later renderer passes through the frame DTO, but it does not yet add a mesh/skinned/particle velocity writer, widen mesh instance uniforms, or change the current camera/background `scene-motion-vector` producer.
+Object previous transforms no longer travel through the neutral frame DTO. The renderer-owned GPUScene rolls current instance transforms into `prev_world_from_local` only after successful WGPU submission, and `build_mesh_draws` reads that rolled previous transform when preparing temporal velocity draw eligibility. This keeps `RenderFrameExtract` focused on authored frame data while object velocity history stays with the shader-visible scene-data owner.
+
+## Particle State Contract
+
+`ParticleExtract` now separates current transparent billboard state from optional previous-state evidence. `sprites` carries the current `RenderParticleSpriteSnapshot` list used by the transparent particle pass. `previous_sprites` carries `RenderParticlePreviousSpriteSnapshot` rows keyed by entity, with previous position, size, aspect ratio, billboard offset, and rotation. The scene JSON extraction path initializes `previous_sprites` as empty because it does not yet own previous particle state.
+
+`ParticleExtract::previous_state_sprite_count()` matches current sprite entities against previous-state rows with per-entity counts, consuming one previous row for one current sprite. `missing_previous_state_sprite_count()` reports the remaining current sprites. Submit stats use that count to avoid marking particles as missing velocity input once a caller supplies matched previous state. This is still a neutral DTO contract and diagnostic contraction; it does not write particle velocity into `scene-velocity`.
 
 ## Scene Camera Scheduling Metadata
 

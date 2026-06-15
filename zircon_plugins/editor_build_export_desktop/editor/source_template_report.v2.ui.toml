@@ -1,0 +1,46 @@
+[asset]
+kind = "view"
+id = "editor_build_export_desktop.source_template_report"
+version = 2
+display_name = "Source Template Report"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "source_template_report_root"
+
+[nodes.source_template_summary]
+component = "Label"
+control_id = "SourceTemplateReportSummary"
+props = { text = "SourceTemplate" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.source_template_project_path]
+component = "PropertyRow"
+control_id = "SourceTemplateProjectPath"
+props = { text = "Project", value = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.source_template_cargo_command]
+component = "PropertyRow"
+control_id = "SourceTemplateCargoCommand"
+props = { text = "Cargo", value = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.source_template_generated_files]
+component = "Space"
+control_id = "SourceTemplateGeneratedFiles"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.source_template_diagnostics]
+component = "Space"
+control_id = "SourceTemplateDiagnostics"
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 128.0, stretch = "Fixed" } }
+
+[nodes.source_template_report_root]
+component = "VerticalGroup"
+control_id = "SourceTemplateReportRoot"
+classes = ["workbench-panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "source_template_summary" }, { node = "source_template_project_path" }, { node = "source_template_cargo_command" }, { node = "source_template_generated_files" }, { node = "source_template_diagnostics" }]

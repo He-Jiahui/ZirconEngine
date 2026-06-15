@@ -1,0 +1,21 @@
+format_version = 1
+template_id = "windows-x86_64-library_embed-debug"
+engine_version = "0.1.0"
+target_platform = "windows-x86_64"
+host_kind = "desktop"
+resource_strategy = "filesystem_bundle"
+plugin_strategy = "native_dynamic_allowed"
+bundle_format = "directory"
+compatible_profiles = ["windows-release"]
+content_hash = "e5acc99c1ccc705e08793501ff1226adcc8e181c6d1d9ffbff7cef2270a99304"
+
+[paths]
+host_executable = "bin/zircon_runtime.host-placeholder"
+
+[bundle]
+delta_pack_path = "patches/assets.delta.zrpd"
+
+[[files]]
+path = "bin/zircon_runtime.host-placeholder"
+purpose = "M3-T1 placeholder host path for template contract validation"
+sha256 = "63a26218c731a8b79da125da1e59a6a4e67ac2212ce6a2ee3f3016dde237dd97"

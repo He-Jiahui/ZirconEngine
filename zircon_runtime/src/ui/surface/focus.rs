@@ -4,7 +4,8 @@ use zircon_runtime_interface::ui::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
         UiFocusedInput, UiFocusedInputKind,
     },
-    tree::UiTreeError,
+    tree::{UiTemplateNodeMetadata, UiTreeError},
+    widget::UiWidgetBehavior,
 };
 
 use crate::ui::tree::UiRuntimeTreeFocusExt;
@@ -357,7 +358,7 @@ impl UiSurface {
     fn is_open_mui_modal_focus_root(&self, node_id: UiNodeId) -> bool {
         self.tree.node(node_id).is_some_and(|node| {
             node.template_metadata.as_ref().is_some_and(|metadata| {
-                is_mui_modal_focus_component(metadata.component.as_str())
+                is_mui_modal_focus_metadata(metadata)
                     && node.state_flags.enabled
                     && node.is_render_visible()
                     && (bool_attribute(metadata, "open") || bool_attribute(metadata, "popup_open"))
@@ -373,7 +374,7 @@ impl UiSurface {
         Ok(node
             .template_metadata
             .as_ref()
-            .is_some_and(|metadata| is_mui_modal_focus_component(metadata.component.as_str())))
+            .is_some_and(is_mui_modal_focus_metadata))
     }
 
     fn mui_modal_bool_attribute(&self, node_id: UiNodeId, key: &str) -> Result<bool, UiTreeError> {
@@ -478,14 +479,19 @@ fn mark_component_focus_render_dirty(surface: &mut UiSurface, node_id: UiNodeId)
     let _ = surface.mark_component_state_render_dirty(node_id);
 }
 
-fn is_mui_modal_focus_component(component: &str) -> bool {
-    matches!(component, "Dialog" | "Modal" | "Popover" | "Menu")
+fn is_mui_modal_focus_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
+    is_mui_modal_focus_component(metadata.component.as_str())
+        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup
 }
 
-fn bool_attribute(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> bool {
+fn is_mui_modal_focus_component(component: &str) -> bool {
+    matches!(
+        component,
+        "Dialog" | "ConfirmDialog" | "Modal" | "Popover" | "Menu"
+    )
+}
+
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
     metadata
         .attributes
         .get(key)
@@ -493,10 +499,7 @@ fn bool_attribute(
         .unwrap_or(false)
 }
 
-fn bool_attribute_any(
-    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
-    keys: &[&str],
-) -> bool {
+fn bool_attribute_any(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> bool {
     keys.iter().any(|key| bool_attribute(metadata, key))
 }
 

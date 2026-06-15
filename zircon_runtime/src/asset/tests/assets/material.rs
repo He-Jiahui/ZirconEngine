@@ -468,6 +468,56 @@ custom_gain = 2.0
 }
 
 #[test]
+fn material_owned_taa_reactive_mask_strength_drives_standard_descriptor_without_shader_override() {
+    let mut material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Responsive Glass"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+taa_reactive_mask_strength = 0.65
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    let descriptor = material.standard_material_descriptor();
+
+    assert_eq!(material.taa_reactive_mask_strength(), 0.65);
+    assert_eq!(descriptor.taa_reactive_mask_strength, 0.65);
+    assert!(material
+        .shader_property_override("taa_reactive_mask_strength")
+        .is_none());
+    assert!(material
+        .shader_property_overrides()
+        .all(|(property, _)| property != "taa_reactive_mask_strength"));
+    assert_eq!(
+        material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+
+    let encoded = material.to_toml_string().unwrap();
+    assert!(encoded.contains("taa_reactive_mask_strength"));
+    assert_eq!(
+        MaterialAsset::from_toml_str(&encoded)
+            .unwrap()
+            .taa_reactive_mask_strength(),
+        0.65
+    );
+
+    material.property_values.insert(
+        "taa_reactive_mask_strength".to_string(),
+        toml::Value::Float(0.0),
+    );
+    let encoded = material.to_toml_string().unwrap();
+    assert!(!encoded.contains("taa_reactive_mask_strength"));
+}
+
+#[test]
 fn material_owned_sort_fields_report_invalid_override_types() {
     let material = MaterialAsset::from_toml_str(
         r#"
@@ -526,6 +576,38 @@ depth_bias = "near"
             && path == "overrides.depth_bias"
             && name == "depth_bias"
             && expected == "number"
+    )));
+}
+
+#[test]
+fn material_owned_taa_reactive_mask_strength_reports_invalid_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Invalid Responsive"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+taa_reactive_mask_strength = 2.0
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(material.taa_reactive_mask_strength(), 0.0);
+    assert!(material.validation_errors().iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.taa_reactive_mask_strength"
+            && name == "taa_reactive_mask_strength"
+            && expected == "number in 0..=1"
     )));
 }
 

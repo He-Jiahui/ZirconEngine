@@ -106,7 +106,7 @@ impl SceneRenderer {
         let render_size = frame.extract.view.effective_render_size();
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
-        let screen_space_reflection_history_enabled = runtime_features.history_resolve_enabled
+        let screen_space_reflection_history_enabled = runtime_features.temporal_history_enabled
             && frame
                 .extract
                 .post_process
@@ -116,6 +116,8 @@ impl SceneRenderer {
             && pipeline_writes_screen_space_reflection_history(pipeline);
         let hzb_history_enabled =
             pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
+        let exposure_history_enabled =
+            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::EXPOSURE_CURRENT);
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -129,6 +131,7 @@ impl SceneRenderer {
                 runtime_features,
                 screen_space_reflection_history_enabled,
                 hzb_history_enabled,
+                exposure_history_enabled,
             );
             let target = self.target.as_mut().expect("offscreen target");
             self.core.render_compiled_scene(
@@ -335,6 +338,13 @@ impl SceneRenderer {
         &self,
     ) -> crate::core::framework::render::RenderHistoryCopyReport {
         self.last_render_graph_execution.history_copy_report()
+    }
+
+    pub(crate) fn last_scene_velocity_readback_report(
+        &self,
+    ) -> crate::core::framework::render::RenderSceneVelocityReadbackReport {
+        self.last_render_graph_execution
+            .scene_velocity_readback_report()
     }
 
     pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {

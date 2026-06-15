@@ -318,6 +318,7 @@ pub(crate) struct MeshPassIndirectDrawExecutions {
     alpha_mask: Option<MeshIndirectDrawExecution>,
     transparent: Option<MeshIndirectDrawExecution>,
     velocity: Option<MeshIndirectDrawExecution>,
+    taa_reactive_mask: Option<MeshIndirectDrawExecution>,
 }
 
 impl MeshPassIndirectDrawExecutions {
@@ -363,6 +364,12 @@ impl MeshPassIndirectDrawExecutions {
                 command_buffers.velocity().commands(),
                 capabilities,
             ),
+            taa_reactive_mask: MeshIndirectDrawExecution::build(
+                device,
+                "zircon-taa-reactive-mask-indirect-args",
+                command_buffers.taa_reactive_mask().commands(),
+                capabilities,
+            ),
         }
     }
 
@@ -388,6 +395,10 @@ impl MeshPassIndirectDrawExecutions {
 
     pub(crate) fn velocity(&self) -> Option<&MeshIndirectDrawExecution> {
         self.velocity.as_ref()
+    }
+
+    pub(crate) fn taa_reactive_mask(&self) -> Option<&MeshIndirectDrawExecution> {
+        self.taa_reactive_mask.as_ref()
     }
 
     pub(crate) fn attach_visible_remap_scene_bind_groups(
@@ -452,7 +463,7 @@ impl MeshPassIndirectDrawExecutions {
         [self.opaque(), self.alpha_mask(), self.velocity()]
     }
 
-    fn executions(&self) -> [Option<&MeshIndirectDrawExecution>; 6] {
+    fn executions(&self) -> [Option<&MeshIndirectDrawExecution>; 7] {
         [
             self.depth_prepass(),
             self.shadow(),
@@ -460,10 +471,11 @@ impl MeshPassIndirectDrawExecutions {
             self.alpha_mask(),
             self.transparent(),
             self.velocity(),
+            self.taa_reactive_mask(),
         ]
     }
 
-    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 6] {
+    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 7] {
         [
             self.depth_prepass.as_mut(),
             self.shadow.as_mut(),
@@ -471,6 +483,7 @@ impl MeshPassIndirectDrawExecutions {
             self.alpha_mask.as_mut(),
             self.transparent.as_mut(),
             self.velocity.as_mut(),
+            self.taa_reactive_mask.as_mut(),
         ]
     }
 }

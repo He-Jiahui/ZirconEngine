@@ -39,7 +39,7 @@ pub(crate) fn runtime_features_from_pipeline(
         hybrid_global_illumination_enabled: capability_enabled(
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
         ),
-        history_resolve_enabled: feature_enabled(BuiltinRenderFeature::HistoryResolve),
+        temporal_history_enabled: feature_enabled(BuiltinRenderFeature::Temporal),
         bloom_enabled: feature_enabled(BuiltinRenderFeature::Bloom),
         color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
         anti_alias_enabled: feature_enabled(BuiltinRenderFeature::AntiAlias),

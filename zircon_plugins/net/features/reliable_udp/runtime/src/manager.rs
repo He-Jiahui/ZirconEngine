@@ -6,6 +6,8 @@ use zircon_runtime::core::framework::net::{
     ReliableDatagramSendReport, ReliableDatagramSimulationProfile, ReliableDatagramStats,
 };
 
+use crate::ReliableUdpWireHeader;
+
 mod assembly;
 mod delivery;
 mod receive;
@@ -46,6 +48,10 @@ impl NetReliableUdpRuntimeManager {
         self.acknowledge_impl(ack)
     }
 
+    pub fn acknowledge_wire_header(&self, header: ReliableUdpWireHeader) -> usize {
+        self.acknowledge_wire_header_impl(header)
+    }
+
     pub fn simulate_outbound_delivery(
         &self,
         packets: impl IntoIterator<Item = ReliableDatagramPacket>,
@@ -55,6 +61,14 @@ impl NetReliableUdpRuntimeManager {
 
     pub fn receive_packet(&self, packet: ReliableDatagramPacket) -> ReliableDatagramReceiveReport {
         self.receive_packet_impl(packet)
+    }
+
+    pub fn receive_ordered_packet(&self, packet: ReliableDatagramPacket) -> Vec<Vec<u8>> {
+        self.receive_ordered_packet_impl(packet)
+    }
+
+    pub fn pending_ordered_payload_count(&self) -> usize {
+        self.pending_ordered_payload_count_impl()
     }
 
     pub fn recovery_state(&self) -> ReliableDatagramRecoveryReport {
@@ -78,6 +92,14 @@ impl NetReliableUdpRuntimeManager {
 
     pub fn resend_due(&self, now_ms: u64) -> Vec<ReliableDatagramPacket> {
         self.resend_due_impl(now_ms)
+    }
+
+    pub fn resend_due_with_byte_budget(
+        &self,
+        now_ms: u64,
+        max_payload_bytes: usize,
+    ) -> Vec<ReliableDatagramPacket> {
+        self.resend_due_with_byte_budget_impl(now_ms, max_payload_bytes)
     }
 
     pub fn record_dropped_packet(&self) {

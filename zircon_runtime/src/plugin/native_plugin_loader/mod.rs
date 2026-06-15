@@ -50,12 +50,14 @@ pub use native_plugin_live_host::{
     NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,
     NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome, NativePluginRuntimeBehaviorCall,
     NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
-    NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
-    NativePluginRuntimePluginState, NativePluginRuntimeStateRestoreReport,
-    NativePluginRuntimeStateSnapshot, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
-    NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
+    NativePluginRuntimeHotUpdateReport, NativePluginRuntimePlayModeExitReport,
+    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
+    NativePluginRuntimeStateRestoreReport, NativePluginRuntimeStateSnapshot,
+    NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
 };
-pub use native_plugin_load_manifest::{NativePluginLoadManifest, NativePluginLoadManifestEntry};
+pub use native_plugin_load_manifest::{
+    NativePluginLoadManifest, NativePluginLoadManifestAbiV3Contract, NativePluginLoadManifestEntry,
+};
 pub use native_plugin_load_report::NativePluginLoadReport;
 pub use native_plugin_loader::NativePluginLoader;
 

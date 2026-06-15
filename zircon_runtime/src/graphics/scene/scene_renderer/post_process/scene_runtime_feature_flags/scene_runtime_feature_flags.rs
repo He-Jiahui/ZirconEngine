@@ -5,7 +5,7 @@ pub(crate) struct SceneRuntimeFeatureFlags {
     pub(crate) contact_shadow_enabled: bool,
     pub(crate) clustered_lighting_enabled: bool,
     pub(crate) hybrid_global_illumination_enabled: bool,
-    pub(crate) history_resolve_enabled: bool,
+    pub(crate) temporal_history_enabled: bool,
     pub(crate) bloom_enabled: bool,
     pub(crate) color_grading_enabled: bool,
     pub(crate) anti_alias_enabled: bool,

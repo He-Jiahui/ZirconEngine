@@ -90,7 +90,9 @@ impl DefaultNetManager {
         connection: NetConnectionId,
         payload: &[u8],
     ) -> Result<usize, NetError> {
-        self.state.worker.send_tcp(connection, payload.to_vec())
+        let bytes = self.state.worker.send_tcp(connection, payload.to_vec())?;
+        self.state.record_outbound_bytes(bytes);
+        Ok(bytes)
     }
 
     pub(in crate::service_types) fn poll_tcp_impl(
@@ -112,6 +114,7 @@ impl DefaultNetManager {
         {
             entry.state = result.state;
         }
+        self.state.record_inbound_bytes(result.payload.len());
         Ok(result.payload)
     }
 }

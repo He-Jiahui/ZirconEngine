@@ -118,7 +118,7 @@ related_code:
   - zircon_runtime/src/asset/watch/is_meta_sidecar.rs
   - zircon_runtime/src/asset/watch/recommended_watcher.rs
   - zircon_runtime/src/asset/assets/material/mod.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_scene/src/components/mod.rs

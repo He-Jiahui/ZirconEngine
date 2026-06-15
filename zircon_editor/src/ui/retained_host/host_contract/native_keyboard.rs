@@ -6,9 +6,13 @@ use super::globals::PaneSurfaceHostContext;
 use super::redraw::NativePointerDispatchResult;
 use super::template_geometry::{frame_from_template_node, template_popup_bounds};
 use super::template_popup_layout::{
-    dropdown_option_popup_frame_within, dropdown_option_row_frame_within, menu_item_row_frame,
+    dropdown_option_row_frame_within, menu_item_row_frame, template_option_popup_frame_within,
+    template_option_row_frame_within, template_option_rows_use_projected_frame,
 };
 use super::window::UiHostWindow;
+use crate::ui::retained_host::callback_dispatch::{
+    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+};
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 
@@ -16,6 +20,8 @@ use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_AC
 pub(super) enum WorkbenchPopupKeyboardCommand {
     Next,
     Previous,
+    First,
+    Last,
     Accept,
     Cancel,
 }
@@ -24,6 +30,8 @@ pub(super) fn workbench_popup_keyboard_command(key: &Key) -> Option<WorkbenchPop
     match key {
         Key::Named(NamedKey::ArrowDown) => Some(WorkbenchPopupKeyboardCommand::Next),
         Key::Named(NamedKey::ArrowUp) => Some(WorkbenchPopupKeyboardCommand::Previous),
+        Key::Named(NamedKey::Home) => Some(WorkbenchPopupKeyboardCommand::First),
+        Key::Named(NamedKey::End) => Some(WorkbenchPopupKeyboardCommand::Last),
         Key::Named(NamedKey::Enter) => Some(WorkbenchPopupKeyboardCommand::Accept),
         Key::Named(NamedKey::Escape) => Some(WorkbenchPopupKeyboardCommand::Cancel),
         _ => None,
@@ -34,34 +42,19 @@ pub(super) fn dispatch_workbench_popup_keyboard_command(
     ui: &UiHostWindow,
     command: WorkbenchPopupKeyboardCommand,
 ) -> NativePointerDispatchResult {
-    let presentation = ui.get_host_presentation();
-    let interaction = ui.get_pane_interaction_state();
-    let bounds = template_popup_bounds(
-        &presentation.host_shell.native_window_bounds,
-        &presentation.workbench_window_nodes,
-    );
-    let Some(target) =
-        active_popup_keyboard_target(&presentation.workbench_window_nodes, &interaction, &bounds)
-    else {
+    let Some(target) = active_popup_keyboard_target_for_ui(ui) else {
         return NativePointerDispatchResult::idle();
     };
 
     match command {
-        WorkbenchPopupKeyboardCommand::Next | WorkbenchPopupKeyboardCommand::Previous => {
+        WorkbenchPopupKeyboardCommand::Next
+        | WorkbenchPopupKeyboardCommand::Previous
+        | WorkbenchPopupKeyboardCommand::First
+        | WorkbenchPopupKeyboardCommand::Last => {
             let Some(next) = target.next_row(command) else {
                 return NativePointerDispatchResult::idle();
             };
-            ui.set_hovered_template_row_for_pointer_move(
-                target.control_id.clone(),
-                target.dispatch_kind,
-                next.action_id,
-                next.value_text,
-                next.frame.clone(),
-            );
-            NativePointerDispatchResult::region(
-                union_optional_frames(Some(target.current_frame), Some(next.frame))
-                    .unwrap_or_default(),
-            )
+            dispatch_popup_hover_row(ui, target, next)
         }
         WorkbenchPopupKeyboardCommand::Accept => {
             let Some(row) = target.current_row else {
@@ -70,6 +63,15 @@ pub(super) fn dispatch_workbench_popup_keyboard_command(
             let popup_frame = target.popup_frame;
             let pane_host = ui.global::<PaneSurfaceHostContext>();
             match target.dispatch_kind.as_str() {
+                "workbench_option"
+                    if target.control_id.as_str() == WORKBENCH_COMMAND_PALETTE_CONTROL_ID =>
+                {
+                    pane_host.invoke_surface_control_edited(
+                        target.control_id,
+                        WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID.into(),
+                        row.value_text,
+                    )
+                }
                 "workbench_option" => pane_host.invoke_component_showcase_option_selected(
                     target.control_id,
                     row.action_id,
@@ -95,6 +97,46 @@ pub(super) fn dispatch_workbench_popup_keyboard_command(
     }
 }
 
+pub(super) fn dispatch_workbench_popup_text_search(
+    ui: &UiHostWindow,
+    text: &str,
+) -> NativePointerDispatchResult {
+    let Some(target) = active_popup_keyboard_target_for_ui(ui) else {
+        return NativePointerDispatchResult::idle();
+    };
+    let Some(next) = target.text_search_row(text) else {
+        return NativePointerDispatchResult::idle();
+    };
+    dispatch_popup_hover_row(ui, target, next)
+}
+
+fn active_popup_keyboard_target_for_ui(ui: &UiHostWindow) -> Option<PopupKeyboardTarget> {
+    let presentation = ui.get_host_presentation();
+    let interaction = ui.get_pane_interaction_state();
+    let bounds = template_popup_bounds(
+        &presentation.host_shell.native_window_bounds,
+        &presentation.workbench_window_nodes,
+    );
+    active_popup_keyboard_target(&presentation.workbench_window_nodes, &interaction, &bounds)
+}
+
+fn dispatch_popup_hover_row(
+    ui: &UiHostWindow,
+    target: PopupKeyboardTarget,
+    next: PopupKeyboardRow,
+) -> NativePointerDispatchResult {
+    ui.set_hovered_template_row_for_pointer_move(
+        target.control_id.clone(),
+        target.dispatch_kind,
+        next.action_id,
+        next.value_text,
+        next.frame.clone(),
+    );
+    NativePointerDispatchResult::region(
+        union_optional_frames(Some(target.current_frame), Some(next.frame)).unwrap_or_default(),
+    )
+}
+
 struct PopupKeyboardTarget {
     control_id: SharedString,
     dispatch_kind: SharedString,
@@ -115,11 +157,28 @@ impl PopupKeyboardTarget {
             WorkbenchPopupKeyboardCommand::Previous => {
                 (self.current_index + self.rows.len() - 1) % self.rows.len()
             }
+            WorkbenchPopupKeyboardCommand::First => 0,
+            WorkbenchPopupKeyboardCommand::Last => self.rows.len() - 1,
             WorkbenchPopupKeyboardCommand::Accept | WorkbenchPopupKeyboardCommand::Cancel => {
                 self.current_index
             }
         };
         self.rows.get(next_index).cloned()
+    }
+
+    fn text_search_row(&self, text: &str) -> Option<PopupKeyboardRow> {
+        if self.rows.is_empty() {
+            return None;
+        }
+        let query = normalized_popup_text_query(text)?;
+        let start_index = (self.current_index + 1) % self.rows.len();
+        self.rows
+            .iter()
+            .cycle()
+            .skip(start_index)
+            .take(self.rows.len())
+            .find(|row| row.matches_text_query(&query))
+            .cloned()
     }
 }
 
@@ -128,9 +187,18 @@ struct PopupKeyboardRow {
     action_id: SharedString,
     value_text: SharedString,
     identity: SharedString,
+    search_text: SharedString,
     focused: bool,
     selected: bool,
     frame: FrameRect,
+}
+
+impl PopupKeyboardRow {
+    fn matches_text_query(&self, query: &str) -> bool {
+        popup_text_starts_with(&self.search_text, query)
+            || popup_text_starts_with(&self.value_text, query)
+            || popup_text_starts_with(&self.identity, query)
+    }
 }
 
 fn active_popup_keyboard_target(
@@ -171,6 +239,20 @@ fn popup_keyboard_target_for_node(
         .or_else(|| menu_popup_keyboard_target(node, interaction))
 }
 
+fn option_keyboard_row_frame_within(
+    node: &TemplatePaneNodeData,
+    control_frame: &FrameRect,
+    row_count: usize,
+    row: usize,
+    bounds: &FrameRect,
+) -> Option<FrameRect> {
+    if template_option_rows_use_projected_frame(node) {
+        template_option_row_frame_within(node, control_frame, row_count, row, bounds)
+    } else {
+        dropdown_option_row_frame_within(control_frame, row_count, row, bounds)
+    }
+}
+
 fn option_popup_keyboard_target(
     node: &TemplatePaneNodeData,
     interaction: &HostPaneInteractionStateData,
@@ -200,14 +282,25 @@ fn option_popup_keyboard_target(
             Some(PopupKeyboardRow {
                 action_id: action_id.clone(),
                 value_text: option.id.clone(),
-                identity: option.id,
+                identity: option.id.clone(),
+                search_text: if option.label.is_empty() {
+                    option.id
+                } else {
+                    option.label
+                },
                 focused: option.focused || option.hovered || option.pressed,
                 selected: option.selected || option.special,
-                frame: dropdown_option_row_frame_within(&control_frame, row_count, row, bounds)?,
+                frame: option_keyboard_row_frame_within(
+                    node,
+                    &control_frame,
+                    row_count,
+                    row,
+                    bounds,
+                )?,
             })
         })
         .collect();
-    let popup_frame = dropdown_option_popup_frame_within(&control_frame, row_count, bounds)
+    let popup_frame = template_option_popup_frame_within(node, &control_frame, row_count, bounds)
         .unwrap_or_else(|| control_frame);
     popup_keyboard_target_from_rows(node, "workbench_option", rows, popup_frame, interaction)
 }
@@ -231,7 +324,8 @@ fn menu_popup_keyboard_target(
             Some(PopupKeyboardRow {
                 action_id: item.action_id.clone(),
                 value_text: item.label.clone(),
-                identity: item.action_id,
+                identity: item.action_id.clone(),
+                search_text: item.label,
                 focused: item.focused || item.hovered || item.pressed,
                 selected: item.checked,
                 frame: menu_item_row_frame(&menu_frame, row_count, row)?,
@@ -292,4 +386,34 @@ fn active_row_index(
         .position(|row| row.focused)
         .or_else(|| rows.iter().position(|row| row.selected))
         .unwrap_or(0)
+}
+
+fn normalized_popup_text_query(text: &str) -> Option<String> {
+    let query = text.trim().to_lowercase();
+    if query.is_empty() {
+        None
+    } else {
+        Some(query)
+    }
+}
+
+fn popup_text_starts_with(value: &SharedString, query: &str) -> bool {
+    value.as_str().to_lowercase().starts_with(query)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workbench_popup_keyboard_command_maps_boundary_keys() {
+        assert_eq!(
+            workbench_popup_keyboard_command(&Key::Named(NamedKey::Home)),
+            Some(WorkbenchPopupKeyboardCommand::First)
+        );
+        assert_eq!(
+            workbench_popup_keyboard_command(&Key::Named(NamedKey::End)),
+            Some(WorkbenchPopupKeyboardCommand::Last)
+        );
+    }
 }

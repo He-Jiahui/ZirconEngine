@@ -10,8 +10,18 @@ fn rpc_descriptor_records_direction_schema_and_quota() {
     assert_eq!(descriptor.id, "chat.send_message");
     assert_eq!(descriptor.direction, RpcDirection::ClientToServer);
     assert_eq!(
-        descriptor.payload_schema.as_deref(),
+        descriptor
+            .payload_schema
+            .as_ref()
+            .map(|schema| schema.schema_id()),
         Some("schema://net/chat/send-message.v1")
+    );
+    assert_eq!(
+        descriptor
+            .payload_schema
+            .as_ref()
+            .map(|schema| { schema.reflect_schema_request.filter.type_path.as_deref() }),
+        Some(Some("schema://net/chat/send-message.v1"))
     );
     assert_eq!(descriptor.max_calls_per_second, Some(24));
     assert_eq!(descriptor.max_payload_bytes, Some(2048));
@@ -27,5 +37,9 @@ fn rpc_descriptor_records_direction_schema_and_quota() {
     assert_eq!(
         RpcDescriptor::target_rpc("inventory.sync_one").direction,
         RpcDirection::TargetClient
+    );
+    assert_eq!(
+        RpcDescriptor::new("chat.moderate", RpcDirection::Bidirectional).direction,
+        RpcDirection::Bidirectional
     );
 }

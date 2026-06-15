@@ -3,6 +3,7 @@ mod create_project;
 mod create_project_request;
 mod device_install;
 mod editor_recent_sync;
+mod install_receipt;
 mod local_paths;
 mod metadata;
 mod package;
@@ -20,6 +21,10 @@ pub use editor_recent_sync::{
     load_editor_recent_project_session, load_editor_recent_projects, merge_recent_projects,
     save_editor_recent_projects, save_editor_recent_projects_with_last_project,
     EditorRecentProjectSession,
+};
+pub use install_receipt::{
+    DeviceInstallFileReceipt, DeviceInstallReceipt, HubContentDownloadChunk,
+    HubContentDownloadManifest,
 };
 pub use metadata::{
     metadata_for_path, metadata_for_path_mut, normalize_project_root, project_filesystem_path_key,

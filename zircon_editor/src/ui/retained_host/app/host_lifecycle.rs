@@ -244,6 +244,8 @@ impl RetainedEditorHost {
                 desktop_export_reports: BTreeMap::new(),
                 desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
                 desktop_export_output_overrides: BTreeMap::new(),
+                desktop_export_wizard_sessions:
+                    build_export_wizard_session::DesktopExportWizardSessions::default(),
                 viewport,
                 asset_manager,
                 editor_asset_manager,
@@ -329,6 +331,7 @@ impl RetainedEditorHost {
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.poll_desktop_export_jobs();
+        self.poll_desktop_export_wizard_sessions();
 
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);
@@ -1178,9 +1181,16 @@ impl RetainedEditorHost {
                 Vec::new()
             });
 
+        let wizard_view_model = targets.first().and_then(|target| {
+            self.desktop_export_wizard_sessions
+                .view_model(target.profile_name.as_str())
+                .cloned()
+        });
+
         let pane = BuildExportPaneViewData {
             targets: model_rc(targets),
             diagnostics: diagnostics.join("\n").into(),
+            wizard_view_model,
         };
 
         pane
@@ -1244,6 +1254,9 @@ impl RetainedEditorHost {
             if let Err(error) = self.import_model_into_project() {
                 self.set_status_line(error);
             }
+        }
+        if effects.open_command_palette_requested {
+            self.open_workbench_command_palette();
         }
         if effects.present_welcome_surface {
             if let Err(error) = self.present_welcome_surface(

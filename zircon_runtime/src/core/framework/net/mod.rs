@@ -20,7 +20,7 @@ mod websocket;
 pub use diagnostics::NetDiagnostics;
 pub use download::{
     NetDownloadAttemptDescriptor, NetDownloadChunk, NetDownloadManifest, NetDownloadProgress,
-    NetDownloadStatus,
+    NetDownloadStatus, ZrChunkEntry, ZrPackManifest,
 };
 pub use endpoint::NetEndpoint;
 pub use error::NetError;
@@ -42,7 +42,7 @@ pub use reliable::{
 };
 pub use rpc::{
     RpcDescriptor, RpcDirection, RpcDispatchReport, RpcDispatchStatus, RpcInvocationDescriptor,
-    RpcPeerRole,
+    RpcPayloadSchema, RpcPeerRole,
 };
 pub use session::{
     NetControlMessage, NetRuntimeMode, NetSessionControlReport, NetSessionHandshakePolicy,
@@ -50,9 +50,9 @@ pub use session::{
 };
 pub use socket_id::NetSocketId;
 pub use sync::{
-    SyncAuthority, SyncComponentDescriptor, SyncDelta, SyncFieldDescriptor, SyncFieldValue,
-    SyncInterestDescriptor, SyncObjectSnapshot, SyncReplicationBudget,
-    SyncReplicationScheduleReport, SYNC_DEFAULT_COMPONENT_UPDATE_HZ,
+    NetworkIdentity, SyncAuthority, SyncComponentDescriptor, SyncDelta, SyncFieldDescriptor,
+    SyncFieldValue, SyncInterestDescriptor, SyncObjectSnapshot, SyncReplicationBudget,
+    SyncReplicationScheduleReport, SyncReplicationStrategy, SYNC_DEFAULT_COMPONENT_UPDATE_HZ,
     SYNC_DEFAULT_REPLICATION_PRIORITY, SYNC_REPLICATION_UNBOUNDED_BUDGET,
 };
 pub use transport::{

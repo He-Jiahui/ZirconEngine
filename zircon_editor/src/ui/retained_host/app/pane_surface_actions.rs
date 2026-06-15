@@ -26,8 +26,8 @@ impl RetainedEditorHost {
             self.dispatch_module_plugin_action(action_id);
             return;
         }
-        if control_id == build_export_actions::BUILD_EXPORT_ACTION_CONTROL_ID {
-            self.dispatch_build_export_action(action_id);
+        if is_build_export_surface_action(control_id, action_id) {
+            self.dispatch_build_export_surface_action(control_id, action_id);
             return;
         }
         if control_id == profiling::PERFORMANCE_TIMELINE_ACTION_CONTROL_ID {
@@ -221,6 +221,17 @@ impl RetainedEditorHost {
             .workbench_window_bridge
             .binding_id_for_action_id(binding_id)
             .unwrap_or_else(|| binding_id.to_string());
+        if let Some(result) =
+            callback_dispatch::dispatch_componentized_workbench_command_palette_committed(
+                &self.runtime,
+                &self.workbench_window_bridge,
+                control_id,
+                binding_id.as_str(),
+                value,
+            )
+        {
+            return Some(result);
+        }
         callback_dispatch::dispatch_componentized_workbench_surface_control_edited(
             &mut self.workbench_window_bridge,
             control_id,
@@ -491,6 +502,11 @@ impl RetainedEditorHost {
     }
 }
 
+fn is_build_export_surface_action(control_id: &str, action_id: &str) -> bool {
+    control_id == build_export_actions::BUILD_EXPORT_ACTION_CONTROL_ID
+        || build_export_actions::parse_build_export_action(action_id).is_some()
+}
+
 fn component_showcase_action_id_for_binding_id(binding_id: &str) -> String {
     let Some(suffix) = binding_id.strip_prefix("UiComponentShowcase/") else {
         return binding_id
@@ -501,6 +517,31 @@ fn component_showcase_action_id_for_binding_id(binding_id: &str) -> String {
             .join(".");
     };
     format!("ui_component_showcase.{}", camel_to_snake_segment(suffix))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plugin_export_wizard_action_id_routes_to_build_export_dispatch() {
+        assert!(is_build_export_surface_action(
+            "DesktopExportStartButton",
+            "workbench.build_export.execute.desktop_windows"
+        ));
+        assert!(is_build_export_surface_action(
+            "DesktopExportGeneratePlanButton",
+            "workbench.build_export.plan.desktop_windows"
+        ));
+        assert!(is_build_export_surface_action(
+            build_export_actions::BUILD_EXPORT_ACTION_CONTROL_ID,
+            "workbench.build_export.unknown.desktop_windows"
+        ));
+        assert!(!is_build_export_surface_action(
+            "DesktopExportStartButton",
+            "DesktopExportWizard/Start"
+        ));
+    }
 }
 
 fn camel_to_snake_segment(value: &str) -> String {

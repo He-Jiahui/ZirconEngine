@@ -6,7 +6,7 @@ use super::{
     RenderShadowExecutionReport, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
-    RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings,
+    RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings, TaaQualityPreset,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -113,6 +113,7 @@ pub struct RenderHistoryCopyReport {
     pub ambient_occlusion_copied: bool,
     pub screen_space_reflection_copied: bool,
     pub hzb_furthest_copied: bool,
+    pub exposure_copied: bool,
 }
 
 impl RenderHistoryCopyReport {
@@ -125,6 +126,7 @@ impl RenderHistoryCopyReport {
         ambient_occlusion_copied: bool,
         screen_space_reflection_copied: bool,
         hzb_furthest_copied: bool,
+        exposure_copied: bool,
     ) -> Self {
         Self {
             history_target_present,
@@ -135,12 +137,14 @@ impl RenderHistoryCopyReport {
                 + global_illumination_copied as usize
                 + ambient_occlusion_copied as usize
                 + screen_space_reflection_copied as usize
-                + hzb_furthest_copied as usize,
+                + hzb_furthest_copied as usize
+                + exposure_copied as usize,
             scene_color_copied,
             global_illumination_copied,
             ambient_occlusion_copied,
             screen_space_reflection_copied,
             hzb_furthest_copied,
+            exposure_copied,
         }
     }
 }
@@ -581,6 +585,29 @@ impl RenderGraphStageExecutionReport {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderSceneVelocityReadbackReport {
+    pub available: bool,
+    pub size: UVec2,
+    pub byte_len: usize,
+    pub nonzero_pixel_count: usize,
+}
+
+impl RenderSceneVelocityReadbackReport {
+    pub fn from_raw_rg16_float_bytes(size: UVec2, bytes: &[u8]) -> Self {
+        let nonzero_pixel_count = bytes
+            .chunks_exact(4)
+            .filter(|pixel| pixel.iter().any(|byte| *byte != 0))
+            .count();
+        Self {
+            available: true,
+            size,
+            byte_len: bytes.len(),
+            nonzero_pixel_count,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum MotionVectorCameraStatus {
     #[default]
@@ -929,7 +956,7 @@ impl RenderViewportDescriptor {
 pub struct RenderFeatureQualitySettings {
     pub clustered_lighting: bool,
     pub screen_space_ambient_occlusion: bool,
-    pub history_resolve: bool,
+    pub temporal_history: bool,
     pub bloom: bool,
     pub color_grading: bool,
     pub anti_alias: bool,
@@ -947,7 +974,7 @@ impl Default for RenderFeatureQualitySettings {
         Self {
             clustered_lighting: true,
             screen_space_ambient_occlusion: true,
-            history_resolve: false,
+            temporal_history: false,
             bloom: true,
             color_grading: true,
             anti_alias: true,
@@ -967,6 +994,7 @@ pub struct RenderQualityProfile {
     pub name: String,
     pub pipeline_override: Option<RenderPipelineHandle>,
     pub features: RenderFeatureQualitySettings,
+    pub taa_quality: TaaQualityPreset,
     pub solari: SolariSettings,
 }
 
@@ -976,6 +1004,7 @@ impl RenderQualityProfile {
             name: name.into(),
             pipeline_override: None,
             features: RenderFeatureQualitySettings::default(),
+            taa_quality: TaaQualityPreset::default(),
             solari: SolariSettings::default(),
         }
     }
@@ -995,8 +1024,8 @@ impl RenderQualityProfile {
         self
     }
 
-    pub fn with_history_resolve(mut self, enabled: bool) -> Self {
-        self.features.history_resolve = enabled;
+    pub fn with_temporal_history(mut self, enabled: bool) -> Self {
+        self.features.temporal_history = enabled;
         self
     }
 
@@ -1012,6 +1041,11 @@ impl RenderQualityProfile {
 
     pub fn with_anti_alias(mut self, enabled: bool) -> Self {
         self.features.anti_alias = enabled;
+        self
+    }
+
+    pub fn with_taa_quality(mut self, quality: TaaQualityPreset) -> Self {
+        self.taa_quality = quality;
         self
     }
 
@@ -1173,9 +1207,10 @@ pub struct RenderStats {
     pub last_graph_execution_resource_report: RenderGraphExecutionResourceReport,
     pub last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport,
     pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
+    pub last_scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
     pub last_post_process_graph_node_count: usize,
     pub last_post_process_graph_skipped_node_count: usize,
-    pub last_post_process_final_composite_node: Option<String>,
+    pub last_post_process_output_transfer_node: Option<String>,
     pub last_post_process_graph_executed_nodes: Vec<String>,
     pub last_post_process_effect_stack_report: RenderPostProcessEffectStackReport,
     pub last_post_process_lut_request_count: usize,
@@ -1185,10 +1220,6 @@ pub struct RenderStats {
     pub last_post_process_lut_3d_request_count: usize,
     pub last_post_process_lut_unsupported_shape_count: usize,
     pub last_motion_vector_camera_status: MotionVectorCameraStatus,
-    pub last_motion_vector_previous_object_history_count: usize,
-    pub last_motion_vector_current_object_history_count: usize,
-    pub last_motion_vector_matched_object_history_count: usize,
-    pub last_motion_vector_missing_object_history_count: usize,
     pub last_anti_alias_fallback: AntiAliasFallbackReport,
     pub last_graph_requested_msaa_sample_count: u32,
     pub last_graph_effective_msaa_sample_count: u32,
@@ -1199,6 +1230,8 @@ pub struct RenderStats {
     pub last_shadow_graph_executed_pass_count: usize,
     pub last_shadow_execution_report: RenderShadowExecutionReport,
     pub last_transparent_graph_executed_pass_count: usize,
+    pub last_particle_velocity_missing_sprite_count: usize,
+    pub last_particle_velocity_anonymous_stream_ambiguity_count: usize,
     pub last_particle_gpu_alive_count: usize,
     pub last_particle_gpu_spawned_total: usize,
     pub last_particle_gpu_emitter_readback_count: usize,
@@ -1231,12 +1264,14 @@ pub struct RenderStats {
     pub last_mesh_skinned_previous_palette_upload_count: usize,
     pub last_mesh_skinned_gpu_source_candidate_count: usize,
     pub last_mesh_skinned_gpu_cpu_morphed_source_candidate_count: usize,
+    pub last_mesh_skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count: usize,
     pub last_mesh_skinned_gpu_skinning_draw_count: usize,
-    pub last_mesh_skinned_gpu_motion_vector_draw_count: usize,
+    pub last_mesh_skinned_gpu_velocity_draw_count: usize,
     pub last_mesh_indirect_draw_count: usize,
     pub last_mesh_lod_draw_count: usize,
-    pub last_mesh_previous_motion_vector_transform_draw_count: usize,
-    pub last_mesh_missing_motion_vector_transform_draw_count: usize,
+    pub last_mesh_previous_velocity_transform_draw_count: usize,
+    pub last_mesh_missing_velocity_transform_draw_count: usize,
+    pub last_mesh_taa_reactive_mask_command_count: usize,
     pub last_mesh_static_batch_candidate_group_count: usize,
     pub last_mesh_static_batch_candidate_draw_count: usize,
     pub last_mesh_dynamic_batch_candidate_group_count: usize,
@@ -1366,7 +1401,7 @@ mod tests {
         RenderCameraTargetWritebackReport, RenderCapabilityClass, RenderCapabilityKind,
         RenderCapabilityMismatchDetail, RenderCapabilitySummary,
         RenderGraphExecutionCoverageReport, RenderGraphStageExecutionReport,
-        RenderHistoryCopyReport,
+        RenderHistoryCopyReport, RenderQualityProfile, TaaQualityPreset,
     };
 
     #[test]
@@ -1374,10 +1409,11 @@ mod tests {
         let report = RenderHistoryCopyReport::new(
             true,
             UVec2::new(960, 540),
-            5,
+            6,
             true,
             true,
             false,
+            true,
             true,
             true,
         );
@@ -1385,13 +1421,14 @@ mod tests {
         assert!(report.history_target_present);
         assert!(report.debug_marker_emitted);
         assert_eq!(report.target_size, UVec2::new(960, 540));
-        assert_eq!(report.requested_copy_count, 5);
-        assert_eq!(report.copied_count, 4);
+        assert_eq!(report.requested_copy_count, 6);
+        assert_eq!(report.copied_count, 5);
 
         let missing_target_report = RenderHistoryCopyReport::new(
             false,
             UVec2::new(960, 540),
             1,
+            false,
             false,
             false,
             false,
@@ -1443,6 +1480,18 @@ mod tests {
         assert_eq!(report.missing_planned_pass_count, 1);
         assert_eq!(report.unexpected_executed_pass_count, 2);
         assert_eq!(report.duplicate_executed_pass_count, 1);
+    }
+
+    #[test]
+    fn render_quality_profile_preserves_taa_quality_preset() {
+        let profile =
+            RenderQualityProfile::new("taa-high").with_taa_quality(TaaQualityPreset::High);
+
+        assert_eq!(profile.taa_quality, TaaQualityPreset::High);
+        assert_eq!(
+            RenderQualityProfile::new("default").taa_quality,
+            TaaQualityPreset::Medium
+        );
     }
 
     #[test]

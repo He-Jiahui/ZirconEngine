@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use zircon_runtime::core::framework::net::{
     NetEndpoint, NetError, NetEvent, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
@@ -126,6 +127,7 @@ impl DefaultNetManager {
         &self,
         request: NetHttpRequestDescriptor,
     ) -> Result<NetHttpResponseDescriptor, NetError> {
+        let outbound_bytes = request.body.len();
         let path = crate::http::path_from_http_url(&request.url);
         let routes = self
             .state
@@ -146,11 +148,21 @@ impl DefaultNetManager {
                         .unwrap_or_else(|| entry.response.clone().for_request(request.request))
                 })
             {
+                self.state.record_outbound_bytes(outbound_bytes);
+                self.state.record_inbound_bytes(response.body_bytes);
+                self.state.record_latency_ms(0);
                 return Ok(response);
             }
         }
         drop(routes);
-        self.http_backend()?
-            .send_http_request(&self.state.runtime, request)
+        let started_at = Instant::now();
+        let response = self
+            .http_backend()?
+            .send_http_request(&self.state.runtime, request)?;
+        self.state.record_outbound_bytes(outbound_bytes);
+        self.state.record_inbound_bytes(response.body_bytes);
+        self.state
+            .record_latency_ms(started_at.elapsed().as_millis() as u64);
+        Ok(response)
     }
 }

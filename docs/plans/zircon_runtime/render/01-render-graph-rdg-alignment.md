@@ -509,6 +509,15 @@ render_product 对拍场景(`cargo test -p zircon_runtime render_product --locke
 - `render_product_deferred_post_chain_transient_pool`:deferred + SSAO + bloom + tonemap 场景,池化后帧产物与既有 render_product 基线逐像素一致;同帧 `physical_texture_count < logical_texture_count` 写入断言。
 - `render_product_forward_plus_cache_steady_state`:forward+ 场景连续三帧,第 2/3 帧缓存命中且产物与第 1 帧一致(排除缓存引入的拓扑漂移)。
 
+## 状态与产出记录
+
+| 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
+|------|-------------|------|------|------------|------|
+| 2026-06-15 | RG-M1 resource handles and lifetime model | 部分完成: graph contract 已服务后续渲染切片,统一生命周期 owner 未完全收束 | 计划 04/06/07 已依赖 graph resource names、external imports、execution-owned resources 与 WGPU executor contract 承载 HZB、TAA、exposure、output-transfer 等资源;但真实 wgpu resource 仍有不少 executor 自持路径。 | 当前计划 04/06/07 的 `## 状态与产出记录` 均记录了 graph resource/executor 接入;`render_graph_execution_resources` 相关 alias/materialization 测试在会话记录中已有通过证据。 | 继续把 executor 私有资源迁入 graph materialization,并为 attachment clear/load 与 resource lifetime 建统一校验。 |
+| 2026-06-15 | RG-M2 transient resource pool | 部分完成: transient texture/buffer pool 已被 TAA/HZB/postprocess 使用 | TAA history、HZB chain、postprocess HDR/tonemapped/output-transfer、reactive mask、exposure 等切片已通过 graph resource 名称和 transient materialization 复用资源。 | 计划 06/07 状态表记录 `R8Unorm`/`R16Float`/`Rg16Float`/`Rg11b10Ufloat` transient usage 修正和 core-min `cargo check` 通过;会话记录包含 transient pool reuse/alias tests。 | 补齐池容量预算、跨帧 eviction 诊断和 graph dump 中的 transient alias 可视化。 |
+| 2026-06-15 | RG-M3 pass culling and compile cache | 部分完成: pass culling 已在多处生效,跨帧编译缓存仍未完成 | Postprocess optional pass filtering、TAA disabled stack culling、HZB occlusion capability gate、contact shadow feature disable gate 已落地;编译缓存仍以当前 pipeline asset 编译路径为主。 | 计划 04、06、07、05 状态表分别记录 HZB gate、TAA reactive mask culling、postprocess optional pass filtering、contact-shadow disabled graph absent。 | 建立 `CompiledRenderPipeline` cache key、增量 invalidation 和 graph dump 对拍测试。 |
+| 2026-06-15 | RG-M4 diagnostics and RenderDoc bridge | 部分完成: debug marker/diagnostics 可用,自动化捕获验收仍待后续 | Graph pass marker、runtime diagnostics 与 RenderDoc capture env hook 已被后续计划使用;但缺少统一 graph dump artifact 和自动附带 frame profile 的 capture 包。 | 计划 04/06/07 状态表均记录 RenderDoc 仍无运行实例或待后续验收;当前只完成源码/测试级证据。 | 为每帧输出 graph dump、resource alias map、pass timings 和 RenderDoc marker 对拍。 |
+
 ### 参考实现精读笔记
 
 `dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphBuilder.h` — `FRDGBuilder`:

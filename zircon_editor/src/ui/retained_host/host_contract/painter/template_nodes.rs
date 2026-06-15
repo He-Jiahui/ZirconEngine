@@ -15,12 +15,16 @@ use super::template_axis_labels::push_axis_label_commands;
 use super::template_axis_value_fields::push_axis_value_field_commands;
 use super::template_buttons::push_button_commands;
 use super::template_chips::push_chip_commands;
+use super::template_command_palette::push_command_palette_commands;
+use super::template_dialogs::push_dialog_commands;
+use super::template_drag_overlay::push_drag_overlay_commands;
 use super::template_dropdowns::{dropdown_paint_rect, push_dropdown_commands};
 use super::template_fields::push_field_commands;
 use super::template_icon_buttons::push_icon_button_commands;
 use super::template_inspector_rows::push_inspector_row_commands;
 use super::template_list_rows::push_list_row_commands;
 use super::template_node_labels::template_node_label;
+use super::template_notification_center::push_notification_center_commands;
 use super::template_popup_rows::push_template_popup_row_commands;
 use super::template_property_rows::push_property_row_text_commands;
 use super::template_section_titles::push_section_title_commands;
@@ -242,6 +246,22 @@ fn push_template_node_commands(
     }
 
     if push_alert_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_dialog_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_command_palette_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_notification_center_commands(commands, node, &rect, &node_clip, order, opacity) {
+        return;
+    }
+
+    if push_drag_overlay_commands(commands, node, &rect, &node_clip, order, opacity) {
         return;
     }
 

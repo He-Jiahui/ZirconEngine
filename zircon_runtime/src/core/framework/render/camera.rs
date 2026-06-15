@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::scene::EntityId;
 
-use super::{CorePipelineKind, RenderVirtualGeometryDebugState};
+use super::{CorePipelineKind, RenderVirtualGeometryDebugState, TemporalJitterSample};
 
 pub type RenderLayer = u32;
 
@@ -45,6 +45,8 @@ pub struct ViewportCameraSnapshot {
     pub render_layers: RenderLayerSet,
     #[serde(default)]
     pub dynamic_resolution: RenderDynamicResolutionSettings,
+    #[serde(default)]
+    pub temporal_jitter: TemporalJitterSample,
 }
 
 impl ViewportCameraSnapshot {
@@ -399,6 +401,7 @@ impl Default for ViewportCameraSnapshot {
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
             render_layers: RenderLayerSet::default(),
             dynamic_resolution: RenderDynamicResolutionSettings::default(),
+            temporal_jitter: TemporalJitterSample::default(),
         }
     }
 }

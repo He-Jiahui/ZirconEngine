@@ -18,11 +18,11 @@ impl MeshPassProcessor for VelocityPassProcessor {
         R: MeshPipelineVariantResolver + ?Sized,
     {
         if batch.queue_profile.early_z_eligible()
-            && batch.queue_profile.motion_vector_history_eligible()
-            && batch.has_previous_motion_vector_transform
+            && batch.queue_profile.velocity_history_eligible()
+            && batch.has_previous_velocity_transform
             && batch.relevant_to_main_phase(RenderPhase::PostProcess)
         {
-            let pipeline_kind = MeshPassPipelineKind::MotionVector;
+            let pipeline_kind = MeshPassPipelineKind::Velocity;
             let pipeline_variant_id =
                 context.pipeline_variant_id(pipeline_kind, &batch.pipeline_key);
             out.push(batch.command(RenderPhase::PostProcess, pipeline_kind, pipeline_variant_id));

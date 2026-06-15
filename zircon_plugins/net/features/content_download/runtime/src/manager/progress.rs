@@ -42,7 +42,9 @@ impl NetContentDownloadRuntimeManager {
         } else {
             NetDownloadStatus::Downloading
         };
-        Some(progress.clone())
+        let progress = progress.clone();
+        state.mark_resume_bitmap_chunk_complete(download, chunk_id);
+        Some(progress)
     }
 
     pub fn mark_chunk_complete(
@@ -74,7 +76,9 @@ impl NetContentDownloadRuntimeManager {
         } else {
             NetDownloadStatus::Downloading
         };
-        Some(progress.clone())
+        let progress = progress.clone();
+        state.mark_resume_bitmap_chunk_complete(download, chunk_id);
+        Some(progress)
     }
 
     pub fn progress(&self, download: NetDownloadId) -> Option<NetDownloadProgress> {

@@ -40,11 +40,11 @@ fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floa
         &model,
         None,
         &WorkbenchChromeMetrics::default(),
-        &[NativeWindowHostState {
-            window_id: window_id.clone(),
-            handle: None,
-            bounds: [640.0, 320.0, 700.0, 420.0],
-        }],
+        &[NativeWindowHostState::new_for_test(
+            window_id.clone(),
+            None,
+            [640.0, 320.0, 700.0, 420.0],
+        )],
     );
     let layout = build_host_document_tab_pointer_layout(
         &model,

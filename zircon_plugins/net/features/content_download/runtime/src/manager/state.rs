@@ -27,6 +27,7 @@ pub(in crate::manager) struct NetContentDownloadRuntimeState {
     pub(in crate::manager) attempt_indices: HashMap<(NetDownloadId, String), usize>,
     pub(in crate::manager) failed_attempts: HashMap<(NetDownloadId, String), Vec<String>>,
     pub(in crate::manager) partial_chunks: HashMap<(NetDownloadId, String), Vec<u8>>,
+    pub(in crate::manager) resume_bitmaps: HashMap<NetDownloadId, Vec<bool>>,
 }
 
 impl NetContentDownloadRuntimeManager {

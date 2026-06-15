@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/layout_commands.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/workbench/view/preferred_host_to_view_host.rs
   - zircon_editor/src/ui/workbench/layout/manager/attach.rs
   - zircon_editor/src/ui/workbench/layout/manager/apply.rs
@@ -8,12 +9,15 @@ related_code:
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
 implementation_files:
   - zircon_editor/src/ui/host/layout_commands.rs
+  - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
 plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - cargo test -p zircon_editor --lib window_host_manager --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 3 passed, 0 failed, 2020 filtered out)
+  - cargo test -p zircon_editor --lib opening_functional_editor_window_creates_instance_scoped_floating_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 1 passed, 0 failed, 2022 filtered out)
 doc_type: module-detail
 ---
 
@@ -27,6 +31,6 @@ Functional editor windows need one extra normalization step. `PreferredHost::Flo
 - `FloatingWindow("floating")` becomes `FloatingWindow("window:{instance_id}")`;
 - `ExclusivePage("exclusive")` becomes `ExclusivePage("page:{instance_id}")`.
 
-When the resolved floating window does not yet exist, `attach_instance(...)` creates it with `LayoutCommand::DetachViewToWindow` and asks the native-window host manager to open the matching native window. This makes Window menu entries such as Material Editor and Animation Editor open as independent Unreal-style feature windows instead of failing on a missing placeholder window.
+When the resolved floating window does not yet exist, `attach_instance(...)` creates it with `LayoutCommand::DetachViewToWindow` and asks the native-window host manager to open the matching native window. The host manager allocates a per-window runtime `UiSurface` and exposes its tree id as `zircon.editor.native_window.window:{instance_id}`, so Window menu entries such as Material Editor and Animation Editor open as independent Unreal-style feature windows instead of failing on a missing placeholder window or sharing the main workbench surface.
 
 Drawer-backed utility windows such as Asset Browser and Diagnostics now receive distinct exclusive page ids. They no longer collide on the shared `exclusive` placeholder when multiple utility windows are opened in one session.

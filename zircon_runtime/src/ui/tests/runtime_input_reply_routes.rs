@@ -9,7 +9,7 @@ use std::sync::{
 use zircon_runtime_interface::ui::{
     accessibility::{UiAccessibilityAction, UiAccessibilityActionRequest},
     binding::UiEventKind,
-    component::{UiComponentEvent, UiComponentKeyboardAction, UiValue},
+    component::{UiComponentEvent, UiComponentKeyboardAction, UiDragPhase, UiValue},
     dispatch::{
         UiAccessibilityInputEvent, UiAnalogInputEvent, UiDispatchDisposition, UiDispatchEffect,
         UiDispatchHostRequestKind, UiDispatchPhase, UiDispatchReply, UiDispatchReplyStep,
@@ -20,9 +20,9 @@ use zircon_runtime_interface::ui::{
         UiNavigationInputEvent, UiPointerCaptureReason, UiPointerDispatchEffect, UiPointerEvent,
         UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPointerSource, UiPopupEffectKind,
         UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-        UiSubmenuHoverTimerInputEvent, UiTextInputEvent, UiTooltipEffectKind,
-        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiTransientDismissalReason,
-        UiTransientDismissalTarget,
+        UiSubmenuHoverTimerInputEvent, UiTextInputEvent, UiToastTimerInputEvent,
+        UiTooltipEffectKind, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiTransientDismissalReason, UiTransientDismissalTarget,
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     focus::UiFocusedInputKind,
@@ -45,8 +45,10 @@ mod pointer_capture_routes;
 mod pointer_hover_routes;
 mod pointer_popup_routes;
 mod popup_routes;
+mod table_pointer_routes;
 mod tooltip_timer_routes;
 mod touch_pointer_routes;
+mod tree_view_pointer_routes;
 
 #[test]
 fn direct_dispatch_reply_populates_focus_route_trace_after_effects() {

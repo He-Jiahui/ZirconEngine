@@ -1,6 +1,9 @@
 use super::globals::PaneSurfaceHostContext;
 use super::surface_hit_test::TemplateNodePointerHit;
 use super::template_input_semantics::hit_is_text_input;
+use crate::ui::retained_host::callback_dispatch::{
+    WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
+};
 use crate::ui::retained_host::primitives::SharedString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -10,6 +13,7 @@ enum TemplatePrimaryActivationRoute {
     Asset,
     Welcome,
     Showcase,
+    CommandPaletteOption,
     WorkbenchOption,
     WorkbenchMenuItem,
     SurfaceBinding,
@@ -46,6 +50,12 @@ pub(super) fn dispatch_template_node_primary_press(
         TemplatePrimaryActivationRoute::Showcase => {
             pane_host.invoke_component_showcase_control_activated(hit.control_id, hit.action_id)
         }
+        TemplatePrimaryActivationRoute::CommandPaletteOption => pane_host
+            .invoke_surface_control_edited(
+                hit.control_id,
+                WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID.into(),
+                hit.value_text,
+            ),
         TemplatePrimaryActivationRoute::WorkbenchOption => pane_host
             .invoke_component_showcase_option_selected(
                 hit.control_id,
@@ -71,8 +81,12 @@ fn primary_activation_route(hit: &TemplateNodePointerHit) -> TemplatePrimaryActi
         kind if asset_dispatch_source(kind).is_some() => TemplatePrimaryActivationRoute::Asset,
         "welcome" => TemplatePrimaryActivationRoute::Welcome,
         "showcase" => TemplatePrimaryActivationRoute::Showcase,
+        "workbench_option" if hit.control_id.as_str() == WORKBENCH_COMMAND_PALETTE_CONTROL_ID => {
+            TemplatePrimaryActivationRoute::CommandPaletteOption
+        }
         "workbench_option" => TemplatePrimaryActivationRoute::WorkbenchOption,
         "workbench_menu_item" => TemplatePrimaryActivationRoute::WorkbenchMenuItem,
+        "export_wizard_panel" => TemplatePrimaryActivationRoute::SurfaceAction,
         _ if !hit.binding_id.is_empty() => TemplatePrimaryActivationRoute::SurfaceBinding,
         _ => TemplatePrimaryActivationRoute::SurfaceAction,
     }
@@ -172,6 +186,18 @@ mod tests {
     }
 
     #[test]
+    fn command_palette_option_routes_to_commit_activation() {
+        let mut hit = hit_with_kind("workbench_option");
+        hit.control_id = WORKBENCH_COMMAND_PALETTE_CONTROL_ID.into();
+        hit.value_text = "workbench.project.open".into();
+
+        assert_eq!(
+            primary_activation_route(&hit),
+            TemplatePrimaryActivationRoute::CommandPaletteOption
+        );
+    }
+
+    #[test]
     fn workbench_menu_item_routes_as_surface_action() {
         let mut hit = hit_with_kind("workbench_menu_item");
         hit.action_id = "workbench.menu.open".into();
@@ -180,6 +206,18 @@ mod tests {
         assert_eq!(
             primary_activation_route(&hit),
             TemplatePrimaryActivationRoute::WorkbenchMenuItem
+        );
+    }
+
+    #[test]
+    fn export_wizard_panel_route_prefers_action_over_binding() {
+        let mut hit = hit_with_kind("export_wizard_panel");
+        hit.action_id = "workbench.build_export.execute.desktop_windows".into();
+        hit.binding_id = "DesktopExportWizard/Start".into();
+
+        assert_eq!(
+            primary_activation_route(&hit),
+            TemplatePrimaryActivationRoute::SurfaceAction
         );
     }
 

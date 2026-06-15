@@ -277,10 +277,12 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
     let view_proj_cols = view_proj.to_cols_array_2d();
     SceneUniform {
         view_proj: view_proj_cols,
+        view_proj_unjittered: view_proj_cols,
         inverse_view_proj: finite_mat4_or_identity(view_proj.inverse()).to_cols_array_2d(),
         ambient_color: [0.0, 0.0, 0.0, 1.0],
-        previous_view_proj: view_proj_cols,
+        previous_view_proj_unjittered: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
+        jitter_params: [0.0, 0.0, 0.0, 0.0],
     }
 }
 

@@ -3,9 +3,19 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/combat.rs
+  - zircon_runtime/src/script/vm/gameplay_host/components.rs
+  - zircon_runtime/src/script/vm/gameplay_host/input.rs
+  - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
+  - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
+  - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
+  - zircon_runtime/src/script/vm/gameplay_host/transform.rs
+  - zircon_runtime/src/script/vm/gameplay_host/values.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/ui/surface/surface.rs
@@ -58,7 +68,7 @@ The structural audit now reports `large_file_ownership_gate.m1_gate_status`. Cur
 Current evidence:
 
 - `threshold = 1000`
-- `hotspot_count = 41`
+- `hotspot_count = 39`
 - `classification_count = 5`
 - `decision_group_count = 5`
 - `large_file_migration_debt_count = 5`
@@ -69,15 +79,15 @@ Each `large_file_ownership_gate.hotspots` entry now carries both the raw line co
 
 Current classification:
 
-- `editor-retained-host = 11`
+- `editor-retained-host = 12`
 - `editor-ui = 8`
-- `runtime-framework-render = 2`
-- `runtime-other = 17`
+- `runtime-framework-render = 4`
+- `runtime-other = 12`
 - `support-hub = 3`
 
 The classification means every current hotspot has an owner bucket. It does not mean the file is converged.
 
-The 2026-06-14 drift sync records growth from 33 to 41 hotspots while active render, UI, plugin, and Hub work continues. No production split was made in this slice; the important gate fact is that `unclassified_hotspot_count = 0` and all new hotspots still resolve to an owner bucket before Runtime 07 M2 optimization work can use them.
+The 2026-06-15 Runtime 07 split sequence now records 39 hotspots while active render, UI, plugin, and Hub work continues. The former single-file animation asset module was cut into the folder-backed `zircon_runtime/src/asset/assets/animation/{mod,binary,channel,clip,graph,reference,sequence,skeleton,state_machine}.rs` owner set, the former single-file scene asset module was cut into `zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs`, scene project I/O was split into `zircon_runtime/src/scene/world/project_io/{camera,physics,post_process,references,script,transform}.rs`, dynamic-session event routing was split into `zircon_runtime/src/dynamic_api/session/events.rs`, and the script gameplay host was split into `zircon_runtime/src/script/vm/gameplay_host/{combat,components,input,lifecycle,navigation,script_bindings,transform,values}.rs` with the registration owner at 371 lines. Those payload, conversion, event-routing, and gameplay-host surfaces no longer contribute large-file hotspots. The current total drift comes from active render/post-process owner work now placing `zircon_runtime/src/core/framework/render/post_process/stack.rs` and `zircon_runtime/src/core/framework/render/post_process/volume_component.rs` above the threshold, which moves `runtime-framework-render` to 4 without changing the owner-budget gate shape. Current runtime hotspots still include `zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs` and `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs`, so the important gate fact is that `unclassified_hotspot_count = 0` and all current hotspots still resolve to an owner bucket before Runtime 07 M2 optimization work can use them.
 
 ## M1 Decision Rules
 
@@ -91,11 +101,11 @@ Any future `unclassified_hotspots` entry is a review blocker. Classify it with a
 
 ## Owner Decisions
 
-`runtime-framework-render` currently contains `zircon_runtime/src/core/framework/render/backend_types.rs` and `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs`. This belongs to the M6 render/framework slice; split backend DTOs, debug snapshot DTOs, projections, and diagnostic reports only after the active WGPU/RHI session settles.
+`runtime-framework-render` currently contains `zircon_runtime/src/core/framework/render/backend_types.rs`, `zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs`, `zircon_runtime/src/core/framework/render/post_process/stack.rs`, and `zircon_runtime/src/core/framework/render/post_process/volume_component.rs`. This belongs to the M6 render/framework slice; split backend DTOs, debug snapshot DTOs, post-process stack/volume owners, projections, and diagnostic reports only after the active WGPU/RHI session settles.
 
-`runtime-other` currently includes render stats product diagnostics, asset scene/animation assets, render graph execution record/resources, script gameplay host, scene project IO, render pipeline asset compile, dynamic API session, runtime UI surface/style/catalog/accessibility extract, RHI/WGPU UI surface, graphics UI render, and frame-extract virtual-geometry snapshot/update-stats helpers. These should be split by runtime module owner before any M5/M7 performance work claims improvements in allocation, clone behavior, or dispatch cost.
+`runtime-other` currently includes render stats product diagnostics, render graph execution record/resources, render pipeline asset compile, runtime UI surface/style/catalog/accessibility extract, RHI/WGPU UI surface, graphics UI render, and frame-extract virtual-geometry snapshot/update-stats helpers. The animation asset, scene asset, scene project I/O conversion, dynamic-session event-routing, and script gameplay-host surfaces have already been split below the hotspot threshold; remaining runtime-other hotspots should be split by runtime module owner before any M5/M7 performance work claims improvements in allocation, clone behavior, or dispatch cost.
 
-`editor-retained-host` currently includes painter workbench, host lifecycle, native pointer, pane conversion, apply presentation, asset editor host, window contract, and template node hotspots. These belong to M7 editor/UI and should wait for the active host-editor UI session to quiet down.
+`editor-retained-host` currently includes painter workbench, host lifecycle, native pointer, pane conversion, apply presentation, asset editor host, window contract, template node/status-control, profiling artifact, and retained-host helper hotspots. These belong to M7 editor/UI and should wait for the active host-editor UI session to quiet down.
 
 `editor-ui` currently includes workbench host window projection, asset editor theme/binding/session/preview, animation editor session, editor manager asset editor, and template showcase state. Split by authoring workflow and template-runtime owner.
 

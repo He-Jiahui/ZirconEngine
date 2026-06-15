@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
   - zircon_runtime/tests/math_transform_helpers.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - zircon_runtime/src/scene/components/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
@@ -47,7 +47,7 @@ related_code:
 implementation_files:
   - zircon_runtime_interface/src/math.rs
   - zircon_runtime/src/core/math/mod.rs
-  - zircon_runtime/src/asset/assets/scene.rs
+  - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/mod.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/ecs/mod.rs

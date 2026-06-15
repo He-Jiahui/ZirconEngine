@@ -14,6 +14,7 @@ mod prepass;
 mod primitives;
 mod shadow;
 mod sprite;
+mod temporal;
 mod ui;
 
 pub use core::SceneRenderer;
@@ -29,6 +30,7 @@ pub(crate) use deferred::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
 pub(crate) use lighting::{
     light_buffer::pack_lighting_extract, light_grid_pass::build_light_grid_for_frame,
 };
+pub(in crate::graphics::scene) use mesh::skinning::SkinnedMeshJointPaletteUniform;
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
 pub(crate) use post_process::{

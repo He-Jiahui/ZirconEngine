@@ -22,6 +22,7 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
             focused: false,
             hovered: false,
             pressed: false,
+            loading: false,
         };
     }
 
@@ -41,6 +42,7 @@ fn structured_menu_item(raw: &str) -> host_contract::TemplatePaneMenuItemData {
         focused: has_flag(flags, "focused"),
         hovered: has_flag(flags, "hovered"),
         pressed: has_flag(flags, "pressed"),
+        loading: has_flag(flags, "loading"),
     }
 }
 

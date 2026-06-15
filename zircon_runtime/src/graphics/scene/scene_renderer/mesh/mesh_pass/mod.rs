@@ -39,8 +39,8 @@ pub(crate) use mesh_pass_processor::{
     MeshBatchCacheIdentity, MeshBatchRef, MeshPassBuildContext, MeshPassProcessor,
 };
 pub(crate) use processors::{
-    DepthPrepassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor, TransparentPassProcessor,
-    VelocityPassProcessor,
+    DepthPrepassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor,
+    TaaReactiveMaskPassProcessor, TransparentPassProcessor, VelocityPassProcessor,
 };
 pub(crate) use replay::{
     MeshDrawCommandReplayer, MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,

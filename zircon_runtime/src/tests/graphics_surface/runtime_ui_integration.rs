@@ -19,7 +19,7 @@ fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {
             RenderQualityProfile::new("runtime-ui")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
 
@@ -80,7 +80,7 @@ fn render_framework_reports_clipped_ui_commands_for_inventory_fixture() {
             RenderQualityProfile::new("runtime-ui-list")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
 
@@ -121,7 +121,7 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
             RenderQualityProfile::new("runtime-ui-fixtures")
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .unwrap();
 

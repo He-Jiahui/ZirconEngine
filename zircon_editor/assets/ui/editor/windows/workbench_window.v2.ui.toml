@@ -24,6 +24,14 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow",
   "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
   "res://ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui#WorkbenchModuleWorkspace",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_alert.zui#WorkbenchAlert",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui#WorkbenchCommandPalette",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui#WorkbenchConfirmDialog",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui#WorkbenchContextMenu",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui#WorkbenchDialog",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui#WorkbenchDragOverlay",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui#WorkbenchDropdownPopup",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui#WorkbenchNotificationCenter",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui#WorkbenchPopupMenu",
   "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_radio.zui#WorkbenchRadio",
@@ -55,6 +63,7 @@ children = [
   { node = "toolbar_main_menu" },
   { node = "toolbar_run_mode_menu" },
   { node = "toolbar_layout_menu" },
+  { node = "command_palette" },
 ]
 
 [nodes.window_content]
@@ -89,6 +98,12 @@ control_id = "WorkbenchLayoutMenu"
 classes = ["workbench-popup-menu", "workbench-toolbar-menu"]
 props = { value = "Default Layout", value_text = "Default Layout", menu_items = ["Default Layout|checked,icon=grid", "Gameplay Layout|icon=grid", "Rendering Layout|icon=grid", "Reset Layout|danger,icon=trash"], popup_open = false, visibility = "collapsed", popup_anchor_x = 0.0, popup_anchor_y = 0.0, layout_offset_y = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -22.0, y = 52.0 }, width = { min = 190.0, preferred = 190.0, max = 190.0, stretch = "Fixed" }, height = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, z_index = 200 }
+
+[nodes.command_palette]
+component = "WorkbenchCommandPalette"
+control_id = "WorkbenchCommandPalette"
+props = { open = false, popup_open = false, visibility = "collapsed" }
+events = [{ id = "CommandPalette/Commit", event = "Submit", route = "editor.command_palette.commit" }]
 
 [nodes.top_toolbar]
 component = "WorkbenchTopToolbar"

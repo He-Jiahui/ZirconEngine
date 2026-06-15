@@ -87,8 +87,19 @@ pub(super) fn apply_typeahead_expired(
 }
 
 pub(super) fn is_focus_control(descriptor: &UiComponentDescriptor) -> bool {
-    matches!(descriptor.role.as_str(), "menu" | "menu-list")
-        || matches!(descriptor.id.as_str(), "Menu" | "MenuList")
+    matches!(
+        descriptor.role.as_str(),
+        "menu" | "menu-list" | "context-menu" | "dropdown-popup"
+    ) || matches!(
+        descriptor.id.as_str(),
+        "Menu"
+            | "MenuList"
+            | "PopupMenu"
+            | "MenuPopup"
+            | "ContextMenu"
+            | "ContextActionMenu"
+            | "DropdownPopup"
+    )
 }
 
 pub(super) fn sync_search_filter(

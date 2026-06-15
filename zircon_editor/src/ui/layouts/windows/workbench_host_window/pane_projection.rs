@@ -710,6 +710,7 @@ fn payload_path(snapshot: Option<&ViewTabSnapshot>) -> Option<String> {
 fn action_id_from_model(action: &PaneActionModel) -> String {
     match action.binding.as_ref().map(EditorUiBinding::payload) {
         Some(EditorUiBindingPayload::MenuAction { action_id }) => action_id.clone(),
+        Some(EditorUiBindingPayload::EditorCommand { command_id }) => command_id.clone(),
         _ => String::new(),
     }
 }

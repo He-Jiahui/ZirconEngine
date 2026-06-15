@@ -1,0 +1,5 @@
+Zircon Linux export-template placeholder host.
+
+This file exercises the M3-T2 Linux directory bundle layout only. It is not
+a runnable ELF binary and must be replaced by a CI-built linux-x86_64
+LibraryEmbed host before runtime launch validation is claimed.

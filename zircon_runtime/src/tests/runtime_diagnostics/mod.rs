@@ -224,7 +224,7 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     assert_render_count_series(
         &snapshot.store,
         "render.history.copy.copied_count",
-        4.0,
+        5.0,
         &["history", "copy"],
     );
     assert_render_count_series(
@@ -268,6 +268,12 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.history.copy.hzb_furthest_copied",
         true,
         &["history", "copy", "hzb"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.history.copy.exposure_copied",
+        true,
+        &["history", "copy", "exposure"],
     );
     assert_render_count_series(
         &snapshot.store,
@@ -1165,6 +1171,12 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     );
     assert_render_count_series(
         &snapshot.store,
+        "render.particle.velocity.missing_sprite_count",
+        5.0,
+        &["particle", "velocity", "missing"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
         "render.particle.gpu.indirect_instance_count",
         29.0,
         &["particle", "gpu", "indirect"],
@@ -1189,9 +1201,9 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     );
     assert_render_bool_series(
         &snapshot.store,
-        "render.post_process.graph.final_composite_present",
+        "render.post_process.graph.output_transfer_present",
         true,
-        &["post_process", "graph", "final_composite"],
+        &["post_process", "graph", "output_transfer"],
     );
     assert_series_current(
         &snapshot.store,
@@ -1307,9 +1319,9 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         4.0,
         &["material", "diagnostic"],
     );
-    assert_light_family_series(&snapshot.store, "directional", 3.0, 1.0, 2.0);
-    assert_light_family_series(&snapshot.store, "point", 4.0, 0.0, 4.0);
-    assert_light_family_series(&snapshot.store, "spot", 5.0, 0.0, 5.0);
+    assert_light_family_series(&snapshot.store, "directional", 3.0, 3.0, 0.0);
+    assert_light_family_series(&snapshot.store, "point", 4.0, 4.0, 0.0);
+    assert_light_family_series(&snapshot.store, "spot", 5.0, 5.0, 0.0);
     assert_light_family_series(&snapshot.store, "ambient", 2.0, 2.0, 0.0);
     assert_light_family_series(&snapshot.store, "rect", 1.0, 0.0, 1.0);
     assert_render_count_series(
@@ -1383,6 +1395,20 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
         "render.mesh.queue.skinned_gpu_cpu_morphed_source_candidate_count",
         1.0,
         &["mesh", "queue", "skinned", "gpu_source", "cpu_morphed"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count",
+        1.0,
+        &[
+            "mesh",
+            "queue",
+            "skinned",
+            "gpu_source",
+            "cpu_morphed",
+            "previous_shape_missing",
+            "velocity",
+        ],
     );
     assert_render_count_series(
         &snapshot.store,

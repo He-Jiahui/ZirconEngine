@@ -176,9 +176,9 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert!(extract
         .post_process
         .graph
-        .final_composite_node
+        .output_transfer_node
         .as_deref()
-        .is_some_and(|node| node == "final-composite"));
+        .is_some_and(|node| node == "output-transfer"));
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     let virtual_geometry = extract
         .geometry
@@ -842,13 +842,17 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert_eq!(extract.post_process.volume_stack.volumes.len(), 1);
-    let volume = &extract.post_process.volume_stack.volumes[0];
+    assert_eq!(extract.post_process.volumes.len(), 1);
+    let volume = &extract.post_process.volumes[0];
     assert_eq!(volume.priority, 8.0);
-    assert!(volume.layer_mask.intersects_legacy_mask(0b0010));
+    assert!(volume.volume_mask.intersects_legacy_mask(0b0010));
     let resolved = extract
         .post_process
-        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+        .resolved_settings_for_camera(
+            extract.view.camera.transform.translation,
+            &extract.view.camera.render_layers,
+        )
+        .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom.intensity, 0.75);
     assert_eq!(resolved.color_grading.exposure, 1.4);
     assert_eq!(
@@ -857,7 +861,6 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
     );
     assert!(extract
         .post_process
-        .volume_stack
         .volumes
         .iter()
         .all(|volume| volume.priority != 16.0));
@@ -891,10 +894,14 @@ fn inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract() {
         SceneViewportExtractRequest::default(),
     ));
 
-    assert!(extract.post_process.volume_stack.volumes.is_empty());
+    assert!(extract.post_process.volumes.is_empty());
     let resolved = extract
         .post_process
-        .resolved_settings_for_layers(&extract.view.camera.render_layers);
+        .resolved_settings_for_camera(
+            extract.view.camera.transform.translation,
+            &extract.view.camera.render_layers,
+        )
+        .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom, RenderBloomSettings::default());
 }
 

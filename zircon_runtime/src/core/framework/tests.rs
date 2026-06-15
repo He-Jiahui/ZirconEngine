@@ -598,8 +598,8 @@ fn render_product_post_process_graph_elides_disabled_effects() {
     assert_eq!(graph.node_count(), 1);
     assert_eq!(graph.skipped_node_count(), 3);
     assert_eq!(
-        graph.final_composite_node.as_deref(),
-        Some("final-composite")
+        graph.output_transfer_node.as_deref(),
+        Some("output-transfer")
     );
 }
 
@@ -615,10 +615,6 @@ fn render_product_post_process_stack_elides_history_until_history_is_available()
     let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
 
     assert_eq!(graph.node_count(), 1);
-    assert!(!graph
-        .nodes
-        .iter()
-        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
 }
 
 #[test]
@@ -634,45 +630,6 @@ fn render_product_post_process_stack_can_drop_history_from_validated_graph() {
     let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
 
     assert_eq!(graph.node_count(), 1);
-    assert!(!graph
-        .nodes
-        .iter()
-        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
-    assert!(graph
-        .skipped_nodes
-        .iter()
-        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
-}
-
-#[test]
-fn render_product_post_process_stack_splits_history_previous_and_output_slots() {
-    let stack = PostProcessStackDescriptor::from_extract_settings(
-        &Default::default(),
-        &Default::default(),
-        true,
-        true,
-    );
-
-    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
-    let history = graph
-        .nodes
-        .iter()
-        .find(|node| node.kind == PostProcessEffectKind::HistoryResolve)
-        .expect("history resolve should be executable when history is available");
-
-    assert!(stack
-        .initial_resources
-        .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
-    assert!(history
-        .required_inputs
-        .contains(&PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string()));
-    assert!(history
-        .produced_outputs
-        .contains(&PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR.to_string()));
-    assert!(!history
-        .required_inputs
-        .iter()
-        .any(|input| history.produced_outputs.contains(input)));
 }
 
 #[test]
@@ -680,7 +637,7 @@ fn render_product_post_process_graph_rejects_missing_scene_color() {
     let stack = PostProcessStackDescriptor {
         initial_resources: vec![PostProcessGraphResourceNames::SCENE_DEPTH.to_string()],
         effects: vec![
-            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+            PostProcessEffectSettings::new(PostProcessEffectKind::OutputTransfer)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR]),
         ],
@@ -689,31 +646,40 @@ fn render_product_post_process_graph_rejects_missing_scene_color() {
     assert_eq!(
         PostProcessPassGraph::validate_stack(&stack),
         Err(PostProcessGraphValidationError::MissingRequiredInput {
-            node: "final-composite".to_string(),
+            node: "output-transfer".to_string(),
             resource: PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
         })
     );
 }
 
 #[test]
-fn render_product_post_process_graph_rejects_invalid_history_dependency() {
+fn render_product_post_process_graph_rejects_missing_taa_history_dependency() {
     let stack = PostProcessStackDescriptor {
-        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        initial_resources: vec![
+            PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
+            PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
+            PostProcessGraphResourceNames::SCENE_VELOCITY.to_string(),
+        ],
         effects: vec![
-            PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
+            PostProcessEffectSettings::new(PostProcessEffectKind::TaaResolve)
                 .with_required_inputs([
                     PostProcessGraphResourceNames::SCENE_COLOR,
-                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR,
+                    PostProcessGraphResourceNames::SCENE_DEPTH,
+                    PostProcessGraphResourceNames::SCENE_VELOCITY,
+                    PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
                 ])
-                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_OUTPUT_SCENE_COLOR]),
+                .with_produced_outputs([
+                    PostProcessGraphResourceNames::TAA_OUTPUT,
+                    PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
+                ]),
         ],
     };
 
     assert_eq!(
         PostProcessPassGraph::validate_stack(&stack),
         Err(PostProcessGraphValidationError::MissingRequiredInput {
-            node: "history-resolve".to_string(),
-            resource: PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCENE_COLOR.to_string(),
+            node: "taa-resolve".to_string(),
+            resource: PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS.to_string(),
         })
     );
 }
@@ -726,7 +692,7 @@ fn render_product_post_process_graph_rejects_duplicate_output_resource() {
             PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
-            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorLutBake)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
         ],
@@ -735,7 +701,7 @@ fn render_product_post_process_graph_rejects_duplicate_output_resource() {
     assert_eq!(
         PostProcessPassGraph::validate_stack(&stack),
         Err(PostProcessGraphValidationError::DuplicateOutputResource {
-            node: "color-grading".to_string(),
+            node: "color-lut-bake".to_string(),
             resource: PostProcessGraphResourceNames::BLOOM.to_string(),
         })
     );
@@ -749,8 +715,8 @@ fn render_product_post_process_graph_rejects_cycles() {
             PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM])
-                .with_after([PostProcessEffectKind::ColorGrading]),
-            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+                .with_after([PostProcessEffectKind::ColorLutBake]),
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorLutBake)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
                 .with_after([PostProcessEffectKind::Bloom]),
@@ -768,7 +734,7 @@ fn render_product_post_process_graph_rejects_missing_effect_dependency() {
     let stack = PostProcessStackDescriptor {
         initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
         effects: vec![
-            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+            PostProcessEffectSettings::new(PostProcessEffectKind::OutputTransfer)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
                 .with_after([PostProcessEffectKind::Bloom]),
@@ -778,7 +744,7 @@ fn render_product_post_process_graph_rejects_missing_effect_dependency() {
     assert_eq!(
         PostProcessPassGraph::validate_stack(&stack),
         Err(PostProcessGraphValidationError::MissingDependency {
-            node: "final-composite".to_string(),
+            node: "output-transfer".to_string(),
             dependency: PostProcessEffectKind::Bloom,
         })
     );
@@ -804,14 +770,14 @@ fn render_product_post_process_graph_allows_color_grading_without_bloom() {
     assert_eq!(
         graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
         vec![
-            PostProcessEffectKind::ColorGrading,
-            PostProcessEffectKind::FinalComposite,
+            PostProcessEffectKind::ColorLutBake,
+            PostProcessEffectKind::OutputTransfer,
         ]
     );
 }
 
 #[test]
-fn render_product_post_process_effect_stack_runs_before_final_composite_when_authored() {
+fn render_product_post_process_effect_stack_runs_before_output_transfer_when_authored() {
     let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
         &RenderBloomSettings {
             threshold: 1.0,
@@ -854,21 +820,21 @@ fn render_product_post_process_effect_stack_runs_before_final_composite_when_aut
     let effect_stack = graph
         .nodes
         .iter()
-        .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+        .find(|node| node.kind == PostProcessEffectKind::Uber)
         .expect("authored effect-stack settings should enable the graph node");
-    let final_composite = graph
+    let output_transfer = graph
         .nodes
         .iter()
-        .find(|node| node.kind == PostProcessEffectKind::FinalComposite)
+        .find(|node| node.kind == PostProcessEffectKind::OutputTransfer)
         .expect("postprocess graph should still end in final composite");
 
     assert_eq!(
         graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
         vec![
             PostProcessEffectKind::Bloom,
-            PostProcessEffectKind::ColorGrading,
-            PostProcessEffectKind::EffectStack,
-            PostProcessEffectKind::FinalComposite,
+            PostProcessEffectKind::ColorLutBake,
+            PostProcessEffectKind::Uber,
+            PostProcessEffectKind::OutputTransfer,
         ]
     );
     assert!(effect_stack
@@ -885,13 +851,10 @@ fn render_product_post_process_effect_stack_runs_before_final_composite_when_aut
         vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()]
     );
     assert_eq!(
-        final_composite.required_inputs,
+        output_transfer.required_inputs,
         vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()]
     );
-    assert_eq!(
-        final_composite.after,
-        vec![PostProcessEffectKind::EffectStack]
-    );
+    assert_eq!(output_transfer.after, vec![PostProcessEffectKind::Uber]);
 }
 
 #[test]
@@ -924,14 +887,14 @@ fn render_product_post_process_extended_effect_stack_settings_enable_product_nod
     let effect_stack = graph
         .nodes
         .iter()
-        .find(|node| node.kind == PostProcessEffectKind::EffectStack)
+        .find(|node| node.kind == PostProcessEffectKind::Uber)
         .expect("SSR settings should enable the effect-stack node");
 
     assert_eq!(
         graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
         vec![
-            PostProcessEffectKind::EffectStack,
-            PostProcessEffectKind::FinalComposite,
+            PostProcessEffectKind::Uber,
+            PostProcessEffectKind::OutputTransfer,
         ]
     );
     assert!(effect_stack

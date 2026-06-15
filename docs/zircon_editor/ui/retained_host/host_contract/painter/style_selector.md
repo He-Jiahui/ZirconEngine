@@ -22,6 +22,14 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_selection_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_shell_panels.rs
@@ -55,6 +63,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_selection_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_shell_panels.rs
@@ -63,6 +75,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_table_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_tooltips.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_tree_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
   - docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native replication request
@@ -100,6 +113,20 @@ tests:
   - cargo test -p zircon_editor --lib template_popup_rows --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_editor --lib popup_row_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-style-selector-0607 --message-format short --color never -- --nocapture --test-threads=1 (3 passed, 0 failed, 1879 filtered out; existing warnings only)
   - D:\cargo-targets\zircon-ui-style-selector-0607\debug\deps\zircon_editor-16c136b0ff3b6b9d.exe template_popup_rows --nocapture --test-threads=1 (4 passed, 0 failed, 1878 filtered out)
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs::runtime_component_projection_projects_popup_option_state_metadata_for_native_painter
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs::runtime_component_projection_projects_popup_menu_loading_flags_for_native_painter
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs::popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_rows
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs (2026-06-14: passed after native PopupRow selector parity matrix baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/mod.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs (2026-06-15: passed after resolved button interaction-state convergence)
+  - cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-15: passed, 49 passed / 0 failed / 1945 filtered)
+  - E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe native_material_painter_dialog --nocapture --test-threads=1 (2026-06-15: passed, 3 passed / 0 failed / 1992 filtered; covers open Dialog painting, ConfirmDialog error/disabled-confirm styling, and closed no-fallback consumption)
+  - cargo test -p zircon_editor --lib native_template_button --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-component-showcase-0615 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-15: passed, 3 passed / 0 failed / 1991 filtered)
+  - E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe drag_overlay --nocapture --test-threads=1 (2026-06-15: passed, 4 passed / 0 failed / 1991 filtered; covers open DragOverlay preview/drop indicator painting and closed no-fallback consumption)
+  - E:\cargo-targets\zircon-editor-ui-component-showcase-0615\debug\deps\zircon_editor-0fea0c836fb2d960.exe notification_center --nocapture --test-threads=1 (2026-06-15: passed, 3 passed / 0 failed / 1992 filtered; covers open NotificationCenter panel/row painting and closed no-fallback consumption)
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs::standalone_dropdown_popup_paints_rows_inside_projected_popup_frame
+  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs::template_option_popup_frame_within_uses_projected_dropdown_popup_frame
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after popup shell role/projected frame geometry baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_popup_row.rs
   - git diff --check -- zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_popup_row.rs docs/zircon_editor/ui/retained_host/host_contract/painter/style_selector.md
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_list_row.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_tree_row.rs zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/workbench_table_row.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_tree_rows.rs
@@ -156,6 +183,8 @@ The selector-local regressions `chrome_selector_preserves_normal_shell_panel_col
 - panel icon buttons keep disabled surface and border during loading, while toolbar icon buttons keep their frameless shape but mute the glyph;
 - template button painters remain responsible for role recognition, pixel geometry, icon/text layout, opacity, and command ordering.
 
+`painter_state_for_node` also merges the resolved `TemplatePaneNodeData.button_style.interaction_state` into the shared `UiPainterState`. Resolved `Hover`, `Pressed`, and `Focused` button states therefore reach the same selector priority as node-local hover/press/focus flags, while resolved `Disabled` and `Loading` continue to enter the unavailable lane before active button visuals. This keeps runtime-projected MUI button state aligned with native painter priority instead of requiring each template button path to duplicate resolved-state checks.
+
 The selector-local regressions `button_loading_state_uses_unavailable_visuals` and `icon_button_loading_state_uses_unavailable_visuals` lock loading precedence over active and declared visuals. The template regression `disabled_workbench_button_suppresses_declared_style_but_keeps_opacity` keeps disabled command buttons aligned with the same unavailable-color policy while preserving the existing disabled opacity path.
 
 ## Tabs And Segmented Controls
@@ -204,7 +233,7 @@ The selector-local regression `selection_controls_loading_state_uses_unavailable
 - selected and checked rows still keep the selected surface and focus-ring selection mark unless the resolved state is unavailable;
 - danger rows keep their authored danger text/adornment color only after unavailable-state suppression, so a loading or disabled destructive action cannot render as an active action.
 
-`template_popup_rows.rs` remains responsible for popup geometry, menu item flag parsing, right-aligned adornments, shortcut text placement, and paint command ordering. The selector-local regression `popup_row_selector_projects_full_semantic_state` covers open/drag/drop-hover state projection, and `popup_row_loading_state_uses_unavailable_visuals` locks the loading-state unavailable treatment.
+`template_popup_rows.rs` remains responsible for popup geometry, menu item flag parsing, right-aligned adornments, shortcut text placement, and paint command ordering. Its option-row path now receives `loading`, selected, focused, hovered, pressed, disabled, and label/id metadata from `pane_option_projection.rs`, including real `DropdownPopup` `selected_options`/`selectedOptions`, `focused_index`, `hovered_option_id`, `loading_options`, and `id|label=...` declarations. Its menu-row path receives `loading` from `pane_menu_projection.rs` as well as the existing raw flag fallback, so `ContextActionMenu` and real context-menu rows reach the same unavailable-state selector lane as runtime render extract. Geometry for option rows is delegated to `template_popup_layout.rs`: ordinary dropdown triggers still open below/above the trigger with bounds handling, while standalone `DropdownPopup` rows are cut directly inside the projected popup frame. `surface_hit_test/template_node.rs`, `native_keyboard.rs`, and `native_popup_dismiss.rs` use the same helper, so painter output, pointer rows, keyboard focus frames, and dismiss containment do not drift. The selector-local regression `popup_row_selector_projects_full_semantic_state` covers open/drag/drop-hover state projection, `popup_row_loading_state_uses_unavailable_visuals` locks the loading-state unavailable treatment, `popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_rows` pins native projected-row selected/focused/disabled/loading resolved states to the same state names asserted by the runtime render-extract popup tests, and `standalone_dropdown_popup_paints_rows_inside_projected_popup_frame` verifies the native painter uses the projected `DropdownPopup` frame. The host projection regressions `runtime_component_projection_projects_popup_option_state_metadata_for_native_painter`, `runtime_component_projection_projects_popup_menu_loading_flags_for_native_painter`, and the popup anchor assertions in `runtime_component_projection_positions_mui_popups_from_anchor_metadata` cover the editor-native row DTO and frame-projection input paths.
 
 ## Dropdowns
 

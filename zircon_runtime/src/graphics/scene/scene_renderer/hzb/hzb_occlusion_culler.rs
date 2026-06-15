@@ -675,10 +675,12 @@ mod tests {
     fn test_scene_uniform() -> SceneUniform {
         SceneUniform {
             view_proj: identity_matrix(),
+            view_proj_unjittered: identity_matrix(),
             inverse_view_proj: identity_matrix(),
-            previous_view_proj: identity_matrix(),
             ambient_color: [0.0, 0.0, 0.0, 1.0],
+            previous_view_proj_unjittered: identity_matrix(),
             motion_params: [0.0, 0.0, 0.0, 0.0],
+            jitter_params: [0.0, 0.0, 0.0, 0.0],
         }
     }
 

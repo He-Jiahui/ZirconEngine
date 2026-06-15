@@ -44,6 +44,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::KeyboardAction,
             UiComponentEventKind::ValueChanged,
         ]),
+        dropdown_popup(),
         composite(
             "Autocomplete",
             "Autocomplete",
@@ -129,6 +130,54 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::ValueChanged,
         ]),
     ]
+}
+
+fn dropdown_popup() -> UiComponentDescriptor {
+    overlay_layer_props(modal_interaction_props(popup_position_props(
+        composite(
+            "DropdownPopup",
+            "Dropdown Popup",
+            UiComponentCategory::Selection,
+            "dropdown-popup",
+        )
+        .with_prop(bool_prop("open", false))
+        .with_prop(bool_prop("popup_open", false))
+        .with_prop(options_prop())
+        .with_prop(array_prop("selected_options"))
+        .with_prop(array_prop("selectedOptions"))
+        .with_prop(array_prop("disabled_options"))
+        .with_prop(array_prop("focused_options"))
+        .with_prop(array_prop("hovered_options"))
+        .with_prop(array_prop("pressed_options"))
+        .with_prop(int_prop("focused_index", 0))
+        .with_prop(bool_prop("keyboard_navigation", true))
+        .with_prop(default_string_prop("typeahead_buffer", ""))
+        .with_prop(bool_prop("typeahead_buffer_expired", false))
+        .with_prop(int_prop("typeahead_timeout_ms", 500))
+        .with_prop(default_string_prop("hovered_option_id", ""))
+        .with_prop(default_string_prop("submenu_pending_option_id", ""))
+        .with_prop(default_string_prop("submenu_open_option_id", ""))
+        .with_prop(bool_prop("submenu_hover_ready", false))
+        .with_prop(int_prop("submenu_hover_delay_ms", 300))
+        .with_prop(default_string_prop("submenu_focus_scope", "root"))
+        .with_prop(bool_prop("submenu_focus_loop", true)),
+        "bottom-start",
+    )))
+    .slot(UiSlotSchema::new("paper"))
+    .slot(UiSlotSchema::new("listbox"))
+    .slot(UiSlotSchema::new("transition"))
+    .slot(UiSlotSchema::new("option").multiple(true))
+    .slot(UiSlotSchema::new("groupLabel").multiple(true))
+    .slot(UiSlotSchema::new("groupUl").multiple(true))
+    .events([
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::KeyboardText,
+        UiComponentEventKind::TypeaheadExpired,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::SelectOption,
+        UiComponentEventKind::ClosePopup,
+    ])
 }
 
 fn select_options_prop() -> UiPropSchema {

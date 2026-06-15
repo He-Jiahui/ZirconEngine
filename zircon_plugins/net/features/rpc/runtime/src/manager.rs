@@ -1,3 +1,4 @@
+mod channel;
 mod dispatch;
 mod handshake;
 mod quota;
@@ -10,6 +11,7 @@ use std::time::Duration;
 
 use zircon_runtime::core::framework::net::RpcInvocationDescriptor;
 
+pub use channel::{RpcChannelMessage, RPC_CHANNEL_RELIABLE_ORDERED, RPC_CHANNEL_UNRELIABLE};
 pub use handshake::{NetRpcHandshakeFrame, RPC_HANDSHAKE_CAPABILITY_NET_RPC, RPC_HANDSHAKE_MAGIC};
 pub use state::NetRpcRuntimeManager;
 

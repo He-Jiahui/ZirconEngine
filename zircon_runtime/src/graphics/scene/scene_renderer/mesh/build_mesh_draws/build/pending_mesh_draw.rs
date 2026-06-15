@@ -19,12 +19,25 @@ pub(super) enum PendingMeshGeometry {
 #[derive(Clone)]
 pub(super) enum PendingSkinnedGpuSource {
     Prepared(Arc<GpuMeshResource>),
-    CpuMorphed(ModelPrimitiveAsset),
+    CpuMorphed {
+        primitive: ModelPrimitiveAsset,
+        morph_shape_signature: u64,
+    },
 }
 
 impl PendingSkinnedGpuSource {
     pub(super) fn uses_cpu_morphed_source(&self) -> bool {
-        matches!(self, Self::CpuMorphed(_))
+        matches!(self, Self::CpuMorphed { .. })
+    }
+
+    pub(super) fn morph_shape_signature(&self) -> Option<u64> {
+        match self {
+            Self::Prepared(_) => None,
+            Self::CpuMorphed {
+                morph_shape_signature,
+                ..
+            } => Some(*morph_shape_signature),
+        }
     }
 }
 
@@ -42,16 +55,18 @@ pub(super) struct PendingMeshDraw {
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) cast_shadows: bool,
     pub(super) receive_shadows: bool,
+    pub(super) taa_reactive_mask_strength: f32,
     pub(super) model_matrix: [[f32; 4]; 4],
-    pub(super) previous_model_matrix: [[f32; 4]; 4],
-    pub(super) has_previous_motion_vector_transform: bool,
     pub(super) draw_tint: Vec4,
     pub(super) skinned: bool,
+    pub(super) skinned_palette_signature: Option<u64>,
     pub(super) skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
     pub(super) previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
     // Holds the original prepared mesh for the guarded shader-skinning path.
     // CPU-skinned dynamic fallback draws leave this empty to avoid double skinning.
     pub(super) skinned_gpu_source: Option<PendingSkinnedGpuSource>,
+    pub(super) resolved_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
+    pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     pub(super) first_index: u32,
     pub(super) draw_index_count: u32,
     pub(super) indirect_draw_ref: Option<VirtualGeometryIndirectDrawRef>,

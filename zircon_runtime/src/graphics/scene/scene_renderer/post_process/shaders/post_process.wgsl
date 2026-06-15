@@ -73,6 +73,7 @@ struct HybridGiTraceRegion {
 @group(0) @binding(25) var screen_space_reflection_depth_pyramid_coarse_tex: texture_2d<f32>;
 @group(0) @binding(26) var screen_space_reflection_reflection_pyramid_coarse_tex: texture_2d<f32>;
 @group(0) @binding(27) var contact_shadow_tex: texture_2d<f32>;
+@group(0) @binding(28) var<storage, read> exposure_buffer: array<vec4<f32>, 1>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -113,7 +114,7 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 }
 
 fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
-    let exposure = params.grading.x;
+    let exposure = params.grading.x * max(exposure_buffer[0].x, 0.0);
     let contrast = params.grading.y;
     let saturation = params.grading.z;
     let gamma = params.grading.w;

@@ -128,6 +128,7 @@ fn pointer_menu_item_tree(items: &[MenuItemModel]) -> Vec<MenuItemSpec> {
 fn menu_item_action_id(item: &MenuItemModel) -> Option<String> {
     match item.binding.payload() {
         EditorUiBindingPayload::MenuAction { action_id } => Some(action_id.clone()),
+        EditorUiBindingPayload::EditorCommand { command_id } => Some(command_id.clone()),
         EditorUiBindingPayload::EditorOperation { operation_id, .. } => Some(operation_id.clone()),
         _ => None,
     }

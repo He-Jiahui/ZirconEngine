@@ -1,8 +1,11 @@
 struct SceneUniform {
     view_proj: mat4x4<f32>,
+    view_proj_unjittered: mat4x4<f32>,
     inverse_view_proj: mat4x4<f32>,
     ambient_color: vec4<f32>,
-    previous_view_proj: mat4x4<f32>,
+    previous_view_proj_unjittered: mat4x4<f32>,
+    motion_params: vec4<f32>,
+    jitter_params: vec4<f32>,
 };
 
 struct HzbOcclusionCullParams {
@@ -77,7 +80,7 @@ fn instance_is_conservatively_visible(instance_index: u32) -> bool {
     let world_center = world_from_local * vec4<f32>(primitive.bounds_center, 1.0);
     let world_radius = transform_scale_radius(world_from_local, primitive.bounds_radius) *
         max(cull_params.values.y, 1.0);
-    let clip_center = scene.previous_view_proj * world_center;
+    let clip_center = scene.previous_view_proj_unjittered * world_center;
     if (clip_center.w <= MIN_CLIP_W) {
         return true;
     }

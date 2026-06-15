@@ -2,7 +2,7 @@ use super::super::data::{
     FrameRect, TemplatePaneMenuItemData, TemplatePaneNodeData, TemplatePaneOptionData,
 };
 use super::super::template_popup_layout::{
-    dropdown_option_popup_frame_within, dropdown_option_row_frame_within, menu_item_row_frame,
+    menu_item_row_frame, template_option_popup_frame_within, template_option_row_frame_within,
 };
 use super::geometry::intersect;
 use super::render_commands::HostPaintCommand;
@@ -56,7 +56,7 @@ fn push_option_row_commands(
     if row_count == 0 {
         return;
     }
-    let Some(popup_rect) = dropdown_option_popup_frame_within(rect, row_count, bounds) else {
+    let Some(popup_rect) = template_option_popup_frame_within(node, rect, row_count, bounds) else {
         return;
     };
     push_popup_background(commands, &popup_rect, clip, order, opacity);
@@ -65,7 +65,8 @@ fn push_option_row_commands(
         let Some(option) = node.structured_options.row_data(row) else {
             continue;
         };
-        let Some(row_rect) = dropdown_option_row_frame_within(rect, row_count, row, bounds) else {
+        let Some(row_rect) = template_option_row_frame_within(node, rect, row_count, row, bounds)
+        else {
             continue;
         };
         let style = popup_option_row_style(&option);
@@ -626,6 +627,7 @@ fn popup_option_row_style(option: &TemplatePaneOptionData) -> WorkbenchPopupRowS
         pressed: option.pressed,
         focused: option.focused,
         disabled: option.disabled,
+        loading: option.loading,
         selected: popup_option_row_marked(option),
         ..WorkbenchPopupRowState::default()
     })
@@ -638,6 +640,7 @@ fn popup_menu_row_style(item: &TemplatePaneMenuItemData) -> WorkbenchPopupRowSty
         focused: item.focused,
         disabled: item.disabled,
         checked: item.checked,
+        loading: item.loading || menu_item_has_flag(item, "loading"),
         danger: menu_item_has_flag(item, "danger"),
         ..WorkbenchPopupRowState::default()
     })
@@ -752,6 +755,74 @@ mod tests {
     }
 
     #[test]
+    fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_rows() {
+        use zircon_runtime_interface::ui::style::UiPainterResolvedState;
+
+        let selected = popup_option_row_style(&option("selected", true, false, false, false));
+        assert_eq!(selected.state, UiPainterResolvedState::Selected);
+        assert_eq!(selected.background, Some(PALETTE.surface_selected));
+        assert_eq!(selected.selection_mark, Some(PALETTE.focus_ring));
+
+        let focused = popup_option_row_style(&TemplatePaneOptionData {
+            focused: true,
+            hovered: true,
+            ..option("focused", false, false, false, false)
+        });
+        assert_eq!(focused.state, UiPainterResolvedState::Focused);
+        assert_eq!(focused.background, Some(PALETTE.surface_selected));
+        assert_eq!(focused.text, PALETTE.focus_ring);
+
+        let disabled = popup_option_row_style(&TemplatePaneOptionData {
+            selected: true,
+            disabled: true,
+            ..option("disabled", false, false, false, false)
+        });
+        assert_eq!(disabled.state, UiPainterResolvedState::Disabled);
+        assert_eq!(disabled.background, None);
+        assert_eq!(disabled.selection_mark, None);
+        assert_eq!(disabled.text, PALETTE.text_disabled);
+
+        let loading = popup_option_row_style(&TemplatePaneOptionData {
+            selected: true,
+            special: true,
+            hovered: true,
+            pressed: true,
+            loading: true,
+            ..option("loading", false, false, false, false)
+        });
+        assert_eq!(loading.state, UiPainterResolvedState::Loading);
+        assert_eq!(loading.background, None);
+        assert_eq!(loading.selection_mark, None);
+        assert_eq!(loading.text, PALETTE.text_disabled);
+
+        let raw_loading_menu = popup_menu_row_style(&menu_item(
+            "Archive|loading,checked,hovered",
+            true,
+            false,
+            true,
+        ));
+        assert_eq!(raw_loading_menu.state, UiPainterResolvedState::Loading);
+        assert_eq!(raw_loading_menu.background, None);
+        assert_eq!(raw_loading_menu.selection_mark, None);
+        assert_eq!(raw_loading_menu.text, PALETTE.text_disabled);
+
+        let projected_loading_menu = popup_menu_row_style(&TemplatePaneMenuItemData {
+            checked: true,
+            hovered: true,
+            pressed: true,
+            loading: true,
+            ..menu_item("Archive", false, false, false)
+        });
+        assert_eq!(
+            projected_loading_menu.state,
+            UiPainterResolvedState::Loading
+        );
+        assert_eq!(projected_loading_menu.background, None);
+        assert_eq!(projected_loading_menu.selection_mark, None);
+        assert_eq!(projected_loading_menu.adornment, PALETTE.text_disabled);
+    }
+
+    #[test]
     fn open_popup_menu_paints_right_aligned_item_icons() {
         let bytes = paint_template_nodes_for_test(180, 180, model_rc(vec![popup_menu_node()]));
 
@@ -765,6 +836,13 @@ mod tests {
         let bytes = paint_template_nodes_for_test(150, 120, model_rc(vec![dropdown_node()]));
 
         assert!(changed_pixel_count(&bytes, 150, 96, 50, 22, 22) > 0);
+    }
+
+    #[test]
+    fn standalone_dropdown_popup_paints_rows_inside_projected_popup_frame() {
+        let bytes = paint_template_nodes_for_test(180, 140, model_rc(vec![dropdown_popup_node()]));
+
+        assert_eq!(pixel_at(&bytes, 180, 20, 20), PALETTE.focus_ring);
     }
 
     fn popup_menu_node() -> TemplatePaneNodeData {
@@ -805,6 +883,28 @@ mod tests {
             structured_options: model_rc(vec![
                 option("selected", true, false, false, false),
                 option("disabled", false, false, false, true),
+            ]),
+            ..TemplatePaneNodeData::default()
+        }
+    }
+
+    fn dropdown_popup_node() -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            control_id: "WorkbenchDropdownPopup".into(),
+            role: "DropdownPopup".into(),
+            component_role: "dropdown-popup".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 20.0,
+                y: 16.0,
+                width: 120.0,
+                height: 96.0,
+            },
+            structured_options: model_rc(vec![
+                option("selected", true, false, false, false),
+                option("focused", false, true, false, false),
+                option("disabled", false, false, false, true),
+                option("loading", false, false, false, false),
             ]),
             ..TemplatePaneNodeData::default()
         }

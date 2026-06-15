@@ -9,12 +9,19 @@ pub struct UiInputTimerState {
     last_tick: Option<UiInputTimestamp>,
     typeahead_expirations: BTreeMap<UiNodeId, UiInputTimestamp>,
     submenu_hover_expirations: BTreeMap<UiNodeId, UiSubmenuHoverTimerExpiration>,
+    toast_expirations: BTreeMap<UiNodeId, UiToastTimerExpiration>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct UiSubmenuHoverTimerExpiration {
     deadline: UiInputTimestamp,
     option_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct UiToastTimerExpiration {
+    deadline: UiInputTimestamp,
+    toast_id: String,
 }
 
 impl UiInputTimerState {
@@ -40,6 +47,18 @@ impl UiInputTimerState {
         self.submenu_hover_expirations
             .get(&target)
             .map(|expiration| expiration.option_id.as_str())
+    }
+
+    pub fn toast_expiration(&self, target: UiNodeId) -> Option<UiInputTimestamp> {
+        self.toast_expirations
+            .get(&target)
+            .map(|expiration| expiration.deadline)
+    }
+
+    pub fn toast_id(&self, target: UiNodeId) -> Option<&str> {
+        self.toast_expirations
+            .get(&target)
+            .map(|expiration| expiration.toast_id.as_str())
     }
 
     pub fn arm_typeahead_expiration(
@@ -78,6 +97,30 @@ impl UiInputTimerState {
         self.submenu_hover_expirations.remove(&target);
     }
 
+    pub fn arm_toast_expiration(
+        &mut self,
+        target: UiNodeId,
+        toast_id: impl Into<String>,
+        started_at: UiInputTimestamp,
+        timeout_ms: u64,
+    ) {
+        let timeout_micros = timeout_ms.saturating_mul(MICROS_PER_MILLI);
+        let deadline = UiInputTimestamp::from_micros(
+            started_at.monotonic_micros.saturating_add(timeout_micros),
+        );
+        self.toast_expirations.insert(
+            target,
+            UiToastTimerExpiration {
+                deadline,
+                toast_id: toast_id.into(),
+            },
+        );
+    }
+
+    pub fn clear_toast_expiration(&mut self, target: UiNodeId) {
+        self.toast_expirations.remove(&target);
+    }
+
     pub fn drain_expired_typeahead(&mut self, now: UiInputTimestamp) -> Vec<UiNodeId> {
         let expired = self
             .typeahead_expirations
@@ -103,6 +146,20 @@ impl UiInputTimerState {
             .collect::<Vec<_>>();
         for (target, _) in &expired {
             self.submenu_hover_expirations.remove(target);
+        }
+        expired
+    }
+
+    pub fn drain_expired_toasts(&mut self, now: UiInputTimestamp) -> Vec<(UiNodeId, String)> {
+        let expired = self
+            .toast_expirations
+            .iter()
+            .filter_map(|(target, expiration)| {
+                (expiration.deadline <= now).then(|| (*target, expiration.toast_id.clone()))
+            })
+            .collect::<Vec<_>>();
+        for (target, _) in &expired {
+            self.toast_expirations.remove(target);
         }
         expired
     }

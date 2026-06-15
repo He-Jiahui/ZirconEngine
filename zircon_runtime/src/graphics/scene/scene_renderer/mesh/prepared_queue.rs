@@ -29,8 +29,9 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) skinned_previous_palette_upload_count: usize,
     pub(crate) skinned_gpu_source_candidate_count: usize,
     pub(crate) skinned_gpu_cpu_morphed_source_candidate_count: usize,
+    pub(crate) skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count: usize,
     pub(crate) skinned_gpu_skinning_draw_count: usize,
-    pub(crate) skinned_gpu_motion_vector_draw_count: usize,
+    pub(crate) skinned_gpu_velocity_draw_count: usize,
     pub(crate) indirect_draw_count: usize,
     pub(crate) lod_draw_count: usize,
     pub(crate) static_batch_candidate_group_count: usize,
@@ -51,8 +52,8 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) gpu_scene_free_span_count: usize,
     pub(crate) gpu_scene_primitive_upload_range_count: usize,
     pub(crate) gpu_scene_instance_upload_range_count: usize,
-    pub(crate) previous_motion_vector_transform_draw_count: usize,
-    pub(crate) missing_motion_vector_transform_draw_count: usize,
+    pub(crate) previous_velocity_transform_draw_count: usize,
+    pub(crate) missing_velocity_transform_draw_count: usize,
     pub(crate) command_count: usize,
     pub(crate) depth_prepass_command_count: usize,
     pub(crate) shadow_command_count: usize,
@@ -60,6 +61,7 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) alpha_mask_command_count: usize,
     pub(crate) transparent_command_count: usize,
     pub(crate) velocity_command_count: usize,
+    pub(crate) taa_reactive_mask_command_count: usize,
     pub(crate) cached_command_hit_count: usize,
     pub(crate) command_rebuild_count: usize,
     pub(crate) dynamic_command_count: usize,
@@ -72,7 +74,7 @@ pub(crate) fn prepare_mesh_queue(draws: &[MeshDraw]) -> PreparedMeshQueue {
         (
             draw.queue_profile(),
             draw.casts_shadow(),
-            draw.has_previous_motion_vector_transform(),
+            draw.has_previous_velocity_transform(),
             draw.is_skinned(),
             draw.has_skinned_joint_palette_upload(),
             draw.has_previous_skinned_joint_palette_upload(),
@@ -104,6 +106,7 @@ impl PreparedMeshQueueStats {
         self.alpha_mask_command_count = command_stats.alpha_mask_command_count;
         self.transparent_command_count = command_stats.transparent_command_count;
         self.velocity_command_count = command_stats.velocity_command_count;
+        self.taa_reactive_mask_command_count = command_stats.taa_reactive_mask_command_count;
         self.cached_command_hit_count = command_stats.cached_command_hit_count;
         self.command_rebuild_count = command_stats.command_rebuild_count;
         self.dynamic_command_count = command_stats.dynamic_command_count;
@@ -170,7 +173,7 @@ where
     for (
         profile,
         casts_shadow,
-        has_previous_motion_vector_transform,
+        has_previous_velocity_transform,
         is_skinned,
         has_skinned_joint_palette_upload,
         has_previous_skinned_joint_palette_upload,
@@ -223,17 +226,23 @@ where
         if has_skinned_gpu_cpu_morphed_source_candidate {
             stats.skinned_gpu_cpu_morphed_source_candidate_count += 1;
         }
+        let missing_cpu_morphed_previous_shape_velocity = profile.velocity_history_eligible()
+            && uses_skinned_gpu_skinning
+            && has_skinned_gpu_cpu_morphed_source_candidate
+            && !has_previous_velocity_transform;
         if uses_skinned_gpu_skinning {
             stats.skinned_gpu_skinning_draw_count += 1;
-            if has_previous_motion_vector_transform {
-                stats.skinned_gpu_motion_vector_draw_count += 1;
+            if has_previous_velocity_transform {
+                stats.skinned_gpu_velocity_draw_count += 1;
             }
         }
-        if profile.motion_vector_history_eligible() {
-            if has_previous_motion_vector_transform {
-                stats.previous_motion_vector_transform_draw_count += 1;
+        if profile.velocity_history_eligible() {
+            if has_previous_velocity_transform {
+                stats.previous_velocity_transform_draw_count += 1;
+            } else if missing_cpu_morphed_previous_shape_velocity {
+                stats.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count += 1;
             } else {
-                stats.missing_motion_vector_transform_draw_count += 1;
+                stats.missing_velocity_transform_draw_count += 1;
             }
         }
         if profile.static_batch_eligible() {
@@ -469,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn prepared_queue_stats_count_dynamic_motion_vector_history_readiness() {
+    fn prepared_queue_stats_count_dynamic_velocity_history_readiness() {
         let stats = summarize_prepared_mesh_queue_items([
             item(
                 profile(
@@ -517,8 +526,8 @@ mod tests {
             ),
         ]);
 
-        assert_eq!(stats.previous_motion_vector_transform_draw_count, 2);
-        assert_eq!(stats.missing_motion_vector_transform_draw_count, 1);
+        assert_eq!(stats.previous_velocity_transform_draw_count, 2);
+        assert_eq!(stats.missing_velocity_transform_draw_count, 1);
     }
 
     #[test]
@@ -576,7 +585,7 @@ mod tests {
         assert_eq!(stats.skinned_gpu_source_candidate_count, 1);
         assert_eq!(stats.skinned_gpu_cpu_morphed_source_candidate_count, 0);
         assert_eq!(stats.skinned_gpu_skinning_draw_count, 1);
-        assert_eq!(stats.skinned_gpu_motion_vector_draw_count, 0);
+        assert_eq!(stats.skinned_gpu_velocity_draw_count, 0);
         assert_eq!(stats.dynamic_geometry_draw_count, 2);
         assert_eq!(stats.prepared_geometry_draw_count, 2);
     }
@@ -599,7 +608,14 @@ mod tests {
         assert_eq!(stats.skinned_palette_upload_count, 1);
         assert_eq!(stats.skinned_gpu_source_candidate_count, 1);
         assert_eq!(stats.skinned_gpu_cpu_morphed_source_candidate_count, 1);
+        assert_eq!(
+            stats.skinned_gpu_cpu_morphed_previous_shape_velocity_missing_count,
+            1
+        );
         assert_eq!(stats.skinned_gpu_skinning_draw_count, 1);
+        assert_eq!(stats.skinned_gpu_velocity_draw_count, 0);
+        assert_eq!(stats.previous_velocity_transform_draw_count, 0);
+        assert_eq!(stats.missing_velocity_transform_draw_count, 0);
         assert_eq!(stats.dynamic_geometry_draw_count, 1);
         assert_eq!(stats.prepared_geometry_draw_count, 0);
         assert_eq!(stats.dynamic_batch_candidate_group_count, 0);
@@ -639,7 +655,7 @@ mod tests {
     }
 
     #[test]
-    fn prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette() {
+    fn prepared_queue_stats_count_gpu_skinned_velocity_with_previous_palette() {
         let stats = summarize_prepared_mesh_queue_items([gpu_skinned_item(
             skinned_gpu_profile(
                 MeshDrawQueuePhase::Opaque,
@@ -649,13 +665,13 @@ mod tests {
             ),
             true,
             true,
-            "gpu-skinned-motion-vector",
+            "gpu-skinned-velocity",
         )]);
 
         assert_eq!(stats.skinned_previous_palette_upload_count, 1);
-        assert_eq!(stats.skinned_gpu_motion_vector_draw_count, 1);
-        assert_eq!(stats.previous_motion_vector_transform_draw_count, 1);
-        assert_eq!(stats.missing_motion_vector_transform_draw_count, 0);
+        assert_eq!(stats.skinned_gpu_velocity_draw_count, 1);
+        assert_eq!(stats.previous_velocity_transform_draw_count, 1);
+        assert_eq!(stats.missing_velocity_transform_draw_count, 0);
     }
 
     #[test]
@@ -669,6 +685,7 @@ mod tests {
                 alpha_mask_command_count: 1,
                 transparent_command_count: 1,
                 velocity_command_count: 1,
+                taa_reactive_mask_command_count: 1,
                 direct_indexed_count: 7,
                 indirect_indexed_count: 2,
                 gpu_scene_instance_count: 9,
@@ -689,6 +706,7 @@ mod tests {
         assert_eq!(stats.alpha_mask_command_count, 1);
         assert_eq!(stats.transparent_command_count, 1);
         assert_eq!(stats.velocity_command_count, 1);
+        assert_eq!(stats.taa_reactive_mask_command_count, 1);
         assert_eq!(stats.cached_command_hit_count, 0);
         assert_eq!(stats.command_rebuild_count, 9);
         assert_eq!(stats.dynamic_command_count, 9);
@@ -787,7 +805,7 @@ mod tests {
     fn item<K>(
         profile: MeshDrawQueueProfile,
         casts_shadow: bool,
-        has_previous_motion_vector_transform: bool,
+        has_previous_velocity_transform: bool,
         key: K,
     ) -> (
         MeshDrawQueueProfile,
@@ -804,7 +822,7 @@ mod tests {
         (
             profile,
             casts_shadow,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             false,
             false,
             false,
@@ -818,7 +836,7 @@ mod tests {
     fn gpu_skinned_item<K>(
         profile: MeshDrawQueueProfile,
         casts_shadow: bool,
-        has_previous_motion_vector_transform: bool,
+        has_previous_velocity_transform: bool,
         key: K,
     ) -> (
         MeshDrawQueueProfile,
@@ -835,10 +853,10 @@ mod tests {
         (
             profile,
             casts_shadow,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             true,
             true,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             true,
             false,
             true,
@@ -849,7 +867,7 @@ mod tests {
     fn cpu_morphed_gpu_skinned_item<K>(
         profile: MeshDrawQueueProfile,
         casts_shadow: bool,
-        has_previous_motion_vector_transform: bool,
+        has_previous_velocity_transform: bool,
         key: K,
     ) -> (
         MeshDrawQueueProfile,
@@ -866,10 +884,10 @@ mod tests {
         (
             profile,
             casts_shadow,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             true,
             true,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             true,
             true,
             true,
@@ -880,7 +898,7 @@ mod tests {
     fn skinned_without_palette_item<K>(
         profile: MeshDrawQueueProfile,
         casts_shadow: bool,
-        has_previous_motion_vector_transform: bool,
+        has_previous_velocity_transform: bool,
         key: K,
     ) -> (
         MeshDrawQueueProfile,
@@ -897,7 +915,7 @@ mod tests {
         (
             profile,
             casts_shadow,
-            has_previous_motion_vector_transform,
+            has_previous_velocity_transform,
             true,
             false,
             false,

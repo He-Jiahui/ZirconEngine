@@ -1,4 +1,5 @@
 use super::*;
+use zircon_runtime_interface::reflect::{ReflectSchemaRequest, ReflectTypePath};
 
 #[test]
 fn endpoint_transport_and_security_policy_are_neutral_contracts() {
@@ -33,6 +34,9 @@ fn endpoint_transport_and_security_policy_are_neutral_contracts() {
     let diagnostics = NetDiagnostics {
         backend_name: "tokio-net+http+websocket".to_string(),
         mode: NetRuntimeMode::DedicatedServer,
+        outbound_bytes: 42,
+        inbound_bytes: 24,
+        last_observed_latency_ms: Some(16),
         open_udp_sockets: 1,
         open_tcp_listeners: 2,
         open_http_listeners: 3,
@@ -157,14 +161,49 @@ fn rpc_session_and_handshake_descriptors_are_runtime_mode_agnostic() {
     assert!(!RpcDirection::ClientToServer.allows_caller(RpcPeerRole::Server));
     assert!(RpcDirection::ServerToClient.allows_caller(RpcPeerRole::Server));
     assert!(RpcDirection::TargetClient.allows_caller(RpcPeerRole::Server));
+    assert!(RpcDirection::Bidirectional.allows_caller(RpcPeerRole::Client));
+    assert!(RpcDirection::Bidirectional.allows_caller(RpcPeerRole::Server));
 
     let descriptor = RpcDescriptor::target_rpc("inventory.sync_one")
         .with_payload_schema("schema://net/inventory/sync-one.v1")
         .with_max_calls_per_second(12)
         .with_max_payload_bytes(4096);
     assert_eq!(descriptor.direction, RpcDirection::TargetClient);
+    assert_eq!(
+        descriptor
+            .payload_schema
+            .as_ref()
+            .map(|schema| schema.schema_id()),
+        Some("schema://net/inventory/sync-one.v1")
+    );
+    assert_eq!(
+        descriptor
+            .payload_schema
+            .as_ref()
+            .map(|schema| schema.reflect_schema_request.clone()),
+        Some(ReflectSchemaRequest::for_type(
+            "schema://net/inventory/sync-one.v1"
+        ))
+    );
     assert_eq!(descriptor.max_calls_per_second, Some(12));
     assert_eq!(descriptor.max_payload_bytes, Some(4096));
+    assert!(RpcDirection::Bidirectional
+        .allows_invocation(RpcDirection::ClientToServer, RpcPeerRole::Client));
+    assert!(RpcDirection::Bidirectional
+        .allows_invocation(RpcDirection::ServerToClient, RpcPeerRole::Server));
+    assert!(!RpcDirection::Bidirectional
+        .allows_invocation(RpcDirection::ServerToClient, RpcPeerRole::Client));
+
+    let reflected_schema = RpcPayloadSchema::from_reflect_type_path(
+        ReflectTypePath::new("gameplay.inventory.SyncOne", "SyncOne")
+            .unwrap()
+            .with_plugin_id("net"),
+    );
+    assert_eq!(reflected_schema.schema_id(), "gameplay.inventory.SyncOne");
+    assert_eq!(
+        reflected_schema.reflect_schema_request,
+        ReflectSchemaRequest::for_type("gameplay.inventory.SyncOne")
+    );
 
     let invocation = RpcInvocationDescriptor::new(
         "inventory.sync_one",
@@ -179,7 +218,12 @@ fn rpc_session_and_handshake_descriptors_are_runtime_mode_agnostic() {
     assert_eq!(invocation.payload_bytes(), 4);
 
     let report = RpcDispatchReport::for_invocation(&invocation, RpcDispatchStatus::Queued)
-        .with_schema(descriptor.payload_schema.clone())
+        .with_schema(
+            descriptor
+                .payload_schema
+                .as_ref()
+                .map(|schema| schema.schema_id.clone()),
+        )
         .with_diagnostic("queued for reliable channel")
         .with_response_payload(vec![9]);
     assert_eq!(report.rpc_id, "inventory.sync_one");
@@ -283,17 +327,38 @@ fn reliable_datagram_and_download_contracts_record_recovery_state() {
             .with_diagnostic("hash pending");
     assert_eq!(progress.status, NetDownloadStatus::Verifying);
     assert_eq!(progress.diagnostic.as_deref(), Some("hash pending"));
+
+    let zrpack = ZrPackManifest::new(1, 12)
+        .with_chunk(ZrChunkEntry::new([1; 32], 0, 4))
+        .with_chunk(ZrChunkEntry::new([2; 32], 4, 8));
+    assert_eq!(zrpack.covered_bytes(), 12);
+    assert!(zrpack.is_complete_byte_plan());
+    assert_eq!(zrpack.chunks[1].end_offset(), Some(12));
+    let json = serde_json::to_value(&zrpack).unwrap();
+    assert_eq!(
+        serde_json::from_value::<ZrPackManifest>(json).unwrap(),
+        zrpack
+    );
 }
 
 #[test]
 fn sync_descriptors_share_interest_budget_and_delta_contracts() {
+    let identity = NetworkIdentity::new(NetObjectId::new(21), SyncAuthority::Server);
+    assert_eq!(identity.object, NetObjectId::new(21));
+    assert_eq!(identity.authority, SyncAuthority::Server);
+
     let descriptor = SyncComponentDescriptor::new("Transform", SyncAuthority::Server)
         .with_field(SyncFieldDescriptor::new("translation", "vec3").delta_compressed(false))
         .with_field(SyncFieldDescriptor::new("rotation", "quat"))
+        .with_replication_strategy(SyncReplicationStrategy::Interval)
         .with_update_hz(30)
         .with_replication_priority(7)
         .with_interest_group("nearby");
 
+    assert_eq!(
+        descriptor.replication_strategy,
+        SyncReplicationStrategy::Interval
+    );
     assert_eq!(descriptor.update_hz, 30);
     assert_eq!(descriptor.replication_priority, 7);
     assert_eq!(descriptor.interest_group.as_deref(), Some("nearby"));
@@ -320,7 +385,13 @@ fn sync_descriptors_share_interest_budget_and_delta_contracts() {
         [SyncFieldValue::new("translation", [4, 5, 6])],
     );
     assert_eq!(delta.sequence, 99);
+    assert!(!delta.is_despawn());
     assert_eq!(delta.changed_fields.len(), 1);
+
+    let despawn_delta = SyncDelta::despawn(NetObjectId::new(21), "Transform", 100);
+    assert_eq!(despawn_delta.sequence, 100);
+    assert!(despawn_delta.is_despawn());
+    assert!(despawn_delta.changed_fields.is_empty());
 
     let interest = SyncInterestDescriptor::new(NetSessionId::new(3)).with_group("nearby");
     assert!(interest.allows_group(Some("nearby")));

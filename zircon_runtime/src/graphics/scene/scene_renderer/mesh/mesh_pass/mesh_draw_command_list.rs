@@ -9,8 +9,8 @@ use super::indirect_draw_batcher::{IndirectDrawBatcher, IndirectDrawBatcherStats
 use super::mesh_draw_command::{DrawInstanceSource, MeshDrawArgs, MeshDrawCommand};
 use super::mesh_pass_processor::{MeshBatchRef, MeshPassBuildContext, MeshPassProcessor};
 use super::processors::{
-    DepthPrepassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor, TransparentPassProcessor,
-    VelocityPassProcessor,
+    DepthPrepassProcessor, OpaqueBasePassProcessor, ShadowPassProcessor,
+    TaaReactiveMaskPassProcessor, TransparentPassProcessor, VelocityPassProcessor,
 };
 
 #[derive(Clone, Default)]
@@ -34,6 +34,7 @@ pub(crate) struct MeshPassCommandBuffers {
     alpha_mask: MeshDrawCommandList,
     transparent: MeshDrawCommandList,
     velocity: MeshDrawCommandList,
+    taa_reactive_mask: MeshDrawCommandList,
     cache_stats: MeshDrawCommandCacheStats,
 }
 
@@ -46,6 +47,7 @@ pub(crate) struct MeshPassCommandBufferStats {
     pub(crate) alpha_mask_command_count: usize,
     pub(crate) transparent_command_count: usize,
     pub(crate) velocity_command_count: usize,
+    pub(crate) taa_reactive_mask_command_count: usize,
     pub(crate) direct_indexed_count: usize,
     pub(crate) indirect_indexed_count: usize,
     pub(crate) gpu_scene_instance_count: usize,
@@ -106,6 +108,7 @@ impl MeshPassCommandBuffers {
         let mut alpha_mask = Vec::new();
         let mut transparent = Vec::new();
         let mut velocity = Vec::new();
+        let mut taa_reactive_mask = Vec::new();
 
         for command in commands.into_commands() {
             match command.phase {
@@ -114,7 +117,20 @@ impl MeshPassCommandBuffers {
                 RenderPhase::Opaque3d => opaque.push(command),
                 RenderPhase::AlphaMask3d => alpha_mask.push(command),
                 RenderPhase::Transparent3d => transparent.push(command),
-                RenderPhase::PostProcess => velocity.push(command),
+                RenderPhase::PostProcess
+                    if command.pipeline_kind == super::MeshPassPipelineKind::Velocity =>
+                {
+                    velocity.push(command)
+                }
+                RenderPhase::PostProcess
+                    if matches!(
+                        command.pipeline_kind,
+                        super::MeshPassPipelineKind::TaaReactiveMask
+                            | super::MeshPassPipelineKind::TaaReactiveMaterialMask
+                    ) =>
+                {
+                    taa_reactive_mask.push(command)
+                }
                 _ => {}
             }
         }
@@ -126,6 +142,7 @@ impl MeshPassCommandBuffers {
             alpha_mask: MeshDrawCommandList::from_commands(alpha_mask),
             transparent: MeshDrawCommandList::from_commands(transparent),
             velocity: MeshDrawCommandList::from_commands(velocity),
+            taa_reactive_mask: MeshDrawCommandList::from_commands(taa_reactive_mask),
             cache_stats,
         }
     }
@@ -154,6 +171,10 @@ impl MeshPassCommandBuffers {
         &self.velocity
     }
 
+    pub(crate) fn taa_reactive_mask(&self) -> &MeshDrawCommandList {
+        &self.taa_reactive_mask
+    }
+
     pub(crate) fn stats(&self) -> MeshPassCommandBufferStats {
         self.stats_with_indirect_batches(&RenderCapabilitySummary::default())
     }
@@ -168,6 +189,7 @@ impl MeshPassCommandBuffers {
         let alpha_mask = self.alpha_mask.stats();
         let transparent = self.transparent.stats();
         let velocity = self.velocity.stats();
+        let taa_reactive_mask = self.taa_reactive_mask.stats();
         let lists = [
             depth_prepass,
             shadow,
@@ -175,6 +197,7 @@ impl MeshPassCommandBuffers {
             alpha_mask,
             transparent,
             velocity,
+            taa_reactive_mask,
         ];
 
         MeshPassCommandBufferStats {
@@ -185,6 +208,7 @@ impl MeshPassCommandBuffers {
             alpha_mask_command_count: alpha_mask.command_count,
             transparent_command_count: transparent.command_count,
             velocity_command_count: velocity.command_count,
+            taa_reactive_mask_command_count: taa_reactive_mask.command_count,
             direct_indexed_count: lists.iter().map(|stats| stats.direct_indexed_count).sum(),
             indirect_indexed_count: lists.iter().map(|stats| stats.indirect_indexed_count).sum(),
             gpu_scene_instance_count: lists
@@ -203,6 +227,7 @@ impl MeshPassCommandBuffers {
                     self.alpha_mask.commands(),
                     self.transparent.commands(),
                     self.velocity.commands(),
+                    self.taa_reactive_mask.commands(),
                 ],
             )
         }
@@ -290,6 +315,7 @@ where
     let mut transparent = TransparentPassProcessor;
     let mut shadow = ShadowPassProcessor;
     let mut velocity = VelocityPassProcessor;
+    let mut taa_reactive_mask = TaaReactiveMaskPassProcessor;
     let mut commands = MeshDrawCommandList::new();
     let mut build_context = MeshPassBuildContext::new(variant_resolver);
     let mut cache_stats = MeshDrawCommandCacheStats::default();
@@ -301,6 +327,7 @@ where
         opaque_base.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         transparent.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         velocity.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
+        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         append_dynamic_commands(batch_commands, &mut commands, &mut cache_stats);
     }
 
@@ -322,6 +349,7 @@ where
     let mut transparent = TransparentPassProcessor;
     let mut shadow = ShadowPassProcessor;
     let mut velocity = VelocityPassProcessor;
+    let mut taa_reactive_mask = TaaReactiveMaskPassProcessor;
     let mut commands = MeshDrawCommandList::new();
     let mut build_context = MeshPassBuildContext::new(variant_resolver);
     let mut cache_stats = MeshDrawCommandCacheStats::default();
@@ -344,6 +372,7 @@ where
         opaque_base.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         transparent.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         velocity.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
+        taa_reactive_mask.add_mesh_batch(&batch, &mut build_context, &mut batch_commands);
         append_dynamic_commands(batch_commands, &mut commands, &mut cache_stats);
     }
 
@@ -427,6 +456,14 @@ where
         _ => {}
     }
 
+    add_uncached_postprocess_phase(
+        batch,
+        build_context,
+        commands,
+        cache_stats,
+        |batch, context, out| TaaReactiveMaskPassProcessor.add_mesh_batch(batch, context, out),
+    );
+
     true
 }
 
@@ -465,6 +502,20 @@ fn add_cached_or_rebuilt_phase<R>(
         cache_stats.command_rebuild_count += 1;
         commands.push(command);
     }
+}
+
+fn add_uncached_postprocess_phase<R>(
+    batch: &MeshBatchRef,
+    build_context: &mut MeshPassBuildContext<'_, R>,
+    commands: &mut MeshDrawCommandList,
+    cache_stats: &mut MeshDrawCommandCacheStats,
+    add_batch: impl FnOnce(&MeshBatchRef, &mut MeshPassBuildContext<'_, R>, &mut MeshDrawCommandList),
+) where
+    R: MeshPipelineVariantResolver + ?Sized,
+{
+    let mut rebuilt = MeshDrawCommandList::new();
+    add_batch(batch, build_context, &mut rebuilt);
+    append_dynamic_commands(rebuilt, commands, cache_stats);
 }
 
 fn append_dynamic_commands(
@@ -639,10 +690,12 @@ mod tests {
                 batch(MeshDrawQueuePhase::Opaque, 10)
                     .with_source_draw_index(0)
                     .with_casts_shadow(true)
-                    .with_previous_motion_vector_transform(true),
+                    .with_previous_velocity_transform(true)
+                    .with_taa_reactive_mask_strength(0.75),
                 batch(MeshDrawQueuePhase::AlphaMask, 20)
                     .with_source_draw_index(1)
-                    .with_casts_shadow(true),
+                    .with_casts_shadow(true)
+                    .with_taa_reactive_mask_strength(0.5),
                 batch(MeshDrawQueuePhase::Transparent, 30).with_source_draw_index(2),
                 batch(MeshDrawQueuePhase::Opaque, 40).with_source_draw_index(3),
             ],
@@ -655,6 +708,7 @@ mod tests {
         assert_eq!(buffers.alpha_mask().commands().len(), 1);
         assert_eq!(buffers.transparent().commands().len(), 1);
         assert_eq!(buffers.velocity().commands().len(), 1);
+        assert_eq!(buffers.taa_reactive_mask().commands().len(), 3);
         assert_eq!(
             buffers
                 .opaque()
@@ -667,22 +721,23 @@ mod tests {
         assert_eq!(
             buffers.stats(),
             MeshPassCommandBufferStats {
-                command_count: 10,
+                command_count: 13,
                 depth_prepass_command_count: 3,
                 shadow_command_count: 2,
                 opaque_command_count: 2,
                 alpha_mask_command_count: 1,
                 transparent_command_count: 1,
                 velocity_command_count: 1,
-                direct_indexed_count: 10,
+                taa_reactive_mask_command_count: 3,
+                direct_indexed_count: 13,
                 indirect_indexed_count: 0,
-                gpu_scene_instance_count: 10,
+                gpu_scene_instance_count: 13,
                 cached_command_hit_count: 0,
-                command_rebuild_count: 10,
-                dynamic_command_count: 10,
+                command_rebuild_count: 13,
+                dynamic_command_count: 13,
                 indirect_batch_count: 0,
                 indirect_batched_draw_count: 0,
-                indirect_fallback_draw_count: 10,
+                indirect_fallback_draw_count: 13,
                 indirect_args_count: 0,
             }
         );
@@ -718,7 +773,8 @@ mod tests {
         let buffers = build_mesh_pass_command_buffers_from_batches(
             [batch(MeshDrawQueuePhase::Opaque, 10)
                 .with_casts_shadow(true)
-                .with_previous_motion_vector_transform(true)],
+                .with_previous_velocity_transform(true)
+                .with_taa_reactive_mask_strength(0.75)],
             &mut variants,
         );
 
@@ -726,13 +782,17 @@ mod tests {
         let shadow = buffers.shadow().commands()[0].pipeline_variant_id;
         let opaque = buffers.opaque().commands()[0].pipeline_variant_id;
         let velocity = buffers.velocity().commands()[0].pipeline_variant_id;
+        let reactive = buffers.taa_reactive_mask().commands()[0].pipeline_variant_id;
 
         assert_eq!(depth, MeshPipelineVariantId::new(0));
         assert_eq!(shadow, MeshPipelineVariantId::new(0));
         assert_ne!(opaque, MeshPipelineVariantId::new(0));
         assert_ne!(velocity, MeshPipelineVariantId::new(0));
+        assert_ne!(reactive, MeshPipelineVariantId::new(0));
         assert_ne!(opaque, velocity);
-        assert_eq!(variants.len(), 2);
+        assert_ne!(opaque, reactive);
+        assert_ne!(velocity, reactive);
+        assert_eq!(variants.len(), 3);
     }
 
     #[test]
@@ -743,7 +803,8 @@ mod tests {
         let batch = static_batch(MeshDrawQueuePhase::Opaque, 10)
             .with_cache_identity(7, 0)
             .with_static_state(static_state)
-            .with_casts_shadow(true);
+            .with_casts_shadow(true)
+            .with_taa_reactive_mask_strength(0.75);
 
         let first = build_mesh_pass_command_buffers_from_batches_cached(
             [batch.clone()],
@@ -760,13 +821,14 @@ mod tests {
         )
         .stats();
 
-        assert_eq!(first.command_count, 3);
+        assert_eq!(first.command_count, 4);
         assert_eq!(first.cached_command_hit_count, 0);
-        assert_eq!(first.command_rebuild_count, 3);
-        assert_eq!(second.command_count, 3);
+        assert_eq!(first.command_rebuild_count, 4);
+        assert_eq!(first.dynamic_command_count, 1);
+        assert_eq!(second.command_count, 4);
         assert_eq!(second.cached_command_hit_count, 3);
-        assert_eq!(second.command_rebuild_count, 0);
-        assert_eq!(second.dynamic_command_count, 0);
+        assert_eq!(second.command_rebuild_count, 1);
+        assert_eq!(second.dynamic_command_count, 1);
     }
 
     fn command(phase: RenderPhase, sort_key: u64, variant_id: u32) -> MeshDrawCommand {

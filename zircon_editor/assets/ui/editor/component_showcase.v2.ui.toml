@@ -6,6 +6,12 @@ display_name = "UI Component Showcase"
 
 # Rust contract action id markers:
 # ui_component_showcase.number_field_drag_update
+# ui_component_showcase.slider_drag_update
+# ui_component_showcase.slider_changed
+# ui_component_showcase.range_slider_drag_update
+# ui_component_showcase.range_slider_changed
+# ui_component_showcase.tab_changed
+# ui_component_showcase.tab_strip_changed
 # ui_component_showcase.input_field_changed
 
 [root]

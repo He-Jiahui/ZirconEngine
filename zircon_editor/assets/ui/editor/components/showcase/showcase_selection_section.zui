@@ -80,6 +80,20 @@ events = [
   { id = "UiComponentShowcase/SearchSelectClosePopup", event = "Click", route = "component_lab.showcase.close_popup.search_select" },
 ]
 
+[nodes.context_menu_demo]
+component = "ContextMenu"
+control_id = "ContextMenuDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { open = true, popup_open = true, options = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed", "Archive|loading,disabled"], menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed", "Archive|loading,disabled"], popup_anchor_x = 320.0, popup_anchor_y = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
+
+[nodes.dropdown_popup_demo]
+component = "DropdownPopup"
+control_id = "DropdownPopupDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "scene", open = true, popup_open = true, selected_options = ["scene"], options = ["scene|label=Scene,selected", "assets|label=Assets,focused,hovered", "console|label=Console,disabled", "render|label=Render,loading"], input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
+
 [nodes.asset_field_demo]
 component = "AssetField"
 control_id = "AssetFieldDemo"
@@ -132,6 +146,8 @@ children = [
   { node = "enum_field_demo", slot = { name = "content" } },
   { node = "flags_field_demo", slot = { name = "content" } },
   { node = "search_select_demo", slot = { name = "content" } },
+  { node = "context_menu_demo", slot = { name = "content" } },
+  { node = "dropdown_popup_demo", slot = { name = "content" } },
   { node = "asset_field_demo", slot = { name = "content" } },
   { node = "instance_field_demo", slot = { name = "content" } },
   { node = "object_field_demo", slot = { name = "content" } },

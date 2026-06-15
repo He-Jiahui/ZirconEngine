@@ -43,14 +43,43 @@ fn transfer_list() -> UiComponentDescriptor {
 }
 
 fn context_menu() -> UiComponentDescriptor {
-    editor_panel_component(
-        "ContextMenu",
-        "Context Menu",
-        UiComponentCategory::Input,
-        "context-menu",
-    )
+    overlay_layer_props(modal_interaction_props(popup_position_props(
+        editor_panel_component(
+            "ContextMenu",
+            "Context Menu",
+            UiComponentCategory::Input,
+            "context-menu",
+        )
+        .with_prop(bool_prop("open", false))
+        .with_prop(bool_prop("popup_open", false))
+        .with_prop(options_prop())
+        .with_prop(default_string_prop("context_target", ""))
+        .with_prop(default_string_prop("context_target_path", ""))
+        .with_prop(int_prop("focused_index", 0))
+        .with_prop(array_prop("disabled_options"))
+        .with_prop(bool_prop("keyboard_navigation", true))
+        .with_prop(default_string_prop("typeahead_buffer", ""))
+        .with_prop(bool_prop("typeahead_buffer_expired", false))
+        .with_prop(int_prop("typeahead_timeout_ms", 500))
+        .with_prop(default_string_prop("hovered_option_id", ""))
+        .with_prop(default_string_prop("submenu_pending_option_id", ""))
+        .with_prop(default_string_prop("submenu_open_option_id", ""))
+        .with_prop(bool_prop("submenu_hover_ready", false))
+        .with_prop(int_prop("submenu_hover_delay_ms", 300))
+        .with_prop(default_string_prop("submenu_focus_scope", "root"))
+        .with_prop(bool_prop("submenu_focus_loop", true)),
+        "right-start",
+    )))
+    .slot(UiSlotSchema::new("paper"))
+    .slot(UiSlotSchema::new("list"))
+    .slot(UiSlotSchema::new("transition"))
     .slot(multi_slot("items"))
     .events([
+        UiComponentEventKind::KeyboardAction,
+        UiComponentEventKind::KeyboardText,
+        UiComponentEventKind::TypeaheadExpired,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Focus,
         UiComponentEventKind::OpenPopupAt,
         UiComponentEventKind::SelectOption,
         UiComponentEventKind::ClosePopup,

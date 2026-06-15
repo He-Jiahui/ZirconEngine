@@ -17,7 +17,9 @@ use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     component::{UiComponentEvent, UiValue},
-    dispatch::{UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent},
+    dispatch::{
+        UiInputModifiers, UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent,
+    },
     event_ui::{UiNodeId, UiReflectorSnapshot, UiTreeId},
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
     layout::{UiLayoutEngineSelectionReport, UiPoint},
@@ -407,7 +409,13 @@ impl UiSurface {
         kind: UiPointerEventKind,
         point: UiPoint,
     ) -> Result<UiPointerRoute, UiTreeError> {
-        self.route_pointer_event_with_details(kind, UiHitTestQuery::new(point), None, 0.0)
+        self.route_pointer_event_with_details(
+            kind,
+            UiHitTestQuery::new(point),
+            None,
+            UiInputModifiers::default(),
+            0.0,
+        )
     }
 
     pub fn route_pointer_event_with_query(
@@ -415,7 +423,7 @@ impl UiSurface {
         kind: UiPointerEventKind,
         query: UiHitTestQuery,
     ) -> Result<UiPointerRoute, UiTreeError> {
-        self.route_pointer_event_with_details(kind, query, None, 0.0)
+        self.route_pointer_event_with_details(kind, query, None, UiInputModifiers::default(), 0.0)
     }
 
     pub fn route_pointer_event_with_button(
@@ -424,7 +432,13 @@ impl UiSurface {
         point: UiPoint,
         button: UiPointerButton,
     ) -> Result<UiPointerRoute, UiTreeError> {
-        self.route_pointer_event_with_details(kind, UiHitTestQuery::new(point), Some(button), 0.0)
+        self.route_pointer_event_with_details(
+            kind,
+            UiHitTestQuery::new(point),
+            Some(button),
+            UiInputModifiers::default(),
+            0.0,
+        )
     }
 
     pub fn route_pointer_event_with_query_and_button(
@@ -433,7 +447,13 @@ impl UiSurface {
         query: UiHitTestQuery,
         button: UiPointerButton,
     ) -> Result<UiPointerRoute, UiTreeError> {
-        self.route_pointer_event_with_details(kind, query, Some(button), 0.0)
+        self.route_pointer_event_with_details(
+            kind,
+            query,
+            Some(button),
+            UiInputModifiers::default(),
+            0.0,
+        )
     }
 
     pub fn dispatch_pointer_event(
@@ -445,11 +465,41 @@ impl UiSurface {
         self.dispatch_pointer_event_with_query(dispatcher, event, UiHitTestQuery::new(point))
     }
 
+    pub(crate) fn dispatch_pointer_event_with_modifiers(
+        &mut self,
+        dispatcher: &UiPointerDispatcher,
+        event: UiPointerEvent,
+        modifiers: UiInputModifiers,
+    ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        let point = event.point;
+        self.dispatch_pointer_event_with_query_and_modifiers(
+            dispatcher,
+            event,
+            UiHitTestQuery::new(point),
+            modifiers,
+        )
+    }
+
     pub fn dispatch_pointer_event_with_query(
         &mut self,
         dispatcher: &UiPointerDispatcher,
         event: UiPointerEvent,
         query: UiHitTestQuery,
+    ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        self.dispatch_pointer_event_with_query_and_modifiers(
+            dispatcher,
+            event,
+            query,
+            UiInputModifiers::default(),
+        )
+    }
+
+    fn dispatch_pointer_event_with_query_and_modifiers(
+        &mut self,
+        dispatcher: &UiPointerDispatcher,
+        event: UiPointerEvent,
+        query: UiHitTestQuery,
+        modifiers: UiInputModifiers,
     ) -> Result<UiPointerDispatchResult, UiTreeError> {
         let focus_before_dispatch = self.focus.focused;
         let capture_before_dispatch = self.focus.captured;
@@ -459,6 +509,7 @@ impl UiSurface {
             event.kind,
             query,
             event.button,
+            modifiers,
             event.scroll_delta,
         )?;
         let mut result = dispatcher.dispatch(&self.tree, route.clone())?;
@@ -584,12 +635,47 @@ impl UiSurface {
                 result.handled_by = Some(node_id);
                 result.diagnostics.scroll_defaulted = true;
             } else {
-                self.apply_default_pointer_component_actions(
+                let table_action = self.apply_default_table_pointer_action(
                     &route,
-                    event.click_count,
                     &mut result.component_events,
                     &mut result.binding_reports,
                 )?;
+                if let Some(node_id) = table_action.captured_by {
+                    result.captured_by = Some(node_id);
+                    result.handled_by = Some(node_id);
+                    result.diagnostics.capture_started = true;
+                }
+                if let Some(node_id) = table_action.released_capture {
+                    result.released_capture = Some(node_id);
+                    result.handled_by = Some(node_id);
+                    result.diagnostics.capture_released = true;
+                }
+                if let Some(node_id) = table_action.handled_by {
+                    result.handled_by = Some(node_id);
+                } else {
+                    let tree_action = self.apply_default_tree_view_virtual_scroll(
+                        &route,
+                        &mut result.component_events,
+                        &mut result.binding_reports,
+                    )?;
+                    if let Some(node_id) = tree_action.handled_by {
+                        result.handled_by = Some(node_id);
+                        result.diagnostics.scroll_defaulted = true;
+                    } else {
+                        self.apply_default_pointer_component_actions(
+                            &route,
+                            event.click_count,
+                            &mut result.component_events,
+                            &mut result.binding_reports,
+                        )?;
+                    }
+                    if let Some(node_id) = tree_action.damage_node {
+                        self.push_damage_frame(&mut result, node_id);
+                    }
+                }
+                if let Some(node_id) = table_action.damage_node {
+                    self.push_damage_frame(&mut result, node_id);
+                }
             }
             if let Some(node_id) = scrollbar_action.damage_node {
                 self.push_damage_frame(&mut result, node_id);
@@ -951,6 +1037,7 @@ impl UiSurface {
         kind: UiPointerEventKind,
         query: UiHitTestQuery,
         button: Option<UiPointerButton>,
+        modifiers: UiInputModifiers,
         scroll_delta: f32,
     ) -> Result<UiPointerRoute, UiTreeError> {
         let point = query.hit_point();
@@ -1008,6 +1095,7 @@ impl UiSurface {
         Ok(UiPointerRoute {
             kind,
             button,
+            modifiers,
             activation_phase: activation_phase(kind, button),
             point,
             scroll_delta,

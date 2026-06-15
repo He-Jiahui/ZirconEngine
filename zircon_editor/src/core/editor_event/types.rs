@@ -249,6 +249,7 @@ pub enum EditorEventTransient {
     SetDrawerResizing { drawer_id: String, resizing: bool },
     BeginViewDrag { instance_id: String },
     EndViewDrag,
+    OpenCommandPalette,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -289,6 +290,7 @@ pub enum EditorEventEffect {
     AssetDetailsRefreshRequested,
     AssetPreviewRefreshRequested,
     ImportModelRequested,
+    CommandPaletteOpenRequested,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

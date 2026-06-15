@@ -3,9 +3,9 @@ use std::fs;
 use crate::asset::project::{ProjectManifest, ProjectPaths, ProjectScriptManifest};
 use crate::asset::AssetUri;
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
-    plugin::ExportTargetPlatform, plugin::ProjectPluginSelection, plugin::RuntimeProfileId,
-    RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportBuildMode, plugin::ExportBuildPlan, plugin::ExportPackagingStrategy,
+    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginSelection,
+    plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
 };
 
 use super::unique_temp_project_root;
@@ -145,4 +145,44 @@ output_name = "client"
     assert_eq!(manifest.export_profiles.len(), 1);
     assert_eq!(manifest.export_profiles[0].runtime_profile_id, None);
     assert!(manifest.scripts.is_empty());
+}
+
+#[test]
+fn export_profile_map_table_parses_planned_profile_asset_fields() {
+    let source = r#"
+name = "Sandbox"
+default_scene = "res://scenes/main.scene.toml"
+schema_version = 3
+
+[export_profiles.windows-release]
+platform = "windows-x86_64"
+path = "library_embed"
+mode = "release"
+plugins = ["sound", "net"]
+features = { sound = ["timeline_animation_track"], net = ["http", "websocket"] }
+asset_filter = "shipping"
+"#;
+
+    let manifest: ProjectManifest = toml::from_str(source).unwrap();
+
+    assert_eq!(manifest.export_profiles.len(), 1);
+    let profile = &manifest.export_profiles[0];
+    assert_eq!(profile.name, "windows-release");
+    assert_eq!(profile.target_mode, RuntimeTargetMode::ClientRuntime);
+    assert_eq!(profile.target_platform, ExportTargetPlatform::Windows);
+    assert_eq!(
+        profile.strategies,
+        vec![ExportPackagingStrategy::LibraryEmbed]
+    );
+    assert_eq!(profile.build_mode, ExportBuildMode::Release);
+    assert_eq!(profile.selected_plugins, ["sound", "net"]);
+    assert_eq!(profile.asset_filter.as_deref(), Some("shipping"));
+    assert_eq!(
+        profile.features.get("sound"),
+        Some(&vec!["timeline_animation_track".to_string()])
+    );
+    assert_eq!(
+        profile.features.get("net"),
+        Some(&vec!["http".to_string(), "websocket".to_string()])
+    );
 }
