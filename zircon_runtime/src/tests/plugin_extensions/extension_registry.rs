@@ -2,11 +2,13 @@ use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, FunctionAssetImporter,
     ImportedAsset,
 };
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::framework::render::{
     RenderFrameExtract, RenderPipelineHandle, RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
 use crate::core::ModuleDescriptor;
+use crate::graphics::RenderFeaturePassDescriptor;
 use crate::graphics::{
     HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput, HybridGiRuntimePrepareOutput,
     HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration, HybridGiRuntimeState,
@@ -25,9 +27,7 @@ use crate::plugin::{
 };
 use crate::scene::ecs::{Res, ResMut, ResMutParam, ResParam, Resource, RuntimeSceneSystemContext};
 use crate::scene::{SystemStage, World};
-use crate::RenderFeaturePassDescriptor;
 use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_collects_render_feature_contributions() {
@@ -497,7 +497,10 @@ fn weather_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Res
 
 fn weather_runtime_prepare_collector(
     _context: &mut RuntimePrepareCollectorContext<'_>,
-) -> Result<crate::core::framework::render::RenderPluginRendererOutputs, crate::GraphicsError> {
+) -> Result<
+    crate::core::framework::render::RenderPluginRendererOutputs,
+    crate::graphics::GraphicsError,
+> {
     Ok(crate::core::framework::render::RenderPluginRendererOutputs::default())
 }
 

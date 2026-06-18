@@ -59,16 +59,30 @@ impl JobHandle {
     }
 
     pub fn combine(handles: &[JobHandle]) -> Self {
+        Self::combine_with_wait_diagnostics(
+            handles,
+            handles
+                .iter()
+                .find_map(|handle| handle.wait_diagnostics.clone()),
+        )
+    }
+
+    pub(super) fn combine_with_scheduler_diagnostics(
+        handles: &[JobHandle],
+        wait_diagnostics: Arc<JobSchedulerDiagnosticsState>,
+    ) -> Self {
+        Self::combine_with_wait_diagnostics(handles, Some(wait_diagnostics))
+    }
+
+    fn combine_with_wait_diagnostics(
+        handles: &[JobHandle],
+        wait_diagnostics: Option<Arc<JobSchedulerDiagnosticsState>>,
+    ) -> Self {
         if handles.is_empty() {
             return Self::completed();
         }
 
-        let combined = Self::pending_with_wait_diagnostics(
-            handles.len(),
-            handles
-                .iter()
-                .find_map(|handle| handle.wait_diagnostics.clone()),
-        );
+        let combined = Self::pending_with_wait_diagnostics(handles.len(), wait_diagnostics);
         for handle in handles {
             let combined_for_callback = combined.clone();
             let callback = Box::new(move || {

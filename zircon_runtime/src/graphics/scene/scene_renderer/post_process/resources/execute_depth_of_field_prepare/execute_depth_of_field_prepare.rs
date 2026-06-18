@@ -16,6 +16,7 @@ impl ScenePostProcessResources {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
+        scene_origin: [u32; 2],
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         coc_view: &wgpu::TextureView,
@@ -39,7 +40,8 @@ impl ScenePostProcessResources {
             return;
         }
 
-        let params = DepthOfFieldPrepareParams::from_camera(viewport_size, camera, settings);
+        let params =
+            DepthOfFieldPrepareParams::from_camera(viewport_size, scene_origin, camera, settings);
         queue.write_buffer(
             &self.depth_of_field_prepare_params_buffer,
             0,

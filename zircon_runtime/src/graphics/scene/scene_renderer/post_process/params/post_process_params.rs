@@ -4,6 +4,7 @@ use bytemuck::{Pod, Zeroable};
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub(in crate::graphics::scene::scene_renderer::post_process) struct PostProcessParams {
     pub(in crate::graphics::scene::scene_renderer::post_process) viewport_and_clusters: [u32; 4],
+    pub(in crate::graphics::scene::scene_renderer::post_process) cluster_dimensions: [u32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) feature_flags: [u32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) lighting_flags: [u32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) hybrid_gi_counts: [u32; 4],
@@ -30,4 +31,10 @@ pub(in crate::graphics::scene::scene_renderer::post_process) struct PostProcessP
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_view_y: [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_view_z: [f32; 4],
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_motion_blur: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub(in crate::graphics::scene::scene_renderer::post_process) struct TerminalRegionParams {
+    pub(in crate::graphics::scene::scene_renderer::post_process) viewport_origin: [u32; 4],
 }

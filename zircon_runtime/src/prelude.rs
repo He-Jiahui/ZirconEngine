@@ -6,8 +6,7 @@ pub use crate::builtin::{
     runtime_modules_for_runtime_profile_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
-    RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
+    runtime_modules_for_target_with_plugin_registration_reports,
 };
 pub use crate::core::diagnostics::{
     DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,
@@ -58,19 +57,21 @@ pub use crate::engine_module::{
 };
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
 pub use crate::input::{
-    ButtonInputState, DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisSettings,
-    GamepadAxisState, GamepadButton, GamepadButtonAxisSettings, GamepadButtonSettings,
-    GamepadButtonValueState, GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity,
-    GamepadRumbleRequest, ImeCursorArea, ImeCursorRange, ImeDeleteSurrounding, ImeEvent,
-    ImeHostRequest, ImePreedit, ImeSurroundingText, InputAction, InputActionEvaluator,
-    InputActionMap, InputActionState, InputBinding, InputButton, InputConfig, InputDriver,
-    InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputSnapshot, MouseScrollUnit,
+    ButtonInputState, DefaultInputActionManager, DefaultInputManager, FileDragDropEvent,
+    GamepadAxis, GamepadAxisInput, GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition,
+    GamepadButton, GamepadButtonAxisSettings, GamepadButtonSettings, GamepadButtonValueState,
+    GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea,
+    ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText,
+    InputAction, InputActionContext, InputActionEvaluator, InputActionManager, InputActionMap,
+    InputActionState, InputAxisBinding, InputAxisDirection, InputBinding, InputButton, InputConfig,
+    InputDriver, InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputRecording,
+    InputRecordingFrame, InputReplayCursor, InputReplayFrameReport, InputSnapshot, MouseScrollUnit,
     MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent, WindowTheme,
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER,
     GAMEPAD_AXIS_LIVEZONE_LOWER, GAMEPAD_AXIS_LIVEZONE_UPPER, GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD,
     GAMEPAD_BUTTON_AXIS_HIGH, GAMEPAD_BUTTON_AXIS_LOW, GAMEPAD_BUTTON_PRESS_THRESHOLD,
-    GAMEPAD_BUTTON_RELEASE_THRESHOLD, INPUT_DRIVER_NAME, INPUT_MANAGER_NAME, INPUT_MODULE_NAME,
-    LEGACY_PIXEL_SCROLL_SCALE,
+    GAMEPAD_BUTTON_RELEASE_THRESHOLD, INPUT_ACTION_MANAGER_NAME, INPUT_DRIVER_NAME,
+    INPUT_MANAGER_NAME, INPUT_MODULE_NAME, LEGACY_PIXEL_SCROLL_SCALE,
 };
 pub use crate::platform::{
     CapabilityStatus, CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy,

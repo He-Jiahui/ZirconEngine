@@ -94,8 +94,6 @@ fn velocity_camera_projection_compatible(
     previous: &ViewportCameraSnapshot,
 ) -> bool {
     current.projection_mode == previous.projection_mode
-        && current.target == previous.target
-        && current.viewport == previous.viewport
         && current.dynamic_resolution == previous.dynamic_resolution
 }
 

@@ -1,19 +1,21 @@
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
 use crate::ui::retained_host::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint};
 
-fn root_shell_frames() -> BuiltinHostRootShellFrames {
-    BuiltinHostRootShellFrames {
-        shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
-        host_body_frame: Some(UiFrame::new(0.0, 48.0, 1440.0, 832.0)),
-        left_drawer_shell_frame: Some(UiFrame::new(0.0, 48.0, 316.0, 832.0)),
-        right_drawer_shell_frame: Some(UiFrame::new(1132.0, 48.0, 308.0, 668.0)),
-        bottom_drawer_shell_frame: Some(UiFrame::new(0.0, 724.0, 1440.0, 156.0)),
-        document_host_frame: Some(UiFrame::new(324.0, 48.0, 800.0, 668.0)),
+fn workbench_layout_frames() -> BuiltinWorkbenchWindowLayoutFrames {
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(UiFrame::new(0.0, 48.0, 1440.0, 832.0)),
+        document_region_frame: Some(UiFrame::new(324.0, 48.0, 800.0, 668.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
+        left_region_frame: Some(UiFrame::new(0.0, 48.0, 316.0, 832.0)),
+        right_region_frame: Some(UiFrame::new(1132.0, 48.0, 308.0, 668.0)),
+        bottom_region_frame: Some(UiFrame::new(0.0, 724.0, 1440.0, 156.0)),
+        left_resize_splitter_frame: Some(UiFrame::new(312.0, 48.0, 8.0, 832.0)),
+        right_resize_splitter_frame: Some(UiFrame::new(1128.0, 48.0, 8.0, 668.0)),
+        bottom_resize_splitter_frame: Some(UiFrame::new(0.0, 720.0, 1440.0, 8.0)),
         ..Default::default()
     }
 }
@@ -21,12 +23,11 @@ fn root_shell_frames() -> BuiltinHostRootShellFrames {
 #[test]
 fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_surface() {
     let mut bridge = HostShellPointerBridge::new();
-    let shared_root_frames = root_shell_frames();
-    bridge.update_layout_with_root_shell_frames(
+    bridge.update_layout_with_workbench_layout_frames(
         ShellSizePx::new(1440.0, 900.0),
         true,
         &[],
-        Some(&shared_root_frames),
+        workbench_layout_frames(),
         None,
     );
 
@@ -43,12 +44,11 @@ fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_
 #[test]
 fn unified_shell_pointer_bridge_keeps_resize_route_captured_until_pointer_up() {
     let mut bridge = HostShellPointerBridge::new();
-    let shared_root_frames = root_shell_frames();
-    bridge.update_layout_with_root_shell_frames(
+    bridge.update_layout_with_workbench_layout_frames(
         ShellSizePx::new(1440.0, 900.0),
         true,
         &[],
-        Some(&shared_root_frames),
+        workbench_layout_frames(),
         None,
     );
 

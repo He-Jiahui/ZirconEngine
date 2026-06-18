@@ -1,9 +1,9 @@
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::render::{RenderProductFeature, RenderProfileBundle};
 use zircon_runtime::plugin::{
     ProjectPluginManifest, ProjectPluginSelection, RuntimePluginRegistrationReport,
     RuntimeProfileDescriptor, RuntimeProfileId,
 };
-use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
 
 use super::EntryConfig;
 

@@ -9,6 +9,7 @@ use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResou
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
+use super::MeshCommandSortInput;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
@@ -47,6 +48,7 @@ pub(crate) struct MeshDraw {
     pub(super) previous_skinned_joint_palette_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) skinned_joint_count: u32,
     pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
+    pub(super) command_sort_input: MeshCommandSortInput,
     // Retains the source mesh that allowed this draw to enter the shader-skinning
     // path. Draws without this source remain CPU-skinned dynamic fallbacks.
     pub(super) skinned_gpu_source: Option<Arc<GpuMeshResource>>,
@@ -122,6 +124,7 @@ impl MeshDraw {
             previous_skinned_joint_palette_buffer,
             skinned_joint_count,
             previous_skinned_gpu_source,
+            command_sort_input: MeshCommandSortInput::new(0.0, source_entity),
             skinned_gpu_source,
             skinned_gpu_source_uses_cpu_morphed_source,
             skinned_gpu_skinning_enabled,
@@ -163,6 +166,14 @@ impl MeshDraw {
         self.primitive_relevance = Some(relevance);
         self.main_view_visible = main_view_visible;
         self.shadow_view_visible = shadow_view_visible;
+        self
+    }
+
+    pub(crate) fn with_command_sort_input(
+        mut self,
+        command_sort_input: MeshCommandSortInput,
+    ) -> Self {
+        self.command_sort_input = command_sort_input;
         self
     }
 }

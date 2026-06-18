@@ -2,6 +2,7 @@ use crate::core::framework::render::{
     AntiAliasMode, ProjectionMode, RenderFrameExtract, RenderPostProcessEffectStackSettings,
 };
 use crate::core::math::{UVec2, Vec3};
+use crate::graphics::types::ViewportRenderRegion;
 
 use super::super::super::super::super::post_process_params::PostProcessParams;
 use super::super::super::super::super::scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
@@ -11,6 +12,8 @@ use super::color_grading::color_grading;
 pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build_post_process_params(
     viewport_size: UVec2,
     cluster_dimensions: UVec2,
+    render_region: ViewportRenderRegion,
+    scene_color_origin: [u32; 2],
     extract: &RenderFrameExtract,
     features: SceneRuntimeFeatureFlags,
     history_available: bool,
@@ -27,8 +30,14 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
         viewport_and_clusters: [
             viewport_size.x.max(1),
             viewport_size.y.max(1),
+            render_region.physical_origin()[0],
+            render_region.physical_origin()[1],
+        ],
+        cluster_dimensions: [
             cluster_dimensions.x.max(1),
             cluster_dimensions.y.max(1),
+            scene_color_origin[0],
+            scene_color_origin[1],
         ],
         feature_flags: [
             u32::from(features.ssao_enabled),
@@ -275,6 +284,8 @@ mod tests {
         let params = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &RenderFrameExtract::from_snapshot(
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
@@ -304,6 +315,8 @@ mod tests {
         let params = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &RenderFrameExtract::from_snapshot(
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
@@ -323,6 +336,39 @@ mod tests {
             "contact shadows must not masquerade as SSAO"
         );
         assert_eq!(params.lighting_flags[0], 1);
+    }
+
+    #[test]
+    fn post_process_params_pack_viewport_and_scene_source_origins_separately() {
+        let mut camera =
+            crate::core::framework::render::CameraRenderDescriptor::from_camera_payload(
+                None,
+                crate::core::framework::render::ViewportCameraSnapshot::default(),
+            );
+        camera.viewport_rect = Some(crate::core::framework::render::RenderViewportRect::new(
+            UVec2::new(320, 40),
+            UVec2::new(320, 180),
+        ));
+        let region = ViewportRenderRegion::from_camera(Some(&camera), UVec2::new(640, 360));
+
+        let params = build_post_process_params(
+            UVec2::new(320, 180),
+            UVec2::new(20, 12),
+            region,
+            region.physical_origin(),
+            &RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            SceneRuntimeFeatureFlags::default(),
+            false,
+            0,
+            0,
+            0,
+        );
+
+        assert_eq!(params.viewport_and_clusters, [320, 180, 320, 40]);
+        assert_eq!(params.cluster_dimensions, [20, 12, 320, 40]);
     }
 
     #[test]
@@ -390,6 +436,8 @@ mod tests {
         let params = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &extract,
             SceneRuntimeFeatureFlags::default(),
             false,
@@ -447,6 +495,8 @@ mod tests {
         let params = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &extract,
             SceneRuntimeFeatureFlags::default(),
             false,
@@ -481,6 +531,8 @@ mod tests {
         let unjittered = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &extract,
             SceneRuntimeFeatureFlags::default(),
             false,
@@ -496,6 +548,8 @@ mod tests {
         let jittered = build_post_process_params(
             UVec2::new(128, 96),
             UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
             &extract,
             SceneRuntimeFeatureFlags::default(),
             false,
@@ -525,6 +579,8 @@ mod tests {
         let params = build_post_process_params(
             UVec2::new(64, 64),
             UVec2::new(4, 4),
+            ViewportRenderRegion::full_target(UVec2::new(64, 64)),
+            [0, 0],
             &extract,
             SceneRuntimeFeatureFlags::default(),
             false,

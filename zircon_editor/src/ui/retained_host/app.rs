@@ -56,8 +56,8 @@ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocum
 use crate::ui::workbench::state::EditorState;
 
 use super::activity_rail_pointer::{
-    build_host_activity_rail_pointer_layout, HostActivityRailPointerBridge,
-    HostActivityRailPointerSide,
+    build_host_activity_rail_pointer_layout_with_workbench_layout_frames,
+    HostActivityRailPointerBridge, HostActivityRailPointerSide,
 };
 use super::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
@@ -70,10 +70,12 @@ use super::detail_pointer::{
     inspector_scroll_layout,
 };
 use super::document_tab_pointer::{
-    build_host_document_tab_pointer_layout, HostDocumentTabPointerBridge,
+    build_host_document_tab_pointer_layout_with_workbench_layout_frames,
+    HostDocumentTabPointerBridge,
 };
 use super::drawer_header_pointer::{
-    build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
+    build_host_drawer_header_pointer_layout_with_workbench_layout_frames,
+    HostDrawerHeaderPointerBridge,
 };
 use super::drawer_resize::dispatch_resize_to_group;
 use super::event_bridge::UiHostEventEffects;
@@ -88,14 +90,12 @@ use super::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};
 use super::tab_drag::host_shell_pointer_route_group_key;
 use super::ui::apply_presentation;
 use super::viewport::RetainedViewportController;
-use super::viewport_toolbar_pointer::{
-    build_viewport_toolbar_pointer_layout_with_size, ViewportToolbarPointerBridge,
-};
+use super::viewport_toolbar_pointer::ViewportToolbarPointerBridge;
 use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerState,
 };
-use super::{FrameRect, UiHostWindow};
+use super::{FrameRect, UiHostWindow, WorkbenchContextMenuRequestData};
 
 mod asset_content_pointer;
 mod asset_drag_payload;
@@ -105,6 +105,7 @@ mod asset_tree_pointer;
 mod assets;
 pub(crate) mod backend_refresh;
 mod build_export_actions;
+mod build_export_projection;
 mod build_export_wizard_session;
 mod callback_wiring;
 mod close_prompt;
@@ -118,13 +119,13 @@ mod inspector;
 mod invalidation;
 mod menu_pointer;
 mod module_plugin_actions;
+mod module_plugin_projection;
 mod native_keyboard_actions;
 mod native_window_close;
 mod native_windows;
 mod pane_payload_visibility;
 mod pane_surface_actions;
 mod pointer_layout;
-mod presentation_cache;
 mod profiling;
 mod reference_drop_payload;
 mod runtime_diagnostics_visibility;
@@ -133,12 +134,17 @@ mod startup;
 #[cfg(test)]
 mod tests;
 mod ui_asset_editor;
+mod ui_asset_editor_detail_events;
 mod ui_asset_editor_detail_routes;
 mod viewport;
 mod viewport_image_redraw;
+mod viewport_toolbar_projection;
 mod welcome_recent_pointer;
 mod welcome_session;
+mod workbench_context_menu;
+mod workbench_notifications;
 mod workbench_pointer;
+mod workbench_snapshot_access;
 mod workspace_docking;
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
@@ -148,13 +154,12 @@ pub(super) use helpers::{
 };
 pub(crate) use invalidation::HostInvalidationMask;
 use invalidation::HostInvalidationRoot;
+pub(crate) use native_windows::NativeWindowPresenterStore;
 #[cfg(test)]
-pub(crate) use native_windows::NativeFloatingWindowTarget;
 pub(crate) use native_windows::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
-    NativeWindowPresenterStore,
+    NativeFloatingWindowTarget,
 };
-use presentation_cache::HostPresentationCache;
 pub(super) use startup::build_startup_state;
 
 pub fn run_editor(
@@ -259,7 +264,6 @@ struct RetainedEditorHost {
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
-    presentation_cache: HostPresentationCache,
     invalidation: HostInvalidationRoot,
     pending_ui_perf_scenario: Option<UiPerfScenario>,
     presentation_dirty: bool,

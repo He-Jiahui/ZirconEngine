@@ -1,4 +1,6 @@
+#[cfg(test)]
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::layout::{
@@ -6,8 +8,10 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::view::ViewHost;
+#[cfg(test)]
+use zircon_runtime_interface::ui::layout::UiFrame;
 
-use super::drop_resolution::resolve_tab_drop_with_root_frames;
+use super::drop_resolution::resolve_tab_drop_with_workbench_layout_frames;
 use super::group::{
     document_edge_from_group_key, floating_window_edge_from_group_key,
     floating_window_from_group_key, HostDragTargetGroup,
@@ -39,6 +43,7 @@ pub(crate) fn resolve_host_tab_drop_route(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
@@ -49,6 +54,54 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
     pointer_x: f32,
     pointer_y: f32,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> Option<ResolvedHostTabDropRoute> {
+    resolve_host_tab_drop_route_with_workbench_layout_frames(
+        layout,
+        model,
+        metrics,
+        instance_id,
+        pointer_route,
+        fallback_target_group,
+        pointer_x,
+        pointer_y,
+        test_workbench_layout_frames_from_root_frames(shared_root_frames, metrics),
+    )
+}
+
+pub(crate) fn resolve_host_tab_drop_route_with_workbench_layout_frames(
+    layout: &WorkbenchLayout,
+    model: &WorkbenchViewModel,
+    metrics: &WorkbenchChromeMetrics,
+    instance_id: &str,
+    pointer_route: Option<HostShellPointerRoute>,
+    fallback_target_group: &str,
+    pointer_x: f32,
+    pointer_y: f32,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> Option<ResolvedHostTabDropRoute> {
+    resolve_host_tab_drop_route_with_frames(
+        layout,
+        model,
+        metrics,
+        instance_id,
+        pointer_route,
+        fallback_target_group,
+        pointer_x,
+        pointer_y,
+        componentized_workbench_layout_frames,
+    )
+}
+
+fn resolve_host_tab_drop_route_with_frames(
+    layout: &WorkbenchLayout,
+    model: &WorkbenchViewModel,
+    metrics: &WorkbenchChromeMetrics,
+    instance_id: &str,
+    pointer_route: Option<HostShellPointerRoute>,
+    fallback_target_group: &str,
+    pointer_x: f32,
+    pointer_y: f32,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<ResolvedHostTabDropRoute> {
     match pointer_route {
         Some(HostShellPointerRoute::DocumentEdge(edge)) => {
@@ -66,7 +119,7 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
                     return document_edge_drop_route(layout, model, edge);
                 }
             }
-            let drop = resolve_tab_drop_with_root_frames(
+            let drop = resolve_tab_drop_with_workbench_layout_frames(
                 layout,
                 model,
                 metrics,
@@ -74,7 +127,7 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
                 target_group.as_str(),
                 pointer_x,
                 pointer_y,
-                shared_root_frames,
+                componentized_workbench_layout_frames,
             )?;
             Some(ResolvedHostTabDropRoute {
                 target_group,
@@ -90,7 +143,7 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
             fallback_target_group,
             pointer_x,
             pointer_y,
-            shared_root_frames,
+            componentized_workbench_layout_frames,
         ),
     }
 }
@@ -204,7 +257,7 @@ fn resolve_fallback_drop_route(
     fallback_target_group: &str,
     pointer_x: f32,
     pointer_y: f32,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<ResolvedHostTabDropRoute> {
     if let Some(edge) = document_edge_from_group_key(fallback_target_group) {
         return document_edge_drop_route(layout, model, edge);
@@ -217,7 +270,7 @@ fn resolve_fallback_drop_route(
     }
 
     let target_group = HostDragTargetGroup::from_str(fallback_target_group)?;
-    let drop = resolve_tab_drop_with_root_frames(
+    let drop = resolve_tab_drop_with_workbench_layout_frames(
         layout,
         model,
         metrics,
@@ -225,11 +278,45 @@ fn resolve_fallback_drop_route(
         target_group.as_str(),
         pointer_x,
         pointer_y,
-        shared_root_frames,
+        componentized_workbench_layout_frames,
     )?;
     Some(ResolvedHostTabDropRoute {
         target_group,
         target_label: target_group.label(),
         target: ResolvedHostTabDropTarget::Attach(drop),
     })
+}
+
+#[cfg(test)]
+fn test_workbench_layout_frames_from_root_frames(
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    metrics: &WorkbenchChromeMetrics,
+) -> BuiltinWorkbenchWindowLayoutFrames {
+    let document_region_frame = shared_root_frames.and_then(|frames| frames.document_host_frame);
+    let document_tabs_frame = shared_root_frames
+        .and_then(|frames| frames.document_tabs_frame)
+        .or_else(|| {
+            document_region_frame
+                .filter(ui_frame_is_visible)
+                .map(|frame| {
+                    UiFrame::new(
+                        frame.x,
+                        frame.y,
+                        frame.width,
+                        metrics.document_header_height.max(0.0),
+                    )
+                })
+        });
+
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: shared_root_frames.and_then(|frames| frames.host_body_frame),
+        document_tabs_frame,
+        document_region_frame,
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
+    }
+}
+
+#[cfg(test)]
+fn ui_frame_is_visible(frame: &UiFrame) -> bool {
+    frame.width > f32::EPSILON && frame.height > f32::EPSILON
 }

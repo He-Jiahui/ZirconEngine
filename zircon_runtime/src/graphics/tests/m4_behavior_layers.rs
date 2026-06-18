@@ -21,11 +21,11 @@ use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
+use crate::graphics::RenderFeatureDescriptor;
 use crate::graphics::{
     offline_bake_frame, OfflineBakeSettings, RenderPassExecutionContext,
     RenderPassExecutorRegistration, WgpuRenderFramework,
 };
-use crate::RenderFeatureDescriptor;
 
 use super::plugin_render_feature_fixtures::{
     default_rendering_feature_descriptors, particle_render_feature_descriptor,
@@ -248,6 +248,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
             sort_order: 0,
             color: Vec4::new(1.0, 0.48, 0.12, 0.8),
             intensity: 1.0,
+            depth_test: true,
             material: None,
             texture: None,
         }];

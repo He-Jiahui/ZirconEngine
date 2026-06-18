@@ -3,7 +3,7 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RuntimePrepareCollectorContext,
-    RuntimePrepareCollectorRegistration,
+    RuntimePrepareCollectorRegistration, RuntimePrepareExternalBufferBinding,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
@@ -14,6 +14,7 @@ pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePr
                 &mut wgpu::CommandEncoder,
                 &ResourceStreamer,
                 &ViewportRenderFrame,
+                &mut Vec<RuntimePrepareExternalBufferBinding>,
             ) -> Result<RenderPluginRendererOutputs, GraphicsError>
             + Send,
     >;
@@ -97,10 +98,18 @@ fn render_features_require(
 fn scene_runtime_prepare_collector_from_registration(
     registration: RuntimePrepareCollectorRegistration,
 ) -> SceneRendererRuntimePrepareCollector {
-    Box::new(move |device, queue, encoder, _streamer, frame| {
-        let mut context = RuntimePrepareCollectorContext::new(device, queue, encoder, frame);
-        registration.collect(&mut context)
-    })
+    Box::new(
+        move |device, queue, encoder, _streamer, frame, external_buffer_bindings| {
+            let mut context = RuntimePrepareCollectorContext::new(
+                device,
+                queue,
+                encoder,
+                frame,
+                external_buffer_bindings,
+            );
+            registration.collect(&mut context)
+        },
+    )
 }
 
 #[cfg(test)]

@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/dependency_set.rs
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/lighting_model.rs
+  - zircon_runtime/src/core/framework/render/material/shading_model.rs
   - zircon_runtime/src/core/framework/render/material/management.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
@@ -55,11 +56,19 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/material/mod.rs
+  - zircon_runtime/src/graphics/material/shading_models/mod.rs
+  - zircon_runtime/src/graphics/material/shading_models/builtins.rs
+  - zircon_runtime/src/graphics/material/shading_models/registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
@@ -83,6 +92,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/fallback_policy.rs
   - zircon_runtime/src/core/framework/render/material/lighting_model.rs
+  - zircon_runtime/src/core/framework/render/material/shading_model.rs
   - zircon_runtime/src/core/framework/render/material/management.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_index.rs
   - zircon_runtime/src/core/framework/render/material/management/issue_view.rs
@@ -132,11 +142,19 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/material/mod.rs
+  - zircon_runtime/src/graphics/material/shading_models/mod.rs
+  - zircon_runtime/src/graphics/material/shading_models/builtins.rs
+  - zircon_runtime/src/graphics/material/shading_models/registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/layouts/create_material_texture_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/render_pass_bindings.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_geometry.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_pipeline/record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/shaders/normal_prepass.wgsl
@@ -159,6 +177,7 @@ plan_sources:
   - user: 2026-05-27 continue shader/material management
   - user: 2026-06-08 implement ZirconEngine WGPU render main-chain material texture transform slice
   - user: 2026-06-08 continue WGPU render main-chain standard material UV channel slice
+  - user: 2026-06-16 implement WGPU render pipeline plan functionality first, Plan 08 MS-M3 shading model registry and built-in BlinnPhong branch slices
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/asset/tests/assets/material.rs
@@ -190,14 +209,35 @@ tests:
   - zircon_runtime/src/asset/tests/assets/material.rs::shader_declared_texture_slot_overrides_standard_material_bridge
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_pbr_streamer_projects_standard_material_into_runtime_key
   - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs::tests::standard_material_uniform_packs_per_slot_texture_transforms
+  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs::tests::standard_material_uniform_packs_shading_model_id_for_gbuffer_encoding
+  - zircon_runtime/src/core/framework/render/material/shading_model.rs::tests::render_material_lighting_model_token_resolves_shading_id
+  - zircon_runtime/src/core/framework/render/material/shading_model.rs::tests::render_material_shading_model_id_roundtrips_gbuffer_encoding
+  - zircon_runtime/src/graphics/material/shading_models/builtins.rs::tests::builtin_shading_model_registry_contains_three_surface_models
+  - zircon_runtime/src/graphics/material/shading_models/builtins.rs::tests::builtin_shading_model_registry_resolves_lighting_model_tokens
+  - zircon_runtime/src/graphics/material/shading_models/registry.rs::tests::shading_model_registry_rejects_unsupported_required_channels
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_unregistered_custom_shading_model
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_samples_standard_pbr_texture_set
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_dispatches_builtin_shading_models
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs::tests::pipeline_key_derives_material_shader_variant_key
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_derives_material_shader_variant_key
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_writes_sampled_material_gbuffer_channels
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/geometry_pipeline/shader_source.rs::tests::deferred_geometry_shader_encodes_shading_model_id_into_gbuffer_material_alpha
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_decodes_shading_model_id_from_gbuffer_material_alpha
   - zircon_runtime/src/graphics/scene/scene_renderer/prepass/normal_prepass_shader_source/normal_prepass_shader_source.rs::tests::normal_prepass_shader_samples_material_normal_map_into_scene_normal
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_shader_source.rs::tests::shadow_map_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset
   - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_preserves_gltf_material_texcoord_as_texture_slot_uv_channel
   - cargo test -p zircon_runtime --lib importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture (2026-06-08 standard material UV channel asset ingress: passed, 1 passed / 0 failed / 3161 filtered; existing zircon_runtime lib-test warnings only)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib importer_preserves_gltf_material_texcoord_as_texture_slot_uv_channel --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture (2026-06-08 split glTF plugin material texCoord ingress: passed, 1 passed / 0 failed / 8 filtered; existing zircon_runtime warnings only)
+  - rustfmt --edition 2021 on Plan 08 MS-M3 shading-model touched Rust files (2026-06-16: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-16 shading-model registry slice: passed with existing warnings)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-16 shading-model asset/runtime diagnostics slice: passed with existing warnings)
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs (2026-06-16 built-in BlinnPhong shader branch slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-16 built-in BlinnPhong shader branch slice: passed with existing warnings)
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs (2026-06-17 PipelineKey to ShaderVariantKey bridge slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-17 PipelineKey to ShaderVariantKey bridge slice: passed with existing warnings)
+  - cargo test -q -p zircon_runtime --lib shading_model --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-16 shading-model registry slice: blocked before running matching tests by existing lib-test compile error `RenderBloomSettings { intensity: 0.6 }` missing `radius` and `threshold` in zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs)
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_texture_slot_runtime_mapping
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_property_runtime_values
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_resolved_and_fallback_slots
@@ -450,11 +490,13 @@ The top-level `zircon_runtime::core::framework::render` facade re-exports the ma
 
 `RenderMaterialLightingModel` is part of the neutral material contract and is re-exported through `zircon_runtime::core::framework::render` alongside `RenderMaterialAlphaMode`. Asset, resource-streamer, and pipeline-key callers should import the lighting model through that top-level render contract rather than reaching into the material submodule. `MaterialAsset` treats `overrides.lighting_model` as a material-owned control value: it is parsed into the standard descriptor and renderer pipeline key, derives the descriptor `unlit` flag when the token is `unlit`, and is filtered out of shader property override iteration so shader schemas cannot accidentally consume it as a user property.
 
+`ShadingModelId` is the renderer-facing model id derived from that lighting-model contract. Built-in ids are stable for G-buffer encoding: `0` = Unlit, `1` = BlinnPhong, and `2` = StandardPbr. `graphics/material/shading_models` registers the built-in descriptors and rejects duplicate ids/tokens or G-buffer channel requirements that the current fixed layout cannot satisfy. Resource streaming resolves authored lighting-model tokens through that registry before building `MaterialRuntime`; an unregistered `custom:<name>` token is reported as `RenderMaterialValidationError::UnregisteredShadingModel`, while the current runtime pipeline falls back to the StandardPBR id so rendering can continue with an explicit issue row.
+
 `MaterialAsset` also treats `overrides.cast_shadows`, `overrides.receive_shadows`, `overrides.render_queue`, `overrides.material_queue`, and `overrides.depth_bias` as material-owned controls rather than shader schema properties. `material_control.rs` owns the reserved-name parsing, validation, shader-property filtering, and canonical override synchronization for those fields so `material_asset.rs` can stay focused on descriptor/readiness orchestration. They are parsed into the standard descriptor, filtered out of shader property override iteration, and preserved as authoring/runtime material state. The queue fields default to zero, serialize only when non-default during canonical material output, and invalid authored types stay in the override map while producing `PropertyOverrideTypeMismatch` rows under the `MaterialOverride` source.
 
-M5A wires the `StandardMaterialDescriptor` surface into the runtime resource streamer. `MaterialRuntime` now stores base color, emissive color, metallic, roughness, double-sided, alpha, unlit, cast/receive shadow policy, material-owned render-queue/material-queue/depth-bias sort offsets, standard PBR texture ids, shader property values projected from shader schema, non-standard shader texture slot ids, a `PipelineKey`, and the readiness report that was produced while resolving material, shader, and texture dependencies.
+M5A wires the `StandardMaterialDescriptor` surface into the runtime resource streamer. `MaterialRuntime` now stores base color, emissive color, metallic, roughness, double-sided, alpha, unlit, cast/receive shadow policy, material-owned render-queue/material-queue/depth-bias sort offsets, standard PBR texture ids, shader property values projected from shader schema, non-standard shader texture slot ids, the original lighting model, the resolved `ShadingModelId`, a `PipelineKey`, and the readiness report that was produced while resolving material, shader, and texture dependencies.
 
-`PipelineKey` is intentionally renderer-owned. It includes shader identity/revision, double-sided state, alpha-blend/alpha-mask state, alpha cutoff bits, unlit state, and authored StandardMaterial texture-slot presence bits. It deliberately excludes receive/cast shadow policy and render-order sort offsets because those controls are per-material or per-draw runtime state, not material pipeline variants. The texture presence bits come from authored descriptor references rather than only successfully uploaded GPU texture ids, so a KTX/container texture that falls back still compiles the same material variant requested by the asset.
+`PipelineKey` is intentionally renderer-owned. It includes shader identity/revision, double-sided state, alpha-blend/alpha-mask state, alpha cutoff bits, unlit state, resolved `shading_model_id`, and authored StandardMaterial texture-slot presence bits. It deliberately excludes receive/cast shadow policy and render-order sort offsets because those controls are per-material or per-draw runtime state, not material pipeline variants. The texture presence bits come from authored descriptor references rather than only successfully uploaded GPU texture ids, so a KTX/container texture that falls back still compiles the same material variant requested by the asset. `PipelineKey::shader_variant_key(...)` derives the neutral Plan 08 `ShaderVariantKey` for pass/geometry/platform consumers by mapping shader id/revision, `shading_model_id`, alpha-test, and double-sided state into the framework variant dimensions. Current WGPU render-pipeline maps still keep the full `PipelineKey` in their cache key so blend, depth-write, alpha cutoff, and texture-presence state cannot collapse accidentally before the dedicated variant-cache owner lands.
 
 ## Validation
 
@@ -528,7 +570,7 @@ Query facets use those same filtered indexes. `RenderMaterialManagementQueryResu
 
 Management selection uses the full record set instead of compact overview rows. `management/selection.rs` owns `RenderMaterialManagementSelection`, duplicate-collapsed request counting, missing-id tracking, and selected-record summary/index derivation. `RenderMaterialManagementRecordSet::select(...)` and `ResourceStreamer::material_management_selection(...)` are intended for selection/detail panels that need issue-state and prepared-state rows for one or more ids after a query page has identified them. The selected-record summary includes the same status buckets and issue-row totals scoped only to records that were actually found, while missing ids are explicit so callers can clear stale selections or show that the selected material is no longer prepared.
 
-Mesh pipeline creation consumes `PipelineKey`: `double_sided` disables back-face culling, `alpha_blend` controls transparent blend/depth-write behavior, `alpha_mask` and cutoff bits keep mask variants distinct, and PBR texture slots select authored material variants. Alpha-mask materials are not treated as transparent; only blend mode reports `PipelineKey::is_transparent()`. The forward, deferred geometry, normal-prepass, and alpha-mask shadow pipeline layouts now include material group 3, and mesh draws bind the prepared standard material uniform after model and texture bindings. The standard material uniform keeps `data0` metallic/roughness/occlusion/unlit and `data1.xyz` emissive unchanged, then packs base-color, normal, metallic-roughness, occlusion, and emissive UV transforms into `data2..data6` as `(scale.x, scale.y, offset.x, offset.y)`. UV channel selectors share the same 128-byte ABI without adding another binding: `data7.x/y/z/w` carry base-color, normal, metallic-roughness, and occlusion channels, while `data1.w` carries the emissive channel. Built-in fallback, deferred, normal-prepass, shadow alpha-mask, and motion-vector alpha-discard WGSL paths select `uv0` or `uv1` before applying the per-slot transform and sampling their standard material texture slots. Custom material shaders are still diagnosed against the fixed group 1/2/3 renderer ABI rather than executed through automatic WGSL reflection.
+Mesh pipeline creation consumes `PipelineKey`: `double_sided` disables back-face culling, `alpha_blend` controls transparent blend/depth-write behavior, `alpha_mask` and cutoff bits keep mask variants distinct, `shading_model_id` selects the material model branch, and PBR texture slots select authored material variants. Alpha-mask materials are not treated as transparent; only blend mode reports `PipelineKey::is_transparent()`. The forward, deferred geometry, normal-prepass, and alpha-mask shadow pipeline layouts now include material group 3, and mesh draws bind the prepared standard material uniform after model and texture bindings. The standard material uniform keeps `data0` metallic/roughness/occlusion/unlit and `data1.xyz` emissive unchanged, then packs base-color, normal, metallic-roughness, occlusion, and emissive UV transforms into `data2..data6` as `(scale.x, scale.y, offset.x, offset.y)`. UV channel selectors share the same 128-byte ABI without adding another binding: `data7.x/y/z/w` carry base-color, normal, metallic-roughness, and occlusion channels, while `data1.w` carries the emissive channel. The standard material uniform also uses `data8.x` for the TAA reactive mask strength and `data8.y` for the normalized 8-bit `ShadingModelId`; the deferred geometry shader writes that id to `gbuffer_material.a`, and the deferred lighting shader decodes it before dispatching Unlit, BlinnPhong, or StandardPBR. Built-in fallback, deferred, normal-prepass, shadow alpha-mask, and motion-vector alpha-discard WGSL paths select `uv0` or `uv1` before applying the per-slot transform and sampling their standard material texture slots. The current forward fallback shader consumes the same `data8.y` id directly: Unlit returns albedo plus emissive, BlinnPhong uses its own diffuse/specular branch, and StandardPBR remains the default lit path. Custom material shaders are still diagnosed against the fixed group 1/2/3 renderer ABI rather than executed through automatic WGSL reflection.
 
 `ResourceStreamer::ensure_scene_resources(...)` counts prepared materials and folds each material readiness summary into renderer-facing counters. `RenderStats` exposes `last_material_count`, `last_material_ready_count`, `last_material_fallback_count`, `last_material_validation_error_count`, and `last_material_diagnostic_count` so submit tests and tools can distinguish ready materials, fallback/degraded materials, blocking validation errors, and non-blocking import/authoring notes without reparsing the full readiness report. `collect_runtime_diagnostics(...)` mirrors the same counters into `DiagnosticStore` as `render.material.count`, `render.material.ready_count`, `render.material.fallback_count`, `render.material.validation_error_count`, and `render.material.diagnostic_count`.
 

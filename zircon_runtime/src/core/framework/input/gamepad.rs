@@ -65,6 +65,26 @@ pub struct GamepadAxisState {
     pub value: f32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct GamepadAxisInput {
+    pub gamepad: GamepadId,
+    pub axis: GamepadAxis,
+}
+
+impl GamepadAxisInput {
+    pub const fn new(gamepad: GamepadId, axis: GamepadAxis) -> Self {
+        Self { gamepad, axis }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GamepadAxisTransition {
+    pub gamepad: GamepadId,
+    pub axis: GamepadAxis,
+    pub previous_value: f32,
+    pub value: f32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GamepadButtonValueState {
     pub gamepad: GamepadId,

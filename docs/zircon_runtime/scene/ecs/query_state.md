@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
   - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
@@ -28,6 +29,7 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
 implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
   - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
@@ -140,11 +142,12 @@ The split follows the local query directory and Bevy's `bevy_ecs::query` precede
 
 ## Owner Files
 
-- `query_state/mod.rs` owns the `QueryState` struct, construction, access descriptors, cache rebuilds, cache counters, and cache metadata accessors.
+- `query_state/mod.rs` owns the `QueryState` struct, construction, access descriptors, cache fields, and cache telemetry fields.
+- `query_state/cache.rs` owns cache rebuilds, cache-slot lookup, cached entity/component-location accessors, and cache metadata accessors.
 - `query_state/cached_direct.rs` owns `CachedQueryData` and `CachedQueryFilter` paths that fetch directly from cached component storage locations.
 - `query_state/read_only.rs` owns uncached non-mutating `QueryData` iteration, `get`, `many`, `contains`, and combination APIs.
 - `query_state/read_only_cached.rs` owns cached non-mutating `QueryData` iteration, cached many, cached get/contains, and cached combination APIs.
-- `query_state/stats.rs` owns the Runtime 07 cache telemetry snapshot API.
+- `query_state/stats.rs` owns the Runtime 07 cache telemetry snapshot API and change-detection telemetry accumulation.
 - `query_state/mutable.rs` owns `QueryMutData` access, mutable alias validation, mutable many/combination iteration, and the narrow unsafe fetch used after duplicate checks.
 - `cached_query_iter.rs` owns direct cached query iteration over precomputed component-storage locations.
 - `query_many_iter.rs` owns caller-provided entity-list iteration for uncached and read-only cached many-query paths.
@@ -250,8 +253,9 @@ Do not recreate `query_state.rs`.
 
 New query-state APIs should land by behavior family:
 
-- cache construction and cache-owned counter storage in `mod.rs`;
-- cache telemetry snapshots in `stats.rs`;
+- `QueryState` declaration, construction, access descriptors, and retained cache fields in `mod.rs`;
+- cache rebuilds, cache-slot resolution, and cached metadata accessors in `cache.rs`;
+- cache telemetry snapshots and change-detection telemetry accumulation in `stats.rs`;
 - direct cached storage access in `cached_direct.rs`;
 - uncached read-only entity access in `read_only.rs`;
 - cached read-only entity access in `read_only_cached.rs`;
@@ -259,7 +263,9 @@ New query-state APIs should land by behavior family:
 - reusable fixed-size collection helpers in `helpers.rs`;
 - scheduler/system parameter wiring in `system_param.rs`.
 
-The structure guard in `scene::tests::ecs_query_structure` rejects a legacy `query_state.rs`, missing owner files, behavior impl families in the root file, and owner files above the current budget. The structural audit mirrors that contract as `ecs_query_state_boundary` with eight folder-backed owner modules, including the `stats.rs` telemetry sidecar, so CI or review automation can detect the same rollback without first running the Rust test binary. This keeps future ECS query/cache work from turning `QueryState` back into a mixed hot-path file.
+The structure guard in `scene::tests::ecs_query_structure` rejects a legacy `query_state.rs`, missing owner files, behavior impl families in the root file, and owner files above the current budget. The structural audit mirrors that contract as `ecs_query_state_boundary` with nine folder-backed owner modules, including the `cache.rs` cache behavior owner and the `stats.rs` telemetry sidecar, so CI or review automation can detect the same rollback without first running the Rust test binary. This keeps future ECS query/cache work from turning `QueryState` back into a mixed hot-path file.
+
+The 2026-06-17 editor UI validation pass exposed a compile-only owner-boundary drift in `query_state/mod.rs`: the root `QueryState` struct still owns `cached_entities` and `cached_entity_indices`, so the root module must import `EntityId` even though cache rebuild/accessor behavior lives in `query_state/cache.rs`. Restoring that import preserves the existing behavior split and keeps `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` from failing before editor UI changes compile.
 
 ## Validation Notes
 

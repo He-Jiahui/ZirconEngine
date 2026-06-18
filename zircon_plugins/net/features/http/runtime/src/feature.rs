@@ -81,8 +81,8 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
             "zircon_plugin_net_http_runtime",
         )
         .with_target_modes([
-            zircon_runtime::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         ])
         .with_capabilities([NET_HTTP_FEATURE_CAPABILITY.to_string()]),
     )

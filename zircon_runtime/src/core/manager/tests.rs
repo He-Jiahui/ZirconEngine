@@ -1,13 +1,18 @@
 use crate::core::manager::{
     AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME, PHYSICS_MANAGER_NAME,
-    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
+    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME,
+    PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    SOUND_MANAGER_NAME,
 };
 
 #[test]
 fn manager_service_names_cover_runtime_owned_modules() {
     assert_eq!(RESOURCE_MANAGER_NAME, "AssetModule.Manager.ResourceManager");
     assert_eq!(INPUT_MANAGER_NAME, "InputModule.Manager.InputManager");
+    assert_eq!(
+        INPUT_ACTION_MANAGER_NAME,
+        "InputModule.Manager.InputActionManager"
+    );
     assert_eq!(
         CONFIG_MANAGER_NAME,
         "FoundationModule.Manager.ConfigManager"

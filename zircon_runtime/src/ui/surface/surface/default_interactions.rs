@@ -522,7 +522,7 @@ impl UiSurface {
         metadata: &UiTemplateNodeMetadata,
         property: &str,
         canonical_property: &str,
-        legacy_properties: &[&str],
+        fallback_properties: &[&str],
         default_value: bool,
     ) -> bool {
         let component_state = self.component_states.get(node_id);
@@ -531,22 +531,22 @@ impl UiSurface {
                 component_state.and_then(|state| bool_component_state_value(state, property))
             })
             .or_else(|| {
-                legacy_properties
+                fallback_properties
                     .iter()
                     .copied()
-                    .filter(|legacy_property| *legacy_property != property)
-                    .find_map(|legacy_property| {
-                        bool_attribute_value(&metadata.attributes, legacy_property)
+                    .filter(|fallback_property| *fallback_property != property)
+                    .find_map(|fallback_property| {
+                        bool_attribute_value(&metadata.attributes, fallback_property)
                     })
             })
             .or_else(|| {
                 component_state.and_then(|state| {
-                    legacy_properties
+                    fallback_properties
                         .iter()
                         .copied()
-                        .filter(|legacy_property| *legacy_property != property)
-                        .find_map(|legacy_property| {
-                            bool_component_state_value(state, legacy_property)
+                        .filter(|fallback_property| *fallback_property != property)
+                        .find_map(|fallback_property| {
+                            bool_component_state_value(state, fallback_property)
                         })
                 })
             })

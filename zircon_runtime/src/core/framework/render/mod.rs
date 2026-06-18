@@ -3,6 +3,7 @@ mod anti_alias;
 mod backend_types;
 mod camera;
 mod camera_ordering;
+mod camera_stack;
 mod capture;
 mod core_pipeline;
 mod frame_extract;
@@ -47,12 +48,14 @@ pub use backend_types::{
     RenderCameraTargetWritebackReport, RenderCameraTargetWritebackStatus, RenderCapabilityClass,
     RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
     RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings, RenderGpuSceneUploadPath,
-    RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
-    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
-    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
-    RenderQueueCapability, RenderSceneVelocityReadbackReport, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
-    RenderingBackendInfo,
+    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
+    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
+    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderSceneVelocityReadbackReport,
+    RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -65,6 +68,11 @@ pub use camera::{
 pub use camera_ordering::{
     sort_render_cameras, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
     RenderCameraOrderReport, RenderCameraTargetOrderKey, SortedRenderCamera,
+};
+pub use camera_stack::{
+    resolve_camera_sequence, CameraRenderDescriptor, CameraRenderType, CameraSequenceEntry,
+    CameraSequenceReport, CameraSequenceViolation, CameraSequenceViolationReason,
+    RenderCameraClear,
 };
 pub use capture::{CapturedFrame, RenderCaptureReport, RenderCaptureSource};
 pub use core_pipeline::{
@@ -101,34 +109,38 @@ pub use light::{
     GPU_LIGHT_DATA_STRIDE, SHADOW_SLOT_NONE,
 };
 pub use material::{
-    ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
-    RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialIssueState, RenderMaterialLightingModel,
-    RenderMaterialLightingModelParseError, RenderMaterialManagementIssueIndex,
-    RenderMaterialManagementIssueKind, RenderMaterialManagementIssueView,
-    RenderMaterialManagementOverview, RenderMaterialManagementOverviewRecord,
-    RenderMaterialManagementPageInfo, RenderMaterialManagementPageRequest,
-    RenderMaterialManagementPageWindow, RenderMaterialManagementQuery,
-    RenderMaterialManagementQueryControls, RenderMaterialManagementQueryFacet,
-    RenderMaterialManagementQueryFacetKind, RenderMaterialManagementQueryFacets,
-    RenderMaterialManagementQueryFilter, RenderMaterialManagementQueryFilterKind,
-    RenderMaterialManagementQueryResult, RenderMaterialManagementQueryResultActions,
-    RenderMaterialManagementQueryResultState, RenderMaterialManagementQueryResultStateKind,
-    RenderMaterialManagementQuerySelection, RenderMaterialManagementQueryState,
-    RenderMaterialManagementRecord, RenderMaterialManagementRecordSet,
-    RenderMaterialManagementRecordSummary, RenderMaterialManagementSelection,
-    RenderMaterialManagementSnapshot, RenderMaterialManagementSortDirection,
-    RenderMaterialManagementSortKey, RenderMaterialManagementSortOrder,
-    RenderMaterialManagementStatusIndex, RenderMaterialManagementStatusView,
-    RenderMaterialPreparedState, RenderMaterialPropertyUniformField,
-    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyUniformSummary,
-    RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyUniformUnsupportedReason,
-    RenderMaterialPropertyValue, RenderMaterialPropertyValueState,
-    RenderMaterialPropertyValueSummary, RenderMaterialReadinessDiagnostic,
-    RenderMaterialReadinessReport, RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
+    ColorMaterialDescriptor, GBufferChannelMask, RenderMaterialAlphaMode,
+    RenderMaterialDependencySet, RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy,
+    RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialIssueState,
+    RenderMaterialLightingModel, RenderMaterialLightingModelParseError,
+    RenderMaterialManagementIssueIndex, RenderMaterialManagementIssueKind,
+    RenderMaterialManagementIssueView, RenderMaterialManagementOverview,
+    RenderMaterialManagementOverviewRecord, RenderMaterialManagementPageInfo,
+    RenderMaterialManagementPageRequest, RenderMaterialManagementPageWindow,
+    RenderMaterialManagementQuery, RenderMaterialManagementQueryControls,
+    RenderMaterialManagementQueryFacet, RenderMaterialManagementQueryFacetKind,
+    RenderMaterialManagementQueryFacets, RenderMaterialManagementQueryFilter,
+    RenderMaterialManagementQueryFilterKind, RenderMaterialManagementQueryResult,
+    RenderMaterialManagementQueryResultActions, RenderMaterialManagementQueryResultState,
+    RenderMaterialManagementQueryResultStateKind, RenderMaterialManagementQuerySelection,
+    RenderMaterialManagementQueryState, RenderMaterialManagementRecord,
+    RenderMaterialManagementRecordSet, RenderMaterialManagementRecordSummary,
+    RenderMaterialManagementSelection, RenderMaterialManagementSnapshot,
+    RenderMaterialManagementSortDirection, RenderMaterialManagementSortKey,
+    RenderMaterialManagementSortOrder, RenderMaterialManagementStatusIndex,
+    RenderMaterialManagementStatusView, RenderMaterialPreparedState,
+    RenderMaterialPropertyUniformField, RenderMaterialPropertyUniformPayload,
+    RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,
+    RenderMaterialPropertyUniformUnsupportedReason, RenderMaterialPropertyValue,
+    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
+    RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
+    RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
     RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
-    RenderMaterialTextureTransform, RenderMaterialValidationError, StandardMaterialDescriptor,
+    RenderMaterialTextureTransform, RenderMaterialValidationError, ShadingModelDescriptor,
+    ShadingModelId, ShadingModelRegistrationError, StandardMaterialDescriptor,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
@@ -151,20 +163,21 @@ pub use post_process::{
     PostProcessEffectSettings, PostProcessGraphResourceNames, PostProcessGraphValidationError,
     PostProcessPassGraph, PostProcessPassNode, PostProcessStackDescriptor,
     PostProcessVolumeExtract, RenderBlurSettings, RenderChromaticAberrationSettings,
-    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderDepthOfFieldSettings,
-    RenderDitherSettings, RenderExposureMode, RenderExposureSettings, RenderFilmGrainSettings,
-    RenderFogSettings, RenderMotionBlurSettings, RenderOutputTransfer,
-    RenderPostProcessEffectStackReport, RenderPostProcessEffectStackResourceStatus,
-    RenderPostProcessEffectStackSettings, RenderPostProcessTextureFormat,
-    RenderPostProcessVolumeProfile, RenderResolvedPostProcessSettings,
-    RenderScreenSpaceReflectionSettings, RenderTonemapOperator, RenderTonemapSettings,
-    RenderVignetteSettings, ResolvedPostProcessStack, VolumeComponentApplyError,
-    VolumeComponentApplyFn, VolumeComponentDescriptor, VolumeComponentOverride,
-    VolumeComponentReadFn, VolumeComponentRegistry, VolumeEvaluationError, VolumeEvaluationRequest,
-    VolumeEvaluator, VolumeParamInterpFn, VolumeParamSchema, VolumeParamType, VolumeParamValue,
-    VolumeRegistryError, VolumeShapeExtract, BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
-    COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT, COLOR_LUT_SIZE_HIGH_QUALITY,
-    EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderColorLutReadbackReference,
+    RenderColorLutReadbackReport, RenderDepthOfFieldSettings, RenderDitherSettings,
+    RenderExposureMode, RenderExposureSettings, RenderFilmGrainSettings, RenderFogSettings,
+    RenderMotionBlurSettings, RenderOutputTransfer, RenderPostProcessEffectStackReport,
+    RenderPostProcessEffectStackResourceStatus, RenderPostProcessEffectStackSettings,
+    RenderPostProcessTextureFormat, RenderPostProcessVolumeProfile,
+    RenderResolvedPostProcessSettings, RenderScreenSpaceReflectionSettings, RenderTonemapOperator,
+    RenderTonemapSettings, RenderVignetteSettings, ResolvedPostProcessStack,
+    VolumeComponentApplyError, VolumeComponentApplyFn, VolumeComponentDescriptor,
+    VolumeComponentOverride, VolumeComponentReadFn, VolumeComponentRegistry, VolumeEvaluationError,
+    VolumeEvaluationRequest, VolumeEvaluator, VolumeParamInterpFn, VolumeParamSchema,
+    VolumeParamType, VolumeParamValue, VolumeRegistryError, VolumeShapeExtract,
+    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, COLOR_LUT_FORMAT, COLOR_LUT_IDENTITY_EPSILON_MICRO,
+    COLOR_LUT_SIZE_DEFAULT, COLOR_LUT_SIZE_HIGH_QUALITY, EXPOSURE_BUFFER_WORD_COUNT,
+    EXPOSURE_HISTOGRAM_BIN_COUNT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
     INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
     MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
 };
@@ -188,10 +201,14 @@ pub use scene_extract::{
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
-    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
+    GeometrySourceId, RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDefinitionValue, RenderShaderDependency,
     RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
-    RenderShaderVariantKey,
+    RenderShaderVariantKey, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+    ShaderVariantMissReport, ShaderVariantPrewarmFailure, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START,
 };
 pub use shadow::RenderShadowExecutionReport;
 pub use solari::{

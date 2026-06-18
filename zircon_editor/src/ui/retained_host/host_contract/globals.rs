@@ -11,20 +11,15 @@ use super::data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, HostDragStateData,
     HostMenuStateData, HostPaneInteractionStateData, HostResizeStateData, HostTextInputFocusData,
     HostViewportImageData, HostWindowPresentationData, ProjectOverviewData, RecentProjectData,
-    WelcomePaneData,
+    WelcomePaneData, WorkbenchContextMenuRequestData,
 };
 use super::diagnostics::HostInvalidationDiagnostics;
 use super::redraw::HostRedrawRequest;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
-type Callback0 = Rc<dyn Fn()>;
-type Callback1<A> = Rc<dyn Fn(A)>;
-type Callback2<A, B> = Rc<dyn Fn(A, B)>;
-type Callback3<A, B, C> = Rc<dyn Fn(A, B, C)>;
-type Callback4<A, B, C, D> = Rc<dyn Fn(A, B, C, D)>;
-type Callback5<A, B, C, D, E> = Rc<dyn Fn(A, B, C, D, E)>;
-type Callback6<A, B, C, D, E, F> = Rc<dyn Fn(A, B, C, D, E, F)>;
-type Callback8<A, B, C, D, E, F, G, H> = Rc<dyn Fn(A, B, C, D, E, F, G, H)>;
+mod callbacks;
+
+use self::callbacks::{PaneSurfaceCallbacks, UiHostCallbacks};
 
 pub(crate) trait HostContractGlobal: Sized {
     fn from_state(state: Rc<RefCell<HostContractState>>) -> Self;
@@ -85,79 +80,6 @@ impl HostContractState {
         }
     }
 }
-
-#[derive(Default)]
-struct UiHostCallbacks {
-    frame_requested: Option<Callback0>,
-    close_prompt_action_clicked: Option<Callback1<SharedString>>,
-    menu_pointer_clicked: Option<Callback2<f32, f32>>,
-    menu_pointer_moved: Option<Callback2<f32, f32>>,
-    menu_pointer_scrolled: Option<Callback3<f32, f32, f32>>,
-    activity_rail_pointer_clicked: Option<Callback3<SharedString, f32, f32>>,
-    host_page_pointer_clicked: Option<Callback5<i32, f32, f32, f32, f32>>,
-    document_tab_pointer_clicked: Option<Callback6<SharedString, i32, f32, f32, f32, f32>>,
-    document_tab_close_pointer_clicked: Option<Callback6<SharedString, i32, f32, f32, f32, f32>>,
-    floating_window_header_pointer_clicked: Option<Callback2<f32, f32>>,
-    drawer_header_pointer_clicked: Option<Callback6<SharedString, i32, f32, f32, f32, f32>>,
-    host_drag_pointer_event: Option<Callback3<i32, f32, f32>>,
-    host_resize_pointer_event: Option<Callback3<i32, f32, f32>>,
-    unhandled_keyboard_input: Option<Callback1<UiKeyboardInputEvent>>,
-}
-
-#[derive(Default)]
-struct PaneSurfaceCallbacks {
-    welcome_recent_pointer_clicked: Option<Callback4<f32, f32, f32, f32>>,
-    welcome_recent_pointer_moved: Option<Callback4<f32, f32, f32, f32>>,
-    welcome_recent_pointer_scrolled: Option<Callback5<f32, f32, f32, f32, f32>>,
-    hierarchy_pointer_clicked: Option<Callback4<f32, f32, f32, f32>>,
-    hierarchy_pointer_moved: Option<Callback4<f32, f32, f32, f32>>,
-    hierarchy_pointer_scrolled: Option<Callback5<f32, f32, f32, f32, f32>>,
-    hierarchy_pointer_event: Option<Callback6<i32, i32, f32, f32, f32, f32>>,
-    console_pointer_scrolled: Option<Callback5<f32, f32, f32, f32, f32>>,
-    inspector_pointer_scrolled: Option<Callback5<f32, f32, f32, f32, f32>>,
-    inspector_reference_pointer_event: Option<Callback6<i32, i32, f32, f32, f32, f32>>,
-    inspector_control_changed: Option<Callback2<SharedString, SharedString>>,
-    inspector_control_clicked: Option<Callback1<SharedString>>,
-    surface_control_clicked: Option<Callback2<SharedString, SharedString>>,
-    surface_control_edited: Option<Callback3<SharedString, SharedString, SharedString>>,
-    component_showcase_control_activated: Option<Callback2<SharedString, SharedString>>,
-    component_showcase_control_drag_delta: Option<Callback3<SharedString, SharedString, f32>>,
-    component_showcase_control_edited: Option<Callback3<SharedString, SharedString, SharedString>>,
-    component_showcase_control_context_requested:
-        Option<Callback4<SharedString, SharedString, f32, f32>>,
-    component_showcase_option_selected: Option<Callback3<SharedString, SharedString, SharedString>>,
-    mesh_import_path_edited: Option<Callback1<SharedString>>,
-    asset_control_changed: Option<Callback3<SharedString, SharedString, SharedString>>,
-    asset_control_clicked: Option<Callback2<SharedString, SharedString>>,
-    asset_tree_pointer_clicked: Option<Callback5<SharedString, f32, f32, f32, f32>>,
-    asset_tree_pointer_moved: Option<Callback5<SharedString, f32, f32, f32, f32>>,
-    asset_tree_pointer_scrolled: Option<Callback6<SharedString, f32, f32, f32, f32, f32>>,
-    asset_content_pointer_clicked: Option<Callback5<SharedString, f32, f32, f32, f32>>,
-    asset_content_pointer_event: Option<Callback7<SharedString, i32, i32, f32, f32, f32, f32>>,
-    asset_content_pointer_moved: Option<Callback5<SharedString, f32, f32, f32, f32>>,
-    asset_content_pointer_scrolled: Option<Callback6<SharedString, f32, f32, f32, f32, f32>>,
-    asset_reference_pointer_clicked:
-        Option<Callback6<SharedString, SharedString, f32, f32, f32, f32>>,
-    asset_reference_pointer_event:
-        Option<Callback8<SharedString, SharedString, i32, i32, f32, f32, f32, f32>>,
-    asset_reference_pointer_moved:
-        Option<Callback6<SharedString, SharedString, f32, f32, f32, f32>>,
-    asset_reference_pointer_scrolled:
-        Option<Callback7<SharedString, SharedString, f32, f32, f32, f32, f32>>,
-    browser_asset_details_pointer_scrolled: Option<Callback5<f32, f32, f32, f32, f32>>,
-    welcome_control_changed: Option<Callback2<SharedString, SharedString>>,
-    welcome_control_clicked: Option<Callback1<SharedString>>,
-    viewport_pointer_event: Option<Callback5<i32, i32, f32, f32, f32>>,
-    viewport_toolbar_pointer_clicked:
-        Option<Callback8<SharedString, SharedString, f32, f32, f32, f32, f32, f32>>,
-    ui_asset_action: Option<Callback2<SharedString, SharedString>>,
-    ui_asset_detail_event: Option<
-        Callback6<SharedString, SharedString, SharedString, i32, SharedString, SharedString>,
-    >,
-    ui_asset_collection_event: Option<Callback4<SharedString, SharedString, SharedString, i32>>,
-}
-
-type Callback7<A, B, C, D, E, F, G> = Rc<dyn Fn(A, B, C, D, E, F, G)>;
 
 macro_rules! callback_methods {
     ($callbacks:ident, $on_name:ident, $invoke_name:ident, $field:ident, ($($arg:ident : $ty:ty),* $(,)?)) => {
@@ -366,6 +288,7 @@ impl PaneSurfaceHostContext<'_> {
     callback_methods!(pane_callbacks, on_inspector_control_changed, invoke_inspector_control_changed, inspector_control_changed, (control_id: SharedString, value: SharedString));
     callback_methods!(pane_callbacks, on_inspector_control_clicked, invoke_inspector_control_clicked, inspector_control_clicked, (control_id: SharedString));
     callback_methods!(pane_callbacks, on_surface_control_clicked, invoke_surface_control_clicked, surface_control_clicked, (control_id: SharedString, action_id: SharedString));
+    callback_methods!(pane_callbacks, on_workbench_context_menu_requested, invoke_workbench_context_menu_requested, workbench_context_menu_requested, (request: WorkbenchContextMenuRequestData));
     callback_methods!(pane_callbacks, on_surface_control_edited, invoke_surface_control_edited, surface_control_edited, (control_id: SharedString, binding_id: SharedString, native_value: SharedString));
     callback_methods!(pane_callbacks, on_component_showcase_control_activated, invoke_component_showcase_control_activated, component_showcase_control_activated, (control_id: SharedString, action_id: SharedString));
     callback_methods!(pane_callbacks, on_component_showcase_control_drag_delta, invoke_component_showcase_control_drag_delta, component_showcase_control_drag_delta, (control_id: SharedString, action_id: SharedString, delta: f32));

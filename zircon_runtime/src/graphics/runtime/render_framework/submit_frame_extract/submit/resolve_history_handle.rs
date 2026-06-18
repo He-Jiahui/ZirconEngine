@@ -23,6 +23,10 @@ impl ResolvedHistoryHandle {
         }
     }
 
+    pub(super) fn inactive() -> Self {
+        Self::new(None, None, false)
+    }
+
     pub(super) fn allocated_history(&self) -> Option<FrameHistoryHandle> {
         self.allocated_history
     }
@@ -90,4 +94,18 @@ fn current_history_handle(
         .viewports
         .get(&viewport)
         .and_then(|record| record.history().map(|history| history.handle()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ResolvedHistoryHandle;
+
+    #[test]
+    fn inactive_history_handle_disables_current_previous_and_allocation() {
+        let resolved = ResolvedHistoryHandle::inactive();
+
+        assert_eq!(resolved.allocated_history(), None);
+        assert_eq!(resolved.current_history_handle(), None);
+        assert!(!resolved.previous_history_available());
+    }
 }

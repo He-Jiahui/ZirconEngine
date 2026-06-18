@@ -1,4 +1,4 @@
-pub(in crate::graphics::scene::scene_renderer::mesh) const FALLBACK_MESH_SHADER: &str = concat!(
+pub(crate) const FALLBACK_MESH_SHADER: &str = concat!(
     include_str!("../shaders/zr_gpu_scene.wgsl"),
     "\n",
     include_str!("../../lighting/shaders/zr_light_grid.wgsl"),
@@ -237,6 +237,34 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains(
             "material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSample(emissive_tex, emissive_sampler, emissive_uv).rgb"
         ));
+    }
+
+    #[test]
+    fn fallback_mesh_shader_dispatches_builtin_shading_models() {
+        for expected in [
+            "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
+            "const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;",
+            "const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;",
+            "fn decode_shading_model_id(encoded: f32) -> u32",
+            "round(clamp(encoded, 0.0, 1.0) * 255.0)",
+            "shading_model_id: u32",
+            "decode_shading_model_id(material_properties.data8.y)",
+            "fn material_diffuse_color(material: SampledMaterial) -> vec3<f32>",
+            "material.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID",
+            "fn shade_standard_pbr_light_vector",
+            "fn shade_blinn_phong_light_vector",
+            "return shade_blinn_phong_light_vector(light_vector, radiance, world_normal, material, diffuse_color);",
+            "return shade_standard_pbr_light_vector(light_vector, radiance, world_normal, material, diffuse_color);",
+            "material.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID",
+            "return vec4<f32>(material.albedo.rgb + material.emissive, material.albedo.a);",
+        ] {
+            assert!(
+                FALLBACK_MESH_SHADER.contains(expected),
+                "fallback mesh shader should use `{expected}` for built-in shading model dispatch"
+            );
+        }
+        assert!(!FALLBACK_MESH_SHADER
+            .contains("let shaded = mix(lit, material.albedo.rgb, clamp(material.unlit"));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::{FrameHistoryBinding, VisibilityHistorySnapshot};
+use crate::graphics::{FrameHistoryBinding, VisibilityHistorySnapshot};
 
 use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 

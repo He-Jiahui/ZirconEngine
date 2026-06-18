@@ -46,15 +46,15 @@ tests:
   - zircon_runtime/src/script/vm/tests.rs::zr_vm_real_backend_uses_script_call_table_for_host_callbacks
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_script_call_table_calls_dense_id_without_name_lookup
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites
-  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 18, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 50, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 37, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
-  - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 47/47 passed)
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-14 Runtime 13 script_binding_boundary targeted evidence: expected_source_file_count = 18, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
+  - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 48/48 passed)
   - "pending: cargo test -p zircon_runtime --lib script --locked -- --nocapture"
 doc_type: module-detail
 ---
 
 # ZrVM Host Function Ledger
 
-Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 50 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
+Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 52 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
 
 `HostExportRegistry::register_module(...)` is the runtime enforcement point. It validates module names, declared module capabilities, function arity, required function capabilities, callback/descriptor parity, type descriptors, and call-time capability grants. `builtin_host_module_descriptors()` plus `zircon_host_reflection_docs` are the machine-renderable source for the fixed built-in ledger.
 
@@ -135,10 +135,12 @@ Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an a
 | `component_string` | `entity:Int`, `component_id:String`, `fallback:String` | `String` | `gameplay.entity` |
 | `set_component_json` | `entity:Int`, `component_id:String`, `component_json:String` | `Bool` | `gameplay.entity` |
 | `find_by_component` | `component_id:String` | `String` | `gameplay.entity` |
+| `entity_exists` | `entity:Int` | `Bool` | `gameplay.entity` |
 | `nearest_by_script_property` | `source_entity:Int`, `property:String`, `value:String`, `max_distance:Float` | `Int` | `gameplay.entity` |
 | `count_by_script_property` | `property:String`, `value:String` | `Int` | `gameplay.entity` |
 | `script_property_matches` | `entity:Int`, `property:String`, `value:String` | `Bool` | `gameplay.entity` |
 | `script_number` | `entity:Int`, `property:String`, `fallback:Float` | `Float` | `gameplay.entity` |
+| `script_number_at_most` | `entity:Int`, `property:String`, `threshold:Float`, `fallback:Float` | `Bool` | `gameplay.entity` |
 | `set_animation_bool` | `entity:Int`, `parameter:String`, `value:Bool` | `Bool` | `gameplay.entity` |
 | `damage_entity` | `entity:Int`, `damage:Float` | `Bool` | `gameplay.entity` |
 | `heal_entity` | `entity:Int`, `amount:Float`, `max_hp:Float` | `Bool` | `gameplay.entity` |
@@ -155,7 +157,7 @@ Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an a
 
 ## Gameplay Host Owner Layout
 
-`gameplay_host.rs` owns only the `zr.zircon.gameplay` module descriptor and the 37 `HostExportFunction::new(...)` registration anchors. The callback implementations are folder-backed domain owners: `input.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `script_bindings.rs`, and `values.rs`.
+`gameplay_host.rs` owns only the `zr.zircon.gameplay` module descriptor and the 39 `HostExportFunction::new(...)` registration anchors. The callback implementations are folder-backed domain owners: `input.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `script_bindings.rs`, and `values.rs`.
 
 `runtime_13_gameplay_host_owner_split_keeps_domain_files` keeps that layout executable. It requires each gameplay host owner file to exist, keeps each source owner under the 400-line budget, checks representative registration anchors remain in `gameplay_host.rs`, and keeps shared value parsing/resource/error helpers in `values.rs`.
 
@@ -195,4 +197,4 @@ M2 aligns script-held entity ids with the ECS stable-id invalidation rule. `scri
 
 `script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi` keeps the access-path judgement executable. It scans the current `zircon_runtime/src/script` Rust files for native ECS ABI symbols such as `ZrHostEcsApiV1` and locks the `zr.zircon.gameplay` / `ScriptRuntimeCallContext` anchors as the script-facing gameplay facade.
 
-`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit. Current evidence reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 50`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 37`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 47/47 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.
+`script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit. Current evidence reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 48/48 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.

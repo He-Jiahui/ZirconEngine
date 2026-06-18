@@ -60,78 +60,12 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
         .map_err(|error| format!("failed to decode asset pack manifest: {error}"))?;
     let pack_inputs = asset_manifest.pack_inputs(manifest_dir)?;
     let mut diagnostics = pack_inputs.diagnostics.clone();
+    let fatal_preflight = pack_inputs.trim_report.has_missing_dependencies()
+        || pack_inputs.trim_report.has_duplicate_assets()
+        || !pack_inputs.asset_source_errors.is_empty();
 
-    let mut report = match ZrPackWriter::write(pack_inputs.pack_assets.clone()) {
-        Ok(write_report) => {
-            let deterministic_double_run = deterministic_double_run(
-                args.determinism_check,
-                &pack_inputs.pack_assets,
-                &write_report.bytes,
-                &mut diagnostics,
-            )?;
-            if let Some(parent) = args.pack.parent() {
-                if !parent.as_os_str().is_empty() {
-                    fs::create_dir_all(parent).map_err(|error| {
-                        format!(
-                            "failed to create pack directory {}: {error}",
-                            parent.display()
-                        )
-                    })?;
-                }
-            }
-            fs::write(&args.pack, &write_report.bytes).map_err(|error| {
-                format!("failed to write pack {}: {error}", args.pack.display())
-            })?;
-            let delta_report = write_delta_pack_if_requested(&args, &write_report.bytes)?;
-            ExportPackReport {
-                stage: ExportPipelineStage::Pack,
-                profile: args.profile.clone(),
-                asset_manifest: args.manifest.display().to_string(),
-                pack: args.pack.display().to_string(),
-                previous_pack: args
-                    .previous_pack
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                delta_pack: args
-                    .delta_pack
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                stage_output: args
-                    .stage_output
-                    .as_ref()
-                    .map(|path| path.display().to_string()),
-                fatal: false,
-                diagnostics,
-                asset_count: write_report.manifest.assets.len(),
-                chunk_count: write_report.manifest.pack.chunks.len(),
-                deduplicated_assets: write_report.deduplicated_assets,
-                trim_report: pack_inputs.trim_report,
-                manifest: Some(write_report.manifest),
-                deterministic_double_run,
-                delta_asset_count: delta_report
-                    .as_ref()
-                    .map(|report| report.changed_assets.len())
-                    .unwrap_or(0),
-                delta_chunk_count: delta_report
-                    .as_ref()
-                    .map(|report| report.manifest.chunks.len())
-                    .unwrap_or(0),
-                delta_removed_assets: delta_report
-                    .as_ref()
-                    .map(|report| report.removed_assets.clone())
-                    .unwrap_or_default(),
-                delta_reused_assets: delta_report
-                    .as_ref()
-                    .map(|report| report.reused_assets.clone())
-                    .unwrap_or_default(),
-                delta_apply_verified: delta_report
-                    .as_ref()
-                    .map(|report| report.apply_verified)
-                    .unwrap_or(false),
-                delta_manifest: delta_report.map(|report| report.manifest),
-            }
-        }
-        Err(error) => ExportPackReport {
+    let mut report = if fatal_preflight {
+        ExportPackReport {
             stage: ExportPipelineStage::Pack,
             profile: args.profile.clone(),
             asset_manifest: args.manifest.display().to_string(),
@@ -149,7 +83,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
                 .as_ref()
                 .map(|path| path.display().to_string()),
             fatal: true,
-            diagnostics: vec![format!("failed to write zrpack: {error}")],
+            diagnostics,
             asset_count: 0,
             chunk_count: 0,
             deduplicated_assets: Vec::new(),
@@ -162,14 +96,115 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
             delta_removed_assets: Vec::new(),
             delta_reused_assets: Vec::new(),
             delta_apply_verified: false,
-        },
+        }
+    } else {
+        match ZrPackWriter::write(pack_inputs.pack_assets.clone()) {
+            Ok(write_report) => {
+                let deterministic_double_run = deterministic_double_run(
+                    args.determinism_check,
+                    &pack_inputs.pack_assets,
+                    &write_report.bytes,
+                    &mut diagnostics,
+                )?;
+                if let Some(parent) = args.pack.parent() {
+                    if !parent.as_os_str().is_empty() {
+                        fs::create_dir_all(parent).map_err(|error| {
+                            format!(
+                                "failed to create pack directory {}: {error}",
+                                parent.display()
+                            )
+                        })?;
+                    }
+                }
+                fs::write(&args.pack, &write_report.bytes).map_err(|error| {
+                    format!("failed to write pack {}: {error}", args.pack.display())
+                })?;
+                let delta_report = write_delta_pack_if_requested(&args, &write_report.bytes)?;
+                ExportPackReport {
+                    stage: ExportPipelineStage::Pack,
+                    profile: args.profile.clone(),
+                    asset_manifest: args.manifest.display().to_string(),
+                    pack: args.pack.display().to_string(),
+                    previous_pack: args
+                        .previous_pack
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    delta_pack: args
+                        .delta_pack
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    stage_output: args
+                        .stage_output
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    fatal: false,
+                    diagnostics,
+                    asset_count: write_report.manifest.assets.len(),
+                    chunk_count: write_report.manifest.pack.chunks.len(),
+                    deduplicated_assets: write_report.deduplicated_assets,
+                    trim_report: pack_inputs.trim_report,
+                    manifest: Some(write_report.manifest),
+                    deterministic_double_run,
+                    delta_asset_count: delta_report
+                        .as_ref()
+                        .map(|report| report.changed_assets.len())
+                        .unwrap_or(0),
+                    delta_chunk_count: delta_report
+                        .as_ref()
+                        .map(|report| report.manifest.chunks.len())
+                        .unwrap_or(0),
+                    delta_removed_assets: delta_report
+                        .as_ref()
+                        .map(|report| report.removed_assets.clone())
+                        .unwrap_or_default(),
+                    delta_reused_assets: delta_report
+                        .as_ref()
+                        .map(|report| report.reused_assets.clone())
+                        .unwrap_or_default(),
+                    delta_apply_verified: delta_report
+                        .as_ref()
+                        .map(|report| report.apply_verified)
+                        .unwrap_or(false),
+                    delta_manifest: delta_report.map(|report| report.manifest),
+                }
+            }
+            Err(error) => ExportPackReport {
+                stage: ExportPipelineStage::Pack,
+                profile: args.profile.clone(),
+                asset_manifest: args.manifest.display().to_string(),
+                pack: args.pack.display().to_string(),
+                previous_pack: args
+                    .previous_pack
+                    .as_ref()
+                    .map(|path| path.display().to_string()),
+                delta_pack: args
+                    .delta_pack
+                    .as_ref()
+                    .map(|path| path.display().to_string()),
+                stage_output: args
+                    .stage_output
+                    .as_ref()
+                    .map(|path| path.display().to_string()),
+                fatal: true,
+                diagnostics: vec![format!("failed to write zrpack: {error}")],
+                asset_count: 0,
+                chunk_count: 0,
+                deduplicated_assets: Vec::new(),
+                trim_report: pack_inputs.trim_report,
+                manifest: None,
+                deterministic_double_run: false,
+                delta_manifest: None,
+                delta_asset_count: 0,
+                delta_chunk_count: 0,
+                delta_removed_assets: Vec::new(),
+                delta_reused_assets: Vec::new(),
+                delta_apply_verified: false,
+            },
+        }
     };
 
     if report.trim_report.has_missing_dependencies()
-        || report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains(" duplicated "))
+        || report.trim_report.has_duplicate_assets()
         || (args.determinism_check && !report.deterministic_double_run)
         || (report.delta_pack.is_some() && !report.delta_apply_verified)
     {
@@ -297,4 +332,215 @@ struct VerifiedDeltaWriteReport {
     removed_assets: Vec<String>,
     reused_assets: Vec<String>,
     apply_verified: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn run_rejects_missing_dependency_without_writing_pack() {
+        let root = unique_temp_dir("missing-dependency-no-pack");
+        let manifest_path = root.join("assets.json");
+        let source_path = root.join("main.scene");
+        let pack_path = root.join("out").join("assets.zrpack");
+        let report_path = root.join("out").join("report.json");
+        fs::write(&source_path, b"scene").unwrap();
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "roots": ["scenes/main.zscene"],
+                "assets": [
+                    {
+                        "path": "scenes/main.zscene",
+                        "source": "main.scene",
+                        "dependencies": ["textures/missing.png"],
+                        "labels": []
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let exit_code = super::run([
+            os("--profile"),
+            os("windows-release"),
+            os("--manifest"),
+            manifest_path.clone().into_os_string(),
+            os("--pack"),
+            pack_path.clone().into_os_string(),
+            os("--report"),
+            report_path.clone().into_os_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(exit_code, std::process::ExitCode::from(2));
+        assert!(!pack_path.exists());
+        let report: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&report_path).unwrap()).unwrap();
+        assert_eq!(report["fatal"], true);
+        assert!(report["manifest"].is_null());
+        assert_eq!(report["asset_count"], 0);
+        assert_eq!(report["chunk_count"], 0);
+        assert_eq!(
+            report["trim_report"]["missing_dependencies"][0]["owner"],
+            "scenes/main.zscene"
+        );
+        assert_eq!(
+            report["trim_report"]["missing_dependencies"][0]["dependency"],
+            "textures/missing.png"
+        );
+        assert_eq!(
+            report["trim_report"]["duplicate_assets"],
+            serde_json::json!([])
+        );
+        let diagnostics = report["diagnostics"].as_array().unwrap();
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic
+                == "pack stage stopped because asset dependencies are missing"));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn run_rejects_duplicate_trim_input_without_writing_pack() {
+        let root = unique_temp_dir("duplicate-trim-no-pack");
+        let manifest_path = root.join("assets.json");
+        let source_path = root.join("main.scene");
+        let pack_path = root.join("out").join("assets.zrpack");
+        let report_path = root.join("out").join("report.json");
+        fs::write(&source_path, b"scene").unwrap();
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "roots": ["scenes/main.zscene"],
+                "assets": [
+                    {
+                        "path": "scenes/main.zscene",
+                        "source": source_path,
+                        "dependencies": [],
+                        "labels": []
+                    },
+                    {
+                        "path": "scenes/main.zscene",
+                        "source": source_path,
+                        "dependencies": [],
+                        "labels": []
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let exit_code = super::run([
+            os("--profile"),
+            os("windows-release"),
+            os("--manifest"),
+            manifest_path.clone().into_os_string(),
+            os("--pack"),
+            pack_path.clone().into_os_string(),
+            os("--report"),
+            report_path.clone().into_os_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(exit_code, std::process::ExitCode::from(2));
+        assert!(!pack_path.exists());
+        let report =
+            serde_json::from_str::<serde_json::Value>(&fs::read_to_string(report_path).unwrap())
+                .unwrap();
+        assert_eq!(report["fatal"], true);
+        assert_eq!(report["manifest"], serde_json::Value::Null);
+        assert_eq!(report["asset_count"], 0);
+        assert_eq!(report["chunk_count"], 0);
+        assert_eq!(
+            report["trim_report"]["duplicate_assets"],
+            serde_json::json!(["scenes/main.zscene"])
+        );
+        assert_eq!(
+            report["diagnostics"],
+            serde_json::json!(["asset scenes/main.zscene is duplicated in trim input"])
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn run_reports_missing_asset_source_without_writing_pack() {
+        let root = unique_temp_dir("missing-source-no-pack");
+        let manifest_path = root.join("assets.json");
+        let pack_path = root.join("out").join("assets.zrpack");
+        let report_path = root.join("out").join("report.json");
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "roots": ["scenes/main.zscene"],
+                "assets": [
+                    {
+                        "path": "scenes/main.zscene",
+                        "source": "missing.scene",
+                        "dependencies": [],
+                        "labels": []
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let exit_code = super::run([
+            os("--profile"),
+            os("windows-release"),
+            os("--manifest"),
+            manifest_path.clone().into_os_string(),
+            os("--pack"),
+            pack_path.clone().into_os_string(),
+            os("--report"),
+            report_path.clone().into_os_string(),
+        ])
+        .unwrap();
+
+        assert_eq!(exit_code, std::process::ExitCode::from(2));
+        assert!(!pack_path.exists());
+        let report: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&report_path).unwrap()).unwrap();
+        assert_eq!(report["fatal"], true);
+        assert_eq!(report["manifest"], serde_json::Value::Null);
+        assert_eq!(report["asset_count"], 0);
+        assert_eq!(report["chunk_count"], 0);
+        assert_eq!(
+            report["trim_report"]["included_assets"],
+            serde_json::json!(["scenes/main.zscene"])
+        );
+        assert!(report["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic
+                .as_str()
+                .unwrap()
+                .contains("failed to read asset source")));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn os(value: impl Into<OsString>) -> OsString {
+        value.into()
+    }
+
+    fn unique_temp_dir(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("zircon-export-pack-{label}-{nanos}"));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
 }

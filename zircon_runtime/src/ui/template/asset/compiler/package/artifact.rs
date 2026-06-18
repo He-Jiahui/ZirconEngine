@@ -8,6 +8,9 @@ use zircon_runtime_interface::ui::template::{
 
 const UI_COMPILED_ASSET_BINARY_MAGIC: [u8; 8] = *b"ZRUIA016";
 const ENVELOPE_HEADER_LEN: usize = UI_COMPILED_ASSET_BINARY_MAGIC.len() + 4 + 8;
+pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_POLICY: &str =
+    "runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source";
+pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_SOURCE_MARKER_REQUIRED: bool = false;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRuntimeCompiledAssetArtifact {
@@ -16,6 +19,14 @@ pub struct UiRuntimeCompiledAssetArtifact {
 }
 
 impl UiRuntimeCompiledAssetArtifact {
+    pub const fn generated_policy() -> &'static str {
+        UI_COMPILED_ASSET_ARTIFACT_GENERATED_POLICY
+    }
+
+    pub const fn requires_generated_source_marker() -> bool {
+        UI_COMPILED_ASSET_ARTIFACT_GENERATED_SOURCE_MARKER_REQUIRED
+    }
+
     pub(super) fn from_report_and_compiled(
         report: UiCompiledAssetPackageValidationReport,
         compiled: UiCompiledDocument,

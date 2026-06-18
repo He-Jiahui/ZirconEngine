@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::scene::EntityId;
 
+use super::camera_stack::CameraRenderDescriptor;
 use super::{CorePipelineKind, RenderVirtualGeometryDebugState, TemporalJitterSample};
 
 pub type RenderLayer = u32;
@@ -25,24 +26,14 @@ pub struct ViewportCameraSnapshot {
     pub z_near: Real,
     pub z_far: Real,
     pub aspect_ratio: Real,
-    #[serde(default)]
-    pub target: RenderCameraTarget,
-    #[serde(default)]
-    pub viewport: Option<RenderViewportRect>,
-    #[serde(default)]
-    pub order: i32,
     #[serde(default = "default_true")]
     pub is_active: bool,
     #[serde(default)]
     pub hdr: bool,
     #[serde(default = "default_camera_exposure_ev100")]
     pub exposure_ev100: Real,
-    #[serde(default)]
-    pub clear_color: RenderCameraClearColor,
     #[serde(default = "default_camera_msaa_samples")]
     pub msaa_samples: u32,
-    #[serde(default)]
-    pub render_layers: RenderLayerSet,
     #[serde(default)]
     pub dynamic_resolution: RenderDynamicResolutionSettings,
     #[serde(default)]
@@ -60,10 +51,7 @@ impl ViewportCameraSnapshot {
     }
 
     pub fn effective_viewport_size(&self, target_size: UVec2) -> UVec2 {
-        self.viewport
-            .as_ref()
-            .map(|viewport| viewport.clamped_to_size(target_size).physical_size)
-            .unwrap_or(target_size)
+        target_size
     }
 
     pub fn effective_render_size(&self, target_size: UVec2) -> UVec2 {
@@ -320,6 +308,17 @@ impl RenderLayerSet {
             .any(|(left, right)| (*left & *right) != 0)
     }
 
+    pub fn union(&self, other: &Self) -> Self {
+        let block_count = self.blocks.len().max(other.blocks.len());
+        let blocks = (0..block_count)
+            .map(|index| {
+                self.blocks.get(index).copied().unwrap_or_default()
+                    | other.blocks.get(index).copied().unwrap_or_default()
+            })
+            .collect::<Vec<_>>();
+        Self { blocks }.shrink()
+    }
+
     pub fn intersects_legacy_mask(&self, mask: u32) -> bool {
         self.intersects(&Self::from_legacy_mask(mask))
     }
@@ -391,15 +390,10 @@ impl Default for ViewportCameraSnapshot {
             z_near: 0.1,
             z_far: 200.0,
             aspect_ratio: default_viewport_aspect_ratio(),
-            target: RenderCameraTarget::default(),
-            viewport: None,
-            order: 0,
             is_active: true,
             hdr: false,
             exposure_ev100: DEFAULT_CAMERA_EXPOSURE_EV100,
-            clear_color: RenderCameraClearColor::default(),
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
-            render_layers: RenderLayerSet::default(),
             dynamic_resolution: RenderDynamicResolutionSettings::default(),
             temporal_jitter: TemporalJitterSample::default(),
         }
@@ -410,7 +404,7 @@ impl Default for ViewportCameraSnapshot {
 pub struct SceneViewportExtractRequest {
     pub settings: ViewportRenderSettings,
     pub active_camera_override: Option<EntityId>,
-    pub camera: Option<ViewportCameraSnapshot>,
+    pub camera: Option<CameraRenderDescriptor>,
     pub viewport_size: Option<UVec2>,
     pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }

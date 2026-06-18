@@ -23,7 +23,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("sky.preview-final-color")
-            .write_external_with_ops(
+            .write_external_texture_with_ops(
                 PostProcessGraphResourceNames::FINAL_COLOR,
                 RenderGraphAttachmentOps::clear_store(),
             )
@@ -53,8 +53,39 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .with_executor_id("mesh.transparent")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-            .read_external(PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
         ],
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::super::render_feature_pass_descriptor::{
+        RenderFeatureResourceAccess, RenderFeatureResourceKind,
+    };
+    use super::*;
+    use crate::render_graph::RenderGraphExternalResourceBinding;
+
+    #[test]
+    fn deferred_transparent_mesh_requires_shadow_atlas_external_texture() {
+        let descriptor = descriptor();
+        let pass = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == "transparent-mesh")
+            .expect("transparent mesh pass");
+        let atlas = pass
+            .resources
+            .iter()
+            .find(|resource| resource.name == PostProcessGraphResourceNames::SHADOW_ATLAS)
+            .expect("shadow atlas resource");
+
+        assert_eq!(atlas.kind, RenderFeatureResourceKind::External);
+        assert_eq!(atlas.access, RenderFeatureResourceAccess::Read);
+        assert_eq!(
+            atlas.external_binding,
+            RenderGraphExternalResourceBinding::required_texture()
+        );
+    }
 }

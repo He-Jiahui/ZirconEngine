@@ -17,8 +17,8 @@ fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() 
         harness
             .host
             .borrow()
-            .presentation_cache
-            .active_activity_window_template_document_id(),
+            .active_activity_window_template_document_id()
+            .as_deref(),
         Some(WORKBENCH_WINDOW_DOCUMENT_ID)
     );
     let baseline = harness.journal_len();
@@ -154,8 +154,8 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
     {
         let host = harness.host.borrow();
         assert_eq!(
-            host.presentation_cache
-                .active_activity_window_template_document_id(),
+            host.active_activity_window_template_document_id()
+                .as_deref(),
             Some(ASSET_WINDOW_DOCUMENT_ID)
         );
     }

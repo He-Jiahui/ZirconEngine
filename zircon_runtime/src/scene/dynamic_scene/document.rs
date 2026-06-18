@@ -28,7 +28,7 @@ impl DynamicScene {
             serde_json::from_value(value).map_err(|error| DynamicSceneError::Parse {
                 reason: error.to_string(),
             })?;
-        scene.ensure_supported_version()?;
+        scene.ensure_supported()?;
         Ok(scene)
     }
 

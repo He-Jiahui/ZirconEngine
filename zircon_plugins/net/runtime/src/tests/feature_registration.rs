@@ -1,6 +1,5 @@
-use zircon_runtime::{
-    plugin::RuntimePluginRegistrationReport, scene::SystemStage, RuntimeTargetMode,
-};
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::{plugin::RuntimePluginRegistrationReport, scene::SystemStage};
 
 use crate::{
     runtime_plugin, NET_EVENT_ID, NET_FLUSH_EGRESS_SYSTEM, NET_MODULE_NAME,

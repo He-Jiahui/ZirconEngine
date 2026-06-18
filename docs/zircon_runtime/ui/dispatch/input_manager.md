@@ -11,6 +11,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/input/mod.rs
   - zircon_runtime/src/ui/surface/input/dispatch.rs
+  - zircon_runtime/src/ui/surface/input/route_authority.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
@@ -28,6 +29,9 @@ implementation_files:
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/input/mod.rs
+  - zircon_runtime/src/ui/surface/input/dispatch.rs
+  - zircon_runtime/src/ui/surface/input/route_authority.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
@@ -76,7 +80,9 @@ The first slice is a non-invasive manager shell. Existing `UiSurface::dispatch_i
 6. focus path
 7. default action
 
-Concrete handlers do not iterate this constant yet. The constant is a contract anchor and testable authority list so later pointer, keyboard, IME, drag-drop, tooltip, and editor command routes converge on one order instead of each path re-declaring its own precedence.
+`zircon_runtime::ui::surface::input::route_authority` now consumes this constant for normalized `UiInputEvent` dispatch. `surface/input/dispatch.rs` collects each leaf dispatch result, calls `annotate_authoritative_input_dispatch`, and records a `route_authority=runtime_09_m1_1_ui_input_route_authority;policy=...;stages=...` diagnostic note derived from `UI_INPUT_ROUTE_ORDER`.
+
+Direct `dispatch_pointer_event` and `dispatch_navigation_event` methods still exist on `UiSurface` and `RuntimeUiManager` as leaf owner helpers for existing low-level callers and tests. They are not the normalized `UiInputEvent` route; Runtime 09 tracks them under `runtime_09_m1_1_direct_pointer_navigation_routes_are_leaf_owner_helpers` until those call sites are migrated or retired.
 
 ## Batch Outcome
 

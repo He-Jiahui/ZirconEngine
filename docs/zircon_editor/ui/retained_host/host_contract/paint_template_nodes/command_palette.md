@@ -1,0 +1,37 @@
+---
+related_code:
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
+  - zircon_runtime/src/ui/surface/render/command_palette.rs
+implementation_files:
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette.rs
+plan_sources:
+  - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
+  - docs/plans/zircon_editor/editor_ui/index.md
+tests:
+  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
+  - zircon_runtime/src/ui/tests/render_command_palette.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
+  - rustfmt --edition 2021 touched CommandPalette render/native painter Rust files
+  - git diff --check -- touched CommandPalette render/native painter/doc files
+doc_type: module-detail
+---
+
+# CommandPalette Native Painter
+
+`template_command_palette.rs` is the retained-host native painter for `CommandPalette` roots projected from runtime UI. It is a component-owned painter, not a generic template-node fallback and not the ordinary dropdown option-row painter.
+
+Closed `CommandPalette` roots are consumed without drawing. This prevents closed overlay shells from falling back to generic surface painting and leaving a blank popup panel in native previews.
+
+Open roots draw the whole palette inside the node frame: popup panel, focused search field, query or placeholder text, and command rows. The panel uses the Workbench popup surface and border colors, the search field uses the inset surface plus focus-ring border, and the row region starts below the search field with the same compact row metrics used by the runtime render extractor.
+
+Rows come from `TemplatePaneNodeData.structured_options`, which is filled by `pane_component_projection/command_palette.rs` from `commands`, `filtered_commands`, `selected_command_id`, `focused_index`, `disabled_commands`, `recent_commands`, and `query`. The painter does not re-filter commands; it renders the already-projected host contract.
+
+Row visual state still goes through `select_workbench_popup_row_style(...)` and `WorkbenchPopupRowState`, so selected, focused, disabled, loading-style unavailable colors, and recent-command emphasis stay aligned with the popup-row selector contract. The painter draws rows locally because `template_popup_rows.rs` positions dropdown rows outside the owner frame, while `CommandPalette` rows are embedded inside the palette panel.
+
+The runtime equivalent is `zircon_runtime/src/ui/surface/render/command_palette.rs`. Both paths must continue to suppress generic owner text/image/surface output, paint only while open, keep disabled rows visible, and treat real command registry execution as the later 08 M4 integration point.

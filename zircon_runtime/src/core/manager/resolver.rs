@@ -6,7 +6,7 @@ use crate::core::framework::{
     animation::AnimationManager,
     asset::ResourceManager,
     foundation::{ConfigManager, EventManager},
-    input::InputManager,
+    input::{InputActionManager, InputManager},
     navigation::NavigationManager,
     net::NetManager,
     physics::PhysicsManager,
@@ -18,9 +18,9 @@ use crate::core::{CoreError, CoreHandle};
 
 use super::{
     AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, NET_MANAGER_NAME,
-    PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
-    SOUND_MANAGER_NAME,
+    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME,
+    NET_MANAGER_NAME, PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -108,6 +108,13 @@ define_manager_holder!(
     resolve_input_manager,
     INPUT_MANAGER_NAME,
     input
+);
+define_manager_holder!(
+    InputActionManagerHandle,
+    InputActionManager,
+    resolve_input_action_manager,
+    INPUT_ACTION_MANAGER_NAME,
+    input_actions
 );
 define_manager_holder!(
     ConfigManagerHandle,

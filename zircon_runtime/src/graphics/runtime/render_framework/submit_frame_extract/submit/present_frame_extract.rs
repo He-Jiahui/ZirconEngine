@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
 };
+use crate::graphics::ViewportCameraStackOutputPolicy;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::super::graphics_debugger_capture::{
@@ -50,7 +51,9 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
             }
         }
     };
-    if let Err(error) = validate_camera_surface_present_target(&extract.view.camera.target) {
+    if let Err(error) =
+        validate_camera_surface_present_target(extract.view.selected_camera_target())
+    {
         fail_pending_capture_after_preflight_error(framework, viewport, &error);
         return Err(error);
     }
@@ -77,7 +80,13 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
+    let runtime_frame = build_runtime_frame(
+        extract,
+        ui,
+        &context,
+        &prepared,
+        ViewportCameraStackOutputPolicy::default(),
+    );
     state.last_virtual_geometry_debug_snapshot =
         runtime_frame.virtual_geometry_debug_snapshot.clone();
 

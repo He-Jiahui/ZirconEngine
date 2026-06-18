@@ -5,7 +5,7 @@ use crate::graphics::tests::plugin_render_feature_fixtures::{
 use crate::render_graph::QueueLane;
 use crate::scene::world::World;
 
-use crate::{
+use crate::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
     RenderPipelineCompileOptions,
 };

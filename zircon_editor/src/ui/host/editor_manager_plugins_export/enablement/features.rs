@@ -1,10 +1,12 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::native::NativePluginLoader;
 use zircon_runtime::{
-    plugin::NativePluginLoader, plugin::PluginFeatureBundleManifest,
-    plugin::PluginFeatureDependency, plugin::PluginPackageManifest, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog, RuntimeTargetMode,
+    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
+    plugin::PluginPackageManifest, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    plugin::RuntimePluginCatalog,
 };
 
 use super::super::super::editor_manager::EditorManager;

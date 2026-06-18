@@ -3,7 +3,8 @@ mod identity;
 mod systems;
 mod target_modes;
 
-use crate::{plugin::PluginModuleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginModuleManifest;
 
 use self::{
     capabilities::validate_runtime_plugin_package_module_capabilities,

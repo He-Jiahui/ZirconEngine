@@ -22,8 +22,8 @@ pub fn sound_timeline_animation_track_feature_manifest(
             "zircon_plugin_sound_timeline_animation_runtime",
         )
         .with_target_modes([
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities(["runtime.feature.sound.timeline_animation_track".to_string()]),
     )
@@ -62,8 +62,8 @@ pub fn sound_ray_traced_convolution_reverb_feature_manifest(
             "zircon_plugin_sound_ray_traced_convolution_runtime",
         )
         .with_target_modes([
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities(["runtime.feature.sound.ray_traced_convolution_reverb".to_string()]),
     )

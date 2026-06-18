@@ -159,10 +159,16 @@ def execute_native_dynamic_package_artifact_command(
 
     package_dir = Path(destination)
     artifact_results: list[dict[str, object]] = []
-    for artifact in native_dynamic_signable_artifacts(
+    signable_artifacts = native_dynamic_signable_artifacts(
         package_dir,
         loadable_artifact_extensions,
-    ):
+        diagnostics,
+        operation=operation,
+        package_id=package_id,
+    )
+    if signable_artifacts is None:
+        return package_result
+    for artifact in signable_artifacts:
         artifact_results.append(
             execute_native_dynamic_artifact_command(
                 operation=operation,
@@ -194,7 +200,6 @@ def execute_native_dynamic_artifact_command(
     notarization_profile: str | None,
     diagnostics: list[str],
 ) -> dict[str, object]:
-    before_sha256 = file_sha256(artifact)
     command = native_dynamic_signing_command(
         command_template=command_template,
         artifact=artifact,
@@ -211,9 +216,21 @@ def execute_native_dynamic_artifact_command(
         "exit_code": None,
         "stdout": "",
         "stderr": "",
-        "before_sha256": before_sha256,
-        "after_sha256": before_sha256,
+        "before_sha256": None,
+        "after_sha256": None,
     }
+    before_sha256 = file_sha256_or_diagnostic(
+        artifact,
+        diagnostics,
+        (
+            f"NativeDynamic {operation} for package {package_id} artifact "
+            f"{artifact} could not be read before command"
+        ),
+    )
+    if before_sha256 is None:
+        return artifact_result
+    artifact_result["before_sha256"] = before_sha256
+    artifact_result["after_sha256"] = before_sha256
 
     try:
         completed = subprocess.run(
@@ -244,16 +261,38 @@ def execute_native_dynamic_artifact_command(
         )
         return artifact_result
 
-    artifact_result["after_sha256"] = file_sha256(artifact)
+    after_sha256 = file_sha256_or_diagnostic(
+        artifact,
+        diagnostics,
+        (
+            f"NativeDynamic {operation} for package {package_id} artifact "
+            f"{artifact} could not be read after command"
+        ),
+    )
+    if after_sha256 is None:
+        artifact_result["after_sha256"] = None
+        return artifact_result
+    artifact_result["after_sha256"] = after_sha256
     return artifact_result
 
 
 def native_dynamic_signable_artifacts(
     package_dir: Path,
     loadable_artifact_extensions: set[str],
-) -> list[Path]:
+    diagnostics: list[str],
+    *,
+    operation: str,
+    package_id: str,
+) -> list[Path] | None:
     artifacts: list[Path] = []
-    for file_path in sorted(package_dir.rglob("*")):
+    try:
+        file_paths = sorted(package_dir.rglob("*"))
+    except OSError as error:
+        diagnostics.append(
+            f"NativeDynamic {operation} for package {package_id} package directory {package_dir} could not be listed: {error}"
+        )
+        return None
+    for file_path in file_paths:
         if not file_path.is_file():
             continue
         if file_path.suffix.lower() not in loadable_artifact_extensions:
@@ -316,3 +355,15 @@ def native_dynamic_signing_platform_allowed(
 
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def file_sha256_or_diagnostic(
+    path: Path,
+    diagnostics: list[str],
+    label: str,
+) -> str | None:
+    try:
+        return file_sha256(path)
+    except OSError as error:
+        diagnostics.append(f"{label}: {error}")
+        return None

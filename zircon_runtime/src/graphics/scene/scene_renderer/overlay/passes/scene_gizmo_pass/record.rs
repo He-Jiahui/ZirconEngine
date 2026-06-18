@@ -1,4 +1,7 @@
-use crate::graphics::scene::scene_renderer::overlay::{begin_line_pass, PreparedIconDraw};
+use crate::graphics::scene::scene_renderer::overlay::{
+    begin_line_pass_for_region, PreparedIconDraw,
+};
+use crate::graphics::types::ViewportRenderRegion;
 
 use super::scene_gizmo_pass::SceneGizmoPass;
 
@@ -12,11 +15,20 @@ impl SceneGizmoPass {
         line_pipeline: &wgpu::RenderPipeline,
         line_buffer: Option<&(wgpu::Buffer, u32)>,
         icon_draws: &[PreparedIconDraw],
+        render_region: ViewportRenderRegion,
     ) {
         if line_buffer.is_none() && icon_draws.is_empty() {
             return;
         }
-        let mut pass = begin_line_pass(encoder, "SceneGizmoPass", color_view, depth_view);
+        let Some(mut pass) = begin_line_pass_for_region(
+            encoder,
+            "SceneGizmoPass",
+            color_view,
+            depth_view,
+            render_region,
+        ) else {
+            return;
+        };
         pass.set_bind_group(0, scene_bind_group, &[]);
         if let Some((buffer, count)) = line_buffer {
             pass.set_pipeline(line_pipeline);

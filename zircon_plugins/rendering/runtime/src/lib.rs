@@ -121,13 +121,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     let mut descriptor = zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Rendering",
-        zircon_runtime::RuntimePluginId::Rendering,
+        zircon_runtime::builtin::RuntimePluginId::Rendering,
         "zircon_plugin_rendering_runtime",
     )
     .with_category("rendering")
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability(RENDERING_RUNTIME_CAPABILITY);
 
@@ -159,8 +159,8 @@ pub fn feature_manifest(
             feature.runtime_crate(),
         )
         .with_target_modes([
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities([capability]),
     )

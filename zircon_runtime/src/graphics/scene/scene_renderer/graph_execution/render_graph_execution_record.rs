@@ -2,8 +2,10 @@ use std::collections::BTreeSet;
 
 use crate::core::framework::render::PostProcessPassGraph;
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
-    RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+    MotionVectorCameraStatus, RenderColorLutReadbackReport, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
+    RenderGraphMaterializationReport, RenderGraphPassProfileRecord,
+    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -21,6 +23,7 @@ pub struct RenderGraphComputeDispatchRecord {
     pub workgroup_size: [u32; 3],
     pub dispatch_groups: [u32; 3],
     pub storage_write_resources: Vec<String>,
+    pub resource_accesses: Vec<RenderGraphPassResourceAccess>,
 }
 
 impl RenderGraphComputeDispatchRecord {
@@ -39,7 +42,16 @@ impl RenderGraphComputeDispatchRecord {
             workgroup_size,
             dispatch_groups,
             storage_write_resources,
+            resource_accesses: Vec::new(),
         }
+    }
+
+    pub fn with_resource_accesses(
+        mut self,
+        resource_accesses: Vec<RenderGraphPassResourceAccess>,
+    ) -> Self {
+        self.resource_accesses = resource_accesses;
+        self
     }
 
     pub fn dispatch_group_volume(&self) -> usize {
@@ -55,6 +67,7 @@ pub struct RenderGraphComputeWorkloadDispatchContext {
     pub cluster_grid_size: [u32; 2],
     pub hzb_furthest_size: [u32; 2],
     pub indirect_args_count: u32,
+    pub indirect_args_dispatch_group_count: Option<u32>,
 }
 
 impl RenderGraphComputeWorkloadDispatchContext {
@@ -69,7 +82,13 @@ impl RenderGraphComputeWorkloadDispatchContext {
             cluster_grid_size: [cluster_grid_size[0].max(1), cluster_grid_size[1].max(1)],
             hzb_furthest_size: [hzb_furthest_size[0].max(1), hzb_furthest_size[1].max(1)],
             indirect_args_count,
+            indirect_args_dispatch_group_count: None,
         }
+    }
+
+    pub fn with_indirect_args_dispatch_group_count(mut self, dispatch_group_count: u32) -> Self {
+        self.indirect_args_dispatch_group_count = Some(dispatch_group_count);
+        self
     }
 
     fn expected_dispatch_groups(self, workload: &RenderGraphComputeWorkload) -> [u32; 3] {
@@ -84,11 +103,25 @@ impl RenderGraphComputeWorkloadDispatchContext {
                 dispatch_groups_for_2d_extent(self.hzb_furthest_size, workload.workgroup_size)
             }
             RenderGraphComputeDispatchExtent::IndirectArgs => {
+                if let Some(dispatch_group_count) = self.indirect_args_dispatch_group_count {
+                    return dispatch_groups_for_1d_group_count(
+                        dispatch_group_count,
+                        workload.workgroup_size,
+                    );
+                }
                 dispatch_groups_for_1d_extent(self.indirect_args_count, workload.workgroup_size)
             }
             RenderGraphComputeDispatchExtent::Fixed(groups) => *groups,
         }
     }
+}
+
+fn dispatch_groups_for_1d_group_count(group_count: u32, workgroup_size: [u32; 3]) -> [u32; 3] {
+    [
+        group_count,
+        dispatch_group_count(1, workgroup_size[1]),
+        dispatch_group_count(1, workgroup_size[2]),
+    ]
 }
 
 fn dispatch_groups_for_1d_extent(extent: u32, workgroup_size: [u32; 3]) -> [u32; 3] {
@@ -263,8 +296,12 @@ pub struct RenderGraphExecutionRecord {
     executed_post_process_nodes: Vec<String>,
     motion_vector_camera_status: MotionVectorCameraStatus,
     resource_report: RenderGraphExecutionResourceReport,
+    materialization_report: RenderGraphMaterializationReport,
+    resource_alias_report: RenderGraphExecutionAliasReport,
+    pass_profile_records: Vec<RenderGraphPassProfileRecord>,
     history_copy_report: RenderHistoryCopyReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
+    color_lut_readback_report: RenderColorLutReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
 }
@@ -396,6 +433,28 @@ impl RenderGraphExecutionRecord {
         self.resource_report = report;
     }
 
+    pub fn set_materialization_report(&mut self, report: RenderGraphMaterializationReport) {
+        self.materialization_report = report;
+    }
+
+    pub fn set_resource_alias_report(&mut self, report: RenderGraphExecutionAliasReport) {
+        self.resource_alias_report = report;
+    }
+
+    pub fn push_pass_profile(
+        &mut self,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        cpu_elapsed_micros: u64,
+    ) {
+        self.pass_profile_records
+            .push(RenderGraphPassProfileRecord::new(
+                pass_name,
+                executor_id,
+                cpu_elapsed_micros,
+            ));
+    }
+
     pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
         self.history_copy_report = report;
     }
@@ -406,6 +465,11 @@ impl RenderGraphExecutionRecord {
         report: RenderSceneVelocityReadbackReport,
     ) {
         self.scene_velocity_readback_report = report;
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn set_color_lut_readback_report(&mut self, report: RenderColorLutReadbackReport) {
+        self.color_lut_readback_report = report;
     }
 
     pub fn set_hzb_occlusion_cull_report(&mut self, report: HzbOcclusionCullReport) {
@@ -506,6 +570,18 @@ impl RenderGraphExecutionRecord {
         self.resource_report
     }
 
+    pub fn materialization_report(&self) -> RenderGraphMaterializationReport {
+        self.materialization_report
+    }
+
+    pub fn resource_alias_report(&self) -> &RenderGraphExecutionAliasReport {
+        &self.resource_alias_report
+    }
+
+    pub fn profile_report(&self) -> RenderGraphExecutionProfileReport {
+        RenderGraphExecutionProfileReport::new(self.pass_profile_records.clone())
+    }
+
     pub fn stage_execution_report(&self) -> RenderGraphStageExecutionReport {
         let mut unique_stages = BTreeSet::new();
         let mut staged_pass_count = 0;
@@ -548,6 +624,10 @@ impl RenderGraphExecutionRecord {
 
     pub fn scene_velocity_readback_report(&self) -> RenderSceneVelocityReadbackReport {
         self.scene_velocity_readback_report
+    }
+
+    pub fn color_lut_readback_report(&self) -> RenderColorLutReadbackReport {
+        self.color_lut_readback_report
     }
 
     pub fn hzb_occlusion_cull_report(&self) -> Option<HzbOcclusionCullReport> {
@@ -687,8 +767,9 @@ impl RenderGraphExecutionRecord {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderGraphExecutionResourceReport, RenderGraphStageExecutionReport,
-        RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+        RenderColorLutReadbackReport, RenderGraphExecutionResourceReport,
+        RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+        RenderSceneVelocityReadbackReport,
     };
     use crate::core::math::UVec2;
     use crate::graphics::pipeline::RenderPassStage;
@@ -726,13 +807,13 @@ mod tests {
             true,
             UVec2::new(640, 360),
             4,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-    );
+            true,
+            true,
+            true,
+            false,
+            false,
+            false,
+        );
 
         record.set_history_copy_report(report);
 
@@ -756,6 +837,21 @@ mod tests {
             record.scene_velocity_readback_report().nonzero_pixel_count,
             2
         );
+    }
+
+    #[test]
+    fn execution_record_preserves_color_lut_readback_report() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let report = RenderColorLutReadbackReport::from_raw_rgba16_float_identity_bytes(
+            [1, 1, 1],
+            &[0, 0, 0, 0, 0, 0, 0, 0x3c],
+        );
+
+        record.set_color_lut_readback_report(report);
+
+        assert_eq!(record.color_lut_readback_report(), report);
+        assert!(record.color_lut_readback_report().available);
+        assert!(record.color_lut_readback_report().identity_within_epsilon());
     }
 
     #[test]
@@ -1053,14 +1149,22 @@ mod tests {
             [40, 30, 1],
             vec!["ambient-occlusion".to_string()],
         ));
-        record.push_compute_dispatch(RenderGraphComputeDispatchRecord::new(
-            "light-grid-build",
-            "lighting.light-grid",
-            "zircon-cluster-pipeline",
-            [8, 8, 1],
-            [5, 4, 1],
-            vec!["light-list".to_string()],
-        ));
+        record.push_compute_dispatch(
+            RenderGraphComputeDispatchRecord::new(
+                "light-grid-build",
+                "lighting.light-grid",
+                "zircon-cluster-pipeline",
+                [8, 8, 1],
+                [5, 4, 1],
+                vec!["light-list".to_string()],
+            )
+            .with_resource_accesses(vec![RenderGraphPassResourceAccess {
+                name: "light-list".to_string(),
+                kind: RenderGraphResourceKind::TransientBuffer,
+                access: RenderGraphResourceAccessKind::Write,
+                attachment_ops: None,
+            }]),
+        );
 
         assert_eq!(record.compute_dispatch_count(), 2);
         assert_eq!(record.compute_dispatch_group_volume_total(), 1220);
@@ -1068,6 +1172,11 @@ mod tests {
         assert_eq!(
             record.compute_dispatches()[0].storage_write_resources,
             ["ambient-occlusion".to_string()]
+        );
+        assert_eq!(record.compute_dispatches()[1].resource_accesses.len(), 1);
+        assert_eq!(
+            record.compute_dispatches()[1].resource_accesses[0].access,
+            RenderGraphResourceAccessKind::Write
         );
     }
 
@@ -1256,6 +1365,41 @@ mod tests {
         assert_eq!(
             record.compute_workload_audit()[0].planned_dispatch_groups,
             Some([0, 1, 1])
+        );
+        assert_eq!(
+            record.compute_workload_audit()[0].status,
+            RenderGraphComputeWorkloadAuditStatus::Matched
+        );
+    }
+
+    #[test]
+    fn execution_record_audits_phase_local_indirect_arg_workload_groups() {
+        let mut record = RenderGraphExecutionRecord::default();
+        let context =
+            RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 3)
+                .with_indirect_args_dispatch_group_count(3);
+
+        record.audit_compute_workload(
+            "hzb-occlusion-cull",
+            "visibility.hzb-occlusion-cull",
+            Some(&RenderGraphComputeWorkload::indirect_args(
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+            )),
+            context,
+            &[RenderGraphComputeDispatchRecord::new(
+                "hzb-occlusion-cull",
+                "visibility.hzb-occlusion-cull",
+                "zircon-hzb-occlusion-cull-pipeline",
+                [64, 1, 1],
+                [3, 1, 1],
+                Vec::new(),
+            )],
+        );
+
+        assert_eq!(
+            record.compute_workload_audit()[0].planned_dispatch_groups,
+            Some([3, 1, 1])
         );
         assert_eq!(
             record.compute_workload_audit()[0].status,

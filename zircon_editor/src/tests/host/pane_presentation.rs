@@ -118,6 +118,7 @@ fn editor_data_fixture() -> EditorDataSnapshot {
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
+        status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
         scene_viewport_settings: SceneViewportSettings::default(),
@@ -172,6 +173,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         scene_entries: editor_data_fixture().scene_entries,
         inspector: editor_data_fixture().inspector,
         status_line: editor_data_fixture().status_line,
+        status_task_progress: editor_data_fixture().status_task_progress,
         hovered_axis: editor_data_fixture().hovered_axis,
         viewport_size: editor_data_fixture().viewport_size,
         scene_viewport_settings: editor_data_fixture().scene_viewport_settings,
@@ -368,7 +370,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
             &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
@@ -736,7 +738,7 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
     assert!(payload.ui_debug_reflector_sections.iter().any(|line| {
         line.contains("node=2")
             && line.contains("family=Overlay")
-            && line.contains("selected=LegacyZircon")
+            && line.contains("selected=Zircon")
             && line.contains("reason=ZirconOwnedSemantics")
     }));
     assert!(payload

@@ -13,5 +13,6 @@ pub(crate) use mesh_pass::{
     CachedMeshDrawCommands, MeshDrawReplayStatsAccumulator, MeshIndirectArgsReadback,
     MeshPassIndirectDrawExecutions,
 };
+pub(crate) use mesh_pipeline::FALLBACK_MESH_SHADER;
 pub(crate) use mesh_pipeline_cache::MeshPipelineCache;
 pub(crate) use prepared_queue::{prepare_mesh_queue, PreparedMeshQueueStats};

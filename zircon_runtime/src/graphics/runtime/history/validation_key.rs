@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    LightingExtract, ParticleExtract, PostProcessExtract, RenderFrameExtract,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    CameraRenderDescriptor, LightingExtract, ParticleExtract, PostProcessExtract,
+    RenderFrameExtract, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{Transform, Vec4};
@@ -10,7 +10,7 @@ use crate::core::resource::ResourceId;
 pub(crate) struct FrameHistoryValidationKey {
     // Reuse temporal history only when the frame inputs that can affect scene color match.
     world: RenderWorldSnapshotHandle,
-    camera: ViewportCameraSnapshot,
+    camera: CameraRenderDescriptor,
     meshes: Vec<FrameHistoryMeshValidationKey>,
     lighting: LightingExtract,
     animation_poses: Vec<FrameHistoryAnimationPoseValidationKey>,
@@ -23,7 +23,10 @@ impl Default for FrameHistoryValidationKey {
     fn default() -> Self {
         Self {
             world: RenderWorldSnapshotHandle::new(0),
-            camera: ViewportCameraSnapshot::default(),
+            camera: CameraRenderDescriptor::from_camera_payload(
+                None,
+                ViewportCameraSnapshot::default(),
+            ),
             meshes: Vec::new(),
             lighting: LightingExtract::default(),
             animation_poses: Vec::new(),
@@ -59,7 +62,13 @@ impl FrameHistoryValidationKey {
     ) -> Self {
         Self {
             world: extract.world,
-            camera: extract.view.camera.clone(),
+            camera: extract
+                .view
+                .selected_camera_descriptor()
+                .cloned()
+                .unwrap_or_else(|| {
+                    CameraRenderDescriptor::from_camera_payload(None, extract.view.camera.clone())
+                }),
             meshes: extract
                 .geometry
                 .meshes

@@ -1,5 +1,5 @@
 use crate::core::framework::render::AdvancedProfileRuntimePlan;
-use crate::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
+use crate::graphics::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
 
 pub(super) fn resolve_enabled_features(
     compiled_pipeline: &CompiledRenderPipeline,
@@ -24,12 +24,12 @@ mod tests {
         AdvancedProfileRuntimePlan, AdvancedProviderAvailability, RenderCapabilitySummary,
         RenderFrameExtract, RenderProfileBundle, RenderWorldSnapshotHandle,
     };
-    use crate::render_graph::QueueLane;
-    use crate::scene::world::World;
-    use crate::{
+    use crate::graphics::{
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
     };
+    use crate::render_graph::QueueLane;
+    use crate::scene::world::World;
 
     use super::resolve_enabled_features;
 

@@ -29,10 +29,10 @@ fn ui_layout_engine_capability_distinguishes_taffy_compatible_and_zircon_owned_f
     assert!(capability.supports_content_measure);
     assert_eq!(round_trip(&capability), capability);
 
-    let legacy = UiLayoutEngineCapability::legacy_zircon();
-    assert!(legacy.supports_family(UiLayoutEngineFamily::Block));
-    assert!(legacy.supports_family(UiLayoutEngineFamily::Wrap));
-    assert!(legacy.supports_family(UiLayoutEngineFamily::Masonry));
+    let zircon = UiLayoutEngineCapability::zircon();
+    assert!(zircon.supports_family(UiLayoutEngineFamily::Block));
+    assert!(zircon.supports_family(UiLayoutEngineFamily::Wrap));
+    assert!(zircon.supports_family(UiLayoutEngineFamily::Masonry));
 
     for family in [
         UiLayoutEngineFamily::Flex,
@@ -142,9 +142,9 @@ fn ui_layout_engine_block_is_explicit_block_box_not_generic_container() {
     }
 
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let legacy = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     let block = UiLayoutEngineRequest::from_container_kind(UiContainerKind::BlockBox);
-    let selection = UiLayoutEngineSelection::select(&block, &taffy, &legacy);
+    let selection = UiLayoutEngineSelection::select(&block, &taffy, &zircon);
     assert_eq!(block.family, UiLayoutEngineFamily::Block);
     assert!(!block.requires_zircon_semantics());
     assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Taffy);
@@ -154,14 +154,14 @@ fn ui_layout_engine_block_is_explicit_block_box_not_generic_container() {
 #[test]
 fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout() {
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let legacy = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     let flex = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex);
     let overlay = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay);
     let scrollable = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Scrollable);
 
-    let taffy_flex = UiLayoutEngineSelection::select(&flex, &taffy, &legacy);
-    let taffy_overlay = UiLayoutEngineSelection::select(&overlay, &taffy, &legacy);
-    let taffy_scrollable = UiLayoutEngineSelection::select(&scrollable, &taffy, &legacy);
+    let taffy_flex = UiLayoutEngineSelection::select(&flex, &taffy, &zircon);
+    let taffy_overlay = UiLayoutEngineSelection::select(&overlay, &taffy, &zircon);
+    let taffy_scrollable = UiLayoutEngineSelection::select(&scrollable, &taffy, &zircon);
     let taffy_flex = taffy_flex.with_node_id(crate::ui::event_ui::UiNodeId::new(7));
     let report = UiLayoutEngineSelectionReport::from_selections(vec![
         taffy_flex.clone(),
@@ -177,7 +177,7 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
     assert_eq!(taffy_flex.support, UiLayoutEngineSupport::Native);
     assert_eq!(
         taffy_overlay.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(
         taffy_overlay.fallback_reason,
@@ -185,11 +185,11 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
     );
     assert_eq!(
         taffy_scrollable.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(report.request_count, 3);
     assert_eq!(report.taffy_selected_count, 1);
-    assert_eq!(report.legacy_selected_count, 2);
+    assert_eq!(report.zircon_selected_count, 2);
     assert_eq!(report.fallback_count, 2);
     assert_eq!(report.fallback_reason_counts.len(), 1);
     assert_eq!(
@@ -205,11 +205,11 @@ fn ui_layout_engine_selection_reports_backend_fallbacks_without_running_layout()
 #[test]
 fn ui_layout_engine_selection_report_tracks_taffy_tree_build_stats() {
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let legacy = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     let selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
         &taffy,
-        &legacy,
+        &zircon,
     )
     .with_node_id(crate::ui::event_ui::UiNodeId::new(9))
     .with_taffy_tree_build(UiLayoutEngineTaffyTreeBuildStats::new(4));
@@ -235,7 +235,7 @@ fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {
         supports_dpi_scaling: true,
     };
     let fallback = UiLayoutEngineCapability {
-        backend: UiLayoutEngineBackend::LegacyZircon,
+        backend: UiLayoutEngineBackend::Zircon,
         supported_families: Vec::new(),
         supports_content_measure: true,
         supports_dpi_scaling: true,
@@ -247,10 +247,7 @@ fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {
 
     assert_eq!(selection.request.family, UiLayoutEngineFamily::Block);
     assert_eq!(selection.requested_backend, UiLayoutEngineBackend::Taffy);
-    assert_eq!(
-        selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(selection.support, UiLayoutEngineSupport::Unsupported);
     assert_eq!(
         selection.fallback_reason,
@@ -273,7 +270,7 @@ fn ui_layout_engine_selection_report_counts_missing_fallback_reasons() {
     let selection = UiLayoutEngineSelection {
         request: UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
         requested_backend: UiLayoutEngineBackend::Taffy,
-        selected_backend: UiLayoutEngineBackend::LegacyZircon,
+        selected_backend: UiLayoutEngineBackend::Zircon,
         support: UiLayoutEngineSupport::Fallback,
         fallback_reason: None,
         ..UiLayoutEngineSelection::default()
@@ -310,14 +307,14 @@ fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts
                     "needs_dpi_scaling": true
                 },
                 "requested_backend": "taffy",
-                "selected_backend": "legacy_zircon",
+                "selected_backend": "zircon",
                 "support": "fallback",
                 "fallback_reason": "zircon_owned_semantics"
             }
         ],
         "request_count": 99,
         "taffy_selected_count": 0,
-        "legacy_selected_count": 0,
+        "zircon_selected_count": 0,
         "fallback_count": 0,
         "unsupported_count": 7,
         "taffy_tree_build_count": 44,
@@ -331,7 +328,7 @@ fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts
 
     assert_eq!(report.request_count, 2);
     assert_eq!(report.taffy_selected_count, 1);
-    assert_eq!(report.legacy_selected_count, 1);
+    assert_eq!(report.zircon_selected_count, 1);
     assert_eq!(report.fallback_count, 1);
     assert_eq!(report.unsupported_count, 0);
     assert_eq!(report.taffy_tree_build_count, 0);
@@ -343,7 +340,7 @@ fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts
     );
     assert_eq!(report.fallback_reason_counts[0].count, 1);
 
-    let legacy_json_without_reason_counts = serde_json::json!({
+    let old_json_without_reason_counts = serde_json::json!({
         "selections": [
             {
                 "request": {
@@ -352,22 +349,21 @@ fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts
                     "needs_dpi_scaling": true
                 },
                 "requested_backend": "taffy",
-                "selected_backend": "legacy_zircon",
+                "selected_backend": "zircon",
                 "support": "fallback",
                 "fallback_reason": "zircon_owned_semantics"
             }
         ]
     });
-    let legacy_report: UiLayoutEngineSelectionReport =
-        serde_json::from_value(legacy_json_without_reason_counts)
-            .expect("deserialize legacy report");
+    let old_report: UiLayoutEngineSelectionReport =
+        serde_json::from_value(old_json_without_reason_counts).expect("deserialize legacy report");
 
-    assert_eq!(legacy_report.request_count, 1);
-    assert_eq!(legacy_report.fallback_count, 1);
-    assert_eq!(legacy_report.fallback_reason_counts.len(), 1);
+    assert_eq!(old_report.request_count, 1);
+    assert_eq!(old_report.fallback_count, 1);
+    assert_eq!(old_report.fallback_reason_counts.len(), 1);
     assert_eq!(
-        legacy_report.fallback_reason_counts[0].reason,
+        old_report.fallback_reason_counts[0].reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
     );
-    assert_eq!(legacy_report.fallback_reason_counts[0].count, 1);
+    assert_eq!(old_report.fallback_reason_counts[0].count, 1);
 }

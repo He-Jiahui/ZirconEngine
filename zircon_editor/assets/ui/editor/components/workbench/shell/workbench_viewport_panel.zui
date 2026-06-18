@@ -20,7 +20,17 @@ component = "VerticalGroup"
 control_id = "WorkbenchViewportPanel"
 classes = ["workbench-viewport-panel"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "viewport_toolbar" }, { node = "viewport_surface" }]
+children = [{ node = "document_tabs" }, { node = "viewport_toolbar" }, { node = "viewport_surface" }]
+
+[nodes.document_tabs]
+component = "DocumentTabs"
+control_id = "DocumentTabsRoot"
+classes = ["workbench-document-tabs", "workbench-tab-strip"]
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "DocumentTabs/ActivateTab", event = "Change", route = "workbench.dock.focus_view" },
+  { id = "DocumentTabs/CloseTab", event = "Submit", route = "workbench.dock.close_view" },
+]
 
 [nodes.viewport_toolbar]
 component = "HorizontalGroup"
@@ -694,21 +704,24 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoY"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "Y", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "Y", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+style = { self = { text_tone = "success", foreground_color = "#58d05e" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -66.0, y = 46.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_z]
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoZ"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "Z", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "Z", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+style = { self = { text_tone = "success", foreground_color = "#58d05e" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -94.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_x]
 component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoX"
 classes = ["workbench-viewport-gizmo-axis"]
-props = { text = "X", background_color = "#00000000", foreground_color = "#ef493f", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+props = { text = "X", text_tone = "error", background_color = "#00000000", foreground_color = "#ef493f", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
+style = { self = { text_tone = "error", foreground_color = "#ef493f" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -34.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_center]

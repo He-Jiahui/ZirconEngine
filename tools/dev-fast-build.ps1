@@ -10,6 +10,8 @@ param(
     [switch]$InstallSccache,
     [string]$SharedTargetRoot = "",
     [string]$FeatureOverride = "",
+    [ValidateSet("debug", "release", "profiling")]
+    [string]$CargoProfile = "debug",
     [string[]]$ExtraCargoArgs
 )
 
@@ -68,6 +70,10 @@ function Resolve-RunBin {
 $repoRoot = Resolve-RepoRoot -Start $PSScriptRoot
 Push-Location $repoRoot
 try {
+    if ($Release -and $CargoProfile -ne "debug") {
+        throw "-Release cannot be combined with -CargoProfile $CargoProfile."
+    }
+
     if ([string]::IsNullOrWhiteSpace($SharedTargetRoot)) {
         $drive = [System.IO.Path]::GetPathRoot($repoRoot).TrimEnd('\')
         $SharedTargetRoot = Join-Path $drive "cargo-targets\zircon-shared"
@@ -94,7 +100,12 @@ try {
     $args.Add("--features") | Out-Null
     $args.Add($feature) | Out-Null
     if (-not $NoLocked) { $args.Add("--locked") | Out-Null }
-    if ($Release) { $args.Add("--release") | Out-Null }
+    if ($Release -or $CargoProfile -eq "release") {
+        $args.Add("--release") | Out-Null
+    } elseif ($CargoProfile -eq "profiling") {
+        $args.Add("--profile") | Out-Null
+        $args.Add("profiling") | Out-Null
+    }
 
     if ($Action -eq "run") {
         $bin = Resolve-RunBin -Mode $Profile
@@ -111,6 +122,7 @@ try {
 
     Write-Host "RepoRoot: $repoRoot"
     Write-Host "Profile: $Profile -> feature: $feature"
+    Write-Host "CargoProfile: $CargoProfile"
     Write-Host "Action: $Action, Package: $Package"
     Write-Host "CARGO_TARGET_DIR: $env:CARGO_TARGET_DIR"
     if ($env:RUSTC_WRAPPER) {

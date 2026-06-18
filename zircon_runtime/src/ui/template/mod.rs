@@ -2,6 +2,7 @@ mod asset;
 mod build;
 mod instance;
 mod loader;
+mod pipeline;
 mod validate;
 
 pub use asset::{
@@ -17,8 +18,8 @@ pub use asset::{
     UiAssetDependencyQueryReport, UiAssetDocumentRuntimeExt, UiAssetHotReloadExecutionReport,
     UiAssetHotReloadExecutor, UiAssetHotReloadNodeDirtyReport, UiAssetHotReloadPlan,
     UiAssetHotReloadSurfaceDirtyReport, UiAssetLoader, UiAssetNodeHotReloadTargets,
-    UiAssetNodeIter, UiAssetNodeTarget, UiAssetSchemaMigrator, UiAssetSchemaVersionPolicy,
-    UiAssetSurfaceHotReloadApplyReport, UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,
+    UiAssetNodeIter, UiAssetNodeTarget, UiAssetSchemaMigrator, UiAssetSurfaceHotReloadApplyReport,
+    UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,
     UiAssetSurfaceNodeResourceRegistrationReport, UiAssetWatchInvalidationReport,
     UiCompileCacheOutcome, UiCompiledArtifactKey, UiCompiledArtifactStore,
     UiCompiledArtifactStoreEvictionReport, UiCompiledDocument, UiDocumentCompiler,
@@ -29,9 +30,11 @@ pub use asset::{
     UiResourceResolveDiagnosticCode, UiResourceResolver, UiResourceResolverCacheInvalidationReport,
     UiRuntimeCompiledAssetArtifact, UiStyleResolver, BROAD_SELECTOR_WARNING_THRESHOLD,
     LARGE_DOCUMENT_NODE_WARNING_THRESHOLD, NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD,
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
 };
 pub use build::{UiTemplateBuildError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
 pub use instance::UiTemplateInstance;
 pub use loader::UiTemplateLoader;
+pub use pipeline::{
+    UiTemplateRuntimePipeline, UiTemplateRuntimePipelineError, UI_TEMPLATE_RUNTIME_PIPELINE_STAGES,
+};
 pub use validate::UiTemplateValidator;

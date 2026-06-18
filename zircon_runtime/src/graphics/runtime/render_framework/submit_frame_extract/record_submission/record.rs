@@ -1,6 +1,6 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
-use crate::ViewportFrame;
+use crate::graphics::ViewportFrame;
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -57,7 +57,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
 }
 
 pub(super) fn particle_feedback_stat_snapshot(
-    feedback: crate::ParticleRuntimeFeedback,
+    feedback: crate::graphics::ParticleRuntimeFeedback,
 ) -> ParticleStatSnapshot {
     feedback
         .into_gpu_feedback()
@@ -75,7 +75,7 @@ pub(super) fn particle_feedback_stat_snapshot(
 
 pub(super) fn update_hybrid_gi_runtime(
     record: &mut ViewportRecord,
-    feedback: crate::HybridGiRuntimeFeedback,
+    feedback: crate::graphics::HybridGiRuntimeFeedback,
 ) -> HybridGiStatSnapshot {
     let Some(runtime) = record.hybrid_gi_runtime_mut() else {
         return HybridGiStatSnapshot::default();
@@ -103,7 +103,7 @@ pub(super) fn update_hybrid_gi_runtime(
 
 pub(super) fn update_virtual_geometry_runtime(
     record: &mut ViewportRecord,
-    feedback: crate::VirtualGeometryRuntimeFeedback,
+    feedback: crate::graphics::VirtualGeometryRuntimeFeedback,
     indirect_segment_count: usize,
 ) -> VirtualGeometryStatSnapshot {
     let Some(runtime) = record.virtual_geometry_runtime_mut() else {

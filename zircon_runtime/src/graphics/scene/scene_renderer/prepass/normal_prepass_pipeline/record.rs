@@ -5,6 +5,7 @@ use super::super::super::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
 };
 use super::normal_prepass_pipeline::NormalPrepassPipeline;
+use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl NormalPrepassPipeline {
@@ -16,6 +17,7 @@ impl NormalPrepassPipeline {
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
         mesh_draw_commands: MeshDrawCommandStream<'a>,
+        render_region: ViewportRenderRegion,
         normal_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats {
@@ -36,6 +38,9 @@ impl NormalPrepassPipeline {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return MeshDrawReplayStats::default();
+        }
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         let mut replayer = MeshDrawCommandReplayer::default();

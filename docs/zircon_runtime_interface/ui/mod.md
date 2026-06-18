@@ -132,6 +132,8 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
@@ -307,6 +309,8 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
@@ -369,6 +373,7 @@ tests:
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
   - zircon_runtime_interface/src/tests/window_input_contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - cargo test -p zircon_runtime_interface --lib layout_engine_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (3 passed; 0 failed; 73 filtered out)
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (passed)
   - cargo test -p zircon_runtime_interface --lib pipeline_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (3 passed; 0 failed; 70 filtered out)
@@ -454,6 +459,10 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 `ui::template` contains template document DTOs plus asset binding, action-policy, localization, compile-cache key, package header/cache-record/manifest/report, component-contract, invalidation, resource-ref, schema-report, selector, and asset document contract records. Selector parsing stays as a contract helper; selector matching stays outside the interface crate. Runtime owns compiler-state builders such as `compile_cache_key_from_compiler(...)`, runtime binary artifact encoding/decoding through `UiRuntimeCompiledAssetArtifact`, and package-manifest assembly from runtime artifacts. The interface `UiCompiledAssetArtifact` name is neutral DTO data only and does not carry a runtime `UiTemplateInstance` payload.
 
 `ui::template::asset::binding` is the canonical source for M18 neutral binding target, expression, diagnostic, and report DTOs. The runtime binding module keeps validation behavior in `zircon_runtime::ui::template::asset::binding::validation` and imports these DTOs directly; the deleted runtime-local `diagnostic.rs`, `expression.rs`, and `target.rs` files are not compatibility surfaces.
+
+Runtime 10 M2.1 extends the same single-source rule to the remaining runtime/interface public type duplicates. `UiBindingCodec` is owned by `zircon_runtime_interface::ui::event_ui`, and `UiAssetSchemaVersionPolicy` plus its schema-version constants are owned by `zircon_runtime_interface::ui::template::asset::schema`; the runtime-local `zircon_runtime/src/ui/event_ui/codec.rs` and `zircon_runtime/src/ui/template/asset/schema/policy.rs` files were removed rather than kept as compatibility shells. The current structural guard records `runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending`, `ui_contract_single_source_anchors = 7/7`, and `ui_contract_duplicate_public_types = 0`.
+
+Runtime 10 M2.2 mirrors the Runtime 09 `v2-replacement-mainline` verdict into the interface/runtime split. `zircon_runtime_interface::ui::v2` remains the DTO owner for authored v2 assets and compiled graphs, while `zircon_runtime::ui::v2` consumes those DTOs for loading, caching, instancing, compilation, and surface building. `UiComponentApiVersion` remains owned by `zircon_runtime_interface::ui::template::asset::component_contract::api_version`; runtime component-contract validation calls `actual.is_compatible_with(required)` and reports `UiComponentContractDiagnosticCode::ApiMismatch` instead of redefining the version type. The current structural guard records `runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending`, `ui_v2_contract_sync_anchors = 9/9`, `UiComponentApiVersion`, and `v2-replacement-mainline`; `ui_component_api_version_mismatch_is_rejected_with_parse_error` covers the named mismatch/parse-error path. The 2026-06-17 interface package gate passed `cargo test -p zircon_runtime_interface --locked` with 168 tests and doc-test 0/0; Runtime 10 M2 still waits on runtime UI and editor Cargo gates.
 
 `UiAssetDocument` exposes only declaration fields and minimal root-id accessors in this crate. Tree authority checks, style/node mutation, node traversal, template loading, and document validation are runtime/editor behavior and are intentionally absent from the interface source tree.
 

@@ -129,6 +129,7 @@ fn decorate_component_root(
     }
     append_classes(&mut root.classes, &instance_node.classes);
     root.bindings.extend(instance_node.bindings.clone());
+    merge_instance_props_override(&mut root.attributes, instance_node, tokens, params);
     merge_instance_layout_override(&mut root.style_overrides, instance_node, tokens, params);
     let inline = resolve_value_map(&instance_node.style_overrides.self_values, tokens, params);
     merge_value_maps(&mut root.style_overrides, &inline);
@@ -139,6 +140,16 @@ fn decorate_component_root(
         params,
     );
     apply_instance_contract_overrides(root, instance_node);
+}
+
+fn merge_instance_props_override(
+    target: &mut BTreeMap<String, Value>,
+    instance_node: &UiNodeDefinition,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+) {
+    let props = resolve_value_map(&instance_node.props, tokens, params);
+    merge_value_maps(target, &props);
 }
 
 fn apply_instance_contract_overrides(root: &mut UiTemplateNode, instance_node: &UiNodeDefinition) {

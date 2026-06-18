@@ -14,12 +14,11 @@ use crate::graphics::backend::RenderBackendConfig;
 use crate::graphics::runtime::{
     renderdoc_capture_next_from_value, FrameHistoryValidationKey, ViewportFrameHistory,
 };
-use crate::graphics::{debug_markers, RenderPassStage};
-use crate::scene::components::{default_render_layer_mask, Mobility};
-use crate::{
-    FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, VisibilityHistorySnapshot,
-    WgpuRenderFramework,
+use crate::graphics::{
+    debug_markers, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, RenderPassStage,
+    VisibilityHistorySnapshot, WgpuRenderFramework,
 };
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 #[test]
 fn graphics_debugger_status_defaults_to_idle_for_wgpu() {

@@ -515,6 +515,7 @@ fn particle_sprite_snapshot(
         sort_order,
         color: Vec4::new(1.0, 0.48, 0.12, 0.85),
         intensity: 1.0,
+        depth_test: true,
         material: None,
         texture: None,
     }

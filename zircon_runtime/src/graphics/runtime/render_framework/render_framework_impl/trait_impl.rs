@@ -22,7 +22,7 @@ use super::super::submit_frame_extract::{present_frame_extract, present_frame_ex
 use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
 use super::super::viewport_surface::{bind_viewport_surface, unbind_viewport_surface};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
-use crate::RenderPipelineAsset;
+use crate::graphics::RenderPipelineAsset;
 
 impl RenderFramework for WgpuRenderFramework {
     fn create_viewport(

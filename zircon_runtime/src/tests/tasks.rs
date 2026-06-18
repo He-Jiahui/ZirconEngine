@@ -310,6 +310,41 @@ fn wide_fanout_combine_waits_for_all() {
 }
 
 #[test]
+fn scheduler_wait_all_waits_for_all_handles_and_records_sync_time() {
+    let scheduler = JobScheduler::from_pool(TaskPool::new(
+        TaskPoolDescriptor::compute().with_worker_threads(2),
+    ));
+    let (release_tx, release_rx) = bounded::<()>(0);
+    let completed = Arc::new(AtomicUsize::new(0));
+    let handles = (0..3)
+        .map(|_| {
+            let release_rx = release_rx.clone();
+            let completed_for_task = Arc::clone(&completed);
+            scheduler.schedule(move || {
+                release_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+                completed_for_task.fetch_add(1, Ordering::SeqCst);
+            })
+        })
+        .collect::<Vec<_>>();
+    let release_thread = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(20));
+        for _ in 0..3 {
+            release_tx.send(()).unwrap();
+        }
+    });
+
+    scheduler.wait_all(&handles);
+    release_thread.join().unwrap();
+
+    assert_eq!(completed.load(Ordering::SeqCst), 3);
+    assert!(handles.iter().all(JobHandle::is_complete));
+    assert!(
+        scheduler.diagnostic_report().main_thread_wait_ms > 0.0,
+        "wait_all should record explicit scheduler synchronization time"
+    );
+}
+
+#[test]
 fn parallel_for_visits_every_item_exactly_once() {
     let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
     let mut values = vec![0_u32; 128];

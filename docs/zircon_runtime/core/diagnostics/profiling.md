@@ -1,5 +1,8 @@
 ---
 related_code:
+  - tools/dev-fast-build.ps1
+  - tools/zircon_build.py
+  - Cargo.toml
   - zircon_runtime/Cargo.toml
   - dev/bevy/docs/profiling.md
   - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
@@ -29,6 +32,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/tests/render_profiling.rs
 implementation_files:
+  - tools/dev-fast-build.ps1
+  - tools/zircon_build.py
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/core/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/diagnostics/profiling/macros.rs
@@ -51,6 +56,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
 plan_sources:
+  - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
   - user: 2026-05-13 continue profiling timeline and Tracy integration milestone
   - user: 2026-05-22 continue M10 render diagnostics and profiling bridge checklist
@@ -71,6 +77,8 @@ tests:
   - target: cargo test -p zircon_runtime --lib render_submit_records_render_graph_pass_and_wait_spans --profile profiling --features profiling --locked --message-format=short
   - target: cargo test -p zircon_runtime --lib direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope --profile profiling --features profiling --locked --message-format=short
   - target: cargo check -p zircon_runtime --profile profiling --features "profiling profiling-tracy" --locked
+  - target: python tools/zircon_build.py --targets runtime --out E:\builds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
+  - target: ./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
   - target: cargo check -p zircon_app --profile profiling --features "target-editor-host profiling profiling-tracy profiling-chrome" --locked
   - target: cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
@@ -83,6 +91,21 @@ doc_type: module-detail
 `zircon_runtime::core::diagnostics::profiling` owns Zircon's first CPU timeline spine. It is intentionally below graphics, dynamic runtime sessions, and editor host code so those layers can add spans without owning recorder state or export formats.
 
 The subsystem is compiled behind the `profiling` feature. The workspace adds a dedicated `profiling` Cargo profile that inherits release optimizations while retaining debug symbols. `zircon_runtime/build.rs` rejects ordinary `--release` builds that enable `profiling`, `profiling-chrome`, `profiling-tracy`, or `profiling-memory`; profiling runs should use `cargo build --profile profiling --features profiling ...`.
+
+Runtime 07 M0.2 now has tool-level entry points for that profile. The staged
+build tool maps `--mode profiling` to Cargo `--profile profiling`, and
+`--runtime-features target-client,profiling,profiling-tracy` turns on the
+runtime spans and Tracy bridge for a client runtime sample. The fast-build helper
+uses the same Cargo profile through `-CargoProfile profiling`:
+
+```powershell
+python tools/zircon_build.py --targets runtime --out E:\builds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
+./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
+```
+
+Those commands are the reproducible M0.2 build entry points. As of 2026-06-17
+the tool path is statically wired, while the actual profiling build result is
+still deferred until no other Cargo/rustc lane is using the shared checkout.
 
 ## Runtime Shape
 

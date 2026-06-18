@@ -26,6 +26,8 @@ plan_sources:
   - user: 2026-05-24 continue ZirconEditor MUI Web parity Masonry layout
   - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
   - docs/plans/zircon_editor/editor_ui/02-layout-taffy-and-containers.md
+  - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
+  - user: 2026-06-16 implement runtime architecture from docs/plans/zircon_runtime/runtime
 tests:
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
   - zircon_runtime_interface/src/tests/ui_layout.rs
@@ -41,6 +43,7 @@ tests:
   - 2026-06-12: cargo check -p zircon_runtime_interface --lib --locked (passed)
   - 2026-06-12: cargo test -p zircon_runtime_interface --lib ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults --locked --target-dir target/codex-editor-ui (passed)
   - 2026-06-12: cargo test -p zircon_runtime --lib style_mapping --locked --jobs 1 --target-dir target/codex-editor-ui-runtime --message-format short --color never -- --nocapture --test-threads=1 (passed, 2 passed)
+  - 2026-06-16: Runtime 09 layout engine backend name cutover static validation: rustfmt --edition 2021 --check touched layout/editor source files (passed); Python py_compile ui_architecture_boundary.py (passed); direct ui_architecture_boundary_audit risks=[]; standalone runtime_absorption ui_architecture.rs 17/17; standalone status-output 2/2; old backend source-call scan found no production/editor uses. Cargo and broader behavior tests intentionally deferred.
 doc_type: module-detail
 ---
 
@@ -60,11 +63,11 @@ The Zircon Slate-style surface-frame contract remains the repository boundary re
 
 ## Engine Capability DTOs
 
-`UiLayoutEngineBackend` identifies the neutral backend choice: `LegacyZircon` for current runtime behavior and `Taffy` for the future flex/grid/wrap/block engine. It is a report value, not a dependency on either implementation.
+`UiLayoutEngineBackend` identifies the neutral backend choice: `Zircon` for current runtime behavior and `Taffy` for the future flex/grid/wrap/block engine. It is a report value, not a dependency on either implementation.
 
 `UiLayoutEngineFamily` classifies layout requests into `Free`, `Container`, `Overlay`, `Flex`, `Grid`, `Block`, `Scrollable`, `Wrap`, `Masonry`, and `VirtualizedList`. `is_taffy_owned()` is the shared predicate for `Flex`, `Grid`, `Wrap`, and explicit `Block`; `is_zircon_owned()` is the shared predicate for `Free`, `Container`, `Overlay`, `Scrollable`, `Masonry`, and `VirtualizedList` because those families carry retained Slate-style positioning, clip, scroll, staggered column placement, or visible-range semantics that must not be hidden behind a generic Taffy conversion.
 
-`UiLayoutEngineCapability` describes one backend's supported families plus whether it can participate in content measurement and DPI scaling. The built-in constructors intentionally model the planned boundary: `taffy_flex_grid_wrap_block()` supports flex, grid, wrap, and explicit block; `legacy_zircon()` supports the current shared contract inventory including the Block fallback path and Zircon-owned Masonry. The helper name is intentionally explicit so Wrap cannot drift out of the interface contract while the runtime Taffy bridge still solves it.
+`UiLayoutEngineCapability` describes one backend's supported families plus whether it can participate in content measurement and DPI scaling. The built-in constructors intentionally model the planned boundary: `taffy_flex_grid_wrap_block()` supports flex, grid, wrap, and explicit block; `zircon()` supports the current shared contract inventory including the Block fallback path and Zircon-owned Masonry. The helper name is intentionally explicit so Wrap cannot drift out of the interface contract while the runtime Taffy bridge still solves it.
 
 `UiLayoutEngineRequest::from_container_kind(...)` maps the current `UiContainerKind` contract into a family for future runtime routing. Horizontal and vertical boxes become `Flex`, grid boxes become `Grid`, wrap boxes become `Wrap`, Masonry boxes become `Masonry`, scroll boxes remain `Scrollable`, and scroll boxes with virtualization become `VirtualizedList`.
 
@@ -75,6 +78,8 @@ The Zircon Slate-style surface-frame contract remains the repository boundary re
 This module does not implement `UiLayoutEngine`, Taffy conversion, measure/arrange passes, dirty propagation, or `.ui.toml` schema expansion. Runtime `zircon_runtime::ui::layout` remains the owner of layout execution. Later M3 runtime work should use these DTOs to report engine selection while preserving the existing `UiArrangedTree` and `UiSurfaceFrame` outputs.
 
 The focused tests in `zircon_runtime_interface/src/tests/layout_engine_contracts.rs` cover capability support, current container-to-family mapping, fallback selection, aggregate reporting, and serde round-trips. The 2026-05-24 interface check and 2026-05-25 focused family-mapping test passed after adding `UiMasonryBoxConfig`, `UiContainerKind::MasonryBox`, and the Zircon-owned `Masonry` engine family. The 2026-06-06 contract update hard-renamed the Taffy capability helper to `taffy_flex_grid_wrap_block()`, added `UiLayoutEngineFamily::is_taffy_owned()`, and made the runtime bridge consume that predicate instead of keeping a private duplicate family list. The 2026-06-07 Canvas slot update adds `UiCanvasSlotPlacement.anchor_max` so stretched Slate-style Canvas anchors can be serialized and consumed by runtime Free/Canvas arrange while fixed-anchor payloads keep their older default shape; the interface lib/tests check passed after the DTO documentation refresh.
+
+The 2026-06-16 Runtime 09 layout engine backend name cutover hard-renamed the current runtime backend surface to `UiLayoutEngineBackend::Zircon`, `UiLayoutEngineCapability::zircon()`, and `zircon_selected_count`. The old backend names are intentionally not kept as compatibility aliases.
 
 ## Style and Debug DTOs
 

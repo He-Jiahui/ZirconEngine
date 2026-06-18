@@ -69,13 +69,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Solari",
-        zircon_runtime::RuntimePluginId::Solari,
+        zircon_runtime::builtin::RuntimePluginId::Solari,
         "zircon_plugin_solari_runtime",
     )
     .with_category("rendering")
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_capability(RUNTIME_CAPABILITY)
@@ -182,8 +182,8 @@ mod tests {
         assert_eq!(
             manifest.supported_targets,
             vec![
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
         );
         assert_eq!(

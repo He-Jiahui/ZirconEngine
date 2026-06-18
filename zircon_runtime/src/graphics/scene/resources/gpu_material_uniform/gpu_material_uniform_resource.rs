@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
@@ -87,6 +88,7 @@ fn standard_material_uniform_contents(material: &MaterialRuntime) -> Vec<u8> {
         material.roughness,
         material.emissive.to_array(),
         material.unlit,
+        material.shading_model_id.value(),
         material.taa_reactive_mask_strength,
         standard_material_texture_transforms(material),
         standard_material_texture_uv_channels(material),
@@ -99,6 +101,7 @@ fn fallback_standard_material_uniform_contents() -> Vec<u8> {
         1.0,
         [0.0, 0.0, 0.0],
         false,
+        2,
         0.0,
         [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
         [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -110,6 +113,7 @@ fn standard_material_uniform_contents_from_values(
     roughness: f32,
     emissive: [f32; 3],
     unlit: bool,
+    shading_model_id: u8,
     taa_reactive_mask_strength: f32,
     texture_transforms: [RenderMaterialTextureTransform; STANDARD_TEXTURE_TRANSFORM_COUNT],
     texture_uv_channels: [u32; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -132,6 +136,7 @@ fn standard_material_uniform_contents_from_values(
     values[30] = material_uv_channel_scalar(texture_uv_channels[2]);
     values[31] = material_uv_channel_scalar(texture_uv_channels[3]);
     values[32] = finite_or(taa_reactive_mask_strength, 0.0).clamp(0.0, 1.0);
+    values[33] = f32::from(shading_model_id) / SHADING_MODEL_GBUFFER_ALPHA_SCALE;
 
     bytemuck::cast_slice(&values).to_vec()
 }
@@ -187,6 +192,7 @@ mod tests {
             0.0,
             [0.25, -1.0, 2.0],
             true,
+            0,
             1.4,
             [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
             [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
@@ -201,6 +207,7 @@ mod tests {
         assert_eq!(f32_at(&bytes, 20), 0.0);
         assert_eq!(f32_at(&bytes, 24), 2.0);
         assert_eq!(f32_at(&bytes, 128), 1.0);
+        assert_eq!(f32_at(&bytes, 132), 0.0);
     }
 
     #[test]
@@ -210,6 +217,7 @@ mod tests {
             0.5,
             [0.0, 0.0, 0.0],
             false,
+            2,
             0.25,
             [
                 transform([2.0, 3.0], [0.25, 0.5]),
@@ -228,7 +236,23 @@ mod tests {
         assert_eq!(vec4_at(&bytes, 96), [1.0, 11.0, 0.0, -0.25]);
         assert_eq!(f32_at(&bytes, 28), 1.0);
         assert_eq!(vec4_at(&bytes, 112), [1.0, 0.0, 1.0, 1.0]);
-        assert_eq!(vec4_at(&bytes, 128), [0.25, 0.0, 0.0, 0.0]);
+        assert_eq!(vec4_at(&bytes, 128), [0.25, 2.0 / 255.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn standard_material_uniform_packs_shading_model_id_for_gbuffer_encoding() {
+        let bytes = standard_material_uniform_contents_from_values(
+            0.5,
+            0.5,
+            [0.0, 0.0, 0.0],
+            false,
+            16,
+            0.0,
+            [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+            [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+        );
+
+        assert_eq!(f32_at(&bytes, 132), 16.0 / 255.0);
     }
 
     fn transform(scale: [f32; 2], offset: [f32; 2]) -> RenderMaterialTextureTransform {

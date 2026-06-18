@@ -1,4 +1,6 @@
-use crate::{BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
+use crate::graphics::{
+    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
+};
 
 use super::super::super::post_process::SceneRuntimeFeatureFlags;
 
@@ -58,13 +60,13 @@ mod tests {
     use crate::core::framework::render::{
         PostProcessGraphResourceNames, RenderFrameExtract, RenderWorldSnapshotHandle,
     };
-    use crate::render_graph::QueueLane;
-    use crate::scene::world::World;
-    use crate::{
+    use crate::graphics::{
         BuiltinRenderFeature, FrameHistoryBinding, FrameHistorySlot,
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
     };
+    use crate::render_graph::QueueLane;
+    use crate::scene::world::World;
 
     use super::runtime_features_from_pipeline;
 
@@ -293,7 +295,9 @@ mod tests {
                     )
                     .with_executor_id("plugin.ssao.runtime-flag")
                     .read_texture("scene-depth")
-                    .write_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+                    .write_storage_external_texture(
+                        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+                    )],
                 ),
                 RenderFeatureDescriptor::new(
                     "contact_shadow",

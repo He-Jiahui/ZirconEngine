@@ -17,6 +17,16 @@ pub struct ChangeDetectionScanStats {
 }
 
 impl ChangeDetectionScanStats {
+    pub fn saturating_delta_since(self, baseline: Self) -> Self {
+        Self {
+            scanned_marks: self.scanned_marks.saturating_sub(baseline.scanned_marks),
+            added_matches: self.added_matches.saturating_sub(baseline.added_matches),
+            changed_matches: self
+                .changed_matches
+                .saturating_sub(baseline.changed_matches),
+        }
+    }
+
     pub fn scan_added(&mut self, ticks: ComponentTicks, window: ChangeTickWindow) -> bool {
         self.scanned_marks = self.scanned_marks.saturating_add(1);
         let matched = ticks.is_added(window);

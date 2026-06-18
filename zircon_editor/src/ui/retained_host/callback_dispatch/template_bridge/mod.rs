@@ -8,7 +8,6 @@ mod viewport_toolbar;
 mod virtual_rows;
 mod welcome_surface;
 mod workbench;
-mod workbench_drawer_source;
 
 use crate::ui::template_runtime::builtin::{
     PANE_CONSOLE_BODY_DOCUMENT_ID, PANE_HIERARCHY_BODY_DOCUMENT_ID, PANE_INSPECTOR_BODY_DOCUMENT_ID,
@@ -18,9 +17,9 @@ use crate::ui::template_runtime::{
 };
 
 use super::constants::{
-    BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID, BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID,
-    BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID, BUILTIN_PANE_SURFACE_DOCUMENT_ID,
-    BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID, BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID,
+    BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID, BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID,
+    BUILTIN_PANE_SURFACE_DOCUMENT_ID, BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID,
+    BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID,
 };
 
 pub(crate) use asset_surface::BuiltinAssetSurfaceTemplateBridge;
@@ -35,17 +34,16 @@ pub(crate) use projection_support::{binding_for_control, project_builtin_surface
 pub(crate) use viewport_toolbar::BuiltinViewportToolbarTemplateBridge;
 pub(crate) use welcome_surface::BuiltinWelcomeSurfaceTemplateBridge;
 pub(crate) use workbench::{
-    BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge, WorkbenchCommandPaletteOpenState,
+    BuiltinHostOuterShellFrames, BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
+    BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    WorkbenchCommandPaletteOpenState, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
 };
-#[cfg(test)]
-pub(crate) use workbench_drawer_source::BuiltinHostDrawerSourceTemplateBridge;
 
 pub(crate) fn load_startup_builtin_template_runtime(
 ) -> Result<EditorUiHostRuntime, EditorUiHostRuntimeError> {
     projection_support::load_builtin_runtime_for_documents(&[
         BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID,
-        BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID,
         BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID,
         BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID,
         BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID,

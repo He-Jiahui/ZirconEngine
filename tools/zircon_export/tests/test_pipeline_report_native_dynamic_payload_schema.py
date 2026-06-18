@@ -1,0 +1,613 @@
+from __future__ import annotations
+
+import tempfile
+import tomllib
+import unittest
+from pathlib import Path
+from typing import Callable
+
+from tools.zircon_export.native_dynamic_contract import NATIVE_DYNAMIC_ABI_STRING_FIELDS
+from tools.zircon_export.pipeline_report import build_pipeline_report
+from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+    _native_plugins_content_hash,
+    _native_plugins_file_manifest,
+    _read_stage_report,
+    _write_bundle_manifest_from_platform_report,
+    _write_platform_bundle_fixture,
+    _write_stage_report,
+)
+
+
+class NativeDynamicPayloadSchemaTests(unittest.TestCase):
+    def _assert_payload_schema_diagnostic(
+        self,
+        mutate_payload: Callable[[dict[str, object]], None],
+        expected_diagnostic: str,
+        unexpected_diagnostic: str | None = None,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            mutate_payload(payload)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    expected_diagnostic in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            if unexpected_diagnostic is not None:
+                self.assertFalse(
+                    any(
+                        unexpected_diagnostic in diagnostic
+                        for diagnostic in report["diagnostics"]
+                    ),
+                    report["diagnostics"],
+                )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def _assert_package_report_schema_diagnostic(
+        self,
+        mutate_package_report: Callable[[dict[str, object]], None],
+        expected_diagnostic: str,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_platform_bundle_fixture(out)
+            package_report_path = (
+                out
+                / "bundle"
+                / "windows-release"
+                / "plugins"
+                / "animation"
+                / "native_dynamic_package.toml"
+            )
+            package_report = _read_toml(package_report_path)
+            mutate_package_report(package_report)
+            _write_toml(package_report_path, package_report)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            native_plugins = out / "bundle" / "windows-release" / "plugins"
+            file_manifest = _native_plugins_file_manifest(native_plugins)
+            payload["file_manifest"] = file_manifest
+            payload["file_count"] = len(file_manifest)
+            payload["content_hash"] = _native_plugins_content_hash(file_manifest)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                out / "bundle" / "windows-release" / "bundle.json",
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    expected_diagnostic in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_unknown_top_level_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            payload["unsigned_sidecar"] = {"path": "plugins/sidecar.bin"}
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload unknown field unsigned_sidecar"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_materialized_package_unknown_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            packages = payload["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            package["unsigned_sidecar"] = {
+                "path": "plugins/animation/sidecar.bin"
+            }
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload materialized_packages[0] unknown field unsigned_sidecar"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_file_manifest_unknown_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            file_manifest = payload["file_manifest"]
+            self.assertIsInstance(file_manifest, list)
+            entry = file_manifest[0]
+            self.assertIsInstance(entry, dict)
+            entry["unsigned_sidecar"] = "plugins/animation/sidecar.bin"
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload file_manifest[0] unknown field unsigned_sidecar"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_operation_audit_unknown_field(
+        self,
+    ) -> None:
+        for field in ("native_signing", "native_notarization"):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(out)
+                    audit = {
+                        "enabled": False,
+                        "profile": None,
+                        "target_platform": "windows-x86_64",
+                        "allowed_platforms": [],
+                        "platform_allowed": True,
+                        "fatal": False,
+                        "package_count": 0,
+                    }
+                    native_report = _read_stage_report(out, "native_dynamic")
+                    native_report[field] = dict(audit)
+                    _write_stage_report(out, "native_dynamic", native_report)
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    payload = platform_report["native_plugins_payload"]
+                    self.assertIsInstance(payload, dict)
+                    payload[field] = {
+                        **audit,
+                        "unsigned_sidecar": "plugins/animation/sidecar.bin",
+                    }
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"native_plugins_payload {field} unknown field unsigned_sidecar"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_file_manifest_non_object_array(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "not-an-array",
+                "native_plugins_payload file_manifest must be an object array",
+            ),
+            (
+                ["not-an-object"],
+                "native_plugins_payload file_manifest[0] must be an object",
+            ),
+        )
+        for value, diagnostic in cases:
+            with self.subTest(value=value):
+                self._assert_payload_schema_diagnostic(
+                    lambda payload, value=value: payload.__setitem__(
+                        "file_manifest",
+                        value,
+                    ),
+                    diagnostic,
+                    "native_plugins_payload file_manifest is malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_content_hash_non_string_without_semantic_fallback(
+        self,
+    ) -> None:
+        self._assert_payload_schema_diagnostic(
+            lambda payload: payload.__setitem__("content_hash", 42),
+            "native_plugins_payload.content_hash must be a string",
+            "native_plugins_payload content_hash must be a non-empty string",
+        )
+
+    def test_report_rejects_native_plugins_payload_file_manifest_field_types(
+        self,
+    ) -> None:
+        cases = (
+            ("path", 42, "must be a string"),
+            ("sha256", 42, "must be a string"),
+            ("bytes", "1", "must be an integer"),
+        )
+        for field, value, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(payload: dict[str, object], field=field, value=value) -> None:
+                    file_manifest = payload["file_manifest"]
+                    self.assertIsInstance(file_manifest, list)
+                    entry = file_manifest[0]
+                    self.assertIsInstance(entry, dict)
+                    entry[field] = value
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    f"native_plugins_payload file_manifest[0].{field} {expected_type}",
+                    "native_plugins_payload file_manifest is malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_file_manifest_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("path", "must be a string"),
+            ("sha256", "must be a string"),
+            ("bytes", "must be an integer"),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(payload: dict[str, object], field=field) -> None:
+                    file_manifest = payload["file_manifest"]
+                    self.assertIsInstance(file_manifest, list)
+                    entry = file_manifest[0]
+                    self.assertIsInstance(entry, dict)
+                    entry.pop(field)
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    f"native_plugins_payload file_manifest[0].{field} {expected_type}",
+                    "native_plugins_payload file_manifest is malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_materialized_packages_non_object_array(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "not-an-array",
+                "native_plugins_payload materialized_packages must be an object array",
+            ),
+            (
+                ["not-an-object"],
+                "native_plugins_payload materialized_packages[0] must be an object",
+            ),
+        )
+        for value, diagnostic in cases:
+            with self.subTest(value=value):
+                self._assert_payload_schema_diagnostic(
+                    lambda payload, value=value: payload.__setitem__(
+                        "materialized_packages",
+                        value,
+                    ),
+                    diagnostic,
+                    "native_plugins_payload materialized_packages are malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_materialized_package_field_types(
+        self,
+    ) -> None:
+        cases = (
+            ("package_id", 42, "must be a string"),
+            ("destination", 42, "must be a string"),
+            ("package_report", 42, "must be a string"),
+            ("source", 42, "must be a string"),
+            ("loadable_artifact_count", "1", "must be an integer"),
+            ("loadable_artifacts", "not-an-array", "must be a string array"),
+            ("loadable_artifacts", [42], "must be a string array"),
+        )
+        for field, value, expected_type in cases:
+            with self.subTest(field=field, value=value):
+                def mutate(payload: dict[str, object], field=field, value=value) -> None:
+                    packages = payload["materialized_packages"]
+                    self.assertIsInstance(packages, list)
+                    package = packages[0]
+                    self.assertIsInstance(package, dict)
+                    package[field] = value
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    "native_plugins_payload "
+                    f"materialized_packages[0].{field} {expected_type}",
+                    "native_plugins_payload materialized_packages are malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_materialized_package_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("package_id", "must be a string"),
+            ("destination", "must be a string"),
+            ("loadable_artifact_count", "must be an integer"),
+            ("loadable_artifacts", "must be a string array"),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(payload: dict[str, object], field=field) -> None:
+                    packages = payload["materialized_packages"]
+                    self.assertIsInstance(packages, list)
+                    package = packages[0]
+                    self.assertIsInstance(package, dict)
+                    package.pop(field)
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    "native_plugins_payload "
+                    f"materialized_packages[0].{field} {expected_type}",
+                    "native_plugins_payload materialized_packages are malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_operation_audit_non_object(
+        self,
+    ) -> None:
+        for field in ("native_signing", "native_notarization"):
+            with self.subTest(field=field):
+                self._assert_payload_schema_diagnostic(
+                    lambda payload, field=field: payload.__setitem__(
+                        field,
+                        "not-an-object",
+                    ),
+                    f"native_plugins_payload {field} must be an object",
+                )
+
+    def test_report_rejects_native_plugins_payload_operation_audit_field_types(
+        self,
+    ) -> None:
+        cases = (
+            ("enabled", "true", "must be a boolean"),
+            ("profile", 42, "must be a string"),
+            ("target_platform", 42, "must be a string"),
+            ("allowed_platforms", "windows-x86_64", "must be a string array"),
+            ("allowed_platforms", [42], "must be a string array"),
+            ("platform_allowed", "true", "must be a boolean"),
+            ("fatal", "false", "must be a boolean"),
+            ("package_count", "1", "must be an integer"),
+        )
+        for field, value, expected_type in cases:
+            with self.subTest(field=field, value=value):
+                def mutate(payload: dict[str, object], field=field, value=value) -> None:
+                    payload["native_signing"] = {
+                        "enabled": False,
+                        "profile": None,
+                        "target_platform": "windows-x86_64",
+                        "allowed_platforms": [],
+                        "platform_allowed": True,
+                        "fatal": False,
+                        "package_count": 0,
+                        field: value,
+                    }
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    f"native_plugins_payload native_signing.{field} {expected_type}",
+                    "native_plugins_payload native_signing is malformed",
+                )
+
+    def test_report_rejects_native_plugins_payload_package_report_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("format_version", "must be an integer"),
+            ("package_id", "must be a string"),
+            ("directory", "must be a string"),
+            ("path", "must be a string"),
+            ("manifest", "must be a string"),
+            ("abi", "must be an object"),
+            ("payload", "must be an object"),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(
+                    package_report: dict[str, object],
+                    field=field,
+                ) -> None:
+                    package_report.pop(field)
+
+                self._assert_package_report_schema_diagnostic(
+                    mutate,
+                    "PlatformBundle report native_plugins_payload "
+                    "materialized_packages[0] package_report."
+                    f"{field} {expected_type}",
+                )
+
+    def test_report_rejects_native_plugins_payload_package_report_payload_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("file_count", "must be an integer"),
+            ("content_hash", "must be a string"),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(
+                    package_report: dict[str, object],
+                    field=field,
+                ) -> None:
+                    payload = package_report["payload"]
+                    self.assertIsInstance(payload, dict)
+                    payload.pop(field)
+
+                self._assert_package_report_schema_diagnostic(
+                    mutate,
+                    "PlatformBundle report native_plugins_payload "
+                    "materialized_packages[0] package_report "
+                    f"payload.{field} {expected_type}",
+                )
+
+    def test_report_rejects_native_plugins_payload_package_report_abi_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("abi_version", "must be an integer"),
+            *((field, "must be a string") for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(
+                    package_report: dict[str, object],
+                    field=field,
+                ) -> None:
+                    abi = package_report["abi"]
+                    self.assertIsInstance(abi, dict)
+                    abi.pop(field)
+
+                self._assert_package_report_schema_diagnostic(
+                    mutate,
+                    "PlatformBundle report native_plugins_payload "
+                    "materialized_packages[0] package_report "
+                    f"abi.{field} {expected_type}",
+                )
+
+    def test_report_rejects_native_plugins_payload_operation_audit_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("enabled", "must be a boolean"),
+            ("allowed_platforms", "must be a string array"),
+            ("platform_allowed", "must be a boolean"),
+            ("fatal", "must be a boolean"),
+            ("package_count", "must be an integer"),
+        )
+        for field, expected_type in cases:
+            with self.subTest(field=field):
+                def mutate(payload: dict[str, object], field=field) -> None:
+                    payload["native_signing"] = {
+                        "enabled": False,
+                        "profile": None,
+                        "target_platform": "windows-x86_64",
+                        "allowed_platforms": [],
+                        "platform_allowed": True,
+                        "fatal": False,
+                        "package_count": 0,
+                    }
+                    audit = payload["native_signing"]
+                    self.assertIsInstance(audit, dict)
+                    audit.pop(field)
+
+                self._assert_payload_schema_diagnostic(
+                    mutate,
+                    f"native_plugins_payload native_signing.{field} {expected_type}",
+                    "native_plugins_payload native_signing is malformed",
+                )
+
+
+def _read_toml(path: Path) -> dict[str, object]:
+    with path.open("rb") as file:
+        return dict(tomllib.load(file))
+
+
+def _write_toml(path: Path, document: dict[str, object]) -> None:
+    lines: list[str] = []
+    for field in (
+        "format_version",
+        "package_id",
+        "directory",
+        "path",
+        "manifest",
+    ):
+        if field not in document:
+            continue
+        value = document[field]
+        if isinstance(value, int):
+            lines.append(f"{field} = {value}")
+        else:
+            lines.append(f'{field} = "{value}"')
+    abi = document.get("abi")
+    if isinstance(abi, dict):
+        lines.extend(["", "[abi]"])
+        if "abi_version" in abi:
+            lines.append(f"abi_version = {abi['abi_version']}")
+        for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS:
+            if field in abi:
+                lines.append(f'{field} = "{abi[field]}"')
+    payload = document.get("payload")
+    if isinstance(payload, dict):
+        lines.extend(["", "[payload]"])
+        if "file_count" in payload:
+            lines.append(f"file_count = {payload['file_count']}")
+        if "content_hash" in payload:
+            lines.append(f'content_hash = "{payload["content_hash"]}"')
+        files = payload.get("files")
+        if isinstance(files, list):
+            for entry in files:
+                if not isinstance(entry, dict):
+                    continue
+                lines.extend(["", "[[payload.files]]"])
+                if "path" in entry:
+                    lines.append(f'path = "{entry["path"]}"')
+                if "bytes" in entry:
+                    lines.append(f'bytes = {entry["bytes"]}')
+                if "sha256" in entry:
+                    lines.append(f'sha256 = "{entry["sha256"]}"')
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")

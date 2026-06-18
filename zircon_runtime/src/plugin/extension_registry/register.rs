@@ -7,7 +7,8 @@ use crate::graphics::{
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::plugin::{LoadedNativePlugin, RuntimeExtensionRegistryError};
+use crate::plugin::native::LoadedNativePlugin;
+use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::ecs::SystemSetId;
 use std::sync::Arc;
 

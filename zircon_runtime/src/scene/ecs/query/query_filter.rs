@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, Component, ComponentStorageLocation, ComponentTicks, QueryAccess,
-    QueryAccessError,
+    ChangeDetectionScanStats, ChangeTickWindow, Component, ComponentStorageLocation,
+    ComponentTicks, QueryAccess, QueryAccessError,
 };
 use crate::scene::{EntityId, World};
 
@@ -16,6 +16,16 @@ pub trait QueryFilter: 'static + Send + Sync {
         ticks: ChangeTickWindow,
     ) -> bool {
         Self::matches(world, entity, ticks)
+    }
+
+    fn matches_component_locations_with_stats(
+        world: &World,
+        entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+        ticks: ChangeTickWindow,
+        _stats: &mut ChangeDetectionScanStats,
+    ) -> bool {
+        Self::matches_component_locations(world, entity, component_locations, ticks)
     }
 }
 
@@ -103,6 +113,20 @@ where
         };
         component_ticks.is_added(ticks)
     }
+
+    fn matches_component_locations_with_stats(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+        ticks: ChangeTickWindow,
+        stats: &mut ChangeDetectionScanStats,
+    ) -> bool {
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        stats.scan_added(component_ticks, ticks)
+    }
 }
 
 pub struct Changed<T>(PhantomData<T>);
@@ -136,6 +160,20 @@ where
             return false;
         };
         component_ticks.is_changed(ticks)
+    }
+
+    fn matches_component_locations_with_stats(
+        world: &World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+        ticks: ChangeTickWindow,
+        stats: &mut ChangeDetectionScanStats,
+    ) -> bool {
+        let Some(component_ticks) = component_ticks_at_location::<T>(world, component_locations)
+        else {
+            return false;
+        };
+        stats.scan_changed(component_ticks, ticks)
     }
 }
 
@@ -187,6 +225,17 @@ macro_rules! tuple_query_filter {
                 ticks: ChangeTickWindow,
             ) -> bool {
                 true $(&& $name::matches_component_locations(world, entity, component_locations, ticks))*
+            }
+
+            #[allow(non_snake_case)]
+            fn matches_component_locations_with_stats(
+                world: &World,
+                entity: EntityId,
+                component_locations: &[ComponentStorageLocation],
+                ticks: ChangeTickWindow,
+                stats: &mut ChangeDetectionScanStats,
+            ) -> bool {
+                true $(&& $name::matches_component_locations_with_stats(world, entity, component_locations, ticks, stats))*
             }
         }
     };

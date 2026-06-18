@@ -74,10 +74,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
@@ -229,9 +229,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_value_conversion.rs
@@ -1425,8 +1425,8 @@ Validation evidence on `E:\zircon-build\targets\global-ui`:
 Related code:
 - `zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs`
 - `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
-- `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs`
-- `zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs`
 - `zircon_editor/src/tests/host/retained_window/native_viewport_image.rs`
 
 The original M4.3 semantic golden compared editor-owned and runtime-owned Quest Log `.ui.toml` assets through the legacy loader path. The active golden is now v2-only: it loads `quest_log_dialog.v2.ui.toml` and the other runtime v2 fixtures through the v2 prototype cache/surface builder, snapshots semantic control ids, visible text, button counts, and Click binding routes, and keeps `RuntimeAction.TrackQuest` / `RuntimeAction.CloseQuestLog` on the authored v2 button events.
@@ -1504,7 +1504,7 @@ Validation evidence:
 ## 2026-06-15 Dialog native painter baseline
 
 Related code:
-- `zircon_editor/src/ui/retained_host/host_contract/painter/template_dialogs.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs`
 - `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs`
 - `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults.rs`
 - `zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs`

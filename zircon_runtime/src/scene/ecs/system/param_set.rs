@@ -26,6 +26,8 @@ pub trait ParamSetParam {
         world: &mut World,
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError>;
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State);
 }
 
 impl<P> SystemParam for ParamSet<P>
@@ -52,6 +54,10 @@ where
             world,
             ticks,
         }
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        P::record_performance_diagnostics(world, state);
     }
 }
 
@@ -82,6 +88,10 @@ where
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
         init_param_set_state!(world, access, (A, state_a, access_a))
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
     }
 }
 
@@ -114,6 +124,11 @@ where
             (A, state_a, access_a),
             (B, state_b, access_b)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
     }
 }
 
@@ -155,6 +170,12 @@ where
             (B, state_b, access_b),
             (C, state_c, access_c)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
     }
 }
 
@@ -205,6 +226,13 @@ where
             (C, state_c, access_c),
             (D, state_d, access_d)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
+        D::record_performance_diagnostics(world, &mut state.3);
     }
 }
 
@@ -264,6 +292,14 @@ where
             (D, state_d, access_d),
             (E, state_e, access_e)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
+        D::record_performance_diagnostics(world, &mut state.3);
+        E::record_performance_diagnostics(world, &mut state.4);
     }
 }
 
@@ -332,6 +368,15 @@ where
             (E, state_e, access_e),
             (F, state_f, access_f)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
+        D::record_performance_diagnostics(world, &mut state.3);
+        E::record_performance_diagnostics(world, &mut state.4);
+        F::record_performance_diagnostics(world, &mut state.5);
     }
 }
 
@@ -417,6 +462,16 @@ where
             (F, state_f, access_f),
             (G, state_g, access_g)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
+        D::record_performance_diagnostics(world, &mut state.3);
+        E::record_performance_diagnostics(world, &mut state.4);
+        F::record_performance_diagnostics(world, &mut state.5);
+        G::record_performance_diagnostics(world, &mut state.6);
     }
 }
 
@@ -512,6 +567,17 @@ where
             (G, state_g, access_g),
             (H, state_h, access_h)
         )
+    }
+
+    fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+        A::record_performance_diagnostics(world, &mut state.0);
+        B::record_performance_diagnostics(world, &mut state.1);
+        C::record_performance_diagnostics(world, &mut state.2);
+        D::record_performance_diagnostics(world, &mut state.3);
+        E::record_performance_diagnostics(world, &mut state.4);
+        F::record_performance_diagnostics(world, &mut state.5);
+        G::record_performance_diagnostics(world, &mut state.6);
+        H::record_performance_diagnostics(world, &mut state.7);
     }
 }
 

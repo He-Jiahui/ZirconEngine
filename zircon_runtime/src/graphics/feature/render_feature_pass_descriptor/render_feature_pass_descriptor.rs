@@ -1,6 +1,7 @@
 use crate::graphics::scene::RenderPassExecutorId;
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,
+    RenderGraphExternalResourceBinding,
 };
 
 use crate::graphics::pipeline::RenderPassStage;
@@ -33,6 +34,7 @@ pub struct RenderFeatureResourceDescriptor {
     pub access: RenderFeatureResourceAccess,
     pub attachment_ops: Option<RenderGraphAttachmentOps>,
     pub write_mode: RenderFeatureResourceWriteMode,
+    pub external_binding: RenderGraphExternalResourceBinding,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -23,7 +23,7 @@ pub(in crate::ui::retained_host::ui) use self::command_palette::{
     projected_command_palette_options, projected_command_palette_structured_options,
 };
 use self::drag_overlay::projected_drag_overlay_data;
-use self::notification_center::{
+pub(in crate::ui::retained_host::ui) use self::notification_center::{
     projected_notification_center_options, projected_notification_center_structured_options,
     projected_notification_center_value_text,
 };

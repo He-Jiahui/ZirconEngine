@@ -83,9 +83,17 @@ struct SampledMaterial {
     occlusion: f32,
     emissive: vec3<f32>,
     unlit: f32,
+    shading_model_id: u32,
 };
 
 const EPSILON: f32 = 0.000001;
+const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
+const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;
+const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+
+fn decode_shading_model_id(encoded: f32) -> u32 {
+    return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
+}
 
 fn skin_weight(joint_index: u32, weight: f32) -> f32 {
     if (weight <= EPSILON || joint_index >= zr_skinned_joint_count()) {
@@ -345,19 +353,46 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
     }
     occlusion = clamp(occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r, 0.0, 1.0);
     let emissive = max(material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSample(emissive_tex, emissive_sampler, emissive_uv).rgb;
-    return SampledMaterial(albedo, metallic, roughness, occlusion, emissive, material_properties.data0.w);
+    let shading_model_id = select(
+        decode_shading_model_id(material_properties.data8.y),
+        ZR_SHADING_MODEL_UNLIT_ID,
+        material_properties.data0.w >= 0.5,
+    );
+    return SampledMaterial(albedo, metallic, roughness, occlusion, emissive, material_properties.data0.w, shading_model_id);
 }
 
 fn light_radiance(light: ZrGpuLightData) -> vec3<f32> {
     return max(light.color_intensity.rgb, vec3<f32>(0.0, 0.0, 0.0)) * max(light.color_intensity.w, 0.0);
 }
 
-fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
+fn material_diffuse_color(material: SampledMaterial) -> vec3<f32> {
+    if (material.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return material.albedo.rgb;
+    }
+    return material.albedo.rgb * (1.0 - material.metallic * 0.45);
+}
+
+fn shade_standard_pbr_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
     let lambert = max(dot(world_normal, light_vector), 0.0);
     let half_dir = normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
     let specular_power = mix(64.0, 4.0, material.roughness);
     let specular_intensity = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * mix(0.04, 1.0, material.metallic);
     return diffuse_color * radiance * lambert + radiance * specular_intensity;
+}
+
+fn shade_blinn_phong_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
+    let lambert = max(dot(world_normal, light_vector), 0.0);
+    let half_dir = normalize_or_zero(light_vector + vec3<f32>(0.0, 0.0, 1.0));
+    let specular_power = mix(96.0, 12.0, material.roughness);
+    let specular_intensity = pow(max(dot(world_normal, half_dir), 0.0), specular_power) * (1.0 - material.roughness) * 0.5;
+    return diffuse_color * radiance * lambert + radiance * specular_intensity;
+}
+
+fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, world_normal: vec3<f32>, material: SampledMaterial, diffuse_color: vec3<f32>) -> vec3<f32> {
+    if (material.shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return shade_blinn_phong_light_vector(light_vector, radiance, world_normal, material, diffuse_color);
+    }
+    return shade_standard_pbr_light_vector(light_vector, radiance, world_normal, material, diffuse_color);
 }
 
 fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
@@ -462,11 +497,14 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, world_no
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let world_normal = sampled_world_normal(input);
     let material = sampled_material(input);
+    if (material.shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
+        return vec4<f32>(material.albedo.rgb + material.emissive, material.albedo.a);
+    }
     let ambient = scene.ambient_color.rgb * material.occlusion;
-    let diffuse_color = material.albedo.rgb * (1.0 - material.metallic * 0.45);
+    let diffuse_color = material_diffuse_color(material);
     let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params);
     let lit = diffuse_color * ambient + direct_lights;
-    let shaded = mix(lit, material.albedo.rgb, clamp(material.unlit, 0.0, 1.0)) + material.emissive;
+    let shaded = lit + material.emissive;
     return vec4<f32>(shaded, material.albedo.a);
 }
 

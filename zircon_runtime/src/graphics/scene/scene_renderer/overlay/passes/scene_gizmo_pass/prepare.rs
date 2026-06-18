@@ -14,7 +14,7 @@ impl SceneGizmoPass {
         texture_layout: &wgpu::BindGroupLayout,
         frame: &ViewportRenderFrame,
     ) -> Result<PreparedSceneGizmoPass, GraphicsError> {
-        let camera = frame.camera();
+        let camera = frame.effective_camera();
         let camera_right = camera.transform.right();
         let camera_up = camera.transform.up();
         let mut icon_draws = Vec::new();

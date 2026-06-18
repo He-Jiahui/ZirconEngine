@@ -500,11 +500,11 @@ fn visibility_dirty(visibility: UiVisibility) -> UiDirtyFlags {
 fn visibility_transition_dirty(
     current: UiVisibility,
     next: UiVisibility,
-    legacy_visible: bool,
+    state_visible_flag: bool,
 ) -> UiDirtyFlags {
     let mut dirty = visibility_dirty(next);
-    dirty.layout |= current.effective(legacy_visible).occupies_layout()
-        != next.effective(legacy_visible).occupies_layout();
+    dirty.layout |= current.effective(state_visible_flag).occupies_layout()
+        != next.effective(state_visible_flag).occupies_layout();
     dirty
 }
 

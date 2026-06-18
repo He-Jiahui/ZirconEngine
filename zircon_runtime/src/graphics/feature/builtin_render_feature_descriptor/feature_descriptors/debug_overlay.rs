@@ -20,6 +20,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .with_executor_id("overlay.gizmo")
         .read_texture("scene-color")
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .write_external(PostProcessGraphResourceNames::VIEWPORT_OUTPUT)],
+        .write_external_texture(PostProcessGraphResourceNames::VIEWPORT_OUTPUT)],
     )
 }

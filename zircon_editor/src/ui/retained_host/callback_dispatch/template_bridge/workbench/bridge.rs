@@ -21,27 +21,16 @@ use super::super::projection_support::load_builtin_runtime;
 use super::super::projection_support::{
     binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
 };
-use super::super::workbench_drawer_source::{
-    BuiltinHostDrawerLayoutAnchors, BuiltinHostDrawerSourceTemplateBridge,
-};
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::host_projection::{
     build_builtin_host_window_surface, project_builtin_host_window_projection,
     rebuild_builtin_host_window_surface,
 };
+use super::outer_shell_frames::BuiltinHostOuterShellFrames;
 use super::root_shell_frames::BuiltinHostRootShellFrames;
 
 const HOST_BODY_CONTROL_ID: &str = "WorkbenchBody";
 pub(super) const HOST_PAGE_STRIP_CONTROL_ID: &str = "HostPageStripRoot";
-const LEFT_DRAWER_SHELL_CONTROL_ID: &str = "LeftDrawerShellRoot";
-const LEFT_DRAWER_HEADER_CONTROL_ID: &str = "LeftDrawerHeaderRoot";
-const LEFT_DRAWER_CONTENT_CONTROL_ID: &str = "LeftDrawerContentRoot";
-const RIGHT_DRAWER_SHELL_CONTROL_ID: &str = "RightDrawerShellRoot";
-const RIGHT_DRAWER_HEADER_CONTROL_ID: &str = "RightDrawerHeaderRoot";
-const RIGHT_DRAWER_CONTENT_CONTROL_ID: &str = "RightDrawerContentRoot";
-const BOTTOM_DRAWER_SHELL_CONTROL_ID: &str = "BottomDrawerShellRoot";
-const BOTTOM_DRAWER_HEADER_CONTROL_ID: &str = "BottomDrawerHeaderRoot";
-const BOTTOM_DRAWER_CONTENT_CONTROL_ID: &str = "BottomDrawerContentRoot";
 
 pub(crate) struct BuiltinHostWindowTemplateBridge {
     runtime: Arc<EditorUiHostRuntime>,
@@ -49,7 +38,6 @@ pub(crate) struct BuiltinHostWindowTemplateBridge {
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     host_surface: UiSurface,
     host_projection: RetainedUiHostProjection,
-    drawer_source_bridge: BuiltinHostDrawerSourceTemplateBridge,
 }
 
 impl BuiltinHostWindowTemplateBridge {
@@ -69,8 +57,6 @@ impl BuiltinHostWindowTemplateBridge {
         let host_surface = build_builtin_host_window_surface(runtime.as_ref(), shell_size)?;
         let host_projection =
             project_builtin_host_window_projection(runtime.as_ref(), &projection, &host_surface)?;
-        let drawer_source_bridge =
-            BuiltinHostDrawerSourceTemplateBridge::new_with_runtime(runtime.as_ref(), shell_size)?;
 
         Ok(Self {
             runtime,
@@ -78,7 +64,6 @@ impl BuiltinHostWindowTemplateBridge {
             bindings_by_id,
             host_surface,
             host_projection,
-            drawer_source_bridge,
         })
     }
 
@@ -93,15 +78,14 @@ impl BuiltinHostWindowTemplateBridge {
             &self.projection,
             &self.host_surface,
         )?;
-        self.drawer_source_bridge.recompute_layout(shell_size)?;
         Ok(())
     }
 
     pub(crate) fn recompute_layout_with_workbench_model(
         &mut self,
         shell_size: UiSize,
-        model: &WorkbenchViewModel,
-        metrics: &WorkbenchChromeMetrics,
+        _model: &WorkbenchViewModel,
+        _metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
         self.host_projection = project_builtin_host_window_projection(
@@ -109,19 +93,6 @@ impl BuiltinHostWindowTemplateBridge {
             &self.projection,
             &self.host_surface,
         )?;
-        let anchors = BuiltinHostDrawerLayoutAnchors::from_root_frames(
-            shell_size,
-            self.host_projection
-                .node_by_control_id(HOST_BODY_CONTROL_ID)
-                .map(|node| node.frame),
-            self.host_projection
-                .node_by_control_id("StatusBarRoot")
-                .map(|node| node.frame),
-        );
-        self.drawer_source_bridge
-            .recompute_layout_with_workbench_model_and_anchors(
-                shell_size, model, metrics, anchors,
-            )?;
         Ok(())
     }
 
@@ -143,31 +114,27 @@ impl BuiltinHostWindowTemplateBridge {
     }
 
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
-        self.drawer_source_bridge
-            .control_frame(control_id)
-            .or_else(|| {
-                self.host_projection
-                    .node_by_control_id(control_id)
-                    .map(|node| node.frame)
-            })
+        self.host_projection
+            .node_by_control_id(control_id)
+            .map(|node| node.frame)
+    }
+
+    pub(crate) fn outer_shell_frames(&self) -> BuiltinHostOuterShellFrames {
+        BuiltinHostOuterShellFrames {
+            shell_frame: self.control_frame(UI_HOST_WINDOW_CONTROL_ID),
+            menu_bar_frame: self.control_frame("WorkbenchMenuBarRoot"),
+            host_page_strip_frame: self.control_frame(HOST_PAGE_STRIP_CONTROL_ID),
+        }
     }
 
     pub(crate) fn root_shell_frames(&self) -> BuiltinHostRootShellFrames {
+        let outer_shell_frames = self.outer_shell_frames();
         BuiltinHostRootShellFrames {
-            shell_frame: self.control_frame(UI_HOST_WINDOW_CONTROL_ID),
-            menu_bar_frame: self.control_frame("WorkbenchMenuBarRoot"),
+            shell_frame: outer_shell_frames.shell_frame,
+            menu_bar_frame: outer_shell_frames.menu_bar_frame,
             activity_rail_frame: self.control_frame("ActivityRailRoot"),
-            host_page_strip_frame: self.control_frame(HOST_PAGE_STRIP_CONTROL_ID),
+            host_page_strip_frame: outer_shell_frames.host_page_strip_frame,
             host_body_frame: self.control_frame(HOST_BODY_CONTROL_ID),
-            left_drawer_shell_frame: self.control_frame(LEFT_DRAWER_SHELL_CONTROL_ID),
-            left_drawer_header_frame: self.control_frame(LEFT_DRAWER_HEADER_CONTROL_ID),
-            left_drawer_content_frame: self.control_frame(LEFT_DRAWER_CONTENT_CONTROL_ID),
-            right_drawer_shell_frame: self.control_frame(RIGHT_DRAWER_SHELL_CONTROL_ID),
-            right_drawer_header_frame: self.control_frame(RIGHT_DRAWER_HEADER_CONTROL_ID),
-            right_drawer_content_frame: self.control_frame(RIGHT_DRAWER_CONTENT_CONTROL_ID),
-            bottom_drawer_shell_frame: self.control_frame(BOTTOM_DRAWER_SHELL_CONTROL_ID),
-            bottom_drawer_header_frame: self.control_frame(BOTTOM_DRAWER_HEADER_CONTROL_ID),
-            bottom_drawer_content_frame: self.control_frame(BOTTOM_DRAWER_CONTENT_CONTROL_ID),
             document_host_frame: self.control_frame("DocumentHostRoot"),
             document_tabs_frame: self.control_frame(DOCUMENT_TABS_CONTROL_ID),
             pane_surface_frame: self.control_frame("PaneSurfaceRoot"),

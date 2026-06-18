@@ -1,11 +1,14 @@
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderParticlePreviousSpriteSnapshot,
-    RenderPipelineHandle, SolariRuntimeReport, TaaQualityPreset, ViewportCameraSnapshot,
+    RenderPipelineHandle, ShaderQualityTier, SolariRuntimeReport, TaaQualityPreset,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::VisibilityStaticIndex;
 
-use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot};
+use crate::graphics::{
+    RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot,
+};
 
 pub(super) struct ViewportRecordState {
     size: UVec2,
@@ -13,6 +16,7 @@ pub(super) struct ViewportRecordState {
     viewport_generation: u64,
     temporal_frame_index: u64,
     quality_profile: Option<String>,
+    shader_quality: ShaderQualityTier,
     quality_profile_taa_quality: Option<TaaQualityPreset>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
     previous_static_index: Option<VisibilityStaticIndex>,
@@ -34,6 +38,7 @@ impl ViewportRecordState {
         viewport_generation: u64,
         temporal_frame_index: u64,
         quality_profile: Option<String>,
+        shader_quality: ShaderQualityTier,
         quality_profile_taa_quality: Option<TaaQualityPreset>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
         previous_static_index: Option<VisibilityStaticIndex>,
@@ -52,6 +57,7 @@ impl ViewportRecordState {
             viewport_generation,
             temporal_frame_index,
             quality_profile,
+            shader_quality,
             quality_profile_taa_quality,
             previous_visibility,
             previous_static_index,
@@ -120,6 +126,10 @@ impl ViewportRecordState {
 
     pub(super) fn take_quality_profile(&mut self) -> Option<String> {
         self.quality_profile.take()
+    }
+
+    pub(super) fn shader_quality(&self) -> ShaderQualityTier {
+        self.shader_quality
     }
 
     pub(super) fn quality_profile_taa_quality(&self) -> Option<TaaQualityPreset> {

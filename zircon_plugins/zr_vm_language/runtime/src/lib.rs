@@ -56,15 +56,15 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "ZrVM Language",
-        zircon_runtime::RuntimePluginId::ZrVmLanguage,
+        zircon_runtime::builtin::RuntimePluginId::ZrVmLanguage,
         "zircon_plugin_zr_vm_language_runtime",
     )
     .with_category("runtime")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::ServerRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_enabled_by_default(false)
     .with_capability("runtime.plugin.zr_vm_language")

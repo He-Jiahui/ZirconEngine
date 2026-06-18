@@ -1,12 +1,16 @@
+use std::collections::BTreeSet;
+
 use crate::core::math::UVec2;
 
 use super::{
     AdvancedProviderAvailability, AdvancedProviderReport, AntiAliasFallbackReport,
-    RenderCameraTargetKind, RenderFrameExtract, RenderPostProcessEffectStackReport,
-    RenderShadowExecutionReport, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderCameraTargetKind, RenderColorLutReadbackReport, RenderFrameExtract,
+    RenderPostProcessEffectStackReport, RenderShadowExecutionReport,
+    RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
-    RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings, TaaQualityPreset,
+    RenderVirtualGeometryVisBuffer64Source, ShaderQualityTier, SolariRuntimeReport, SolariSettings,
+    TaaQualityPreset,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -462,8 +466,14 @@ pub struct RenderGraphTransientPoolReport {
     pub buffer_reused_count: usize,
     pub texture_pool_entry_count: usize,
     pub buffer_pool_entry_count: usize,
+    pub texture_pool_retained_bytes: u64,
+    pub buffer_pool_retained_bytes: u64,
+    pub texture_pool_budget_bytes: u64,
+    pub buffer_pool_budget_bytes: u64,
     pub evicted_texture_count: usize,
     pub evicted_buffer_count: usize,
+    pub budget_evicted_texture_count: usize,
+    pub budget_evicted_buffer_count: usize,
 }
 
 impl RenderGraphTransientPoolReport {
@@ -486,9 +496,45 @@ impl RenderGraphTransientPoolReport {
             buffer_reused_count,
             texture_pool_entry_count,
             buffer_pool_entry_count,
+            texture_pool_retained_bytes: 0,
+            buffer_pool_retained_bytes: 0,
+            texture_pool_budget_bytes: 0,
+            buffer_pool_budget_bytes: 0,
             evicted_texture_count,
             evicted_buffer_count,
+            budget_evicted_texture_count: 0,
+            budget_evicted_buffer_count: 0,
         }
+    }
+
+    pub const fn with_retained_bytes(
+        mut self,
+        texture_pool_retained_bytes: u64,
+        buffer_pool_retained_bytes: u64,
+    ) -> Self {
+        self.texture_pool_retained_bytes = texture_pool_retained_bytes;
+        self.buffer_pool_retained_bytes = buffer_pool_retained_bytes;
+        self
+    }
+
+    pub const fn with_budget_bytes(
+        mut self,
+        texture_pool_budget_bytes: u64,
+        buffer_pool_budget_bytes: u64,
+    ) -> Self {
+        self.texture_pool_budget_bytes = texture_pool_budget_bytes;
+        self.buffer_pool_budget_bytes = buffer_pool_budget_bytes;
+        self
+    }
+
+    pub const fn with_budget_evictions(
+        mut self,
+        budget_evicted_texture_count: usize,
+        budget_evicted_buffer_count: usize,
+    ) -> Self {
+        self.budget_evicted_texture_count = budget_evicted_texture_count;
+        self.budget_evicted_buffer_count = budget_evicted_buffer_count;
+        self
     }
 }
 
@@ -525,6 +571,192 @@ impl RenderGraphExecutionResourceReport {
     ) -> Self {
         self.transient_pool_report = transient_pool_report;
         self
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphMaterializationReport {
+    pub required_texture_count: usize,
+    pub bound_texture_count: usize,
+    pub missing_texture_count: usize,
+    pub required_buffer_count: usize,
+    pub bound_buffer_count: usize,
+    pub missing_buffer_count: usize,
+    pub required_external_count: usize,
+    pub bound_required_external_count: usize,
+    pub missing_required_external_count: usize,
+    pub report_only_external_count: usize,
+    pub bound_report_only_external_count: usize,
+    pub missing_report_only_external_count: usize,
+    pub stale_texture_binding_count: usize,
+    pub stale_buffer_binding_count: usize,
+    pub sparse_texture_reservation_count: usize,
+}
+
+impl RenderGraphMaterializationReport {
+    pub const fn required_resource_count(self) -> usize {
+        self.required_texture_count + self.required_buffer_count + self.required_external_count
+    }
+
+    pub const fn bound_resource_count(self) -> usize {
+        self.bound_texture_count + self.bound_buffer_count + self.bound_external_count()
+    }
+
+    pub const fn missing_resource_count(self) -> usize {
+        self.missing_texture_count + self.missing_buffer_count + self.missing_external_count()
+    }
+
+    pub const fn missing_materialized_resource_count(self) -> usize {
+        self.missing_texture_count + self.missing_buffer_count
+    }
+
+    pub const fn external_count(self) -> usize {
+        self.required_external_count + self.report_only_external_count
+    }
+
+    pub const fn bound_external_count(self) -> usize {
+        self.bound_required_external_count + self.bound_report_only_external_count
+    }
+
+    pub const fn missing_external_count(self) -> usize {
+        self.missing_required_external_count + self.missing_report_only_external_count
+    }
+
+    pub const fn stale_binding_count(self) -> usize {
+        self.stale_texture_binding_count + self.stale_buffer_binding_count
+    }
+
+    pub const fn materialized_resources_complete(self) -> bool {
+        self.missing_materialized_resource_count() == 0 && self.stale_binding_count() == 0
+    }
+
+    pub const fn is_complete(self) -> bool {
+        self.missing_resource_count() == 0 && self.stale_binding_count() == 0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderGraphExecutionAliasRecord {
+    pub logical_name: String,
+    pub backing_name: String,
+}
+
+impl RenderGraphExecutionAliasRecord {
+    pub fn new(logical_name: impl Into<String>, backing_name: impl Into<String>) -> Self {
+        Self {
+            logical_name: logical_name.into(),
+            backing_name: backing_name.into(),
+        }
+    }
+
+    pub fn is_alias(&self) -> bool {
+        self.logical_name != self.backing_name
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionAliasReport {
+    pub texture_aliases: Vec<RenderGraphExecutionAliasRecord>,
+    pub buffer_aliases: Vec<RenderGraphExecutionAliasRecord>,
+}
+
+impl RenderGraphExecutionAliasReport {
+    pub fn new(
+        texture_aliases: Vec<RenderGraphExecutionAliasRecord>,
+        buffer_aliases: Vec<RenderGraphExecutionAliasRecord>,
+    ) -> Self {
+        Self {
+            texture_aliases,
+            buffer_aliases,
+        }
+    }
+
+    pub fn texture_logical_count(&self) -> usize {
+        self.texture_aliases.len()
+    }
+
+    pub fn texture_alias_count(&self) -> usize {
+        self.texture_aliases
+            .iter()
+            .filter(|record| record.is_alias())
+            .count()
+    }
+
+    pub fn texture_backing_count(&self) -> usize {
+        backing_count(&self.texture_aliases)
+    }
+
+    pub fn buffer_logical_count(&self) -> usize {
+        self.buffer_aliases.len()
+    }
+
+    pub fn buffer_alias_count(&self) -> usize {
+        self.buffer_aliases
+            .iter()
+            .filter(|record| record.is_alias())
+            .count()
+    }
+
+    pub fn buffer_backing_count(&self) -> usize {
+        backing_count(&self.buffer_aliases)
+    }
+}
+
+fn backing_count(records: &[RenderGraphExecutionAliasRecord]) -> usize {
+    records
+        .iter()
+        .map(|record| record.backing_name.as_str())
+        .collect::<BTreeSet<_>>()
+        .len()
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderGraphPassProfileRecord {
+    pub pass_name: String,
+    pub executor_id: String,
+    pub cpu_elapsed_micros: u64,
+}
+
+impl RenderGraphPassProfileRecord {
+    pub fn new(
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        cpu_elapsed_micros: u64,
+    ) -> Self {
+        Self {
+            pass_name: pass_name.into(),
+            executor_id: executor_id.into(),
+            cpu_elapsed_micros,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphExecutionProfileReport {
+    pub pass_profiles: Vec<RenderGraphPassProfileRecord>,
+}
+
+impl RenderGraphExecutionProfileReport {
+    pub fn new(pass_profiles: Vec<RenderGraphPassProfileRecord>) -> Self {
+        Self { pass_profiles }
+    }
+
+    pub fn pass_count(&self) -> usize {
+        self.pass_profiles.len()
+    }
+
+    pub fn total_cpu_elapsed_micros(&self) -> u64 {
+        self.pass_profiles.iter().fold(0_u64, |total, record| {
+            total.saturating_add(record.cpu_elapsed_micros)
+        })
+    }
+
+    pub fn max_cpu_elapsed_micros(&self) -> u64 {
+        self.pass_profiles
+            .iter()
+            .map(|record| record.cpu_elapsed_micros)
+            .max()
+            .unwrap_or(0)
     }
 }
 
@@ -761,7 +993,7 @@ impl RenderCapabilityKind {
             Self::TextureBindingArray => capabilities.supports_texture_binding_array,
             Self::NonUniformResourceIndexing => capabilities.supports_non_uniform_resource_indexing,
             Self::PartiallyBoundBindingArray => capabilities.supports_partially_bound_binding_array,
-            Self::ScreenSpaceAntiAlias => capabilities.supports_fxaa,
+            Self::ScreenSpaceAntiAlias => capabilities.supports_fxaa || capabilities.supports_smaa,
             Self::StorageBuffers => capabilities.supports_storage_buffers,
             Self::IndirectDraw => capabilities.supports_indirect_draw,
             Self::BufferReadback => capabilities.supports_buffer_readback,
@@ -994,6 +1226,7 @@ pub struct RenderQualityProfile {
     pub name: String,
     pub pipeline_override: Option<RenderPipelineHandle>,
     pub features: RenderFeatureQualitySettings,
+    pub shader_quality: ShaderQualityTier,
     pub taa_quality: TaaQualityPreset,
     pub solari: SolariSettings,
 }
@@ -1004,6 +1237,7 @@ impl RenderQualityProfile {
             name: name.into(),
             pipeline_override: None,
             features: RenderFeatureQualitySettings::default(),
+            shader_quality: ShaderQualityTier::default(),
             taa_quality: TaaQualityPreset::default(),
             solari: SolariSettings::default(),
         }
@@ -1041,6 +1275,11 @@ impl RenderQualityProfile {
 
     pub fn with_anti_alias(mut self, enabled: bool) -> Self {
         self.features.anti_alias = enabled;
+        self
+    }
+
+    pub fn with_shader_quality(mut self, quality: ShaderQualityTier) -> Self {
+        self.shader_quality = quality;
         self
     }
 
@@ -1190,6 +1429,10 @@ pub struct RenderStats {
     pub last_graph_transient_buffer_bytes_reserved: u64,
     pub last_graph_transient_dense_bytes_reserved: u64,
     pub last_graph_sparse_texture_virtual_bytes: u64,
+    pub last_graph_compiled_cache_hit_count: usize,
+    pub last_graph_compiled_cache_miss_count: usize,
+    pub last_graph_compiled_cache_eviction_count: usize,
+    pub last_graph_compiled_cache_entry_count: usize,
     pub last_graph_executed_pass_count: usize,
     pub last_graph_executed_passes: Vec<String>,
     pub last_graph_executed_executor_ids: Vec<String>,
@@ -1205,9 +1448,13 @@ pub struct RenderStats {
     pub last_graph_compute_workload_mismatch_count: usize,
     pub last_graph_compute_unexpected_dispatch_count: usize,
     pub last_graph_execution_resource_report: RenderGraphExecutionResourceReport,
+    pub last_graph_materialization_report: RenderGraphMaterializationReport,
+    pub last_graph_execution_alias_report: RenderGraphExecutionAliasReport,
     pub last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport,
+    pub last_graph_execution_profile_report: RenderGraphExecutionProfileReport,
     pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
     pub last_scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
+    pub last_color_lut_readback_report: RenderColorLutReadbackReport,
     pub last_post_process_graph_node_count: usize,
     pub last_post_process_graph_skipped_node_count: usize,
     pub last_post_process_output_transfer_node: Option<String>,
@@ -1250,6 +1497,7 @@ pub struct RenderStats {
     pub last_material_fallback_count: usize,
     pub last_material_validation_error_count: usize,
     pub last_material_diagnostic_count: usize,
+    pub last_shader_variant_miss_report: super::ShaderVariantMissReport,
     pub last_mesh_draw_count: usize,
     pub last_mesh_opaque_draw_count: usize,
     pub last_mesh_alpha_mask_draw_count: usize,
@@ -1278,6 +1526,16 @@ pub struct RenderStats {
     pub last_mesh_dynamic_batch_candidate_draw_count: usize,
     pub last_mesh_gpu_instancing_candidate_group_count: usize,
     pub last_mesh_gpu_instancing_candidate_draw_count: usize,
+    pub last_mesh_command_count: usize,
+    pub last_mesh_cached_command_hit_count: usize,
+    pub last_mesh_command_rebuild_count: usize,
+    pub last_mesh_dynamic_command_count: usize,
+    pub last_mesh_command_cache_miss_count: usize,
+    pub last_mesh_command_cache_invalidated_transform_count: usize,
+    pub last_mesh_command_cache_invalidated_geometry_count: usize,
+    pub last_mesh_command_cache_invalidated_material_count: usize,
+    pub last_mesh_replay_state_change_count: usize,
+    pub last_mesh_replay_bind_skip_count: usize,
     pub last_indirect_batch_count: usize,
     pub last_indirect_batched_draw_count: usize,
     pub last_indirect_fallback_draw_count: usize,
@@ -1560,6 +1818,22 @@ mod tests {
                 RenderCapabilityMismatchDetail::new(RenderCapabilityKind::SparseTexture),
             ]
         );
+    }
+
+    #[test]
+    fn screen_space_anti_alias_capability_accepts_smaa() {
+        let capabilities = RenderCapabilitySummary {
+            supports_smaa: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let default = capabilities.capability_class_report(RenderCapabilityClass::Default);
+
+        assert_eq!(
+            default.satisfied,
+            vec![RenderCapabilityKind::ScreenSpaceAntiAlias]
+        );
+        assert!(default.missing.is_empty());
     }
 
     #[test]

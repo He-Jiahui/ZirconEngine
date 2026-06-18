@@ -1,4 +1,5 @@
 use super::editor_state::EditorState;
+use crate::ui::workbench::snapshot::StatusTaskProgressSnapshot;
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest};
 
 impl EditorState {
@@ -59,5 +60,9 @@ impl EditorState {
 
     pub fn set_status_line(&mut self, value: impl Into<String>) {
         self.status_line = value.into();
+    }
+
+    pub fn set_status_task_progress(&mut self, value: Option<StatusTaskProgressSnapshot>) {
+        self.status_task_progress = value;
     }
 }

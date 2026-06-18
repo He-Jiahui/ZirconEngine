@@ -35,15 +35,50 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         (
             "1.2 失败路径测试",
             &[
-                "部分完成，runtime Cargo 待验证",
+                "code_static_passed_real_backend_pending",
+                "fallback lifecycle failure tests 4/4",
+                "runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed",
                 "300s 编译超时",
-                "runtime real-backend/fallback",
+                "runtime real-backend",
             ][..],
         ),
-        ("2.1 native 收口", &["待开始"][..]),
-        ("2.2 测试/文档迁移", &["待开始"][..]),
-        ("3.1 V1/V2 处置", &["待开始"][..]),
-        ("3.2 回滚失败注入", &["待开始"][..]),
+        (
+            "2.1 native 收口",
+            &[
+                "code_static_passed_cargo_pending",
+                "plugin::native",
+                "root_reexport_count = 0",
+                "native_namespace_reexport_count = 60",
+            ][..],
+        ),
+        (
+            "2.2 测试/文档迁移",
+            &[
+                "code_static_passed_cargo_pending",
+                "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
+                "native loader test files 3/3",
+                "native test root import leaks 0/0",
+            ][..],
+        ),
+        (
+            "3.1 V1/V2 处置",
+            &[
+                "code_static_passed_cargo_pending",
+                "V3-only",
+                "unknown ABI rejection",
+                "native_loader_v1_v2_file_count = 0",
+                "plugin_v1_v2_usage_files = 0",
+            ][..],
+        ),
+        (
+            "3.2 回滚失败注入",
+            &[
+                "code_static_passed_cargo_pending",
+                "hot_reload_missing_symbol_after_reload_rolls_back_to_previous_instance",
+                "hot_reload_state_restore_failure_rolls_back_and_reports",
+                "hot reload failure injection",
+            ][..],
+        ),
     ] {
         let row_anchor = format!("| {row_name} |");
         let row = runtime_06_plan
@@ -77,7 +112,9 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         &[
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
-            "runtime 真实后端验证待重跑",
+            "fallback lifecycle failure tests 4/4",
+            "Release ZrVM focused",
+            "完整 `vampire_project_session` 组",
         ],
     );
 
@@ -90,8 +127,9 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         runtime_06_problem_row,
         &[
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
-            "native_plugin_public_surface.m4_gate_status=migration-debt-present",
-            "root_reexport_count = 70",
+            "native_plugin_public_surface.m4_gate_status=classified-and-clear",
+            "root_reexport_count = 0",
+            "native_namespace_reexport_count = 60",
         ],
     );
 
@@ -101,8 +139,12 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         &[
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "m4_gate_status",
-            "migration-debt-present",
-            "root_reexport_count = 70",
+            "classified-and-clear",
+            "root_reexport_count = 0",
+            "native_namespace_reexport_count = 60",
+            "native loader test files 3/3",
+            "native test root import leaks 0/0",
+            "fallback lifecycle failure tests 4/4",
         ],
     );
 
@@ -112,8 +154,10 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         &[
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "native_plugin_public_surface",
-            "migration-debt-present",
-            "root-level native loader/ABI re-export symbols",
+            "classified-and-clear",
+            "native namespace re-export 60/60",
+            "native test namespace import files 2/2",
+            "fallback lifecycle failure tests 4/4",
         ],
     );
 
@@ -132,6 +176,8 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         &[
             "Runtime 06 Plugin Surface Lifecycle Gate",
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
+            "runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed",
+            "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
             "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
         ],
     );

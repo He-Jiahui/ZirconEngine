@@ -48,10 +48,12 @@ const FIXED_HOST_FUNCTIONS: &[(&str, &str)] = &[
     ("zr.zircon.gameplay", "component_string"),
     ("zr.zircon.gameplay", "set_component_json"),
     ("zr.zircon.gameplay", "find_by_component"),
+    ("zr.zircon.gameplay", "entity_exists"),
     ("zr.zircon.gameplay", "nearest_by_script_property"),
     ("zr.zircon.gameplay", "count_by_script_property"),
     ("zr.zircon.gameplay", "script_property_matches"),
     ("zr.zircon.gameplay", "script_number"),
+    ("zr.zircon.gameplay", "script_number_at_most"),
     ("zr.zircon.gameplay", "set_animation_bool"),
     ("zr.zircon.gameplay", "damage_entity"),
     ("zr.zircon.gameplay", "heal_entity"),
@@ -141,7 +143,7 @@ fn host_function_registry_matches_documented_ledger() {
     );
     assert_eq!(
         count_occurrences(gameplay_source, "HostExportFunction::new("),
-        37,
+        39,
         "gameplay host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
@@ -193,7 +195,7 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for required_ledger_anchor in [
-        "6 host modules, 50 fixed host functions, and 2 fixed script type descriptors",
+        "6 host modules, 52 fixed host functions, and 2 fixed script type descriptors",
         "`zr.zircon.bridge`",
         "dynamic module shape contract",
         "Value descriptors",
@@ -215,7 +217,7 @@ fn host_function_registry_matches_documented_ledger() {
         "host_capability_representatives_are_declared_on_registered_modules",
         "host_function_without_required_capability_is_rejected_with_explicit_error",
         "builtin_callbacks=11",
-        "gameplay_callbacks=37",
+        "gameplay_callbacks=39",
         "macro_host_functions=2",
     ] {
         assert!(

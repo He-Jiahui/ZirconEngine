@@ -44,14 +44,21 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentDrawer"
 classes = ["workbench-component-drawer"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
-children = [{ node = "drawer_tabs" }, { node = "component_body" }, { node = "console_body" }]
+children = [{ node = "drawer_tabs" }, { node = "component_drawer_content" }]
 
 [nodes.drawer_tabs]
 component = "HorizontalGroup"
-control_id = "WorkbenchComponentDrawerTabs"
+control_id = "BottomDrawerHeaderRoot"
 classes = ["workbench-tabs"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
 children = [{ node = "drawer_tab_components" }, { node = "drawer_tab_console" }]
+
+[nodes.component_drawer_content]
+component = "VerticalGroup"
+control_id = "BottomDrawerContentRoot"
+classes = ["workbench-bottom-drawer-content"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "component_body" }, { node = "console_body" }]
 
 [nodes.drawer_tab_components]
 component = "WorkbenchTab"
@@ -328,7 +335,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentInputs"
 classes = ["workbench-panel"]
 layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 214.0, preferred = 214.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "inputs_title" }, { node = "input_search" }, { node = "input_text" }, { node = "input_focused" }, { node = "input_dropdown_row" }]
+children = [{ node = "inputs_title" }, { node = "input_search" }, { node = "input_text" }, { node = "input_focused" }, { node = "input_disabled" }, { node = "input_dropdown_row" }]
 
 [nodes.inputs_title]
 component = "WorkbenchSectionTitle"
@@ -352,6 +359,13 @@ classes = ["workbench-field", "workbench-component-field", "workbench-focused"]
 props = { value = "Focused input", placeholder = "Focused input", focused = true, layout_width = 170.0, focus_border_color = "#1b98a0" }
 layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/InputFocusedEdit", event = "Change", route = "component_lab.value_changed.input_focused" }, { id = "ComponentLab/InputFocusedCommit", event = "Submit", route = "component_lab.commit.input_focused" }]
+
+[nodes.input_disabled]
+component = "WorkbenchField"
+control_id = "WorkbenchInputDisabled"
+classes = ["workbench-field", "workbench-component-field", "workbench-disabled"]
+props = { value = "", placeholder = "Disabled input", disabled = true, disabled_opacity = 0.94, layout_width = 170.0 }
+layout = { width = { min = 170.0, preferred = 170.0, max = 170.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.input_search]
 component = "WorkbenchSearchInput"
@@ -538,7 +552,7 @@ control_id = "WorkbenchLabsTabOne"
 classes = ["workbench-tab", "workbench-labs-tab"]
 props = { text = "Tab 1", checked = true, selected = true, value = true, layout_offset_x = 3.0, layout_offset_y = 2.0 }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ComponentLab/LabsTabOne", event = "Click", route = "component_lab.select.labs_tab_one" }]
+events = [{ id = "ComponentLab/LabsTabOne", event = "Click", route = "component_lab.labs_tab_one.select" }]
 
 [nodes.labs_tab_two]
 component = "WorkbenchTab"
@@ -546,7 +560,7 @@ control_id = "WorkbenchLabsTabTwo"
 classes = ["workbench-tab", "workbench-labs-tab"]
 props = { text = "Tab 2", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ComponentLab/LabsTabTwo", event = "Click", route = "component_lab.select.labs_tab_two" }]
+events = [{ id = "ComponentLab/LabsTabTwo", event = "Click", route = "component_lab.labs_tab_two.select" }]
 
 [nodes.labs_tab_three]
 component = "WorkbenchTab"
@@ -554,7 +568,7 @@ control_id = "WorkbenchLabsTabThree"
 classes = ["workbench-tab", "workbench-labs-tab"]
 props = { text = "Tab 3", checked = false, selected = false, value = false, layout_offset_x = 3.0, layout_offset_y = 2.0 }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ComponentLab/LabsTabThree", event = "Click", route = "component_lab.select.labs_tab_three" }]
+events = [{ id = "ComponentLab/LabsTabThree", event = "Click", route = "component_lab.labs_tab_three.select" }]
 
 [nodes.component_feedback]
 component = "HorizontalGroup"
@@ -746,5 +760,5 @@ events = [{ id = "ComponentLab/TableTailSelect", event = "Click", route = "compo
 component = "WorkbenchPopupMenu"
 control_id = "WorkbenchPopupMenu"
 classes = ["workbench-popup-menu"]
-props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0, layout_offset_y = -12.0 }
+props = { value = "Open", menu_items = ["New|icon=plus", "Open|icon=folder", "Save|icon=save", "Delete|danger,hovered,icon=trash", "More Tools|submenu"], popup_open = true, disable_enforce_focus = true, popup_anchor_x = 16.0, popup_anchor_y = 20.0, layout_offset_y = -12.0 }
 layout = { width = { min = 145.0, preferred = 145.0, max = 145.0, stretch = "Fixed" }, height = { min = 140.0, preferred = 150.0, max = 156.0, stretch = "Fixed" } }

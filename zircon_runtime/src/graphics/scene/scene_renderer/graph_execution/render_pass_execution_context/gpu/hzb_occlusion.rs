@@ -6,6 +6,7 @@ use crate::graphics::scene::scene_renderer::hzb::{
 
 use super::RenderPassGpuExecutionContext;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphComputeDispatchRecord;
+use crate::render_graph::RenderGraphResourceAccessKind;
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn record_hzb_occlusion_cull_to_indirect_args(
@@ -30,18 +31,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 )
             })?
             .bind_group();
-        let history_available = self.resources.has_texture_view(previous_hzb_resource_name);
-        let previous_hzb_view = if history_available {
-            self.resources
-                .require_texture_view(previous_hzb_resource_name)?
-        } else {
-            self.post_process_stack
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let previous_hzb_view = Self::declared_optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            previous_hzb_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let history_available = previous_hzb_view.is_some();
+        let previous_hzb_view = match previous_hzb_view {
+            Some(view) => view,
+            None => self
+                .post_process_stack
                 .ok_or_else(|| {
                     format!(
                         "HZB occlusion cull graph executor for pass `{pass_name}` requires post-process fallback textures when previous HZB is unavailable"
                     )
                 })?
-                .white_texture_view()
+                .white_texture_view(),
         };
         let report = culler.execute(
             self.device,

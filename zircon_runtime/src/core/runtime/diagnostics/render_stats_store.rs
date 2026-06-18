@@ -5,7 +5,9 @@ mod graph;
 mod history;
 mod hybrid_gi;
 mod particle;
+mod post_process;
 mod product;
+mod shader_variant;
 mod solari;
 mod virtual_geometry;
 
@@ -18,6 +20,8 @@ pub(super) fn record_render_stats_diagnostics(store: &mut DiagnosticStore, stats
     history::record(store, stats);
     graph::record(store, stats);
     product::record(store, stats);
+    shader_variant::record(store, stats);
+    post_process::record(store, stats);
     anti_alias::record(store, stats);
     particle::record(store, stats);
     virtual_geometry::record(store, stats);
@@ -54,6 +58,22 @@ fn record_bytes(
         frame_index,
         value as f64,
         Some("bytes"),
+        subsystem_tags.iter().copied(),
+    );
+}
+
+fn record_microseconds(
+    store: &mut DiagnosticStore,
+    path: &'static str,
+    frame_index: u64,
+    value: u64,
+    subsystem_tags: &[&str],
+) {
+    store.record(
+        path,
+        frame_index,
+        value as f64,
+        Some("microseconds"),
         subsystem_tags.iter().copied(),
     );
 }

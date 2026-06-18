@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::builtin::RuntimeTargetMode;
 use crate::{
     asset::AssetImporterDescriptor, plugin::CapabilityStatusManifest,
     plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
-    plugin::PluginMaturity, plugin::UiComponentDescriptor, RuntimeTargetMode,
+    plugin::PluginMaturity, plugin::UiComponentDescriptor,
 };
 
 use super::{

@@ -90,6 +90,7 @@ impl EditorState {
             welcome,
             project_open,
             status_line,
+            status_task_progress: None,
             bridge_diagnostics: Default::default(),
             history: EditorHistory::default(),
             play_session: None,

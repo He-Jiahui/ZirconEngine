@@ -2,14 +2,8 @@ use std::ffi::c_char;
 
 use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
 
-pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
-pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
-pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1: &[u8] =
-    b"zircon_native_plugin_descriptor_v1\0";
-pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2: &[u8] =
-    b"zircon_native_plugin_descriptor_v2\0";
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3: &[u8] =
     b"zircon_native_plugin_descriptor_v3\0";
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL: &[u8] = ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3;
@@ -18,27 +12,6 @@ pub const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_ERROR: u32 = 1;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_DENIED: u32 = 2;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct NativePluginAbiV1 {
-    pub abi_version: u32,
-    pub plugin_id: *const c_char,
-    pub package_manifest_toml: *const c_char,
-    pub runtime_entry_name: *const c_char,
-    pub editor_entry_name: *const c_char,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct NativePluginAbiV2 {
-    pub abi_version: u32,
-    pub plugin_id: *const c_char,
-    pub package_manifest_toml: *const c_char,
-    pub runtime_entry_name: *const c_char,
-    pub editor_entry_name: *const c_char,
-    pub requested_capabilities: *const c_char,
-}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -61,24 +34,6 @@ pub struct NativePluginSchemaVersionsV3 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct NativePluginEntryReportV1 {
-    pub abi_version: u32,
-    pub package_manifest_toml: *const c_char,
-    pub diagnostics: *const c_char,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct NativePluginEntryReportV2 {
-    pub abi_version: u32,
-    pub package_manifest_toml: *const c_char,
-    pub diagnostics: *const c_char,
-    pub negotiated_capabilities: *const c_char,
-    pub behavior: *const NativePluginBehaviorV2,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
 pub struct NativePluginEntryReportV3 {
     pub abi_version: u32,
     pub package_manifest_toml: *const c_char,
@@ -86,17 +41,6 @@ pub struct NativePluginEntryReportV3 {
     pub negotiated_capabilities: *const c_char,
     pub behavior: *const NativePluginBehaviorV3,
     pub bridge_methods: *const NativePluginBridgeMethodTableV3,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct NativePluginHostFunctionTableV2 {
-    pub abi_version: u32,
-    pub host_handle: u64,
-    pub granted_capabilities: *const c_char,
-    pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
-    pub host_has_capability:
-        Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32>,
 }
 
 #[repr(C)]
@@ -145,19 +89,6 @@ impl NativePluginOwnedByteBufferV2 {
 pub struct NativePluginCallbackStatusV2 {
     pub code: u32,
     pub diagnostics: *const c_char,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct NativePluginBehaviorV2 {
-    pub abi_version: u32,
-    pub is_stateless: u32,
-    pub command_manifest: *const c_char,
-    pub event_manifest: *const c_char,
-    pub invoke_command: Option<NativePluginInvokeCommandFnV2>,
-    pub save_state: Option<NativePluginSaveStateFnV2>,
-    pub restore_state: Option<NativePluginRestoreStateFnV2>,
-    pub unload: Option<NativePluginUnloadFnV2>,
 }
 
 #[repr(C)]

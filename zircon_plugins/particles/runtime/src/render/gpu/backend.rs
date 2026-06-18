@@ -58,10 +58,15 @@ impl From<ParticleGpuReadbackDecodeError> for ParticleGpuBackendError {
 }
 
 pub struct ParticleGpuBuffers<'a> {
-    pub particles: &'a wgpu::Buffer,
+    /// Render-graph alias for the spawn/update input side of the backend ping-pong pair.
+    pub particles_a: &'a wgpu::Buffer,
+    /// Render-graph alias for the spawn/update output side of the backend ping-pong pair.
+    pub particles_b: &'a wgpu::Buffer,
+    pub emitter_params: &'a wgpu::Buffer,
     pub alive_indices: &'a wgpu::Buffer,
     pub indirect_draw_args: &'a wgpu::Buffer,
     pub counters: &'a wgpu::Buffer,
+    pub debug_readback: &'a wgpu::Buffer,
 }
 
 pub struct ParticleGpuBackend {
@@ -199,7 +204,7 @@ impl ParticleGpuBackend {
                 &bind_group_layout,
                 "zircon-particle-gpu-compact-a",
                 &particle_buffers[0],
-                &particle_buffers[0],
+                &particle_buffers[1],
                 &emitter_params_buffer,
                 &counters_buffer,
                 &alive_indices_buffer,
@@ -210,7 +215,7 @@ impl ParticleGpuBackend {
                 &bind_group_layout,
                 "zircon-particle-gpu-compact-b",
                 &particle_buffers[1],
-                &particle_buffers[1],
+                &particle_buffers[0],
                 &emitter_params_buffer,
                 &counters_buffer,
                 &alive_indices_buffer,
@@ -269,12 +274,18 @@ impl ParticleGpuBackend {
         &self.program
     }
 
+    /// Returns graph-facing aliases for the last executed frame's ping-pong buffers.
     pub fn active_buffers(&self) -> ParticleGpuBuffers<'_> {
+        let output_buffer_index = self.active_buffer_index;
+        let input_buffer_index = 1 - output_buffer_index;
         ParticleGpuBuffers {
-            particles: &self.particle_buffers[self.active_buffer_index],
+            particles_a: &self.particle_buffers[input_buffer_index],
+            particles_b: &self.particle_buffers[output_buffer_index],
+            emitter_params: &self.emitter_params_buffer,
             alive_indices: &self.alive_indices_buffer,
             indirect_draw_args: &self.indirect_draw_args_buffer,
             counters: &self.counters_buffer,
+            debug_readback: &self.debug_readback_buffer,
         }
     }
 
@@ -365,6 +376,7 @@ impl ParticleGpuBackend {
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         params: ParticleGpuTransparentRenderParams,
+        render_region: zircon_runtime::graphics::ViewportRenderRegion,
     ) -> Result<(), ParticleGpuBackendError> {
         let renderer = self
             .transparent_renderer
@@ -379,6 +391,7 @@ impl ParticleGpuBackend {
             self.active_buffer_index,
             &self.indirect_draw_args_buffer,
             params,
+            render_region,
         );
         Ok(())
     }
@@ -538,7 +551,10 @@ fn read_buffer_u32s_at(
     }
 
     let byte_count = word_count * std::mem::size_of::<u32>();
-    let slice = buffer.slice(byte_offset..byte_offset + byte_count as u64);
+    let map_offset = byte_offset - (byte_offset % wgpu::MAP_ALIGNMENT);
+    let mapped_prefix_bytes = (byte_offset - map_offset) as usize;
+    let mapped_byte_count = mapped_prefix_bytes + byte_count;
+    let slice = buffer.slice(map_offset..byte_offset + byte_count as u64);
     let (sender, receiver) = mpsc::channel();
     slice.map_async(wgpu::MapMode::Read, move |result| {
         let _ = sender.send(result);
@@ -552,7 +568,7 @@ fn read_buffer_u32s_at(
         .map_err(|error| ParticleGpuBackendError::ReadbackMap(error.to_string()))?;
 
     let mapped = slice.get_mapped_range();
-    let words = mapped
+    let words = mapped[mapped_prefix_bytes..mapped_byte_count]
         .chunks_exact(std::mem::size_of::<u32>())
         .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
         .collect::<Vec<_>>();

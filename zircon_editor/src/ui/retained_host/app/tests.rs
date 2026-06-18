@@ -14,7 +14,6 @@ use crate::scene::viewport::{DisplayMode, ViewOrientation};
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
 use crate::ui::retained_host::primitives::PhysicalSize;
-use crate::ui::retained_host::root_shell_projection::resolve_root_left_splitter_frame;
 use crate::ui::retained_host::{PaneSurfaceHostContext, UiHostContext};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
@@ -996,23 +995,24 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
 }
 
 #[test]
-fn root_resize_capture_prefers_shared_left_drawer_shell_extent_over_stale_region_geometry() {
+fn root_resize_capture_prefers_workbench_left_drawer_shell_extent_over_stale_region_geometry() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_resize_projection_extent");
     harness.activate_workbench_page();
 
     let mut host = harness.host.borrow_mut();
-    let expected_width = host
-        .template_bridge
-        .control_frame("LeftDrawerShellRoot")
-        .expect("left drawer shell root should map to a projected control frame")
+    let workbench_layout_frames = host.workbench_window_bridge.layout_frames();
+    let expected_width = workbench_layout_frames
+        .left_drawer_shell_frame
+        .expect("left drawer shell root should map to a Workbench layout frame")
         .width;
-    let root_shell_frames = host.template_bridge.root_shell_frames();
-    let splitter = resolve_root_left_splitter_frame(Some(&root_shell_frames));
+    let splitter = workbench_layout_frames
+        .left_resize_splitter_frame
+        .expect("Workbench layout frames should expose the left resize splitter");
     assert!(
         splitter.width > 0.0 && splitter.height > 0.0,
-        "shared root shell frames should expose the left resize splitter"
+        "Workbench layout frames should expose the left resize splitter"
     );
     let geometry = host
         .shell_geometry
@@ -1035,7 +1035,7 @@ fn root_resize_capture_prefers_shared_left_drawer_shell_extent_over_stale_region
             .as_ref()
             .map(|active| active.base_preferred),
         Some(expected_width),
-        "resize capture should start from the shared drawer shell extent instead of stale legacy geometry"
+        "resize capture should start from the Workbench drawer shell extent instead of stale legacy geometry"
     );
 }
 

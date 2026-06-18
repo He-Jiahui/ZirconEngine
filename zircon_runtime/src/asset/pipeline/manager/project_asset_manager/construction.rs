@@ -8,7 +8,8 @@ use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::{
-    AssetWorkerPool, AssetWorkerPoolOptions, AssetWorkerThreadBudgetSource,
+    AssetWorkerPool, AssetWorkerPoolFrameSampler, AssetWorkerPoolOptions,
+    AssetWorkerThreadBudgetSource,
 };
 use crate::asset::{
     AssetId, AssetImportError, AssetImporter, AssetImporterCapabilityReport, AssetImporterHandler,
@@ -47,10 +48,19 @@ impl ProjectAssetManager {
     }
 
     pub fn spawn_worker_pool(&self) -> Result<AssetWorkerPool, crate::core::ZirconError> {
-        AssetWorkerPool::new(
+        let (pool, _) = self.spawn_worker_pool_with_frame_sampler()?;
+        Ok(pool)
+    }
+
+    pub fn spawn_worker_pool_with_frame_sampler(
+        &self,
+    ) -> Result<(AssetWorkerPool, AssetWorkerPoolFrameSampler), crate::core::ZirconError> {
+        let pool = AssetWorkerPool::new(
             AssetWorkerPoolOptions::new(self.default_worker_count)
                 .with_thread_budget_source(self.default_worker_budget_source),
-        )
+        )?;
+        let sampler = AssetWorkerPoolFrameSampler::from_pool(&pool);
+        Ok((pool, sampler))
     }
 
     pub fn default_worker_count(&self) -> usize {

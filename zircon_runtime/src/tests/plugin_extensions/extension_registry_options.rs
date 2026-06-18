@@ -1,9 +1,9 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     PluginOptionManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_extension_registry_preserves_enum_option_value_sets() {

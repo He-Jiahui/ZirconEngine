@@ -125,6 +125,9 @@ pub(super) fn render_background_for_control(
         .list
         .commands
         .iter()
-        .find(|command| command.node_id == node_id)
-        .and_then(|command| command.style.background_color.clone())
+        .find_map(|command| {
+            (command.node_id == node_id)
+                .then(|| command.style.background_color.clone())
+                .flatten()
+        })
 }

@@ -1,4 +1,4 @@
-use crate::{RendererDataDocument, RendererDataDocumentError};
+use crate::graphics::{RendererDataDocument, RendererDataDocumentError};
 
 #[test]
 fn renderer_data_document_rejects_feature_name_aliases_before_runtime_projection() {

@@ -1,11 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{
-    plugin::{
-        ExportPackagingStrategy, PluginMaturity, ProjectPluginManifest, RuntimePluginDescriptor,
-        RuntimePluginRegistrationReport,
-    },
-    RuntimePluginId, RuntimeTargetMode,
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::plugin::{
+    ExportPackagingStrategy, PluginMaturity, ProjectPluginManifest, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport,
 };
 
 use super::availability_report::{RuntimePluginAvailabilityEntry, RuntimePluginAvailabilityReport};

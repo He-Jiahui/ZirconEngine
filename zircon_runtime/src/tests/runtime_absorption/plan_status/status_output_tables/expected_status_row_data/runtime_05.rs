@@ -47,6 +47,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 05 texture importer DDS caps policy wording",
+        [
+            "DDSCAPS2_CUBEMAP caps2 policy",
+            "legacy_reference_count = 148",
+            "hard_cutover_migration_debt_count = 5",
+            "DDS debt bucket absent",
+        ],
+    ),
+    (
         "Runtime 05 status-output Runtime 12 gamepad event-owner row",
         [
             "runtime_index_status_output_records_recent_cross_plan_slices",
@@ -69,7 +78,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         [
             "runtime_index_status_output_records_recent_cross_plan_slices",
             "Runtime 04 Asset pipeline 行为测试锚审计同步",
-            "behavior_test_anchor_count = 18",
+            "behavior_test_anchor_count = 20",
             "standalone status-output 2/2",
         ],
     ),
@@ -215,6 +224,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "graphics-scene-lower-layer-candidate",
             "scene-asset-project-io-lower-layer-candidate",
             "ecs-scene-lower-layer-candidate",
+        ],
+    ),
+    (
+        "Runtime 05 scene:: lower-layer diagnostic matrix",
+        [
+            "runtime_05_scene_failure_triage_records_minimum_lower_layer_diagnostics",
+            "support-first-minimal-diagnostics-matrix",
+            "graphics-scene-diagnostics",
+            "scene-asset-project-io-diagnostics",
         ],
     ),
     (
@@ -398,21 +416,48 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 05 status-output current anchor fix",
+        [
+            "runtime_02_generated_status_guard_anchor_count = 5",
+            "runtime_07_owner_budget_status_guard_anchor_count = 5",
+            "runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending",
+            "missing_runtime_07_owner_budget_status_guard_anchors = []",
+        ],
+    ),
+    (
+        "Runtime 05 Runtime 02 root_entries count 状态表闭环",
+        [
+            "Runtime 02 root_entries guard-count current resync",
+            "EXPECTED_ROOT_ENTRIES_TEST_COUNT",
+            "root_entries guard tests 13/13",
+            "standalone plan-status 32/32",
+        ],
+    ),
+    (
         "Runtime 05 status-output Runtime 07 owner-budget row",
         [
-            "Runtime 07 owner-budget 39-hotspot 漂移同步",
-            "large_file_hotspot_count = 39",
-            "runtime-framework-render=4",
-            "`performance_hotspots.rs` 6/6",
+            "Runtime 07 owner-budget 36-hotspot navigation split sync",
+            "large_file_hotspot_count = 36",
+            "runtime-other=12",
+            "direct `performance_hotpath_boundary_audit` risks=0 / hotspots=36",
+        ],
+    ),
+    (
+        "Runtime 05 plan-status owner-budget current mirror fix",
+        [
+            "runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs",
+            "large_file_hotspot_count = 36",
+            "runtime-other=12",
+            "navigation runtime owner split row",
         ],
     ),
     (
         "Runtime 05 Runtime 07 owner-budget status 审计元数据",
         [
-            "runtime_07_owner_budget_status_index_anchor_count = 6",
-            "runtime_07_owner_budget_status_guard_anchor_count = 5",
+            "runtime_07_owner_budget_status_index_anchor_count = 7",
+            "runtime_07_owner_budget_status_guard_anchor_count = 6",
             "runtime_07_owner_budget_status_guard_present = true",
-            "index 6/6",
+            "index 7/7",
         ],
     ),
     (

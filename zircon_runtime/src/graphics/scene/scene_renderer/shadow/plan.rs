@@ -185,6 +185,7 @@ pub(crate) fn build_shadow_frame_plan(
     let mut slots = Vec::new();
     let mut atlas_passes = Vec::new();
     let mut light_slots = ShadowLightSlotAssignments::default();
+    let camera = frame.effective_camera();
     let globals = if let Some(light) = directional {
         let remaining_slots = slots_remaining(resource_config, slots.len());
         append_directional_cascades(
@@ -192,7 +193,7 @@ pub(crate) fn build_shadow_frame_plan(
             &mut atlas_passes,
             &mut light_slots,
             light,
-            frame.camera(),
+            &camera,
             resource_config,
             remaining_slots,
         )

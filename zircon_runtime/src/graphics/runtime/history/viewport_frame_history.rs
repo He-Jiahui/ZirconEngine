@@ -1,7 +1,7 @@
 use crate::core::framework::render::{FrameHistoryHandle, RenderPipelineHandle};
 use crate::core::math::UVec2;
 
-use crate::{FrameHistoryBinding, VisibilityHistorySnapshot};
+use crate::graphics::{FrameHistoryBinding, VisibilityHistorySnapshot};
 
 use super::FrameHistoryValidationKey;
 

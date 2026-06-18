@@ -9,7 +9,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 pub(crate) struct BaseScenePass;
@@ -29,6 +29,7 @@ impl BaseScenePass {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
+        render_region: ViewportRenderRegion,
         light_grid_params_buffer: Option<&wgpu::Buffer>,
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
@@ -63,6 +64,9 @@ impl BaseScenePass {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return MeshDrawReplayStats::default();
+        }
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
         if frame.overlays().display_mode == DisplayMode::WireOnly {

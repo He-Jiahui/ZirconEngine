@@ -1,7 +1,17 @@
-use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
+use std::sync::Arc;
+
+use zircon_runtime::graphics::{
+    ParticleGpuTransparentDrawContext, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassExecutorRegistration,
+};
 use zircon_runtime::render_graph::{
     PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
     RenderGraphResourceKind,
+};
+
+use super::gpu::{
+    ParticleGpuRuntimeOwnerHandle, ParticleGpuTransparentRenderConfig,
+    ParticleGpuTransparentRenderParams,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -169,6 +179,14 @@ const TRANSPARENT_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContr
 };
 
 pub fn particle_render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
+    particle_render_pass_executor_registrations_with_gpu_owner(
+        ParticleGpuRuntimeOwnerHandle::default(),
+    )
+}
+
+pub fn particle_render_pass_executor_registrations_with_gpu_owner(
+    runtime_owner: ParticleGpuRuntimeOwnerHandle,
+) -> Vec<RenderPassExecutorRegistration> {
     vec![
         RenderPassExecutorRegistration::new(
             "particle.gpu.spawn-update",
@@ -182,8 +200,27 @@ pub fn particle_render_pass_executor_registrations() -> Vec<RenderPassExecutorRe
             "particle.gpu.indirect-args",
             particle_gpu_indirect_args_executor,
         ),
-        RenderPassExecutorRegistration::new("particle.transparent", particle_transparent_executor),
+        RenderPassExecutorRegistration::new_executor(
+            "particle.transparent",
+            Arc::new(ParticleTransparentExecutor::new(runtime_owner)),
+        ),
     ]
+}
+
+struct ParticleTransparentExecutor {
+    runtime_owner: ParticleGpuRuntimeOwnerHandle,
+}
+
+impl ParticleTransparentExecutor {
+    fn new(runtime_owner: ParticleGpuRuntimeOwnerHandle) -> Self {
+        Self { runtime_owner }
+    }
+}
+
+impl RenderPassExecutor for ParticleTransparentExecutor {
+    fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+        particle_transparent_executor(context, &self.runtime_owner)
+    }
 }
 
 fn particle_gpu_spawn_update_executor(
@@ -208,18 +245,41 @@ fn particle_gpu_indirect_args_executor(
 
 fn particle_transparent_executor(
     context: &mut RenderPassExecutionContext<'_>,
+    runtime_owner: &ParticleGpuRuntimeOwnerHandle,
 ) -> Result<(), String> {
     validate_context(context, &TRANSPARENT_CONTRACT)?;
     if let Some(gpu) = context.gpu_mut() {
-        gpu.resources
-            .require_texture_view("scene-color")
-            .map(|_| ())?;
-        gpu.resources
-            .require_texture_view("scene-depth")
-            .map(|_| ())?;
+        if gpu.record_particle_gpu_transparent_to_resources(
+            "scene-color",
+            "scene-depth",
+            |draw| record_particle_gpu_transparent(draw, runtime_owner),
+        )? {
+            return Ok(());
+        }
         gpu.record_particle_billboards_to_resources("scene-color", "scene-depth")?;
     }
     Ok(())
+}
+
+fn record_particle_gpu_transparent(
+    draw: ParticleGpuTransparentDrawContext<'_, '_>,
+    runtime_owner: &ParticleGpuRuntimeOwnerHandle,
+) -> Result<bool, String> {
+    let mut owner = runtime_owner.lock().map_err(|error| error.to_string())?;
+    owner
+        .record_transparent_render(
+            draw.device,
+            draw.scene_bind_group_layout,
+            ParticleGpuTransparentRenderConfig::new(draw.target_format, draw.depth_format),
+            draw.queue,
+            draw.encoder,
+            draw.color_view,
+            draw.depth_view,
+            draw.scene_bind_group,
+            ParticleGpuTransparentRenderParams::new(draw.camera_right, draw.camera_up, 1.0),
+            draw.render_region,
+        )
+        .map_err(|error| error.to_string())
 }
 
 fn emit_particle_gpu_readback(context: &mut RenderPassExecutionContext<'_>) {

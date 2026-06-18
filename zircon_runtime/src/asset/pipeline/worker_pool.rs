@@ -18,6 +18,8 @@ pub const ASSET_WORKER_COMPLETED_DIAGNOSTIC: &str = "asset.worker.completed";
 pub const ASSET_WORKER_FAILED_DIAGNOSTIC: &str = "asset.worker.failed";
 pub const ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC: &str = "asset.worker.queue_peak";
 pub const ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC: &str = "asset.worker.budgeted_threads";
+pub const ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC: &str = "asset.worker.frame_completed";
+pub const ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC: &str = "asset.worker.frame_failed";
 
 pub struct AssetWorkerPool {
     options: AssetWorkerPoolOptions,
@@ -64,6 +66,21 @@ pub struct AssetWorkerPoolDiagnostics {
     pub completed: u64,
     pub failed: u64,
     pub queue_peak: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AssetWorkerPoolFrameDiagnostics {
+    pub thread_budget_source: AssetWorkerThreadBudgetSource,
+    pub budgeted_threads: usize,
+    pub in_flight: usize,
+    pub completed_delta: u64,
+    pub failed_delta: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AssetWorkerPoolFrameSampler {
+    last_completed: u64,
+    last_failed: u64,
 }
 
 impl AssetWorkerPoolOptions {
@@ -123,6 +140,77 @@ impl AssetWorkerPoolDiagnostics {
             budgeted_threads: options.worker_count,
             ..Self::default()
         }
+    }
+}
+
+impl AssetWorkerPoolFrameDiagnostics {
+    pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
+        store.record(
+            ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
+            frame_index,
+            self.in_flight as f64,
+            Some("request"),
+            ["asset", "worker"],
+        );
+        store.record(
+            ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
+            frame_index,
+            self.budgeted_threads as f64,
+            Some("thread"),
+            [
+                "asset",
+                "worker",
+                "budget",
+                self.thread_budget_source.as_str(),
+            ],
+        );
+        store.record(
+            ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
+            frame_index,
+            self.completed_delta as f64,
+            Some("request"),
+            ["asset", "worker", "frame"],
+        );
+        store.record(
+            ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
+            frame_index,
+            self.failed_delta as f64,
+            Some("request"),
+            ["asset", "worker", "frame"],
+        );
+    }
+}
+
+impl AssetWorkerPoolFrameSampler {
+    pub fn from_pool(pool: &AssetWorkerPool) -> Self {
+        let diagnostics = pool.diagnostics();
+        Self {
+            last_completed: diagnostics.completed,
+            last_failed: diagnostics.failed,
+        }
+    }
+
+    pub fn sample(&mut self, pool: &AssetWorkerPool) -> AssetWorkerPoolFrameDiagnostics {
+        let diagnostics = pool.diagnostics();
+        let frame = AssetWorkerPoolFrameDiagnostics {
+            thread_budget_source: diagnostics.thread_budget_source,
+            budgeted_threads: diagnostics.budgeted_threads,
+            in_flight: diagnostics.in_flight,
+            completed_delta: diagnostics.completed.saturating_sub(self.last_completed),
+            failed_delta: diagnostics.failed.saturating_sub(self.last_failed),
+        };
+        self.last_completed = diagnostics.completed;
+        self.last_failed = diagnostics.failed;
+        frame
+    }
+
+    pub fn record_diagnostics(
+        &mut self,
+        pool: &AssetWorkerPool,
+        store: &mut DiagnosticStore,
+        frame_index: u64,
+    ) {
+        self.sample(pool).record_diagnostics(store, frame_index);
     }
 }
 

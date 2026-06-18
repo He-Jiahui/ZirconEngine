@@ -11,6 +11,34 @@ fn shared_drawer_header_surfaces_use_rust_owned_pointer_callbacks() {
 
     assert!(globals.contains("on_drawer_header_pointer_clicked"));
     assert!(wiring.contains("host_shell.on_drawer_header_pointer_clicked("));
-    assert!(pointer_layout.contains("build_host_drawer_header_pointer_layout("));
+    assert!(pointer_layout
+        .contains("build_host_drawer_header_pointer_layout_with_workbench_layout_frames("));
+    assert!(pointer_layout.contains("componentized_workbench_layout_frames"));
     assert!(!wiring.contains("on_toggle_drawer_tab"));
+}
+
+#[test]
+fn drawer_content_consumers_use_componentized_workbench_layout_frames() {
+    let helpers = source("src/ui/retained_host/app/helpers.rs");
+    let viewport = source("src/ui/retained_host/app/viewport.rs");
+    let layout_frames =
+        source("src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs");
+    let root_shell_frames = source(
+        "src/ui/retained_host/callback_dispatch/template_bridge/workbench/root_shell_frames.rs",
+    );
+    let componentized_window = source(
+        "src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs",
+    );
+
+    assert!(layout_frames.contains("left_drawer_content_frame"));
+    assert!(layout_frames.contains("pub(crate) fn drawer_content_frame(&self"));
+    assert!(!root_shell_frames.contains("left_drawer_content_frame"));
+    assert!(!root_shell_frames.contains("fn drawer_content_frame"));
+    assert!(componentized_window.contains("LEFT_DRAWER_CONTENT_CONTROL_ID"));
+    assert!(helpers.contains("self.workbench_window_bridge.layout_frames()"));
+    assert!(helpers.contains(".drawer_content_frame(region)"));
+    assert!(viewport.contains("self.workbench_window_bridge.layout_frames()"));
+    assert!(viewport.contains(".drawer_content_frame(region)"));
+    assert!(viewport.contains(".drawer_shell_frame(region)"));
+    assert!(!viewport.contains("root_shell_frames_with_componentized_drawers();"));
 }

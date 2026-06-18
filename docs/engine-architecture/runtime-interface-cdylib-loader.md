@@ -43,8 +43,14 @@ related_code:
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime_interface/src/ui/v2/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/v2/mod.rs
+  - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/tests/mod.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/contracts.rs
@@ -93,8 +99,14 @@ implementation_files:
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime_interface/src/ui/v2/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/v2/mod.rs
+  - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_editor/src
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
@@ -200,7 +212,7 @@ Runtime 10 loader failure validation adds focused app-library tests for `validat
 
 Runtime 10 FFI panic-boundary validation is currently source-guarded by `runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary`, which requires all 11 runtime session table entries to point at `exports.rs` wrappers and requires the shared `ZrStatusCode::Panic` diagnostic path. Cargo execution for the dynamic API filter remains pending while runtime compile lanes are active.
 
-`dynamic_runtime_api_boundary` now mirrors the Runtime 10 dynamic runtime API ABI/session/loader boundary in the structural audit. Current static evidence reports `expected_source_file_count = 21`, `function_table_structs = 10/10`, `field_count_mismatches = 0`, `missing_repr_c_tables = 0`, `runtime_session_ffi_wrappers = 11/11`, `direct_session_table_entry_bypasses = 0`, `session_owner_extern_c_present = false`, `headless_lifecycle_anchors = 12/12`, `ffi_panic_anchors = 9/9`, `loader_failure_anchors = 10/10`, `behavior_test_anchor_count = 15`, `missing_behavior_test_anchors = []`, `ui_pending_gate_anchors = 8/8`, `pending_cargo_gate_anchors = 5/5`, `doc_anchors = 7/7`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts` keeps this loader doc aligned with the dynamic API module doc, Runtime 10, the runtime index, the M0 review, and runtime-interface convergence. This is static evidence only; the `dynamic_api`, full app loader, and UI contract owner/Cargo lanes remain pending.
+`dynamic_runtime_api_boundary` now mirrors the Runtime 10 dynamic runtime API ABI/session/loader boundary in the structural audit. Current static evidence reports `expected_source_file_count = 23`, `function_table_structs = 10/10`, `field_count_mismatches = 0`, `missing_repr_c_tables = 0`, `runtime_session_ffi_wrappers = 11/11`, `direct_session_table_entry_bypasses = 0`, `session_owner_extern_c_present = false`, `headless_lifecycle_anchors = 12/12`, `ffi_panic_anchors = 9/9`, `loader_failure_anchors = 10/10`, `behavior_test_anchor_count = 15`, `missing_behavior_test_anchors = []`, `ui_pending_gate_anchors = 8/8`, `ui_contract_single_source_anchors = 7/7`, `ui_contract_duplicate_public_types = 0`, `ui_v2_contract_sync_anchors = 9/9`, `pending_cargo_gate_anchors = 5/5`, `doc_anchors = 7/7`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending` records that runtime-local `UiBindingCodec` and `UiAssetSchemaVersionPolicy` duplicates were removed while interface-owned UI contracts remain the shared boundary. `runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending` records that Runtime 09's `v2-replacement-mainline` verdict is synchronized into the interface/runtime split, with `UiComponentApiVersion` kept as the shared version contract. `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts` keeps this loader doc aligned with the dynamic API module doc, Runtime 10, the runtime index, the M0 review, and runtime-interface convergence. This is static evidence only; the `dynamic_api`, full app loader, and UI contract Cargo lanes remain pending.
 
 Milestone 2 first-slice validation is scoped to the shared UI contract namespace and editor library type checking. The interface crate check proves the real interface-owned UI contract modules compile without depending on `zircon_runtime`, `zircon_editor`, Slint, wgpu, or plugin crates. The editor library check proves the current editor UI host can type-check after the interface tree split, but it does not prove the editor import cutover is complete: a 2026-05-02 audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits in `zircon_editor/src`. The residual runtime hits must be split by role: neutral DTOs should move to `zircon_runtime_interface::ui`, while concrete services such as `UiSurface`, `UiEventManager`, `UiDocumentCompiler`, `UiAssetLoader`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, and `UiPointerDispatcher` remain runtime behavior dependencies. An earlier `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover-opencode --message-format short --color never` passed with existing warnings, and the 2026-05-02 19:44 current-worktree rerun `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` also passed with existing runtime graphics warnings and 3 editor warnings. `cargo tree -p zircon_editor --locked --depth 1` still lists direct `zircon_runtime` and `zircon_runtime_interface` dependencies for the documented service/contract split.
 

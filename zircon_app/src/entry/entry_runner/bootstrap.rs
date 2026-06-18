@@ -1,12 +1,13 @@
 use std::path::Path;
 
 use zircon_runtime::core::{CoreError, CoreHandle};
+use zircon_runtime::plugin::native::{
+    NativePluginBehaviorCallReport, NativePluginLiveHost, NativePluginRuntimeBehaviorDescriptor,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
+    NativePluginRuntimePlayModeSnapshot, NativePluginRuntimeStateRestoreReport,
+    NativePluginRuntimeStateSnapshot,
+};
 use zircon_runtime::{
-    plugin::NativePluginBehaviorCallReport, plugin::NativePluginLiveHost,
-    plugin::NativePluginRuntimeBehaviorDescriptor,
-    plugin::NativePluginRuntimeCommandDispatchReport,
-    plugin::NativePluginRuntimePlayModeExitReport, plugin::NativePluginRuntimePlayModeSnapshot,
-    plugin::NativePluginRuntimeStateRestoreReport, plugin::NativePluginRuntimeStateSnapshot,
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 

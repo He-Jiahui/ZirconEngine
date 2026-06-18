@@ -1,7 +1,9 @@
 pub(super) use std::collections::BTreeMap;
 
 pub(super) use crate::ui::host::NativeWindowHostState;
-pub(super) use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+pub(super) use crate::ui::retained_host::callback_dispatch::{
+    BuiltinHostRootShellFrames, BuiltinWorkbenchWindowLayoutFrames,
+};
 pub(super) use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 pub(super) use crate::ui::retained_host::shell_pointer::{
     HostShellPointerBridge, HostShellPointerRoute,
@@ -168,11 +170,7 @@ pub(super) fn workbench_model(
                 active_tab: None,
             },
         },
-        status_bar: StatusBarModel {
-            primary_text: String::new(),
-            secondary_text: None,
-            viewport_label: String::new(),
-        },
+        status_bar: StatusBarModel::default(),
     }
 }
 
@@ -257,13 +255,6 @@ pub(super) fn shell_geometry(
 pub(super) fn root_frames_from_geometry(
     geometry: &WorkbenchShellGeometry,
 ) -> BuiltinHostRootShellFrames {
-    root_frames_from_geometry_with_drawers(geometry, &[])
-}
-
-pub(super) fn root_frames_from_geometry_with_drawers(
-    geometry: &WorkbenchShellGeometry,
-    drawer_regions: &[ShellRegionId],
-) -> BuiltinHostRootShellFrames {
     let shell_width = geometry
         .center_band_frame
         .width
@@ -277,19 +268,43 @@ pub(super) fn root_frames_from_geometry_with_drawers(
     BuiltinHostRootShellFrames {
         shell_frame: Some(UiFrame::new(0.0, 0.0, shell_width, shell_height)),
         host_body_frame: Some(ui_frame(geometry.center_band_frame)),
-        left_drawer_shell_frame: drawer_regions
-            .contains(&ShellRegionId::Left)
-            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Left))),
-        right_drawer_shell_frame: drawer_regions
-            .contains(&ShellRegionId::Right)
-            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Right))),
-        bottom_drawer_shell_frame: drawer_regions
-            .contains(&ShellRegionId::Bottom)
-            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Bottom))),
         document_host_frame: Some(ui_frame(geometry.region_frame(ShellRegionId::Document))),
         status_bar_frame: Some(ui_frame(geometry.status_bar_frame)),
         ..BuiltinHostRootShellFrames::default()
     }
+}
+
+pub(super) fn workbench_layout_frames_from_geometry_with_drawers(
+    geometry: &WorkbenchShellGeometry,
+    drawer_regions: &[ShellRegionId],
+) -> BuiltinWorkbenchWindowLayoutFrames {
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(ui_frame(geometry.center_band_frame)),
+        left_region_frame: drawer_regions
+            .contains(&ShellRegionId::Left)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Left))),
+        right_region_frame: drawer_regions
+            .contains(&ShellRegionId::Right)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Right))),
+        bottom_region_frame: drawer_regions
+            .contains(&ShellRegionId::Bottom)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Bottom))),
+        document_region_frame: Some(ui_frame(geometry.region_frame(ShellRegionId::Document))),
+        status_bar_frame: Some(ui_frame(geometry.status_bar_frame)),
+        document_tabs_frame: Some(ui_frame(document_tabs_frame_from_geometry(geometry))),
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
+    }
+}
+
+fn document_tabs_frame_from_geometry(geometry: &WorkbenchShellGeometry) -> ShellFrame {
+    let metrics = WorkbenchChromeMetrics::default();
+    let document = geometry.region_frame(ShellRegionId::Document);
+    ShellFrame::new(
+        document.x,
+        document.y,
+        document.width,
+        metrics.document_header_height.max(0.0),
+    )
 }
 
 fn ui_frame(frame: ShellFrame) -> UiFrame {

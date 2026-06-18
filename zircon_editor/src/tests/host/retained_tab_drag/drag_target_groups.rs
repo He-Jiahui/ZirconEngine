@@ -114,8 +114,7 @@ fn resolve_host_drag_target_group_with_root_frames_uses_shared_root_projection_d
 }
 
 #[test]
-fn resolve_host_drag_target_group_with_root_frames_prefers_shared_left_drawer_shell_width_when_legacy_geometry_is_stale(
-) {
+fn resolve_host_drag_target_group_with_workbench_layout_frames_uses_left_drawer_shell_width() {
     let _legacy_geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
@@ -140,20 +139,20 @@ fn resolve_host_drag_target_group_with_root_frames_prefers_shared_left_drawer_sh
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinHostRootShellFrames {
-        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
-        left_drawer_shell_frame: Some(UiFrame::new(0.0, 40.0, 312.0, 656.0)),
-        document_host_frame: Some(UiFrame::new(313.0, 40.0, 1127.0, 656.0)),
+    let workbench_layout_frames = BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 656.0)),
+        left_region_frame: Some(UiFrame::new(0.0, 40.0, 312.0, 656.0)),
+        document_region_frame: Some(UiFrame::new(313.0, 40.0, 1127.0, 656.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 696.0, 1440.0, 24.0)),
-        ..BuiltinHostRootShellFrames::default()
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
     };
 
     assert_eq!(
-        resolve_host_drag_target_group_with_root_frames(
+        resolve_host_drag_target_group_with_workbench_layout_frames(
             UiSize::new(1440.0, 720.0),
             true,
             UiPoint::new(180.0, 240.0),
-            Some(&root_projection),
+            workbench_layout_frames,
         ),
         Some(HostDragTargetGroup::Left)
     );

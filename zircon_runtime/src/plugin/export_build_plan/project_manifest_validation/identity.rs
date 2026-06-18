@@ -1,4 +1,5 @@
-use crate::{plugin::ProjectPluginManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ProjectPluginManifest;
 
 use super::tokens::{
     is_lowercase_project_feature_namespace, is_lowercase_project_feature_segment,

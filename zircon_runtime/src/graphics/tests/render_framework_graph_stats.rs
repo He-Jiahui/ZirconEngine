@@ -6,9 +6,10 @@ use crate::core::framework::render::{
     RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
-use crate::graphics::{debug_markers, runtime::WgpuRenderFramework};
+use crate::graphics::{
+    debug_markers, runtime::WgpuRenderFramework, RenderPipelineAsset, RenderPipelineCompileOptions,
+};
 use crate::scene::world::World;
-use crate::{RenderPipelineAsset, RenderPipelineCompileOptions};
 
 #[test]
 fn render_framework_stats_report_transient_allocation_bytes() {

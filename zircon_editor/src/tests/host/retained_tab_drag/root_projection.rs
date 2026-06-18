@@ -174,18 +174,18 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
         ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
         ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
-    let root_projection = BuiltinHostRootShellFrames {
-        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
-        right_drawer_shell_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
+    let workbench_layout_frames = BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        right_region_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinHostRootShellFrames::default()
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout_with_root_shell_frames(
+    bridge.update_layout_with_workbench_layout_frames(
         UiSize::new(1440.0, 900.0),
         true,
         &[],
-        Some(&root_projection),
+        workbench_layout_frames,
         None,
     );
     let pointer_x = 1120.0
@@ -196,7 +196,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, 44.0));
 
     assert_eq!(
-        resolve_host_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_workbench_layout_frames(
             &layout,
             &model,
             &WorkbenchChromeMetrics::default(),
@@ -205,7 +205,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
             "right",
             pointer_x,
             44.0,
-            Some(&root_projection),
+            workbench_layout_frames,
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Right,
@@ -305,19 +305,18 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinHostRootShellFrames {
-        shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
-        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
-        right_drawer_shell_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
+    let workbench_layout_frames = BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        right_region_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinHostRootShellFrames::default()
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout_with_root_shell_frames(
+    bridge.update_layout_with_workbench_layout_frames(
         UiSize::new(1440.0, 900.0),
         true,
         &[],
-        Some(&root_projection),
+        workbench_layout_frames,
         None,
     );
     let pointer_x = 1120.0
@@ -329,7 +328,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
 
     assert_eq!(
-        resolve_host_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_workbench_layout_frames(
             &layout,
             &model,
             &WorkbenchChromeMetrics::default(),
@@ -338,7 +337,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
             "right",
             pointer_x,
             pointer_y,
-            Some(&root_projection),
+            workbench_layout_frames,
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Right,
@@ -412,19 +411,18 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::default(),
     };
-    let root_projection = BuiltinHostRootShellFrames {
-        shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
-        host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
-        bottom_drawer_shell_frame: Some(UiFrame::new(0.0, 788.0, 1440.0, 92.0)),
+    let workbench_layout_frames = BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        bottom_region_frame: Some(UiFrame::new(0.0, 788.0, 1440.0, 92.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
-        ..BuiltinHostRootShellFrames::default()
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout_with_root_shell_frames(
+    bridge.update_layout_with_workbench_layout_frames(
         UiSize::new(1440.0, 900.0),
         true,
         &[],
-        Some(&root_projection),
+        workbench_layout_frames,
         None,
     );
     let pointer_x =
@@ -433,7 +431,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
     let pointer_route = bridge.drag_route_at(UiPoint::new(pointer_x, pointer_y));
 
     assert_eq!(
-        resolve_host_tab_drop_route_with_root_frames(
+        resolve_host_tab_drop_route_with_workbench_layout_frames(
             &layout,
             &model,
             &WorkbenchChromeMetrics::default(),
@@ -442,7 +440,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
             "bottom",
             pointer_x,
             pointer_y,
-            Some(&root_projection),
+            workbench_layout_frames,
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Bottom,

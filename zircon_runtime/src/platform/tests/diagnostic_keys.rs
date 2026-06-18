@@ -47,7 +47,7 @@ fn capability_report_diagnostic_keys_stay_ordered_and_complete() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Linux,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         );
     let lines = report.diagnostic_lines();
 
@@ -64,7 +64,7 @@ fn platform_config_diagnostics_prepend_enabled_before_capability_keys() {
     let config = PlatformConfig {
         enabled: true,
         target: PlatformTarget::Windows,
-        target_mode: crate::RuntimeTargetMode::ClientRuntime,
+        target_mode: crate::builtin::RuntimeTargetMode::ClientRuntime,
         features: PlatformFeatureSelection::bevy_default_platform(),
     };
     let lines = config.diagnostic_lines();
@@ -83,22 +83,22 @@ fn diagnostic_key_set_is_consistent_across_windowed_browser_mobile_and_headless_
         (
             PlatformFeatureSelection::bevy_default_platform(),
             PlatformTarget::Windows,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         ),
         (
             browser_features,
             PlatformTarget::WebGpu,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         ),
         (
             PlatformFeatureSelection::bevy_default_platform(),
             PlatformTarget::Android,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         ),
         (
             PlatformFeatureSelection::headless(),
             PlatformTarget::Headless,
-            crate::RuntimeTargetMode::ServerRuntime,
+            crate::builtin::RuntimeTargetMode::ServerRuntime,
         ),
     ];
 

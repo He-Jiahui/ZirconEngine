@@ -8,6 +8,15 @@ fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
     let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
     let pointer_builder =
         source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
+    let menu_sync = pointer_layout
+        .split("pub(super) fn sync_menu_pointer_layout")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub(super) fn apply_menu_pointer_state_to_ui")
+                .next()
+        })
+        .expect("menu pointer sync function should exist");
 
     for getter in [
         "get_file_menu_button_frame()",
@@ -22,8 +31,42 @@ fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
             "menu pointer sync should not keep direct geometry getter `{getter}`"
         );
     }
-    assert!(pointer_layout.contains("build_host_menu_pointer_layout("));
+    assert!(menu_sync.contains("self.template_bridge.outer_shell_frames()"));
+    assert!(!menu_sync.contains("self.template_bridge.root_shell_frames()"));
+    assert!(!menu_sync.contains("workbench_window_bridge.layout_frames()"));
+    assert!(menu_sync.contains("build_host_menu_pointer_layout("));
     assert!(pointer_builder.contains("menu_button_frames_from_chrome_asset"));
+}
+
+#[test]
+fn shared_menu_pointer_layout_keeps_outer_shell_owner_contract() {
+    let pointer_layout = source("src/ui/retained_host/app/pointer_layout.rs");
+    let pointer_builder =
+        source("src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs");
+    let workbench_bridge =
+        source("src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs");
+    let workbench_layout_frames =
+        source("src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs");
+    let menu_sync = pointer_layout
+        .split("pub(super) fn sync_menu_pointer_layout")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub(super) fn apply_menu_pointer_state_to_ui")
+                .next()
+        })
+        .expect("menu pointer sync function should exist");
+
+    assert!(workbench_bridge.contains("pub(crate) fn outer_shell_frames(&self)"));
+    assert!(
+        menu_sync.contains("let outer_shell_frames = self.template_bridge.outer_shell_frames();")
+    );
+    assert!(pointer_builder.contains("BuiltinHostOuterShellFrames"));
+    assert!(pointer_builder.contains("menu_bar_frame"));
+    assert!(
+        !workbench_layout_frames.contains("menu_bar_frame"),
+        "componentized Workbench layout frames must not grow an outer menu-bar owner"
+    );
 }
 
 #[test]

@@ -20,6 +20,7 @@ impl ViewportOverlayRenderer {
             scene_bind_group,
             &self.line_pipeline,
             prepared.selection_buffer.as_ref(),
+            frame.render_region(),
         );
         self.wireframe.record(
             encoder,
@@ -48,6 +49,7 @@ impl ViewportOverlayRenderer {
             &self.line_pipeline,
             prepared.scene_gizmo.line_buffer.as_ref(),
             &prepared.scene_gizmo.icon_draws,
+            frame.render_region(),
         );
         self.handle.record(
             encoder,
@@ -56,6 +58,7 @@ impl ViewportOverlayRenderer {
             scene_bind_group,
             &self.line_pipeline,
             prepared.handle_buffer.as_ref(),
+            frame.render_region(),
         );
     }
 }

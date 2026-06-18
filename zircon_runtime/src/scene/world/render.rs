@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
-    sort_render_cameras, DebugOverlayExtract, FallbackSkyboxKind, GeometryExtract,
-    GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
+    sort_render_cameras, CameraRenderDescriptor, DebugOverlayExtract, FallbackSkyboxKind,
+    GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
     PostProcessVolumeExtract, PreviewEnvironmentExtract, ProjectionMode,
     RenderAmbientLightSnapshot, RenderCameraOrderInput, RenderCameraOrderReport,
     RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFrameExtract,
@@ -46,9 +46,15 @@ impl World {
     }
 
     pub fn render_camera_order_report(&self) -> RenderCameraOrderReport {
-        sort_render_cameras(self.cameras.iter().map(|(entity, _)| {
-            RenderCameraOrderInput::new(*entity, self.build_render_camera_for_entity(*entity))
-        }))
+        sort_render_cameras(
+            self.scene_camera_descriptors()
+                .into_iter()
+                .filter_map(|camera| {
+                    camera
+                        .entity
+                        .map(|entity| RenderCameraOrderInput::from_descriptor(entity, camera))
+                }),
+        )
     }
 
     pub(crate) fn build_prepared_viewport_render_packet(
@@ -56,8 +62,9 @@ impl World {
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
-        let (camera, _) = self.build_render_camera(request);
-        if !camera.is_active {
+        let (camera_descriptor, _) = self.build_render_camera(request);
+        let camera = camera_descriptor.camera.clone();
+        if !camera_descriptor.is_active() {
             return SceneViewportRenderPacket {
                 scene: empty_scene_geometry(camera),
                 overlays: RenderOverlayExtract {
@@ -69,7 +76,7 @@ impl World {
             };
         }
 
-        let camera_layers = camera.render_layers.clone();
+        let camera_layers = camera_descriptor.culling_mask.clone();
         let camera_position = camera.transform.translation;
         let mut meshes = self
             .mesh_renderers
@@ -116,18 +123,19 @@ impl World {
         request: &SceneViewportExtractRequest,
     ) -> RenderFrameExtract {
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
-        let (camera, scene_camera_entity) = self.build_render_camera(request);
-        let core_pipeline = camera.core_pipeline_kind();
-        let camera_layers = camera.render_layers.clone();
-        let view = self.build_render_view_extract(camera, scene_camera_entity);
+        let (camera_descriptor, scene_camera_entity) = self.build_render_camera(request);
+        let core_pipeline = camera_descriptor.camera.core_pipeline_kind();
+        let camera_layers = camera_descriptor.culling_mask.clone();
+        let view = self.build_render_view_extract(camera_descriptor, scene_camera_entity);
+        let extract_layers = self.render_extract_layers_for_view(&view);
         if !view.camera.is_active {
             return inactive_camera_frame_extract(world, view, request);
         }
         let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs(
-            &camera_layers,
+            &extract_layers,
             view.camera.transform.translation,
         );
-        let sprites = self.collect_render_sprites(&camera_layers);
+        let sprites = self.collect_render_sprites(&extract_layers);
         let particles =
             self.collect_render_particles(&camera_layers, view.camera.transform.translation);
         let ambient_lights = self.collect_ambient_lights(&camera_layers);
@@ -523,10 +531,10 @@ impl World {
     fn build_render_camera(
         &self,
         request: &SceneViewportExtractRequest,
-    ) -> (ViewportCameraSnapshot, Option<crate::scene::EntityId>) {
+    ) -> (CameraRenderDescriptor, Option<crate::scene::EntityId>) {
         if let Some(mut camera) = request.camera.clone() {
             if let Some(viewport_size) = request.viewport_size {
-                camera.apply_viewport_size(viewport_size);
+                camera.apply_target_size(viewport_size);
             }
             return (camera, None);
         }
@@ -549,22 +557,39 @@ impl World {
             .cameras
             .get(&entity)
             .expect("camera override must refer to camera entity");
-        let mut camera = self.build_render_camera_for_component(entity, component);
+        let mut camera = self.build_render_camera_descriptor_for_component(entity, component);
         if request.settings.projection_mode != ProjectionMode::default() {
-            camera.projection_mode = request.settings.projection_mode;
+            camera.camera.projection_mode = request.settings.projection_mode;
         }
         if let Some(viewport_size) = request.viewport_size {
-            camera.apply_viewport_size(viewport_size);
+            camera.apply_target_size(viewport_size);
         }
         (camera, Some(entity))
     }
 
     fn build_render_view_extract(
         &self,
-        camera: ViewportCameraSnapshot,
+        camera: CameraRenderDescriptor,
         scene_camera_entity: Option<crate::scene::EntityId>,
     ) -> RenderViewExtract {
-        let view = RenderViewExtract::from_camera(camera);
+        let view = match scene_camera_entity {
+            Some(entity) => RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(
+                self.scene_camera_descriptors()
+                    .into_iter()
+                    .filter(CameraRenderDescriptor::is_active)
+                    .map(|descriptor| {
+                        if descriptor.entity == Some(entity) {
+                            camera.clone()
+                        } else {
+                            descriptor
+                        }
+                    })
+                    .collect(),
+            ),
+            None => {
+                RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(vec![camera])
+            }
+        };
         if let Some(entity) = scene_camera_entity {
             view.with_scene_camera_order_report(entity, self.render_camera_order_report())
         } else {
@@ -572,28 +597,69 @@ impl World {
         }
     }
 
+    fn render_extract_layers_for_view(&self, view: &RenderViewExtract) -> RenderLayerSet {
+        let selected_layers = view
+            .selected_camera_descriptor()
+            .map(|camera| camera.culling_mask.clone())
+            .unwrap_or_default();
+        view.cameras
+            .iter()
+            .filter(|camera| {
+                camera.entity == view.scene_camera_entity
+                    || !matches!(
+                        camera.target,
+                        crate::core::framework::render::RenderCameraTarget::PrimarySurface
+                    )
+            })
+            .fold(selected_layers, |layers, camera| {
+                layers.union(&camera.culling_mask)
+            })
+    }
+
     fn build_render_camera_for_entity(
         &self,
         entity: crate::scene::EntityId,
-    ) -> ViewportCameraSnapshot {
+    ) -> CameraRenderDescriptor {
         let component = self
             .cameras
             .get(&entity)
             .expect("camera order projection must refer to camera entity");
-        self.build_render_camera_for_component(entity, component)
+        self.build_render_camera_descriptor_for_component(entity, component)
     }
 
-    fn build_render_camera_for_component(
+    fn scene_camera_descriptors(&self) -> Vec<CameraRenderDescriptor> {
+        let mut cameras = self
+            .cameras
+            .keys()
+            .copied()
+            .map(|entity| self.build_render_camera_for_entity(entity))
+            .collect::<Vec<_>>();
+        cameras.sort_by(|left, right| {
+            (
+                left.render_order,
+                left.target_key(),
+                left.entity.unwrap_or(crate::scene::EntityId::MAX),
+            )
+                .cmp(&(
+                    right.render_order,
+                    right.target_key(),
+                    right.entity.unwrap_or(crate::scene::EntityId::MAX),
+                ))
+        });
+        cameras
+    }
+
+    fn build_render_camera_descriptor_for_component(
         &self,
         entity: crate::scene::EntityId,
         component: &crate::scene::components::CameraComponent,
-    ) -> ViewportCameraSnapshot {
+    ) -> CameraRenderDescriptor {
         let transform = self.world_transform(entity).unwrap_or_else(|| {
             self.find_node(entity)
                 .map(|node| node.transform)
                 .unwrap_or_default()
         });
-        let mut camera = ViewportCameraSnapshot {
+        let camera = ViewportCameraSnapshot {
             transform,
             projection_mode: component.projection_mode,
             fov_y_radians: component.fov_y_radians,
@@ -601,26 +667,38 @@ impl World {
             z_near: component.z_near,
             z_far: component.z_far,
             aspect_ratio: default_viewport_aspect_ratio(),
-            target: component.target.clone(),
-            viewport: component.viewport,
-            order: component.order,
             is_active: component.is_active && self.active_in_hierarchy(entity) == Some(true),
             hdr: component.hdr,
             exposure_ev100: component.exposure_ev100,
-            clear_color: component.clear_color,
             msaa_samples: component.msaa_samples,
-            render_layers: RenderLayerSet::from_legacy_mask(
+            ..ViewportCameraSnapshot::default()
+        };
+        let mut descriptor = CameraRenderDescriptor {
+            entity: Some(entity),
+            render_order: component.order,
+            target: component.target.clone(),
+            viewport_rect: component.viewport,
+            clear: component.clear_color.into(),
+            culling_mask: RenderLayerSet::from_legacy_mask(
                 self.render_layer_mask(entity)
                     .unwrap_or(default_render_layer_mask()),
             ),
-            ..ViewportCameraSnapshot::default()
+            volume_mask: RenderLayerSet::from_legacy_mask(
+                self.render_layer_mask(entity)
+                    .unwrap_or(default_render_layer_mask()),
+            ),
+            camera,
+            ..CameraRenderDescriptor::from_camera_payload(
+                Some(entity),
+                ViewportCameraSnapshot::default(),
+            )
         };
         if let crate::core::framework::render::RenderCameraTarget::Headless { size } =
-            &camera.target
+            &descriptor.target
         {
-            camera.apply_viewport_size(*size);
+            descriptor.apply_target_size(*size);
         }
-        camera
+        descriptor
     }
 }
 

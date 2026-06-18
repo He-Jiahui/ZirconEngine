@@ -21,6 +21,7 @@ impl ScenePostProcessResources {
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
         cluster_dimensions: UVec2,
+        scene_color_origin: [u32; 2],
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         motion_vector_neighbor_max_view: &wgpu::TextureView,
@@ -38,12 +39,17 @@ impl ScenePostProcessResources {
         global_illumination_view: &wgpu::TextureView,
         screen_space_reflection_history_view: &wgpu::TextureView,
         screen_space_reflection_specular_occlusion_view: &wgpu::TextureView,
+        baked_color_lut_view: Option<&wgpu::TextureView>,
         cluster_buffer: &wgpu::Buffer,
         exposure_buffer: &wgpu::Buffer,
         frame: &ViewportRenderFrame,
         streamer: &ResourceStreamer,
         features: SceneRuntimeFeatureFlags,
         history_available: bool,
+        skip_depth_of_field: bool,
+        skip_motion_blur: bool,
+        skip_blur: bool,
+        skip_scene_composite: bool,
     ) {
         let extract = &frame.extract;
         let reflection_probe_count = write_reflection_probes(
@@ -60,10 +66,15 @@ impl ScenePostProcessResources {
             viewport_size,
             features.hybrid_global_illumination_enabled,
         );
-        let effect_lut = select_effect_lut_texture_views(self, streamer, frame);
+        let effect_lut =
+            select_effect_lut_texture_views(self, streamer, frame, baked_color_lut_view);
+        let render_region = frame.render_region();
+        let local_viewport_size = frame.extract.view.effective_render_size();
         let mut params = build_post_process_params(
-            viewport_size,
+            local_viewport_size,
             cluster_dimensions,
+            render_region,
+            scene_color_origin,
             extract,
             features,
             history_available,
@@ -71,8 +82,30 @@ impl ScenePostProcessResources {
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
         );
+        if skip_depth_of_field {
+            params.effect_blur_dof[1] = 0.0;
+            params.effect_blur_dof[2] = 0.0;
+            params.effect_blur_dof[3] = 0.0;
+            params.effect_dof_lens = [0.0; 4];
+        }
+        if skip_blur {
+            params.effect_blur_dof[0] = 0.0;
+        }
+        if skip_motion_blur {
+            params.effect_motion_blur = [0.0; 4];
+        }
+        if skip_scene_composite {
+            params.effect_chromatic_fog[2] = 0.0;
+            params.effect_chromatic_fog[3] = 0.0;
+            params.effect_dither_ssr[2] = 0.0;
+        }
         params.effect_flags[1] = effect_lut.binding_mode.shader_id();
         queue_post_process_params(self, queue, &params);
+        let resolved_screen_space_reflection_history_view = if skip_scene_composite {
+            &self.black_texture_view
+        } else {
+            screen_space_reflection_history_view
+        };
 
         let bind_group = create_bind_group(
             self,
@@ -87,7 +120,7 @@ impl ScenePostProcessResources {
             previous_scene_color_view,
             previous_global_illumination_view,
             previous_screen_space_reflection_history_view,
-            Some(screen_space_reflection_history_view),
+            Some(resolved_screen_space_reflection_history_view),
             Some(screen_space_reflection_specular_occlusion_view),
             None,
             None,
@@ -123,6 +156,7 @@ enum EffectLutBindingMode {
     Texture2d,
     Texture2dStrip,
     Texture3d,
+    BakedColorLut3d,
 }
 
 impl EffectLutBindingMode {
@@ -132,6 +166,7 @@ impl EffectLutBindingMode {
             Self::Texture2d => 1,
             Self::Texture2dStrip => 2,
             Self::Texture3d => 3,
+            Self::BakedColorLut3d => 4,
         }
     }
 }
@@ -140,6 +175,7 @@ fn select_effect_lut_texture_views<'a>(
     resources: &'a ScenePostProcessResources,
     streamer: &'a ResourceStreamer,
     frame: &ViewportRenderFrame,
+    baked_color_lut_view: Option<&'a wgpu::TextureView>,
 ) -> EffectLutTextureViews<'a> {
     let settings = frame.extract.post_process.effect_stack.color_lookup;
     let fallback = EffectLutTextureViews {
@@ -152,35 +188,41 @@ fn select_effect_lut_texture_views<'a>(
         },
     };
 
-    let Some(texture_id) = settings
+    if let Some(texture_id) = settings
         .is_enabled()
         .then(|| settings.texture.map(|texture| texture.id()))
         .flatten()
-    else {
-        return fallback;
-    };
-
-    if let Some(texture_3d_view) =
-        streamer.prepared_post_process_lut_3d_view(texture_id, settings.texture_layout)
     {
+        if let Some(texture_3d_view) =
+            streamer.prepared_post_process_lut_3d_view(texture_id, settings.texture_layout)
+        {
+            return EffectLutTextureViews {
+                texture_2d_view: fallback.texture_2d_view,
+                texture_3d_view,
+                binding_mode: EffectLutBindingMode::Texture3d,
+            };
+        }
+
+        if let Some((texture_2d_view, is_strip)) =
+            streamer.prepared_post_process_lut_2d_view(texture_id, settings.texture_layout)
+        {
+            return EffectLutTextureViews {
+                texture_2d_view,
+                texture_3d_view: fallback.texture_3d_view,
+                binding_mode: if is_strip {
+                    EffectLutBindingMode::Texture2dStrip
+                } else {
+                    EffectLutBindingMode::Texture2d
+                },
+            };
+        }
+    }
+
+    if let Some(texture_3d_view) = baked_color_lut_view {
         return EffectLutTextureViews {
             texture_2d_view: fallback.texture_2d_view,
             texture_3d_view,
-            binding_mode: EffectLutBindingMode::Texture3d,
-        };
-    }
-
-    if let Some((texture_2d_view, is_strip)) =
-        streamer.prepared_post_process_lut_2d_view(texture_id, settings.texture_layout)
-    {
-        return EffectLutTextureViews {
-            texture_2d_view,
-            texture_3d_view: fallback.texture_3d_view,
-            binding_mode: if is_strip {
-                EffectLutBindingMode::Texture2dStrip
-            } else {
-                EffectLutBindingMode::Texture2d
-            },
+            binding_mode: EffectLutBindingMode::BakedColorLut3d,
         };
     }
 

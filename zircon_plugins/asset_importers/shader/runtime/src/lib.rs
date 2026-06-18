@@ -6,10 +6,17 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError,
-    plugin::RuntimePluginRegistrationReport, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy,
+    plugin::ExportTargetPlatform,
+    plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest,
+    plugin::ProjectPluginSelection,
+    plugin::RuntimeExtensionRegistry,
+    plugin::RuntimeExtensionRegistryError,
+    plugin::RuntimePluginRegistrationReport,
+};
+use zircon_runtime::builtin::{
+    RuntimeTargetMode,
 };
 
 pub const PLUGIN_ID: &str = "asset_importer.shader";

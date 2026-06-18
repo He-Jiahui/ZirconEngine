@@ -1,0 +1,61 @@
+use super::super::*;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use zircon_runtime::diagnostic_log::{
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+};
+
+impl RetainedEditorHost {
+    pub(super) fn submit_render_frame_if_dirty(&mut self) {
+        if !self.render_dirty {
+            return;
+        }
+
+        let pending_render = self
+            .invalidation
+            .consume_recompute_reasons(HostInvalidationMask::RENDER);
+        let render_reasons = if pending_render.is_empty() {
+            HostInvalidationMask::RENDER
+        } else {
+            pending_render
+        };
+        let render_rebuild = self.invalidation.record_render_rebuild();
+        record_current_ui_perf_counter(UiPerfCounter::RenderPathCount, 1.0);
+        self.publish_refresh_invalidation_diagnostics();
+        if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+            write_diagnostic_log(
+                "editor_host_invalidation",
+                format!(
+                    "render_path count={} reasons={} {}",
+                    render_rebuild,
+                    render_reasons.summary(),
+                    self.invalidation.stats_summary()
+                ),
+            );
+        }
+        let mut keep_render_dirty = false;
+        if let Some(submission) = self.runtime.render_frame_submission() {
+            zircon_runtime::profile_scope!("editor", "retained_host", "submit_viewport_extract");
+            match self.viewport.submit_extract_with_ui(
+                submission.extract,
+                submission.ui,
+                self.viewport_size,
+            ) {
+                Ok(true) => {}
+                Ok(false) => {
+                    keep_render_dirty = true;
+                }
+                Err(error) => {
+                    self.set_status_line(format!("Viewport submit failed: {error}"));
+                }
+            }
+        }
+        self.render_dirty = keep_render_dirty;
+        if keep_render_dirty {
+            // Lazy viewport backend startup completes off-thread; queue a
+            // non-reentrant frame update so the next redraw can submit the
+            // extract once the backend is ready.
+            let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
+            self.ui.request_frame_update_region(frame);
+        }
+    }
+}

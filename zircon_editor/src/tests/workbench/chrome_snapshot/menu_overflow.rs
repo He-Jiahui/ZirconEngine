@@ -57,6 +57,7 @@ fn empty_editor_data() -> EditorDataSnapshot {
         scene_entries: Vec::new(),
         inspector: None,
         status_line: "Ready".to_string(),
+        status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
         scene_viewport_settings: SceneViewportSettings::default(),

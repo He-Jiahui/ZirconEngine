@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::input::{
-    ButtonInputState, FileDragDropEvent, GamepadAxis, GamepadAxisState, GamepadButton,
-    GamepadButtonValueState, GamepadId, GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest,
-    ImePreedit, InputButton, InputEvent, InputEventRecord, MouseScrollUnit, MouseWheelEvent,
-    TouchPoint, WindowStatusEvent,
+    ButtonInputState, FileDragDropEvent, GamepadAxis, GamepadAxisState, GamepadAxisTransition,
+    GamepadButton, GamepadButtonValueState, GamepadId, GamepadRumbleRequest, ImeDeleteSurrounding,
+    ImeHostRequest, ImePreedit, InputButton, InputEvent, InputEventRecord, MouseScrollUnit,
+    MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 #[derive(Debug)]
@@ -20,6 +20,7 @@ pub(crate) struct InputState {
     pub(crate) active_touches: BTreeMap<u64, TouchPoint>,
     pub(crate) connected_gamepads: BTreeSet<GamepadId>,
     pub(crate) gamepad_axes: BTreeMap<(GamepadId, GamepadAxis), f32>,
+    pub(crate) gamepad_axis_transitions: Vec<GamepadAxisTransition>,
     pub(crate) gamepad_button_values: BTreeMap<(GamepadId, GamepadButton), f32>,
     pub(crate) gamepad_rumble_requests: Vec<GamepadRumbleRequest>,
     pub(crate) ime_enabled: bool,
@@ -48,6 +49,7 @@ impl Default for InputState {
             active_touches: BTreeMap::new(),
             connected_gamepads: BTreeSet::new(),
             gamepad_axes: BTreeMap::new(),
+            gamepad_axis_transitions: Vec::new(),
             gamepad_button_values: BTreeMap::new(),
             gamepad_rumble_requests: Vec::new(),
             ime_enabled: false,

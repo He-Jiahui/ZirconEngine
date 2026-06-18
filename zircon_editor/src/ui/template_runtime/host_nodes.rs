@@ -21,6 +21,7 @@ pub struct RetainedUiHostNodeProjection {
     pub clip_frame: Option<UiFrame>,
     pub z_index: i32,
     pub attributes: BTreeMap<String, Value>,
+    pub style_overrides: BTreeMap<String, Value>,
     pub style_tokens: BTreeMap<String, String>,
     pub bindings: Vec<RetainedUiHostBindingProjection>,
 }

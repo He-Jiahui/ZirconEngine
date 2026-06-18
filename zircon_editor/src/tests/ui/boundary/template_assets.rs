@@ -304,14 +304,7 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
                 "WorkbenchWindowMainBandRegion",
                 "WorkbenchWindowComponentDrawerRegion",
                 "WorkbenchWindowStatusBarRegion",
-            ],
-        ),
-        (
-            "assets/ui/editor/host/workbench_drawer_source.v2.ui.toml",
-            &[
-                "WorkbenchDrawerSource",
-                "BottomDrawerHeaderRoot",
-                "LeftDrawerPanelRoot",
+                "BottomDrawerShellRoot",
             ],
         ),
         (
@@ -340,6 +333,52 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
         let asset = source(relative);
         for &marker in *markers {
             assert!(asset.contains(marker), "{relative} missing `{marker}`");
+        }
+    }
+}
+
+#[test]
+fn workbench_drawer_frame_owners_live_in_real_component_assets() {
+    let workbench_window = source("assets/ui/editor/windows/workbench_window.v2.ui.toml");
+    for forbidden in [
+        "drawer_projection",
+        "WorkbenchDrawerSourceRoot",
+        "LeftDrawerPanelRoot",
+        "RightDrawerPanelRoot",
+        "BottomDrawerPanelRoot",
+        "BottomDrawerOuterSeparatorRoot",
+        "surface_variant = \"frame_only\"",
+    ] {
+        assert!(
+            !workbench_window.contains(forbidden),
+            "Workbench window should not retain embedded drawer projection marker `{forbidden}`"
+        );
+    }
+
+    for (relative, required) in [
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_main_band.zui",
+            &["LeftDrawerShellRoot", "RightDrawerShellRoot"][..],
+        ),
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui",
+            &["LeftDrawerHeaderRoot", "LeftDrawerContentRoot"][..],
+        ),
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui",
+            &["RightDrawerHeaderRoot", "RightDrawerContentRoot"][..],
+        ),
+        (
+            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
+            &["BottomDrawerHeaderRoot", "BottomDrawerContentRoot"][..],
+        ),
+    ] {
+        let asset = source(relative);
+        for marker in required {
+            assert!(
+                asset.contains(marker),
+                "drawer frame owner `{marker}` should live in real component asset `{relative}`"
+            );
         }
     }
 }
@@ -463,6 +502,7 @@ fn editor_v2_replacement_assets_do_not_keep_same_name_v1_sources() {
         "assets/ui/editor/host/runtime_diagnostics_body.ui.toml",
         "assets/ui/editor/host/scene_viewport_toolbar.ui.toml",
         "assets/ui/editor/host/startup_welcome_controls.ui.toml",
+        "assets/ui/editor/host/workbench_drawer_source.v2.ui.toml",
         "assets/ui/editor/host/workbench_drawer_source.ui.toml",
         "assets/ui/editor/host/workbench_shell.ui.toml",
         "assets/ui/editor/windows/asset_window.ui.toml",
@@ -496,7 +536,6 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
         "material_demo_window.v2.ui.toml",
         "material_component_lab.v2.ui.toml",
         "workbench_shell.v2.ui.toml",
-        "workbench_drawer_source.v2.ui.toml",
         "floating_window_source.v2.ui.toml",
         "scene_viewport_toolbar.v2.ui.toml",
         "console_body.v2.ui.toml",
@@ -521,10 +560,11 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     for component_only in [
         "activity_drawer_window.v2.ui.toml",
         "activity_drawer_window.zui",
+        "workbench_drawer_source.v2.ui.toml",
     ] {
         assert!(
             !registry.contains(component_only),
-            "activity drawer shell is a .zui component import, not a directly registered builtin document `{component_only}`"
+            "drawer source shell is embedded in Workbench window/component assets, not a directly registered builtin document `{component_only}`"
         );
     }
 

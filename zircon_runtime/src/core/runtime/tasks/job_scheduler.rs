@@ -101,6 +101,11 @@ impl JobScheduler {
         handle
     }
 
+    pub fn wait_all(&self, handles: &[JobHandle]) {
+        JobHandle::combine_with_scheduler_diagnostics(handles, Arc::clone(&self.diagnostics))
+            .wait();
+    }
+
     pub fn install<R: Send>(&self, task: impl FnOnce() -> R + Send) -> R {
         self.pool.install(task)
     }

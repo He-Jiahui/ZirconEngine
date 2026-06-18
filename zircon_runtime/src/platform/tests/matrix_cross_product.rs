@@ -33,17 +33,17 @@ const EXPECTED_REPORT_KEYS: &[&str] = &[
     "platform.linux_wayland",
 ];
 
-const TARGET_MODES: &[crate::RuntimeTargetMode] = &[
-    crate::RuntimeTargetMode::ClientRuntime,
-    crate::RuntimeTargetMode::ServerRuntime,
-    crate::RuntimeTargetMode::EditorHost,
+const TARGET_MODES: &[crate::builtin::RuntimeTargetMode] = &[
+    crate::builtin::RuntimeTargetMode::ClientRuntime,
+    crate::builtin::RuntimeTargetMode::ServerRuntime,
+    crate::builtin::RuntimeTargetMode::EditorHost,
 ];
 
-fn target_mode_as_str(mode: crate::RuntimeTargetMode) -> &'static str {
+fn target_mode_as_str(mode: crate::builtin::RuntimeTargetMode) -> &'static str {
     match mode {
-        crate::RuntimeTargetMode::ClientRuntime => "client_runtime",
-        crate::RuntimeTargetMode::ServerRuntime => "server_runtime",
-        crate::RuntimeTargetMode::EditorHost => "editor_host",
+        crate::builtin::RuntimeTargetMode::ClientRuntime => "client_runtime",
+        crate::builtin::RuntimeTargetMode::ServerRuntime => "server_runtime",
+        crate::builtin::RuntimeTargetMode::EditorHost => "editor_host",
     }
 }
 

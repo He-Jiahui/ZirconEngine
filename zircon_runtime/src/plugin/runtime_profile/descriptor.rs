@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    plugin::{PluginMaturity, ProjectPluginManifest, ProjectPluginSelection},
-    RuntimePluginId, RuntimeTargetMode,
-};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::plugin::{PluginMaturity, ProjectPluginManifest, ProjectPluginSelection};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

@@ -37,6 +37,7 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_ui --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed)
   - cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed, 1 passed)
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir target\codex-shared-b (2026-05-12 runtime package validator: passed build and test)
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-external-binding-contract-0617 --message-format short --color never (2026-06-17 render graph required External/root-surface direct-import follow-up: passed)
 doc_type: module-detail
 ---
 
@@ -72,3 +73,5 @@ This document captures the runtime-side structure rules introduced by the worksp
 - The workspace root manifest keeps only dependencies still used by root members; generated Slint build seams such as `slint-build` are not retained after the Rust-owned host cutover.
 - `graphics/mod.rs` stays a narrow runtime-facing export layer, not a deep implementation barrel.
 - Internal convenience flattening is tolerated only when it stays crate-private and does not re-create a public compatibility surface.
+
+The 2026-06-17 render graph required External binding slice also exercised this boundary. A scoped `zircon_runtime` core-min check exposed stale graphics-internal imports that still expected `zircon_runtime` crate-root exports such as `RenderPipelineAsset`, `CompiledRenderPipeline`, `FrameHistoryBinding`, and `VisibilityContext`. Those consumers now import through `crate::graphics::...` or the owning graphics submodule path directly, and `zircon_runtime/src/lib.rs` remains a structural crate root rather than restoring a graphics compatibility barrel.

@@ -1,8 +1,9 @@
 mod command_palette;
-mod drawer_source_projection;
-mod drawer_source_surface;
+mod context_menu;
 mod floating_window_source;
 mod layout_routes;
+mod notifications;
+mod status_bar;
 mod support;
 mod workbench_inspector_property_edit;
 mod workbench_module_navigation;

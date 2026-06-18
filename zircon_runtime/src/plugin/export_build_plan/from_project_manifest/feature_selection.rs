@@ -1,7 +1,5 @@
-use crate::{
-    plugin::{ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection},
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection};
 
 use super::super::project_manifest_validation::{
     project_plugin_feature_id_is_valid, project_plugin_package_id_is_valid,

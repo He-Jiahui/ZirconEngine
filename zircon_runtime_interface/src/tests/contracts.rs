@@ -480,11 +480,11 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
 }
 
 #[test]
-fn ui_surface_debug_snapshot_legacy_layout_report_recovers_fallback_reason_counts() {
+fn ui_surface_debug_snapshot_zircon_layout_report_recovers_fallback_reason_counts() {
     let selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
         &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-        &UiLayoutEngineCapability::legacy_zircon(),
+        &UiLayoutEngineCapability::zircon(),
     )
     .with_node_id(UiNodeId::new(41));
     let snapshot = UiSurfaceDebugSnapshot {

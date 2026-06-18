@@ -70,6 +70,21 @@ pub(super) fn find_by_component(
     Ok(ScriptHostValue::String(to_json_string(&entities)?))
 }
 
+pub(super) fn entity_exists(
+    context: &ScriptHostCallContext,
+) -> Result<ScriptHostValue, ScriptHostError> {
+    let entity = expect_entity(context, 0)?;
+    let runtime = current_script_runtime_call_context()?;
+    let exists = entity != 0
+        && runtime.level.with_world(|world| {
+            world
+                .node_records()
+                .into_iter()
+                .any(|node| node.id == entity)
+        });
+    Ok(ScriptHostValue::Bool(exists))
+}
+
 pub(super) fn nearest_by_script_property(
     context: &ScriptHostCallContext,
 ) -> Result<ScriptHostValue, ScriptHostError> {
@@ -171,4 +186,22 @@ pub(super) fn script_number(
             .unwrap_or(f64::from(fallback))
     });
     Ok(ScriptHostValue::Float(value))
+}
+
+pub(super) fn script_number_at_most(
+    context: &ScriptHostCallContext,
+) -> Result<ScriptHostValue, ScriptHostError> {
+    let entity = expect_entity(context, 0)?;
+    let property = expect_string(context, 1)?;
+    let threshold = expect_float(context, 2)?;
+    let fallback = expect_float(context, 3)?;
+    let runtime = current_script_runtime_call_context()?;
+    let matches = runtime.level.with_world(|world| {
+        let value = world
+            .dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT)
+            .and_then(|bindings| script_binding_number(bindings, &property))
+            .unwrap_or(f64::from(fallback));
+        value <= f64::from(threshold)
+    });
+    Ok(ScriptHostValue::Bool(matches))
 }

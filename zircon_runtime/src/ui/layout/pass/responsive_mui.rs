@@ -72,13 +72,14 @@ fn apply_responsive_visibility(
             .nodes
             .get_mut(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if node.visibility == next.visibility && node.state_flags.visible == next.legacy_visible {
+        if node.visibility == next.visibility && node.state_flags.visible == next.state_visible_flag
+        {
             continue;
         }
         let previous_effective = node.visibility.effective(node.state_flags.visible);
-        let next_effective = next.visibility.effective(next.legacy_visible);
+        let next_effective = next.visibility.effective(next.state_visible_flag);
         node.visibility = next.visibility;
-        node.state_flags.visible = next.legacy_visible;
+        node.state_flags.visible = next.state_visible_flag;
         node.state_flags.dirty = true;
         mark_node_visibility_dirty(
             node,
@@ -213,8 +214,9 @@ fn responsive_visibility_for_node(
     };
     let display = responsive_display_attribute(&metadata.attributes, viewport);
     let visibility = responsive_visibility_attribute(&metadata.attributes, viewport);
-    let legacy_visible = responsive_bool_attribute(&metadata.attributes, &["visible"], viewport);
-    if display.is_none() && visibility.is_none() && legacy_visible.is_none() {
+    let state_visible_flag =
+        responsive_bool_attribute(&metadata.attributes, &["visible"], viewport);
+    if display.is_none() && visibility.is_none() && state_visible_flag.is_none() {
         return Ok(None);
     }
 
@@ -225,14 +227,14 @@ fn responsive_visibility_for_node(
             node.visibility
         }
     });
-    let resolved_legacy_visible = legacy_visible.unwrap_or(node.state_flags.visible);
+    let resolved_state_visible_flag = state_visible_flag.unwrap_or(node.state_flags.visible);
     if matches!(display, Some(ResponsiveDisplay::None)) {
         resolved_visibility = UiVisibility::Collapsed;
     }
 
     Ok(Some(ResponsiveVisibility {
         visibility: resolved_visibility,
-        legacy_visible: resolved_legacy_visible,
+        state_visible_flag: resolved_state_visible_flag,
     }))
 }
 
@@ -634,7 +636,7 @@ fn mark_node_visibility_dirty(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ResponsiveVisibility {
     visibility: UiVisibility,
-    legacy_visible: bool,
+    state_visible_flag: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

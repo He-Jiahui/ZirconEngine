@@ -1,9 +1,6 @@
+#[cfg(test)]
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
-    resolve_root_document_region_frame, resolve_root_left_region_frame,
-    resolve_root_right_region_frame,
-};
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::workbench::autolayout::{ShellFrame, ShellRegionId, WorkbenchChromeMetrics};
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, TabInsertionAnchor, TabInsertionSide, WorkspaceTarget,
@@ -41,6 +38,7 @@ struct TabStripHitBox {
     tabs: Vec<StripTabEntry>,
 }
 
+#[cfg(test)]
 pub(super) fn precise_drop_target(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
@@ -50,7 +48,34 @@ pub(super) fn precise_drop_target(
     pointer_y: f32,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<ResolvedTabDrop> {
-    let strip = strip_hit_box(model, metrics, target_group, shared_root_frames)?;
+    let workbench_layout_frames =
+        test_workbench_layout_frames_from_root_frames(shared_root_frames, metrics);
+    precise_drop_target_with_workbench_layout_frames(
+        model,
+        metrics,
+        dragging_id,
+        target_group,
+        pointer_x,
+        pointer_y,
+        workbench_layout_frames,
+    )
+}
+
+pub(super) fn precise_drop_target_with_workbench_layout_frames(
+    model: &WorkbenchViewModel,
+    metrics: &WorkbenchChromeMetrics,
+    dragging_id: &str,
+    target_group: &str,
+    pointer_x: f32,
+    pointer_y: f32,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> Option<ResolvedTabDrop> {
+    let strip = strip_hit_box(
+        model,
+        metrics,
+        target_group,
+        componentized_workbench_layout_frames,
+    )?;
     if pointer_y < strip.y
         || pointer_y > strip.y + strip.height
         || pointer_x < strip.start_x
@@ -116,7 +141,7 @@ fn strip_hit_box(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     target_group: &str,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<TabStripHitBox> {
     match target_group {
         "left" => tool_strip_hit_box(
@@ -125,7 +150,7 @@ fn strip_hit_box(
             &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
             ShellRegionId::Left,
             true,
-            shared_root_frames,
+            componentized_workbench_layout_frames,
         ),
         "right" => tool_strip_hit_box(
             model,
@@ -136,10 +161,10 @@ fn strip_hit_box(
             ],
             ShellRegionId::Right,
             false,
-            shared_root_frames,
+            componentized_workbench_layout_frames,
         ),
-        "bottom" => bottom_strip_hit_box(model, metrics, shared_root_frames),
-        "document" => document_strip_hit_box(model, shared_root_frames),
+        "bottom" => bottom_strip_hit_box(model, metrics, componentized_workbench_layout_frames),
+        "document" => document_strip_hit_box(model, componentized_workbench_layout_frames),
         _ => None,
     }
 }
@@ -150,19 +175,13 @@ fn tool_strip_hit_box(
     slots: &[ActivityDrawerSlot],
     region: ShellRegionId,
     rail_on_left: bool,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(model, slots) {
         return None;
     }
 
-    let shared_frame = match region {
-        ShellRegionId::Left => resolve_root_left_region_frame(shared_root_frames),
-        ShellRegionId::Right => resolve_root_right_region_frame(shared_root_frames),
-        ShellRegionId::Bottom => resolve_root_bottom_region_frame(shared_root_frames),
-        ShellRegionId::Document => resolve_root_document_region_frame(shared_root_frames),
-    };
-    let frame = shared_frame;
+    let frame = layout_region_frame(componentized_workbench_layout_frames, region);
     if frame.width <= 0.0 {
         return None;
     }
@@ -205,13 +224,13 @@ fn tool_strip_hit_box(
 fn bottom_strip_hit_box(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<TabStripHitBox> {
     if !group_expanded(model, &[ActivityDrawerSlot::Bottom]) {
         return None;
     }
 
-    let frame = resolve_root_bottom_region_frame(shared_root_frames);
+    let frame = layout_region_frame(componentized_workbench_layout_frames, ShellRegionId::Bottom);
     if frame.width <= 0.0 || frame.height <= 0.0 {
         return None;
     }
@@ -243,10 +262,15 @@ fn bottom_strip_hit_box(
 
 fn document_strip_hit_box(
     model: &WorkbenchViewModel,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> Option<TabStripHitBox> {
-    let frame = resolve_direct_document_host_frame(shared_root_frames)
-        .unwrap_or_else(|| resolve_root_document_region_frame(shared_root_frames));
+    let document_tabs_frame = componentized_workbench_layout_frames
+        .document_tabs_frame
+        .filter(ui_frame_is_visible)
+        .map(shell_frame);
+    let frame = document_tabs_frame.or_else(|| {
+        visible_workbench_shell_frame(componentized_workbench_layout_frames.document_region_frame)
+    })?;
     if frame.width <= 0.0 {
         return None;
     }
@@ -259,17 +283,43 @@ fn document_strip_hit_box(
     if tabs.is_empty() {
         return None;
     }
-    let resolved_center_band_frame = resolve_root_center_band_frame(shared_root_frames);
+    let resolved_center_band_frame =
+        visible_workbench_shell_frame(componentized_workbench_layout_frames.center_band_frame)
+            .unwrap_or_default();
 
     Some(TabStripHitBox {
         style: StripStyle::Document,
         start_x: frame.x + 8.0,
         end_x: frame.right() - 8.0,
-        y: resolved_center_band_frame.y + 1.0,
-        height: 30.0,
+        y: document_tabs_frame
+            .map(|frame| frame.y)
+            .unwrap_or(resolved_center_band_frame.y + 1.0),
+        height: document_tabs_frame
+            .map(|frame| frame.height.max(0.0))
+            .unwrap_or(30.0),
         spacing: 2.0,
         tabs,
     })
+}
+
+fn layout_region_frame(
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    region: ShellRegionId,
+) -> ShellFrame {
+    let componentized_frame = match region {
+        ShellRegionId::Left => componentized_workbench_layout_frames.left_region_frame,
+        ShellRegionId::Right => componentized_workbench_layout_frames.right_region_frame,
+        ShellRegionId::Bottom => componentized_workbench_layout_frames.bottom_region_frame,
+        ShellRegionId::Document => componentized_workbench_layout_frames.document_region_frame,
+    };
+    componentized_frame
+        .filter(ui_frame_is_visible)
+        .map(shell_frame)
+        .unwrap_or_default()
+}
+
+fn visible_workbench_shell_frame(frame: Option<UiFrame>) -> Option<ShellFrame> {
+    frame.filter(ui_frame_is_visible).map(shell_frame)
 }
 
 fn strip_tab_from_pane(tab: &PaneTabModel, stack: &ToolWindowStackModel) -> StripTabEntry {
@@ -307,15 +357,39 @@ fn group_expanded(model: &WorkbenchViewModel, slots: &[ActivityDrawerSlot]) -> b
         })
 }
 
-fn resolve_direct_document_host_frame(
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
-) -> Option<ShellFrame> {
-    shared_root_frames
-        .and_then(|frames| frames.document_host_frame)
-        .map(shell_frame)
-        .filter(|frame| frame.width > 0.0 && frame.height > 0.0)
-}
-
 fn shell_frame(frame: UiFrame) -> ShellFrame {
     ShellFrame::new(frame.x, frame.y, frame.width, frame.height)
+}
+
+fn ui_frame_is_visible(frame: &UiFrame) -> bool {
+    frame.width > f32::EPSILON && frame.height > f32::EPSILON
+}
+
+#[cfg(test)]
+fn test_workbench_layout_frames_from_root_frames(
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    metrics: &WorkbenchChromeMetrics,
+) -> BuiltinWorkbenchWindowLayoutFrames {
+    let document_region_frame = shared_root_frames.and_then(|frames| frames.document_host_frame);
+    let document_tabs_frame = shared_root_frames
+        .and_then(|frames| frames.document_tabs_frame)
+        .or_else(|| {
+            document_region_frame
+                .filter(ui_frame_is_visible)
+                .map(|frame| {
+                    UiFrame::new(
+                        frame.x,
+                        frame.y,
+                        frame.width,
+                        metrics.document_header_height.max(0.0),
+                    )
+                })
+        });
+
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: shared_root_frames.and_then(|frames| frames.host_body_frame),
+        document_tabs_frame,
+        document_region_frame,
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
+    }
 }

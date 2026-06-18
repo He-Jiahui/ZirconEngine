@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::AssetImporterDescriptor;
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::framework::bridge::PluginInterface;
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
@@ -10,7 +11,6 @@ use crate::plugin::{
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_registration_report_rejects_package_manifest_id_mismatch() {

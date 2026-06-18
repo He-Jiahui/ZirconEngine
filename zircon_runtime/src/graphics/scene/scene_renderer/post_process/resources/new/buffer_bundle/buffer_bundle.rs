@@ -11,6 +11,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) str
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) exposure_params_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) color_lut_bake_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) default_exposure_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::new) default_exposure_histogram_buffer:

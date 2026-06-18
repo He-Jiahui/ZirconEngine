@@ -19,7 +19,6 @@ use zircon_runtime_interface::ui::{
     surface::{UiSurfaceDebugOptions, UiSurfaceDebugSnapshot},
 };
 
-const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
 const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "floating_window.source";
 
 #[test]
@@ -48,26 +47,6 @@ fn builtin_editor_host_templates_export_layout_engine_route_reports() {
     assert_workbench_shell_frames(&workbench);
     assert_pointer_route_authority(&mut workbench, "OpenProject");
     assert_route_report_exported(&workbench);
-
-    let drawer = shared_surface(
-        &runtime,
-        HOST_DRAWER_SOURCE_DOCUMENT_ID,
-        "editor.workbench.drawer_source",
-    );
-    assert_native_route(
-        &drawer,
-        "WorkbenchDrawerSourceRoot",
-        UiLayoutEngineFamily::Flex,
-    );
-    assert_native_route(
-        &drawer,
-        "WorkbenchDrawerCenterRowRoot",
-        UiLayoutEngineFamily::Flex,
-    );
-    assert_native_route(&drawer, "LeftDrawerShellRoot", UiLayoutEngineFamily::Flex);
-    assert_eq!(drawer.layout_engine_report.unsupported_count, 0);
-    assert_drawer_source_frames(&drawer);
-    assert_route_report_exported(&drawer);
 
     let floating = shared_surface(
         &runtime,
@@ -179,34 +158,6 @@ fn assert_workbench_shell_frames(surface: &UiSurface) {
     assert_no_workbench_reference_image_overlay(surface);
 }
 
-fn assert_drawer_source_frames(surface: &UiSurface) {
-    assert_control_frame(
-        surface,
-        "WorkbenchDrawerSourceRoot",
-        UiFrame::new(0.0, 0.0, 1280.0, 720.0),
-    );
-    assert_control_frame(
-        surface,
-        "WorkbenchDrawerTopBarRoot",
-        UiFrame::new(0.0, 0.0, 1280.0, 59.0),
-    );
-    assert_control_frame(
-        surface,
-        "WorkbenchDrawerCenterRowRoot",
-        UiFrame::new(0.0, 59.0, 1280.0, 637.0),
-    );
-    assert_control_frame(
-        surface,
-        "WorkbenchDrawerDocumentRoot",
-        UiFrame::new(0.0, 59.0, 1280.0, 637.0),
-    );
-    assert_control_frame(
-        surface,
-        "WorkbenchDrawerStatusBarRoot",
-        UiFrame::new(0.0, 696.0, 1280.0, 24.0),
-    );
-}
-
 fn assert_floating_window_source_frames(surface: &UiSurface) {
     assert_control_frame(
         surface,
@@ -281,7 +232,7 @@ fn assert_fallback_route(surface: &UiSurface, control_id: &str, family: UiLayout
         report.selections.iter().any(|selection| {
             selection.node_id == Some(node_id)
                 && selection.request.family == family
-                && selection.selected_backend == UiLayoutEngineBackend::LegacyZircon
+                && selection.selected_backend == UiLayoutEngineBackend::Zircon
                 && selection.support == UiLayoutEngineSupport::Fallback
                 && selection.fallback_reason
                     == Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -315,7 +266,7 @@ fn assert_route_report_counts_and_reasons(surface: &UiSurface) {
     let legacy_count = report
         .selections
         .iter()
-        .filter(|selection| selection.selected_backend == UiLayoutEngineBackend::LegacyZircon)
+        .filter(|selection| selection.selected_backend == UiLayoutEngineBackend::Zircon)
         .count() as u64;
     let fallback_count = report
         .selections
@@ -334,7 +285,7 @@ fn assert_route_report_counts_and_reasons(surface: &UiSurface) {
         "{report:#?}"
     );
     assert_eq!(report.taffy_selected_count, taffy_count, "{report:#?}");
-    assert_eq!(report.legacy_selected_count, legacy_count, "{report:#?}");
+    assert_eq!(report.zircon_selected_count, legacy_count, "{report:#?}");
     assert_eq!(report.fallback_count, fallback_count, "{report:#?}");
     assert_eq!(report.unsupported_count, unsupported_count, "{report:#?}");
     assert_eq!(
@@ -363,8 +314,8 @@ fn assert_route_report_counts_and_reasons(surface: &UiSurface) {
             UiLayoutEngineSupport::Fallback => {
                 assert_eq!(
                     selection.selected_backend,
-                    UiLayoutEngineBackend::LegacyZircon,
-                    "fallback route should select LegacyZircon explicitly: {selection:#?}"
+                    UiLayoutEngineBackend::Zircon,
+                    "fallback route should select Zircon explicitly: {selection:#?}"
                 );
                 assert!(
                     selection.fallback_reason.is_some(),

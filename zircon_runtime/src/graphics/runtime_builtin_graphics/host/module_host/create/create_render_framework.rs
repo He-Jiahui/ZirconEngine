@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use crate::core::framework::render::RenderFramework;
 use crate::core::CoreHandle;
+use crate::graphics::{GraphicsError, WgpuRenderFramework};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::{GraphicsError, WgpuRenderFramework};
 
 use super::resolve_project_asset_manager::resolve_project_asset_manager;
 
@@ -24,7 +24,7 @@ pub fn create_render_framework_with_render_features(
 ) -> Result<Arc<dyn RenderFramework>, GraphicsError> {
     let asset_manager = resolve_project_asset_manager(core)?;
     Ok(Arc::new(
-        WgpuRenderFramework::new_with_plugin_render_extensions_and_solari(
+        WgpuRenderFramework::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
             asset_manager,
             render_features,
             render_pass_executors,
@@ -32,6 +32,7 @@ pub fn create_render_framework_with_render_features(
             hybrid_gi_runtime_providers,
             solari_runtime_providers,
             virtual_geometry_runtime_providers,
+            core.task_pools().compute().clone(),
         )?,
     ))
 }

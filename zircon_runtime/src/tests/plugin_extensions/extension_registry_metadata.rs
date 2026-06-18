@@ -1,11 +1,11 @@
 use crate::asset::AssetImporterDescriptor;
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     ComponentTypeDescriptor, PluginEventCatalogManifest, PluginEventManifest, PluginOptionManifest,
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport, UiComponentDescriptor,
 };
 use crate::scene::ecs::{Resource, SystemStage};
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions() {

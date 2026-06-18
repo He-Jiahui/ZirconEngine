@@ -31,6 +31,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let viewport_size = params.viewport.xy;
     let coord = min(vec2<u32>(position.xy), viewport_size - vec2<u32>(1u, 1u));
     let center = vec2<i32>(coord);
+    let source_origin = vec2<i32>(params.viewport.zw);
     let stride = max(i32(round(params.tuning.z * 4.0)), 1);
     var bloom = vec3<f32>(0.0);
     var total_weight = 0.0;
@@ -42,7 +43,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
                 vec2<i32>(0, 0),
                 vec2<i32>(viewport_size) - vec2<i32>(1, 1)
             );
-            let sample_color = textureLoad(scene_color_tex, sample_coord, 0).rgb;
+            let sample_color = textureLoad(scene_color_tex, source_origin + sample_coord, 0).rgb;
             let bright = max(luminance(sample_color) - params.tuning.x, 0.0);
             let weight = 1.0 / (1.0 + f32(x * x + y * y));
             bloom += sample_color * bright * weight;

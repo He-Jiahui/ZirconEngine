@@ -1,7 +1,5 @@
-use crate::{
-    plugin::{PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest},
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleManifest};
 
 use super::rows::RenderingFeatureRow;
 

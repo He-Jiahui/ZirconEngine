@@ -9,7 +9,7 @@ pub(super) fn parse_module_contribution_line(
     name: &mut Option<String>,
     kind: &mut Option<zircon_runtime::plugin::PluginModuleKind>,
     crate_name: &mut Option<String>,
-    target_modes: &mut Vec<zircon_runtime::RuntimeTargetMode>,
+    target_modes: &mut Vec<zircon_runtime::builtin::RuntimeTargetMode>,
     capabilities: &mut Vec<String>,
 ) {
     dispatch::parse_module_contribution_line(

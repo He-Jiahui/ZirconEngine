@@ -7,7 +7,7 @@ fn linux_protocols_are_declared_independently() {
 
     let report = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::Linux,
-        crate::RuntimeTargetMode::ClientRuntime,
+        crate::builtin::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(

@@ -6,7 +6,7 @@ pub(super) fn update_temporal_camera_history_after_success(
     record: &mut ViewportRecord,
     frame: &ViewportRenderFrame,
 ) {
-    let mut camera = frame.extract.view.camera.clone();
+    let mut camera = frame.effective_camera();
     camera.temporal_jitter = Default::default();
     record.replace_motion_vector_camera(camera);
     record.advance_temporal_frame_index();
@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(record.temporal_frame_index(), 1);
         assert_eq!(
             record.motion_vector_camera().map(|camera| camera.transform),
-            Some(frame.extract.view.camera.transform)
+            Some(frame.effective_camera().transform)
         );
         assert_eq!(
             record

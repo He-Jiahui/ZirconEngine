@@ -1,9 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{
-    plugin::{PluginFeatureBundleManifest, PluginModuleKind, ProjectPluginSelection},
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{PluginFeatureBundleManifest, PluginModuleKind, ProjectPluginSelection};
 
 pub(super) fn owner_dependency_is_valid(feature: &PluginFeatureBundleManifest) -> bool {
     let primary_dependencies = feature

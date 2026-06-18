@@ -3,6 +3,8 @@ use super::types::{
     RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
     RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
 };
+use super::RenderGraphDump;
+use crate::rhi::{TextureDimension, TextureFormat, TextureResidency};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderPass {
@@ -42,6 +44,7 @@ pub struct CompiledRenderGraphTransientAllocation {
     pub kind: RenderGraphResourceKind,
     pub slot: usize,
     pub size_bytes: u64,
+    pub bucket_key_hash: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +52,7 @@ pub struct CompiledRenderGraphTransientSlotReservation {
     pub kind: RenderGraphResourceKind,
     pub slot: usize,
     pub bytes_reserved: u64,
+    pub bucket_key_hash: u64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -79,9 +83,32 @@ impl CompiledRenderGraphTransientAllocationPlan {
     }
 
     pub fn slot_bytes(&self, kind: RenderGraphResourceKind, slot: usize) -> Option<u64> {
+        let mut matched = self
+            .slot_reservations
+            .iter()
+            .filter(|reservation| reservation.kind == kind && reservation.slot == slot)
+            .peekable();
+        matched.peek()?;
+        Some(
+            matched
+                .map(|reservation| reservation.bytes_reserved)
+                .fold(0_u64, u64::saturating_add),
+        )
+    }
+
+    pub fn slot_bytes_for_bucket(
+        &self,
+        kind: RenderGraphResourceKind,
+        slot: usize,
+        bucket_key_hash: u64,
+    ) -> Option<u64> {
         self.slot_reservations
             .iter()
-            .find(|reservation| reservation.kind == kind && reservation.slot == slot)
+            .find(|reservation| {
+                reservation.kind == kind
+                    && reservation.slot == slot
+                    && reservation.bucket_key_hash == bucket_key_hash
+            })
             .map(|reservation| reservation.bytes_reserved)
     }
 
@@ -173,17 +200,18 @@ impl CompiledRenderGraph {
             .find(|lifetime| lifetime.name == name)
     }
 
+    pub fn dump(&self) -> RenderGraphDump {
+        RenderGraphDump::from_graph(self)
+    }
+
     pub fn transient_allocation_plan(&self) -> CompiledRenderGraphTransientAllocationPlan {
-        let mut allocations =
-            allocate_transient_lifetimes(self.resource_lifetimes.iter().filter(|lifetime| {
+        let mut allocations = allocate_transient_lifetimes_by_bucket(
+            self.resource_lifetimes.iter().filter(|lifetime| {
                 lifetime.kind == RenderGraphResourceKind::TransientTexture
                     && !lifetime.is_sparse_reserved_texture()
-            }));
-        let texture_slot_count = allocations
-            .iter()
-            .map(|allocation| allocation.slot + 1)
-            .max()
-            .unwrap_or(0);
+            }),
+            transient_texture_bucket_key,
+        );
         let sparse_texture_lifetimes = self
             .resource_lifetimes
             .iter()
@@ -199,19 +227,23 @@ impl CompiledRenderGraph {
             .copied()
             .map(resource_lifetime_size_bytes)
             .fold(0_u64, u64::saturating_add);
-        let mut buffer_allocations = allocate_transient_lifetimes(
+        let mut buffer_allocations = allocate_transient_lifetimes_by_bucket(
             self.resource_lifetimes
                 .iter()
                 .filter(|lifetime| lifetime.kind == RenderGraphResourceKind::TransientBuffer),
+            transient_buffer_bucket_key,
         );
-        let buffer_slot_count = buffer_allocations
-            .iter()
-            .map(|allocation| allocation.slot + 1)
-            .max()
-            .unwrap_or(0);
         allocations.append(&mut buffer_allocations);
         allocations.sort_by(|left, right| left.resource_name.cmp(&right.resource_name));
         let slot_reservations = slot_reservations_for(&allocations);
+        let texture_slot_count = slot_reservations
+            .iter()
+            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
+            .count();
+        let buffer_slot_count = slot_reservations
+            .iter()
+            .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientBuffer)
+            .count();
         let dense_texture_bytes_reserved = slot_reservations
             .iter()
             .filter(|reservation| reservation.kind == RenderGraphResourceKind::TransientTexture)
@@ -303,6 +335,7 @@ impl CompiledRenderGraph {
 
 fn allocate_transient_lifetimes<'a>(
     lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
+    bucket_key_hash: u64,
 ) -> Vec<CompiledRenderGraphTransientAllocation> {
     let mut lifetimes = lifetimes
         .filter(|lifetime| !lifetime.imported)
@@ -330,9 +363,43 @@ fn allocate_transient_lifetimes<'a>(
             kind: lifetime.kind,
             slot,
             size_bytes: resource_lifetime_size_bytes(lifetime),
+            bucket_key_hash,
         });
     }
 
+    allocations
+}
+
+fn allocate_transient_lifetimes_by_bucket<'a, F>(
+    lifetimes: impl Iterator<Item = &'a RenderGraphResourceLifetime>,
+    bucket_key_for: F,
+) -> Vec<CompiledRenderGraphTransientAllocation>
+where
+    F: Fn(&RenderGraphResourceLifetime) -> Option<TransientAllocationBucketKey>,
+{
+    let mut lifetimes_by_bucket = Vec::<(TransientAllocationBucketKey, Vec<_>)>::new();
+    for lifetime in lifetimes {
+        let Some(bucket_key) = bucket_key_for(lifetime) else {
+            continue;
+        };
+        if let Some((_, bucket_lifetimes)) = lifetimes_by_bucket
+            .iter_mut()
+            .find(|(existing_key, _)| existing_key == &bucket_key)
+        {
+            bucket_lifetimes.push(lifetime);
+        } else {
+            lifetimes_by_bucket.push((bucket_key, vec![lifetime]));
+        }
+    }
+    lifetimes_by_bucket.sort_by_key(|(bucket_key, _)| bucket_key.stable_hash());
+
+    let mut allocations = Vec::new();
+    for (bucket_key, lifetimes) in lifetimes_by_bucket {
+        allocations.extend(allocate_transient_lifetimes(
+            lifetimes.into_iter(),
+            bucket_key.stable_hash(),
+        ));
+    }
     allocations
 }
 
@@ -343,7 +410,9 @@ fn slot_reservations_for(
 
     for allocation in allocations {
         if let Some(reservation) = reservations.iter_mut().find(|reservation| {
-            reservation.kind == allocation.kind && reservation.slot == allocation.slot
+            reservation.kind == allocation.kind
+                && reservation.slot == allocation.slot
+                && reservation.bucket_key_hash == allocation.bucket_key_hash
         }) {
             reservation.bytes_reserved = reservation.bytes_reserved.max(allocation.size_bytes);
         } else {
@@ -351,6 +420,7 @@ fn slot_reservations_for(
                 kind: allocation.kind,
                 slot: allocation.slot,
                 bytes_reserved: allocation.size_bytes,
+                bucket_key_hash: allocation.bucket_key_hash,
             });
         }
     }
@@ -358,9 +428,107 @@ fn slot_reservations_for(
     reservations.sort_by(|left, right| {
         resource_kind_sort_key(left.kind)
             .cmp(&resource_kind_sort_key(right.kind))
+            .then_with(|| left.bucket_key_hash.cmp(&right.bucket_key_hash))
             .then_with(|| left.slot.cmp(&right.slot))
     });
     reservations
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum TransientAllocationBucketKey {
+    Texture {
+        width: u32,
+        height: u32,
+        depth: u32,
+        mip_levels: u32,
+        sample_count: u32,
+        format: TextureFormat,
+        dimension: TextureDimension,
+        residency: TextureResidency,
+        usage_bits: u32,
+    },
+    Buffer {
+        size_bytes: u64,
+        usage_bits: u32,
+    },
+}
+
+impl TransientAllocationBucketKey {
+    fn stable_hash(&self) -> u64 {
+        const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+        const FNV_PRIME: u64 = 0x100000001b3;
+
+        fn mix(hash: &mut u64, value: u64) {
+            *hash ^= value;
+            *hash = hash.wrapping_mul(FNV_PRIME);
+        }
+
+        let mut hash = FNV_OFFSET_BASIS;
+        match self {
+            Self::Texture {
+                width,
+                height,
+                depth,
+                mip_levels,
+                sample_count,
+                format,
+                dimension,
+                residency,
+                usage_bits,
+            } => {
+                mix(&mut hash, 1);
+                mix(&mut hash, u64::from(*width));
+                mix(&mut hash, u64::from(*height));
+                mix(&mut hash, u64::from(*depth));
+                mix(&mut hash, u64::from(*mip_levels));
+                mix(&mut hash, u64::from(*sample_count));
+                mix(&mut hash, texture_format_key(*format));
+                mix(&mut hash, texture_dimension_key(*dimension));
+                mix(&mut hash, texture_residency_key(*residency));
+                mix(&mut hash, u64::from(*usage_bits));
+            }
+            Self::Buffer {
+                size_bytes,
+                usage_bits,
+            } => {
+                mix(&mut hash, 2);
+                mix(&mut hash, *size_bytes);
+                mix(&mut hash, u64::from(*usage_bits));
+            }
+        }
+        hash
+    }
+}
+
+fn transient_texture_bucket_key(
+    lifetime: &RenderGraphResourceLifetime,
+) -> Option<TransientAllocationBucketKey> {
+    let RenderGraphResourceDesc::Texture(desc) = &lifetime.desc else {
+        return None;
+    };
+    Some(TransientAllocationBucketKey::Texture {
+        width: desc.width,
+        height: desc.height,
+        depth: desc.depth,
+        mip_levels: desc.mip_levels,
+        sample_count: desc.sample_count,
+        format: desc.format,
+        dimension: desc.dimension,
+        residency: desc.residency,
+        usage_bits: desc.usage.bits(),
+    })
+}
+
+fn transient_buffer_bucket_key(
+    lifetime: &RenderGraphResourceLifetime,
+) -> Option<TransientAllocationBucketKey> {
+    let RenderGraphResourceDesc::Buffer(desc) = &lifetime.desc else {
+        return None;
+    };
+    Some(TransientAllocationBucketKey::Buffer {
+        size_bytes: desc.size_bytes,
+        usage_bits: desc.usage.bits(),
+    })
 }
 
 fn resource_lifetime_size_bytes(lifetime: &RenderGraphResourceLifetime) -> u64 {
@@ -370,6 +538,42 @@ fn resource_lifetime_size_bytes(lifetime: &RenderGraphResourceLifetime) -> u64 {
         }
         RenderGraphResourceDesc::Buffer(desc) => desc.size_bytes,
         RenderGraphResourceDesc::External => 0,
+    }
+}
+
+fn texture_format_key(format: TextureFormat) -> u64 {
+    match format {
+        TextureFormat::R8Unorm => 1,
+        TextureFormat::R16Float => 2,
+        TextureFormat::R32Float => 3,
+        TextureFormat::Rg16Float => 4,
+        TextureFormat::Rg11b10Ufloat => 5,
+        TextureFormat::Rgba8Unorm => 6,
+        TextureFormat::Rgba8UnormSrgb => 7,
+        TextureFormat::Bgra8Unorm => 8,
+        TextureFormat::Bgra8UnormSrgb => 9,
+        TextureFormat::Rgba16Float => 10,
+        TextureFormat::Rgba32Float => 11,
+        TextureFormat::Depth24Plus => 12,
+        TextureFormat::Depth24PlusStencil8 => 13,
+        TextureFormat::Depth32Float => 14,
+    }
+}
+
+fn texture_dimension_key(dimension: TextureDimension) -> u64 {
+    match dimension {
+        TextureDimension::D1 => 1,
+        TextureDimension::D2 => 2,
+        TextureDimension::D2Array => 3,
+        TextureDimension::D3 => 4,
+        TextureDimension::Cube => 5,
+    }
+}
+
+fn texture_residency_key(residency: TextureResidency) -> u64 {
+    match residency {
+        TextureResidency::Dense => 1,
+        TextureResidency::SparseReserved => 2,
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::render_graph::{
-    QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
-    RenderGraphBuilder, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphError, RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDesc,
-    RenderGraphResourceKind,
+    PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
+    RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphComputeDispatchExtent,
+    RenderGraphComputeWorkload, RenderGraphDumpResourceDesc, RenderGraphError, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDesc, RenderGraphResourceKind,
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
@@ -314,6 +314,9 @@ fn graph_preserves_compute_workload_metadata() {
 
     let clustered = builder.add_pass("light-grid-build", QueueLane::AsyncCompute);
     builder
+        .mark_readback(RenderGraphResource::TransientBuffer(light_list))
+        .unwrap();
+    builder
         .set_compute_workload(
             clustered,
             RenderGraphComputeWorkload::cluster_grid("zircon-cluster-pipeline", [8, 8, 1]),
@@ -439,6 +442,15 @@ fn graph_resolves_resource_producers_after_manual_dependency_ordering() {
     let opaque = builder.add_pass("opaque", QueueLane::Graphics);
     builder.write_texture(opaque, color).unwrap();
     builder.read_texture(final_blit, color).unwrap();
+    builder
+        .set_pass_flags(
+            final_blit,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
     builder.add_dependency(opaque, final_blit).unwrap();
 
     let graph = builder.compile().unwrap();
@@ -548,6 +560,102 @@ fn graph_culls_unused_resource_writer_but_keeps_external_output_chain() {
         graph.resource_lifetime(live_color).unwrap().name.as_str(),
         "scene-color"
     );
+}
+
+#[test]
+fn render_graph_dump_lists_pass_order_resources_and_culled() {
+    let mut builder = RenderGraphBuilder::new("dump-contract");
+    let unused = builder.create_texture(TextureDesc::new(
+        "unused",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT,
+    ));
+    let color = builder.create_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_external_resource("viewport-output");
+
+    let unused_pass = builder.add_pass("unused-pass", QueueLane::Graphics);
+    let opaque = builder.add_pass("opaque", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(unused_pass, unused).unwrap();
+    builder.write_texture(opaque, color).unwrap();
+    builder.read_texture(present, color).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let dump = graph.dump();
+
+    assert_eq!(dump.graph_name, "dump-contract");
+    assert_eq!(
+        dump.pass_rows
+            .iter()
+            .map(|pass| (pass.order, pass.name.as_str(), pass.culled))
+            .collect::<Vec<_>>(),
+        vec![
+            (0, "unused-pass", true),
+            (1, "opaque", false),
+            (2, "present", false)
+        ]
+    );
+    let opaque_row = dump
+        .pass_rows
+        .iter()
+        .find(|pass| pass.name == "opaque")
+        .unwrap();
+    assert_eq!(opaque_row.resources.len(), 1);
+    assert_eq!(opaque_row.resources[0].name, "scene-color");
+    assert_eq!(
+        opaque_row.resources[0].access,
+        RenderGraphResourceAccessKind::Write
+    );
+
+    let color_row = dump
+        .resource_rows
+        .iter()
+        .find(|resource| resource.name == "scene-color")
+        .unwrap();
+    assert!(color_row.live);
+    assert_eq!(color_row.first_pass, Some(1));
+    assert_eq!(color_row.last_pass, Some(2));
+    assert_eq!(color_row.transient_slot, Some(0));
+    assert_eq!(color_row.size_bytes, Some(4096));
+    assert!(matches!(
+        color_row.desc,
+        RenderGraphDumpResourceDesc::Texture {
+            width: 32,
+            height: 32,
+            format: TextureFormat::Rgba8UnormSrgb,
+            ..
+        }
+    ));
+
+    let unused_row = dump
+        .resource_rows
+        .iter()
+        .find(|resource| resource.name == "unused")
+        .unwrap();
+    assert!(!unused_row.live);
+    assert_eq!(unused_row.transient_slot, None);
+
+    let text = dump.to_text();
+    assert!(text.contains("render_graph name=dump-contract"));
+    assert!(text.contains("pass[0] id=0 name=unused-pass"));
+    assert!(text.contains("culled=true"));
+    assert!(text.contains("resource name=scene-color"));
+    assert!(text.contains("lifetime=1..2"));
+    let transient_slot_line = text
+        .lines()
+        .find(|line| line.contains("slot kind=TransientTexture index=0 "))
+        .unwrap();
+    assert!(transient_slot_line.contains("bucket="));
+    assert!(transient_slot_line.contains("bytes_reserved=4096"));
 }
 
 #[test]
@@ -691,8 +799,8 @@ fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
     let graph = builder.compile().unwrap();
     let plan = graph.transient_allocation_plan();
 
-    assert_eq!(plan.texture_slot_count, 1);
-    assert_eq!(plan.buffer_slot_count, 1);
+    assert_eq!(plan.texture_slot_count, 2);
+    assert_eq!(plan.buffer_slot_count, 2);
     assert_eq!(plan.sparse_texture_slot_count, 1);
     assert_eq!(plan.slot_for("large-color"), Some(0));
     assert_eq!(plan.slot_for("small-color"), Some(0));
@@ -701,16 +809,76 @@ fn graph_transient_allocation_plan_reports_slot_reserved_bytes() {
     assert_eq!(plan.slot_for("sparse-pages"), None);
     assert_eq!(plan.size_bytes_for("large-color"), Some(1024));
     assert_eq!(plan.size_bytes_for("small-color"), Some(256));
+    let large_color_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "large-color")
+        .unwrap();
+    let small_color_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "small-color")
+        .unwrap();
+    let small_buffer_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "small-buffer")
+        .unwrap();
+    let large_buffer_allocation = plan
+        .allocations
+        .iter()
+        .find(|allocation| allocation.resource_name == "large-buffer")
+        .unwrap();
+    assert_ne!(
+        large_color_allocation.bucket_key_hash,
+        small_color_allocation.bucket_key_hash
+    );
+    assert_ne!(
+        small_buffer_allocation.bucket_key_hash,
+        large_buffer_allocation.bucket_key_hash
+    );
     assert_eq!(
-        plan.slot_bytes(RenderGraphResourceKind::TransientTexture, 0),
+        plan.slot_bytes_for_bucket(
+            RenderGraphResourceKind::TransientTexture,
+            0,
+            large_color_allocation.bucket_key_hash,
+        ),
         Some(1024)
     );
     assert_eq!(
-        plan.slot_bytes(RenderGraphResourceKind::TransientBuffer, 0),
+        plan.slot_bytes_for_bucket(
+            RenderGraphResourceKind::TransientTexture,
+            0,
+            small_color_allocation.bucket_key_hash,
+        ),
+        Some(256)
+    );
+    assert_eq!(
+        plan.slot_bytes_for_bucket(
+            RenderGraphResourceKind::TransientBuffer,
+            0,
+            small_buffer_allocation.bucket_key_hash,
+        ),
+        Some(64)
+    );
+    assert_eq!(
+        plan.slot_bytes_for_bucket(
+            RenderGraphResourceKind::TransientBuffer,
+            0,
+            large_buffer_allocation.bucket_key_hash,
+        ),
         Some(128)
     );
-    assert_eq!(plan.dense_texture_bytes_reserved, 1024);
-    assert_eq!(plan.dense_buffer_bytes_reserved, 128);
-    assert_eq!(plan.total_dense_bytes_reserved(), 1152);
+    assert_eq!(
+        plan.slot_bytes(RenderGraphResourceKind::TransientTexture, 0),
+        Some(1280)
+    );
+    assert_eq!(
+        plan.slot_bytes(RenderGraphResourceKind::TransientBuffer, 0),
+        Some(192)
+    );
+    assert_eq!(plan.dense_texture_bytes_reserved, 1280);
+    assert_eq!(plan.dense_buffer_bytes_reserved, 192);
+    assert_eq!(plan.total_dense_bytes_reserved(), 1472);
     assert_eq!(plan.sparse_texture_virtual_bytes, 4096);
 }

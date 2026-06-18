@@ -2,12 +2,14 @@ use std::sync::{Mutex, MutexGuard};
 
 #[cfg(test)]
 use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::TaskPool;
 
 use super::super::render_framework_state::RenderFrameworkState;
 
 pub struct WgpuRenderFramework {
     pub(in crate::graphics::runtime::render_framework) state: Mutex<RenderFrameworkState>,
     pub(in crate::graphics::runtime::render_framework) operation_lock: Mutex<()>,
+    pub(in crate::graphics::runtime::render_framework) compute_task_pool: TaskPool,
 }
 
 impl WgpuRenderFramework {

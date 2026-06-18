@@ -4,7 +4,7 @@ pub(super) use crate::core::editor_operation::{EditorOperationDescriptor, Editor
 pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 pub(super) use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 pub(super) use crate::ui::retained_host::callback_dispatch::{
-    dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinHostRootShellFrames,
+    dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinHostOuterShellFrames,
     BuiltinHostWindowTemplateBridge,
 };
 pub(super) use crate::ui::retained_host::menu_pointer::{

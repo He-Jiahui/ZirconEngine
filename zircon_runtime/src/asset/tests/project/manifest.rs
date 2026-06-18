@@ -2,10 +2,11 @@ use std::fs;
 
 use crate::asset::project::{ProjectManifest, ProjectPaths, ProjectScriptManifest};
 use crate::asset::AssetUri;
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::{
     plugin::ExportBuildMode, plugin::ExportBuildPlan, plugin::ExportPackagingStrategy,
     plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginSelection,
-    plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
+    plugin::RuntimeProfileId,
 };
 
 use super::unique_temp_project_root;

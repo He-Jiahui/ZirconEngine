@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::core::framework::render::PostProcessStackDescriptor;
 use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequirement};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPipelineCompileOptions {
     pub enabled_features: BTreeSet<BuiltinRenderFeature>,
     pub disabled_features: BTreeSet<BuiltinRenderFeature>,

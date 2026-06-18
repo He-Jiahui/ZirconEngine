@@ -9,7 +9,7 @@ use super::SceneUniform;
 
 impl SceneUniform {
     pub(crate) fn from_frame(frame: &ViewportRenderFrame) -> Self {
-        let camera = frame.camera();
+        let camera = frame.effective_camera();
         let ambient_color = if frame.preview().lighting_enabled {
             authored_ambient_color(frame, RenderVec3::splat(0.2))
         } else {
@@ -17,13 +17,13 @@ impl SceneUniform {
         };
 
         let matrix_pair = ViewProjectionMatrixPair::from_camera(
-            camera,
+            &camera,
             frame.extract.view.effective_render_size(),
         );
         let view_proj = matrix_pair.clip_from_world_jittered;
         let view_proj_unjittered = matrix_pair.clip_from_world_unjittered;
         let (previous_view_proj_unjittered, motion_params) =
-            previous_motion_view_projection(frame, camera, view_proj_unjittered);
+            previous_motion_view_projection(frame, &camera, view_proj_unjittered);
 
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
@@ -34,7 +34,7 @@ impl SceneUniform {
             ambient_color,
             previous_view_proj_unjittered,
             motion_params,
-            jitter_params: jitter_params(camera),
+            jitter_params: jitter_params(&camera),
         }
     }
 }
@@ -195,8 +195,8 @@ mod tests {
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(100, 50));
 
         let uniform = SceneUniform::from_frame(&frame);
-        let matrix_pair =
-            ViewProjectionMatrixPair::from_camera(frame.camera(), UVec2::new(100, 50));
+        let camera = frame.effective_camera();
+        let matrix_pair = ViewProjectionMatrixPair::from_camera(&camera, UVec2::new(100, 50));
 
         assert_eq!(
             uniform.inverse_view_proj,

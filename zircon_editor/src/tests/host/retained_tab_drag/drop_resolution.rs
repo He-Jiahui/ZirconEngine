@@ -250,7 +250,7 @@ fn resolve_tab_drop_targets_specific_right_tab_slot_and_inserts_before_it() {
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_tab_drop_with_root_frames(
+        resolve_tab_drop_with_workbench_layout_frames(
             &layout,
             &model,
             &WorkbenchChromeMetrics::default(),
@@ -258,10 +258,7 @@ fn resolve_tab_drop_targets_specific_right_tab_slot_and_inserts_before_it() {
             "right",
             pointer_x,
             pointer_y,
-            Some(&root_frames_from_geometry_with_drawers(
-                &geometry,
-                &[ShellRegionId::Right],
-            )),
+            workbench_layout_frames_from_geometry_with_drawers(&geometry, &[ShellRegionId::Right],),
         ),
         Some(ResolvedTabDrop {
             host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),

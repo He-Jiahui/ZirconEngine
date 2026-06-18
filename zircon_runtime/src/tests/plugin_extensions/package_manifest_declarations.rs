@@ -1,4 +1,5 @@
 use crate::asset::AssetImporterDescriptor;
+use crate::builtin::RuntimeTargetMode;
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
@@ -6,7 +7,6 @@ use crate::plugin::{
     PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
     PluginPackageKind, PluginPackageManifest, UiComponentDescriptor,
 };
-use crate::RuntimeTargetMode;
 
 #[test]
 fn plugin_package_manifest_declares_runtime_and_editor_contributions() {

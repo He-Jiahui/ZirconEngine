@@ -345,7 +345,7 @@ fn taffy_flex_slot_policy_fallback_feeds_render_hit_and_pointer_dispatch() {
     assert_eq!(root_selection.request.family, UiLayoutEngineFamily::Flex);
     assert_eq!(
         root_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(root_selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
@@ -564,7 +564,7 @@ fn zircon_size_box_fallback_feeds_render_hit_and_pointer_dispatch() {
     );
     assert_eq!(
         root_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(root_selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(

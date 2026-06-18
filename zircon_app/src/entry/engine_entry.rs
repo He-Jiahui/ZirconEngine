@@ -1,6 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::framework::window::{
     WindowDescriptor, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
@@ -13,7 +14,6 @@ use zircon_runtime::platform::{
 use zircon_runtime::plugin::{
     RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState, RuntimeProfileId,
 };
-use zircon_runtime::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };

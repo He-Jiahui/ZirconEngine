@@ -6,12 +6,15 @@ use crate::core::framework::render::{
     AntiAliasFallbackReport, AntiAliasMode, CapturedFrame, FrameHistoryHandle,
     FrameHistoryInvalidationReason, FrameHistoryStatus, MotionVectorCameraStatus,
     RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderGpuSceneUploadPath,
-    RenderGraphExecutionCoverageReport, RenderGraphExecutionResourceReport,
-    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
-    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderPostProcessEffectStackReport,
-    RenderQualityProfile, RenderQueueCapability, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderVirtualGeometryClusterSelectionInputSource,
-    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryHardwareRasterizationSource,
+    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
+    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
+    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderPostProcessEffectStackReport, RenderQualityProfile, RenderQueueCapability, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPayloadSource,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
@@ -213,12 +216,61 @@ impl RenderFramework for FakeRenderFramework {
             last_graph_execution_resource_report: RenderGraphExecutionResourceReport::new(
                 18, 14, 4, 3,
             )
-            .with_transient_pool_report(RenderGraphTransientPoolReport::new(
-                6, 5, 7, 2, 3, 4, 1, 8, 9,
-            )),
+            .with_transient_pool_report(
+                RenderGraphTransientPoolReport::new(6, 5, 7, 2, 3, 4, 1, 8, 9)
+                    .with_retained_bytes(4_096, 512)
+                    .with_budget_bytes(1_048_576, 65_536)
+                    .with_budget_evictions(10, 11),
+            ),
+            last_graph_materialization_report: RenderGraphMaterializationReport {
+                required_texture_count: 4,
+                bound_texture_count: 4,
+                missing_texture_count: 0,
+                required_buffer_count: 3,
+                bound_buffer_count: 3,
+                missing_buffer_count: 0,
+                required_external_count: 2,
+                bound_required_external_count: 2,
+                missing_required_external_count: 0,
+                report_only_external_count: 3,
+                bound_report_only_external_count: 2,
+                missing_report_only_external_count: 1,
+                stale_texture_binding_count: 0,
+                stale_buffer_binding_count: 0,
+                sparse_texture_reservation_count: 1,
+            },
+            last_graph_execution_alias_report: RenderGraphExecutionAliasReport::new(
+                vec![
+                    RenderGraphExecutionAliasRecord::new("hzb-furthest", "hzb-furthest"),
+                    RenderGraphExecutionAliasRecord::new(
+                        "scene-color",
+                        "rg-transient-texture-bucket-0123456789abcdef-slot-0",
+                    ),
+                    RenderGraphExecutionAliasRecord::new(
+                        "scene-normal",
+                        "rg-transient-texture-bucket-0123456789abcdef-slot-0",
+                    ),
+                ],
+                vec![
+                    RenderGraphExecutionAliasRecord::new("light-list", "light-list"),
+                    RenderGraphExecutionAliasRecord::new(
+                        "mesh.compacted-args",
+                        "rg-transient-buffer-bucket-fedcba9876543210-slot-0",
+                    ),
+                    RenderGraphExecutionAliasRecord::new(
+                        "mesh.indirect-args",
+                        "rg-transient-buffer-bucket-fedcba9876543210-slot-0",
+                    ),
+                ],
+            ),
             last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport::new(
                 14, 14, 14, 0, 0, 0,
             ),
+            last_graph_execution_profile_report: RenderGraphExecutionProfileReport::new(vec![
+                RenderGraphPassProfileRecord::new("depth-prepass", "mesh.depth", 150),
+                RenderGraphPassProfileRecord::new("lighting", "lighting.light-grid", 275),
+                RenderGraphPassProfileRecord::new("post-stack", "post.uber", 0),
+            ]),
             last_graph_stage_execution_report: RenderGraphStageExecutionReport::new(14, 1, 7, 6, 0),
             last_post_process_graph_node_count: 5,
             last_post_process_graph_skipped_node_count: 1,
@@ -282,7 +334,8 @@ impl RenderFramework for FakeRenderFramework {
                 AntiAliasMode::Taa,
                 AntiAliasMode::Fxaa,
                 AntiAliasFallbackReason::MissingHistory,
-            ),
+            )
+            .with_graph_sample_counts(4, 1),
             last_anti_alias_graph_executed_pass_count: 1,
             last_virtual_geometry_graph_executed_pass_count: 2,
             last_hybrid_gi_graph_executed_pass_count: 3,
@@ -574,6 +627,29 @@ pub(super) fn assert_render_byte_series(
         "unexpected current value for {path}"
     );
     assert_eq!(series.unit.as_deref(), Some("bytes"));
+    assert!(series.subsystem_tags.contains(&"render".to_string()));
+    for expected_tag in expected_tags {
+        assert!(series.subsystem_tags.contains(&expected_tag.to_string()));
+    }
+}
+
+pub(super) fn assert_render_microsecond_series(
+    store: &crate::core::diagnostics::DiagnosticStoreSnapshot,
+    path: &str,
+    expected: f64,
+    expected_tags: &[&str],
+) {
+    let series = store
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+        .unwrap_or_else(|| panic!("missing diagnostic series {path}"));
+    assert_eq!(
+        series.current,
+        Some(expected),
+        "unexpected current value for {path}"
+    );
+    assert_eq!(series.unit.as_deref(), Some("microseconds"));
     assert!(series.subsystem_tags.contains(&"render".to_string()));
     for expected_tag in expected_tags {
         assert!(series.subsystem_tags.contains(&expected_tag.to_string()));

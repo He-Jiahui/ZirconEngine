@@ -2,11 +2,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::plugin::ExportPackagingStrategy;
 use crate::plugin::{
     CapabilityStatus, PluginFeatureBundleManifest, PluginModuleKind, PluginPackageManifest,
     RuntimePluginDescriptor,
 };
-use crate::{plugin::ExportPackagingStrategy, RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn builtin_rendering_catalog_declares_owner_features_and_defaults() {

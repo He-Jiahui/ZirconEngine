@@ -1,6 +1,7 @@
 mod state;
 
-use crate::{plugin::PluginModuleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginModuleManifest;
 
 use self::state::new_runtime_plugin_module_target_mode_row_state;
 use super::row::validate_runtime_plugin_module_target_mode_row;

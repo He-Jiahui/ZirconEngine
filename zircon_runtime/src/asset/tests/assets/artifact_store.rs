@@ -15,9 +15,9 @@ use crate::asset::{
     DataAssetFormat, ImportedAsset, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices,
     SceneAsset, SceneCameraAsset, SceneCameraTargetAsset, SceneColliderAsset,
     SceneColliderShapeAsset, SceneEntityAsset, SceneJointAsset, SceneJointKindAsset,
-    SceneMobilityAsset, SceneScriptBindingAsset, ShaderAsset, ShaderMaterialPropertyAsset,
-    ShaderSourceLanguage, TextureAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    SceneMobilityAsset, SceneScriptBindingAsset, ShaderAsset, ShaderImportRedirectAsset,
+    ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, TextureAsset,
+    TransformAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
@@ -631,7 +631,16 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: Vec::new(),
-        imports: Vec::new(),
+        imports: vec![
+            ShaderImportRedirectAsset {
+                source: "zircon::lighting".to_string(),
+                redirect: Some(asset_reference("res://shaders/shared_lighting")),
+            },
+            ShaderImportRedirectAsset {
+                source: "naga_oil::math".to_string(),
+                redirect: None,
+            },
+        ],
         shader_defs: vec![
             RenderShaderDefinitionValue::uint("ALPHA_CLIP", 1),
             RenderShaderDefinitionValue::bool("USE_FOG", false),
@@ -657,7 +666,28 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
                 editor: BTreeMap::from([("slot".to_string(), "normal".to_string())]),
             },
         ],
-        texture_slots: Vec::new(),
+        texture_slots: vec![
+            ShaderTextureSlotAsset {
+                name: "base_color".to_string(),
+                kind: "texture2d".to_string(),
+                required: false,
+                default: Some("white".to_string()),
+                sampler: Some("linear_repeat".to_string()),
+                group: Some("Surface".to_string()),
+                label: Some("Base Color Texture".to_string()),
+                editor: BTreeMap::from([("slot".to_string(), "base_color".to_string())]),
+            },
+            ShaderTextureSlotAsset {
+                name: "mask".to_string(),
+                kind: "texture2d".to_string(),
+                required: false,
+                default: None,
+                sampler: None,
+                group: None,
+                label: None,
+                editor: BTreeMap::new(),
+            },
+        ],
         editor: editor_metadata,
         pipeline_layout: Default::default(),
         validation_diagnostics: vec!["authoring note".to_string()],

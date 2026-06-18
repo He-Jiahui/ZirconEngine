@@ -4,6 +4,7 @@ use super::support::*;
 use crate::ui::template_runtime::{RetainedUiHostModel, RetainedUiHostNodeProjection};
 
 const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
+const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
@@ -227,6 +228,54 @@ fn surface_backed_host_model_preserves_component_state_attributes_for_semantics(
 }
 
 #[test]
+fn surface_backed_retained_projection_exposes_style_overrides_as_effective_properties() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut projection = runtime
+        .project_document(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .unwrap();
+    let mut service = EditorUiControlService::default();
+    runtime
+        .register_projection_routes(&mut service, &mut projection)
+        .unwrap();
+    let mut surface = runtime
+        .build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .unwrap();
+    surface.compute_layout(UiSize::new(1672.0, 941.0)).unwrap();
+
+    let host_model = runtime
+        .build_host_model_with_surface(&projection, &surface)
+        .unwrap();
+    let retained_projection = RetainedUiHostAdapter::build_projection(&host_model);
+
+    let host_gizmo = host_model
+        .node_by_control_id("WorkbenchViewportGizmoX")
+        .unwrap();
+    assert_eq!(
+        host_gizmo
+            .style_overrides
+            .get("foreground_color")
+            .and_then(Value::as_str),
+        Some("#ef493f")
+    );
+    assert_eq!(
+        host_gizmo
+            .attributes
+            .get("foreground_color")
+            .and_then(Value::as_str),
+        Some("#d8e3e7")
+    );
+
+    let retained_gizmo = retained_projection
+        .node_by_control_id("WorkbenchViewportGizmoX")
+        .unwrap();
+    assert_eq!(
+        retained_gizmo.properties.get("foreground_color"),
+        Some(&RetainedUiHostValue::String("#ef493f".to_string()))
+    );
+}
+
+#[test]
 fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -374,6 +423,7 @@ fn retained_host_node(
         clip_frame: None,
         z_index: 0,
         attributes,
+        style_overrides: BTreeMap::new(),
         style_tokens: BTreeMap::new(),
         bindings: Vec::new(),
     }

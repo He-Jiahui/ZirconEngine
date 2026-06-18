@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
+use crate::plugin::native::NativeHostBridgeCallScope;
 use crate::plugin::{
-    NativeHostBridgeCallScope, PluginModuleKind, RuntimePluginBridgeLifecycleEvent,
-    RuntimePluginBridgeLifecycleOutcome,
+    PluginModuleKind, RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
 };
 
 use super::super::super::runtime_plugin::{

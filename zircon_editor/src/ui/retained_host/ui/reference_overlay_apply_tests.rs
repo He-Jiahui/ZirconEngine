@@ -58,9 +58,10 @@ fn apply_presentation_carries_componentized_workbench_window_nodes_separately() 
     assert_eq!(primary.role.as_str(), "Button");
     assert_eq!(primary.text.as_str(), "Primary");
     assert_eq!(primary.dispatch_kind.as_str(), "workbench");
+    assert_eq!(primary.action_id.as_str(), "component_lab.button.primary");
     assert!(
-        primary.action_id.as_str().starts_with("ComponentLab/"),
-        "workbench controls should carry their template binding ids"
+        primary.binding_id.as_str().starts_with("ComponentLab/"),
+        "workbench controls should carry their authored template binding ids"
     );
     let selected_table_row = find_workbench_window_node(&presentation, "WorkbenchTableSelected")
         .expect("component drawer selected table row should be present");
@@ -172,7 +173,7 @@ fn apply_template_projection_from_host_template_bridge(ui: &UiHostWindow) {
         &build_export,
         Some(template_bridge.host_projection()),
         None,
-        Some(&root_frames),
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
         None,
     );
@@ -219,7 +220,7 @@ fn apply_template_projection_from_workbench_window_projection(
         &build_export,
         None,
         Some(workbench_window_projection),
-        None,
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
         None,
     );

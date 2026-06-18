@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
   - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
@@ -44,6 +45,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
   - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
@@ -78,6 +80,8 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_resolution_reports_camera_msaa_sample_count_normalization
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::unsupported_terminal_aa_reports_slot_normalization
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::render_quality_profile_preserves_taa_quality_preset
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
@@ -124,7 +128,7 @@ The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/l
 
 `TaaQualityPreset::{Low, Medium, High}` is intentionally framework-owned rather than shader-owned. `RenderQualityProfile::with_taa_quality(...)` lets product profiles select the preset, and `build_frame_submission_context(...)` applies that profile value before resolving the effective AA mode. The renderer-side `TaaResolveParams` maps the preset to uniform values, so changing the preset does not rebuild the TAA pipeline.
 
-`AntiAliasFallbackReport` records `requested_mode`, `effective_mode`, the preserved TAA quality preset, and an optional `AntiAliasFallbackReason`. `Auto` resolving to FXAA is reported as `AutoResolvedToFxaa`, while unsupported SMAA/CAS/DLSS, unsupported MSAA sample counts, unsupported TAA, missing TAA history, and unsupported FXAA each have distinct reasons.
+`AntiAliasFallbackReport` records `requested_mode`, `effective_mode`, the preserved TAA quality preset, and an optional `AntiAliasFallbackReason`. `Auto` resolving to FXAA is reported as `AutoResolvedToFxaa`, while unsupported SMAA/CAS/DLSS, unsupported MSAA sample counts, unsupported TAA, missing TAA history, and unsupported FXAA each have distinct reasons. PP-M4 extends the report with the requested/effective render-graph sample counts plus normalization flags. This makes TAA suppressing camera MSAA and unsupported terminal AA families falling back to FXAA/Off visible without changing camera or asset schemas.
 
 ## Capability Resolution
 
@@ -154,18 +158,20 @@ The concrete shader gets an `anti_alias` uniform lane. When enabled, it samples 
 `RenderStats` reports:
 
 - `last_anti_alias_fallback`
+- `last_graph_requested_msaa_sample_count`
+- `last_graph_effective_msaa_sample_count`
 - `last_anti_alias_graph_executed_pass_count`
 
-The fallback report proves what the renderer actually used for the submitted frame. The graph count proves the FXAA executor participated in the product graph. Existing postprocess stats also expose the `fxaa` node in `last_post_process_graph_executed_nodes` when the effective graph enables FXAA.
+The fallback report proves what the renderer actually used for the submitted frame. The graph sample counts prove whether the graph kept or normalized the requested MSAA count. Runtime diagnostics mirror the normalization state under `render.anti_alias.normalization.*`, including `graph_sample_count`, `taa_msaa_conflict`, and `terminal_slot`. The graph pass count proves the FXAA/TAA executor participated in the product graph. Existing postprocess stats also expose the `fxaa` node in `last_post_process_graph_executed_nodes` when the effective graph enables FXAA.
 
 ## Bevy Gap Classification
 
 | Bevy AA family | Zircon product state | Completion requirement |
 | --- | --- | --- |
 | FXAA | Concrete DefaultRender path. `Auto` resolves to FXAA when the backend supports offscreen rendering, and the post-process graph records the `fxaa` node. | Add Bevy-style sensitivity controls if user-facing tuning becomes part of the profile surface. |
-| MSAA | Named through `AntiAliasMode::Msaa { samples }` and camera MSAA projection, but current capability reports max supported samples as `1`. Unsupported counts degrade through `AntiAliasFallbackReport`. | Add multisampled render targets, resolve/writeback policy, and sorted-camera writeback behavior before claiming Bevy parity. |
-| SMAA | Named but unsupported. It degrades to FXAA or Off with `UnsupportedSmaa`. | Add three-pass temporary resources, LUT handling, presets, and Core2d/Core3d graph nodes. |
-| TAA | Named and now carries `TaaQualityPreset`; offscreen-capable WGPU backends report `supports_taa`, explicit TAA enters `temporal.taa-resolve`, and TAA scene-color history is owned by `TemporalHistoryStore`. Missing store availability and unsupported temporal capability remain distinct fallback reasons. | Finish authored reactive masks, MSAA/dynamic-resolution conflict diagnostics, product convergence/disocclusion captures, and RenderDoc evidence before claiming product parity. |
+| MSAA | Named through `AntiAliasMode::Msaa { samples }` and camera MSAA projection, but current capability reports max supported samples as `1`. Unsupported counts degrade through `AntiAliasFallbackReport`, and graph sample-count normalization is now reported explicitly. | Add multisampled render targets, resolve/writeback policy, and sorted-camera writeback behavior before claiming Bevy parity. |
+| SMAA | Named but unsupported. It degrades to FXAA or Off with `UnsupportedSmaa`, and the terminal AA slot normalization flag records that the unsupported terminal mode was not accepted as-is. | Add three-pass temporary resources, LUT handling, presets, and Core2d/Core3d graph nodes. |
+| TAA | Named and now carries `TaaQualityPreset`; offscreen-capable WGPU backends report `supports_taa`, explicit TAA enters `temporal.taa-resolve`, and TAA scene-color history is owned by `TemporalHistoryStore`. Missing store availability and unsupported temporal capability remain distinct fallback reasons. TAA plus a camera MSAA sample request is now reported as graph sample-count normalization. | Finish authored reactive masks, dynamic-resolution conflict diagnostics, product convergence/disocclusion captures, and RenderDoc evidence before claiming product parity. |
 | CAS | Named but unsupported. It degrades with `UnsupportedCas`. | Add camera-facing sharpening settings and schedule CAS after the chosen screen-space AA pass. |
 | DLSS | Named but unsupported and treated as optional capability-gated provider work. | Add explicit backend/provider capability checks before exposing it as anything other than a degraded optional mode. |
 
@@ -178,7 +184,7 @@ M10.6 uses this document as the anti-alias side of the post-process/AA breadth g
 | FXAA | Concrete graph pass and submit stats exist for DefaultRender. | Keep it as the accepted screen-space fallback and add sensitivity controls only when they become user-facing product settings. |
 | MSAA | Camera MSAA requests are projected into `AntiAliasMode::Msaa`, but capability summary reports only one sample today. | Add multisampled render targets, resolve/writeback policy, sorted-camera writeback diagnostics, and interaction rules with TAA before accepting MSAA parity. |
 | SMAA | `AntiAliasMode::Smaa` names the family and degrades with `UnsupportedSmaa`. | Add three graph passes, temporary edge/blend textures, area/search LUT handling, quality presets, missing-LUT diagnostics, and Core2d/Core3d pass-order tests. |
-| TAA | `AntiAliasMode::Taa` names the family, preserves `TaaQualityPreset`, distinguishes missing history-store availability from unsupported temporal capability, and has a Plan 06 WGPU resolve path plus `TemporalHistoryStore` on offscreen-capable WGPU backends. The 2026-06-15 audit found no recoverable in-repo pre-jitter hash artifact, so the current Off-path product parity test is the repository-local baseline. | Finish MSAA/dynamic-resolution conflict diagnostics, product acceptance captures, and RenderDoc review; add an external historical hash only if that artifact becomes available. |
+| TAA | `AntiAliasMode::Taa` names the family, preserves `TaaQualityPreset`, distinguishes missing history-store availability from unsupported temporal capability, and has a Plan 06 WGPU resolve path plus `TemporalHistoryStore` on offscreen-capable WGPU backends. TAA/MSAA graph normalization diagnostics are present; the 2026-06-15 audit found no recoverable in-repo pre-jitter hash artifact, so the current Off-path product parity test is the repository-local baseline. | Finish dynamic-resolution conflict diagnostics, product acceptance captures, and RenderDoc review; add an external historical hash only if that artifact becomes available. |
 | CAS | `AntiAliasMode::Cas` names the family and degrades with `UnsupportedCas`. | Add camera-facing sharpening settings, denoise mode, a graph node after the chosen AA pass, and pass-order diagnostics. |
 | DLSS | `AntiAliasMode::Dlss` names an optional provider-backed family and degrades with `UnsupportedDlss`. | Keep it capability/provider gated; do not expose it as accepted behavior without backend/provider checks and fallback diagnostics. |
 

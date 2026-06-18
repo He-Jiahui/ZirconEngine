@@ -1,7 +1,7 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::{FrameHistoryBinding, FrameHistorySlot};
 use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
-use crate::{FrameHistoryBinding, FrameHistorySlot};
 
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
@@ -32,6 +32,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
-        .write_storage_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
+        .write_storage_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)],
     )
 }

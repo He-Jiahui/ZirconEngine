@@ -18,7 +18,7 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::primitives::render_vec4_or;
 use super::super::super::mesh_draw::VirtualGeometrySubmissionDetail;
-use super::super::super::mesh_draw::{MeshDraw, MeshDrawGeometrySource};
+use super::super::super::mesh_draw::{MeshCommandSortInput, MeshDraw, MeshDrawGeometrySource};
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
@@ -98,7 +98,8 @@ pub(crate) fn build_mesh_draws(
             streamer,
             frame,
             &build_context,
-            mesh_instance,
+            mesh_instance.snapshot,
+            mesh_instance.command_sort_input,
         );
     }
     let mut packed_lights =
@@ -276,7 +277,8 @@ pub(crate) fn build_mesh_draws(
                     .with_gpu_scene_instance_span(
                         gpu_scene_instance_span.0,
                         gpu_scene_instance_span.1,
-                    );
+                    )
+                    .with_command_sort_input(pending_draw.command_sort_input);
                     if let Some(visibility) =
                         visibility_states.get(&pending_draw.source_entity).copied()
                     {
@@ -575,39 +577,99 @@ fn skinned_gpu_source_geometry_source(source: &PendingSkinnedGpuSource) -> MeshD
     }
 }
 
+#[derive(Clone, Copy)]
+struct PhaseOrderedMeshSnapshot<'a> {
+    snapshot: &'a RenderMeshSnapshot,
+    command_sort_input: MeshCommandSortInput,
+}
+
 fn phase_ordered_meshes<'a>(
     frame: &'a ViewportRenderFrame,
     streamer: &ResourceStreamer,
-) -> Vec<&'a RenderMeshSnapshot> {
+) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
     phase_ordered_meshes_with_material_offsets(frame, |mesh| material_sort_offsets(streamer, mesh))
 }
 
 fn phase_ordered_meshes_with_material_offsets<'a>(
     frame: &'a ViewportRenderFrame,
     material_sort_offsets: impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
-) -> Vec<&'a RenderMeshSnapshot> {
+) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
     let phase_queue = &frame.extract.geometry.phase_queue;
     if phase_queue.items.is_empty() {
-        return frame.meshes().iter().collect();
+        return frame
+            .meshes()
+            .iter()
+            .map(|mesh| PhaseOrderedMeshSnapshot {
+                snapshot: mesh,
+                command_sort_input: MeshCommandSortInput::new(
+                    mesh.transform.translation.z,
+                    mesh.node_id,
+                ),
+            })
+            .collect();
     }
 
-    let material_adjusted_phase_queue = material_adjusted_phase_queue(frame, material_sort_offsets)
-        .unwrap_or_else(|| frame.extract.geometry.phase_queue.clone());
-    meshes_from_phase_queue(frame, &material_adjusted_phase_queue)
+    let material_adjusted_phase_queue =
+        material_adjusted_phase_queue(frame, &material_sort_offsets)
+            .unwrap_or_else(|| frame.extract.geometry.phase_queue.clone());
+    meshes_from_phase_queue(
+        frame,
+        &material_adjusted_phase_queue,
+        &material_sort_offsets,
+    )
 }
 
 fn meshes_from_phase_queue<'a>(
     frame: &'a ViewportRenderFrame,
     phase_queue: &RenderPhaseQueue,
-) -> Vec<&'a RenderMeshSnapshot> {
+    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
+) -> Vec<PhaseOrderedMeshSnapshot<'a>> {
     phase_queue
         .items
         .iter()
         .filter_map(|item| match item.mesh_source {
-            RenderPhaseMeshSource::MeshIndex(index) => frame.meshes().get(index),
+            RenderPhaseMeshSource::MeshIndex(index) => {
+                let snapshot = frame.meshes().get(index)?;
+                let command_sort_input =
+                    command_sort_input_for_mesh_index(frame, index, material_sort_offsets)
+                        .unwrap_or_else(|| {
+                            MeshCommandSortInput::new(
+                                snapshot.transform.translation.z,
+                                snapshot.node_id,
+                            )
+                        });
+                Some(PhaseOrderedMeshSnapshot {
+                    snapshot,
+                    command_sort_input,
+                })
+            }
             RenderPhaseMeshSource::SpriteIndex(_) => None,
         })
         .collect()
+}
+
+fn command_sort_input_for_mesh_index(
+    frame: &ViewportRenderFrame,
+    mesh_index: usize,
+    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
+) -> Option<MeshCommandSortInput> {
+    let input = frame
+        .extract
+        .geometry
+        .phase_inputs
+        .iter()
+        .find(|input| input.mesh_index == mesh_index)?;
+    let mesh = frame.meshes().get(mesh_index)?;
+    let offsets = material_sort_offsets(mesh);
+    Some(MeshCommandSortInput {
+        depth: input.depth,
+        depth_bias: input.depth_bias + offsets.depth_bias,
+        render_queue: input.render_queue.saturating_add(offsets.render_queue),
+        material_queue: input.material_queue.saturating_add(offsets.material_queue),
+        order_in_layer: input.order_in_layer,
+        ui_z_index: input.ui_z_index,
+        tie_breaker: input.entity,
+    })
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -633,7 +695,7 @@ fn material_sort_offsets(
 
 fn material_adjusted_phase_queue(
     frame: &ViewportRenderFrame,
-    material_sort_offsets: impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
+    material_sort_offsets: &impl Fn(&RenderMeshSnapshot) -> MaterialPhaseSortOffsets,
 ) -> Option<RenderPhaseQueue> {
     let phase_inputs = frame.extract.geometry.phase_inputs.as_slice();
     (!phase_inputs.is_empty()).then(|| {
@@ -770,7 +832,7 @@ mod tests {
                 MaterialPhaseSortOffsets::default()
             })
             .into_iter()
-            .map(|mesh| mesh.node_id)
+            .map(|mesh| mesh.snapshot.node_id)
             .collect::<Vec<_>>(),
             vec![10, 20, 30]
         );
@@ -826,7 +888,7 @@ mod tests {
                 _ => MaterialPhaseSortOffsets::default(),
             })
             .into_iter()
-            .map(|mesh| mesh.node_id)
+            .map(|mesh| mesh.snapshot.node_id)
             .collect::<Vec<_>>(),
             vec![20, 30, 10]
         );
@@ -871,6 +933,7 @@ mod tests {
                     radius: 1.0,
                 },
             ],
+            render_layer_masks: vec![u32::MAX, u32::MAX],
             relevance: vec![opaque_shadow_relevance(), opaque_shadow_relevance()],
             relevance_generation: 0,
             views: vec![

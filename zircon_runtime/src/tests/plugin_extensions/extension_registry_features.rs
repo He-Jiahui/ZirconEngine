@@ -1,3 +1,4 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
@@ -6,7 +7,6 @@ use crate::plugin::{
     RuntimePluginDescriptor, RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
     RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins() {

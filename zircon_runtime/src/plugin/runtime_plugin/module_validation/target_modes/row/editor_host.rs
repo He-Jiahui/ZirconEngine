@@ -1,7 +1,5 @@
-use crate::{
-    plugin::{PluginModuleKind, PluginModuleManifest},
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{PluginModuleKind, PluginModuleManifest};
 
 pub(super) fn validate_runtime_plugin_module_editor_host_target_mode(
     manifest_label: &str,

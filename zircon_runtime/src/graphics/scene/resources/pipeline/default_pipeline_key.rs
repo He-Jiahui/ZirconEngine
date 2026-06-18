@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderMaterialLightingModel;
+use crate::core::framework::render::SHADING_MODEL_ID_STANDARD_PBR;
 use crate::core::resource::ResourceId;
 
 use super::super::fallback_shader_uri;
@@ -12,7 +12,7 @@ pub(crate) fn default_pipeline_key() -> PipelineKey {
         alpha_blend: false,
         alpha_mask: false,
         alpha_cutoff_bits: None,
-        lighting_model: RenderMaterialLightingModel::Pbr,
+        shading_model_id: SHADING_MODEL_ID_STANDARD_PBR,
         unlit: false,
         has_base_color_texture: false,
         has_normal_texture: false,

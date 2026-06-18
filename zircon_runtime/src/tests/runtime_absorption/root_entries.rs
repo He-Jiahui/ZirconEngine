@@ -346,14 +346,42 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
                 .unwrap_or_else(|name| panic!("non-utf8 navigation entry name: {name:?}"))
         })
         .collect::<std::collections::BTreeSet<_>>();
-    let expected_entries = ["mod.rs", "module.rs", "runtime.rs"]
+    let expected_entries = ["mod.rs", "module.rs", "runtime", "runtime.rs"]
         .into_iter()
         .map(String::from)
         .collect::<std::collections::BTreeSet<_>>();
 
     assert_eq!(
         actual_entries, expected_entries,
-        "runtime navigation fallback changed file shape; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
+        "runtime navigation fallback changed root file shape; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
+    );
+
+    let runtime_dir = navigation_dir.join("runtime");
+    let actual_runtime_entries = std::fs::read_dir(&runtime_dir)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", runtime_dir.display()))
+        .map(|entry| {
+            entry
+                .unwrap_or_else(|error| panic!("failed to read navigation runtime entry: {error}"))
+                .file_name()
+                .into_string()
+                .unwrap_or_else(|name| panic!("non-utf8 navigation runtime entry name: {name:?}"))
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    let expected_runtime_entries = [
+        "avoidance.rs",
+        "baked_mesh.rs",
+        "math.rs",
+        "state.rs",
+        "tests.rs",
+        "world_scan.rs",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(
+        actual_runtime_entries, expected_runtime_entries,
+        "runtime navigation fallback changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
     );
 
     let module_source = include_str!("../../navigation/module.rs");
@@ -367,6 +395,10 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
     for required_anchor in [
         "Runtime 14 Boundary Judgment",
         "built-in fallback implementation",
+        "folder-backed runtime owner split",
+        "runtime/avoidance.rs",
+        "runtime/baked_mesh.rs",
+        "runtime/world_scan.rs",
         "zircon_plugins/navigation",
         "runtime_navigation_boundary_file_set_requires_doc_update",
     ] {
@@ -560,8 +592,8 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
 
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (family, expected_count) in [
-        ("animation", 27usize),
-        ("navigation", 3),
+        ("animation", 28usize),
+        ("navigation", 9),
         ("diagnostic_log", 7),
         ("engine_module", 8),
     ] {
@@ -618,8 +650,8 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         for required_anchor in [
             "module_family_boundary",
             "expected_family_count = 4",
-            "animation = 27",
-            "navigation = 3",
+            "animation = 28",
+            "navigation = 9",
             "diagnostic_log = 7",
             "engine_module = 8",
             "root_seat_guard_present = true",

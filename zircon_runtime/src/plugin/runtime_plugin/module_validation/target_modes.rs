@@ -2,7 +2,8 @@ mod presence;
 mod row;
 mod rows;
 
-use crate::{plugin::PluginModuleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginModuleManifest;
 
 use self::{
     presence::validate_runtime_plugin_module_target_mode_presence,

@@ -12,6 +12,7 @@ use zircon_runtime_interface::{
     ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
+use crate::builtin::{runtime_modules_for_target, RuntimeTargetMode};
 use crate::core::diagnostics::collect_runtime_diagnostics;
 use crate::core::framework::input::InputManager;
 use crate::core::framework::render::RenderViewportSurfaceDescriptor;
@@ -24,7 +25,6 @@ use crate::diagnostic_log::{
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::NodeKind;
 use crate::scene::LevelSystem;
-use crate::{builtin::runtime_modules_for_target, RuntimeTargetMode};
 
 use super::camera_controller::RuntimeCameraController;
 use super::frame::{
@@ -36,6 +36,7 @@ use super::surface::render_surface_descriptor;
 
 mod events;
 mod extract;
+mod extract_cache;
 mod extract_stats;
 mod host_requests;
 mod hud;
@@ -294,6 +295,7 @@ struct RuntimeDynamicSession {
     level: LevelSystem,
     selected_node: Option<u64>,
     camera_controller: RuntimeCameraController,
+    extract_cache: extract_cache::RuntimeFrameExtractCache,
     cursor: Vec2,
     input_manager: Arc<dyn InputManager>,
 }
@@ -343,6 +345,7 @@ impl RuntimeDynamicSession {
         project_config: Option<RuntimeProjectConfig>,
     ) -> Result<Self, String> {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_dynamic_session_new");
+        crate::diagnostic_log::initialize_unity_process_log("runtime-dynamic");
         write_log(
             "runtime_session",
             format!(
@@ -514,6 +517,7 @@ impl RuntimeDynamicSession {
             level,
             selected_node,
             camera_controller,
+            extract_cache: Default::default(),
             cursor: Vec2::ZERO,
             input_manager,
         })

@@ -42,6 +42,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         chrome: &EditorChromeSnapshot,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.sync_status_bar(chrome)?;
         self.sync_scene_and_inspector(&chrome.scene_entries, chrome.inspector.as_ref())
     }
 

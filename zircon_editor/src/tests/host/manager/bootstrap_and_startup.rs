@@ -685,13 +685,17 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
     assert_eq!(recent.len(), 1);
     assert_eq!(recent[0].display_name, "RecentProject");
     assert_eq!(recent[0].validation, RecentProjectValidation::Valid);
-    assert_eq!(default_startup.mode, EditorSessionMode::Welcome);
+    assert_eq!(default_startup.mode, EditorSessionMode::Project);
+    assert!(default_startup.project.is_some());
+    assert!(default_startup.open_builtin_view.is_none());
+    assert_eq!(default_startup.recent_projects.len(), 1);
     assert_eq!(
-        default_startup.open_builtin_view.as_deref(),
-        Some("editor.ui_component_showcase")
+        default_startup.recent_projects[0].validation,
+        RecentProjectValidation::Valid
     );
-    assert!(default_startup.project.is_none());
-    assert!(default_startup.recent_projects.is_empty());
+    assert!(default_startup
+        .status_message
+        .contains("Restored recent project"));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -722,6 +726,94 @@ fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
     assert_eq!(
         opened.recent_projects[0].validation,
         RecentProjectValidation::Valid
+    );
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
+}
+
+#[test]
+fn startup_session_falls_back_to_welcome_when_last_project_is_missing() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_startup_missing_recent");
+    let project_root = unique_temp_dir("zircon_editor_missing_recent_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    manager.open_project_and_remember(&project_root).unwrap();
+    fs::remove_dir_all(&project_root).unwrap();
+
+    let session = manager.resolve_startup_session().unwrap();
+
+    assert_eq!(session.mode, EditorSessionMode::Welcome);
+    assert_eq!(
+        session.open_builtin_view.as_deref(),
+        Some("editor.ui_component_showcase")
+    );
+    assert!(session.project.is_none());
+    assert_eq!(session.recent_projects.len(), 1);
+    assert_eq!(
+        session.recent_projects[0].validation,
+        RecentProjectValidation::Missing
+    );
+    assert!(session
+        .status_message
+        .contains("Could not restore last project"));
+    assert!(session
+        .status_message
+        .contains("Opened UI Component Showcase"));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnostic() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_corrupt_workspace_fallback");
+    let project_root = unique_temp_dir("zircon_editor_corrupt_workspace_project");
+    let runtime = editor_runtime_with_config_path(&path);
+    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let custom_layout = empty_layout_with_page("global-layout");
+    config
+        .set_value(
+            "editor.workbench.default_layout",
+            serde_json::to_value(&custom_layout).unwrap(),
+        )
+        .unwrap();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+    let workspace_path = project_root.join(".zircon").join("editor-workspace.json");
+    fs::create_dir_all(workspace_path.parent().unwrap()).unwrap();
+    fs::write(&workspace_path, "{ this is not valid workspace json").unwrap();
+
+    let opened = manager.open_project_and_remember(&project_root).unwrap();
+    let project = opened.project.as_ref().expect("project should still open");
+
+    assert!(project.editor_workspace.is_none());
+    assert_eq!(project.workspace_restore_diagnostics.len(), 1);
+    assert!(opened
+        .status_message
+        .contains("Project opened with default layout"));
+    assert!(opened.status_message.contains("editor-workspace.json"));
+
+    manager
+        .apply_project_workspace(project.editor_workspace.clone())
+        .unwrap();
+    assert_eq!(
+        manager.current_layout().active_main_page,
+        MainPageId::new("global-layout")
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");

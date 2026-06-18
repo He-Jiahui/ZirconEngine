@@ -4,6 +4,7 @@ use crate::core::math::UVec2;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::types::ViewportRenderRegion;
 
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::scene_renderer_core::SceneRendererCore;
@@ -14,6 +15,7 @@ impl SceneRendererCore {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         target: &OffscreenTarget,
+        render_region: ViewportRenderRegion,
         graph_resources: &RenderGraphExecutionResources,
         history_textures: Option<&mut SceneFrameHistoryTextures>,
         runtime_features: SceneRuntimeFeatureFlags,
@@ -42,12 +44,13 @@ impl SceneRendererCore {
                 scene_color_copied = true;
             }
             if runtime_features.hybrid_global_illumination_enabled {
-                encoder.copy_texture_to_texture(
-                    target.global_illumination.as_image_copy(),
-                    history.global_illumination.as_image_copy(),
-                    texture_extent(target.size),
+                global_illumination_copied = copy_global_illumination_history(
+                    encoder,
+                    target,
+                    render_region,
+                    graph_resources,
+                    history,
                 );
-                global_illumination_copied = true;
             }
             if runtime_features.ssao_enabled {
                 encoder.copy_texture_to_texture(
@@ -92,6 +95,75 @@ impl SceneRendererCore {
     }
 }
 
+fn copy_global_illumination_history(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &OffscreenTarget,
+    render_region: ViewportRenderRegion,
+    graph_resources: &RenderGraphExecutionResources,
+    history: &SceneFrameHistoryTextures,
+) -> bool {
+    if let (Some(global_illumination), Some(desc)) = (
+        graph_resources.owned_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+        graph_resources.owned_texture_desc(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+    ) {
+        if let Some(extent) = history_region_copy_extent(
+            UVec2::new(desc.width, desc.height),
+            target.size,
+            render_region,
+        ) {
+            let mut destination = history.global_illumination.as_image_copy();
+            destination.origin = history_region_copy_origin(render_region);
+            encoder.copy_texture_to_texture(
+                global_illumination.as_image_copy(),
+                destination,
+                extent,
+            );
+            return true;
+        }
+    }
+
+    encoder.copy_texture_to_texture(
+        target.global_illumination.as_image_copy(),
+        history.global_illumination.as_image_copy(),
+        texture_extent(target.size),
+    );
+    true
+}
+
+fn history_region_copy_extent(
+    source_size: UVec2,
+    target_size: UVec2,
+    render_region: ViewportRenderRegion,
+) -> Option<wgpu::Extent3d> {
+    let origin = render_region.physical_position();
+    let region_size = render_region.physical_size();
+    let available_size = UVec2::new(
+        target_size.x.saturating_sub(origin.x).min(region_size.x),
+        target_size.y.saturating_sub(origin.y).min(region_size.y),
+    );
+    let copy_size = UVec2::new(
+        source_size.x.min(available_size.x),
+        source_size.y.min(available_size.y),
+    );
+    if copy_size.x == 0 || copy_size.y == 0 {
+        return None;
+    }
+    Some(wgpu::Extent3d {
+        width: copy_size.x,
+        height: copy_size.y,
+        depth_or_array_layers: 1,
+    })
+}
+
+fn history_region_copy_origin(render_region: ViewportRenderRegion) -> wgpu::Origin3d {
+    let origin = render_region.physical_position();
+    wgpu::Origin3d {
+        x: origin.x,
+        y: origin.y,
+        z: 0,
+    }
+}
+
 fn copy_hzb_furthest_mip_chain(
     encoder: &mut wgpu::CommandEncoder,
     graph_resources: &RenderGraphExecutionResources,
@@ -131,5 +203,62 @@ fn mip_extent(size: UVec2, mip_level: u32) -> wgpu::Extent3d {
         width: (size.x >> mip_level).max(1),
         height: (size.y >> mip_level).max(1),
         depth_or_array_layers: 1,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{
+        CameraRenderDescriptor, RenderViewportRect, ViewportCameraSnapshot,
+    };
+    use crate::core::math::UVec2;
+    use crate::graphics::types::ViewportRenderRegion;
+
+    use super::{history_region_copy_extent, history_region_copy_origin};
+
+    #[test]
+    fn history_region_copy_targets_selected_camera_region() {
+        let region = selected_camera_region(
+            UVec2::new(1280, 720),
+            UVec2::new(640, 0),
+            UVec2::new(640, 720),
+        );
+
+        let extent =
+            history_region_copy_extent(UVec2::new(640, 720), UVec2::new(1280, 720), region)
+                .expect("selected camera copy should fit target");
+        let origin = history_region_copy_origin(region);
+
+        assert_eq!(extent.width, 640);
+        assert_eq!(extent.height, 720);
+        assert_eq!(origin.x, 640);
+        assert_eq!(origin.y, 0);
+    }
+
+    #[test]
+    fn history_region_copy_clamps_dynamic_resolution_to_viewport_region() {
+        let region = selected_camera_region(
+            UVec2::new(1280, 720),
+            UVec2::new(960, 540),
+            UVec2::new(512, 512),
+        );
+
+        let extent =
+            history_region_copy_extent(UVec2::new(512, 512), UVec2::new(1280, 720), region)
+                .expect("partially clipped selected camera copy should retain visible area");
+
+        assert_eq!(extent.width, 320);
+        assert_eq!(extent.height, 180);
+    }
+
+    fn selected_camera_region(
+        target_size: UVec2,
+        position: UVec2,
+        size: UVec2,
+    ) -> ViewportRenderRegion {
+        let mut camera =
+            CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+        camera.viewport_rect = Some(RenderViewportRect::new(position, size));
+        ViewportRenderRegion::from_camera(Some(&camera), target_size)
     }
 }

@@ -1,4 +1,5 @@
-use zircon_runtime::{plugin::ExportPackagingStrategy, RuntimeTargetMode};
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::ExportPackagingStrategy;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorPluginStatus {

@@ -15,7 +15,8 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        self.sync_welcome_recent_pointer_layout();
+        let chrome = self.runtime.chrome_snapshot();
+        self.sync_welcome_recent_pointer_layout(&chrome);
         if !self.ensure_welcome_surface_bridge() {
             return;
         }

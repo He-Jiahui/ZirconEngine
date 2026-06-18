@@ -1,6 +1,6 @@
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
-    RendererDataDocumentError, RendererFeatureAsset,
+    RendererDataDocumentError, RendererFeatureAsset, RendererFeatureDocument,
 };
 
 #[test]
@@ -34,7 +34,7 @@ fn renderer_data_document_rejects_padded_quality_gate_names() {
         version: 1,
         name: "quality-gate-keys".to_string(),
         stages: vec!["PostProcess".to_string()],
-        features: vec![crate::RendererFeatureDocument {
+        features: vec![RendererFeatureDocument {
             name: "Bloom".to_string(),
             source: "Bloom".to_string(),
             enabled: true,

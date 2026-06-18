@@ -57,8 +57,8 @@ pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
             "zircon_plugin_sound_ray_traced_convolution_runtime",
         )
         .with_target_modes([
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ])
         .with_capabilities([RUNTIME_CAPABILITY.to_string()]),
     )

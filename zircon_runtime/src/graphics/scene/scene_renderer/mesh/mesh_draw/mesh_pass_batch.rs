@@ -9,13 +9,13 @@ use super::MeshDraw;
 impl MeshDraw {
     pub(crate) fn mesh_pass_batch_ref(
         &self,
-        sort_key: u64,
+        _sort_key: u64,
         source_draw_index: usize,
     ) -> MeshBatchRef {
         let batch = MeshBatchRef::new(
             self.queue_profile(),
             self.pipeline_key.clone(),
-            sort_key,
+            self.command_sort_input.components(),
             MeshGeometryHandle::new(arc_id(&self.mesh), self.mesh.clone()),
             self.mesh_draw_args(),
         )

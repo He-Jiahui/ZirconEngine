@@ -76,17 +76,26 @@ impl AntiAliasSettings {
         capabilities: &RenderCapabilitySummary,
         history_available: bool,
     ) -> AntiAliasFallbackReport {
-        match self.mode {
+        self.resolve_with_requested_graph_sample_count(
+            capabilities,
+            history_available,
+            self.mode.graph_sample_count(),
+        )
+    }
+
+    pub fn resolve_with_requested_graph_sample_count(
+        self,
+        capabilities: &RenderCapabilitySummary,
+        history_available: bool,
+        requested_graph_sample_count: u32,
+    ) -> AntiAliasFallbackReport {
+        let report = match self.mode {
             AntiAliasMode::Off => AntiAliasFallbackReport::exact(AntiAliasMode::Off),
             AntiAliasMode::Auto => resolve_auto(capabilities),
             AntiAliasMode::Fxaa => resolve_fxaa(capabilities),
             AntiAliasMode::Msaa { samples } => resolve_msaa(samples, capabilities),
             AntiAliasMode::Taa => resolve_taa(capabilities, history_available, self.taa_quality),
-            AntiAliasMode::Smaa => fallback_to_screen_space(
-                AntiAliasMode::Smaa,
-                AntiAliasFallbackReason::UnsupportedSmaa,
-                capabilities,
-            ),
+            AntiAliasMode::Smaa => resolve_smaa(capabilities),
             AntiAliasMode::Cas => fallback_to_screen_space(
                 AntiAliasMode::Cas,
                 AntiAliasFallbackReason::UnsupportedCas,
@@ -97,7 +106,11 @@ impl AntiAliasSettings {
                 AntiAliasFallbackReason::UnsupportedDlss,
                 capabilities,
             ),
-        }
+        };
+        report.with_graph_sample_counts(
+            requested_graph_sample_count.max(self.mode.graph_sample_count()),
+            report.effective_mode.graph_sample_count(),
+        )
     }
 }
 
@@ -113,6 +126,12 @@ fn resolve_auto(capabilities: &RenderCapabilitySummary) -> AntiAliasFallbackRepo
             AntiAliasMode::Auto,
             AntiAliasMode::Fxaa,
             AntiAliasFallbackReason::AutoResolvedToFxaa,
+        )
+    } else if capabilities.supports_smaa {
+        AntiAliasFallbackReport::fallback(
+            AntiAliasMode::Auto,
+            AntiAliasMode::Smaa,
+            AntiAliasFallbackReason::AutoResolvedToSmaa,
         )
     } else {
         AntiAliasFallbackReport::fallback(
@@ -131,6 +150,18 @@ fn resolve_fxaa(capabilities: &RenderCapabilitySummary) -> AntiAliasFallbackRepo
             AntiAliasMode::Fxaa,
             AntiAliasMode::Off,
             AntiAliasFallbackReason::UnsupportedFxaa,
+        )
+    }
+}
+
+fn resolve_smaa(capabilities: &RenderCapabilitySummary) -> AntiAliasFallbackReport {
+    if capabilities.supports_smaa {
+        AntiAliasFallbackReport::exact(AntiAliasMode::Smaa)
+    } else {
+        fallback_to_screen_space(
+            AntiAliasMode::Smaa,
+            AntiAliasFallbackReason::UnsupportedSmaa,
+            capabilities,
         )
     }
 }
@@ -193,6 +224,8 @@ fn fallback_to_screen_space_with_quality(
 ) -> AntiAliasFallbackReport {
     let effective_mode = if capabilities.supports_fxaa {
         AntiAliasMode::Fxaa
+    } else if capabilities.supports_smaa {
+        AntiAliasMode::Smaa
     } else {
         AntiAliasMode::Off
     };
@@ -233,5 +266,81 @@ mod tests {
             fallback.effective_settings().taa_quality,
             TaaQualityPreset::Low
         );
+    }
+
+    #[test]
+    fn taa_resolution_reports_camera_msaa_sample_count_normalization() {
+        let capabilities = RenderCapabilitySummary {
+            supports_taa: true,
+            supports_fxaa: true,
+            max_supported_msaa_samples: 4,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let report = AntiAliasSettings::taa().resolve_with_requested_graph_sample_count(
+            &capabilities,
+            true,
+            4,
+        );
+
+        assert_eq!(report.requested_mode, AntiAliasMode::Taa);
+        assert_eq!(report.effective_mode, AntiAliasMode::Taa);
+        assert_eq!(report.reason, None);
+        assert_eq!(report.requested_graph_sample_count(), 4);
+        assert_eq!(report.effective_graph_sample_count(), 1);
+        assert!(report.graph_sample_count_normalized);
+        assert!(report.taa_msaa_conflict_normalized());
+        assert_eq!(report.normalization_count(), 1);
+    }
+
+    #[test]
+    fn unsupported_terminal_aa_reports_slot_normalization() {
+        let capabilities = RenderCapabilitySummary {
+            supports_fxaa: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let report = AntiAliasSettings::smaa().resolve(&capabilities, false);
+
+        assert_eq!(report.requested_mode, AntiAliasMode::Smaa);
+        assert_eq!(report.effective_mode, AntiAliasMode::Fxaa);
+        assert!(report.terminal_slot_normalized);
+        assert!(!report.graph_sample_count_normalized);
+        assert_eq!(report.normalization_count(), 1);
+    }
+
+    #[test]
+    fn smaa_resolution_keeps_terminal_mode_when_supported() {
+        let capabilities = RenderCapabilitySummary {
+            supports_smaa: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let report = AntiAliasSettings::smaa().resolve(&capabilities, false);
+
+        assert_eq!(report.requested_mode, AntiAliasMode::Smaa);
+        assert_eq!(report.effective_mode, AntiAliasMode::Smaa);
+        assert_eq!(report.reason, None);
+        assert!(!report.terminal_slot_normalized);
+        assert_eq!(report.normalization_count(), 0);
+    }
+
+    #[test]
+    fn auto_resolution_uses_smaa_when_fxaa_is_unavailable() {
+        let capabilities = RenderCapabilitySummary {
+            supports_smaa: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let report = AntiAliasSettings::auto().resolve(&capabilities, false);
+
+        assert_eq!(report.requested_mode, AntiAliasMode::Auto);
+        assert_eq!(report.effective_mode, AntiAliasMode::Smaa);
+        assert_eq!(
+            report.reason,
+            Some(super::AntiAliasFallbackReason::AutoResolvedToSmaa)
+        );
+        assert!(!report.terminal_slot_normalized);
+        assert_eq!(report.normalization_count(), 0);
     }
 }

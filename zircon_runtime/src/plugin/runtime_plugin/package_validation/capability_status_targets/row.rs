@@ -1,7 +1,8 @@
 mod coverage;
 mod uniqueness;
 
-use crate::{plugin::PluginPackageManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginPackageManifest;
 
 use self::{
     coverage::validate_runtime_plugin_package_capability_status_target_row_coverage,

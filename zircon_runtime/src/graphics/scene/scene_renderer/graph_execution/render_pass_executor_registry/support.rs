@@ -1,10 +1,10 @@
 use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
-use crate::render_graph::QueueLane;
-use crate::scene::world::World;
-use crate::{
+use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderPassStage,
 };
+use crate::render_graph::QueueLane;
+use crate::scene::world::World;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -45,6 +45,24 @@ pub(super) fn import_test_texture(
         name,
         texture.create_view(&wgpu::TextureViewDescriptor::default()),
     );
+}
+
+pub(super) fn import_test_buffer(
+    resources: &mut RenderGraphExecutionResources,
+    device: &wgpu::Device,
+    name: &'static str,
+    size: u64,
+) {
+    let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(name),
+        size: size.max(std::mem::size_of::<u32>() as u64),
+        usage: wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::UNIFORM
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    resources.insert_buffer(name, buffer);
 }
 
 pub(super) fn test_ui_extract() -> UiRenderExtract {

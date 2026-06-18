@@ -1,10 +1,8 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::plugin::{
-    BridgeDiagnosticsMatrix, NativePluginLiveHost, NativePluginRuntimePlayModeSnapshot,
-    RuntimePluginBridgeLifecycleState,
-};
+use zircon_runtime::plugin::native::{NativePluginLiveHost, NativePluginRuntimePlayModeSnapshot};
+use zircon_runtime::plugin::{BridgeDiagnosticsMatrix, RuntimePluginBridgeLifecycleState};
 
 use super::editor_event_runtime::EditorEventRuntime;
 

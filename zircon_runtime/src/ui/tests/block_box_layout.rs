@@ -245,7 +245,7 @@ fn block_box_fallback_keeps_container_slots_when_taffy_rejects_alignment() {
     assert_eq!(root_selection.request.family, UiLayoutEngineFamily::Block);
     assert_eq!(
         root_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(root_selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(

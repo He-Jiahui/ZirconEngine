@@ -11,7 +11,7 @@ mod wireframe_pass;
 pub(crate) use base_scene_pass::BaseScenePass;
 pub(crate) use grid_pass::GridPass;
 pub(crate) use handle_pass::HandlePass;
-pub(crate) use line_pass::begin_line_pass;
+pub(crate) use line_pass::begin_line_pass_for_region;
 #[cfg(test)]
 pub(crate) use pass_order::PASS_ORDER;
 pub(crate) use preview_sky_pass::PreviewSkyPass;

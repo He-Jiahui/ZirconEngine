@@ -7,7 +7,7 @@ mod viewport_overlay_renderer;
 pub(crate) use icon_source::EmptyViewportIconSource;
 pub(crate) use icon_source::ViewportIconSource;
 pub(crate) use icons::ViewportIconAtlas;
-pub(crate) use passes::begin_line_pass;
+pub(crate) use passes::begin_line_pass_for_region;
 #[cfg(test)]
 pub(crate) use passes::PASS_ORDER;
 pub(crate) use passes::{

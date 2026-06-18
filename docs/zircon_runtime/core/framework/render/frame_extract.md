@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
+  - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/render_phase.rs
@@ -23,6 +24,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
@@ -46,6 +48,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
+  - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
@@ -57,6 +61,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -64,6 +69,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
@@ -81,6 +87,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
+  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/diagnostics/render_stats_store/product.rs
@@ -98,6 +106,7 @@ plan_sources:
   - user: 2026-06-02 implement ZirconEngine WGPU render main-chain closure plan
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
   - .codex/plans/Zircon SRPRHI 渲染管线补全计划.md
+  - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_uses_unified_queue_layer_depth_order
   - zircon_runtime/src/core/framework/tests.rs::geometry_phase_inputs_feed_unified_sort_components_into_queue
@@ -113,7 +122,9 @@ tests:
   - zircon_runtime/src/asset/tests/project/example_vampire.rs::vampire_example_scene_extracts_playable_third_person_meshes
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_honors_material_queue_and_ui_z_index
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_carries_scene_camera_order_report_for_scene_camera
+  - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_render_frame_extract_has_no_scene_camera_order_report
+  - zircon_runtime/src/core/framework/render/camera_ordering.rs::tests::render_camera_order_report_carries_descriptor_render_type
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_scene_camera_ordering_metadata
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_surface_offscreen_submit_and_capture_survive_unbind_noop
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_headless_size_controls_offscreen_capture_size
@@ -155,6 +166,12 @@ tests:
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked unified_sort_components --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked render_product_sprite_phase_queue_honors --jobs 1 --message-format short --color never
+  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::render_view_apply_target_size_preserves_descriptor_target_and_layers
+  - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::render_frame_extract_selected_camera_descriptor_replaces_active_selection_only
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
 doc_type: module-detail
@@ -168,13 +185,17 @@ doc_type: module-detail
 
 ## View Size Contract
 
-`RenderViewExtract` records an optional `target_size` alongside the camera snapshot. The size is derived from an explicit viewport rectangle or headless camera target when the extract is created, and `RenderFrameExtract::apply_viewport_size(...)` updates both the camera aspect ratio and the stored target size before submission.
+`RenderViewExtract` records an optional `target_size` alongside the transitional `camera` snapshot and the descriptor list in `cameras`. During the Plan 09 camera hard cutover, `CameraRenderDescriptor` owns the selected camera target, viewport rectangle, render order, clear policy, and render layers; the legacy `ViewportCameraSnapshot` is a projection for callers that have not yet been migrated.
+
+`RenderViewExtract::selected_camera_descriptor()` selects the descriptor matching `scene_camera_entity` and falls back to the first descriptor for synthetic or explicit camera extracts. `selected_camera_target()`, `selected_camera_layers()`, and `selected_effective_camera()` are the submit/visibility read path for descriptor-owned fields. `sync_selected_descriptor_camera_payload()` exists only for the transition window: it copies the current snapshot payload fields such as transform, projection, dynamic resolution, MSAA, and temporal jitter into the selected descriptor. It does not reproject target, viewport, order, clear, or layer data back onto `ViewportCameraSnapshot`; those fields no longer exist on the snapshot. `apply_target_size(...)` runs that sync before applying the descriptor viewport clamp and writing the sized aspect ratio into the selected descriptor payload. `render_view_apply_target_size_preserves_descriptor_target_and_layers` covers that transition by asserting a headless descriptor target, layer masks, volume mask, and viewport-derived aspect ratio survive sizing.
+
+The size is derived from the selected descriptor's explicit viewport rectangle or headless camera target when present, then falls back to the known submission target size. `RenderFrameExtract::apply_viewport_size(...)` updates both the selected descriptor payload aspect ratio and the stored target size before submission.
 
 `RenderViewExtract::effective_view_size()` is the canonical read path for SRP and RenderGraph descriptor derivation. It clamps through the camera viewport when present and falls back to `1 x 1` only when the extract does not yet know a surface or headless target size.
 
 During submit, `build_frame_submission_context(...)` resolves the camera target against the viewport record and, for `RenderCameraTarget::Texture`, the referenced `TextureAsset` metadata before cloning the extract with `apply_viewport_size(...)`. Valid texture targets must be nonzero 2D single-layer single-mip descriptors with `RenderImageUsage::RenderTarget` and a renderable RGBA8 format; their descriptor extent becomes the submission size just like a headless target's explicit size. `RenderCameraTargetResolutionReport` then records the target kind, primary viewport size, resolved target size, effective view size, and dynamic-resolution-scaled render size into `RenderStats` and `render.camera.target.*` diagnostics.
 
-The same context also resolves a crate-internal `ViewportRenderOutputTarget` and attaches it to renderer-bound `ViewportRenderFrame` values. Generated extract submits and direct runtime-frame submits both carry the resolved target kind, headless size, or texture handle plus size after preflight. This keeps texture writeback and target-aware capture from revalidating authored camera state while `RenderFrameExtract` remains neutral and still carries no WGPU surface or texture object.
+The same context also resolves a crate-internal `ViewportRenderOutputTarget` and attaches it to renderer-bound `ViewportRenderFrame` values. Generated extract submits and direct runtime-frame submits both carry the resolved target kind, headless size, or texture handle plus size after preflight. `ViewportRenderFrame::camera()` now returns the selected `CameraRenderDescriptor`; renderer code that still needs a legacy `ViewportCameraSnapshot` for matrix math, shadows, particles, or post-process uniforms must call `ViewportRenderFrame::effective_camera()` and treat the returned snapshot as a projection. This keeps texture writeback and target-aware capture from revalidating authored camera state while `RenderFrameExtract` remains neutral and still carries no WGPU surface or texture object.
 
 `ViewportRenderOutputTarget::writeback_plan(...)` is the renderer-internal planning seam. Non-texture targets report `NotRequested`; texture targets without a descriptor format report `PendingTargetDescriptor`; texture targets matching the framework offscreen output format label `rgba8unorm_srgb` report `ReadyForSrgbCopy`; linear `rgba8unorm` targets report `ReadyForConversion`; and unsupported target formats report `BlockedFormatMismatch`. The plan records texture handle, resolved size, source format, and target format without exposing resource-streamer texture internals.
 
@@ -186,7 +207,7 @@ The renderer also records a separate graph-import report from that prepared outp
 
 ## Temporal History Handoff
 
-The submit context carries renderer-private temporal camera state derived from previous successful submissions rather than from editor state. `ViewportRecord` stores the previous camera snapshot separately from color-history validation; `build_frame_submission_context(...)` copies that camera snapshot into `FrameSubmissionContext`, and `build_runtime_frame(...)` attaches it to the renderer-bound `ViewportRenderFrame`.
+The submit context carries renderer-private temporal camera state derived from previous successful submissions rather than from editor state. `ViewportRecord` stores the previous camera snapshot separately from color-history validation; `build_frame_submission_context(...)` copies that camera snapshot into `FrameSubmissionContext`, and `build_runtime_frame(...)` attaches it to the renderer-bound `ViewportRenderFrame`. Successful submit and present paths record `ViewportRenderFrame::effective_camera()` with temporal jitter cleared, so camera velocity, scene uniforms, particle previous billboard bases, depth-of-field preparation, and velocity-camera post-process passes all consume the same selected descriptor projection instead of reaching back to raw `extract.view.camera`.
 
 Object previous transforms no longer travel through the neutral frame DTO. The renderer-owned GPUScene rolls current instance transforms into `prev_world_from_local` only after successful WGPU submission, and `build_mesh_draws` reads that rolled previous transform when preparing temporal velocity draw eligibility. This keeps `RenderFrameExtract` focused on authored frame data while object velocity history stays with the shader-visible scene-data owner.
 
@@ -198,9 +219,13 @@ Object previous transforms no longer travel through the neutral frame DTO. The r
 
 ## Scene Camera Scheduling Metadata
 
-`RenderViewExtract` also carries optional scene camera provenance: `scene_camera_entity` and `scene_camera_order_report`. Scene-backed producers fill these fields after running render-extract systems so later multi-camera scheduling, diagnostics, and editor overlays can see the same active-camera ordering evidence as the scene. Synthetic extracts, snapshot adapters, and explicit `SceneViewportExtractRequest::camera` overrides leave the fields empty because they are not owned by a scene camera entity.
+`RenderViewExtract` also carries optional scene camera provenance: `scene_camera_entity` and `scene_camera_order_report`. Scene-backed producers fill these fields after running render-extract systems so later multi-camera scheduling, diagnostics, and editor overlays can see the same active-camera ordering evidence as the scene. The report's `SortedRenderCamera` rows include the projected `CameraRenderDescriptor` plus the descriptor-backed `render_type`, so diagnostics and future camera-loop code can distinguish Base/Overlay provenance without asking the scene world again.
 
-During WGPU submit the report is copied into `FrameSubmissionContext` and projected into `RenderStats.last_scene_camera_scheduled_count` plus `RenderStats.last_scene_camera_order_ambiguity_count`, then into `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` diagnostics. The report is intentionally scheduling metadata only. WGPU submission still renders the single effective `view.camera`; split-screen execution and camera-stack submission remain separate renderer milestones.
+Plan 09 adds `RenderViewExtract.cameras` as the extract-side multi-camera descriptor list. Synthetic extracts, snapshot adapters, and explicit `SceneViewportExtractRequest::camera` overrides keep a single descriptor with no scene entity. Scene-backed extracts write all active scene cameras as `CameraRenderDescriptor` rows in deterministic scheduling order, and the selected scene camera descriptor is aligned to the effective `view.camera` payload after request projection or viewport-size overrides. `RenderViewExtract::selected_camera_descriptor()` is the descriptor read path for code that needs the selected scene/synthetic camera facts. `RenderFrameExtract::apply_viewport_size(...)` only synchronizes the selected scene descriptor, or the synthetic single descriptor, so non-selected Texture/Headless descriptors keep their own authored target and viewport. Scene extraction, visibility custom-target construction, submit preflight, history validation, renderer-bound frame access, and the offscreen submit camera loop now consume this descriptor list for target/layer/order ownership instead of reading custom-target facts from `RenderCameraOrderReport` or raw snapshot fields.
+
+Offscreen WGPU submit resolves `view.cameras` through `resolve_camera_sequence(...)` in `submit_frame_extract/submit/camera_loop.rs`, flattens each Base camera followed by its Overlay descriptors, and builds a child `RenderFrameExtract` for each descriptor with `RenderFrameExtract::with_selected_camera_descriptor(...)`. The child extract replaces the active descriptor list with that one selected descriptor, updates the transitional `view.camera`, core-pipeline kind, MSAA settings, target size, and selected scene entity, then runs the existing single-camera submit body. The loop attaches the shared UI extract only to the terminal child of the last `PrimarySurface` Base stack, falling back to the terminal child of the last Base stack when no primary stack exists. This is the current M1-S2 loop scaffold: it provides true per-descriptor offscreen submit iteration under one render-framework operation lock, but it does not yet implement Base/Overlay attachment reuse, load-op translation, final-target composite semantics, or per-camera post/history/light ownership.
+
+During WGPU submit the report is copied into `FrameSubmissionContext` and projected into `RenderStats.last_scene_camera_scheduled_count` plus `RenderStats.last_scene_camera_order_ambiguity_count`, then into `render.camera.scheduled_count` and `render.camera.order_ambiguity_count` diagnostics. The report remains scheduling and visibility metadata. The new offscreen loop consumes descriptors by projecting one selected descriptor at a time into the existing renderer path; surface present, direct runtime-frame submit, split-screen execution, camera-stack load/store policy, target-output ownership, and per-camera post/history rules remain separate renderer milestones.
 
 ## Sort Key Contract
 

@@ -79,7 +79,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     );
     assert_eq!(
         count_occurrences(gameplay_host, "HostExportFunction::new("),
-        37,
+        39,
         "Runtime 13 gameplay callback count should match script_binding_boundary"
     );
     assert_eq!(
@@ -143,10 +143,10 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
             "expected_source_file_count = 18",
             "expected_test_file_count = 3",
             "fixed_host_module_count = 6",
-            "fixed_host_function_count = 50",
+            "fixed_host_function_count = 52",
             "type_descriptor_count = 2",
             "builtin_callback_count = 11",
-            "gameplay_callback_count = 37",
+            "gameplay_callback_count = 39",
             "macro_host_function_count = 2",
             "host_capability_count = 11",
             "guard_anchor_count = 9",

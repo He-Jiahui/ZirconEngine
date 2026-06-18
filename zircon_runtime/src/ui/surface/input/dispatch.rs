@@ -14,6 +14,7 @@ use super::{
     navigation::dispatch_navigation_input,
     pointer::dispatch_pointer_input,
     popup::dispatch_popup_input,
+    route_authority::annotate_authoritative_input_dispatch,
     submenu_hover_timer::dispatch_submenu_hover_timer_input,
     toast_timer::dispatch_toast_timer_input,
     tooltip_timer::dispatch_tooltip_timer_input,
@@ -27,41 +28,42 @@ pub(crate) fn dispatch_input_event(
     navigation_dispatcher: &UiNavigationDispatcher,
     event: UiInputEvent,
 ) -> Result<UiInputDispatchResult, UiTreeError> {
-    match event {
+    let mut result = match event {
         UiInputEvent::Pointer(pointer) => {
-            dispatch_pointer_input(surface, pointer_dispatcher, pointer)
+            dispatch_pointer_input(surface, pointer_dispatcher, pointer)?
         }
         UiInputEvent::Navigation(navigation) => {
-            let result = dispatch_navigation_input(surface, navigation_dispatcher, navigation)?;
-            Ok(result)
+            dispatch_navigation_input(surface, navigation_dispatcher, navigation)?
         }
         UiInputEvent::Keyboard(keyboard) => dispatch_keyboard_input(
             surface,
             navigation_dispatcher,
             keyboard,
             dispatch_navigation_input,
-        ),
-        UiInputEvent::Text(text) => Ok(dispatch_text_input(surface, text)),
-        UiInputEvent::Ime(ime) => Ok(dispatch_ime_input(surface, ime)),
+        )?,
+        UiInputEvent::Text(text) => dispatch_text_input(surface, text),
+        UiInputEvent::Ime(ime) => dispatch_ime_input(surface, ime),
         UiInputEvent::Analog(analog) => dispatch_analog_input(
             surface,
             navigation_dispatcher,
             analog,
             dispatch_navigation_input,
-        ),
-        UiInputEvent::MouseMotion(motion) => Ok(dispatch_mouse_motion_input(surface, motion)),
-        UiInputEvent::DragDrop(drag_drop) => Ok(dispatch_drag_drop_input(surface, drag_drop)),
-        UiInputEvent::Popup(popup) => Ok(dispatch_popup_input(surface, popup)),
-        UiInputEvent::TooltipTimer(tooltip) => Ok(dispatch_tooltip_timer_input(surface, tooltip)),
+        )?,
+        UiInputEvent::MouseMotion(motion) => dispatch_mouse_motion_input(surface, motion),
+        UiInputEvent::DragDrop(drag_drop) => dispatch_drag_drop_input(surface, drag_drop),
+        UiInputEvent::Popup(popup) => dispatch_popup_input(surface, popup),
+        UiInputEvent::TooltipTimer(tooltip) => dispatch_tooltip_timer_input(surface, tooltip),
         UiInputEvent::TypeaheadTimer(typeahead) => {
-            Ok(dispatch_typeahead_timer_input(surface, typeahead))
+            dispatch_typeahead_timer_input(surface, typeahead)
         }
         UiInputEvent::SubmenuHoverTimer(submenu_hover) => {
-            Ok(dispatch_submenu_hover_timer_input(surface, submenu_hover))
+            dispatch_submenu_hover_timer_input(surface, submenu_hover)
         }
-        UiInputEvent::ToastTimer(toast) => Ok(dispatch_toast_timer_input(surface, toast)),
+        UiInputEvent::ToastTimer(toast) => dispatch_toast_timer_input(surface, toast),
         UiInputEvent::Accessibility(accessibility) => {
-            Ok(dispatch_accessibility_input(surface, accessibility))
+            dispatch_accessibility_input(surface, accessibility)
         }
-    }
+    };
+    annotate_authoritative_input_dispatch(&mut result);
+    Ok(result)
 }

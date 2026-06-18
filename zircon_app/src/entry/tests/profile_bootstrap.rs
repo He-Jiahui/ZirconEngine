@@ -41,9 +41,16 @@ use zircon_runtime::{
     scene::create_default_level,
 };
 use zircon_runtime::{
-    plugin::BridgeInterfaceStatus, plugin::CapabilityStatus, plugin::PluginMaturity,
-    plugin::PluginModuleKind, plugin::RuntimePluginBridgeLifecycleEvent, plugin::RuntimeProfileId,
-    RuntimePluginId, RuntimeTargetMode,
+    plugin::BridgeInterfaceStatus,
+    plugin::CapabilityStatus,
+    plugin::PluginMaturity,
+    plugin::PluginModuleKind,
+    plugin::RuntimePluginBridgeLifecycleEvent,
+    plugin::RuntimeProfileId,
+};
+use zircon_runtime::builtin::{
+    RuntimePluginId,
+    RuntimeTargetMode,
 };
 use zircon_runtime::{
     plugin::RuntimeExtensionRegistry, plugin::RuntimePlugin,
@@ -851,7 +858,7 @@ target_modes = ["client_runtime"]
 
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
         &config,
-        zircon_runtime::plugin::NativePluginLoader
+        zircon_runtime::plugin::native::NativePluginLoader
             .load_runtime_from_load_manifest(&export_root)
             .runtime_plugin_registration_reports(),
     )

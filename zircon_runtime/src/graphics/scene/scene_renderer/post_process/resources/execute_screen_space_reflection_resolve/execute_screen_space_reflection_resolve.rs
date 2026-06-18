@@ -14,8 +14,8 @@ impl ScenePostProcessResources {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
-        viewport_size: UVec2,
         cluster_dimensions: UVec2,
+        scene_color_origin: [u32; 2],
         scene_color_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         motion_vector_neighbor_max_view: &wgpu::TextureView,
@@ -41,8 +41,10 @@ impl ScenePostProcessResources {
         attachment_ops: RenderGraphAttachmentOps,
     ) {
         let params = build_post_process_params(
-            viewport_size,
+            frame.extract.view.effective_render_size(),
             cluster_dimensions,
+            frame.render_region(),
+            scene_color_origin,
             &frame.extract,
             features,
             history_available,

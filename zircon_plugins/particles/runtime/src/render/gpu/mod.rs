@@ -3,6 +3,7 @@ mod layout;
 mod planner;
 mod program;
 mod readback;
+mod runtime_owner;
 mod shaders;
 mod transparent;
 
@@ -23,6 +24,11 @@ pub use program::{
 pub use readback::{
     ParticleGpuCounterReadback, ParticleGpuCpuParityReport, ParticleGpuReadbackDecodeError,
 };
+pub use runtime_owner::{
+    ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeFrame, ParticleGpuRuntimeOwner,
+    ParticleGpuRuntimeOwnerError, ParticleGpuRuntimeOwnerHandle,
+};
 pub use transparent::{ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams};
 
+pub(crate) use program::{PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS};
 pub(crate) use shaders::{generate_particle_gpu_transparent_wgsl, generate_particle_gpu_wgsl};

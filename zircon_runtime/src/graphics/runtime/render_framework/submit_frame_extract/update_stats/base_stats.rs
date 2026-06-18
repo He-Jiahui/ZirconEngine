@@ -73,6 +73,11 @@ pub(super) fn update_base_stats(
         allocation_plan.total_dense_bytes_reserved();
     state.stats.last_graph_sparse_texture_virtual_bytes =
         allocation_plan.sparse_texture_virtual_bytes;
+    let compiled_graph_cache_stats = state.compiled_graph_cache.stats();
+    state.stats.last_graph_compiled_cache_hit_count = compiled_graph_cache_stats.hits;
+    state.stats.last_graph_compiled_cache_miss_count = compiled_graph_cache_stats.misses;
+    state.stats.last_graph_compiled_cache_eviction_count = compiled_graph_cache_stats.evictions;
+    state.stats.last_graph_compiled_cache_entry_count = compiled_graph_cache_stats.entries;
     state.stats.last_graph_executed_passes =
         state.renderer.last_render_graph_executed_passes().to_vec();
     state.stats.last_graph_executed_executor_ids = state
@@ -116,10 +121,19 @@ pub(super) fn update_base_stats(
         .last_render_graph_compute_unexpected_dispatch_count();
     state.stats.last_graph_execution_resource_report =
         state.renderer.last_render_graph_execution_resource_report();
+    state.stats.last_graph_materialization_report =
+        state.renderer.last_render_graph_materialization_report();
+    state.stats.last_graph_execution_alias_report = state
+        .renderer
+        .last_render_graph_execution_alias_report()
+        .clone();
+    state.stats.last_graph_execution_profile_report =
+        state.renderer.last_render_graph_execution_profile_report();
     state.stats.last_graph_stage_execution_report =
         state.renderer.last_render_graph_stage_execution_report();
     state.stats.last_scene_velocity_readback_report =
         state.renderer.last_scene_velocity_readback_report();
+    state.stats.last_color_lut_readback_report = state.renderer.last_color_lut_readback_report();
     let post_process_graph = state
         .renderer
         .last_render_graph_post_process_graph()
@@ -249,6 +263,7 @@ pub(super) fn update_base_stats(
     state.stats.last_material_validation_error_count =
         state.renderer.last_material_validation_error_count();
     state.stats.last_material_diagnostic_count = state.renderer.last_material_diagnostic_count();
+    state.stats.last_shader_variant_miss_report = state.renderer.last_shader_variant_miss_report();
     let prepared_mesh_queue_stats = state.renderer.last_prepared_mesh_queue_stats();
     state.stats.last_mesh_draw_count = prepared_mesh_queue_stats.draw_count;
     state.stats.last_mesh_opaque_draw_count = prepared_mesh_queue_stats.opaque_draw_count;
@@ -302,6 +317,26 @@ pub(super) fn update_base_stats(
         prepared_mesh_queue_stats.gpu_instancing_candidate_group_count;
     state.stats.last_mesh_gpu_instancing_candidate_draw_count =
         prepared_mesh_queue_stats.gpu_instancing_candidate_draw_count;
+    state.stats.last_mesh_command_count = prepared_mesh_queue_stats.command_count;
+    state.stats.last_mesh_cached_command_hit_count =
+        prepared_mesh_queue_stats.cached_command_hit_count;
+    state.stats.last_mesh_command_rebuild_count = prepared_mesh_queue_stats.command_rebuild_count;
+    state.stats.last_mesh_dynamic_command_count = prepared_mesh_queue_stats.dynamic_command_count;
+    state.stats.last_mesh_command_cache_miss_count = prepared_mesh_queue_stats.cache_miss_count;
+    state
+        .stats
+        .last_mesh_command_cache_invalidated_transform_count =
+        prepared_mesh_queue_stats.cache_invalidated_transform_count;
+    state
+        .stats
+        .last_mesh_command_cache_invalidated_geometry_count =
+        prepared_mesh_queue_stats.cache_invalidated_geometry_count;
+    state
+        .stats
+        .last_mesh_command_cache_invalidated_material_count =
+        prepared_mesh_queue_stats.cache_invalidated_material_count;
+    state.stats.last_mesh_replay_state_change_count = prepared_mesh_queue_stats.state_change_count;
+    state.stats.last_mesh_replay_bind_skip_count = prepared_mesh_queue_stats.bind_skip_count;
     state.stats.last_indirect_batch_count = prepared_mesh_queue_stats.indirect_batch_count;
     state.stats.last_indirect_batched_draw_count =
         prepared_mesh_queue_stats.indirect_batched_draw_count;

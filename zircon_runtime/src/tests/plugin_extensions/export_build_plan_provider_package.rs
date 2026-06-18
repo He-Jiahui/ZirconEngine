@@ -1,9 +1,9 @@
 use crate::asset::{AssetUri, ProjectManifest};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
     plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
 };
 
 #[test]

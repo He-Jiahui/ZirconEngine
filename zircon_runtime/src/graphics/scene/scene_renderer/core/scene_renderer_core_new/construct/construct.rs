@@ -21,6 +21,7 @@ use super::super::super::super::shadow::atlas::{
 use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
+use super::super::super::constants::DEPTH_FORMAT;
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
 };
@@ -121,8 +122,11 @@ impl SceneRendererCore {
 
         Self {
             texture_bind_group_layout,
+            scene_bind_group_layout: scene_bind_group_bundle.layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
             scene_bind_group: scene_bind_group_bundle.bind_group,
+            target_format,
+            depth_format: DEPTH_FORMAT,
             mesh_command_generation: 0,
             material_texture_bind_group_layout,
             mesh_pipelines,

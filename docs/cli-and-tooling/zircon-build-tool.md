@@ -1,5 +1,6 @@
 ---
 related_code:
+  - tools/dev-fast-build.ps1
   - tools/zircon_build.py
   - Cargo.toml
   - zircon_hub/Cargo.toml
@@ -23,8 +24,21 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
 implementation_files:
+  - tools/dev-fast-build.ps1
   - tools/zircon_build.py
+  - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
@@ -36,11 +50,13 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
 plan_sources:
+  - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - user: 2026-05-03 add tools/zircon_build.py for staged editor/runtime/plugin builds
   - user: 2026-05-04 confirm editor/runtime asset staging and exported lookup support
   - user: 2026-05-04 add file-backed exported editor/runtime diagnostics
   - user: 2026-05-13 stop packaging legacy `.ui.toml` schema assets after the editor UI v2 hard cut
   - user: 2026-05-26 keep packaged `.zui` component assets alongside v2 UI documents
+  - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
   - .codex/plans/zircon_hub 独立启动器设计.md
   - docs/engine-architecture/runtime-editor-pluginized-export.md
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
@@ -51,6 +67,10 @@ tests:
   - python tools/zircon_build.py --targets editor,runtime --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets hub,editor,runtime --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
+  - python tools/zircon_build.py --targets runtime --out <dir> --mode debug --prewarm-shaders --dry-run
+  - target: ./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir <target-dir>
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
   - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.v2.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/host/activity_drawer_window.zui')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
   - powershell: Get-ChildItem E:\zircon-build\ZirconEngine\assets\ui -Recurse -File -Filter *.ui.toml | Where-Object { $_.Name -notlike '*.v2.ui.toml' } returns no files
@@ -123,6 +143,18 @@ replace the editor/runtime targets: a complete local desktop payload should incl
 `hub,editor,runtime` so Hub can stay open while launching `zircon_editor` child
 processes against the staged runtime library.
 
+`--prewarm-shaders` adds a shader-cache prewarm step after runtime/editor assets
+are staged. The tool runs the `zircon_shader_prewarm` binary with the staged
+`ZirconEngine` directory as its project root, writes cache entries into
+`ZirconEngine/cache/shader_variants`, and writes
+`ZirconEngine/cache/shader_variants_report.json`. The current prewarm producer
+covers the built-in base forward fallback mesh shader and explicit manifest JSON
+passed to the prewarm binary; asset-wide material variant enumeration is still a
+render Plan 08 follow-up. Runtime lookup checks the writable
+`.zircon-cache/shader_variants` cache first and then the staged
+`cache/shader_variants` payload, so packaged prewarm entries can satisfy the
+first base mesh shader-module lookup.
+
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the
 current executable directory. Keeping the library beside the executable fixes the
@@ -179,9 +211,26 @@ The three required decisions are build targets, output directory, and mode:
 ```
 
 `--targets` accepts `hub`, `editor`, `runtime`, `plugins`, or comma-separated
-combinations. `--mode` is `debug` or `release`. If any required value is missing
-and stdin is interactive, the tool prompts for the missing selection; if stdin is
-not interactive, it exits with a clear error.
+combinations. `--mode` is `debug`, `release`, or `profiling`. If any required
+value is missing and stdin is interactive, the tool prompts for the missing
+selection; if stdin is not interactive, it exits with a clear error.
+
+`--mode profiling` maps to Cargo's root `[profile.profiling]` profile and emits
+`--profile profiling` rather than `--release`. Use `--runtime-features` to name
+the runtime/app feature set that should be measured:
+
+```powershell
+python tools/zircon_build.py --targets runtime --out E:\builds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
+```
+
+The profiling mode is intentionally limited to normal Cargo targets. It rejects
+the Hub/Tauri target and the separate plugin workspace target because those
+pipelines do not use the same root runtime profiling profile. Runtime 07 M0.2
+also has the equivalent quick-check path through the PowerShell helper:
+
+```powershell
+./tools/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride "target-client profiling profiling-tracy"
+```
 
 Plugin builds add a fourth selection:
 
@@ -260,6 +309,9 @@ python tools/zircon_build.py --list-plugins
 python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
 python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
 python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug --dry-run
+python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
+python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --dry-run
+cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir E:\cargo-targets\zircon-shader-prewarm-bin
 ```
 
 Use a real build when validating executable staging or NativeDynamic publishing:

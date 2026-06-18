@@ -26,7 +26,7 @@ pub(in crate::scene::viewport) fn build_render_packet(
     let mut packet = scene.build_viewport_render_packet(&SceneViewportExtractRequest {
         settings: settings.render_settings(),
         active_camera_override: None,
-        camera: Some(camera.clone()),
+        camera: Some(camera.clone().into()),
         viewport_size: Some(viewport_size),
         virtual_geometry_debug: None,
     });

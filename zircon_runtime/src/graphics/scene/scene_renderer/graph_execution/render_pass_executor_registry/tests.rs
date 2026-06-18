@@ -11,20 +11,22 @@ use crate::core::math::UVec2;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::ViewportRenderFrame;
+use crate::graphics::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions};
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphBuilder,
     RenderGraphPassResourceAccess, RenderGraphResourceAccessKind, RenderGraphResourceKind,
     RenderPassId,
 };
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
-use crate::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions};
 
 use super::super::{
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
     RenderPassGpuExecutionContext,
 };
 use super::RenderPassExecutorRegistry;
-use support::{import_test_texture, test_extract, test_ui_extract, ContextMutatingExecutor};
+use support::{
+    import_test_buffer, import_test_texture, test_extract, test_ui_extract, ContextMutatingExecutor,
+};
 
 #[path = "plugin_executor_policy.rs"]
 mod plugin_executor_policy;
@@ -155,7 +157,6 @@ fn builtin_registry_excludes_pluginized_advanced_executor_ids() {
         "hybrid-gi.trace-schedule",
         "hybrid-gi.resolve",
         "hybrid-gi.history",
-        "particle.transparent",
     ] {
         assert!(
             !registry.contains(&RenderPassExecutorId::new(executor_id)),
@@ -179,7 +180,11 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.motion-vector-tile-max",
         "post.motion-vector-tile-max-coarse",
         "post.motion-vector-neighbor-max",
+        "post.motion-blur",
+        "post.blur",
+        "post.depth-of-field",
         "post.depth-of-field-prepare",
+        "post.scene-composite",
         "post.exposure.histogram",
         "post.exposure.resolve",
         "post.screen-space-reflection-reflection-pyramid",
@@ -188,10 +193,13 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.screen-space-reflection-specular-occlusion",
         "visibility.hzb-build",
         "visibility.hzb-occlusion-cull",
+        "particle.transparent",
         "post.color-lut-bake",
         "post.uber",
+        "post.upscale",
         "post.output-transfer",
         "post.fxaa",
+        "post.smaa",
     ] {
         assert!(
             registry.contains(&RenderPassExecutorId::new(executor_id)),
@@ -579,6 +587,9 @@ fn execute_gpu_executor_without_specialized_context_for_extract(
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -665,6 +676,9 @@ fn screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -744,6 +758,9 @@ fn overlay_executor_requires_overlay_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -819,6 +836,9 @@ fn sprite_executor_requires_renderer_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -894,6 +914,9 @@ fn mesh_executor_requires_mesh_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -969,6 +992,9 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -1053,6 +1079,9 @@ fn shadow_atlas_executor_records_depth_only_pass_when_graph_resource_is_bound() 
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -1128,6 +1157,9 @@ fn deferred_gbuffer_executor_requires_renderer_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -1192,6 +1224,13 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
     ] {
         import_test_texture(&mut resources, &backend.device, resource);
     }
+    for resource in [
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        PostProcessGraphResourceNames::LIGHT_ZBINS,
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+    ] {
+        import_test_buffer(&mut resources, &backend.device, resource, 256);
+    }
     let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
@@ -1204,6 +1243,9 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
         &backend.queue,
         &mut encoder,
         &frame,
+        &scene_bind_group_layout,
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureFormat::Depth32Float,
         &scene_bind_group,
         &mut resources,
         &mut plugin_outputs,
@@ -1253,7 +1295,10 @@ fn registry_invokes_object_backed_executor_with_mutable_context() {
 #[test]
 fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
-    graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
+    let custom_pass =
+        graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
+    let output = graph.import_external_resource("custom-output");
+    graph.write_external(custom_pass, output).unwrap();
     let pipeline = CompiledRenderPipeline {
         handle: RenderPipelineHandle::new(42),
         name: "custom pipeline".to_string(),
@@ -1280,7 +1325,9 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
 #[test]
 fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
-    graph.add_pass("custom-pass", QueueLane::Graphics);
+    let custom_pass = graph.add_pass("custom-pass", QueueLane::Graphics);
+    let output = graph.import_external_resource("custom-output");
+    graph.write_external(custom_pass, output).unwrap();
     let pipeline = CompiledRenderPipeline {
         handle: RenderPipelineHandle::new(44),
         name: "custom pipeline".to_string(),
@@ -1304,6 +1351,13 @@ fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
 #[test]
 fn registry_ignores_culled_pass_with_unknown_executor_id() {
     let mut graph = RenderGraphBuilder::new("custom-pipeline");
+    let root = graph.add_pass_with_executor(
+        "root-pass",
+        QueueLane::Graphics,
+        Some("lighting.baked-composite"),
+    );
+    let output = graph.import_external_resource("custom-output");
+    graph.write_external(root, output).unwrap();
     let unused = graph.create_texture(TextureDesc::new(
         "unused-target",
         1,

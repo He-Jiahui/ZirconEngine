@@ -8,6 +8,7 @@ mod management;
 mod property_uniform;
 mod property_value;
 mod readiness_report;
+mod shading_model;
 mod standard_material;
 mod texture_slot_summary;
 mod texture_transform;
@@ -50,6 +51,11 @@ pub use readiness_report::{
     RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialIssueState,
     RenderMaterialPreparedState, RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
     RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
+};
+pub use shading_model::{
+    GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, ShadingModelRegistrationError,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
+    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
 };
 pub use standard_material::StandardMaterialDescriptor;
 pub use texture_slot_summary::{

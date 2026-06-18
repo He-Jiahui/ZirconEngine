@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
     merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks,
 };
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::RuntimePrepareExternalBufferBinding;
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn execute_runtime_prepare_passes(
@@ -21,14 +22,27 @@ impl SceneRendererAdvancedPluginResources {
         }
 
         let mut outputs = RenderPluginRendererOutputs::default();
+        let mut external_buffer_bindings = Vec::<RuntimePrepareExternalBufferBinding>::new();
         for collector in collectors {
             merge_plugin_renderer_outputs(
                 &mut outputs,
-                collector(device, queue, encoder, streamer, frame)?,
+                collector(
+                    device,
+                    queue,
+                    encoder,
+                    streamer,
+                    frame,
+                    &mut external_buffer_bindings,
+                )?,
             );
         }
 
-        Ok(SceneRendererAdvancedPluginReadbacks::from_outputs(outputs))
+        Ok(
+            SceneRendererAdvancedPluginReadbacks::from_outputs_and_external_buffer_bindings(
+                outputs,
+                external_buffer_bindings,
+            ),
+        )
     }
 }
 
@@ -70,7 +84,7 @@ mod tests {
     fn runtime_prepare_collectors_return_neutral_plugin_renderer_outputs() {
         let (mut resources, device, queue, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
             Ok(RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
                     page_table_entries: vec![42, 43],
@@ -106,7 +120,7 @@ mod tests {
     fn runtime_prepare_collectors_replace_overlapping_feature_packets() {
         let (mut resources, device, queue, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
             Ok(RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
                     page_table_entries: vec![1],
@@ -122,7 +136,7 @@ mod tests {
                 },
             })
         }));
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
             Ok(RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
                     page_table_entries: vec![2, 3],
@@ -153,7 +167,7 @@ mod tests {
     fn runtime_prepare_collectors_preserve_non_empty_packet_after_empty_packet() {
         let (mut resources, device, queue, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
             Ok(RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
                     page_table_entries: vec![5, 8],
@@ -162,7 +176,7 @@ mod tests {
                 ..RenderPluginRendererOutputs::default()
             })
         }));
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
             Ok(RenderPluginRendererOutputs::default())
         }));
 
@@ -184,7 +198,7 @@ mod tests {
         let (mut resources, device, queue, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
         let mut call_count = 0;
-        resources.register_runtime_prepare_collector(Box::new(move |_, _, _, _, _| {
+        resources.register_runtime_prepare_collector(Box::new(move |_, _, _, _, _, _| {
             call_count += 1;
             Ok(RenderPluginRendererOutputs {
                 hybrid_gi: RenderHybridGiReadbackOutputs {
@@ -280,7 +294,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         ));
-        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, frame| {
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, frame, _| {
             Ok(frame
                 .prepared_runtime_sidebands()
                 .plugin_renderer_outputs
@@ -297,6 +311,50 @@ mod tests {
             vec![501]
         );
         assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![77]);
+    }
+
+    #[test]
+    fn runtime_prepare_collectors_can_register_external_buffer_bindings() {
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-runtime-prepare-collector-plugin-buffer"),
+            size: 64,
+            usage: wgpu::BufferUsages::STORAGE,
+            mapped_at_creation: false,
+        });
+        resources.register_runtime_prepare_collector(Box::new(
+            move |device, queue, encoder, _, frame, external_buffer_bindings| {
+                let mut context = RuntimePrepareCollectorContext::new(
+                    device,
+                    queue,
+                    encoder,
+                    frame,
+                    external_buffer_bindings,
+                );
+                context.register_external_buffer_binding_with_backing(
+                    "particles.gpu.counters",
+                    "particles.gpu.counters:test-runtime-prepare",
+                    &buffer,
+                );
+                Ok(RenderPluginRendererOutputs::default())
+            },
+        ));
+
+        let readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        assert_eq!(readbacks.external_buffer_bindings().len(), 1);
+        assert_eq!(
+            readbacks.external_buffer_bindings()[0].logical_name(),
+            "particles.gpu.counters"
+        );
+        assert_eq!(
+            readbacks.external_buffer_bindings()[0].backing_name(),
+            "particles.gpu.counters:test-runtime-prepare"
+        );
+        assert!(readbacks.outputs_for_test().is_empty());
     }
 
     struct AssertingContextCollector {

@@ -1,10 +1,10 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleManifest, PluginPackageManifest, ProjectPluginFeatureSelection,
     ProjectPluginManifest, ProjectPluginSelection, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_catalog_completes_owner_feature_selections_as_disabled_by_default() {

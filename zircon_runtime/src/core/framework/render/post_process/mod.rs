@@ -1,4 +1,5 @@
 mod chain;
+mod color_lut_readback;
 mod color_space;
 mod effect;
 mod effect_stack_settings;
@@ -15,6 +16,9 @@ mod volume_profile;
 mod volume_registry;
 
 pub use chain::PostProcessChainSlot;
+pub use color_lut_readback::{
+    RenderColorLutReadbackReference, RenderColorLutReadbackReport, COLOR_LUT_IDENTITY_EPSILON_MICRO,
+};
 pub use color_space::{
     RenderOutputTransfer, RenderPostProcessTextureFormat, COLOR_LUT_FORMAT, COLOR_LUT_SIZE_DEFAULT,
     COLOR_LUT_SIZE_HIGH_QUALITY, INTERMEDIATE_HDR_FORMAT_DEFAULT,

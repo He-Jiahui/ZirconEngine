@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
   - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -29,6 +30,7 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with native plugin loader isolated
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -43,7 +45,8 @@ tests:
   - cargo test -p zircon_runtime --lib native_runtime_hot_update_report_applies_bridge_lifecycle_to_loaded_outcomes --no-default-features --features core-min --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-hot-update-lifecycle-0615b --message-format short --color never -- --exact --test-threads=1 --nocapture
   - native_runtime_hot_update_report_applies_bridge_lifecycle_to_loaded_outcomes (coverage added; focused lib-test lane timed out in compilation)
   - native_plugin_public_surface M4 gate status, explicit count fields, symbol decision group, migration debt, and unclassified symbol checks
-  - plugin_surface_lifecycle_boundary Runtime 06 mirror, app NativePlugin call-site count, V1/V2 fixture scope, export_build_plan V1/V2 zero-usage, pending validation anchors
+  - plugin_surface_lifecycle_boundary Runtime 06 mirror, app NativePlugin call-site count, V3-only native ABI hard-cutover, unknown ABI rejection, hot reload failure injection, export_build_plan V1/V2 zero-usage, pending validation anchors
+  - runtime_06_native_loader_tests_use_isolated_plugin_native_namespace
 doc_type: module-detail
 ---
 
@@ -59,13 +62,17 @@ The structural audit now includes `native_plugin_public_surface`. Its implementa
 
 Current evidence:
 
-- `zircon_runtime/src/plugin/mod.rs` publicly re-exports native loader and ABI symbols;
-- `root_reexport_count = 70`;
+- `zircon_runtime/src/plugin/mod.rs` exposes only the `pub mod native;` namespace seat for native loader and ABI symbols;
+- `zircon_runtime/src/plugin/native.rs` owns the explicit native public namespace;
+- `root_reexport_count = 0`;
+- `native_namespace_reexport_count = 60`;
+- `root_public_reexport_location_count = 0`;
 - `public_reexport_location_count = 1`;
-- exported names include native ABI versions, descriptor symbols, status constants, live-host types, runtime behavior calls, state snapshots, load reports, `NativePluginLoader`, and native bridge-method binding/report symbols;
+- native loader test files 3/3, native test namespace import files 2/2, and native test root import leaks 0/0;
+- exported names under `plugin::native` include the V3 native ABI version, descriptor symbol, status constants, live-host types, runtime behavior calls, state snapshots, load reports, `NativePluginLoader`, and native bridge-method binding/report symbols;
 - export source templates still call native loading through generated behavior.
 
-This is M4 migration debt. It is also coupled to the generated-code boundary because generated source templates should not carry loader behavior.
+The old root-surface native re-export migration is already cut over. The remaining NativeDynamic work is coupled to generated-code behavior and the pending Cargo/native validation lane.
 
 ## Runtime Hot Update Entry
 
@@ -73,13 +80,13 @@ This is M4 migration debt. It is also coupled to the generated-code boundary bec
 
 `NativePluginLiveHost::hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle(...)` is the lifecycle-attached variant for the same batch boundary. It first builds the normal `NativePluginRuntimeHotUpdateReport`, then calls `NativePluginRuntimeHotUpdateReport::apply_runtime_bridge_lifecycle(...)` to attach `Reload` provider lifecycle reports to successful runtime `HotReload` outcomes via the existing `RuntimePluginBridgeLifecycleState`. Skipped non-runtime packages and outcomes that already carry a bridge lifecycle report are left unchanged.
 
-This does not close M4 public-surface debt and does not claim a complete real cdylib success matrix. It establishes the manifest-driven runtime application/report surface that Hub/editor/export can call after package or delta promotion; platform-native signing profiles, notarization, real Cargo fixture success cases, and Hub/editor end-to-end invocation remain separate NativeDynamic slices.
+This does not claim a complete real cdylib success matrix. It establishes the manifest-driven runtime application/report surface that Hub/editor/export can call after package or delta promotion; platform-native signing profiles, notarization, real Cargo fixture success cases, and Hub/editor end-to-end invocation remain separate NativeDynamic slices.
 
 ## M4 Gate Output
 
 The structural audit now reports `native_plugin_public_surface.m4_gate_status`. Current status is:
 
-`migration-debt-present`
+`classified-and-clear`
 
 Current symbol classification:
 
@@ -91,19 +98,24 @@ Current symbol classification:
 
 Current gate evidence:
 
-- `root_reexport_count = 70`
-- `symbol_decision_count = 70`
+- `root_reexport_count = 0`
+- `native_namespace_reexport_count = 60`
+- `symbol_decision_count = 60`
 - `symbol_decision_group_count = 5`
-- `native_plugin_public_surface_migration_debt_count = 5`
+- `native_plugin_public_surface_migration_debt_count = 0`
 - `unclassified_root_reexport_symbol_count = 0`
-- `unclassified_root_reexport_symbols = []`
+- `unclassified_native_namespace_symbol_count = 0`
+- `root_public_reexport_location_count = 0`
 - `public_reexport_location_count = 1`
+- `native loader test files 3/3`
+- `native test namespace import files 2/2`
+- `native test root import leaks 0/0`
 
-The classification means every current root re-export symbol has an explicit migration target. It does not mean the boundary is converged.
+The classification now applies to the explicit `zircon_runtime::plugin::native` namespace. It confirms the old `zircon_runtime::plugin` root no longer carries native loader/ABI re-exports, that native loader tests import through the isolated namespace, that M3.1 has removed native plugin V1/V2 loader compatibility, and that M3.2 covers hot reload failure injection; it does not close Runtime 06 as a whole because the Cargo/native validation lane remains pending.
 
-The Runtime 06 plan-status guard `runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation` keeps this M4 debt visible until the `script::vm/vampire_project_session/plugin/native_plugin/app/plugins` validation lane passes. The guard intentionally binds the current `m4_gate_status`, `migration-debt-present`, and `root_reexport_count = 70` evidence to Runtime 06, the runtime index, Runtime 05 closeout, and the M0 review so native plugin public-surface debt cannot be closed by documentation drift alone.
+The Runtime 06 plan-status guard `runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation` keeps the remaining `script::vm/vampire_project_session/plugin/native_plugin/app/plugins` validation lane visible until runtime real-backend, plugin/native plugin, app, and plugin workspace checks have real evidence. The guard intentionally binds the current `m4_gate_status`, `classified-and-clear`, `root_reexport_count = 0`, and `native_namespace_reexport_count = 60` evidence to Runtime 06, the runtime index, Runtime 05 closeout, and the M0 review so native plugin public-surface evidence cannot drift.
 
-`plugin_surface_lifecycle_boundary` now mirrors the wider Runtime 06 state through the Python structural audit. Current evidence: Runtime 06 source 10/10, mirror docs 5/5, `expected_source_file_count = 10`, `expected_doc_file_count = 5`, frontmatter `in_progress`, `last_refined = 2026-06-14`, native root re-export 70/70, M4 gate `migration-debt-present`, debt groups 5/5, unclassified native symbols 0/0, public native re-export locations 1/1, app NativePlugin current call-site files: 7, native loader V1/V2 implementation files 6/6, `zircon_plugins` V1/V2 usage files 1/1, export_build_plan V1/V2 usage 0/0, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 06, the runtime index, runtime-interface convergence, and the M0 review. This confirms the boundary remains known migration debt; it does not promote Runtime 06 or the native loader to completed.
+`plugin_surface_lifecycle_boundary` now mirrors the wider Runtime 06 state through the Python structural audit. Current evidence: Runtime 06 source 14/14, mirror docs 5/5, `expected_source_file_count = 14`, `expected_doc_file_count = 5`, frontmatter `in_progress`, `last_refined = 2026-06-16`, native root re-export 0/0, native namespace re-export 60/60, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 5/5, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 1/1, app NativePlugin current call-site files: 7, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, native loader test files 3/3, native test namespace import files 2/2, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, unknown ABI rejection, hot reload failure injection, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, and `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed` keep this document aligned with Runtime 06, the runtime index, runtime-interface convergence, and the M0 review.
 
 ## M4 Decision Rules
 
@@ -121,11 +133,11 @@ Any future `unclassified-native-plugin-symbol` entry is a review blocker. Classi
 
 ## Target Shape
 
-The target shape is:
+The current target shape is now the live shape:
 
 - `zircon_runtime::plugin` remains the stable plugin contract surface for manifests, runtime plugin descriptors, feature registration, extension registry, runtime profiles, and scene hooks.
 - VM/plugin lifecycle remains the primary runtime plugin path.
-- Native loader internals move behind an isolated namespace or tool/export-only facade.
+- Native loader internals are exposed only through the isolated `zircon_runtime::plugin::native` namespace or future tool/export-only facades.
 - Public ABI declarations are exported only where needed by native plugin build/tooling contracts, not as root-level runtime plugin API.
 - Generated export hosts call a stable handwritten export/native facade, if one is still needed, instead of directly loading native manifests.
 
@@ -141,18 +153,21 @@ Use the structural audit before calling this boundary converged:
 python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
 ```
 
-The `native_plugin_public_surface.root_reexport_count` should move toward zero as M4 isolates the native loader. If a deliberately narrow native export facade remains public, the audit should allow only that facade and continue rejecting broad ABI/loader re-exports.
+The `native_plugin_public_surface.root_reexport_count` must remain zero after the M2.1 hard-cutover. If a deliberately narrow native export facade remains public, the audit should allow only that facade under an explicit owner namespace and continue rejecting broad root ABI/loader re-exports.
 
 Before editing `zircon_runtime/src/plugin/mod.rs` or `native_plugin_loader`, inspect:
 
 - `native_plugin_public_surface.root_reexport_count`
+- `native_plugin_public_surface.native_namespace_reexport_count`
 - `native_plugin_public_surface.symbol_decision_count`
 - `native_plugin_public_surface.symbol_decision_group_count`
 - `native_plugin_public_surface.symbol_decision_groups`
 - `native_plugin_public_surface.native_plugin_public_surface_migration_debt_count`
 - `native_plugin_public_surface.unclassified_root_reexport_symbols`
 - `native_plugin_public_surface.unclassified_root_reexport_symbol_count`
+- `native_plugin_public_surface.unclassified_native_namespace_symbol_count`
+- `native_plugin_public_surface.root_public_reexport_location_count`
 - `native_plugin_public_surface.public_reexport_location_count`
 - `native_plugin_public_surface.m4_gate_status`
 
-The gate is not clear while `m4_gate_status` is `migration-debt-present`.
+The gate is not clear if `m4_gate_status` stops being `classified-and-clear`, if `root_reexport_count` becomes nonzero, or if any native namespace symbol is unclassified.

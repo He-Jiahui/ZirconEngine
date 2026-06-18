@@ -298,6 +298,7 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
                     command.stage
                 ));
             } else {
+                diagnostics.extend(progress_stage_diagnostics(progress, command.stage));
                 for line in &execution.stderr_lines {
                     diagnostics.push(format!("{:?} stderr: {line}", command.stage));
                 }
@@ -354,11 +355,22 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
     }
 }
 
+fn progress_stage_diagnostics(
+    progress: &ExportWizardProgressState,
+    stage: ExportPipelineStage,
+) -> Vec<String> {
+    progress
+        .snapshot(stage)
+        .map(|snapshot| snapshot.diagnostics.clone())
+        .unwrap_or_default()
+}
+
 pub fn execute_export_wizard_pipeline(
     plan: &ExportWizardPipelinePlan,
     runner: &mut impl ExportWizardCommandRunner,
 ) -> ExportWizardPipelineExecution {
-    let mut progress = ExportWizardProgressState::new();
+    let mut progress =
+        ExportWizardProgressState::for_stages(plan.stages.iter().map(|command| command.stage));
     let mut stages = Vec::new();
     let mut diagnostics = plan.diagnostics.clone();
     let mut fatal = !plan.diagnostics.is_empty();

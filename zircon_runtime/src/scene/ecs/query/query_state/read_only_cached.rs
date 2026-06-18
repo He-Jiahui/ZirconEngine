@@ -1,8 +1,9 @@
 use std::array;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, QueryCombinationIter, QueryData, QueryEntityError, QueryEntityItem,
-    QueryFilter, QueryIter, QueryManyCachedIter, QuerySingleError, UniqueEntityArray,
+    ChangeDetectionScanStats, ChangeTickWindow, QueryCombinationIter, QueryData, QueryEntityError,
+    QueryEntityItem, QueryFilter, QueryIter, QueryManyCachedIter, QuerySingleError,
+    UniqueEntityArray,
 };
 use crate::scene::EntityId;
 use crate::scene::World;
@@ -74,6 +75,7 @@ where
             &self.cached_component_locations,
             &self.cached_component_location_offsets,
             ticks,
+            self,
         )
     }
 
@@ -180,6 +182,7 @@ where
             &self.cached_component_location_offsets,
             entities,
             ticks,
+            self,
         )
     }
 
@@ -189,10 +192,12 @@ where
         ticks: ChangeTickWindow,
     ) -> bool {
         self.update_cache(world);
+        let mut change_detection_stats = ChangeDetectionScanStats::default();
         let mut index = 0_usize;
         while index < self.cached_entities.len() {
             let entity = self.cached_entities[index];
             let Some(stable_location) = self.cached_locations.get(index).copied() else {
+                self.record_change_detection_stats(change_detection_stats);
                 return true;
             };
             let Some(component_locations) = cached_query_component_locations(
@@ -200,22 +205,30 @@ where
                 &self.cached_component_location_offsets,
                 index,
             ) else {
+                self.record_change_detection_stats(change_detection_stats);
                 return true;
             };
-            if F::matches_component_locations(world, entity, component_locations, ticks)
-                && D::fetch_with_component_locations(
-                    world,
-                    entity,
-                    stable_location,
-                    component_locations,
-                    ticks,
-                )
-                .is_some()
+            if F::matches_component_locations_with_stats(
+                world,
+                entity,
+                component_locations,
+                ticks,
+                &mut change_detection_stats,
+            ) && D::fetch_with_component_locations(
+                world,
+                entity,
+                stable_location,
+                component_locations,
+                ticks,
+            )
+            .is_some()
             {
+                self.record_change_detection_stats(change_detection_stats);
                 return false;
             }
             index += 1;
         }
+        self.record_change_detection_stats(change_detection_stats);
         true
     }
 
@@ -225,11 +238,13 @@ where
         ticks: ChangeTickWindow,
     ) -> usize {
         self.update_cache(world);
+        let mut change_detection_stats = ChangeDetectionScanStats::default();
         let mut count = 0_usize;
         let mut index = 0_usize;
         while index < self.cached_entities.len() {
             let entity = self.cached_entities[index];
             let Some(stable_location) = self.cached_locations.get(index).copied() else {
+                self.record_change_detection_stats(change_detection_stats);
                 return count;
             };
             let Some(component_locations) = cached_query_component_locations(
@@ -237,22 +252,29 @@ where
                 &self.cached_component_location_offsets,
                 index,
             ) else {
+                self.record_change_detection_stats(change_detection_stats);
                 return count;
             };
-            if F::matches_component_locations(world, entity, component_locations, ticks)
-                && D::fetch_with_component_locations(
-                    world,
-                    entity,
-                    stable_location,
-                    component_locations,
-                    ticks,
-                )
-                .is_some()
+            if F::matches_component_locations_with_stats(
+                world,
+                entity,
+                component_locations,
+                ticks,
+                &mut change_detection_stats,
+            ) && D::fetch_with_component_locations(
+                world,
+                entity,
+                stable_location,
+                component_locations,
+                ticks,
+            )
+            .is_some()
             {
                 count += 1;
             }
             index += 1;
         }
+        self.record_change_detection_stats(change_detection_stats);
         count
     }
 
@@ -266,7 +288,16 @@ where
         let Some((_, component_locations)) = self.cached_entity_location(entity) else {
             return false;
         };
-        F::matches_component_locations(world, entity, component_locations, ticks)
+        let mut change_detection_stats = ChangeDetectionScanStats::default();
+        let matches = F::matches_component_locations_with_stats(
+            world,
+            entity,
+            component_locations,
+            ticks,
+            &mut change_detection_stats,
+        );
+        self.record_change_detection_stats(change_detection_stats);
+        matches
     }
 
     pub(crate) fn get_cached_with_ticks<'world>(
@@ -283,7 +314,7 @@ where
     }
 
     fn get_cached_after_update_with_ticks<'world>(
-        &self,
+        &mut self,
         world: &'world World,
         entity: EntityId,
         ticks: ChangeTickWindow,
@@ -295,7 +326,15 @@ where
         else {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
-        if !F::matches_component_locations(world, entity, component_locations, ticks) {
+        let mut change_detection_stats = ChangeDetectionScanStats::default();
+        if !F::matches_component_locations_with_stats(
+            world,
+            entity,
+            component_locations,
+            ticks,
+            &mut change_detection_stats,
+        ) {
+            self.record_change_detection_stats(change_detection_stats);
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         let Some(item) = D::fetch_with_component_locations(
@@ -305,8 +344,10 @@ where
             component_locations,
             ticks,
         ) else {
+            self.record_change_detection_stats(change_detection_stats);
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         };
+        self.record_change_detection_stats(change_detection_stats);
         Ok(item)
     }
 

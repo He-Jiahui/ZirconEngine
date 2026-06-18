@@ -8,7 +8,7 @@ use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport, RuntimeProfileId,
 };
-use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
 

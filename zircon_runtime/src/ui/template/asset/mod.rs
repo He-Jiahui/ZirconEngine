@@ -53,10 +53,7 @@ pub use resource_ref::{
     UiResourceResolutionReport, UiResourceResolveDiagnostic, UiResourceResolveDiagnosticCode,
     UiResourceResolver, UiResourceResolverCacheInvalidationReport,
 };
-pub use schema::{
-    UiAssetSchemaMigrator, UiAssetSchemaVersionPolicy, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
-    UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,
-};
+pub use schema::UiAssetSchemaMigrator;
 pub use surface_index::{
     UiAssetHotReloadNodeDirtyReport, UiAssetNodeHotReloadTargets, UiAssetNodeTarget,
     UiAssetSurfaceHotReloadApplyReport, UiAssetSurfaceHotReloadTargets, UiAssetSurfaceIndex,

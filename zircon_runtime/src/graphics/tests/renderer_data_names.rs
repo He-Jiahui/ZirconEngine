@@ -1,4 +1,4 @@
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset,
 };

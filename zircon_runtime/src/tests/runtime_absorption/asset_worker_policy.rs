@@ -2,6 +2,8 @@
 fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     let worker_pool_source = include_str!("../../asset/pipeline/worker_pool.rs");
     let worker_pool_tests = include_str!("../../asset/tests/pipeline/worker_pool.rs");
+    let project_asset_manager_construction =
+        include_str!("../../asset/pipeline/manager/project_asset_manager/construction.rs");
     let worker_pool_doc = include_str!("../../../../docs/zircon_runtime/asset/worker_pool.md");
     let runtime_04_plan = include_str!(
         "../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
@@ -24,11 +26,25 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "for _ in 0..waiter_count",
         "ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC",
         "\"asset.worker.budgeted_threads\"",
+        "AssetWorkerPoolFrameSampler",
+        "ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC",
+        "\"asset.worker.frame_completed\"",
         "AssetWorkerThreadBudgetSource::TaskPoolIo",
     ] {
         assert!(
             worker_pool_source.contains(required_source_anchor),
             "asset worker pool source should keep Runtime 04/11 anchor `{required_source_anchor}`"
+        );
+    }
+
+    for required_manager_anchor in [
+        "pub fn spawn_worker_pool_with_frame_sampler(",
+        "AssetWorkerPoolFrameSampler::from_pool(&pool)",
+        "self.spawn_worker_pool_with_frame_sampler()?",
+    ] {
+        assert!(
+            project_asset_manager_construction.contains(required_manager_anchor),
+            "ProjectAssetManager worker construction should keep sampler anchor `{required_manager_anchor}`"
         );
     }
 
@@ -44,6 +60,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
         "concurrent_requests_for_same_asset_decode_once_and_notify_all",
         "worker_pool_diagnostics_track_in_flight_and_failure_counts",
+        "worker_pool_frame_sampler_records_per_frame_completion_deltas",
+        "project_asset_manager_spawns_worker_pool_with_frame_sampler",
     ] {
         assert!(
             worker_pool_tests.contains(required_test_anchor),
@@ -58,7 +76,9 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "Diagnostics",
         "Runtime 11 M2.4",
         "ProjectAssetManager::default()",
+        "spawn_worker_pool_with_frame_sampler",
         "asset.worker.budgeted_threads",
+        "asset.worker.frame_completed",
     ] {
         assert!(
             worker_pool_doc.contains(required_doc_anchor),
@@ -71,6 +91,7 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "AssetWorkerPoolOptions",
         "Runtime 11 M2.4",
         "asset.worker.budgeted_threads",
+        "asset.worker.frame_completed",
         "worker_pool_options_can_derive_threads_from_runtime_io_budget",
         "project_asset_manager_default_workers_use_runtime_io_budget_source",
     ] {

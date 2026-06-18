@@ -11,7 +11,7 @@ use crate::core::framework::render::{
     RenderShaderDefinitionValue, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RenderPipelineAsset, RenderPipelineAssetContext,
     RenderPipelineCompileOptions, RendererDataDocument, RendererDataDocumentError,
     RendererFeatureContractDiagnostic,
@@ -441,7 +441,7 @@ fn renderer_feature_asset_builders_preserve_shader_material_contract_references(
     let shader = asset_reference("custom-shader", "res://shaders/custom.zshader");
     let material = asset_reference("custom-material", "res://materials/custom.zmaterial");
 
-    let feature = crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess)
+    let feature = crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess)
         .with_shader_reference(shader.clone())
         .with_material_reference(material.clone())
         .with_required_entry_point("fullscreen_fs")
@@ -516,7 +516,7 @@ fn asset_aware_compile_reports_missing_shader_and_material_without_blocking_grap
     let shader = asset_reference("missing-shader", "res://shaders/missing.zshader");
     let material = asset_reference("missing-material", "res://materials/missing.zmaterial");
     let pipeline = pipeline_with_mesh_feature(
-        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+        crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
             .with_shader_reference(shader.clone())
             .with_material_reference(material.clone()),
     );
@@ -551,7 +551,7 @@ fn asset_aware_compile_reports_missing_shader_and_material_without_blocking_grap
 fn asset_aware_compile_reports_shader_contract_expectation_gaps() {
     let shader = asset_reference("mesh-shader", "res://shaders/mesh.zshader");
     let pipeline = pipeline_with_mesh_feature(
-        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+        crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
             .with_shader_reference(shader.clone())
             .with_required_entry_point("missing_vs")
             .with_expected_property("roughness")
@@ -596,7 +596,7 @@ fn asset_aware_compile_reports_shader_contract_expectation_gaps() {
 fn asset_aware_compile_reports_shader_payload_readiness_gaps() {
     let shader = asset_reference("readiness-shader", "res://shaders/readiness.zshader");
     let pipeline = pipeline_with_mesh_feature(
-        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+        crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
             .with_shader_reference(shader.clone()),
     );
     let mut shader_asset = shader_contract();
@@ -672,7 +672,7 @@ fn asset_aware_compile_reports_material_contract_diagnostics() {
     let material_shader = asset_reference("material-shader", "res://shaders/material.zshader");
     let material = asset_reference("material", "res://materials/mismatch.zmaterial");
     let pipeline = pipeline_with_mesh_feature(
-        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+        crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
             .with_shader_reference(feature_shader.clone())
             .with_material_reference(material.clone()),
     );
@@ -741,7 +741,7 @@ fn asset_aware_compile_reports_material_local_validation_diagnostics() {
     let feature_shader = asset_reference("feature-shader", "res://shaders/feature.zshader");
     let material_reference = asset_reference("material", "res://materials/local-errors.zmaterial");
     let pipeline = pipeline_with_mesh_feature(
-        crate::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
+        crate::graphics::RendererFeatureAsset::builtin(BuiltinRenderFeature::Mesh)
             .with_shader_reference(feature_shader.clone())
             .with_material_reference(material_reference.clone()),
     );
@@ -841,7 +841,9 @@ impl RenderPipelineAssetContext for InMemoryRenderPipelineAssetContext {
     }
 }
 
-fn pipeline_with_mesh_feature(feature: crate::RendererFeatureAsset) -> RenderPipelineAsset {
+fn pipeline_with_mesh_feature(
+    feature: crate::graphics::RendererFeatureAsset,
+) -> RenderPipelineAsset {
     let mut pipeline = RenderPipelineAsset::default_forward_plus();
     let mesh = pipeline
         .renderer

@@ -1,10 +1,10 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
     RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
 use crate::scene::SystemStage;
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {

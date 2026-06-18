@@ -103,7 +103,7 @@ pub(super) fn parse(
         if is_legacy_cubemap && is_dx10_texturecube {
             return parse_error(
                 context,
-                "dds dx10 cubemap must be declared by legacy caps2 or DX10 texturecube flag, not both",
+                "dds dx10 cubemap must be declared by DDSCAPS2_CUBEMAP caps2 policy or DX10 texturecube flag, not both",
             );
         }
         validate_cubemap_caps(context, is_dx10_texturecube, caps)?;

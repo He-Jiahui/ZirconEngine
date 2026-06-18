@@ -23,7 +23,9 @@ mod strip_button_node_id;
 mod sync;
 mod to_public_route;
 
+#[cfg(test)]
 pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_layout;
+pub(crate) use build_host_activity_rail_pointer_layout::build_host_activity_rail_pointer_layout_with_workbench_layout_frames;
 pub(crate) use host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
 pub(crate) use host_activity_rail_pointer_dispatch::HostActivityRailPointerDispatch;
 #[cfg(test)]

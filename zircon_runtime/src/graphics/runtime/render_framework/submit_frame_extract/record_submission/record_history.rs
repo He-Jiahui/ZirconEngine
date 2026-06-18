@@ -1,6 +1,6 @@
 use crate::core::framework::render::{FrameHistoryHandle, FrameHistoryStatus};
 
-use crate::runtime::ViewportFrameHistory;
+use crate::graphics::runtime::ViewportFrameHistory;
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;

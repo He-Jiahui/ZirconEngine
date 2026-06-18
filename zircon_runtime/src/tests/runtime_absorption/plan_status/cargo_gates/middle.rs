@@ -37,15 +37,43 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
                 "runtime_09_v2_verdict_matches_runtime_and_interface_modules",
             ][..],
         ),
-        ("1.1 路由单点", &["待开始"][..]),
-        ("1.2 legacy 处置", &["待开始"][..]),
-        ("2.1 taffy 单入口", &["待开始"][..]),
-        ("2.2 虚拟化边界", &["待开始"][..]),
-        ("3.1 模板边界", &["待开始"][..]),
+        (
+            "1.1 路由单点",
+            &["runtime_09_m1_1_ui_input_route_authority_static_passed_cargo_pending"][..],
+        ),
+        (
+            "1.2 navigation legacy reply rename",
+            &[
+                "runtime_09_m1_2_navigation_legacy_reply_renamed_static_passed_cargo_pending",
+                "ui_legacy_hits=153",
+                "Cargo 仍等待 active lanes 空窗",
+            ][..],
+        ),
+        (
+            "1.2 surface default interaction fallback rename",
+            &[
+                "runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending",
+                "ui_legacy_hits=54",
+                "ui_legacy_production_hits=0",
+            ][..],
+        ),
+        (
+            "2.1 taffy 单入口",
+            &["runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending"][..],
+        ),
+        (
+            "2.2 虚拟化边界",
+            &["runtime_09_m2_2_virtualization_scroll_boundary_static_passed_cargo_pending"][..],
+        ),
+        (
+            "3.1 模板边界",
+            &["runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending"][..],
+        ),
     ] {
+        let row_cell = format!("| {row_name} |");
         let row = runtime_09_plan
             .lines()
-            .find(|line| line.starts_with('|') && line.contains(row_name))
+            .find(|line| line.starts_with('|') && line.contains(&row_cell))
             .unwrap_or_else(|| panic!("Runtime 09 should keep status row `{row_name}`"));
         assert_contains_all("Runtime 09 pending status row", row, required_anchors);
     }
@@ -72,7 +100,7 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
         &[
             "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
             "ui/input/naming_boundary/layout/template",
-            "editor UI owner/Cargo lanes",
+            "owner/Cargo gate",
         ],
     );
 
@@ -85,6 +113,8 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
         runtime_09_problem_row,
         &[
             "runtime_absorption::ui_architecture",
+            "ui_legacy_hits=54",
+            "ui_legacy_production_hits=0",
             "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
             "editor UI owner",
         ],
@@ -97,7 +127,7 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
             "runtime_09_m0_ui_architecture_static_passed",
             "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
             "ui/input/naming_boundary/layout/template",
-            "Cargo has not been run",
+            "full UI behavior filters are still deferred",
         ],
     );
 

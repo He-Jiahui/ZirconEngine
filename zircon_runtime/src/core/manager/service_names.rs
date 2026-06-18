@@ -1,5 +1,6 @@
 pub const RESOURCE_MANAGER_NAME: &str = "AssetModule.Manager.ResourceManager";
 pub const INPUT_MANAGER_NAME: &str = "InputModule.Manager.InputManager";
+pub const INPUT_ACTION_MANAGER_NAME: &str = "InputModule.Manager.InputActionManager";
 pub const CONFIG_MANAGER_NAME: &str = "FoundationModule.Manager.ConfigManager";
 pub const EVENT_MANAGER_NAME: &str = "FoundationModule.Manager.EventManager";
 pub const RENDERING_MANAGER_NAME: &str = "GraphicsModule.Manager.RenderingManager";

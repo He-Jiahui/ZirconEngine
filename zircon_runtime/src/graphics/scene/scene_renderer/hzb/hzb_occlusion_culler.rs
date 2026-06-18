@@ -8,11 +8,16 @@ use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshComma
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectDrawExecution;
 use crate::graphics::visibility::{HzbOcclusionCullReadbackStats, HzbOcclusionCullReport};
 
+use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
+
 pub(crate) const HZB_OCCLUSION_CULL_PIPELINE_LABEL: &str = "zircon-hzb-occlusion-cull-pipeline";
 pub(crate) const HZB_OCCLUSION_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
+pub(crate) const HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE: &str =
+    "mesh.indirect-compaction-metadata";
 pub(crate) const HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE: &str =
     "mesh.compacted-indirect-args";
 pub(crate) const HZB_OCCLUSION_DRAW_COUNT_RESOURCE: &str = "mesh.indirect-draw-count";
+pub(crate) const HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE: &str = "mesh.indirect-args";
 pub(crate) const HZB_OCCLUSION_STATS_RESOURCE: &str = "visibility.hzb-occlusion-stats";
 pub(crate) const HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE: &str =
     "mesh.visible-instance-index";
@@ -21,7 +26,7 @@ const HZB_OCCLUSION_DEPTH_BIAS: f32 = 0.001;
 const HZB_OCCLUSION_RADIUS_SCALE: f32 = 1.25;
 const HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullParams>() as u64;
-const HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE: u64 =
+pub(crate) const HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullGpuStats>() as u64;
 const HZB_OCCLUSION_CULL_SHADER: &str = concat!(
     include_str!("../mesh/shaders/zr_gpu_scene.wgsl"),
@@ -163,16 +168,15 @@ impl HzbOcclusionCuller {
 
         self.clear_stats(queue);
 
-        let mut dispatched_phase_count = 0u32;
+        let mut dispatch_summary = HzbOcclusionPhaseDispatchSummary::default();
         for execution in mesh_draw_lists
             .hzb_occlusion_indirect_executions()
             .into_iter()
             .flatten()
         {
-            let args_count = execution.args_count();
-            if args_count == 0 {
+            let Some(phase_dispatch) = HzbOcclusionPhaseDispatch::new(execution) else {
                 continue;
-            }
+            };
             execution
                 .compaction_resources()
                 .encode_clear_outputs(encoder);
@@ -182,20 +186,20 @@ impl HzbOcclusionCuller {
                 scene_bind_group,
                 gpu_scene_bind_group,
                 previous_hzb_view,
-                execution,
+                &phase_dispatch,
             );
             execution.mark_compaction_ready_for_replay();
-            dispatched_phase_count += 1;
+            dispatch_summary.record_phase(&phase_dispatch);
         }
-        if dispatched_phase_count > 0 {
+        if dispatch_summary.dispatched_phase_count() > 0 {
             self.copy_stats_to_readback(encoder);
         }
 
         HzbOcclusionCullReport::single_frame_reproject(
             candidate_arg_count,
             candidate_instance_count,
-            dispatch_group_count(candidate_arg_count),
-            dispatched_phase_count,
+            dispatch_summary.dispatch_group_count(),
+            dispatch_summary.dispatched_phase_count(),
             history_available,
         )
     }
@@ -215,14 +219,10 @@ impl HzbOcclusionCuller {
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: &wgpu::BindGroup,
         previous_hzb_view: &wgpu::TextureView,
-        execution: &MeshIndirectDrawExecution,
+        phase_dispatch: &HzbOcclusionPhaseDispatch<'_>,
     ) {
-        let args_count = execution.args_count();
-        if args_count == 0 {
-            return;
-        }
-
-        self.encode_params_upload(device, encoder, args_count);
+        let execution = phase_dispatch.execution();
+        self.encode_params_upload(device, encoder, phase_dispatch.args_count());
         let bind_group = self.create_bind_group_for_execution(device, previous_hzb_view, execution);
         let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("zircon-hzb-occlusion-cull"),
@@ -232,7 +232,7 @@ impl HzbOcclusionCuller {
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);
         pass.set_bind_group(3, gpu_scene_bind_group, &[]);
-        pass.dispatch_workgroups(dispatch_group_count(args_count), 1, 1);
+        pass.dispatch_workgroups(phase_dispatch.dispatch_group_count(), 1, 1);
     }
 
     fn encode_params_upload(
@@ -284,6 +284,10 @@ impl HzbOcclusionCuller {
         drop(mapped);
         self.stats_readback_buffer.unmap();
         Some(gpu_stats.readback_stats())
+    }
+
+    pub(crate) fn stats_buffer(&self) -> &wgpu::Buffer {
+        &self.stats_buffer
     }
 
     fn create_bind_group_for_execution(
@@ -426,14 +430,6 @@ fn create_hzb_occlusion_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGr
     })
 }
 
-fn dispatch_group_count(args_count: u32) -> u32 {
-    if args_count == 0 {
-        0
-    } else {
-        args_count.div_ceil(HZB_OCCLUSION_CULL_WORKGROUP_SIZE[0])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -525,13 +521,15 @@ mod tests {
         execution
             .compaction_resources()
             .encode_clear_outputs(&mut encoder);
+        let phase_dispatch =
+            HzbOcclusionPhaseDispatch::new(&execution).expect("test phase dispatch");
         culler.execute_indirect_args_buffer(
             device,
             &mut encoder,
             &scene_bind_group,
             gpu_scene.scene_bind_group(),
             &hzb.view,
-            &execution,
+            &phase_dispatch,
         );
         culler.copy_stats_to_readback(&mut encoder);
         encoder.copy_buffer_to_buffer(
@@ -596,14 +594,6 @@ mod tests {
     }
 
     #[test]
-    fn hzb_occlusion_dispatch_groups_cover_indirect_args() {
-        assert_eq!(dispatch_group_count(0), 0);
-        assert_eq!(dispatch_group_count(1), 1);
-        assert_eq!(dispatch_group_count(64), 1);
-        assert_eq!(dispatch_group_count(65), 2);
-    }
-
-    #[test]
     fn hzb_occlusion_gpu_stats_remains_copy_aligned() {
         assert_eq!(HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE, 16);
     }
@@ -620,17 +610,21 @@ mod tests {
     #[test]
     fn hzb_occlusion_culler_clears_compaction_outputs_before_culling_dispatch() {
         let source = include_str!("hzb_occlusion_culler.rs");
-        let clear_index = source
-            .find("execution.compaction_resources().encode_clear_outputs(encoder);")
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("implementation source");
+        let clear_index = implementation
+            .find(".encode_clear_outputs(encoder);")
             .expect("phase compaction output clear");
-        let dispatch_index = source
+        let dispatch_index = implementation
             .find("self.execute_indirect_args_buffer(")
             .expect("phase hzb cull dispatch");
 
         assert!(clear_index < dispatch_index);
-        assert!(source.contains("HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE"));
-        assert!(source.contains("HZB_OCCLUSION_DRAW_COUNT_RESOURCE"));
-        assert!(source.contains("HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE"));
+        assert!(implementation.contains("HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE"));
+        assert!(implementation.contains("HZB_OCCLUSION_DRAW_COUNT_RESOURCE"));
+        assert!(implementation.contains("HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE"));
     }
 
     fn test_backend() -> Option<RenderBackend> {

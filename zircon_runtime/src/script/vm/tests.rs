@@ -1,4 +1,7 @@
 #[cfg(test)]
+mod lifecycle_failures;
+
+#[cfg(test)]
 mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};

@@ -466,7 +466,7 @@ struct LightInfluence {
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        RenderLayerSet, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
+        DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
     };
     use crate::core::math::{Quat, Transform};
 
@@ -567,15 +567,10 @@ mod tests {
             z_near: 0.1,
             z_far: 32.0,
             aspect_ratio: viewport_size.x as f32 / viewport_size.y.max(1) as f32,
-            target: Default::default(),
-            viewport: None,
-            order: 0,
             is_active: true,
             hdr: false,
             exposure_ev100: DEFAULT_CAMERA_EXPOSURE_EV100,
-            clear_color: Default::default(),
             msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
-            render_layers: RenderLayerSet::default(),
             dynamic_resolution: Default::default(),
             temporal_jitter: Default::default(),
         };

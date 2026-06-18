@@ -83,7 +83,7 @@ pub(super) fn apply_focus_pointer_effect(
                 if surface.focus.captured != Some(*target)
                     || !surface
                         .input
-                        .has_legacy_or_indexed_pointer_capture_for_owner(*target)
+                        .has_pointer_capture_or_unindexed_fallback_for_owner(*target)
                 {
                     return Err("high precision requires pointer capture".to_string());
                 }

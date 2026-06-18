@@ -5,7 +5,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
+  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
   - zircon_editor/src/ui/retained_host/event_bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/effects.rs
   - zircon_editor/src/ui/retained_host/drawer_resize.rs
@@ -17,7 +20,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
+  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
   - zircon_editor/src/ui/retained_host/event_bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/effects.rs
   - zircon_editor/src/ui/retained_host/drawer_resize.rs
@@ -39,6 +45,11 @@ tests:
   - 2026-05-13 viewport-render-domain-validation: cargo test -p zircon_editor --lib retained_event_bridge --jobs 1 --target-dir target\codex-ui-v2-guard (passed, 8 tests)
   - 2026-05-13 viewport-render-domain-validation: cargo test -p zircon_editor --lib retained_callback_dispatch::viewport --jobs 1 --target-dir target\codex-ui-v2-guard (passed after adding structural viewport render domain, 11 tests)
   - 2026-05-13 viewport-render-domain-validation: cargo test -p zircon_editor --lib retained_event_effects_route_dirty_domains_through_invalidation_mask --jobs 1 --target-dir target\codex-ui-v2-guard (passed, 1 test)
+  - 2026-06-18 editor-ui-architecture-validation: cargo fmt -p zircon_editor (passed)
+  - 2026-06-18 editor-ui-architecture-validation: cargo fmt -p zircon_editor --check (passed)
+  - 2026-06-18 editor-ui-architecture-validation: app invalidation mask ownership scan (passed)
+  - 2026-06-18 editor-ui-architecture-validation: scoped git diff --check (passed with CRLF warnings only)
+  - 2026-06-18 editor-ui-architecture-validation: cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (passed with existing warnings)
 doc_type: module-detail
 ---
 
@@ -47,6 +58,12 @@ doc_type: module-detail
 The retained editor host uses `HostInvalidationRoot` as the owner of refresh reasons. Callers outside `host_lifecycle.rs` should not write the legacy dirty booleans directly. They report a dirty domain through lifecycle helpers such as `mark_presentation_dirty`, `mark_layout_dirty`, `mark_render_and_presentation_dirty`, `record_paint_only_invalidation`, or the lower-level `invalidate_host` entrypoint.
 
 The legacy booleans still exist as a short-term bridge for the current retained host loop, but they are derived from `HostInvalidationMask` inside `invalidate_host`. This keeps slow-path rebuild diagnostics, render-path diagnostics, paint-only fast paths, and future dirty-domain scheduling on the same source of truth.
+
+## Mask Ownership
+
+`app/invalidation/mask.rs` owns `HostInvalidationMask`, the dirty-domain bit definitions, bitwise union/intersection mutation helpers, dirty-flag conversion, recompute requirement predicates, and human-readable summaries. This keeps the domain vocabulary independent from root scheduling counters.
+
+`app/invalidation.rs` owns `HostInvalidationRoot`, pending recompute reasons, request counters, slow/render path rebuild counters, and diagnostics snapshots. The root should consume the mask API but should not redefine dirty-domain constants or presentation/layout/render predicate logic.
 
 ## Event Effects
 
@@ -71,3 +88,9 @@ This matters for the v2 UI cutover because component events can produce small pr
 `host_dirty_flags_route_through_invalidation_root_outside_lifecycle_owner` scans retained-host app sources and rejects direct writes to `presentation_dirty`, `layout_dirty`, `window_metrics_dirty`, and `render_dirty` outside `host_lifecycle.rs`. `host_lifecycle.rs` remains the bridge owner that translates masks into the old booleans until the old flags can be removed entirely.
 
 `retained_event_effects_route_dirty_domains_through_invalidation_mask` verifies the callback/event layer uses the event-effect mask for host invalidation. It also rejects new dirty flag OR-assignment or direct true-assignment in retained-host modules outside the bridge owner files.
+
+## Validation Notes
+
+The 2026-06-18 mask split reduced `invalidation.rs` from 287 lines to 174 lines. `invalidation/mask.rs` is 115 lines and owns dirty-domain constants, bit operations, dirty-flag conversion, recompute predicates, and summary formatting.
+
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app invalidation mask ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.

@@ -43,6 +43,7 @@ impl ViewportOverlayRenderer {
             streamer,
             frame,
             shadow_atlas_resources,
+            frame.render_region(),
             None,
             None,
             None,

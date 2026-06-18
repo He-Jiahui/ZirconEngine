@@ -5,7 +5,7 @@ use super::ParticleRenderer;
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ParticleRenderer {
@@ -18,6 +18,7 @@ impl ParticleRenderer {
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
         attachment_ops: RenderGraphAttachmentOps,
     ) {
         let vertices = build_particle_velocity_vertices(frame);
@@ -50,6 +51,9 @@ impl ParticleRenderer {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return;
+        }
         pass.set_pipeline(&self.velocity_pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_vertex_buffer(0, buffer.slice(..));

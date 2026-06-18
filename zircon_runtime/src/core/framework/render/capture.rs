@@ -108,6 +108,7 @@ pub struct CapturedFrame {
     pub rgba: Vec<u8>,
     pub generation: u64,
     pub capture_report: RenderCaptureReport,
+    pub graph_dump: Option<String>,
 }
 
 impl CapturedFrame {
@@ -132,12 +133,31 @@ impl CapturedFrame {
         generation: u64,
         capture_report: RenderCaptureReport,
     ) -> Self {
+        Self::with_capture_report_and_graph_dump(
+            width,
+            height,
+            rgba,
+            generation,
+            capture_report,
+            None,
+        )
+    }
+
+    pub fn with_capture_report_and_graph_dump(
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+        generation: u64,
+        capture_report: RenderCaptureReport,
+        graph_dump: Option<String>,
+    ) -> Self {
         Self {
             width,
             height,
             rgba,
             generation,
             capture_report,
+            graph_dump,
         }
     }
 }
@@ -159,6 +179,7 @@ mod tests {
             RenderCaptureSource::FrameworkOffscreen
         );
         assert_eq!(frame.capture_report.output_size, UVec2::new(16, 8));
+        assert_eq!(frame.graph_dump, None);
     }
 
     #[test]

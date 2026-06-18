@@ -5,20 +5,18 @@ use super::{
     ExportBuildPlan, ExportGeneratedFile, LibraryEmbedCompileHostPlan,
     NativeDynamicPackageExportPlan, SourceTemplateBuildValidationPlan,
 };
-use crate::{
-    plugin::{
-        ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform,
-        RuntimePluginAvailabilityReport,
-    },
-    RuntimeTargetMode,
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{
+    ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform, RuntimePluginAvailabilityReport,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ExportPipelineStage {
     Validate,
-    CompileHost,
     SourceTemplate,
+    NativeDynamic,
+    CompileHost,
     CookAssets,
     Pack,
     PlatformBundle,

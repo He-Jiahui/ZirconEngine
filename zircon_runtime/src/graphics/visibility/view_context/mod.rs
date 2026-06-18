@@ -12,6 +12,7 @@ pub struct FrameVisibility {
     /// Stable primitive index space for all per-view visible lists in this frame.
     pub entities: Vec<EntityId>,
     pub bounds: Vec<VisibilityBounds>,
+    pub render_layer_masks: Vec<u32>,
     pub relevance: Vec<PrimitiveRelevance>,
     pub relevance_generation: u64,
     pub views: Vec<ViewVisibilityContext>,
@@ -36,6 +37,10 @@ impl FrameVisibility {
             .iter()
             .map(|instance| instance.bounds)
             .collect::<Vec<_>>();
+        let render_layer_masks = bvh_instances
+            .iter()
+            .map(|instance| instance.key.render_layer_mask)
+            .collect::<Vec<_>>();
         let relevance = bvh_instances
             .iter()
             .map(|instance| {
@@ -55,6 +60,7 @@ impl FrameVisibility {
         Self {
             entities,
             bounds,
+            render_layer_masks,
             relevance,
             relevance_generation: 0,
             views: vec![main_view],

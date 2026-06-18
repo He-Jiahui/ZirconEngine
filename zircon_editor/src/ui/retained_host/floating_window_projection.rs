@@ -281,6 +281,7 @@ mod tests {
         MainHostStripViewModel, MenuBarModel, StatusBarModel, WorkbenchViewModel,
     };
     use crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot;
+    use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
     use super::{
         build_floating_window_projection_bundle, default_floating_window_frame,
@@ -587,11 +588,7 @@ mod tests {
                     active_tab: None,
                 },
             },
-            status_bar: StatusBarModel {
-                primary_text: String::new(),
-                secondary_text: None,
-                viewport_label: String::new(),
-            },
+            status_bar: StatusBarModel::default(),
         }
     }
 }

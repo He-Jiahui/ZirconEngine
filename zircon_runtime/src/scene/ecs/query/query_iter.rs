@@ -1,7 +1,8 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ptr::NonNull};
 
 use crate::scene::ecs::{
-    ChangeTickWindow, ComponentStorageLocation, QueryData, QueryFilter, StableEntityLocation,
+    ChangeDetectionScanStats, ChangeTickWindow, ComponentStorageLocation, QueryData, QueryFilter,
+    QueryState, StableEntityLocation,
 };
 use crate::scene::{EntityId, World};
 
@@ -17,6 +18,10 @@ where
     locations: Option<&'entities [StableEntityLocation]>,
     component_locations: Option<&'entities [ComponentStorageLocation]>,
     component_location_offsets: Option<&'entities [usize]>,
+    change_detection_stats: ChangeDetectionScanStats,
+    // Cached slices keep the originating QueryState alive; the raw sink avoids
+    // imposing a state-reference lifetime on read-only, non-cached iterators.
+    state: Option<NonNull<QueryState<D, F>>>,
     index: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
@@ -38,6 +43,8 @@ where
             locations: None,
             component_locations: None,
             component_location_offsets: None,
+            change_detection_stats: ChangeDetectionScanStats::default(),
+            state: None,
             index: 0,
             ticks,
             _marker: PhantomData,
@@ -51,6 +58,7 @@ where
         component_locations: &'entities [ComponentStorageLocation],
         component_location_offsets: &'entities [usize],
         ticks: ChangeTickWindow,
+        state: &'entities QueryState<D, F>,
     ) -> Self {
         Self {
             world,
@@ -58,6 +66,8 @@ where
             locations: Some(locations),
             component_locations: Some(component_locations),
             component_location_offsets: Some(component_location_offsets),
+            change_detection_stats: ChangeDetectionScanStats::default(),
+            state: Some(NonNull::from(state)),
             index: 0,
             ticks,
             _marker: PhantomData,
@@ -94,12 +104,23 @@ where
                     component_location_offsets,
                     index,
                 )?;
-                if F::matches_component_locations(
-                    self.world,
-                    entity,
-                    component_locations,
-                    self.ticks,
-                ) {
+                let filter_matches = if self.state.is_some() {
+                    F::matches_component_locations_with_stats(
+                        self.world,
+                        entity,
+                        component_locations,
+                        self.ticks,
+                        &mut self.change_detection_stats,
+                    )
+                } else {
+                    F::matches_component_locations(
+                        self.world,
+                        entity,
+                        component_locations,
+                        self.ticks,
+                    )
+                };
+                if filter_matches {
                     if let Some(item) = D::fetch_with_component_locations(
                         self.world,
                         entity,
@@ -119,5 +140,20 @@ where
             }
         }
         None
+    }
+}
+
+impl<'world, 'entities, D, F> Drop for QueryIter<'world, 'entities, D, F>
+where
+    D: QueryData,
+    F: QueryFilter,
+{
+    fn drop(&mut self) {
+        if let Some(state) = self.state {
+            // SAFETY: cached constructors derive this pointer from the same
+            // QueryState borrow that owns the cached slices held by the iterator.
+            let state = unsafe { state.as_ref() };
+            state.record_change_detection_stats(self.change_detection_stats);
+        }
     }
 }

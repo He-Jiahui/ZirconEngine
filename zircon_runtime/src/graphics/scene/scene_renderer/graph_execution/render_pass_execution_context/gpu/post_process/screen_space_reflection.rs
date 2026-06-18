@@ -1,5 +1,5 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
-use crate::render_graph::RenderGraphAttachmentOps;
+use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 use super::super::RenderPassGpuExecutionContext;
 
@@ -47,54 +47,102 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let target = stack.target;
         let history = stack.history_textures;
         let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(motion_vector_neighbor_max_resource_name)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let scene_color_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_color_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let scene_depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let motion_vector_neighbor_max_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            motion_vector_neighbor_max_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let scene_normal_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let scene_material_view = stack
             .material_gbuffer_valid
             .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+                Self::require_texture_view_by_name(
+                    resources,
+                    resource_resolver,
+                    PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+                    RenderGraphResourceAccessKind::Read,
+                )
             })
             .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let depth_of_field_coc_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)?;
-        let depth_of_field_bokeh_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)?;
-        let screen_space_reflection_history_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_history_resource_name)?;
-        let hzb_furthest_view = self
-            .resources
-            .require_texture_view(hzb_furthest_resource_name)?;
-        let screen_space_reflection_reflection_pyramid_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_reflection_pyramid_resource_name)?;
-        let hzb_furthest_full_mip_view = self
-            .resources
-            .owned_texture_full_mip_view(hzb_furthest_resource_name)
-            .ok();
-        let screen_space_reflection_reflection_pyramid_full_mip_view = self
-            .resources
-            .owned_texture_full_mip_view(screen_space_reflection_reflection_pyramid_resource_name)
-            .ok();
+        let ambient_occlusion_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.white_texture_view());
+        let bloom_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::BLOOM,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_coc_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_bokeh_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let screen_space_reflection_history_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_history_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let hzb_furthest_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            hzb_furthest_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let screen_space_reflection_reflection_pyramid_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_reflection_pyramid_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let hzb_furthest_full_mip_view = Self::optional_owned_texture_full_mip_view_by_name(
+            resources,
+            resource_resolver,
+            hzb_furthest_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let screen_space_reflection_reflection_pyramid_full_mip_view =
+            Self::optional_owned_texture_full_mip_view_by_name(
+                resources,
+                resource_resolver,
+                screen_space_reflection_reflection_pyramid_resource_name,
+                RenderGraphResourceAccessKind::Read,
+            )?;
         let hzb_furthest_sampling_view = hzb_furthest_full_mip_view
             .as_ref()
             .unwrap_or(hzb_furthest_view);
@@ -103,21 +151,30 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 .as_ref()
                 .unwrap_or(screen_space_reflection_reflection_pyramid_view);
         let screen_space_reflection_reflection_pyramid_coarse_view =
-            self.resources.require_texture_view(
+            Self::require_texture_view_by_name(
+                resources,
+                resource_resolver,
                 screen_space_reflection_reflection_pyramid_coarse_resource_name,
+                RenderGraphResourceAccessKind::Read,
             )?;
-        let screen_space_reflection_specular_occlusion_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_specular_occlusion_resource_name)?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
+        let screen_space_reflection_specular_occlusion_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_specular_occlusion_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let cluster_buffer = Self::require_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::LIGHT_LIST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         stack.post_process.execute_screen_space_reflection_resolve(
             self.device,
             self.queue,
             self.encoder,
-            target.size,
             target.cluster_dimensions,
+            super::post_process_texture_origin(self.frame, scene_color_resource_name),
             scene_color_view,
             scene_depth_view,
             motion_vector_neighbor_max_view,
@@ -160,59 +217,117 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let target = stack.target;
         let history = stack.history_textures;
         let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_COLOR)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let scene_color_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let scene_depth_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SCENE_DEPTH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let motion_vector_neighbor_max_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let scene_normal_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
         let scene_material_view = stack
             .material_gbuffer_valid
             .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+                Self::optional_texture_view_by_name(
+                    resources,
+                    resource_resolver,
+                    PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+                    RenderGraphResourceAccessKind::Read,
+                )
+                .map(|view| view.unwrap_or_else(|| stack.post_process.black_texture_view()))
             })
             .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let depth_of_field_coc_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)?;
-        let depth_of_field_bokeh_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)?;
-        let screen_space_reflection_reflection_pyramid_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_reflection_pyramid_resource_name)?;
+        let ambient_occlusion_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.white_texture_view());
+        let bloom_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::BLOOM,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_coc_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_bokeh_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let screen_space_reflection_reflection_pyramid_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_reflection_pyramid_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let screen_space_reflection_reflection_pyramid_coarse_view =
-            self.resources.require_texture_view(
+            Self::require_texture_view_by_name(
+                resources,
+                resource_resolver,
                 screen_space_reflection_reflection_pyramid_coarse_resource_name,
+                RenderGraphResourceAccessKind::Write,
             )?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
-        let mip_level_count = self
-            .resources
-            .owned_texture_mip_level_count(screen_space_reflection_reflection_pyramid_resource_name)
-            .unwrap_or(1);
+        let cluster_buffer = Self::require_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::LIGHT_LIST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let mip_level_count = Self::owned_texture_mip_level_count_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_reflection_pyramid_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         if mip_level_count > 1 {
             for mip_pass in ssr_parent_pyramid_mip_passes(mip_level_count, attachment_ops) {
-                let source_view = self.resources.owned_texture_mip_view(
+                let source_view = Self::require_owned_texture_mip_view_by_name(
+                    resources,
+                    resource_resolver,
                     screen_space_reflection_reflection_pyramid_resource_name,
+                    screen_space_reflection_reflection_pyramid_resource_name,
+                    RenderGraphResourceAccessKind::Read,
                     mip_pass.source_mip_level,
                 )?;
-                let target_view = self.resources.owned_texture_mip_view(
+                let target_view = Self::require_owned_texture_mip_view_by_name(
+                    resources,
+                    resource_resolver,
+                    screen_space_reflection_reflection_pyramid_coarse_resource_name,
                     screen_space_reflection_reflection_pyramid_resource_name,
+                    RenderGraphResourceAccessKind::Write,
                     mip_pass.target_mip_level,
                 )?;
                 stack
@@ -221,8 +336,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                         self.device,
                         self.queue,
                         self.encoder,
-                        target.size,
                         target.cluster_dimensions,
+                        super::post_process_texture_origin(
+                            self.frame,
+                            PostProcessGraphResourceNames::SCENE_COLOR,
+                        ),
                         scene_color_view,
                         scene_depth_view,
                         motion_vector_neighbor_max_view,
@@ -252,8 +370,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 self.device,
                 self.queue,
                 self.encoder,
-                target.size,
                 target.cluster_dimensions,
+                super::post_process_texture_origin(
+                    self.frame,
+                    PostProcessGraphResourceNames::SCENE_COLOR,
+                ),
                 scene_color_view,
                 scene_depth_view,
                 motion_vector_neighbor_max_view,
@@ -292,51 +413,95 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let target = stack.target;
         let history = stack.history_textures;
         let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let scene_color_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_color_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let scene_depth_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SCENE_DEPTH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let motion_vector_neighbor_max_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let scene_normal_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
         let scene_material_view = stack
             .material_gbuffer_valid
             .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+                Self::optional_texture_view_by_name(
+                    resources,
+                    resource_resolver,
+                    PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+                    RenderGraphResourceAccessKind::Read,
+                )
+                .map(|view| view.unwrap_or_else(|| stack.post_process.black_texture_view()))
             })
             .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let depth_of_field_coc_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)?;
-        let depth_of_field_bokeh_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)?;
-        let screen_space_reflection_reflection_pyramid_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_reflection_pyramid_resource_name)?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
+        let ambient_occlusion_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.white_texture_view());
+        let bloom_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::BLOOM,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_coc_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_bokeh_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let screen_space_reflection_reflection_pyramid_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_reflection_pyramid_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let cluster_buffer = Self::require_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::LIGHT_LIST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         stack
             .post_process
             .execute_screen_space_reflection_reflection_pyramid(
                 self.device,
                 self.queue,
                 self.encoder,
-                target.size,
                 target.cluster_dimensions,
+                super::post_process_texture_origin(self.frame, scene_color_resource_name),
                 scene_color_view,
                 scene_depth_view,
                 motion_vector_neighbor_max_view,
@@ -374,51 +539,96 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let target = stack.target;
         let history = stack.history_textures;
         let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_COLOR)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)?;
-        let scene_normal_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let scene_color_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let scene_depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let motion_vector_neighbor_max_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let scene_normal_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::GBUFFER_NORMAL,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
         let scene_material_view = stack
             .material_gbuffer_valid
             .then(|| {
-                self.resources
-                    .require_texture_view(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+                Self::require_texture_view_by_name(
+                    resources,
+                    resource_resolver,
+                    PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+                    RenderGraphResourceAccessKind::Read,
+                )
             })
             .transpose()?;
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)?;
-        let bloom_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::BLOOM)?;
-        let depth_of_field_coc_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)?;
-        let depth_of_field_bokeh_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)?;
-        let screen_space_reflection_specular_occlusion_view = self
-            .resources
-            .require_texture_view(screen_space_reflection_specular_occlusion_resource_name)?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
+        let ambient_occlusion_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let bloom_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::BLOOM,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_coc_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let depth_of_field_bokeh_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .unwrap_or_else(|| stack.post_process.black_texture_view());
+        let screen_space_reflection_specular_occlusion_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            screen_space_reflection_specular_occlusion_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let cluster_buffer = Self::require_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::LIGHT_LIST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         stack
             .post_process
             .execute_screen_space_reflection_specular_occlusion(
                 self.device,
                 self.queue,
                 self.encoder,
-                target.size,
                 target.cluster_dimensions,
+                super::post_process_texture_origin(
+                    self.frame,
+                    PostProcessGraphResourceNames::SCENE_COLOR,
+                ),
                 scene_color_view,
                 scene_depth_view,
                 motion_vector_neighbor_max_view,

@@ -1,5 +1,7 @@
 use zircon_runtime::plugin::ExportPipelineStage;
 
+use serde_json::Value;
+
 use super::{
     export_pipeline_stage_cli_id, ExportStageProgressKind, ExportWizardControlState,
     ExportWizardJobStatus, ExportWizardPanelViewModel, ExportWizardStageArtifactPath,
@@ -45,6 +47,23 @@ pub struct ExportWizardPanelSlotState {
     pub control_id: &'static str,
     pub kind: ExportWizardPanelSlotKind,
     pub entries: Vec<ExportWizardPanelSlotEntry>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ExportWizardReportPlanSummary {
+    strategies: Vec<String>,
+    required_stages: Vec<String>,
+    completed_stages: Vec<String>,
+    unsupported_strategies: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ExportWizardNativePluginsPayloadSummary {
+    bundle_path: Option<String>,
+    content_hash: Option<String>,
+    file_count: Option<u64>,
+    package_count: Option<u64>,
+    package_ids: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -274,6 +293,9 @@ fn report_body_entries(
         entries.push(pipeline_report);
     }
 
+    entries.extend(report_export_plan_body_entries(rows));
+    entries.extend(report_native_plugins_payload_body_entries(rows));
+
     entries
 }
 
@@ -290,6 +312,263 @@ fn pipeline_report_body_entry(
         detail: path,
         stage: Some(ExportPipelineStage::Report),
         severity: severity_for_progress(report.progress_kind),
+    })
+}
+
+fn report_export_plan_body_entries(
+    rows: &[ExportWizardStageViewRow],
+) -> Vec<ExportWizardPanelSlotEntry> {
+    let Some(report) = rows
+        .iter()
+        .find(|row| row.stage == ExportPipelineStage::Report)
+    else {
+        return Vec::new();
+    };
+    let Some(summary) = export_plan_summary_from_report_stdout(&report.stdout_lines) else {
+        return Vec::new();
+    };
+    let unsupported_strategies_severity =
+        unsupported_strategies_severity(&summary.unsupported_strategies);
+
+    vec![
+        export_plan_entry(
+            "report.export_plan.strategies",
+            "Export Strategies",
+            summary.strategies,
+            ExportWizardPanelEntrySeverity::Info,
+        ),
+        export_plan_entry(
+            "report.export_plan.required_stages",
+            "Required Stages",
+            summary.required_stages,
+            ExportWizardPanelEntrySeverity::Info,
+        ),
+        export_plan_entry(
+            "report.export_plan.completed_stages",
+            "Completed Stages",
+            summary.completed_stages,
+            severity_for_progress(report.progress_kind),
+        ),
+        export_plan_entry(
+            "report.export_plan.unsupported_strategies",
+            "Unsupported Strategies",
+            summary.unsupported_strategies,
+            unsupported_strategies_severity,
+        ),
+    ]
+}
+
+fn report_native_plugins_payload_body_entries(
+    rows: &[ExportWizardStageViewRow],
+) -> Vec<ExportWizardPanelSlotEntry> {
+    let Some(report) = rows
+        .iter()
+        .find(|row| row.stage == ExportPipelineStage::Report)
+    else {
+        return Vec::new();
+    };
+    let Some(summary) = native_plugins_payload_summary_from_report_stdout(&report.stdout_lines)
+    else {
+        return Vec::new();
+    };
+    let severity = severity_for_progress(report.progress_kind);
+    let mut entries = Vec::new();
+    push_optional_report_entry(
+        &mut entries,
+        "report.native_plugins_payload.bundle_path",
+        "Native Plugins Bundle",
+        summary.bundle_path,
+        severity,
+    );
+    push_optional_report_entry(
+        &mut entries,
+        "report.native_plugins_payload.package_count",
+        "Native Plugin Packages",
+        summary.package_count.map(|value| value.to_string()),
+        severity,
+    );
+    push_optional_report_entry(
+        &mut entries,
+        "report.native_plugins_payload.file_count",
+        "Native Plugin Files",
+        summary.file_count.map(|value| value.to_string()),
+        severity,
+    );
+    push_optional_report_entry(
+        &mut entries,
+        "report.native_plugins_payload.content_hash",
+        "Native Plugin Hash",
+        summary.content_hash,
+        severity,
+    );
+    if let Some(package_ids) = summary.package_ids {
+        entries.push(export_plan_entry(
+            "report.native_plugins_payload.package_ids",
+            "Native Plugin Package Ids",
+            package_ids,
+            severity,
+        ));
+    }
+    entries
+}
+
+fn push_optional_report_entry(
+    entries: &mut Vec<ExportWizardPanelSlotEntry>,
+    key: &str,
+    label: &str,
+    detail: Option<String>,
+    severity: ExportWizardPanelEntrySeverity,
+) {
+    if let Some(detail) = detail {
+        entries.push(ExportWizardPanelSlotEntry {
+            key: key.to_string(),
+            label: label.to_string(),
+            detail,
+            stage: Some(ExportPipelineStage::Report),
+            severity,
+        });
+    }
+}
+
+fn export_plan_entry(
+    key: &str,
+    label: &str,
+    values: Vec<String>,
+    severity: ExportWizardPanelEntrySeverity,
+) -> ExportWizardPanelSlotEntry {
+    ExportWizardPanelSlotEntry {
+        key: key.to_string(),
+        label: label.to_string(),
+        detail: value_list_detail(&values),
+        stage: Some(ExportPipelineStage::Report),
+        severity,
+    }
+}
+
+fn unsupported_strategies_severity(values: &[String]) -> ExportWizardPanelEntrySeverity {
+    if values.is_empty() {
+        ExportWizardPanelEntrySeverity::Success
+    } else {
+        ExportWizardPanelEntrySeverity::Danger
+    }
+}
+
+fn value_list_detail(values: &[String]) -> String {
+    if values.is_empty() {
+        "none".to_string()
+    } else {
+        values.join(", ")
+    }
+}
+
+fn export_plan_summary_from_report_stdout(
+    stdout_lines: &[String],
+) -> Option<ExportWizardReportPlanSummary> {
+    let report_json = report_json_from_stdout(stdout_lines)?;
+    let report: Value = serde_json::from_str(&report_json).ok()?;
+    let export_plan = report.get("export_plan")?;
+    Some(ExportWizardReportPlanSummary {
+        strategies: json_string_array(export_plan.get("strategies")),
+        required_stages: json_string_array(export_plan.get("required_stages")),
+        completed_stages: json_string_array(export_plan.get("completed_stages")),
+        unsupported_strategies: json_string_array(export_plan.get("unsupported_strategies")),
+    })
+}
+
+fn native_plugins_payload_summary_from_report_stdout(
+    stdout_lines: &[String],
+) -> Option<ExportWizardNativePluginsPayloadSummary> {
+    let report_json = report_json_from_stdout(stdout_lines)?;
+    let report: Value = serde_json::from_str(&report_json).ok()?;
+    let payload = report.get("native_plugins_payload")?.as_object()?;
+    Some(ExportWizardNativePluginsPayloadSummary {
+        bundle_path: json_string(payload.get("bundle_path")),
+        content_hash: json_string(payload.get("content_hash")),
+        file_count: payload.get("file_count").and_then(Value::as_u64),
+        package_count: payload.get("package_count").and_then(Value::as_u64),
+        package_ids: native_plugin_package_ids(payload.get("materialized_packages")),
+    })
+}
+
+fn report_json_from_stdout(stdout_lines: &[String]) -> Option<String> {
+    let mut json = String::new();
+    let mut collecting = false;
+    let mut depth = 0usize;
+    for line in stdout_lines {
+        let trimmed = line.trim_start();
+        if !collecting {
+            if !trimmed.starts_with('{') {
+                continue;
+            }
+            collecting = true;
+        }
+        depth = json_object_depth_after_line(line, depth);
+        json.push_str(line);
+        json.push('\n');
+        if collecting && depth == 0 {
+            return Some(json);
+        }
+    }
+    None
+}
+
+fn json_object_depth_after_line(line: &str, current_depth: usize) -> usize {
+    let mut depth = current_depth;
+    let mut in_string = false;
+    let mut escaped = false;
+    for character in line.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if in_string && character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if character == '"' {
+            in_string = !in_string;
+            continue;
+        }
+        if in_string {
+            continue;
+        }
+        match character {
+            '{' => depth += 1,
+            '}' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    depth
+}
+
+fn json_string(value: Option<&Value>) -> Option<String> {
+    value
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn json_string_array(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn native_plugin_package_ids(value: Option<&Value>) -> Option<Vec<String>> {
+    value.and_then(Value::as_array).map(|packages| {
+        packages
+            .iter()
+            .filter_map(|package| package.get("package_id"))
+            .filter_map(Value::as_str)
+            .map(ToString::to_string)
+            .collect()
     })
 }
 

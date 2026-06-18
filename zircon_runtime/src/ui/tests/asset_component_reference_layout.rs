@@ -159,6 +159,95 @@ component_ref = "asset://ui/tests/role_button.ui#RoleButton"
 control_id = "RoleButton"
 "##;
 
+const INSTANCE_PROPS_WIDGET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "ui.tests.instance_props_label"
+version = 1
+display_name = "Instance Props Label"
+
+[components.InstancePropsLabel]
+style_scope = "open"
+
+[components.InstancePropsLabel.root]
+node_id = "instance_props_label_root"
+kind = "native"
+type = "Label"
+props = { text = "Default", foreground_color = "#aaaaaa", selected = false, layout_padding_left = 2.0 }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+"##;
+
+const INSTANCE_PROPS_LAYOUT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "ui.tests.instance_props_layout"
+version = 1
+display_name = "Instance Props Layout"
+
+[imports]
+widgets = ["asset://ui/tests/instance_props_label.ui#InstancePropsLabel"]
+
+[root]
+node_id = "label_instance"
+kind = "reference"
+component_ref = "asset://ui/tests/instance_props_label.ui#InstancePropsLabel"
+control_id = "InstancePropsLabel"
+props = { text = "Instance", foreground_color = "#ff0000", selected = true }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+"##;
+
+const INSTANCE_STYLE_OVERRIDE_WIDGET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "ui.tests.instance_style_override_label"
+version = 1
+display_name = "Instance Style Override Label"
+
+[components.InstanceStyleOverrideLabel]
+style_scope = "open"
+
+[components.InstanceStyleOverrideLabel.root]
+node_id = "instance_style_override_label_root"
+kind = "native"
+type = "Label"
+classes = ["instance-label"]
+props = { text = "Default", foreground_color = "#aaaaaa" }
+"##;
+
+const INSTANCE_STYLE_OVERRIDE_STYLE_TOML: &str = r##"
+[asset]
+kind = "style"
+id = "ui.tests.instance_style_override_style"
+version = 1
+display_name = "Instance Style Override Style"
+
+[[stylesheets]]
+id = "instance_style_override_style"
+
+[[stylesheets.rules]]
+selector = ".instance-label"
+set = { self = { foreground_color = "#d8e3e7", text_tone = "primary" } }
+"##;
+
+const INSTANCE_STYLE_OVERRIDE_LAYOUT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "ui.tests.instance_style_override_layout"
+version = 1
+display_name = "Instance Style Override Layout"
+
+[imports]
+widgets = ["asset://ui/tests/instance_style_override_label.ui#InstanceStyleOverrideLabel"]
+styles = ["asset://ui/tests/instance_style_override_style.ui"]
+
+[root]
+node_id = "label_instance"
+kind = "reference"
+component_ref = "asset://ui/tests/instance_style_override_label.ui#InstanceStyleOverrideLabel"
+control_id = "InstanceStyleOverrideLabel"
+style_overrides = { self = { foreground_color = "#ff0000", text_tone = "error" } }
+"##;
+
 #[test]
 fn ui_document_compiler_applies_reference_instance_layout_to_expanded_root() {
     let widget = UiAssetLoader::load_toml_str(TOOLBAR_ICON_WIDGET_TOML).unwrap();
@@ -203,6 +292,97 @@ fn ui_document_compiler_applies_reference_instance_layout_to_expanded_root() {
             .and_then(|width| width.get("preferred"))
             .and_then(toml::Value::as_float),
         Some(72.0)
+    );
+}
+
+#[test]
+fn ui_document_compiler_applies_reference_instance_props_to_expanded_root() {
+    let widget = UiAssetLoader::load_toml_str(INSTANCE_PROPS_WIDGET_TOML).unwrap();
+    let layout = UiAssetLoader::load_toml_str(INSTANCE_PROPS_LAYOUT_TOML).unwrap();
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_widget_import(
+            "asset://ui/tests/instance_props_label.ui#InstancePropsLabel",
+            widget,
+        )
+        .unwrap();
+
+    let compiled = compiler.compile(&layout).unwrap();
+    let root = &compiled.template_instance().root;
+
+    assert_eq!(root.control_id.as_deref(), Some("InstancePropsLabel"));
+    assert_eq!(
+        root.attributes.get("text").and_then(toml::Value::as_str),
+        Some("Instance")
+    );
+    assert_eq!(
+        root.attributes
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("selected")
+            .and_then(toml::Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        root.attributes
+            .get("layout")
+            .and_then(|layout| layout.get("width"))
+            .and_then(|width| width.get("preferred"))
+            .and_then(toml::Value::as_float),
+        Some(96.0)
+    );
+    assert_eq!(
+        root.attributes
+            .get("layout_padding_left")
+            .and_then(toml::Value::as_float),
+        Some(2.0),
+        "component defaults that were not overridden should survive"
+    );
+}
+
+#[test]
+fn ui_document_compiler_applies_reference_instance_style_overrides_after_stylesheets() {
+    let widget = UiAssetLoader::load_toml_str(INSTANCE_STYLE_OVERRIDE_WIDGET_TOML).unwrap();
+    let style = UiAssetLoader::load_toml_str(INSTANCE_STYLE_OVERRIDE_STYLE_TOML).unwrap();
+    let layout = UiAssetLoader::load_toml_str(INSTANCE_STYLE_OVERRIDE_LAYOUT_TOML).unwrap();
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_widget_import(
+            "asset://ui/tests/instance_style_override_label.ui#InstanceStyleOverrideLabel",
+            widget,
+        )
+        .unwrap()
+        .register_style_import("asset://ui/tests/instance_style_override_style.ui", style)
+        .unwrap();
+
+    let compiled = compiler.compile(&layout).unwrap();
+    let root = &compiled.template_instance().root;
+
+    assert_eq!(
+        root.control_id.as_deref(),
+        Some("InstanceStyleOverrideLabel")
+    );
+    assert_eq!(
+        root.style_overrides
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("text_tone")
+            .and_then(toml::Value::as_str),
+        Some("error")
     );
 }
 

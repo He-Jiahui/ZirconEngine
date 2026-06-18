@@ -2,6 +2,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_ope
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshSceneDataBindHandle,
 };
+use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::DeferredSceneResources;
@@ -17,6 +18,7 @@ impl DeferredSceneResources {
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
         albedo_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
+        render_region: ViewportRenderRegion,
         mesh_draw_commands: I,
     ) -> MeshDrawReplayStats
     where
@@ -53,6 +55,9 @@ impl DeferredSceneResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return MeshDrawReplayStats::default();
+        }
         pass.set_pipeline(&self.geometry_pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         let mut replayer = MeshDrawCommandReplayer::default();

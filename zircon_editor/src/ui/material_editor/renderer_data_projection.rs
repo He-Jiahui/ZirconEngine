@@ -404,6 +404,17 @@ fn material_validation_diagnostic_row(
                 message: format!("lighting model `{value}` is not supported"),
             }
         }
+        RenderMaterialValidationError::UnregisteredShadingModel { path, token } => {
+            RendererDataDiagnosticRow {
+                feature: feature.to_string(),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
+                path: path.clone(),
+                message: format!("shading model `{token}` is not registered"),
+            }
+        }
         RenderMaterialValidationError::UnknownPropertyOverride { path, name, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),

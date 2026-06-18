@@ -18,8 +18,9 @@ mod values;
 
 use combat::{current_hp, damage_entity, damage_entity_report, heal_entity, set_animation_bool};
 use components::{
-    component_json, component_string, count_by_script_property, find_by_component,
-    nearest_by_script_property, script_number, script_property_matches, set_component_json,
+    component_json, component_string, count_by_script_property, entity_exists, find_by_component,
+    nearest_by_script_property, script_number, script_number_at_most, script_property_matches,
+    set_component_json,
 };
 use input::key_pressed;
 use lifecycle::{
@@ -170,6 +171,11 @@ pub fn register_gameplay_host_module(
                 .with_required_capability("gameplay.entity"),
         )
         .with_function(
+            function("entity_exists", 1, 1, ScriptHostValueKind::Bool)
+                .with_parameter(int_parameter("entity"))
+                .with_required_capability("gameplay.entity"),
+        )
+        .with_function(
             function("nearest_by_script_property", 4, 4, ScriptHostValueKind::Int)
                 .with_parameter(int_parameter("source_entity"))
                 .with_parameter(string_parameter("property"))
@@ -194,6 +200,14 @@ pub fn register_gameplay_host_module(
             function("script_number", 3, 3, ScriptHostValueKind::Float)
                 .with_parameter(int_parameter("entity"))
                 .with_parameter(string_parameter("property"))
+                .with_parameter(float_parameter("fallback"))
+                .with_required_capability("gameplay.entity"),
+        )
+        .with_function(
+            function("script_number_at_most", 4, 4, ScriptHostValueKind::Bool)
+                .with_parameter(int_parameter("entity"))
+                .with_parameter(string_parameter("property"))
+                .with_parameter(float_parameter("threshold"))
                 .with_parameter(float_parameter("fallback"))
                 .with_required_capability("gameplay.entity"),
         )
@@ -319,10 +333,12 @@ pub fn register_gameplay_host_module(
             HostExportFunction::new("component_string", component_string),
             HostExportFunction::new("set_component_json", set_component_json),
             HostExportFunction::new("find_by_component", find_by_component),
+            HostExportFunction::new("entity_exists", entity_exists),
             HostExportFunction::new("nearest_by_script_property", nearest_by_script_property),
             HostExportFunction::new("count_by_script_property", count_by_script_property),
             HostExportFunction::new("script_property_matches", script_property_matches),
             HostExportFunction::new("script_number", script_number),
+            HostExportFunction::new("script_number_at_most", script_number_at_most),
             HostExportFunction::new("set_animation_bool", set_animation_bool),
             HostExportFunction::new("damage_entity", damage_entity),
             HostExportFunction::new("heal_entity", heal_entity),

@@ -1,8 +1,7 @@
 use crate::plugin::PluginModuleKind;
 
 use super::super::abi_declarations::{
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
-    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::super::behavior_calls::NativePluginBehavior;
 use super::schema::{
@@ -153,23 +152,6 @@ fn missing_behavior_reports_invalid_without_callbacks() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("runtime behavior is missing")));
-}
-
-#[test]
-fn abi_v2_validation_does_not_require_v3_schema_strings() {
-    let report = NativePluginBehaviorValidationReport::from_behavior(
-        "fixture",
-        PluginModuleKind::Runtime,
-        ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-        Some(&NativePluginBehavior {
-            command_manifest_schema: None,
-            event_manifest_schema: None,
-            ..runtime_behavior()
-        }),
-    );
-
-    assert_eq!(report.health, NativePluginBehaviorHealth::Clean);
-    assert!(report.diagnostics.is_empty());
 }
 
 fn validate(behavior: NativePluginBehavior) -> NativePluginBehaviorValidationReport {

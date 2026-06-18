@@ -17,6 +17,7 @@ use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostComponentKind, RetainedUiHostNodeModel,
     RetainedUiHostProjection, RetainedUiHostValue,
 };
+use zircon_runtime::plugin::ExportPackagingStrategy;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 pub(super) const EXPORT_WIZARD_PANEL_DISPATCH_KIND: &str = "export_wizard_panel";
@@ -91,6 +92,12 @@ fn build_export_wizard_panel_view_model(
         EXPORT_WIZARD_DEFAULT_PROJECT,
         EXPORT_WIZARD_DEFAULT_OUT,
     );
+    if let Some(strategies) = first_target
+        .as_ref()
+        .and_then(|target| export_packaging_strategies_from_label(target.strategies.as_str()))
+    {
+        options.strategies = Some(strategies);
+    }
     options.offline = true;
     options.dry_run = true;
 
@@ -122,6 +129,34 @@ fn build_export_wizard_panel_profile_name(data: &BuildExportPaneViewData) -> Str
         .map(|target| target.profile_name.to_string())
         .filter(|profile| !profile.is_empty())
         .unwrap_or_else(|| "desktop_windows".to_string())
+}
+
+fn export_packaging_strategies_from_label(label: &str) -> Option<Vec<ExportPackagingStrategy>> {
+    let mut strategies = Vec::new();
+    for token in label.split(|character| matches!(character, ',' | '|' | ';')) {
+        let Some(strategy) = export_packaging_strategy_from_label_token(token) else {
+            continue;
+        };
+        if !strategies.contains(&strategy) {
+            strategies.push(strategy);
+        }
+    }
+    (!strategies.is_empty()).then_some(strategies)
+}
+
+fn export_packaging_strategy_from_label_token(token: &str) -> Option<ExportPackagingStrategy> {
+    match token
+        .chars()
+        .filter(|character| character.is_ascii_alphanumeric())
+        .flat_map(|character| character.to_lowercase())
+        .collect::<String>()
+        .as_str()
+    {
+        "sourcetemplate" => Some(ExportPackagingStrategy::SourceTemplate),
+        "libraryembed" => Some(ExportPackagingStrategy::LibraryEmbed),
+        "nativedynamic" => Some(ExportPackagingStrategy::NativeDynamic),
+        _ => None,
+    }
 }
 
 fn build_export_wizard_panel_profile_name_for_view_model(

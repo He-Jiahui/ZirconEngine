@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
+use crate::core::framework::render::{
+    ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+};
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
+use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::{MeshPipelineVariantRegistry, MeshPipelineVariantResolver};
 
@@ -28,8 +32,8 @@ pub(crate) struct MeshPipelineCache {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_modules:
         HashMap<String, wgpu::ShaderModule>,
-    pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipelines:
-        HashMap<PipelineKey, wgpu::RenderPipeline>,
+    pub(in crate::graphics::scene::scene_renderer::mesh) mesh_variant_pipelines:
+        HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) velocity_mesh_pipelines:
         HashMap<PipelineKey, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) taa_reactive_mask_mesh_pipelines:
@@ -38,6 +42,8 @@ pub(crate) struct MeshPipelineCache {
         HashMap<PipelineKey, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) pipeline_variant_registry:
         MeshPipelineVariantRegistry,
+    pub(in crate::graphics::scene::scene_renderer::mesh) shader_variant_disk_cache:
+        ShaderVariantCacheDisk,
 }
 
 impl MeshPipelineCache {
@@ -45,9 +51,10 @@ impl MeshPipelineCache {
         &mut self,
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
         self.pipeline_variant_registry
-            .resolve_variant(kind, pipeline_key)
+            .resolve_variant(kind, pipeline_key, shader_quality)
     }
 
     pub(crate) fn pipeline_key_for_variant(
@@ -57,6 +64,42 @@ impl MeshPipelineCache {
         let key = self.pipeline_variant_registry.key_for_variant(variant_id)?;
         Some((key.kind(), key.pipeline_key().clone()))
     }
+
+    pub(crate) fn pipeline_and_shader_key_for_variant(
+        &self,
+        variant_id: MeshPipelineVariantId,
+    ) -> Option<(MeshPassPipelineKind, PipelineKey, ShaderVariantKey)> {
+        let key = self.pipeline_variant_registry.key_for_variant(variant_id)?;
+        Some((
+            key.kind(),
+            key.pipeline_key().clone(),
+            key.shader_variant_key().clone(),
+        ))
+    }
+
+    pub(crate) fn reset_shader_variant_miss_report(&mut self) {
+        self.pipeline_variant_registry.reset_miss_report();
+    }
+
+    pub(crate) const fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
+        self.pipeline_variant_registry.miss_report()
+    }
+
+    pub(crate) fn record_shader_variant_disk_hit(&mut self) {
+        self.pipeline_variant_registry.record_disk_hit();
+    }
+
+    pub(crate) fn record_shader_variant_disk_write(&mut self) {
+        self.pipeline_variant_registry.record_disk_write();
+    }
+
+    pub(crate) fn record_shader_variant_disk_error(&mut self) {
+        self.pipeline_variant_registry.record_disk_error();
+    }
+
+    pub(crate) fn record_shader_variant_compile_miss(&mut self) {
+        self.pipeline_variant_registry.record_compile_miss();
+    }
 }
 
 impl MeshPipelineVariantResolver for MeshPipelineCache {
@@ -64,7 +107,8 @@ impl MeshPipelineVariantResolver for MeshPipelineCache {
         &mut self,
         kind: MeshPassPipelineKind,
         pipeline_key: &PipelineKey,
+        shader_quality: ShaderQualityTier,
     ) -> MeshPipelineVariantId {
-        MeshPipelineCache::resolve_variant(self, kind, pipeline_key)
+        MeshPipelineCache::resolve_variant(self, kind, pipeline_key, shader_quality)
     }
 }

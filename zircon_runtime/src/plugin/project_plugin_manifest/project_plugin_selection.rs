@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{plugin::ExportPackagingStrategy, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ExportPackagingStrategy;
 
 use super::default_packaging::default_packaging;
 use super::default_true::default_true;

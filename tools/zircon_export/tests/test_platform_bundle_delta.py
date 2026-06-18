@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
 import shutil
@@ -11,6 +12,11 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.cli import run_pipeline
+from tools.zircon_export.tests.export_test_support import (
+    _compile_host_link_plan,
+    _write_validate_report_with_strategies,
+)
+from tools.zircon_export.tests.pack_test_support import empty_delta_manifest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -48,8 +54,19 @@ class PlatformBundleDeltaTests(unittest.TestCase):
             pipeline_report = _read_json(out / "report.json")
             self.assertEqual(exit_code, 0, pipeline_report["diagnostics"])
             self.assertTrue(bundled_delta.exists())
+            self.assertEqual(Path(platform_report["pack_source"]), pack)
+            self.assertEqual(platform_report["pack_source_origin"], "pack_report")
+            self.assertEqual(Path(bundle_manifest["pack_source"]), pack)
+            self.assertEqual(bundle_manifest["pack_source_origin"], "pack_report")
             self.assertEqual(Path(platform_report["delta_pack"]), bundled_delta)
             self.assertEqual(Path(bundle_manifest["delta_pack"]), bundled_delta)
+            self.assertEqual(Path(platform_report["delta_pack_source"]), delta_pack)
+            self.assertEqual(platform_report["delta_pack_source_origin"], "pack_report")
+            self.assertEqual(Path(bundle_manifest["delta_pack_source"]), delta_pack)
+            self.assertEqual(
+                bundle_manifest["delta_pack_source_origin"],
+                "pack_report",
+            )
             self.assertFalse(pipeline_report["fatal"], pipeline_report["diagnostics"])
 
     def test_template_delta_pack_path_controls_bundle_location(self) -> None:
@@ -145,6 +162,12 @@ def _read_json(path: Path) -> dict[str, object]:
 
 
 def _write_stage_report(out: Path, stage: str, *, fatal: bool) -> None:
+    if stage == "validate" and not fatal:
+        _write_validate_report_with_strategies(out, ["library_embed"])
+        return
+    if stage == "cook_assets" and not fatal:
+        _write_cook_assets_report(out)
+        return
     report_dir = out / "stages" / stage
     report_dir.mkdir(parents=True, exist_ok=True)
     report_dir.joinpath("report.json").write_text(
@@ -154,6 +177,39 @@ def _write_stage_report(out: Path, stage: str, *, fatal: bool) -> None:
                 "profile": "windows-release",
                 "fatal": fatal,
                 "diagnostics": [],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_cook_assets_report(out: Path) -> None:
+    report_dir = out / "stages" / "cook_assets"
+    cooked_manifest = report_dir / "assets.json"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    cooked_manifest.write_text(
+        json.dumps({"roots": [], "assets": []}, indent=2),
+        encoding="utf-8",
+    )
+    report_dir.joinpath("report.json").write_text(
+        json.dumps(
+            {
+                "stage": "CookAssets",
+                "profile": "windows-release",
+                "fatal": False,
+                "diagnostics": [],
+                "source_asset_manifest": None,
+                "project_manifest": None,
+                "generated_from_project": False,
+                "project_default_scene": None,
+                "cooked_asset_manifest": str(cooked_manifest),
+                "cooked_asset_manifest_sha256": hashlib.sha256(
+                    cooked_manifest.read_bytes()
+                ).hexdigest(),
+                "asset_count": 0,
+                "root_count": 0,
+                "asset_filter": None,
             },
             indent=2,
         ),
@@ -171,7 +227,12 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
                 "profile": "windows-release",
                 "fatal": False,
                 "diagnostics": [],
+                "command": ["cargo", "build"],
+                "exit_code": 0,
                 "host_executable": str(host_executable),
+                "link_plan": _compile_host_link_plan(),
+                "stdout_lines": [],
+                "stderr_lines": [],
             },
             indent=2,
         ),
@@ -182,6 +243,13 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
 def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
     report_dir = out / "stages" / "pack"
     report_dir.mkdir(parents=True, exist_ok=True)
+    asset_manifest = out / "stages" / "cook_assets" / "assets.json"
+    asset_manifest.parent.mkdir(parents=True, exist_ok=True)
+    if not asset_manifest.exists():
+        asset_manifest.write_text(
+            json.dumps({"roots": [], "assets": []}, indent=2),
+            encoding="utf-8",
+        )
     report_dir.joinpath("report.json").write_text(
         json.dumps(
             {
@@ -189,8 +257,34 @@ def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
                 "profile": "windows-release",
                 "fatal": False,
                 "diagnostics": [],
+                "asset_manifest": str(asset_manifest),
                 "pack": str(pack),
+                "stage_output": str(report_dir),
+                "trim_report": {
+                    "included_assets": [],
+                    "trimmed_assets": [],
+                    "missing_dependencies": [],
+                    "duplicate_assets": [],
+                    "diagnostics": [],
+                },
+                "manifest": {
+                    "pack": {
+                        "version": 1,
+                        "chunks": [],
+                        "total_size": 0,
+                    },
+                    "assets": [],
+                },
+                "asset_count": 0,
+                "chunk_count": 0,
+                "deduplicated_assets": [],
+                "deterministic_double_run": False,
                 "delta_pack": str(delta_pack),
+                "delta_manifest": empty_delta_manifest(),
+                "delta_asset_count": 0,
+                "delta_chunk_count": 0,
+                "delta_removed_assets": [],
+                "delta_reused_assets": [],
                 "delta_apply_verified": True,
             },
             indent=2,

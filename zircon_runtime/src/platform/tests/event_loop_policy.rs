@@ -3,7 +3,10 @@ use super::super::*;
 #[test]
 fn editor_host_uses_desktop_app_event_policy() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
-        .report(PlatformTarget::Macos, crate::RuntimeTargetMode::EditorHost);
+        .report(
+            PlatformTarget::Macos,
+            crate::builtin::RuntimeTargetMode::EditorHost,
+        );
 
     assert_eq!(report.event_loop_policy, EventLoopPolicy::DesktopApp);
     assert_eq!(
@@ -18,7 +21,7 @@ fn explicit_continuous_event_policy_is_reported_for_windowed_targets() {
 
     let report = matrix.report_with_event_loop_policy(
         PlatformTarget::Windows,
-        crate::RuntimeTargetMode::ClientRuntime,
+        crate::builtin::RuntimeTargetMode::ClientRuntime,
         EventLoopPolicy::Continuous,
     );
 
@@ -34,7 +37,7 @@ fn explicit_event_policy_does_not_override_headless_topology() {
 
     let report = matrix.report_with_event_loop_policy(
         PlatformTarget::Headless,
-        crate::RuntimeTargetMode::ServerRuntime,
+        crate::builtin::RuntimeTargetMode::ServerRuntime,
         EventLoopPolicy::Continuous,
     );
 

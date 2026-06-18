@@ -6,6 +6,7 @@ use super::super::popup_primitives::{
     toml_value_string_list,
 };
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+use super::context_menu::WORKBENCH_CONTEXT_MENU_CONTROL_ID;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
@@ -156,6 +157,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.mutate_node_bool(node_id, "selected", false)?;
         }
         self.close_workbench_window_menu_control(control_id)?;
+        if control_id == WORKBENCH_CONTEXT_MENU_CONTROL_ID {
+            self.close_context_menu_if_target(control_id)?;
+        }
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(true)

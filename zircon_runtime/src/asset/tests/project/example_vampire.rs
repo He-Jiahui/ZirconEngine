@@ -5,12 +5,12 @@ use crate::asset::{
     AlphaMode, AnimationGraphAsset, AnimationStateMachineAsset, AssetKind, AssetUri, MaterialAsset,
     ModelAsset, NavMeshAsset, SceneAsset, SceneMobilityAsset, TerrainAsset, ZShaderDocument,
 };
+use crate::builtin::RuntimePluginId;
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::render::FallbackSkyboxKind;
 use crate::core::resource::ResourceState;
 use crate::scene::world::World;
 use crate::script::discover_vm_plugin_packages;
-use crate::RuntimePluginId;
 
 fn vampire_root() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -1,4 +1,4 @@
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 pub(super) type RuntimePluginPackageCapabilityStatusTargetRowState = Vec<RuntimeTargetMode>;
 

@@ -1,12 +1,12 @@
 use super::entry_profile::EntryProfile;
 use zircon_runtime::{
+    builtin::{RuntimePluginId, RuntimeTargetMode},
     core::framework::{render::RenderProfileBundle, window::WindowDescriptor},
     plugin::ExportProfile,
     plugin::ProjectPluginManifest,
     plugin::ProjectPluginSelection,
     plugin::RuntimeProfileDescriptor,
     plugin::RuntimeProfileId,
-    RuntimePluginId, RuntimeTargetMode,
 };
 
 #[derive(Clone, Debug, PartialEq)]

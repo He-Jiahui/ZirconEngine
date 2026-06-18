@@ -320,7 +320,11 @@ fn stage_diagnostics(
     execution: Option<&ExportWizardStageExecution>,
 ) -> Vec<String> {
     if let Some(execution) = execution {
-        diagnostics.extend(execution.diagnostics.iter().cloned());
+        for diagnostic in &execution.diagnostics {
+            if !diagnostics.contains(diagnostic) {
+                diagnostics.push(diagnostic.clone());
+            }
+        }
     }
     diagnostics
 }

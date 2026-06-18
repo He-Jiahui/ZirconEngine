@@ -2,7 +2,7 @@ use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostWindowPresentationData, TemplatePaneNodeData,
 };
 
-use super::ChromePointerRoute;
+use super::routing::ChromePointerRoute;
 
 pub(super) fn chrome_press_damage_frame(
     presentation: &HostWindowPresentationData,

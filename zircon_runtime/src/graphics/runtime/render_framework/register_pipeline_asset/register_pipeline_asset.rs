@@ -3,15 +3,18 @@ use crate::core::framework::render::{
     RenderPipelineHandle, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions};
+use crate::graphics::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
     server: &WgpuRenderFramework,
-    pipeline: RenderPipelineAsset,
+    mut pipeline: RenderPipelineAsset,
 ) -> Result<RenderPipelineHandle, RenderFrameworkError> {
     let handle = pipeline.handle;
+    if pipeline.revision == 0 {
+        pipeline.bump_revision();
+    }
     let compiled = compile_pipeline_for_validation(&pipeline)?;
 
     let _operation_guard = server.lock_operation();
@@ -23,6 +26,7 @@ pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
             pipeline: handle.raw(),
             message,
         })?;
+    state.compiled_graph_cache.invalidate_pipeline(handle);
     state.pipelines.insert(handle, pipeline);
     Ok(handle)
 }
@@ -105,12 +109,12 @@ mod tests {
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
     use crate::core::framework::render::RenderFrameworkError;
-    use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
-    use crate::render_graph::QueueLane;
-    use crate::{
+    use crate::graphics::{
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, WgpuRenderFramework,
     };
+    use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
+    use crate::render_graph::QueueLane;
 
     use super::register_pipeline_asset;
 

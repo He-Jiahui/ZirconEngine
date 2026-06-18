@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::graphics::shader::ShaderVariantCacheDisk;
+
 use super::forward_shadow_receiver::{
     create_fallback_shadow_atlas_view, create_forward_light_grid_empty_tile_masks_buffer,
     create_forward_light_grid_empty_zbins_buffer, create_forward_light_grid_params_buffer,
@@ -51,11 +53,22 @@ impl MeshPipelineCache {
             forward_shadow_atlas_fallback_globals_buffer,
             fallback_shadow_atlas_view,
             shader_modules: HashMap::new(),
-            mesh_pipelines: HashMap::new(),
+            mesh_variant_pipelines: HashMap::new(),
             velocity_mesh_pipelines: HashMap::new(),
             taa_reactive_mask_mesh_pipelines: HashMap::new(),
             taa_reactive_material_mask_mesh_pipelines: HashMap::new(),
             pipeline_variant_registry: MeshPipelineVariantRegistry::default(),
+            shader_variant_disk_cache: default_runtime_shader_cache(),
         }
     }
+}
+
+fn default_runtime_shader_cache() -> ShaderVariantCacheDisk {
+    let project_root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    ShaderVariantCacheDisk::with_fallback_roots(
+        ShaderVariantCacheDisk::default_project_root(&project_root),
+        [ShaderVariantCacheDisk::default_staged_project_root(
+            &project_root,
+        )],
+    )
 }

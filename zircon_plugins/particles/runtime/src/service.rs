@@ -60,6 +60,14 @@ pub struct ParticleRuntimeSnapshot {
     pub last_gpu_feedback: Option<RenderParticleGpuReadbackOutputs>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParticleGpuRuntimeInstance {
+    pub handle: ParticleEmitterHandle,
+    pub component: ParticleSystemComponent,
+    pub playing: bool,
+    pub age_seconds: Real,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct ParticlesManager {
     state: Arc<Mutex<ParticlesManagerState>>,
@@ -258,6 +266,21 @@ impl ParticlesManager {
             snapshot.sprites.extend(instance.sprites());
         }
         snapshot
+    }
+
+    pub fn gpu_runtime_instances(&self) -> Vec<ParticleGpuRuntimeInstance> {
+        let state = self.lock_state();
+        state
+            .instances
+            .values()
+            .filter(|instance| instance.backend() == ParticleSimulationBackend::Gpu)
+            .map(|instance| ParticleGpuRuntimeInstance {
+                handle: instance.handle,
+                component: instance.component().clone(),
+                playing: instance.playing,
+                age_seconds: instance.age_seconds,
+            })
+            .collect()
     }
 
     pub fn build_extract(&self, camera_position: Option<Vec3>) -> ParticleExtract {

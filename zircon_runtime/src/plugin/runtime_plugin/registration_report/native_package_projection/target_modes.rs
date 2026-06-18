@@ -1,7 +1,5 @@
-use crate::{
-    plugin::{PluginModuleKind, PluginPackageManifest},
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::{PluginModuleKind, PluginPackageManifest};
 
 pub(super) fn native_package_target_modes(
     package_manifest: &PluginPackageManifest,

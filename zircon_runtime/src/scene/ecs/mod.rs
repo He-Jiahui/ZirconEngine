@@ -14,6 +14,7 @@ mod entity_location;
 mod entity_registry;
 mod entity_registry_error;
 mod events;
+mod frame_performance_diagnostics;
 mod internal_entity;
 mod internal_scene_system;
 mod lifecycle;
@@ -65,6 +66,7 @@ pub use events::{
     EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
     EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
+pub use frame_performance_diagnostics::EcsFramePerformanceDiagnostics;
 pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};

@@ -4,25 +4,46 @@ use crate::render_graph::{
     RenderPassId,
 };
 
+use super::super::RenderGraphExecutionResources;
+
 #[derive(Clone, Copy)]
-pub struct RenderPassResourceResolver<'a> {
+pub struct RgResourceResolver<'a> {
     graph: &'a CompiledRenderGraph,
     pass_id: RenderPassId,
+    physical: Option<&'a RenderGraphExecutionResources>,
 }
 
-impl std::fmt::Debug for RenderPassResourceResolver<'_> {
+impl std::fmt::Debug for RgResourceResolver<'_> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
-            .debug_struct("RenderPassResourceResolver")
+            .debug_struct("RgResourceResolver")
             .field("graph", &self.graph.name())
             .field("pass_id", &self.pass_id)
+            .field("has_physical", &self.physical.is_some())
             .finish()
     }
 }
 
-impl<'a> RenderPassResourceResolver<'a> {
+impl<'a> RgResourceResolver<'a> {
     pub fn new(graph: &'a CompiledRenderGraph, pass_id: RenderPassId) -> Self {
-        Self { graph, pass_id }
+        Self {
+            graph,
+            pass_id,
+            physical: None,
+        }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn with_physical(
+        graph: &'a CompiledRenderGraph,
+        pass_id: RenderPassId,
+        physical: &'a RenderGraphExecutionResources,
+    ) -> Self {
+        Self {
+            graph,
+            pass_id,
+            physical: Some(physical),
+        }
     }
 
     pub fn resource_declaration(
@@ -104,10 +125,119 @@ impl<'a> RenderPassResourceResolver<'a> {
         Some(declaration)
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn texture_view_by_name(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a wgpu::TextureView, String> {
+        let declaration = self.require_pass_resource_declaration_by_name(resource_name, access)?;
+        self.texture_view(declaration.resource, access)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn texture_view(
+        &self,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a wgpu::TextureView, String> {
+        let declaration = self.require_pass_resource_declaration(resource, access)?;
+        self.physical_resources()?
+            .require_texture_view_for_declaration(declaration)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn buffer_by_name(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a wgpu::Buffer, String> {
+        let declaration = self.require_pass_resource_declaration_by_name(resource_name, access)?;
+        self.buffer(declaration.resource, access)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn buffer(
+        &self,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a wgpu::Buffer, String> {
+        let declaration = self.require_pass_resource_declaration(resource, access)?;
+        self.physical_resources()?
+            .require_buffer_for_declaration(declaration)
+    }
+
     pub fn pass_resources(&self) -> &'a [RenderGraphPassResourceAccess] {
         self.pass()
             .map(|pass| pass.resources.as_slice())
             .unwrap_or(&[])
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    fn require_pass_resource_declaration(
+        &self,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a RenderGraphResourceDeclaration, String> {
+        let declaration = self.resource_declaration(resource).ok_or_else(|| {
+            format!(
+                "render graph pass `{}` references undeclared resource {:?}",
+                self.pass_name(),
+                resource
+            )
+        })?;
+        if self.pass_resource_access(resource, access).is_none() {
+            return Err(format!(
+                "render graph pass `{}` did not declare {:?} access for resource `{}`",
+                self.pass_name(),
+                access,
+                declaration.name
+            ));
+        }
+        Ok(declaration)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn require_pass_resource_declaration_by_name(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&'a RenderGraphResourceDeclaration, String> {
+        let declaration = self
+            .resource_declaration_by_name(resource_name)
+            .ok_or_else(|| {
+                format!(
+                    "render graph pass `{}` references undeclared resource `{resource_name}`",
+                    self.pass_name()
+                )
+            })?;
+        if self
+            .pass_resource_access(declaration.resource, access)
+            .is_none()
+        {
+            return Err(format!(
+                "render graph pass `{}` did not declare {:?} access for resource `{}`",
+                self.pass_name(),
+                access,
+                declaration.name
+            ));
+        }
+        Ok(declaration)
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    fn physical_resources(&self) -> Result<&'a RenderGraphExecutionResources, String> {
+        self.physical.ok_or_else(|| {
+            format!(
+                "render graph pass `{}` has no physical execution resources attached to its resolver",
+                self.pass_name()
+            )
+        })
+    }
+
+    fn pass_name(&self) -> &'a str {
+        self.pass()
+            .map(|pass| pass.name.as_str())
+            .unwrap_or("<unknown>")
     }
 
     fn pass(&self) -> Option<&'a CompiledRenderPass> {
@@ -115,5 +245,66 @@ impl<'a> RenderPassResourceResolver<'a> {
             .passes()
             .iter()
             .find(|pass| pass.id == self.pass_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RgResourceResolver;
+    use crate::graphics::backend::RenderBackend;
+    use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
+    use crate::render_graph::{QueueLane, RenderGraphBuilder, RenderGraphResourceAccessKind};
+    use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
+
+    #[test]
+    fn rg_resource_resolver_requires_pass_declared_access_before_physical_texture_lookup() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let mut builder = RenderGraphBuilder::new("resolver-physical-texture");
+        let depth = builder.create_texture(TextureDesc::new(
+            "scene-depth",
+            16,
+            16,
+            TextureFormat::Depth32Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let color = builder.create_texture(TextureDesc::new(
+            "scene-color",
+            16,
+            16,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let output = builder.import_external_resource("viewport-output");
+        let depth_prepass = builder.add_pass("depth-prepass", QueueLane::Graphics);
+        let opaque = builder.add_pass("opaque", QueueLane::Graphics);
+        let present = builder.add_pass("present", QueueLane::Graphics);
+        builder.write_texture(depth_prepass, depth).unwrap();
+        builder.read_texture(opaque, depth).unwrap();
+        builder.write_texture(opaque, color).unwrap();
+        builder.read_texture(present, color).unwrap();
+        builder.write_external(present, output).unwrap();
+        let graph = builder.compile().unwrap();
+        let opaque_pass = graph
+            .passes()
+            .iter()
+            .find(|pass| pass.name == "opaque")
+            .unwrap();
+        let mut resources = RenderGraphExecutionResources::new();
+        resources
+            .materialize_transient_resources(&backend.device, &graph)
+            .unwrap();
+        let resolver = RgResourceResolver::with_physical(&graph, opaque_pass.id, &resources);
+
+        resolver
+            .texture_view_by_name("scene-depth", RenderGraphResourceAccessKind::Read)
+            .expect("declared depth read resolves through physical table");
+        let error = resolver
+            .texture_view_by_name("scene-color", RenderGraphResourceAccessKind::Read)
+            .unwrap_err();
+
+        assert!(
+            error.contains("did not declare Read access for resource `scene-color`"),
+            "{error}"
+        );
     }
 }

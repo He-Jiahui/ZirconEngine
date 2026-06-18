@@ -23,18 +23,27 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{
+    ViewportCameraStackAttachmentPolicy, ViewportRenderFrame, ViewportRenderRegion,
+};
 use crate::graphics::visibility::HzbOcclusionCullReport;
-use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
+use crate::render_graph::{
+    RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphResourceAccessKind,
+};
 
 use super::super::{
     RenderGraphComputeDispatchRecord, RenderGraphExecutionResources, RenderGraphLightGridReport,
 };
+use super::RgResourceResolver;
 
+mod deferred;
 mod hzb_occlusion;
 mod particle;
 mod post_process;
+mod resource_lookup;
+mod surface;
 
+pub use particle::ParticleGpuTransparentDrawContext;
 pub(in crate::graphics::scene::scene_renderer) use post_process::RenderPassPostProcessStackContext;
 
 #[derive(Clone, Copy)]
@@ -153,9 +162,13 @@ pub struct RenderPassGpuExecutionContext<'a> {
     pub queue: &'a wgpu::Queue,
     pub encoder: &'a mut wgpu::CommandEncoder,
     frame: &'a ViewportRenderFrame,
+    scene_bind_group_layout: &'a wgpu::BindGroupLayout,
+    target_format: wgpu::TextureFormat,
+    depth_format: wgpu::TextureFormat,
     pub scene_bind_group: &'a wgpu::BindGroup,
     pub resources: &'a mut RenderGraphExecutionResources,
     pub plugin_outputs: &'a mut RenderPluginRendererOutputs,
+    resource_resolver: Option<RgResourceResolver<'a>>,
     pub(in crate::graphics::scene::scene_renderer) screen_space_ui_renderer:
         &'a mut ScreenSpaceUiRenderer,
     post_process_stack: Option<RenderPassPostProcessStackContext<'a>>,
@@ -207,6 +220,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         queue: &'a wgpu::Queue,
         encoder: &'a mut wgpu::CommandEncoder,
         frame: &'a ViewportRenderFrame,
+        scene_bind_group_layout: &'a wgpu::BindGroupLayout,
+        target_format: wgpu::TextureFormat,
+        depth_format: wgpu::TextureFormat,
         scene_bind_group: &'a wgpu::BindGroup,
         resources: &'a mut RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
@@ -217,9 +233,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             queue,
             encoder,
             frame,
+            scene_bind_group_layout,
+            target_format,
+            depth_format,
             scene_bind_group,
             resources,
             plugin_outputs,
+            resource_resolver: None,
             screen_space_ui_renderer,
             post_process_stack: None,
             overlay_renderer: None,
@@ -248,6 +268,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         queue: &'a wgpu::Queue,
         encoder: &'a mut wgpu::CommandEncoder,
         frame: &'a ViewportRenderFrame,
+        scene_bind_group_layout: &'a wgpu::BindGroupLayout,
+        target_format: wgpu::TextureFormat,
+        depth_format: wgpu::TextureFormat,
         scene_bind_group: &'a wgpu::BindGroup,
         resources: &'a mut RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
@@ -258,6 +281,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             queue,
             encoder,
             frame,
+            scene_bind_group_layout,
+            target_format,
+            depth_format,
             scene_bind_group,
             resources,
             plugin_outputs,
@@ -271,6 +297,28 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn viewport_size(&self) -> UVec2 {
         self.frame.viewport_size
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn render_region(&self) -> ViewportRenderRegion {
+        self.frame.render_region()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn camera_stack_attachment_policy(
+        &self,
+    ) -> ViewportCameraStackAttachmentPolicy {
+        self.frame.camera_stack_attachment_policy()
+    }
+
+    pub fn scene_bind_group_layout(&self) -> &wgpu::BindGroupLayout {
+        self.scene_bind_group_layout
+    }
+
+    pub fn target_format(&self) -> wgpu::TextureFormat {
+        self.target_format
+    }
+
+    pub fn depth_format(&self) -> wgpu::TextureFormat {
+        self.depth_format
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn take_compute_dispatches(
@@ -315,6 +363,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &self,
     ) -> MotionVectorCameraStatus {
         self.motion_vector_camera_status
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn resource_resolver(
+        &self,
+    ) -> Option<RgResourceResolver<'a>> {
+        self.resource_resolver
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn with_prepass_renderer(
@@ -435,8 +489,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         normal_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        let normal_view = self.resources.require_texture_view(normal_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let normal_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            normal_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            depth_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
         let prepass = self.prepass.ok_or_else(|| {
             format!(
                 "depth prepass graph executor for pass `{pass_name}` requires normal prepass context"
@@ -457,6 +523,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.scene_bind_group,
             mesh_draw_lists.gpu_scene_bind_group,
             mesh_draw_lists.depth_prepass_stream(),
+            self.frame.render_region(),
             normal_attachment_ops,
             depth_attachment_ops,
         );
@@ -470,9 +537,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         shadow_atlas_resource_name: &str,
         shadow_atlas_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        let shadow_atlas_view = self
-            .resources
-            .require_texture_view(shadow_atlas_resource_name)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let shadow_atlas_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            shadow_atlas_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
         if let Some(shadow_map_renderer) = self.shadow_map_renderer {
             let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
                 format!(
@@ -519,8 +591,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        let color_view = self.resources.require_texture_view(color_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let color_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            color_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!("mesh graph executor for stage `{stage:?}` requires mesh draw context")
         })?;
@@ -534,15 +618,24 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if stream.is_empty() {
             return Ok(());
         }
-        let light_grid_params_buffer = self.resources.buffer(
+        let light_grid_params_buffer = Self::optional_buffer_by_name(
+            resources,
+            resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
-        );
-        let light_zbins_buffer = self
-            .resources
-            .buffer(crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS);
-        let light_tile_masks_buffer = self.resources.buffer(
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let light_zbins_buffer = Self::optional_buffer_by_name(
+            resources,
+            resource_resolver,
+            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let light_tile_masks_buffer = Self::optional_buffer_by_name(
+            resources,
+            resource_resolver,
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
-        );
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let replay_stats = BaseScenePass.record_commands_with_attachment_ops(
             self.encoder,
             self.device,
@@ -555,6 +648,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             streamer,
             self.frame,
             self.shadow_atlas_resources,
+            self.frame.render_region(),
             light_grid_params_buffer,
             light_zbins_buffer,
             light_tile_masks_buffer,
@@ -581,17 +675,26 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if stream.is_empty() {
             return Ok(());
         }
+        let render_region = self.render_region();
         let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
             format!(
                 "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh pipeline context"
             )
         })?;
-        let taa_reactive_mask_view = self
-            .resources
-            .require_texture_view(taa_reactive_mask_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let taa_reactive_mask_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            taa_reactive_mask_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let scene_depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let device = self.device;
         let forward_shadow_receiver_bind_group = mesh_pipelines
             .create_forward_shadow_receiver_bind_group(
@@ -621,6 +724,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return Ok(());
+        }
         pass.set_bind_group(0, self.scene_bind_group, &[]);
         pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
 
@@ -643,232 +749,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             true
         });
         mesh_draw_lists.replay_stats.record(replayer.stats());
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_deferred_gbuffer_to_resources(
-        &mut self,
-        pass_name: &str,
-        gbuffer_albedo_resource_name: &str,
-        gbuffer_material_resource_name: &str,
-        depth_resource_name: &str,
-        albedo_attachment_ops: RenderGraphAttachmentOps,
-        material_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let gbuffer_albedo_view = self
-            .resources
-            .require_texture_view(gbuffer_albedo_resource_name)?;
-        let gbuffer_material_view = self
-            .resources
-            .require_texture_view(gbuffer_material_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let deferred = self.deferred.ok_or_else(|| {
-            format!(
-                "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
-            )
-        })?;
-        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-            format!("deferred graph executor for pass `{pass_name}` requires mesh draw context")
-        })?;
-        let replay_stats = deferred.record_gbuffer_geometry(
-            self.encoder,
-            gbuffer_albedo_view,
-            gbuffer_material_view,
-            depth_view,
-            self.scene_bind_group,
-            mesh_draw_lists.gpu_scene_bind_group,
-            albedo_attachment_ops,
-            material_attachment_ops,
-            [
-                mesh_draw_lists.opaque_stream(),
-                mesh_draw_lists.alpha_mask_stream(),
-            ],
-        );
-        mesh_draw_lists.replay_stats.record(replay_stats);
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_deferred_lighting_to_resources(
-        &mut self,
-        pass_name: &str,
-        gbuffer_albedo_resource_name: &str,
-        gbuffer_normal_resource_name: &str,
-        gbuffer_material_resource_name: &str,
-        scene_depth_resource_name: &str,
-        background_resource_name: &str,
-        scene_color_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let gbuffer_albedo_view = self
-            .resources
-            .require_texture_view(gbuffer_albedo_resource_name)?;
-        let gbuffer_normal_view = self
-            .resources
-            .require_texture_view(gbuffer_normal_resource_name)?;
-        let gbuffer_material_view = self
-            .resources
-            .require_texture_view(gbuffer_material_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let light_grid_params_buffer = self.resources.require_buffer(
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
-        )?;
-        let light_zbins_buffer = self.resources.require_buffer(
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_ZBINS,
-        )?;
-        let light_tile_masks_buffer = self.resources.require_buffer(
-            crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
-        )?;
-        let background_view = self
-            .resources
-            .require_texture_view(background_resource_name)?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let deferred = self.deferred.ok_or_else(|| {
-            format!(
-                "deferred graph executor for pass `{pass_name}` requires deferred renderer context"
-            )
-        })?;
-        let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
-            format!("deferred graph executor for pass `{pass_name}` requires mesh draw context")
-        })?;
-        let gpu_scene_bind_group = mesh_draw_lists
-            .gpu_scene_bind_group
-            .ok_or_else(|| {
-                format!(
-                    "deferred graph executor for pass `{pass_name}` requires GPUScene bind group"
-                )
-            })?
-            .bind_group();
-        deferred.execute_lighting(
-            self.device,
-            self.encoder,
-            self.scene_bind_group,
-            gpu_scene_bind_group,
-            gbuffer_albedo_view,
-            gbuffer_normal_view,
-            gbuffer_material_view,
-            scene_depth_view,
-            self.shadow_atlas_resources,
-            light_grid_params_buffer,
-            light_zbins_buffer,
-            light_tile_masks_buffer,
-            background_view,
-            scene_color_view,
-            attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_sprite_stage_to_resources(
-        &mut self,
-        color_resource_name: &str,
-        depth_resource_name: &str,
-        stage: RenderPassStage,
-        attachment_ops: RenderGraphAttachmentOps,
-        depth_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let color_view = self.resources.require_texture_view(color_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
-            format!("sprite graph executor for stage `{stage:?}` requires sprite renderer context")
-        })?;
-        let streamer = self.streamer.ok_or_else(|| {
-            format!(
-                "sprite graph executor for stage `{stage:?}` requires resource streamer context"
-            )
-        })?;
-        sprite_renderer.record(
-            self.device,
-            self.encoder,
-            color_view,
-            depth_view,
-            self.scene_bind_group,
-            streamer,
-            self.frame,
-            stage,
-            attachment_ops,
-            depth_attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_screen_space_ui_to_resource(
-        &mut self,
-        resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let color_view = self.resources.require_texture_view(resource_name)?;
-        self.screen_space_ui_renderer.record(
-            self.device,
-            self.queue,
-            self.encoder,
-            color_view,
-            self.frame,
-            attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_preview_sky_to_resources(
-        &mut self,
-        pass_name: &str,
-        color_resource_name: &str,
-        depth_resource_name: &str,
-        color_attachment_ops: RenderGraphAttachmentOps,
-        depth_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        if self.overlay_renderer.is_none() {
-            return Err(format!(
-                "preview sky graph executor for pass `{pass_name}` requires preview sky renderer context"
-            ));
-        }
-        let color_view = self.resources.require_texture_view(color_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let overlay_renderer = self
-            .overlay_renderer
-            .as_deref_mut()
-            .expect("preview sky renderer context was checked before resource resolution");
-        overlay_renderer.record_preview_sky_with_attachment_ops(
-            self.encoder,
-            color_view,
-            depth_view,
-            self.scene_bind_group,
-            self.frame,
-            color_attachment_ops,
-            depth_attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_overlay_to_resources(
-        &mut self,
-        pass_name: &str,
-        color_resource_name: &str,
-        depth_resource_name: &str,
-    ) -> Result<(), String> {
-        let color_view = self.resources.require_texture_view(color_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let overlay_renderer = self.overlay_renderer.as_deref_mut().ok_or_else(|| {
-            format!(
-                "overlay graph executor for pass `{pass_name}` requires overlay renderer context"
-            )
-        })?;
-        let prepared_overlays = self.prepared_overlays.ok_or_else(|| {
-            format!(
-                "overlay graph executor for pass `{pass_name}` requires prepared overlay buffers"
-            )
-        })?;
-        overlay_renderer.record_overlays(
-            self.encoder,
-            color_view,
-            depth_view,
-            self.scene_bind_group,
-            self.frame,
-            prepared_overlays,
-        );
         Ok(())
     }
 }

@@ -29,6 +29,7 @@ pub struct RuntimePrepareCollectorContext<'a> {
     pub encoder: &'a mut wgpu::CommandEncoder,
     pub frame_extract: &'a RenderFrameExtract,
     frame: &'a ViewportRenderFrame,
+    external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
 }
 
 impl<'a> RuntimePrepareCollectorContext<'a> {
@@ -37,6 +38,7 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
         queue: &'a wgpu::Queue,
         encoder: &'a mut wgpu::CommandEncoder,
         frame: &'a ViewportRenderFrame,
+        external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
     ) -> Self {
         Self {
             device,
@@ -44,6 +46,7 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             encoder,
             frame_extract: &frame.extract,
             frame,
+            external_buffer_bindings,
         }
     }
 
@@ -87,6 +90,63 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
     pub fn prepared_virtual_geometry_evictable_page_ids(&self) -> &[u32] {
         self.prepared_runtime_sidebands()
             .virtual_geometry_evictable_page_ids()
+    }
+
+    pub fn register_external_buffer_binding(
+        &mut self,
+        logical_name: impl Into<String>,
+        buffer: &wgpu::Buffer,
+    ) {
+        let logical_name = logical_name.into();
+        let backing_name = format!("{logical_name}:runtime-prepare");
+        self.register_external_buffer_binding_with_backing(logical_name, backing_name, buffer);
+    }
+
+    pub fn register_external_buffer_binding_with_backing(
+        &mut self,
+        logical_name: impl Into<String>,
+        backing_name: impl Into<String>,
+        buffer: &wgpu::Buffer,
+    ) {
+        self.external_buffer_bindings
+            .push(RuntimePrepareExternalBufferBinding::new(
+                logical_name,
+                backing_name,
+                buffer,
+            ));
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct RuntimePrepareExternalBufferBinding {
+    logical_name: String,
+    backing_name: String,
+    buffer: wgpu::Buffer,
+}
+
+impl RuntimePrepareExternalBufferBinding {
+    pub(crate) fn new(
+        logical_name: impl Into<String>,
+        backing_name: impl Into<String>,
+        buffer: &wgpu::Buffer,
+    ) -> Self {
+        Self {
+            logical_name: logical_name.into(),
+            backing_name: backing_name.into(),
+            buffer: buffer.clone(),
+        }
+    }
+
+    pub(crate) fn logical_name(&self) -> &str {
+        &self.logical_name
+    }
+
+    pub(crate) fn backing_name(&self) -> &str {
+        &self.backing_name
+    }
+
+    pub(crate) fn buffer(&self) -> &wgpu::Buffer {
+        &self.buffer
     }
 }
 
@@ -191,7 +251,14 @@ mod tests {
                 vec![22],
             ));
 
-        let context = RuntimePrepareCollectorContext::new(&device, &queue, &mut encoder, &frame);
+        let mut external_buffer_bindings = Vec::new();
+        let context = RuntimePrepareCollectorContext::new(
+            &device,
+            &queue,
+            &mut encoder,
+            &frame,
+            &mut external_buffer_bindings,
+        );
 
         assert_eq!(context.viewport_size(), UVec2::new(1280, 720));
         assert_eq!(context.frame_extract().world.raw(), 44);
@@ -213,6 +280,48 @@ mod tests {
         assert_eq!(
             context.prepared_virtual_geometry_evictable_page_ids(),
             &[22]
+        );
+    }
+
+    #[test]
+    fn collector_context_registers_external_buffer_bindings() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let RenderBackend { device, queue, .. } = backend;
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-runtime-prepare-context-buffer-binding-test-encoder"),
+        });
+        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(64, 64));
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-runtime-prepare-context-external-buffer"),
+            size: 32,
+            usage: wgpu::BufferUsages::STORAGE,
+            mapped_at_creation: false,
+        });
+        let mut external_buffer_bindings = Vec::new();
+
+        {
+            let mut context = RuntimePrepareCollectorContext::new(
+                &device,
+                &queue,
+                &mut encoder,
+                &frame,
+                &mut external_buffer_bindings,
+            );
+            context.register_external_buffer_binding_with_backing(
+                "particles.gpu.counters",
+                "particles.gpu.counters:test-runtime-prepare",
+                &buffer,
+            );
+        }
+
+        assert_eq!(external_buffer_bindings.len(), 1);
+        assert_eq!(
+            external_buffer_bindings[0].logical_name(),
+            "particles.gpu.counters"
+        );
+        assert_eq!(
+            external_buffer_bindings[0].backing_name(),
+            "particles.gpu.counters:test-runtime-prepare"
         );
     }
 

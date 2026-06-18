@@ -63,7 +63,10 @@ children = [
   { node = "toolbar_main_menu" },
   { node = "toolbar_run_mode_menu" },
   { node = "toolbar_layout_menu" },
+  { node = "notification_center" },
+  { node = "toast_overlay" },
   { node = "command_palette" },
+  { node = "context_menu" },
 ]
 
 [nodes.window_content]
@@ -74,7 +77,7 @@ layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = 
 children = [
   { node = "top_toolbar" },
   { node = "main_band" },
-  { node = "component_drawer" },
+  { node = "component_drawer_shell" },
   { node = "status_bar" },
 ]
 
@@ -105,6 +108,27 @@ control_id = "WorkbenchCommandPalette"
 props = { open = false, popup_open = false, visibility = "collapsed" }
 events = [{ id = "CommandPalette/Commit", event = "Submit", route = "editor.command_palette.commit" }]
 
+[nodes.notification_center]
+component = "WorkbenchNotificationCenter"
+control_id = "WorkbenchNotificationCenter"
+classes = ["workbench-notification-center", "workbench-overlay-notification-center"]
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "visible", title = "Notifications", unread_count = 0, notifications = [], selected_notification_id = "", focused_index = 0, visible_limit = 8, empty_text = "No notifications", placement = "bottom-end", popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 320.0, popup_anchor_height = 0.0, anchor_origin_vertical = "top", anchor_origin_horizontal = "right", transform_origin_vertical = "top", transform_origin_horizontal = "right", popup_offset_x = 0.0, popup_offset_y = 18.0, close_on_backdrop_click = true, keep_mounted = true, aria_modal = false, aria_labelledby = "Workbench notification center", aria_describedby = "Editor notifications", z_index = 1490, disable_portal = false, portal_layer = "notification-center", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -24.0, y = 58.0 }, width = { min = 300.0, preferred = 340.0, max = 380.0, stretch = "Fixed" }, height = { min = 190.0, preferred = 246.0, max = 320.0, stretch = "Fixed" }, z_index = 255 }
+
+[nodes.toast_overlay]
+component = "WorkbenchToast"
+control_id = "WorkbenchToast"
+classes = ["workbench-alert", "workbench-toast", "workbench-overlay-toast"]
+props = { open = false, popup_open = false, focused = false, selected = false, visibility = "collapsed", text = "", value = "", value_text = "", severity = "info", color = "info", icon = "info", action_label = "", action_color = "#238f98", toast_queue = [], current_toast_id = "", expired_toast_id = "", queue_length = 0, auto_hide_duration_ms = 3500, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = false }
+layout = { anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -24.0, y = -64.0 }, width = { min = 320.0, preferred = 390.0, max = 440.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 36.0, max = 42.0, stretch = "Fixed" }, z_index = 250 }
+
+[nodes.context_menu]
+component = "WorkbenchContextMenu"
+control_id = "WorkbenchContextMenu"
+classes = ["workbench-context-menu", "workbench-popup-menu"]
+props = { open = false, popup_open = false, visibility = "collapsed", value = "", value_text = "", menu_items = [], options = [], context_target = "", context_target_path = "", focused_index = 0, popup_anchor_x = 0.0, popup_anchor_y = 0.0, popup_anchor_width = 0.0, popup_anchor_height = 0.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 30.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 158.0, preferred = 158.0, max = 158.0, stretch = "Fixed" }, z_index = 260 }
+
 [nodes.top_toolbar]
 component = "WorkbenchTopToolbar"
 control_id = "WorkbenchWindowTopToolbarRegion"
@@ -115,10 +139,17 @@ component = "WorkbenchMainBand"
 control_id = "WorkbenchWindowMainBandRegion"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
+[nodes.component_drawer_shell]
+component = "Container"
+control_id = "BottomDrawerShellRoot"
+classes = ["workbench-bottom-drawer-shell"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
+children = [{ node = "component_drawer" }]
+
 [nodes.component_drawer]
 component = "WorkbenchComponentDrawer"
 control_id = "WorkbenchWindowComponentDrawerRegion"
-layout = { width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.status_bar]
 component = "WorkbenchStatusBar"

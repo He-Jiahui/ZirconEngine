@@ -6,10 +6,11 @@ use crate::core::framework::render::{
     RenderVirtualGeometryPayloadSource,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
+use crate::graphics::RenderFeatureCapabilityRequirement;
 use crate::graphics::ViewportRenderOutputTarget;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
-use crate::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
+use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -35,7 +36,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     };
     let submission_size = resolve_camera_target_size(
         primary_target_size,
-        &extract.view.camera.target,
+        extract.view.selected_camera_target(),
         asset_manager.as_ref(),
     )?;
     let mut sized_extract = extract.clone();
@@ -45,17 +46,17 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let effective_view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
     let camera_target_resolution = RenderCameraTargetResolutionReport::new(
-        extract.view.camera.target.kind(),
+        extract.view.selected_camera_target().kind(),
         primary_target_size,
         submission_size,
         effective_view_size,
         render_size,
     );
     let output_target = ViewportRenderOutputTarget::from_camera_target(
-        &extract.view.camera.target,
+        extract.view.selected_camera_target(),
         submission_size,
     );
-    let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
+    let compiled_pipeline = compile_submission_pipeline(server, &viewport_state, extract)?;
     let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
@@ -63,24 +64,27 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let bloom_enabled = compiled_pipeline
         .enabled_features
         .iter()
-        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::Bloom));
+        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::Bloom));
     let color_grading_enabled = compiled_pipeline
         .enabled_features
         .iter()
-        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::ColorGrading));
+        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::ColorGrading));
     let temporal_history_enabled = compiled_pipeline
         .enabled_features
         .iter()
-        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::Temporal));
+        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::Temporal));
     let anti_alias_feature_enabled = compiled_pipeline
         .enabled_features
         .iter()
-        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::AntiAlias));
+        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::AntiAlias))
+        || compiled_pipeline
+            .capability_requirements
+            .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
     let resolved_post_process = extract
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            &extract.view.camera.render_layers,
+            extract.view.selected_camera_layers(),
         )
         .map_err(|error| {
             RenderFrameworkError::Backend(format!("post-process volume evaluation failed: {error}"))
@@ -135,11 +139,13 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .as_ref()
         .map(|output| output.bvh_visualization_instances().to_vec())
         .unwrap_or_default();
-    let visibility_context = VisibilityContext::from_extract_with_history_and_static_index(
-        &visibility_extract,
-        viewport_state.previous_visibility(),
-        viewport_state.previous_static_index(),
-    );
+    let visibility_context =
+        VisibilityContext::from_extract_with_history_static_index_and_task_pool(
+            &visibility_extract,
+            viewport_state.previous_visibility(),
+            viewport_state.previous_static_index(),
+            Some(&server.compute_task_pool),
+        );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
         &effective_history_key_extract,
         compiled_feature_names(&compiled_pipeline),
@@ -173,13 +179,17 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     } else {
         history_available
     };
-    let anti_alias_report =
-        requested_anti_alias.resolve(viewport_state.capabilities(), anti_alias_history_available);
+    let anti_alias_report = requested_anti_alias.resolve_with_requested_graph_sample_count(
+        viewport_state.capabilities(),
+        anti_alias_history_available,
+        extract.view.camera.msaa_samples,
+    );
     let post_process_history_available = history_available
         || (anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa
             && taa_history_store_available);
+    let upscale_required = render_size != effective_view_size;
     let post_process_stack =
-        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_and_anti_alias(
+        PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
             &effective_bloom,
             &effective_color_grading,
             effective_exposure,
@@ -187,8 +197,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             temporal_history_enabled,
             post_process_history_available,
             &anti_alias_report.effective_settings(),
+            upscale_required,
         );
     let compiled_pipeline = compile_submission_pipeline_with_options(
+        server,
         &viewport_state,
         extract,
         &viewport_state
@@ -217,6 +229,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.pipeline_handle(),
         viewport_state.viewport_generation(),
         viewport_state.take_quality_profile(),
+        viewport_state.shader_quality(),
         compiled_pipeline,
         viewport_state.capabilities().clone(),
         visibility_context,
@@ -300,7 +313,7 @@ fn frame_history_invalidation_reason(
     target_size: crate::core::math::UVec2,
     render_size: crate::core::math::UVec2,
     pipeline_handle: crate::core::framework::render::RenderPipelineHandle,
-    compiled_pipeline: &crate::CompiledRenderPipeline,
+    compiled_pipeline: &crate::graphics::CompiledRenderPipeline,
     history_validation_key: &FrameHistoryValidationKey,
 ) -> Option<FrameHistoryInvalidationReason> {
     let state = server.lock_state();

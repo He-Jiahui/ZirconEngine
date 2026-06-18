@@ -8,12 +8,12 @@ use crate::asset::{
     AssetManager, AssetUri, DataAsset, DataAssetFormat, FunctionAssetImporter, ImportedAsset,
     ProjectAssetManager,
 };
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::resource::ResourceKind;
 use crate::plugin::{
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_installs_asset_importers_before_project_open() {

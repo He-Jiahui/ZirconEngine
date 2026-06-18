@@ -1,4 +1,4 @@
-use crate::SceneRenderer;
+use crate::graphics::SceneRenderer;
 
 use super::super::submission_record_update::SubmissionRecordUpdate;
 

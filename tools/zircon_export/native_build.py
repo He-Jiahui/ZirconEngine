@@ -40,73 +40,93 @@ def native_dynamic_build_plan(
     crate_index = native_dynamic_cdylib_crate_index(plugins_workspace, diagnostics)
     cargo_profile = native_dynamic_cargo_profile(validate_payload)
     features = normalized_native_dynamic_build_features(build_features)
-    target_dir = (
-        target_dir.expanduser().resolve() if target_dir else (stage_dir / "target").resolve()
+    target_dir = resolve_native_build_path(
+        "native dynamic build target directory",
+        target_dir.expanduser() if target_dir else stage_dir / "target",
+        diagnostics,
+    )
+    resolved_plugins_workspace = resolve_native_build_path(
+        "native dynamic plugin workspace manifest",
+        plugins_workspace,
+        diagnostics,
     )
     packages: list[dict[str, object]] = []
 
-    for package_export in package_exports:
-        package_id = str(package_export["package_id"])
-        source_package = source_packages.get(package_id)
-        if source_package is None:
-            continue
-        crate_name = native_dynamic_source_cdylib_crate_name(
-            source_package / "plugin.toml",
-            crate_index,
-            package_id,
-            diagnostics,
-        )
-        if crate_name is None:
-            continue
-        crate = crate_index.get(crate_name)
-        if crate is None:
-            diagnostics.append(
-                f"native dynamic package {package_id} crate {crate_name} is not a cdylib workspace member"
+    if target_dir is not None and resolved_plugins_workspace is not None:
+        for package_export in package_exports:
+            package_id = str(package_export["package_id"])
+            source_package = source_packages.get(package_id)
+            if source_package is None:
+                continue
+            crate_name = native_dynamic_source_cdylib_crate_name(
+                source_package / "plugin.toml",
+                crate_index,
+                package_id,
+                diagnostics,
             )
-            continue
-        command = native_dynamic_cargo_build_command(
-            cargo=cargo,
-            workspace_manifest=plugins_workspace,
-            crate_name=crate_name,
-            target_dir=target_dir,
-            cargo_profile=cargo_profile,
-            locked=locked,
-            offline=offline,
-            features=features,
-        )
-        packages.append(
-            {
-                "package_id": package_id,
-                "crate_name": crate_name,
-                "manifest_path": str(crate["manifest_path"]),
-                "workspace_manifest": str(plugins_workspace.resolve()),
-                "target_dir": str(target_dir),
-                "cargo_profile": cargo_profile,
-                "release": cargo_profile == "release",
-                "features": features,
-                "command": command,
-                "expected_loadable_artifact": str(
-                    native_dynamic_expected_loadable_artifact(
-                        target_dir,
-                        cargo_profile,
-                        crate_name,
-                        target_platform,
-                    )
-                ),
-            }
-        )
+            if crate_name is None:
+                continue
+            crate = crate_index.get(crate_name)
+            if crate is None:
+                diagnostics.append(
+                    f"native dynamic package {package_id} crate {crate_name} is not a cdylib workspace member"
+                )
+                continue
+            command = native_dynamic_cargo_build_command(
+                cargo=cargo,
+                workspace_manifest=resolved_plugins_workspace,
+                crate_name=crate_name,
+                target_dir=target_dir,
+                cargo_profile=cargo_profile,
+                locked=locked,
+                offline=offline,
+                features=features,
+            )
+            packages.append(
+                {
+                    "package_id": package_id,
+                    "crate_name": crate_name,
+                    "manifest_path": str(crate["manifest_path"]),
+                    "workspace_manifest": str(resolved_plugins_workspace),
+                    "target_dir": str(target_dir),
+                    "cargo_profile": cargo_profile,
+                    "release": cargo_profile == "release",
+                    "features": features,
+                    "command": command,
+                    "expected_loadable_artifact": str(
+                        native_dynamic_expected_loadable_artifact(
+                            target_dir,
+                            cargo_profile,
+                            crate_name,
+                            target_platform,
+                        )
+                    ),
+                }
+            )
 
     return {
         "fatal": bool(diagnostics),
         "diagnostics": list(diagnostics),
-        "workspace_manifest": str(plugins_workspace.resolve()),
-        "target_dir": str(target_dir),
+        "workspace_manifest": str(resolved_plugins_workspace or plugins_workspace),
+        "target_dir": str(target_dir or stage_dir / "target"),
         "cargo_profile": cargo_profile,
         "release": cargo_profile == "release",
         "build_features": features,
         "package_count": len(packages),
         "packages": packages,
     }
+
+
+def resolve_native_build_path(
+    label: str,
+    path: Path,
+    diagnostics: list[str],
+) -> Path | None:
+    try:
+        return path.resolve()
+    except OSError as error:
+        diagnostics.append(f"{label} {path} could not be resolved: {error}")
+        return None
 
 
 def execute_native_dynamic_build_plan(
@@ -222,7 +242,14 @@ def execute_native_dynamic_package_build(
     source_artifact = Path(expected_loadable_artifact).expanduser()
     if not source_artifact.is_absolute():
         source_artifact = repo_root / source_artifact
-    source_artifact = source_artifact.resolve()
+    resolved_source_artifact = resolve_native_build_path(
+        f"NativeDynamic native build for package {package_id} expected artifact",
+        source_artifact,
+        diagnostics,
+    )
+    if resolved_source_artifact is None:
+        return result
+    source_artifact = resolved_source_artifact
     if not source_artifact.exists() or not source_artifact.is_file():
         diagnostics.append(
             f"NativeDynamic native build for package {package_id} expected artifact {source_artifact} does not exist"
@@ -237,13 +264,28 @@ def execute_native_dynamic_package_build(
         return result
 
     native_dir = package_dir / "native"
-    native_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        native_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        diagnostics.append(
+            f"NativeDynamic native build for package {package_id} native artifact directory {native_dir} could not be created: {error}"
+        )
+        return result
+
     destination_artifact = native_dir / source_artifact.name
-    shutil.copy2(source_artifact, destination_artifact)
+    try:
+        shutil.copy2(source_artifact, destination_artifact)
+    except OSError as error:
+        diagnostics.append(
+            f"NativeDynamic native build for package {package_id} artifact {source_artifact} could not be copied to {destination_artifact}: {error}"
+        )
+        return result
     result["copied_loadable_artifact"] = str(destination_artifact)
     result["copied_sidecars"] = copy_native_dynamic_build_sidecars(
         source_artifact,
         native_dir,
+        package_id,
+        diagnostics,
     )
     return result
 
@@ -264,6 +306,8 @@ def native_dynamic_materialized_package_dirs(
 def copy_native_dynamic_build_sidecars(
     source_artifact: Path,
     native_dir: Path,
+    package_id: str,
+    diagnostics: list[str],
 ) -> list[str]:
     copied: list[str] = []
     candidates = [
@@ -279,11 +323,29 @@ def copy_native_dynamic_build_sidecars(
         destination = native_dir / sidecar.name
         if sidecar.is_dir():
             if destination.exists():
-                shutil.rmtree(destination)
-            shutil.copytree(sidecar, destination)
+                try:
+                    shutil.rmtree(destination)
+                except OSError as error:
+                    diagnostics.append(
+                        f"NativeDynamic native build for package {package_id} sidecar destination {destination} could not be removed: {error}"
+                    )
+                    continue
+            try:
+                shutil.copytree(sidecar, destination)
+            except OSError as error:
+                diagnostics.append(
+                    f"NativeDynamic native build for package {package_id} sidecar {sidecar} could not be copied to {destination}: {error}"
+                )
+                continue
             copied.append(str(destination))
         elif sidecar.is_file():
-            shutil.copy2(sidecar, destination)
+            try:
+                shutil.copy2(sidecar, destination)
+            except OSError as error:
+                diagnostics.append(
+                    f"NativeDynamic native build for package {package_id} sidecar {sidecar} could not be copied to {destination}: {error}"
+                )
+                continue
             copied.append(str(destination))
     return copied
 
@@ -324,7 +386,13 @@ def native_dynamic_cdylib_crate_index(
         if not isinstance(member, str) or not member:
             diagnostics.append("native dynamic plugin workspace member must be a non-empty string")
             continue
-        member_manifest = (plugins_root / Path(member) / "Cargo.toml").resolve()
+        member_manifest = resolve_native_build_path(
+            f"native dynamic workspace member {member} manifest",
+            plugins_root / Path(member) / "Cargo.toml",
+            diagnostics,
+        )
+        if member_manifest is None:
+            continue
         crate_manifest = read_toml(member_manifest, diagnostics)
         if crate_manifest is None:
             continue
@@ -409,7 +477,7 @@ def native_dynamic_cargo_build_command(
         cargo,
         "build",
         "--manifest-path",
-        str(workspace_manifest.resolve()),
+        str(workspace_manifest),
         "-p",
         crate_name,
         "--target-dir",
@@ -469,11 +537,17 @@ def read_toml(path: Path, diagnostics: list[str]) -> dict[str, Any] | None:
     if not path.exists():
         diagnostics.append(f"TOML file {path} does not exist")
         return None
+    if not path.is_file():
+        diagnostics.append(f"TOML file {path} is not a file")
+        return None
     try:
         with path.open("rb") as toml_file:
             payload = tomllib.load(toml_file)
     except tomllib.TOMLDecodeError as error:
         diagnostics.append(f"TOML file {path} could not be parsed: {error}")
+        return None
+    except OSError as error:
+        diagnostics.append(f"TOML file {path} could not be read: {error}")
         return None
     if not isinstance(payload, dict):
         diagnostics.append(f"TOML file {path} must contain a table")

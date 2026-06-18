@@ -18,19 +18,19 @@ pub restoreState(state: string): int {
 
 pub onStart(entity: int, dt: float): int {
     if (gameplay.script_property_matches(entity, "role", "player")) {
-        var startMenuWritten = gameplay.set_component_json(
+        gameplay.set_component_json(
             entity,
             "gameplay.menu_state",
             "{\"state\":\"start\",\"title\":\"Blood Moon Hunt\",\"subtitle\":\"WASD movement. Blood Bolt attacks automatically.\",\"button\":\"Start Game\"}"
         );
-        var commandReset = gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
-        var stateWritten = gameplay.set_component_json(entity, "vampire.run_state", "\"start_menu\"");
-        var playerHudSynced = gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
+        gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
+        gameplay.set_component_json(entity, "vampire.run_state", "\"start_menu\"");
+        gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
     } else if (gameplay.script_property_matches(entity, "role", "enemy")) {
         var enemyMaxHealth = gameplay.script_number(entity, "hp", 24.0);
-        var enemyHudSynced = gameplay.set_world_hud_bar(entity, enemyMaxHealth, 0.95, 0.09, 1.55, 1.18);
+        gameplay.set_world_hud_bar(entity, enemyMaxHealth, 0.95, 0.09, 1.55, 1.18);
     } else if (gameplay.script_property_matches(entity, "role", "boss")) {
-        var bossHudSynced = gameplay.set_world_hud_bar(entity, 450.0, 1.12, 0.10, 1.75, 1.18);
+        gameplay.set_world_hud_bar(entity, 450.0, 1.12, 0.10, 1.75, 1.18);
     }
     return 0;
 }
@@ -50,39 +50,44 @@ pub onUpdate(entity: int, dt: float): int {
             shouldStart = true;
         }
         if (shouldStart) {
-            var playerPosition = gameplay.set_position(entity, 0.0, 0.0, 0.0);
-            var playerHealed = gameplay.heal_entity(entity, 120.0, 120.0);
-            var playerIdle = gameplay.set_animation_bool(entity, "moving", false);
-            var playerAttackIdle = gameplay.set_animation_bool(entity, "attacking", false);
-            var playerActionReset = gameplay.set_component_json(entity, "vampire.action_state", "0");
-            var playerNodeReset = gameplay.set_component_json(entity, "vampire.behavior_node", "0");
-            var particlesCleared = gameplay.set_particle_sprites(entity, "[]");
-            var cameraReset = gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
-            var playerLightReset = gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
-            var runStateStarted = gameplay.set_component_json(entity, "vampire.run_state", "\"playing\"");
-            var menuCleared = gameplay.set_component_json(entity, "gameplay.menu_state", "null");
-            var commandCleared = gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
-            var startedHudSynced = gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
+            gameplay.set_position(entity, 0.0, 0.0, 0.0);
+            gameplay.heal_entity(entity, 120.0, 120.0);
+            gameplay.set_animation_bool(entity, "moving", false);
+            gameplay.set_animation_bool(entity, "attacking", false);
+            gameplay.set_component_json(entity, "vampire.action_state", "0");
+            gameplay.set_component_json(entity, "vampire.behavior_node", "0");
+            gameplay.set_particle_sprites(entity, "[]");
+            gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
+            gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
+            gameplay.set_component_json(entity, "vampire.run_state", "\"playing\"");
+            gameplay.set_component_json(entity, "vampire.spawn_grace", "\"1\"");
+            gameplay.set_component_json(entity, "gameplay.menu_state", "null");
+            gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
+            gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
             return 0;
         }
         var runState = gameplay.component_string(entity, "vampire.run_state", "start_menu");
         if (runState != "playing") {
-            var cameraMovedIdle = gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
-            var playerLightMovedIdle = gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
-            var idleMovingWritten = gameplay.set_animation_bool(entity, "moving", false);
-            var idleAttackingWritten = gameplay.set_animation_bool(entity, "attacking", false);
-            var idleHudSynced = gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
+            gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
+            gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
+            gameplay.set_animation_bool(entity, "moving", false);
+            gameplay.set_animation_bool(entity, "attacking", false);
+            gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
             return 0;
         }
-        var currentHp = gameplay.current_hp(entity, 120.0);
-        if (currentHp <= 0.0) {
-            var gameOverMenu = gameplay.set_component_json(
+        var spawnGrace = gameplay.component_string(entity, "vampire.spawn_grace", "0");
+        if (spawnGrace == "1") {
+            gameplay.set_component_json(entity, "vampire.spawn_grace", "\"0\"");
+        }
+        var playerDefeated = gameplay.script_number_at_most(entity, "hp", 0.0, 120.0);
+        if (playerDefeated) {
+            gameplay.set_component_json(
                 entity,
                 "gameplay.menu_state",
                 "{\"state\":\"game_over\",\"title\":\"Game Over\",\"subtitle\":\"The hunt ended before dawn. Retry from the clearing.\",\"button\":\"Retry\"}"
             );
-            var gameOverState = gameplay.set_component_json(entity, "vampire.run_state", "\"game_over\"");
-            var gameOverCommandReset = gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
+            gameplay.set_component_json(entity, "vampire.run_state", "\"game_over\"");
+            gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
             return 0;
         }
 
@@ -104,73 +109,84 @@ pub onUpdate(entity: int, dt: float): int {
         var moving = false;
         if (dx != 0.0 || dz != 0.0) {
             moving = true;
-            var moved = gameplay.translate(entity, dx, 0.0, dz);
-            var faced = gameplay.face_direction(entity, dx, dz);
+            gameplay.translate(entity, dx, 0.0, dz);
+            gameplay.face_direction(entity, dx, dz);
         }
-        var cameraMoved = gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
-        var playerLightMoved = gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
-        var movingWritten = gameplay.set_animation_bool(entity, "moving", moving);
+        gameplay.camera_follow(1, entity, 0.0, 5.35, -7.25);
+        gameplay.follow_position(118, entity, 0.0, 1.6, 0.0);
+        gameplay.set_animation_bool(entity, "moving", moving);
 
         var target = gameplay.nearest_by_script_property(entity, "role", "enemy", 12.0);
-        var targetDamaged = gameplay.damage_entity(target, 1.0);
-        var attackingWritten = gameplay.set_animation_bool(entity, "attacking", true);
-        var playerActionWritten = gameplay.set_component_json(entity, "vampire.action_state", "2");
-        var playerNodeWritten = gameplay.set_component_json(entity, "vampire.behavior_node", "11");
-        var particlesWritten = gameplay.set_particle_sprites(
+        if (gameplay.entity_exists(target)) {
+            gameplay.damage_entity(target, 1.0);
+        }
+        gameplay.set_animation_bool(entity, "attacking", true);
+        gameplay.set_component_json(entity, "vampire.action_state", "2");
+        gameplay.set_component_json(entity, "vampire.behavior_node", "11");
+        gameplay.set_particle_sprites(
             entity,
             "[{\"position\":[0.0,1.35,0.0],\"size\":0.34,\"color\":[1.0,0.08,0.16,0.82],\"billboard_offset\":[0.0,1.2],\"aspect_ratio\":1.0,\"sort_order\":4}]"
         );
-        var playerHudSynced = gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
+        gameplay.set_world_hud_bar(entity, 120.0, 1.45, 0.12, 1.92, 1.18);
+        return 0;
     } else if (gameplay.script_property_matches(entity, "role", "enemy")) {
         var player = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
-        if (player != 0) {
+        if (gameplay.entity_exists(player)) {
             var playerRunState = gameplay.component_string(player, "vampire.run_state", "start_menu");
             if (playerRunState != "playing") {
-                var enemyIdleMovingWritten = gameplay.set_animation_bool(entity, "moving", false);
-                var enemyIdleAttackingWritten = gameplay.set_animation_bool(entity, "attacking", false);
+                gameplay.set_animation_bool(entity, "moving", false);
+                gameplay.set_animation_bool(entity, "attacking", false);
+                return 0;
+            }
+            var playerSpawnGrace = gameplay.component_string(player, "vampire.spawn_grace", "0");
+            if (playerSpawnGrace == "1") {
+                gameplay.set_animation_bool(entity, "moving", false);
+                gameplay.set_animation_bool(entity, "attacking", false);
                 return 0;
             }
             var maxHealth = gameplay.script_number(entity, "hp", 24.0);
-            var enemySpeed = gameplay.script_number(entity, "move_speed", 3.0);
-            var navMoved = gameplay.nav_move_towards_entity(entity, player, enemySpeed, dt);
-            var enemyMovingWritten = gameplay.set_animation_bool(entity, "moving", true);
-            var enemyMoveState = gameplay.set_component_json(entity, "vampire.action_state", "1");
-            var enemyMoveNode = gameplay.set_component_json(entity, "vampire.behavior_node", "31");
-
             var contact = gameplay.nearest_by_script_property(entity, "role", "player", 1.45);
-            if (contact != 0) {
-                var playerHpBeforeHit = gameplay.current_hp(player, 120.0);
-                if (playerHpBeforeHit <= 0.2) {
-                    var enemyGameOverMenu = gameplay.set_component_json(
-                        player,
+            if (gameplay.entity_exists(contact)) {
+                gameplay.set_animation_bool(entity, "moving", false);
+                var playerDefeatedByContact = gameplay.script_number_at_most(contact, "hp", 0.2, 120.0);
+                if (playerDefeatedByContact) {
+                    gameplay.set_component_json(
+                        contact,
                         "gameplay.menu_state",
                         "{\"state\":\"game_over\",\"title\":\"Game Over\",\"subtitle\":\"The hunt ended before dawn. Retry from the clearing.\",\"button\":\"Retry\"}"
                     );
-                    var enemyGameOverState = gameplay.set_component_json(player, "vampire.run_state", "\"game_over\"");
-                    var enemyGameOverCommandReset = gameplay.set_component_json(player, "gameplay.control_state", "\"none\"");
+                    gameplay.set_component_json(contact, "vampire.run_state", "\"game_over\"");
+                    gameplay.set_component_json(contact, "gameplay.control_state", "\"none\"");
                 } else {
-                    var playerDamaged = gameplay.damage_entity(player, 0.2);
+                    gameplay.damage_entity(contact, 0.2);
                 }
-                var enemyAttackingWritten = gameplay.set_animation_bool(entity, "attacking", true);
-                var enemyAttackState = gameplay.set_component_json(entity, "vampire.action_state", "2");
-                var enemyAttackNode = gameplay.set_component_json(entity, "vampire.behavior_node", "41");
+                gameplay.set_animation_bool(entity, "attacking", true);
+                gameplay.set_component_json(entity, "vampire.action_state", "2");
+                gameplay.set_component_json(entity, "vampire.behavior_node", "41");
             } else {
-                var enemyIdleAttackWritten = gameplay.set_animation_bool(entity, "attacking", false);
+                var enemySpeed = gameplay.script_number(entity, "move_speed", 3.0);
+                gameplay.nav_move_towards_entity(entity, player, enemySpeed, dt);
+                gameplay.set_animation_bool(entity, "moving", true);
+                gameplay.set_component_json(entity, "vampire.action_state", "1");
+                gameplay.set_component_json(entity, "vampire.behavior_node", "31");
+                gameplay.set_animation_bool(entity, "attacking", false);
             }
-            var enemyHudSynced = gameplay.set_world_hud_bar(entity, maxHealth, 0.95, 0.09, 1.55, 1.18);
+            gameplay.set_world_hud_bar(entity, maxHealth, 0.95, 0.09, 1.55, 1.18);
         }
+        return 0;
     } else if (gameplay.script_property_matches(entity, "role", "boss")) {
         var bossPlayer = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
-        if (bossPlayer != 0) {
+        if (gameplay.entity_exists(bossPlayer)) {
             var bossPlayerRunState = gameplay.component_string(bossPlayer, "vampire.run_state", "start_menu");
             if (bossPlayerRunState != "playing") {
                 return 0;
             }
-            var bossMoved = gameplay.nav_move_towards_entity(entity, bossPlayer, 2.15, dt);
-            var bossMoveState = gameplay.set_component_json(entity, "vampire.action_state", "1");
-            var bossMoveNode = gameplay.set_component_json(entity, "vampire.behavior_node", "31");
-            var bossHudSynced = gameplay.set_world_hud_bar(entity, 450.0, 1.12, 0.10, 1.75, 1.18);
+            gameplay.nav_move_towards_entity(entity, bossPlayer, 2.15, dt);
+            gameplay.set_component_json(entity, "vampire.action_state", "1");
+            gameplay.set_component_json(entity, "vampire.behavior_node", "31");
+            gameplay.set_world_hud_bar(entity, 450.0, 1.12, 0.10, 1.75, 1.18);
         }
+        return 0;
     }
     return 0;
 }

@@ -14,11 +14,12 @@ pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInput
         || explicit_hoverable.is_some()
         || explicit_focusable.is_some();
     let explicit_broad_interactive = explicit_interactive.unwrap_or(false);
-    let legacy_interactive =
-        !has_explicit_input_metadata && legacy_component_interaction_fallback(node);
-    let is_interactive =
-        binding_capabilities.receives_input || explicit_broad_interactive || legacy_interactive;
-    let broad_capability = explicit_broad_interactive || legacy_interactive;
+    let component_name_interactive =
+        !has_explicit_input_metadata && component_name_interaction_fallback(node);
+    let is_interactive = binding_capabilities.receives_input
+        || explicit_broad_interactive
+        || component_name_interactive;
+    let broad_capability = explicit_broad_interactive || component_name_interactive;
     let clickable =
         explicit_clickable.unwrap_or(binding_capabilities.clickable || broad_capability);
     let hoverable =
@@ -113,7 +114,7 @@ fn bool_attr(node: &UiTemplateNode, key: &str) -> Option<bool> {
     node.attributes.get(key).and_then(toml::Value::as_bool)
 }
 
-fn legacy_component_interaction_fallback(node: &UiTemplateNode) -> bool {
+fn component_name_interaction_fallback(node: &UiTemplateNode) -> bool {
     // Temporary authored-asset fallback: future .ui.toml controls should use bindings
     // or explicit input_* metadata instead of relying on component names.
     matches!(

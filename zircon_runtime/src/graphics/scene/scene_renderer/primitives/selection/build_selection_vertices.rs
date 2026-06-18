@@ -39,14 +39,15 @@ pub(crate) fn build_selection_vertices(
         }
     }
 
+    let camera = frame.effective_camera();
     for anchor in &frame.overlays().selection_anchors {
         append_cross(
             &mut vertices,
             anchor.position,
             anchor.size,
             anchor.color,
-            frame.camera().transform.right(),
-            frame.camera().transform.up(),
+            camera.transform.right(),
+            camera.transform.up(),
         );
     }
 

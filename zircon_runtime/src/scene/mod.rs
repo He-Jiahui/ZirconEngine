@@ -30,7 +30,13 @@ pub mod world;
 
 pub use dynamic_scene::{
     DynamicComponent, DynamicEntity, DynamicResource, DynamicScene, DynamicSceneError, EntityRemap,
-    ScenePatch, DYNAMIC_SCENE_FORMAT_VERSION,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport,
+    RuntimeSessionArchivePathStatus, RuntimeSessionArchivePruneReport,
+    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionArchiveStatistics,
+    RuntimeSessionLevelRestoreReport, RuntimeSessionMetadata, RuntimeSessionSlot,
+    RuntimeSessionSlotDiffReport, RuntimeSessionSlotSummary, ScenePatch,
+    DYNAMIC_SCENE_FORMAT_VERSION, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 pub use inspection::{WorldInspection, WorldInspectionField, WorldInspectionHierarchyRow};
 pub use reflect::{

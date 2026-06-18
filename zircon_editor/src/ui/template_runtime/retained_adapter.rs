@@ -147,11 +147,7 @@ impl RetainedUiHostAdapter {
                 .iter()
                 .map(|node| {
                     let component_descriptor = component_registry.descriptor(&node.component);
-                    let properties = node
-                        .attributes
-                        .iter()
-                        .map(|(key, value)| (key.clone(), map_value(value)))
-                        .collect::<BTreeMap<_, _>>();
+                    let properties = retained_properties(node);
                     let disabled = bool_attribute(&node.attributes, "disabled").unwrap_or(false)
                         || bool_attribute(&node.attributes, "enabled") == Some(false);
                     let popup_anchor_x = float_attribute(&node.attributes, "popup_anchor_x");
@@ -255,6 +251,17 @@ impl RetainedUiHostAdapter {
                 .collect(),
         }
     }
+}
+
+fn retained_properties(
+    node: &super::RetainedUiHostNodeProjection,
+) -> BTreeMap<String, RetainedUiHostValue> {
+    let mut values = node.attributes.clone();
+    values.extend(node.style_overrides.clone());
+    values
+        .iter()
+        .map(|(key, value)| (key.clone(), map_value(value)))
+        .collect()
 }
 
 fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {

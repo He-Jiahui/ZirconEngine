@@ -1,10 +1,15 @@
+use std::sync::OnceLock;
+
 use crate::core::framework::script::{ScriptHostFunctionDescriptor, ScriptHostPrototypeKind};
+use crate::diagnostic_log::write_diagnostic_log;
 use crate::script::{CapabilitySet, ScriptCallSite, VmError, VmPluginHostContext};
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{map_zr_error, zr_error};
 use super::values::{read_host_arguments_for_function, to_zr_value_for_function};
 use super::ZrVmRegistration;
+
+const TRACE_HOST_CALLBACKS_ENV: &str = "ZIRCON_TRACE_ZR_VM_CALLBACKS";
 
 pub(super) fn register_host_modules(
     runtime: &mut zrvm::Runtime,
@@ -107,13 +112,16 @@ fn build_native_function(
 
     let callback_label = label.clone();
     let mut builder = zrvm::FunctionBuilder::new(&function.name, min, max, move |context| {
+        trace_host_callback(&callback_label, "start", None);
         let arguments = read_host_arguments_for_function(context, &callback_label)?;
         let value = call_site.call(arguments, &capabilities).map_err(|error| {
             zr_error(format!(
                 "zr_vm host callback {callback_label} failed: {error}"
             ))
         })?;
-        to_zr_value_for_function(value, &callback_label)
+        let result = to_zr_value_for_function(value, &callback_label);
+        trace_host_callback(&callback_label, "done", Some(result.is_ok()));
+        result
     })
     .return_type(&function.return_type.type_name);
     if let Some(documentation) = &function.documentation {
@@ -127,6 +135,35 @@ fn build_native_function(
         );
     }
     Ok(builder)
+}
+
+fn trace_host_callback(label: &str, phase: &str, success: Option<bool>) {
+    if !trace_host_callback_enabled(label) {
+        return;
+    }
+    let success = success
+        .map(|success| format!(" success={success}"))
+        .unwrap_or_default();
+    write_diagnostic_log(
+        "zr_vm_project_backend",
+        format!("zr_vm_project_host_callback_{phase} function={label}{success}"),
+    );
+}
+
+fn trace_host_callback_enabled(label: &str) -> bool {
+    static FILTER: OnceLock<Option<String>> = OnceLock::new();
+    let Some(filter) = FILTER.get_or_init(|| {
+        std::env::var_os(TRACE_HOST_CALLBACKS_ENV)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string_lossy().into_owned())
+    }) else {
+        return false;
+    };
+    filter.eq_ignore_ascii_case("all")
+        || filter
+            .split(',')
+            .map(str::trim)
+            .any(|entry| !entry.is_empty() && label.contains(entry))
 }
 
 fn zr_prototype_type(kind: ScriptHostPrototypeKind) -> zrvm::PrototypeType {

@@ -1,3 +1,4 @@
+use crate::builtin::RuntimeTargetMode;
 use crate::prelude::*;
 
 #[test]

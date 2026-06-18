@@ -110,13 +110,10 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
     let selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::from_container_kind(UiContainerKind::Overlay),
         &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-        &UiLayoutEngineCapability::legacy_zircon(),
+        &UiLayoutEngineCapability::zircon(),
     );
     assert_eq!(selection.requested_backend, UiLayoutEngineBackend::Taffy);
-    assert_eq!(
-        selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
         selection.fallback_reason,
@@ -132,7 +129,7 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
             },
         )),
         &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-        &UiLayoutEngineCapability::legacy_zircon(),
+        &UiLayoutEngineCapability::zircon(),
     );
     assert_eq!(
         masonry_selection.request.family,
@@ -140,7 +137,7 @@ fn taffy_bridge_rejects_zircon_owned_overlay_scroll_size_box_and_virtual_list_se
     );
     assert_eq!(
         masonry_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(
         masonry_selection.fallback_reason,
@@ -199,12 +196,9 @@ fn taffy_bridge_keeps_block_box_display_explicit_and_container_zircon_owned() {
     let selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::from_container_kind(UiContainerKind::Container),
         &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-        &UiLayoutEngineCapability::legacy_zircon(),
+        &UiLayoutEngineCapability::zircon(),
     );
-    assert_eq!(
-        selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(
         selection.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -213,7 +207,7 @@ fn taffy_bridge_keeps_block_box_display_explicit_and_container_zircon_owned() {
     let block_selection = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::from_container_kind(UiContainerKind::BlockBox),
         &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-        &UiLayoutEngineCapability::legacy_zircon(),
+        &UiLayoutEngineCapability::zircon(),
     );
     assert_eq!(block_selection.request.family, UiLayoutEngineFamily::Block);
     assert_eq!(

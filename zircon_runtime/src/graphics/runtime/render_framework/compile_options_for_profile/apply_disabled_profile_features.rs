@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderQualityProfile;
 
-use crate::{BuiltinRenderFeature, RenderPipelineCompileOptions};
+use crate::graphics::{BuiltinRenderFeature, RenderPipelineCompileOptions};
 
 pub(super) fn apply_disabled_profile_features(
     profile: Option<&RenderQualityProfile>,

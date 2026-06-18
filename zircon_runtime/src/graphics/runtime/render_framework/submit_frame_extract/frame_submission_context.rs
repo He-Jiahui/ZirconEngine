@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport, AntiAliasMode,
     FrameHistoryInvalidationReason, PostProcessPassGraph, PostProcessStackDescriptor,
@@ -8,14 +10,14 @@ use crate::core::framework::render::{
     RenderPipelineHandle, RenderPointLightSnapshot, RenderPostProcessEffectStackSettings,
     RenderRectLightSnapshot, RenderSpotLightSnapshot,
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, SolariRuntimeReport,
-    TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
+    SolariRuntimeReport, TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
 use crate::graphics::{ViewVisibilityContext, ViewportRenderOutputTarget, VisibilityViewKey};
 
-use crate::{
+use crate::graphics::{
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
     VisibilityHybridGiUpdatePlan, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan,
@@ -37,7 +39,8 @@ pub(super) struct FrameSubmissionContext {
     pipeline_handle: RenderPipelineHandle,
     viewport_generation: u64,
     quality_profile: Option<String>,
-    compiled_pipeline: CompiledRenderPipeline,
+    shader_quality: ShaderQualityTier,
+    compiled_pipeline: Arc<CompiledRenderPipeline>,
     capabilities: RenderCapabilitySummary,
     visibility_context: VisibilityContext,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
@@ -91,7 +94,8 @@ impl FrameSubmissionContext {
         pipeline_handle: RenderPipelineHandle,
         viewport_generation: u64,
         quality_profile: Option<String>,
-        compiled_pipeline: CompiledRenderPipeline,
+        shader_quality: ShaderQualityTier,
+        compiled_pipeline: Arc<CompiledRenderPipeline>,
         capabilities: RenderCapabilitySummary,
         visibility_context: VisibilityContext,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
@@ -180,6 +184,7 @@ impl FrameSubmissionContext {
             pipeline_handle,
             viewport_generation,
             quality_profile,
+            shader_quality,
             compiled_pipeline,
             capabilities,
             visibility_context,
@@ -244,6 +249,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn quality_profile(&self) -> Option<&str> {
         self.quality_profile.as_deref()
+    }
+
+    pub(super) fn shader_quality(&self) -> ShaderQualityTier {
+        self.shader_quality
     }
 
     pub(super) fn compiled_pipeline(&self) -> &CompiledRenderPipeline {
@@ -725,7 +734,8 @@ mod tests {
             RenderPipelineHandle::new(1),
             0,
             None,
-            empty_pipeline(),
+            Default::default(),
+            Arc::new(empty_pipeline()),
             RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             None,

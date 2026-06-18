@@ -58,6 +58,7 @@ impl EditorState {
             scene_entries,
             inspector,
             status_line: self.status_line.clone(),
+            status_task_progress: self.status_task_progress.clone(),
             hovered_axis: self.viewport_controller.hovered_axis(),
             viewport_size: self.viewport_controller.viewport().size,
             scene_viewport_settings: self.viewport_controller.settings().clone(),

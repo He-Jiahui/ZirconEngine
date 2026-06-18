@@ -7,8 +7,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{
-    arrange::arrange_node, child_frame::free_child_frame, engine::UiLayoutPassEngineContext,
-    measure::measure_node, responsive_mui::apply_mui_responsive_layout,
+    arrange::arrange_node,
+    child_frame::free_child_frame,
+    engine::UiLayoutPassEngineContext,
+    measure::measure_node,
+    pipeline::{assert_layout_pass_stage, UiLayoutPassStage},
+    responsive_mui::apply_mui_responsive_layout,
     slot::slot_for_container_child,
 };
 
@@ -31,15 +35,25 @@ pub(crate) fn compute_incremental_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
+    assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     apply_mui_responsive_layout(tree, root_size)?;
+
     let previous = snapshot_geometry(tree);
     let roots = incremental_layout_roots(tree)?;
     let mut visited = BTreeSet::new();
     let mut engine_context = UiLayoutPassEngineContext::default();
 
+    assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
+    for root_id in &roots {
+        collect_subtree_nodes(tree, *root_id, &mut visited)?;
+        measure_node(tree, *root_id)?;
+    }
+
+    assert_layout_pass_stage(UiLayoutPassStage::BackendSelection, 2);
+    assert_layout_pass_stage(UiLayoutPassStage::TaffyBridgeArrangement, 3);
+    assert_layout_pass_stage(UiLayoutPassStage::ZirconFallbackArrangement, 4);
+    assert_layout_pass_stage(UiLayoutPassStage::ClipAndVirtualWindowPropagation, 5);
     for root_id in roots {
-        collect_subtree_nodes(tree, root_id, &mut visited)?;
-        measure_node(tree, root_id)?;
         arrange_layout_root(tree, root_id, root_size, &mut engine_context)?;
     }
 
@@ -58,6 +72,7 @@ pub(crate) fn compute_incremental_layout_tree(
     let visited_node_count = visited.len();
     let skipped_node_count = tree.nodes.len().saturating_sub(visited_node_count);
 
+    assert_layout_pass_stage(UiLayoutPassStage::SelectionReport, 6);
     Ok(UiIncrementalLayoutStats {
         visited_node_count,
         visited_node_ids: visited,

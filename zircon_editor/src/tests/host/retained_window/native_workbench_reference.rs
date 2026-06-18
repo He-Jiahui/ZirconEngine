@@ -9,7 +9,7 @@ use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_AC
 use crate::ui::retained_host::{
     paint_runtime_render_commands_for_test, to_host_contract_workbench_window_nodes,
     HostWindowPresentationData, PaneSurfaceHostContext, TemplatePaneMenuItemData,
-    TemplatePaneNodeData, TemplatePaneOptionData, UiHostWindow,
+    TemplatePaneNodeData, TemplatePaneOptionData, UiHostWindow, WorkbenchContextMenuRequestData,
 };
 use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame, layout::UiSize};
 
@@ -498,6 +498,47 @@ fn native_workbench_popup_menu_item_primary_press_keeps_menu_selection_path() {
             WORKBENCH_MENU_NEW_ACTION_ID.to_string()
         )]
     );
+}
+
+#[test]
+fn native_workbench_secondary_press_requests_scene_context_menu() {
+    let ui = host_with_componentized_workbench_nodes();
+    let requests = Rc::new(RefCell::new(Vec::<WorkbenchContextMenuRequestData>::new()));
+    let requests_for_callback = requests.clone();
+    ui.global::<PaneSurfaceHostContext>()
+        .on_workbench_context_menu_requested(move |request| {
+            requests_for_callback.borrow_mut().push(request);
+        });
+
+    let before = ui.get_host_presentation();
+    let scene_node = workbench_node(&before, "WorkbenchScenePropsItem");
+    let (x, y) = node_right_center(&scene_node);
+    let result = ui.dispatch_native_secondary_press_for_test(x, y);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    let requests = requests.borrow();
+    let request = requests
+        .first()
+        .expect("scene row secondary press should request a context menu");
+    assert_eq!(
+        request.target_control_id.as_str(),
+        "WorkbenchScenePropsItem"
+    );
+    assert_eq!(
+        request.target_path.as_str(),
+        "workbench://scene/workbenchscenepropsitem"
+    );
+    assert_eq!(request.popup_anchor_x, x);
+    assert_eq!(request.popup_anchor_y, y);
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Rename|icon=edit"));
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Delete|danger,icon=trash"));
 }
 
 #[test]
@@ -1057,6 +1098,13 @@ fn menu_item_row_point(node: &TemplatePaneNodeData, row: usize) -> (f32, f32) {
 fn node_center(node: &TemplatePaneNodeData) -> (f32, f32) {
     (
         node.frame.x + node.frame.width * 0.5,
+        node.frame.y + node.frame.height * 0.5,
+    )
+}
+
+fn node_right_center(node: &TemplatePaneNodeData) -> (f32, f32) {
+    (
+        node.frame.x + (node.frame.width - 16.0).max(1.0),
         node.frame.y + node.frame.height * 0.5,
     )
 }

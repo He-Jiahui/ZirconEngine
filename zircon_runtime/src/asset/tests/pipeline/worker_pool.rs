@@ -3,10 +3,11 @@ use crate::asset::pipeline::types::{
     AssetRequest, CpuAssetPayload, CpuTexturePayload, TextureSource,
 };
 use crate::asset::pipeline::worker_pool::{
-    AssetWorkerPool, AssetWorkerPoolOptions, AssetWorkerThreadBudgetSource,
-    ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC, ASSET_WORKER_COMPLETED_DIAGNOSTIC,
-    ASSET_WORKER_FAILED_DIAGNOSTIC, ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
-    ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
+    AssetWorkerPool, AssetWorkerPoolFrameSampler, AssetWorkerPoolOptions,
+    AssetWorkerThreadBudgetSource, ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
+    ASSET_WORKER_COMPLETED_DIAGNOSTIC, ASSET_WORKER_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC, ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC, ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
 };
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::runtime::tasks::TaskPoolOptions;
@@ -55,6 +56,26 @@ fn worker_pool_options_can_derive_threads_from_runtime_io_budget() {
         options.thread_budget_source,
         AssetWorkerThreadBudgetSource::TaskPoolIo
     );
+}
+
+#[test]
+fn project_asset_manager_spawns_worker_pool_with_frame_sampler() {
+    let manager = ProjectAssetManager::new(2);
+    let (pool, mut sampler) = manager
+        .spawn_worker_pool_with_frame_sampler()
+        .expect("manager should create worker pool and sampler from the same options");
+
+    assert_eq!(pool.options().worker_count, 2);
+    assert_eq!(
+        pool.options().thread_budget_source,
+        AssetWorkerThreadBudgetSource::Explicit
+    );
+
+    let frame = sampler.sample(&pool);
+    assert_eq!(frame.budgeted_threads, 2);
+    assert_eq!(frame.in_flight, 0);
+    assert_eq!(frame.completed_delta, 0);
+    assert_eq!(frame.failed_delta, 0);
 }
 
 #[test]
@@ -189,6 +210,66 @@ fn worker_pool_diagnostics_track_in_flight_and_failure_counts() {
     );
 }
 
+#[test]
+fn worker_pool_frame_sampler_records_per_frame_completion_deltas() {
+    let pool = AssetWorkerPool::new_without_workers_for_test(
+        AssetWorkerPoolOptions::new(1).with_queue_depth(2),
+    );
+    let mut sampler = AssetWorkerPoolFrameSampler::from_pool(&pool);
+    let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
+    let failed_request = AssetRequest::Texture(TextureSource::BuiltinGrid);
+
+    pool.request(request.clone()).unwrap();
+    pool.request(request.clone()).unwrap();
+    pool.request(failed_request.clone()).unwrap();
+    pool.publish_completion_for_test(CpuAssetPayload::Texture(CpuTexturePayload {
+        source: TextureSource::BuiltinChecker,
+        width: 1,
+        height: 1,
+        rgba: vec![255, 255, 255, 255],
+    }));
+    pool.publish_completion_for_test(CpuAssetPayload::Failure {
+        request: failed_request,
+        message: "decode failed".to_string(),
+    });
+
+    let first_frame = sampler.sample(&pool);
+    assert_eq!(
+        first_frame.thread_budget_source,
+        AssetWorkerThreadBudgetSource::Explicit
+    );
+    assert_eq!(first_frame.budgeted_threads, 1);
+    assert_eq!(first_frame.in_flight, 0);
+    assert_eq!(first_frame.completed_delta, 3);
+    assert_eq!(first_frame.failed_delta, 1);
+
+    let second_frame = sampler.sample(&pool);
+    assert_eq!(second_frame.completed_delta, 0);
+    assert_eq!(second_frame.failed_delta, 0);
+
+    let mut store = DiagnosticStore::default();
+    first_frame.record_diagnostics(&mut store, 11);
+    sampler.record_diagnostics(&pool, &mut store, 12);
+    let snapshot = store.snapshot();
+
+    assert_eq!(
+        diagnostic_current(&snapshot, ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC),
+        Some(0.0)
+    );
+    assert_eq!(
+        diagnostic_history(&snapshot, ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC),
+        vec![3.0, 0.0]
+    );
+    assert_eq!(
+        diagnostic_history(&snapshot, ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC),
+        vec![1.0, 0.0]
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC),
+        Some(1.0)
+    );
+}
+
 fn diagnostic_current(
     snapshot: &crate::core::diagnostics::DiagnosticStoreSnapshot,
     path: &str,
@@ -198,4 +279,16 @@ fn diagnostic_current(
         .iter()
         .find(|series| series.path.as_str() == path)
         .and_then(|series| series.current)
+}
+
+fn diagnostic_history(
+    snapshot: &crate::core::diagnostics::DiagnosticStoreSnapshot,
+    path: &str,
+) -> Vec<f64> {
+    snapshot
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == path)
+        .map(|series| series.history.iter().map(|sample| sample.value).collect())
+        .unwrap_or_default()
 }

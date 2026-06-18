@@ -19,7 +19,9 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
 };
 use crate::ui::workbench::layout::WorkbenchLayout;
-use crate::ui::workbench::snapshot::{EditorChromeSnapshot, EditorDataSnapshot};
+use crate::ui::workbench::snapshot::{
+    EditorChromeSnapshot, EditorDataSnapshot, StatusTaskProgressSnapshot,
+};
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorRenderFrameSubmission;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
@@ -85,6 +87,16 @@ impl EditorEventRuntime {
 
     pub fn status_line(&self) -> String {
         self.lock_inner().state.status_line.clone()
+    }
+
+    pub fn set_status_task_progress(&self, progress: Option<StatusTaskProgressSnapshot>) {
+        let mut inner = self.lock_inner();
+        inner.state.set_status_task_progress(progress);
+        Self::refresh_reflection_locked(&mut inner);
+    }
+
+    pub fn status_task_progress(&self) -> Option<StatusTaskProgressSnapshot> {
+        self.lock_inner().state.status_task_progress.clone()
     }
 
     pub(crate) fn dispatch_ui_component_adapter_event(

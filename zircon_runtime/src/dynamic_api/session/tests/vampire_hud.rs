@@ -152,7 +152,13 @@ fn vampire_project_session_capture_frame_draws_world_hud_bars() {
     );
     assert!(
         world_hud_bar_pixels > 48,
-        "captured vampire frame should contain colored in-scene health-bar pixels, found {world_hud_bar_pixels}; hud_region={hud_pixel_summary}"
+        "captured vampire frame should contain colored in-scene health-bar pixels, found {world_hud_bar_pixels}; hud_region={hud_pixel_summary}; capture_report={:?}; graph_passes={:?}; executor_ids={:?}; particle_passes={} particle_alive={} mesh_draws={}",
+        render_stats.last_capture_report,
+        render_stats.last_graph_executed_passes,
+        render_stats.last_graph_executed_executor_ids,
+        render_stats.last_particle_graph_executed_pass_count,
+        render_stats.last_particle_gpu_alive_count,
+        render_stats.last_mesh_draw_count,
     );
     assert!(
         render_stats.last_shadow_graph_executed_pass_count > 0

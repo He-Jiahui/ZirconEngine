@@ -88,6 +88,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\schema\mod.rs zircon_runtime\src\ui\template\asset\schema\source_template_fixture.rs zircon_runtime\src\ui\template\asset\schema\migrator.rs zircon_runtime\src\ui\template\asset\schema\flat_nodes.rs zircon_runtime\src\ui\template\asset\compiler\style_apply.rs zircon_runtime\src\ui\tests\asset_schema_migration.rs zircon_runtime\src\ui\tests\asset.rs zircon_runtime\src\ui\tests\asset_contract_spine.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\layout\pass\taffy_arrange.rs
   - rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\pipeline\stage.rs zircon_runtime_interface\src\tests\pipeline_contracts.rs
+  - rustfmt --edition 2021 --check zircon_plugins\texture_importer\runtime\src\container\dds.rs
   - cargo test -p zircon_runtime_interface pipeline_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-stage-policy-0604 --message-format short --color never -- --test-threads=1 --nocapture
 doc_type: milestone-detail
 ---
@@ -108,27 +109,25 @@ The structural audit now reports `hard_cutover_migration_smells.hard_cutover_gat
 
 Current evidence:
 
-- `source_file_count = 5901`
-- `legacy_reference_count = 213`
+- `source_file_count = 6145`
+- `legacy_reference_count = 148`
 - `compat_reference_count = 0`
 - `shim_reference_count = 0`
-- `bridge_reference_count = 300`
-- `allowed_business_bridge_reference_count = 300`
+- `bridge_reference_count = 312`
+- `allowed_business_bridge_reference_count = 312`
 - `migration_bridge_smell_count = 0`
-- `smell_decision_count = 213`
-- `smell_decision_group_count = 7`
-- `classification_count = 7`
-- `hard_cutover_migration_debt_count = 7`
+- `smell_decision_count = 148`
+- `smell_decision_group_count = 5`
+- `classification_count = 5`
+- `hard_cutover_migration_debt_count = 5`
 - `unclassified_location_count = 0`
 - `unclassified_locations = []`
 
 Current classification:
 
-- `legacy-runtime-ui-input-debt = 63`
 - `legacy-hybrid-gi-render-debt = 56`
-- `legacy-runtime-graphics-debt = 31`
+- `legacy-runtime-graphics-debt = 30`
 - `legacy-hub-message-archived-text-debt = 58`
-- `legacy-texture-importer-dds-debt = 1`
 - `legacy-net-hyper-client-api-debt = 1`
 - `legacy-editor-ui-fixture-debt = 3`
 
@@ -146,15 +145,11 @@ Any future `unclassified-hard-cutover-smell` is a review blocker. Classify it wi
 
 ## Owner Decisions
 
-`legacy-runtime-ui-input-debt` belongs to the runtime UI input dispatch owner. The current locations are split across the input dispatch, navigation, pointer, and pointer-reply files. The target language should describe current pointer routing, capture, navigation handoff, and component dispatch rather than preserving a `legacy` route or reply variable.
-
 `legacy-hybrid-gi-render-debt` belongs to the hybrid GI render plugin owner. Current references describe old extract/trace schedules and scene-prepare filters; this must be resolved with the active render/plugin owner, not by adding a compatibility path.
 
 `legacy-runtime-graphics-debt` belongs to the M6 graphics/RHI slice. It covers viewport packet wording, render feature fallback labels, runtime feature conversion, render graph execution records, and render-product test fixtures.
 
 `legacy-hub-message-archived-text-debt` belongs to the Hub message archived-text compatibility owner. The target language should rename Hub message text constructors, enum variants, fixtures, and build-action helpers to explicit archived/raw text policy terminology during the Hub support slice instead of keeping generic legacy labels.
-
-`legacy-texture-importer-dds-debt` belongs to the texture importer DDS container owner. Runtime asset importer source-template suffix guards have been renamed to current `.zui` policy language; the remaining asset-adjacent debt is plugin-owned DDS container wording that should become explicit DDS caps policy or be deleted.
 
 `legacy-net-hyper-client-api-debt` belongs to the Net plugin HTTP backend dependency owner. The current hit is the third-party `hyper_util::client::legacy::Client` API path in the HTTP backend; wrap or rename that dependency edge as an explicit HTTP backend policy when the Net plugin backend is next touched.
 
@@ -174,7 +169,11 @@ The editor view-projection rejection path was narrowed on 2026-06-05. `ViewTempl
 
 The animation asset binary migration path was narrowed on 2026-06-05 and then split on 2026-06-14. `zircon_runtime/src/asset/assets/animation/binary.rs` now names the older clip, sequence, and graph payload conversion as `decode_binary_asset_with_v1_payload_fallback(...)`, while `clip.rs`, `sequence.rs`, and `graph.rs` own the `V1` payload DTOs and `v1 animation asset decode failed` diagnostics. The production animation asset module no longer uses generic `legacy` wording for this stored-payload migration; the remaining asset-adjacent hard-cutover debt is confined to plugin-owned DDS container parsing.
 
-Runtime asset importer source-template suffix guards were narrowed on 2026-06-05. `AssetImporterRegistryError::{UiTomlSourceImporter,V2UiTomlSourceImporter}` now reject `.ui.toml` and `.v2.ui.toml` production registration with current source-template policy language, while exact test fixture allowances use `ui_toml_source_importer_allowed_for_tests(...)` and `v2_ui_toml_source_importer_allowed_for_tests(...)`. The production runtime asset importer files no longer use generic `legacy` wording; the remaining `legacy-texture-importer-dds-debt` count is confined to the plugin-owned DDS container path.
+Runtime asset importer source-template suffix guards were narrowed on 2026-06-05. `AssetImporterRegistryError::{UiTomlSourceImporter,V2UiTomlSourceImporter}` now reject `.ui.toml` and `.v2.ui.toml` production registration with current source-template policy language, while exact test fixture allowances use `ui_toml_source_importer_allowed_for_tests(...)` and `v2_ui_toml_source_importer_allowed_for_tests(...)`. The production runtime asset importer files no longer use generic `legacy` wording.
+
+The runtime UI input dispatch debt was cleared by the Runtime 09 input owner rename slices. Pointer routing, navigation replies, capture fallback, table-row label fallback, template component-name fallback, property visibility, responsive visibility, accessibility open state, layout backend, and default interaction fallback wording now use current-route/current-fallback policy names instead of the old migration label, so `legacy-runtime-ui-input-debt` is absent from the current hard-cutover gate output.
+
+The texture importer DDS container debt was cleared on 2026-06-17. The DX10 dual-cubemap diagnostic in `zircon_plugins/texture_importer/runtime/src/container/dds.rs` now names `DDSCAPS2_CUBEMAP caps2 policy` and the DX10 texturecube flag directly, so `legacy-texture-importer-dds-debt` is absent from the current hard-cutover gate output.
 
 ## Required Follow-Up
 

@@ -3,6 +3,12 @@ use crate::rhi::{BufferDesc, TextureDesc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPassId(pub(crate) usize);
 
+impl RenderPassId {
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+
 /// Stable logical texture handle allocated by `RenderGraphBuilder`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RgTextureHandle(pub(crate) usize);
@@ -68,6 +74,116 @@ pub enum RenderGraphResourceKind {
     External,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderGraphExternalResourceType {
+    #[default]
+    Unknown,
+    Texture,
+    Buffer,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderGraphExternalResourceRequirement {
+    #[default]
+    ReportOnly,
+    Required,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct RenderGraphExternalResourceBinding {
+    pub resource_type: RenderGraphExternalResourceType,
+    pub requirement: RenderGraphExternalResourceRequirement,
+}
+
+impl RenderGraphExternalResourceBinding {
+    pub const fn report_only() -> Self {
+        Self {
+            resource_type: RenderGraphExternalResourceType::Unknown,
+            requirement: RenderGraphExternalResourceRequirement::ReportOnly,
+        }
+    }
+
+    pub const fn report_only_texture() -> Self {
+        Self {
+            resource_type: RenderGraphExternalResourceType::Texture,
+            requirement: RenderGraphExternalResourceRequirement::ReportOnly,
+        }
+    }
+
+    pub const fn report_only_buffer() -> Self {
+        Self {
+            resource_type: RenderGraphExternalResourceType::Buffer,
+            requirement: RenderGraphExternalResourceRequirement::ReportOnly,
+        }
+    }
+
+    pub const fn required_buffer() -> Self {
+        Self {
+            resource_type: RenderGraphExternalResourceType::Buffer,
+            requirement: RenderGraphExternalResourceRequirement::Required,
+        }
+    }
+
+    pub const fn required_texture() -> Self {
+        Self {
+            resource_type: RenderGraphExternalResourceType::Texture,
+            requirement: RenderGraphExternalResourceRequirement::Required,
+        }
+    }
+
+    pub const fn is_required(self) -> bool {
+        matches!(
+            self.requirement,
+            RenderGraphExternalResourceRequirement::Required
+        )
+    }
+
+    pub const fn label(self) -> &'static str {
+        match self.resource_type {
+            RenderGraphExternalResourceType::Unknown => "external",
+            RenderGraphExternalResourceType::Texture => "external texture",
+            RenderGraphExternalResourceType::Buffer => "external buffer",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct RenderGraphResourceUsageFlags {
+    pub present: bool,
+    pub readback: bool,
+    pub persistent: bool,
+}
+
+impl RenderGraphResourceUsageFlags {
+    pub const fn present() -> Self {
+        Self {
+            present: true,
+            readback: false,
+            persistent: false,
+        }
+    }
+
+    pub const fn readback() -> Self {
+        Self {
+            present: false,
+            readback: true,
+            persistent: false,
+        }
+    }
+
+    pub const fn persistent() -> Self {
+        Self {
+            present: false,
+            readback: false,
+            persistent: true,
+        }
+    }
+
+    pub const fn is_cull_root(self) -> bool {
+        self.present || self.readback || self.persistent
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RenderGraphResourceDesc {
     Texture(TextureDesc),
@@ -81,9 +197,11 @@ pub struct RenderGraphResourceLifetime {
     pub name: String,
     pub kind: RenderGraphResourceKind,
     pub desc: RenderGraphResourceDesc,
+    pub external_binding: RenderGraphExternalResourceBinding,
     pub first_pass: usize,
     pub last_pass: usize,
     pub imported: bool,
+    pub usage: RenderGraphResourceUsageFlags,
 }
 
 impl RenderGraphResourceLifetime {
@@ -149,7 +267,9 @@ pub struct RenderGraphResourceDeclaration {
     pub name: String,
     pub kind: RenderGraphResourceKind,
     pub desc: RenderGraphResourceDesc,
+    pub external_binding: RenderGraphExternalResourceBinding,
     pub imported: bool,
+    pub usage: RenderGraphResourceUsageFlags,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

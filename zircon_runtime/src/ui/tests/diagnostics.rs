@@ -213,7 +213,7 @@ fn surface_debug_snapshot_json_exports_layout_engine_route_report() {
     let report = &snapshot.layout_engine_report;
     assert_eq!(report.request_count, 1);
     assert_eq!(report.taffy_selected_count, 1);
-    assert_eq!(report.legacy_selected_count, 0);
+    assert_eq!(report.zircon_selected_count, 0);
     assert!(report.fallback_reason_counts.is_empty());
 
     let root = report
@@ -245,7 +245,7 @@ fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
     let json = surface
         .debug_snapshot_json(&UiSurfaceDebugOptions::default())
         .expect("debug snapshot json");
-    assert!(json.contains("\"selected_backend\": \"legacy_zircon\""));
+    assert!(json.contains("\"selected_backend\": \"zircon\""));
     assert!(json.contains("\"fallback_reason\": \"zircon_owned_semantics\""));
     assert!(json.contains("\"fallback_reason_counts\""));
     assert!(json.contains("\"reason\": \"zircon_owned_semantics\""));
@@ -255,7 +255,7 @@ fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
     let report = &snapshot.layout_engine_report;
     assert_eq!(report.request_count, 1);
     assert_eq!(report.taffy_selected_count, 0);
-    assert_eq!(report.legacy_selected_count, 1);
+    assert_eq!(report.zircon_selected_count, 1);
     assert_eq!(report.fallback_count, 1);
     assert_eq!(report.fallback_reason_counts.len(), 1);
     assert_eq!(
@@ -270,7 +270,7 @@ fn surface_debug_snapshot_json_exports_zircon_fallback_route_reason() {
         .find(|selection| selection.node_id == Some(UiNodeId::new(20)))
         .expect("root layout route selection");
     assert_eq!(root.request.family, UiLayoutEngineFamily::Container);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
         root.fallback_reason,

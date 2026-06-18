@@ -8,7 +8,7 @@ const SSR_HIT_REFINE_STEPS: u32 = 4u;
 fn load_scene_normal(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
-    let encoded = textureLoad(scene_normal_tex, clamped, 0).rgb;
+    let encoded = textureLoad(scene_normal_tex, physical_coord_i32(clamped), 0).rgb;
     if (max(encoded.x, max(encoded.y, encoded.z)) <= 0.001) {
         return vec3<f32>(0.0, 0.0, 1.0);
     }
@@ -36,7 +36,7 @@ fn world_normal_to_view_space(world_normal: vec3<f32>) -> vec3<f32> {
 fn load_scene_material_roughness(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
-    let material = textureLoad(scene_material_tex, clamped, 0).rgb;
+    let material = textureLoad(scene_material_tex, physical_coord_i32(clamped), 0).rgb;
     if (max(material.r, max(material.g, material.b)) <= 0.001) {
         return 1.0;
     }
@@ -49,7 +49,11 @@ fn load_screen_space_reflection_ambient_occlusion(
 ) -> f32 {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
-    return clamp(textureLoad(ambient_occlusion_tex, clamped, 0).r, 0.0, 1.0);
+    return clamp(
+        textureLoad(ambient_occlusion_tex, physical_coord_i32(clamped), 0).r,
+        0.0,
+        1.0
+    );
 }
 
 fn screen_space_reflection_specular_occlusion_factors(
@@ -799,7 +803,7 @@ fn resolve_screen_space_reflection_history(
 
 @fragment
 fn fs_screen_space_reflection_depth_pyramid(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-    let viewport_size = params.viewport_and_clusters.xy;
+    let viewport_size = viewport_size();
     let pyramid_size = screen_space_reflection_depth_pyramid_size(viewport_size);
     let pyramid_coord = min(vec2<u32>(position.xy), pyramid_size - vec2<u32>(1u, 1u));
     return resolve_screen_space_reflection_depth_pyramid(pyramid_coord, viewport_size);
@@ -815,13 +819,13 @@ fn fs_screen_space_reflection_depth_pyramid_coarse(@builtin(position) position: 
     let pyramid_coord = min(vec2<u32>(position.xy), target_size - vec2<u32>(1u, 1u));
     return resolve_screen_space_reflection_depth_pyramid_coarse(
         pyramid_coord,
-        params.viewport_and_clusters.xy
+        viewport_size()
     );
 }
 
 @fragment
 fn fs_screen_space_reflection_reflection_pyramid(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-    let viewport_size = params.viewport_and_clusters.xy;
+    let viewport_size = viewport_size();
     let pyramid_size = screen_space_reflection_reflection_pyramid_size(viewport_size);
     let pyramid_coord = min(vec2<u32>(position.xy), pyramid_size - vec2<u32>(1u, 1u));
     return resolve_screen_space_reflection_reflection_pyramid(pyramid_coord, viewport_size);
@@ -837,13 +841,13 @@ fn fs_screen_space_reflection_reflection_pyramid_coarse(@builtin(position) posit
     let pyramid_coord = min(vec2<u32>(position.xy), target_size - vec2<u32>(1u, 1u));
     return resolve_screen_space_reflection_reflection_pyramid_coarse(
         pyramid_coord,
-        params.viewport_and_clusters.xy
+        viewport_size()
     );
 }
 
 @fragment
 fn fs_screen_space_reflection_specular_occlusion(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-    let viewport_size = params.viewport_and_clusters.xy;
+    let viewport_size = viewport_size();
     let coord = min(vec2<u32>(position.xy), viewport_size - vec2<u32>(1u, 1u));
     return resolve_screen_space_reflection_specular_occlusion(coord, viewport_size);
 }

@@ -24,10 +24,10 @@ where
         )
     }
 
-    pub fn single<'world>(
-        &self,
-        world: &'world World,
-    ) -> Result<D::Item<'world>, QuerySingleError> {
+    pub fn single<'world>(&self, world: &'world World) -> Result<D::Item<'world>, QuerySingleError>
+    where
+        D: 'world,
+    {
         single_from_iter(self.iter(world))
     }
 

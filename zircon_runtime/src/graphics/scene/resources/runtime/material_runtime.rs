@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
-    RenderMaterialReadinessReport, RenderMaterialTextureTransform,
+    RenderMaterialReadinessReport, RenderMaterialTextureTransform, ShadingModelId,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -20,6 +20,7 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
     pub(crate) lighting_model: RenderMaterialLightingModel,
+    pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
@@ -52,6 +53,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
     pub(crate) lighting_model: RenderMaterialLightingModel,
+    pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
@@ -93,6 +95,7 @@ impl MaterialRuntime {
             alpha_blend: self.alpha_blend,
             alpha_cutoff: self.alpha_cutoff,
             lighting_model: self.lighting_model.clone(),
+            shading_model_id: self.shading_model_id,
             unlit: self.unlit,
             cast_shadows: self.cast_shadows,
             receive_shadows: self.receive_shadows,

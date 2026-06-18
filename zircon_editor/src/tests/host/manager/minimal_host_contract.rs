@@ -650,17 +650,17 @@ fn project_plugin_packaging_and_target_modes_are_editable_through_manager_api() 
             &mut manifest,
             "runtime_diagnostics",
             [
-                zircon_runtime::RuntimeTargetMode::EditorHost,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
             ],
         )
         .unwrap();
     assert_eq!(
         target_modes.project_selection.target_modes,
         vec![
-            zircon_runtime::RuntimeTargetMode::EditorHost,
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         ]
     );
     let selection = manifest
@@ -761,7 +761,7 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
     );
     assert_eq!(
         native.target_modes,
-        vec![zircon_runtime::RuntimeTargetMode::EditorHost]
+        vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
     );
     assert_eq!(
         native.packaging,
@@ -878,12 +878,12 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
             &project_root,
             &mut manifest,
             "native_tool",
-            [zircon_runtime::RuntimeTargetMode::ServerRuntime],
+            [zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime],
         )
         .unwrap();
     assert_eq!(
         target_modes.project_selection.target_modes,
-        vec![zircon_runtime::RuntimeTargetMode::ServerRuntime]
+        vec![zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime]
     );
 
     let status = manager.native_plugin_status_report(&project_root, &manifest);
@@ -899,7 +899,7 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
     );
     assert_eq!(
         native_status.target_modes,
-        vec![zircon_runtime::RuntimeTargetMode::ServerRuntime]
+        vec![zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime]
     );
     manifest
         .plugins
@@ -969,8 +969,8 @@ capabilities = ["editor.extension.split_target_tool"]
     assert_eq!(
         selection.target_modes,
         vec![
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(
@@ -1032,7 +1032,7 @@ target_modes = ["client_runtime"]
             id: "native_tool".to_string(),
             enabled: true,
             required: false,
-            target_modes: vec![zircon_runtime::RuntimeTargetMode::ClientRuntime],
+            target_modes: vec![zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime],
             packaging: zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_native_tool_runtime".to_string()),
             editor_crate: None,
@@ -1040,7 +1040,7 @@ target_modes = ["client_runtime"]
         });
     manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "client-native",
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
     .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
@@ -1102,7 +1102,7 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
     );
     manifest.plugins.selections.push(
         zircon_runtime::plugin::ProjectPluginSelection::runtime_plugin(
-            zircon_runtime::RuntimePluginId::Sound,
+            zircon_runtime::builtin::RuntimePluginId::Sound,
             true,
             false,
         )
@@ -1110,7 +1110,7 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
     );
     manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "native-only",
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
     .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];
@@ -1191,7 +1191,7 @@ target_modes = ["client_runtime"]
             id: "native_tool".to_string(),
             enabled: true,
             required: false,
-            target_modes: vec![zircon_runtime::RuntimeTargetMode::ClientRuntime],
+            target_modes: vec![zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime],
             packaging: zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic,
             runtime_crate: Some("zircon_plugin_native_tool_runtime".to_string()),
             editor_crate: None,
@@ -1199,7 +1199,7 @@ target_modes = ["client_runtime"]
         });
     manifest.export_profiles = vec![zircon_runtime::plugin::ExportProfile::new(
         "client-native",
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::plugin::ExportTargetPlatform::Windows,
     )
     .with_strategies([zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic])];

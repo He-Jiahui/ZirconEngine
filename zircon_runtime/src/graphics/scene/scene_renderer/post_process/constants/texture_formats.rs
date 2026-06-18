@@ -1,7 +1,10 @@
 use crate::core::framework::render::{
-    RenderPostProcessTextureFormat, INTERMEDIATE_HDR_FORMAT_DEFAULT, TONEMAPPED_SDR_FORMAT,
+    RenderPostProcessTextureFormat, COLOR_LUT_FORMAT, INTERMEDIATE_HDR_FORMAT_DEFAULT,
+    TONEMAPPED_SDR_FORMAT,
 };
 
+pub(crate) const POST_PROCESS_COLOR_LUT_FORMAT: wgpu::TextureFormat =
+    wgpu_post_process_texture_format(COLOR_LUT_FORMAT);
 pub(crate) const POST_PROCESS_INTERMEDIATE_HDR_FORMAT: wgpu::TextureFormat =
     wgpu_post_process_texture_format(INTERMEDIATE_HDR_FORMAT_DEFAULT);
 pub(crate) const POST_PROCESS_TONEMAPPED_FORMAT: wgpu::TextureFormat =
@@ -12,6 +15,7 @@ pub(crate) const SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT: wgpu:
     POST_PROCESS_INTERMEDIATE_HDR_FORMAT;
 pub(crate) const SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT: wgpu::TextureFormat =
     wgpu::TextureFormat::Rgba8Unorm;
+pub(crate) const SMAA_STAGE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
 pub(crate) const fn wgpu_post_process_texture_format(
     format: RenderPostProcessTextureFormat,

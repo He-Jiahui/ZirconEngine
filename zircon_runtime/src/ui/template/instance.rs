@@ -13,6 +13,12 @@ pub struct UiTemplateInstance {
 impl UiTemplateInstance {
     pub fn from_document(document: &UiTemplateDocument) -> Result<Self, UiTemplateError> {
         UiTemplateValidator::validate_document(document)?;
+        Self::from_validated_document(document)
+    }
+
+    pub(crate) fn from_validated_document(
+        document: &UiTemplateDocument,
+    ) -> Result<Self, UiTemplateError> {
         let mut roots = expand_node(document, &document.root, None)?;
         let root =
             roots

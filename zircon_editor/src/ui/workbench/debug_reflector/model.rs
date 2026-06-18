@@ -249,7 +249,7 @@ fn layout_engine_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebugRefl
         format!("requests: {}", report.request_count),
         format!(
             "selected: taffy={} zircon={}",
-            report.taffy_selected_count, report.legacy_selected_count
+            report.taffy_selected_count, report.zircon_selected_count
         ),
         format!(
             "taffy tree builds: {} nodes={}",

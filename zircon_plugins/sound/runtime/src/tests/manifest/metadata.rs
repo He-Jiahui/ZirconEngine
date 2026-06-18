@@ -7,7 +7,7 @@ fn runtime_descriptor_keeps_static_maturity_and_capability_status_in_sync() {
     let runtime_manifest = crate::package_manifest();
     let catalog_descriptor = zircon_runtime::plugin::RuntimePluginDescriptor::builtin_catalog()
         .into_iter()
-        .find(|descriptor| descriptor.runtime_id == zircon_runtime::RuntimePluginId::Sound)
+        .find(|descriptor| descriptor.runtime_id == zircon_runtime::builtin::RuntimePluginId::Sound)
         .expect("built-in runtime catalog should include sound");
 
     assert_eq!(static_manifest.maturity, descriptor.maturity);

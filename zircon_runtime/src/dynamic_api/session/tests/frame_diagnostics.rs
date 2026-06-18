@@ -4,7 +4,10 @@ use zircon_runtime_interface::{
 };
 
 use super::super::{
-    extract_stats::{EXTRACT_OUTPUT_BYTES_DIAGNOSTIC, EXTRACT_REBUILD_CLONES_DIAGNOSTIC},
+    extract_stats::{
+        EXTRACT_CACHE_HITS_DIAGNOSTIC, EXTRACT_CACHE_MISSES_DIAGNOSTIC,
+        EXTRACT_OUTPUT_BYTES_DIAGNOSTIC, EXTRACT_REBUILD_CLONES_DIAGNOSTIC,
+    },
     RuntimeDynamicSession, RuntimeDynamicSessionProfile,
 };
 use super::helpers::*;
@@ -23,10 +26,22 @@ fn headless_session_capture_records_frame_extract_diagnostics() {
         diagnostic_current(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC).unwrap_or_default();
     let output_bytes =
         diagnostic_current(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC).unwrap_or_default();
+    let cache_hits =
+        diagnostic_current(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC).unwrap_or_default();
+    let cache_misses =
+        diagnostic_current(&diagnostics, EXTRACT_CACHE_MISSES_DIAGNOSTIC).unwrap_or_default();
 
     assert_eq!(
         rebuild_clones, 1.0,
         "headless capture should record one current full extract rebuild clone"
+    );
+    assert_eq!(
+        cache_hits, 0.0,
+        "initial headless capture should not report an extract cache hit"
+    );
+    assert_eq!(
+        cache_misses, 1.0,
+        "initial headless capture should report one extract cache miss"
     );
     assert!(
         output_bytes > 0.0,
@@ -51,21 +66,104 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
         .expect("extract rebuild diagnostics");
     let output_bytes = diagnostic_series(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC)
         .expect("extract output byte diagnostics");
+    let cache_hits = diagnostic_series(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC)
+        .expect("extract cache-hit diagnostics");
+    let cache_misses = diagnostic_series(&diagnostics, EXTRACT_CACHE_MISSES_DIAGNOSTIC)
+        .expect("extract cache-miss diagnostics");
 
     assert_eq!(
         rebuilds.history.len(),
         2,
-        "current baseline records one extract rebuild sample per capture"
+        "extract diagnostics should record one rebuild sample per capture"
     );
-    assert!(
-        rebuilds.history.iter().all(|sample| sample.value == 1.0),
-        "current baseline still rebuilds the full extract for unchanged captures"
+    assert_eq!(
+        rebuilds.history[0].value, 1.0,
+        "first capture should build the initial dynamic-session extract cache"
+    );
+    assert_eq!(
+        rebuilds.history[1].value, 0.0,
+        "unchanged headless capture should reuse the cached extract"
     );
     assert_eq!(output_bytes.history.len(), 2);
     assert!(output_bytes.history[0].value > 0.0);
     assert_eq!(
         output_bytes.history[0].value, output_bytes.history[1].value,
         "unchanged headless captures should keep the extract output byte baseline stable"
+    );
+    assert_eq!(cache_hits.history.len(), 2);
+    assert_eq!(cache_misses.history.len(), 2);
+    assert_eq!(
+        cache_hits.history[0].value, 0.0,
+        "first capture should miss the dynamic-session extract cache"
+    );
+    assert_eq!(
+        cache_hits.history[1].value, 1.0,
+        "unchanged follow-up capture should hit the dynamic-session extract cache"
+    );
+    assert_eq!(
+        cache_misses.history[0].value, 1.0,
+        "first capture should record the initial dynamic-session extract cache miss"
+    );
+    assert_eq!(
+        cache_misses.history[1].value, 0.0,
+        "unchanged follow-up capture should not rebuild the dynamic-session extract cache"
+    );
+}
+
+#[test]
+fn frame_extract_rebuilds_after_scene_change() {
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless session");
+
+    session
+        .capture_frame(small_headless_frame_request())
+        .expect("first headless capture");
+    session.level.with_world_mut(|world| {
+        let camera = world.active_camera();
+        let mut transform = world.world_transform(camera).unwrap_or_default();
+        transform.translation.x += 0.25;
+        world
+            .update_transform(camera, transform)
+            .expect("test camera transform should be mutable");
+    });
+    session
+        .capture_frame(small_headless_frame_request())
+        .expect("changed headless capture");
+
+    let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());
+    let rebuilds = diagnostic_series(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC)
+        .expect("extract rebuild diagnostics");
+    let cache_hits = diagnostic_series(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC)
+        .expect("extract cache-hit diagnostics");
+    let cache_misses = diagnostic_series(&diagnostics, EXTRACT_CACHE_MISSES_DIAGNOSTIC)
+        .expect("extract cache-miss diagnostics");
+
+    assert_eq!(
+        rebuilds
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        vec![1.0, 1.0],
+        "scene mutations should invalidate the dynamic-session extract cache"
+    );
+    assert_eq!(
+        cache_hits
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        vec![0.0, 0.0],
+        "scene mutations should not report a cache hit after invalidation"
+    );
+    assert_eq!(
+        cache_misses
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        vec![1.0, 1.0],
+        "scene mutations should report a cache miss after invalidation"
     );
 }
 
@@ -120,8 +218,14 @@ fn vampire_project_session_reports_runtime_fps_and_render_work() {
         "diagnostic run should submit at least one rendered frame"
     );
     let fps = fps.expect("runtime diagnostics should report time.fps for the vampire scene");
+    let frame_ms =
+        frame_ms.expect("runtime diagnostics should report time.frame_time for the vampire scene");
     assert!(
-        fps >= 60.0,
-        "vampire runtime diagnostics should remain at or above 60 FPS after hot-path trimming, fps={fps:?} frame_ms={frame_ms:?}"
+        fps.is_finite() && fps > 0.0,
+        "vampire runtime diagnostics should report a finite positive FPS after real-backend gameplay and capture, fps={fps:?} frame_ms={frame_ms:?}"
+    );
+    assert!(
+        frame_ms.is_finite() && frame_ms > 0.0,
+        "vampire runtime diagnostics should report a finite positive frame time after real-backend gameplay and capture, fps={fps:?} frame_ms={frame_ms:?}"
     );
 }

@@ -247,6 +247,13 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 message: format!("lighting model `{value}` is not supported"),
             }
         }
+        RenderMaterialValidationError::UnregisteredShadingModel { path, token } => {
+            MaterialEditorDiagnosticRow {
+                source: None,
+                path,
+                message: format!("shading model `{token}` is not registered"),
+            }
+        }
         RenderMaterialValidationError::UnknownPropertyOverride { source, path, name } => {
             MaterialEditorDiagnosticRow {
                 source: Some(source),

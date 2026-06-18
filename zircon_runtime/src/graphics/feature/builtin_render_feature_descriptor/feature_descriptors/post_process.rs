@@ -5,6 +5,7 @@ use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComput
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
 use super::compute_workload::{
+    COLOR_LUT_BAKE_PIPELINE_LABEL, COLOR_LUT_BAKE_WORKGROUP_SIZE,
     EXPOSURE_HISTOGRAM_PIPELINE_LABEL, EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
     EXPOSURE_RESOLVE_PIPELINE_LABEL, EXPOSURE_RESOLVE_WORKGROUP_SIZE,
 };
@@ -67,6 +68,36 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
+                "depth-of-field",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.depth-of-field")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "motion-blur",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.motion-blur")
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELDED)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::MOTION_BLURRED,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
                 "exposure-histogram",
                 QueueLane::AsyncCompute,
             )
@@ -89,7 +120,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 [1, 1, 1],
             ))
             .read_buffer(PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM)
-            .read_external(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS)
+            .read_external_buffer(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS)
             .write_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
@@ -98,6 +129,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.screen-space-reflection-reflection-pyramid")
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
                 RenderGraphAttachmentOps::clear_store(),
@@ -109,6 +141,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.screen-space-reflection-reflection-pyramid-coarse")
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
                 RenderGraphAttachmentOps::clear_store(),
@@ -121,7 +154,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .with_executor_id("post.screen-space-reflection-specular-occlusion")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
-            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .read_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
                 RenderGraphAttachmentOps::clear_store(),
@@ -143,10 +177,57 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
                 RenderGraphAttachmentOps::clear_store(),
             ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "scene-composite",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.scene-composite")
+            .read_texture(PostProcessGraphResourceNames::MOTION_BLURRED)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELDED)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
+            .read_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_COMPOSITED,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "blur",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.blur")
+            .read_texture(PostProcessGraphResourceNames::SCENE_COMPOSITED)
+            .read_texture(PostProcessGraphResourceNames::MOTION_BLURRED)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELDED)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::BLURRED,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "color-lut-bake",
+                QueueLane::AsyncCompute,
+            )
+            .with_executor_id("post.color-lut-bake")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                COLOR_LUT_BAKE_PIPELINE_LABEL,
+                COLOR_LUT_BAKE_WORKGROUP_SIZE,
+                [8, 8, 8],
+            ))
+            .read_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
+            .write_storage_texture(PostProcessGraphResourceNames::COLOR_LUT),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "uber",
@@ -154,22 +235,39 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.uber")
             .with_side_effects()
+            .read_texture(PostProcessGraphResourceNames::BLURRED)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COMPOSITED)
+            .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELDED)
+            .read_texture(PostProcessGraphResourceNames::MOTION_BLURRED)
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::TAA_OUTPUT)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
-            .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+            .read_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
             .read_texture(PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION)
-            .read_external(PostProcessGraphResourceNames::BLOOM)
+            .read_texture(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
+            .read_texture(PostProcessGraphResourceNames::COLOR_LUT)
+            .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .read_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::TONEMAPPED,
                 RenderGraphAttachmentOps::clear_store(),
             )
-            .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::PostProcess,
+                "upscale",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("post.upscale")
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::UPSCALED,
+                RenderGraphAttachmentOps::clear_store(),
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "output-transfer",
@@ -177,7 +275,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id("post.output-transfer")
             .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
-            .write_external_with_ops(
+            .write_external_texture_with_ops(
                 PostProcessGraphResourceNames::FINAL_COLOR,
                 RenderGraphAttachmentOps::clear_store(),
             ),

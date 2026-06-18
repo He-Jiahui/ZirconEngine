@@ -5,6 +5,7 @@ use crate::plugin::{
 };
 use crate::scene::SystemStage;
 
+mod diagnostics;
 mod events;
 mod graph;
 mod node_pose;

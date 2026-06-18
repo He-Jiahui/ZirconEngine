@@ -1,4 +1,5 @@
-use crate::{plugin::ProjectPluginManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ProjectPluginManifest;
 
 use super::tokens::{target_consumes_feature, target_consumes_selection};
 

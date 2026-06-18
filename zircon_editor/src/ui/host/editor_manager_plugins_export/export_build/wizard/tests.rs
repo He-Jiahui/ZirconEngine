@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiNodeProjection};
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
 
 use super::*;
 
@@ -161,6 +161,85 @@ fn export_wizard_pipeline_plan_builds_stage_commands_in_cli_order() {
         ),
         Some(ExportPipelineStage::Validate)
     );
+
+    let native_dynamic = plan
+        .command(ExportPipelineStage::NativeDynamic)
+        .expect("native dynamic command");
+    assert_eq!(
+        native_dynamic.argument_value("--stage"),
+        Some("native_dynamic")
+    );
+    assert_eq!(
+        native_dynamic.argument_value("--validate-report"),
+        Some("D:\\zircon-export\\stages\\validate\\report.json")
+    );
+    assert_eq!(
+        parse_export_pipeline_stage("native_dynamic"),
+        Some(ExportPipelineStage::NativeDynamic)
+    );
+    assert_eq!(
+        parse_export_pipeline_stage("NativeDynamic"),
+        Some(ExportPipelineStage::NativeDynamic)
+    );
+}
+
+#[test]
+fn export_wizard_pipeline_plan_selects_stages_from_packaging_strategies() {
+    let library_embed = export_wizard_pipeline_plan(
+        ready_export_options().with_strategies([ExportPackagingStrategy::LibraryEmbed]),
+    );
+    assert_eq!(
+        stage_sequence(&library_embed),
+        vec![
+            ExportPipelineStage::Validate,
+            ExportPipelineStage::CompileHost,
+            ExportPipelineStage::CookAssets,
+            ExportPipelineStage::Pack,
+            ExportPipelineStage::PlatformBundle,
+            ExportPipelineStage::Report,
+        ]
+    );
+    assert!(library_embed
+        .command(ExportPipelineStage::SourceTemplate)
+        .is_none());
+    assert!(library_embed
+        .command(ExportPipelineStage::NativeDynamic)
+        .is_none());
+
+    let source_template = export_wizard_pipeline_plan(
+        ready_export_options().with_strategies([ExportPackagingStrategy::SourceTemplate]),
+    );
+    assert_eq!(
+        stage_sequence(&source_template),
+        vec![
+            ExportPipelineStage::Validate,
+            ExportPipelineStage::SourceTemplate,
+            ExportPipelineStage::Report,
+        ]
+    );
+
+    let native_dynamic = export_wizard_pipeline_plan(
+        ready_export_options().with_strategies([ExportPackagingStrategy::NativeDynamic]),
+    );
+    assert_eq!(
+        stage_sequence(&native_dynamic),
+        vec![
+            ExportPipelineStage::Validate,
+            ExportPipelineStage::NativeDynamic,
+            ExportPipelineStage::CompileHost,
+            ExportPipelineStage::CookAssets,
+            ExportPipelineStage::Pack,
+            ExportPipelineStage::PlatformBundle,
+            ExportPipelineStage::Report,
+        ]
+    );
+
+    let combined = export_wizard_pipeline_plan(ready_export_options().with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::NativeDynamic,
+        ExportPackagingStrategy::LibraryEmbed,
+    ]));
+    assert_eq!(stage_sequence(&combined), export_pipeline_stages().to_vec());
 }
 
 #[test]
@@ -179,6 +258,23 @@ fn export_wizard_pipeline_plan_threads_stage_artifact_inputs() {
     options.determinism_check = true;
 
     let plan = export_wizard_pipeline_plan(options);
+
+    let native_dynamic = plan
+        .command(ExportPipelineStage::NativeDynamic)
+        .expect("native dynamic command");
+    assert_eq!(
+        native_dynamic.argument_value("--validate-report"),
+        Some("D:\\zircon-export\\stages\\validate\\report.json")
+    );
+    assert!(native_dynamic.produced_artifacts.iter().any(|artifact| {
+        artifact.key == "plugins_dir" && artifact.path.ends_with("stages\\native_dynamic\\plugins")
+    }));
+    assert!(native_dynamic.produced_artifacts.iter().any(|artifact| {
+        artifact.key == "loader_manifest"
+            && artifact
+                .path
+                .ends_with("stages\\native_dynamic\\plugins\\native_plugins.toml")
+    }));
 
     let cook_assets = plan
         .command(ExportPipelineStage::CookAssets)
@@ -333,6 +429,38 @@ fn export_wizard_stage_execution_feeds_stdout_into_progress() {
 }
 
 #[test]
+fn export_wizard_stage_execution_preserves_report_json_diagnostics() {
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let command = plan
+        .command(ExportPipelineStage::Report)
+        .expect("report command");
+    let mut runner = StubRunner::with_execution(ExportWizardCommandExecution {
+        exit_code: Some(0),
+        stdout_lines: vec![
+            command.stdout_banner("windows-release"),
+            r#""diagnostics": ["#.to_string(),
+            r#"  "validate failed","#.to_string(),
+            r#"],"#.to_string(),
+            r#""fatal": true,"#.to_string(),
+        ],
+        stderr_lines: Vec::new(),
+    });
+    let mut progress = ExportWizardProgressState::new();
+
+    let execution = execute_export_wizard_stage(command, &mut runner, &mut progress);
+
+    assert!(execution.fatal);
+    assert!(execution
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic == "validate failed"));
+    assert!(execution
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("reported fatal status")));
+}
+
+#[test]
 fn export_wizard_pipeline_execution_stops_on_missing_inputs_before_process_run() {
     let mut options = ExportWizardPipelineOptions::new(
         "windows-release",
@@ -358,8 +486,9 @@ fn export_wizard_pipeline_execution_stops_on_missing_inputs_before_process_run()
         runner.seen_stages,
         vec![
             ExportPipelineStage::Validate,
-            ExportPipelineStage::CompileHost,
             ExportPipelineStage::SourceTemplate,
+            ExportPipelineStage::NativeDynamic,
+            ExportPipelineStage::CompileHost,
         ]
     );
 }
@@ -1161,6 +1290,13 @@ fn ready_export_options() -> ExportWizardPipelineOptions {
     options.source_asset_manifest = Some("D:\\assets\\source-assets.json".to_string());
     options.host_executable = Some("D:\\zircon-export\\host\\ZirconRuntime.exe".to_string());
     options
+}
+
+fn stage_sequence(plan: &ExportWizardPipelinePlan) -> Vec<ExportPipelineStage> {
+    plan.stages
+        .iter()
+        .map(|command| command.stage)
+        .collect::<Vec<_>>()
 }
 
 fn desktop_export_panel_template_path() -> PathBuf {

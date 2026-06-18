@@ -1,4 +1,4 @@
-use crate::graphics::scene::scene_renderer::overlay::begin_line_pass;
+use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
 use crate::graphics::types::ViewportRenderFrame;
 
 pub(crate) struct GridPass;
@@ -24,7 +24,15 @@ impl GridPass {
         {
             return;
         }
-        let mut pass = begin_line_pass(encoder, "GridPass", color_view, depth_view);
+        let Some(mut pass) = begin_line_pass_for_region(
+            encoder,
+            "GridPass",
+            color_view,
+            depth_view,
+            frame.render_region(),
+        ) else {
+            return;
+        };
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_pipeline(line_pipeline);
         pass.set_vertex_buffer(0, grid_buffer.slice(..));

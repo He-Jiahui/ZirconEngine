@@ -1,10 +1,13 @@
-pub(crate) fn begin_line_pass<'a>(
+use crate::graphics::types::ViewportRenderRegion;
+
+pub(crate) fn begin_line_pass_for_region<'a>(
     encoder: &'a mut wgpu::CommandEncoder,
     label: &'static str,
     color_view: &'a wgpu::TextureView,
     depth_view: &'a wgpu::TextureView,
-) -> wgpu::RenderPass<'a> {
-    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+    render_region: ViewportRenderRegion,
+) -> Option<wgpu::RenderPass<'a>> {
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some(label),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
             view: color_view,
@@ -26,5 +29,8 @@ pub(crate) fn begin_line_pass<'a>(
         occlusion_query_set: None,
         timestamp_writes: None,
         multiview_mask: None,
-    })
+    });
+    render_region
+        .apply_to_render_pass(&mut pass)
+        .then_some(pass)
 }

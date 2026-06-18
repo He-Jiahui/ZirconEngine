@@ -1,4 +1,6 @@
-use crate::{RendererDataDocument, RendererDataDocumentError, RENDERER_DATA_DOCUMENT_VERSION};
+use crate::graphics::{
+    RendererDataDocument, RendererDataDocumentError, RENDERER_DATA_DOCUMENT_VERSION,
+};
 
 #[test]
 fn renderer_data_document_rejects_future_versions_before_runtime_projection() {

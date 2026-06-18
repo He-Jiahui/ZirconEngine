@@ -21,7 +21,7 @@ use crate::asset::{
     ImportedAsset, ImportedAssetEntry,
 };
 use crate::core::resource::ResourceState;
-use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
+use zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 

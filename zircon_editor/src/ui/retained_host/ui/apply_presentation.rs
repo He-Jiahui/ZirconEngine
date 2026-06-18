@@ -5,22 +5,15 @@ use crate::ui::layouts::windows::workbench_host_window::{
     self as host_window, build_host_scene_data, build_native_floating_surface_data, frame_rect,
     ShellPresentation,
 };
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::primitives::ModelRc;
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_bottom_region_frame, resolve_root_bottom_splitter_frame,
-    resolve_root_center_band_frame, resolve_root_document_region_frame,
-    resolve_root_left_region_frame, resolve_root_left_splitter_frame,
-    resolve_root_right_region_frame, resolve_root_right_splitter_frame,
-    resolve_root_status_bar_frame, resolve_root_viewport_content_frame,
-};
 use crate::ui::retained_host::{self as host_contract, HostWindowPresentationData, UiHostWindow};
 use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiHostProjection};
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
-use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use super::root_template_overlay::to_host_contract_root_template_overlay_nodes;
 use super::template_node_conversion::to_host_contract_template_nodes;
@@ -46,7 +39,7 @@ pub(crate) fn apply_presentation(
     build_export: &host_window::BuildExportPaneViewData,
     root_template_projection: Option<&RetainedUiHostProjection>,
     workbench_window_projection: Option<&RetainedUiHostProjection>,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) {
@@ -70,8 +63,6 @@ pub(crate) fn apply_presentation(
             floating_window_projection_bundle,
         )
     };
-    let document_pane_shows_viewport_toolbar =
-        presentation.host_surface_data.document_pane.show_toolbar;
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
 
     {
@@ -130,7 +121,7 @@ pub(crate) fn apply_presentation(
 
     let host_layout = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_host_window_layout");
-        host_window_layout(shared_root_frames, document_pane_shows_viewport_toolbar)
+        host_window_layout(componentized_workbench_layout_frames)
     };
     let host_scene_data = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
@@ -222,24 +213,65 @@ pub(crate) fn apply_presentation(
 }
 
 fn host_window_layout(
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
-    document_pane_shows_viewport_toolbar: bool,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> host_window::HostWindowLayoutData {
+    let center_band_frame = componentized_workbench_layout_frames
+        .center_band_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let left_region_frame = componentized_workbench_layout_frames
+        .left_region_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let document_region_frame = componentized_workbench_layout_frames
+        .document_region_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let right_region_frame = componentized_workbench_layout_frames
+        .right_region_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let bottom_region_frame = componentized_workbench_layout_frames
+        .bottom_region_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let viewport_content_frame = componentized_workbench_layout_frames
+        .viewport_content_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let status_bar_frame = componentized_workbench_layout_frames
+        .status_bar_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let left_splitter_frame = componentized_workbench_layout_frames
+        .left_resize_splitter_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let right_splitter_frame = componentized_workbench_layout_frames
+        .right_resize_splitter_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+    let bottom_splitter_frame = componentized_workbench_layout_frames
+        .bottom_resize_splitter_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
+
     host_window::HostWindowLayoutData {
-        center_band_frame: frame_rect(resolve_root_center_band_frame(shared_root_frames)),
-        status_bar_frame: frame_rect(resolve_root_status_bar_frame(shared_root_frames)),
-        left_region_frame: frame_rect(resolve_root_left_region_frame(shared_root_frames)),
-        document_region_frame: frame_rect(resolve_root_document_region_frame(shared_root_frames)),
-        right_region_frame: frame_rect(resolve_root_right_region_frame(shared_root_frames)),
-        bottom_region_frame: frame_rect(resolve_root_bottom_region_frame(shared_root_frames)),
-        left_splitter_frame: frame_rect(resolve_root_left_splitter_frame(shared_root_frames)),
-        right_splitter_frame: frame_rect(resolve_root_right_splitter_frame(shared_root_frames)),
-        bottom_splitter_frame: frame_rect(resolve_root_bottom_splitter_frame(shared_root_frames)),
-        viewport_content_frame: frame_rect(resolve_root_viewport_content_frame(
-            shared_root_frames,
-            document_pane_shows_viewport_toolbar,
-        )),
+        center_band_frame: frame_rect(center_band_frame),
+        status_bar_frame: frame_rect(status_bar_frame),
+        left_region_frame: frame_rect(left_region_frame),
+        document_region_frame: frame_rect(document_region_frame),
+        right_region_frame: frame_rect(right_region_frame),
+        bottom_region_frame: frame_rect(bottom_region_frame),
+        left_splitter_frame: frame_rect(left_splitter_frame),
+        right_splitter_frame: frame_rect(right_splitter_frame),
+        bottom_splitter_frame: frame_rect(bottom_splitter_frame),
+        viewport_content_frame: frame_rect(viewport_content_frame),
     }
+}
+
+fn ui_frame_is_visible(frame: &UiFrame) -> bool {
+    frame.width > f32::EPSILON && frame.height > f32::EPSILON
 }
 
 fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>

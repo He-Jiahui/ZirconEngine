@@ -51,6 +51,7 @@ where
         let item = unsafe { P::get_param(world as *mut World, &mut self.state, ticks) };
         let result = f(item);
         world.replace_active_change_tick(previous_active_tick);
+        P::record_performance_diagnostics(world, &mut self.state);
         self.last_run = this_run;
         result
     }

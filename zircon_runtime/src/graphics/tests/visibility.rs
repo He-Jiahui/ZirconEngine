@@ -156,9 +156,12 @@ fn visibility_context_filters_visible_batches_through_camera_frustum() {
 
     let context = VisibilityContext::from(&world.to_render_frame_extract());
 
-    assert_eq!(context.visible_entities, vec![visible]);
-    assert_eq!(context.culled_entities, vec![culled]);
-    assert_eq!(context.visible_batches, vec![crate_batch(vec![visible])]);
+    assert_eq!(context.main_view_visible_entities(), vec![visible]);
+    assert_eq!(context.main_view_culled_entities(), vec![culled]);
+    assert_eq!(
+        context.main_view_visible_batches(),
+        vec![crate_batch(vec![visible])]
+    );
     assert_eq!(context.visible_instances, vec![visible]);
     assert_eq!(
         context.draw_commands,

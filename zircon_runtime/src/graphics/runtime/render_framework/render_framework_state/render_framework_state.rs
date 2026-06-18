@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use crate::core::framework::render::{
     RenderPipelineHandle, RenderStats, RenderViewportHandle, RenderVirtualGeometryDebugSnapshot,
 };
+use crate::graphics::pipeline::CompiledGraphCache;
 
-use crate::{
+use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderPipelineAsset, SceneRenderer,
     SolariRuntimeProviderRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
@@ -18,6 +19,7 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
     pub(in crate::graphics::runtime::render_framework) next_history_id: u64,
     pub(in crate::graphics::runtime::render_framework) pipelines:
         HashMap<RenderPipelineHandle, RenderPipelineAsset>,
+    pub(in crate::graphics::runtime::render_framework) compiled_graph_cache: CompiledGraphCache,
     pub(in crate::graphics::runtime::render_framework) hybrid_gi_runtime_provider:
         Option<HybridGiRuntimeProviderRegistration>,
     pub(in crate::graphics::runtime::render_framework) solari_runtime_provider:

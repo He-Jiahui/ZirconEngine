@@ -6,11 +6,11 @@ use crate::asset::{
     TransformAsset,
 };
 use crate::core::framework::render::{
-    RenderBloomSettings, RenderColorGradingSettings, RenderExtractContext, RenderFrameExtract,
-    RenderLayerSet, RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile,
-    RenderResolvedPostProcessSettings, RenderTonemapOperator, RenderTonemapSettings,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    VolumeShapeExtract,
+    CameraRenderDescriptor, RenderBloomSettings, RenderColorGradingSettings, RenderExtractContext,
+    RenderFrameExtract, RenderLayerSet, RenderPostProcessEffectStackSettings,
+    RenderPostProcessVolumeProfile, RenderResolvedPostProcessSettings, RenderTonemapOperator,
+    RenderTonemapSettings, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    ViewportCameraSnapshot, VolumeShapeExtract,
 };
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::{
@@ -231,10 +231,7 @@ fn explicit_request_camera_ignores_scene_camera_post_process_settings() {
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(802),
         SceneViewportExtractRequest {
-            camera: Some(ViewportCameraSnapshot {
-                render_layers: RenderLayerSet::from_legacy_mask(0b0010),
-                ..ViewportCameraSnapshot::default()
-            }),
+            camera: Some(camera_descriptor_with_layers(0b0010)),
             ..SceneViewportExtractRequest::default()
         },
     ));
@@ -450,9 +447,17 @@ fn resolved_post_process_settings(
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            &extract.view.camera.render_layers,
+            extract.view.selected_camera_layers(),
         )
         .expect("planned volume evaluation should resolve")
+}
+
+fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
+    let mut camera =
+        CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.volume_mask = camera.culling_mask.clone();
+    camera
 }
 
 fn camera_post_process_settings() -> PostProcessSettingsComponent {

@@ -23,6 +23,8 @@ impl EditorWorkbenchTemplateControlIds {
     pub const ACTIVITY_RAIL: &'static str = "WorkbenchMainBandActivityRail";
     pub const SCENE_TREE: &'static str = "WorkbenchMainBandSceneTreePanel";
     pub const VIEWPORT: &'static str = "WorkbenchMainBandViewportPanel";
+    pub const VIEWPORT_TOOLBAR: &'static str = "WorkbenchViewportToolbar";
+    pub const VIEWPORT_SURFACE: &'static str = "WorkbenchViewportSurface";
     pub const INSPECTOR: &'static str = "WorkbenchMainBandInspectorPanel";
     pub const COMPONENT_DRAWER: &'static str = "WorkbenchWindowComponentDrawerRegion";
     pub const STATUS_BAR: &'static str = "WorkbenchWindowStatusBarRegion";
@@ -178,16 +180,20 @@ fn control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
 }
 
 fn visible_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFrame> {
-    surface.tree.nodes.values().find_map(|node| {
-        if !surface_node_render_visible(surface, node.node_id) {
-            return None;
-        }
-        node.template_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.control_id.as_deref())
+    surface.arranged_tree.nodes.iter().find_map(|node| {
+        node.control_id
+            .as_deref()
             .filter(|candidate| *candidate == control_id)
-            .map(|_| node.layout_cache.frame)
+            .and_then(|_| visible_arranged_control_frame(surface, node.node_id))
     })
+}
+
+fn visible_arranged_control_frame(surface: &UiSurface, node_id: UiNodeId) -> Option<UiFrame> {
+    let node = surface.arranged_tree.get(node_id)?;
+    if !surface_node_render_visible(surface, node_id) {
+        return None;
+    }
+    node.frame.intersection(node.clip_frame)
 }
 
 fn surface_node_render_visible(surface: &UiSurface, node_id: UiNodeId) -> bool {

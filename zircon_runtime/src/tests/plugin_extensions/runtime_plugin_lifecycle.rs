@@ -1,5 +1,6 @@
 use std::cell::{Cell, RefCell};
 
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, CapabilityView, PluginFeatureBundleManifest,
@@ -8,7 +9,6 @@ use crate::plugin::{
     RuntimePluginDescriptor, RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
     RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_plugin_lifecycle_hard_cuts_to_register_hook() {

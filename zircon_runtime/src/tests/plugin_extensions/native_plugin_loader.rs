@@ -8,11 +8,12 @@ use crate::asset::{
     AssetImportContext, AssetImporterDescriptor, AssetImporterHandler, AssetKind,
     AssetSchemaMigrationReport, DataAssetFormat, ImportedAsset, NativeAssetImporterHandler,
 };
-use crate::{
-    plugin::NativePluginBehaviorHealth, plugin::NativePluginLoader, plugin::PluginModuleKind,
-    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_OK, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+use crate::plugin::native::{
+    NativePluginBehaviorHealth, NativePluginLoader, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
+use crate::plugin::PluginModuleKind;
 
 #[test]
 fn native_loader_discovers_candidates_from_export_load_manifest() {
@@ -459,7 +460,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert_eq!(state_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
     assert_eq!(
         state_report.payload.as_deref(),
-        Some(&b"state:v2:native_dynamic_fixture"[..])
+        Some(&b"state:v3:native_dynamic_fixture"[..])
     );
     let restore_report = plugin.restore_runtime_state(state_report.payload.as_ref().unwrap());
     assert_eq!(restore_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
@@ -553,10 +554,6 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .entry_diagnostics()
         .iter()
         .any(|message| { message.contains("editor entry reached with v3 host ABI table") }));
-    assert!(!report
-        .entry_diagnostics()
-        .iter()
-        .any(|message| { message.contains("editor entry reached with v2 host ABI table") }));
     assert!(report
         .diagnostics_for_plugin("native_dynamic_fixture")
         .iter()
@@ -640,15 +637,15 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
 }
 
 #[test]
-fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
-    let fixture_target = temp_export_root("native-dynamic-fixture-v2-target");
-    let package_root = temp_export_root("native-dynamic-fixture-v2-package");
+fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-unknown-abi-target");
+    let package_root = temp_export_root("native-dynamic-fixture-unknown-abi-package");
     let plugin_root = package_root.join("native_dynamic_fixture");
     let native_root = plugin_root.join("native");
     fs::create_dir_all(&native_root).unwrap();
 
     let library_path =
-        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
+        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_unknown_version"]);
     fs::copy(
         &library_path,
         native_root.join(platform_library_file_name(
@@ -664,26 +661,22 @@ fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
 
     let report = NativePluginLoader.load_discovered_runtime(&package_root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    assert!(report.diagnostics.iter().any(|message| message
+        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("unsupported native plugin ABI version 99; expected 3")));
     assert_eq!(report.loaded.len(), 1);
     let plugin = &report.loaded[0];
-    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 2);
-    assert_eq!(
-        plugin
-            .descriptor
-            .as_ref()
-            .unwrap()
-            .runtime_entry_name
-            .as_deref(),
-        Some("zircon_native_dynamic_fixture_runtime_entry_v2")
-    );
-    assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
-    assert_eq!(plugin.runtime_state_schema_version(), Some(0));
+    assert!(plugin.descriptor.is_none());
+    assert!(plugin.runtime_entry_report.is_none());
+    assert!(plugin.runtime_behavior_is_stateless().is_none());
+    assert!(plugin.runtime_state_schema_version().is_none());
     assert!(plugin.runtime_command_manifest_schema().is_none());
     assert!(report
         .diagnostics_for_runtime_plugin("native_dynamic_fixture")
-        .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .is_empty());
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);
@@ -891,7 +884,7 @@ crate-type = ["cdylib"]
 path = "{source_path}"
 
 [features]
-abi_v2_only = []
+abi_unknown_version = []
 
 [dependencies]
 serde = {{ version = "1.0.228", features = ["derive"] }}

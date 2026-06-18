@@ -32,9 +32,9 @@ classes = ["workbench-main-band", "workbench-scene-workspace"]
 layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "activity_rail" },
-  { node = "scene_tree_panel" },
+  { node = "left_drawer_shell" },
   { node = "viewport_panel" },
-  { node = "inspector_panel" },
+  { node = "right_drawer_shell" },
 ]
 
 [nodes.activity_rail]
@@ -42,20 +42,34 @@ component = "WorkbenchActivityRail"
 control_id = "WorkbenchMainBandActivityRail"
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
+[nodes.left_drawer_shell]
+component = "Container"
+control_id = "LeftDrawerShellRoot"
+classes = ["workbench-left-drawer-shell"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 332.0, preferred = 332.0, max = 332.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "scene_tree_panel" }]
+
 [nodes.scene_tree_panel]
 component = "WorkbenchSceneTreePanel"
 control_id = "WorkbenchMainBandSceneTreePanel"
-layout = { width = { min = 332.0, preferred = 332.0, max = 332.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.viewport_panel]
 component = "WorkbenchViewportPanel"
 control_id = "WorkbenchMainBandViewportPanel"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
+[nodes.right_drawer_shell]
+component = "Container"
+control_id = "RightDrawerShellRoot"
+classes = ["workbench-right-drawer-shell"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "inspector_panel" }]
+
 [nodes.inspector_panel]
 component = "WorkbenchInspectorPanel"
 control_id = "WorkbenchMainBandInspectorPanel"
-layout = { width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.module_workspace]
 component = "WorkbenchModuleWorkspace"

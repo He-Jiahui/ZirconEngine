@@ -6,14 +6,12 @@ use crate::asset::{
     AlphaMode, AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset,
     AnimationSkeletonAsset, AnimationStateMachineAsset, AssetReference, AssetUri, DataAsset,
     FontAsset, ImportedAsset, MaterialAsset, MaterialGraphAsset, MaterialTextureSlotValue,
-    MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset,
-    NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset, ShaderAsset,
-    ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
+    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
+    ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
     ShaderMaterialPropertyAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
     ShaderTextureSlotAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
     TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset, UiStyleAsset,
     UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
-    VirtualGeometryAsset,
 };
 use crate::core::framework::physics::PhysicsMaterialMetadata;
 use crate::core::framework::render::{
@@ -21,9 +19,18 @@ use crate::core::framework::render::{
     RenderShaderPipelineLayoutDescriptor,
 };
 
+mod json_value;
+mod mesh;
 mod scene;
+mod toml_value;
 
+use json_value::ArtifactCacheJsonValue;
+use mesh::ArtifactCacheMeshAsset;
 use scene::ArtifactCacheSceneAsset;
+use toml_value::{
+    cache_table_like_to_toml, cache_table_to_toml, toml_table_like_to_cache, toml_table_to_cache,
+    ArtifactCacheTomlTable, ArtifactCacheTomlValue,
+};
 
 /// Bincode cache wire type. It keeps authoring-friendly serde shapes such as
 /// TOML values and flattened fields out of runtime library artifacts.
@@ -287,257 +294,6 @@ impl ArtifactCachePrefabAsset {
     }
 }
 
-type ArtifactCacheJsonObject = BTreeMap<String, ArtifactCacheJsonValue>;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum ArtifactCacheJsonNumber {
-    I64(i64),
-    U64(u64),
-    F64(f64),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum ArtifactCacheJsonValue {
-    Null,
-    Bool(bool),
-    Number(ArtifactCacheJsonNumber),
-    String(String),
-    Array(Vec<ArtifactCacheJsonValue>),
-    Object(ArtifactCacheJsonObject),
-}
-
-impl ArtifactCacheJsonValue {
-    fn from_json(value: &serde_json::Value) -> Self {
-        match value {
-            serde_json::Value::Null => Self::Null,
-            serde_json::Value::Bool(value) => Self::Bool(*value),
-            serde_json::Value::Number(value) => {
-                if let Some(value) = value.as_i64() {
-                    Self::Number(ArtifactCacheJsonNumber::I64(value))
-                } else if let Some(value) = value.as_u64() {
-                    Self::Number(ArtifactCacheJsonNumber::U64(value))
-                } else {
-                    Self::Number(ArtifactCacheJsonNumber::F64(value.as_f64().expect(
-                        "serde_json::Number should expose finite f64 for floating payloads",
-                    )))
-                }
-            }
-            serde_json::Value::String(value) => Self::String(value.clone()),
-            serde_json::Value::Array(values) => {
-                Self::Array(values.iter().map(Self::from_json).collect())
-            }
-            serde_json::Value::Object(values) => Self::Object(json_object_to_cache(values)),
-        }
-    }
-
-    fn into_json(self) -> serde_json::Value {
-        match self {
-            Self::Null => serde_json::Value::Null,
-            Self::Bool(value) => serde_json::Value::Bool(value),
-            Self::Number(value) => serde_json::Value::Number(match value {
-                ArtifactCacheJsonNumber::I64(value) => serde_json::Number::from(value),
-                ArtifactCacheJsonNumber::U64(value) => serde_json::Number::from(value),
-                ArtifactCacheJsonNumber::F64(value) => {
-                    serde_json::Number::from_f64(value).expect("cached JSON f64 should stay finite")
-                }
-            }),
-            Self::String(value) => serde_json::Value::String(value),
-            Self::Array(values) => serde_json::Value::Array(
-                values
-                    .into_iter()
-                    .map(ArtifactCacheJsonValue::into_json)
-                    .collect(),
-            ),
-            Self::Object(values) => serde_json::Value::Object(cache_object_to_json(values)),
-        }
-    }
-}
-
-fn json_table_to_cache(
-    table: &BTreeMap<String, serde_json::Value>,
-) -> BTreeMap<String, ArtifactCacheJsonValue> {
-    table
-        .iter()
-        .map(|(key, value)| (key.clone(), ArtifactCacheJsonValue::from_json(value)))
-        .collect()
-}
-
-fn cache_table_to_json(
-    table: BTreeMap<String, ArtifactCacheJsonValue>,
-) -> BTreeMap<String, serde_json::Value> {
-    table
-        .into_iter()
-        .map(|(key, value)| (key, value.into_json()))
-        .collect()
-}
-
-fn json_object_to_cache(
-    object: &serde_json::Map<String, serde_json::Value>,
-) -> ArtifactCacheJsonObject {
-    object
-        .iter()
-        .map(|(key, value)| (key.clone(), ArtifactCacheJsonValue::from_json(value)))
-        .collect()
-}
-
-fn cache_object_to_json(
-    object: ArtifactCacheJsonObject,
-) -> serde_json::Map<String, serde_json::Value> {
-    object
-        .into_iter()
-        .map(|(key, value)| (key, value.into_json()))
-        .collect()
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) struct ArtifactCacheMeshAsset {
-    uri: AssetUri,
-    topology: crate::core::framework::render::RenderMeshTopology,
-    attributes: BTreeMap<String, ArtifactCacheMeshAttributeValues>,
-    indices: Option<ArtifactCacheMeshIndices>,
-    asset_usage: crate::asset::MeshAssetUsage,
-    morph_targets: Vec<ArtifactCacheMeshMorphTargetAsset>,
-    skin: Option<MeshSkinAsset>,
-    virtual_geometry: Option<VirtualGeometryAsset>,
-}
-
-impl From<&MeshAsset> for ArtifactCacheMeshAsset {
-    fn from(asset: &MeshAsset) -> Self {
-        Self {
-            uri: asset.uri.clone(),
-            topology: asset.topology,
-            attributes: mesh_attribute_table_to_cache(&asset.attributes),
-            indices: asset.indices.as_ref().map(ArtifactCacheMeshIndices::from),
-            asset_usage: asset.asset_usage,
-            morph_targets: asset
-                .morph_targets
-                .iter()
-                .map(ArtifactCacheMeshMorphTargetAsset::from)
-                .collect(),
-            skin: asset.skin.clone(),
-            virtual_geometry: asset.virtual_geometry.clone(),
-        }
-    }
-}
-
-impl ArtifactCacheMeshAsset {
-    fn into_asset(self) -> MeshAsset {
-        MeshAsset {
-            uri: self.uri,
-            topology: self.topology,
-            attributes: cache_table_to_mesh_attributes(self.attributes),
-            indices: self.indices.map(ArtifactCacheMeshIndices::into),
-            asset_usage: self.asset_usage,
-            morph_targets: self
-                .morph_targets
-                .into_iter()
-                .map(ArtifactCacheMeshMorphTargetAsset::into)
-                .collect(),
-            skin: self.skin,
-            virtual_geometry: self.virtual_geometry,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-struct ArtifactCacheMeshMorphTargetAsset {
-    name: Option<String>,
-    attributes: BTreeMap<String, ArtifactCacheMeshAttributeValues>,
-}
-
-impl From<&MeshMorphTargetAsset> for ArtifactCacheMeshMorphTargetAsset {
-    fn from(asset: &MeshMorphTargetAsset) -> Self {
-        Self {
-            name: asset.name.clone(),
-            attributes: mesh_attribute_table_to_cache(&asset.attributes),
-        }
-    }
-}
-
-impl From<ArtifactCacheMeshMorphTargetAsset> for MeshMorphTargetAsset {
-    fn from(asset: ArtifactCacheMeshMorphTargetAsset) -> Self {
-        Self {
-            name: asset.name,
-            attributes: cache_table_to_mesh_attributes(asset.attributes),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum ArtifactCacheMeshAttributeValues {
-    Float32x2(Vec<[f32; 2]>),
-    Float32x3(Vec<[f32; 3]>),
-    Float32x4(Vec<[f32; 4]>),
-    Uint16x4(Vec<[u16; 4]>),
-    Uint32x4(Vec<[u32; 4]>),
-}
-
-impl From<&MeshAttributeValues> for ArtifactCacheMeshAttributeValues {
-    fn from(values: &MeshAttributeValues) -> Self {
-        match values {
-            MeshAttributeValues::Float32x2(values) => Self::Float32x2(values.clone()),
-            MeshAttributeValues::Float32x3(values) => Self::Float32x3(values.clone()),
-            MeshAttributeValues::Float32x4(values) => Self::Float32x4(values.clone()),
-            MeshAttributeValues::Uint16x4(values) => Self::Uint16x4(values.clone()),
-            MeshAttributeValues::Uint32x4(values) => Self::Uint32x4(values.clone()),
-        }
-    }
-}
-
-impl From<ArtifactCacheMeshAttributeValues> for MeshAttributeValues {
-    fn from(values: ArtifactCacheMeshAttributeValues) -> Self {
-        match values {
-            ArtifactCacheMeshAttributeValues::Float32x2(values) => Self::Float32x2(values),
-            ArtifactCacheMeshAttributeValues::Float32x3(values) => Self::Float32x3(values),
-            ArtifactCacheMeshAttributeValues::Float32x4(values) => Self::Float32x4(values),
-            ArtifactCacheMeshAttributeValues::Uint16x4(values) => Self::Uint16x4(values),
-            ArtifactCacheMeshAttributeValues::Uint32x4(values) => Self::Uint32x4(values),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-enum ArtifactCacheMeshIndices {
-    U16(Vec<u16>),
-    U32(Vec<u32>),
-}
-
-impl From<&MeshIndices> for ArtifactCacheMeshIndices {
-    fn from(indices: &MeshIndices) -> Self {
-        match indices {
-            MeshIndices::U16(indices) => Self::U16(indices.clone()),
-            MeshIndices::U32(indices) => Self::U32(indices.clone()),
-        }
-    }
-}
-
-impl From<ArtifactCacheMeshIndices> for MeshIndices {
-    fn from(indices: ArtifactCacheMeshIndices) -> Self {
-        match indices {
-            ArtifactCacheMeshIndices::U16(indices) => Self::U16(indices),
-            ArtifactCacheMeshIndices::U32(indices) => Self::U32(indices),
-        }
-    }
-}
-
-fn mesh_attribute_table_to_cache(
-    table: &BTreeMap<String, MeshAttributeValues>,
-) -> BTreeMap<String, ArtifactCacheMeshAttributeValues> {
-    table
-        .iter()
-        .map(|(key, value)| (key.clone(), ArtifactCacheMeshAttributeValues::from(value)))
-        .collect()
-}
-
-fn cache_table_to_mesh_attributes(
-    table: BTreeMap<String, ArtifactCacheMeshAttributeValues>,
-) -> BTreeMap<String, MeshAttributeValues> {
-    table
-        .into_iter()
-        .map(|(key, value)| (key, value.into()))
-        .collect()
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheMaterialAsset {
     name: Option<String>,
@@ -627,10 +383,10 @@ pub(super) struct ArtifactCacheShaderAsset {
     entry_points: Vec<ShaderEntryPointAsset>,
     dependencies: Vec<ShaderDependencyAsset>,
     source_files: Vec<ShaderSourceFileAsset>,
-    imports: Vec<ShaderImportRedirectAsset>,
+    imports: Vec<ArtifactCacheShaderImportRedirectAsset>,
     shader_defs: Vec<ArtifactCacheRenderShaderDefinitionValue>,
     property_schema: Vec<ArtifactCacheShaderMaterialPropertyAsset>,
-    texture_slots: Vec<ShaderTextureSlotAsset>,
+    texture_slots: Vec<ArtifactCacheShaderTextureSlotAsset>,
     editor: ArtifactCacheTomlTable,
     pipeline_layout: RenderShaderPipelineLayoutDescriptor,
     validation_diagnostics: Vec<String>,
@@ -647,7 +403,11 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
             entry_points: asset.entry_points.clone(),
             dependencies: asset.dependencies.clone(),
             source_files: asset.source_files.clone(),
-            imports: asset.imports.clone(),
+            imports: asset
+                .imports
+                .iter()
+                .map(ArtifactCacheShaderImportRedirectAsset::from)
+                .collect(),
             shader_defs: asset
                 .shader_defs
                 .iter()
@@ -658,7 +418,11 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
                 .iter()
                 .map(ArtifactCacheShaderMaterialPropertyAsset::from)
                 .collect(),
-            texture_slots: asset.texture_slots.clone(),
+            texture_slots: asset
+                .texture_slots
+                .iter()
+                .map(ArtifactCacheShaderTextureSlotAsset::from)
+                .collect(),
             editor: toml_table_to_cache(&asset.editor),
             pipeline_layout: asset.pipeline_layout.clone(),
             validation_diagnostics: asset.validation_diagnostics.clone(),
@@ -677,7 +441,7 @@ impl ArtifactCacheShaderAsset {
             entry_points: self.entry_points,
             dependencies: self.dependencies,
             source_files: self.source_files,
-            imports: self.imports,
+            imports: self.imports.into_iter().map(Into::into).collect(),
             shader_defs: self
                 .shader_defs
                 .into_iter()
@@ -688,7 +452,7 @@ impl ArtifactCacheShaderAsset {
                 .into_iter()
                 .map(ArtifactCacheShaderMaterialPropertyAsset::into_asset)
                 .collect::<Result<Vec<_>, _>>()?,
-            texture_slots: self.texture_slots,
+            texture_slots: self.texture_slots.into_iter().map(Into::into).collect(),
             editor: cache_table_to_toml(self.editor)?,
             pipeline_layout: self.pipeline_layout,
             validation_diagnostics: self.validation_diagnostics,
@@ -777,6 +541,30 @@ impl From<ArtifactCacheMaterialTextureSlotValue> for MaterialTextureSlotValue {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct ArtifactCacheShaderImportRedirectAsset {
+    source: String,
+    redirect: Option<AssetReference>,
+}
+
+impl From<&ShaderImportRedirectAsset> for ArtifactCacheShaderImportRedirectAsset {
+    fn from(value: &ShaderImportRedirectAsset) -> Self {
+        Self {
+            source: value.source.clone(),
+            redirect: value.redirect.clone(),
+        }
+    }
+}
+
+impl From<ArtifactCacheShaderImportRedirectAsset> for ShaderImportRedirectAsset {
+    fn from(value: ArtifactCacheShaderImportRedirectAsset) -> Self {
+        Self {
+            source: value.source,
+            redirect: value.redirect,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct ArtifactCacheShaderMaterialPropertyAsset {
     name: String,
@@ -813,6 +601,48 @@ impl ArtifactCacheShaderMaterialPropertyAsset {
                 .transpose()?,
             editor: self.editor,
         })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct ArtifactCacheShaderTextureSlotAsset {
+    name: String,
+    kind: String,
+    required: bool,
+    default: Option<String>,
+    sampler: Option<String>,
+    group: Option<String>,
+    label: Option<String>,
+    editor: BTreeMap<String, String>,
+}
+
+impl From<&ShaderTextureSlotAsset> for ArtifactCacheShaderTextureSlotAsset {
+    fn from(value: &ShaderTextureSlotAsset) -> Self {
+        Self {
+            name: value.name.clone(),
+            kind: value.kind.clone(),
+            required: value.required,
+            default: value.default.clone(),
+            sampler: value.sampler.clone(),
+            group: value.group.clone(),
+            label: value.label.clone(),
+            editor: value.editor.clone(),
+        }
+    }
+}
+
+impl From<ArtifactCacheShaderTextureSlotAsset> for ShaderTextureSlotAsset {
+    fn from(value: ArtifactCacheShaderTextureSlotAsset) -> Self {
+        Self {
+            name: value.name,
+            kind: value.kind,
+            required: value.required,
+            default: value.default,
+            sampler: value.sampler,
+            group: value.group,
+            label: value.label,
+            editor: value.editor,
+        }
     }
 }
 
@@ -854,85 +684,4 @@ impl From<ArtifactCacheRenderShaderDefinitionValue> for RenderShaderDefinitionVa
             }
         }
     }
-}
-
-type ArtifactCacheTomlTable = BTreeMap<String, ArtifactCacheTomlValue>;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum ArtifactCacheTomlValue {
-    String(String),
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
-    Datetime(String),
-    Array(Vec<ArtifactCacheTomlValue>),
-    Table(ArtifactCacheTomlTable),
-}
-
-impl ArtifactCacheTomlValue {
-    fn from_toml(value: &toml::Value) -> Self {
-        match value {
-            toml::Value::String(value) => Self::String(value.clone()),
-            toml::Value::Integer(value) => Self::Integer(*value),
-            toml::Value::Float(value) => Self::Float(*value),
-            toml::Value::Boolean(value) => Self::Boolean(*value),
-            toml::Value::Datetime(value) => Self::Datetime(value.to_string()),
-            toml::Value::Array(values) => Self::Array(values.iter().map(Self::from_toml).collect()),
-            toml::Value::Table(table) => Self::Table(toml_table_to_cache(table)),
-        }
-    }
-
-    fn into_toml(self) -> Result<toml::Value, String> {
-        Ok(match self {
-            Self::String(value) => toml::Value::String(value),
-            Self::Integer(value) => toml::Value::Integer(value),
-            Self::Float(value) => toml::Value::Float(value),
-            Self::Boolean(value) => toml::Value::Boolean(value),
-            Self::Datetime(value) => toml::Value::Datetime(
-                value
-                    .parse::<toml::value::Datetime>()
-                    .map_err(|error| format!("invalid cached TOML datetime `{value}`: {error}"))?,
-            ),
-            Self::Array(values) => toml::Value::Array(
-                values
-                    .into_iter()
-                    .map(Self::into_toml)
-                    .collect::<Result<Vec<_>, _>>()?,
-            ),
-            Self::Table(table) => toml::Value::Table(cache_table_to_toml(table)?),
-        })
-    }
-}
-
-fn toml_table_like_to_cache(
-    table: &BTreeMap<String, toml::Value>,
-) -> BTreeMap<String, ArtifactCacheTomlValue> {
-    table
-        .iter()
-        .map(|(key, value)| (key.clone(), ArtifactCacheTomlValue::from_toml(value)))
-        .collect()
-}
-
-fn cache_table_like_to_toml(
-    table: BTreeMap<String, ArtifactCacheTomlValue>,
-) -> Result<BTreeMap<String, toml::Value>, String> {
-    table
-        .into_iter()
-        .map(|(key, value)| value.into_toml().map(|value| (key, value)))
-        .collect()
-}
-
-fn toml_table_to_cache(table: &toml::Table) -> ArtifactCacheTomlTable {
-    table
-        .iter()
-        .map(|(key, value)| (key.clone(), ArtifactCacheTomlValue::from_toml(value)))
-        .collect()
-}
-
-fn cache_table_to_toml(table: ArtifactCacheTomlTable) -> Result<toml::Table, String> {
-    let mut output = toml::Table::new();
-    for (key, value) in table {
-        output.insert(key, value.into_toml()?);
-    }
-    Ok(output)
 }

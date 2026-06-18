@@ -28,7 +28,8 @@ use crate::core::framework::render::{
     RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,
     RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
     RenderMaterialReadinessReport, RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
-    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
+    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary, ShadingModelId,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -38,6 +39,7 @@ use super::super::{
     MaterialCaptureSeed, MaterialRuntime, OutputTargetTextureResource,
 };
 use super::ResourceStreamer;
+use crate::graphics::material::builtin_shading_model_registry;
 
 impl ResourceStreamer {
     pub(crate) fn asset_manager(&self) -> Arc<ProjectAssetManager> {
@@ -614,6 +616,12 @@ impl ResourceStreamer {
                     .ok()
                     .map(|material| {
                         let descriptor = material.standard_material_descriptor();
+                        let lighting_model = if descriptor.unlit {
+                            RenderMaterialLightingModel::Unlit
+                        } else {
+                            descriptor.lighting_model.clone()
+                        };
+                        let shading_model_id = shading_model_id_for_lighting_model(&lighting_model);
                         MaterialCaptureSeed {
                             base_color: Vec4::from_array(descriptor.base_color),
                             emissive: Vec3::from_array(descriptor.emissive),
@@ -628,11 +636,8 @@ impl ResourceStreamer {
                                 RenderMaterialAlphaMode::Mask { cutoff } => Some(cutoff),
                                 _ => None,
                             },
-                            lighting_model: if descriptor.unlit {
-                                RenderMaterialLightingModel::Unlit
-                            } else {
-                                descriptor.lighting_model.clone()
-                            },
+                            lighting_model,
+                            shading_model_id,
                             unlit: descriptor.unlit || descriptor.lighting_model.is_unlit(),
                             cast_shadows: descriptor.cast_shadows,
                             receive_shadows: descriptor.receive_shadows,
@@ -829,6 +834,13 @@ impl ResourceStreamer {
     ) -> RenderCameraTargetGraphImportReport {
         self.last_output_target_graph_import_report
     }
+}
+
+fn shading_model_id_for_lighting_model(model: &RenderMaterialLightingModel) -> ShadingModelId {
+    builtin_shading_model_registry()
+        .resolve_lighting_model(model)
+        .map(|descriptor| descriptor.id)
+        .unwrap_or(SHADING_MODEL_ID_STANDARD_PBR)
 }
 
 #[allow(dead_code)]

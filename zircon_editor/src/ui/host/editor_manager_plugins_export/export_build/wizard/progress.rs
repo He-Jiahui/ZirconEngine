@@ -1,4 +1,4 @@
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExportStageProgressKind {
@@ -35,6 +35,7 @@ pub struct ExportWizardStreamEvent {
 pub struct ExportWizardProgressState {
     stages: Vec<ExportWizardStageProgressSnapshot>,
     current_stage: Option<ExportPipelineStage>,
+    json_diagnostics_depth: usize,
 }
 
 impl ExportWizardStageProgressSnapshot {
@@ -70,13 +71,17 @@ impl ExportWizardStageProgressSnapshot {
 
 impl ExportWizardProgressState {
     pub fn new() -> Self {
+        Self::for_stages(export_pipeline_stages())
+    }
+
+    pub fn for_stages(stages: impl IntoIterator<Item = ExportPipelineStage>) -> Self {
         Self {
-            stages: export_pipeline_stages()
-                .iter()
-                .copied()
+            stages: stages
+                .into_iter()
                 .map(ExportWizardStageProgressSnapshot::pending)
                 .collect(),
             current_stage: None,
+            json_diagnostics_depth: 0,
         }
     }
 
@@ -103,6 +108,7 @@ impl ExportWizardProgressState {
 
         if let Some((stage, profile)) = parse_stage_banner(trimmed) {
             self.current_stage = Some(stage);
+            self.json_diagnostics_depth = 0;
             let snapshot = self.stage_mut(stage);
             snapshot.kind = ExportStageProgressKind::Running;
             snapshot.profile = profile;
@@ -143,6 +149,31 @@ impl ExportWizardProgressState {
             });
         }
 
+        if self.json_diagnostics_depth > 0 {
+            let diagnostic = json_string_line_value(trimmed);
+            self.json_diagnostics_depth =
+                json_array_depth_after_line(trimmed, self.json_diagnostics_depth);
+            if let Some(diagnostic) = diagnostic {
+                let snapshot = self.stage_mut(stage);
+                snapshot.diagnostics.push(diagnostic);
+                return Some(ExportWizardStreamEvent {
+                    stage,
+                    kind: snapshot.kind,
+                    line: trimmed.to_string(),
+                });
+            }
+            return None;
+        }
+
+        if starts_json_diagnostics_array(trimmed) {
+            self.json_diagnostics_depth = json_array_depth_after_line(trimmed, 0);
+            return None;
+        }
+
+        if looks_like_report_json_line(trimmed) {
+            return None;
+        }
+
         if looks_like_diagnostic(trimmed) {
             let snapshot = self.stage_mut(stage);
             snapshot.diagnostics.push(trimmed.to_string());
@@ -170,11 +201,12 @@ impl Default for ExportWizardProgressState {
     }
 }
 
-pub fn export_pipeline_stages() -> [ExportPipelineStage; 7] {
+pub fn export_pipeline_stages() -> [ExportPipelineStage; 8] {
     [
         ExportPipelineStage::Validate,
-        ExportPipelineStage::CompileHost,
         ExportPipelineStage::SourceTemplate,
+        ExportPipelineStage::NativeDynamic,
+        ExportPipelineStage::CompileHost,
         ExportPipelineStage::CookAssets,
         ExportPipelineStage::Pack,
         ExportPipelineStage::PlatformBundle,
@@ -182,11 +214,43 @@ pub fn export_pipeline_stages() -> [ExportPipelineStage; 7] {
     ]
 }
 
+pub fn export_pipeline_stages_for_strategies(
+    strategies: &[ExportPackagingStrategy],
+) -> Vec<ExportPipelineStage> {
+    let mut stages = Vec::new();
+    stages.push(ExportPipelineStage::Validate);
+    if strategies.contains(&ExportPackagingStrategy::SourceTemplate) {
+        push_stage_once(&mut stages, ExportPipelineStage::SourceTemplate);
+    }
+    if strategies.contains(&ExportPackagingStrategy::NativeDynamic) {
+        push_stage_once(&mut stages, ExportPipelineStage::NativeDynamic);
+        push_stage_once(&mut stages, ExportPipelineStage::CompileHost);
+        push_stage_once(&mut stages, ExportPipelineStage::CookAssets);
+        push_stage_once(&mut stages, ExportPipelineStage::Pack);
+        push_stage_once(&mut stages, ExportPipelineStage::PlatformBundle);
+    }
+    if strategies.contains(&ExportPackagingStrategy::LibraryEmbed) {
+        push_stage_once(&mut stages, ExportPipelineStage::CompileHost);
+        push_stage_once(&mut stages, ExportPipelineStage::CookAssets);
+        push_stage_once(&mut stages, ExportPipelineStage::Pack);
+        push_stage_once(&mut stages, ExportPipelineStage::PlatformBundle);
+    }
+    stages.push(ExportPipelineStage::Report);
+    stages
+}
+
+fn push_stage_once(stages: &mut Vec<ExportPipelineStage>, stage: ExportPipelineStage) {
+    if !stages.contains(&stage) {
+        stages.push(stage);
+    }
+}
+
 pub fn parse_export_pipeline_stage(value: &str) -> Option<ExportPipelineStage> {
     match normalize_stage_name(value).as_str() {
         "validate" => Some(ExportPipelineStage::Validate),
-        "compilehost" => Some(ExportPipelineStage::CompileHost),
         "sourcetemplate" => Some(ExportPipelineStage::SourceTemplate),
+        "nativedynamic" => Some(ExportPipelineStage::NativeDynamic),
+        "compilehost" => Some(ExportPipelineStage::CompileHost),
         "cookassets" => Some(ExportPipelineStage::CookAssets),
         "pack" => Some(ExportPipelineStage::Pack),
         "platformbundle" => Some(ExportPipelineStage::PlatformBundle),
@@ -228,12 +292,17 @@ fn is_artifact_key(key: &str) -> bool {
             | "cooked_asset_manifest"
             | "delta_pack"
             | "host"
+            | "loader_manifest"
+            | "native_plugin_root"
+            | "native_plugins"
             | "pack"
             | "pipeline_report"
             | "previous_pack"
             | "project"
+            | "plugins_dir"
             | "report"
             | "source_asset_manifest"
+            | "stage_output"
             | "template"
             | "validate_report"
     )
@@ -259,17 +328,47 @@ fn parse_json_fatal_field(line: &str) -> Option<bool> {
 }
 
 fn looks_like_diagnostic(line: &str) -> bool {
-    if line.starts_with("\"diagnostics\"")
-        || line.starts_with("\"fatal\"")
-        || line.starts_with("\"fatal_stages\"")
-    {
-        return false;
-    }
     line.contains("diagnostic")
         || line.contains("Diagnostic")
         || line.contains("error")
         || line.contains("failed")
         || line.contains("fatal")
+}
+
+fn starts_json_diagnostics_array(line: &str) -> bool {
+    line.starts_with("\"diagnostics\"") && line.contains('[')
+}
+
+fn json_array_depth_after_line(line: &str, current_depth: usize) -> usize {
+    let mut depth = current_depth;
+    for character in line.chars() {
+        match character {
+            '[' => depth += 1,
+            ']' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    depth
+}
+
+fn looks_like_report_json_line(line: &str) -> bool {
+    matches!(
+        line.chars().next(),
+        Some('{') | Some('}') | Some('[') | Some(']')
+    ) || (line.starts_with('"') && (line.contains("\":") || json_string_line_value(line).is_some()))
+}
+
+fn json_string_line_value(line: &str) -> Option<String> {
+    let value = line.trim_end_matches(',');
+    if !value.starts_with('"') || !value.ends_with('"') || value.contains("\":") {
+        return None;
+    }
+    Some(
+        value
+            .trim_matches('"')
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\"),
+    )
 }
 
 #[cfg(test)]
@@ -325,6 +424,42 @@ mod tests {
     }
 
     #[test]
+    fn export_wizard_progress_ignores_pipeline_summary_json_lines() {
+        let mut progress = ExportWizardProgressState::new();
+
+        progress.push_stdout_line("zircon_export stage=Report profile=windows-release");
+        progress.push_stdout_line(r#"  "export_plan": {"#);
+        progress.push_stdout_line(r#"    "unsupported_strategies": ["#);
+        progress.push_stdout_line(r#"      "future_error_path""#);
+        progress.push_stdout_line(r#"    ]"#);
+        progress.push_stdout_line(r#"  },"#);
+        progress.push_stdout_line(r#""fatal": false,"#);
+
+        let report = progress
+            .snapshot(ExportPipelineStage::Report)
+            .expect("Report snapshot should exist");
+        assert_eq!(report.kind, ExportStageProgressKind::Passed);
+        assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    }
+
+    #[test]
+    fn export_wizard_progress_records_report_diagnostics_array_lines() {
+        let mut progress = ExportWizardProgressState::new();
+
+        progress.push_stdout_line("zircon_export stage=Report profile=windows-release");
+        progress.push_stdout_line(r#""diagnostics": ["#);
+        progress.push_stdout_line(r#"  "validate failed","#);
+        progress.push_stdout_line(r#"],"#);
+        progress.push_stdout_line(r#""fatal": true,"#);
+
+        let report = progress
+            .snapshot(ExportPipelineStage::Report)
+            .expect("Report snapshot should exist");
+        assert_eq!(report.kind, ExportStageProgressKind::Fatal);
+        assert_eq!(report.diagnostics, vec!["validate failed"]);
+    }
+
+    #[test]
     fn export_pipeline_stage_parser_accepts_cli_and_report_stage_names() {
         assert_eq!(
             parse_export_pipeline_stage("source_template"),
@@ -339,11 +474,20 @@ mod tests {
             Some(ExportPipelineStage::PlatformBundle)
         );
         assert_eq!(
+            parse_export_pipeline_stage("native_dynamic"),
+            Some(ExportPipelineStage::NativeDynamic)
+        );
+        assert_eq!(
+            parse_export_pipeline_stage("NativeDynamic"),
+            Some(ExportPipelineStage::NativeDynamic)
+        );
+        assert_eq!(
             export_pipeline_stages(),
             [
                 ExportPipelineStage::Validate,
-                ExportPipelineStage::CompileHost,
                 ExportPipelineStage::SourceTemplate,
+                ExportPipelineStage::NativeDynamic,
+                ExportPipelineStage::CompileHost,
                 ExportPipelineStage::CookAssets,
                 ExportPipelineStage::Pack,
                 ExportPipelineStage::PlatformBundle,

@@ -105,6 +105,74 @@ fn export_wizard_panel_retained_projection_disables_start_for_missing_inputs() {
         .all(|node| string_property(node, "slot_kind") == Some("MissingInputs")));
 }
 
+#[test]
+fn export_wizard_panel_retained_projection_preserves_report_body_native_payload_entry() {
+    let mut runtime = EditorUiHostRuntime::default();
+    register_export_wizard_panel_template(&mut runtime, desktop_export_panel_template_path())
+        .expect("desktop export panel template should register");
+    let plan = export_wizard_pipeline_plan(ready_export_options());
+    let view_model = ExportWizardPanelViewModel::from_plan("export-retained-report-body", &plan);
+    let mut projection =
+        export_wizard_panel_retained_projection(&runtime, &view_model, UiSize::new(960.0, 540.0))
+            .expect("retained projection should build");
+    let mut state = export_wizard_panel_template_state(&view_model);
+    state
+        .slots
+        .iter_mut()
+        .find(|slot| slot.kind == ExportWizardPanelSlotKind::ReportBody)
+        .expect("report body slot should exist")
+        .entries
+        .push(ExportWizardPanelSlotEntry {
+            key: "report.native_plugins_payload.bundle_path".to_string(),
+            label: "Native Plugins Bundle".to_string(),
+            detail: "D:\\zircon-export\\bundle\\windows-release\\plugins".to_string(),
+            stage: Some(zircon_runtime::plugin::ExportPipelineStage::Report),
+            severity: ExportWizardPanelEntrySeverity::Success,
+        });
+
+    apply_export_wizard_panel_template_state(&mut projection, &state);
+
+    let native_payload_node = projection
+        .node_by_control_id("DesktopExportReportBody.report.native_plugins_payload.bundle_path")
+        .expect("native payload report body row should project");
+    assert_eq!(
+        native_payload_node.text.as_deref(),
+        Some("Native Plugins Bundle: D:\\zircon-export\\bundle\\windows-release\\plugins")
+    );
+    assert_eq!(
+        native_payload_node.value_text.as_deref(),
+        Some("D:\\zircon-export\\bundle\\windows-release\\plugins")
+    );
+    assert_eq!(
+        native_payload_node.validation_level.as_deref(),
+        Some("success")
+    );
+    assert_eq!(
+        native_payload_node.validation_message.as_deref(),
+        Some("D:\\zircon-export\\bundle\\windows-release\\plugins")
+    );
+    assert_eq!(
+        string_property(native_payload_node, "slot_kind"),
+        Some("ReportBody")
+    );
+    assert_eq!(
+        string_property(native_payload_node, "entry_key"),
+        Some("report.native_plugins_payload.bundle_path")
+    );
+    assert_eq!(
+        string_property(native_payload_node, "detail"),
+        Some("D:\\zircon-export\\bundle\\windows-release\\plugins")
+    );
+    assert_eq!(
+        string_property(native_payload_node, "severity"),
+        Some("Success")
+    );
+    assert_eq!(
+        string_property(native_payload_node, "stage"),
+        Some("report")
+    );
+}
+
 fn string_property<'a>(node: &'a RetainedUiHostNodeModel, key: &str) -> Option<&'a str> {
     match node.properties.get(key) {
         Some(RetainedUiHostValue::String(value)) => Some(value.as_str()),

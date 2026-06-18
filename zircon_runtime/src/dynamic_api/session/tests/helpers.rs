@@ -196,6 +196,13 @@ pub(super) fn click_vampire_menu_button(
     width: u32,
     height: u32,
 ) {
+    let resized = session.handle_event(ZrRuntimeEventV1::viewport_resized(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        zircon_runtime_interface::ZrRuntimeViewportSizeV1::new(width.max(1), height.max(1)),
+    ));
+    assert!(resized.is_ok(), "{resized:?}");
+
     let pointer_x = width as f32 * 0.5;
     let pointer_y = height as f32 * 0.5 + 68.0;
     let moved = session.handle_event(ZrRuntimeEventV1::pointer_moved(

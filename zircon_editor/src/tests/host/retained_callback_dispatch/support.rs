@@ -28,15 +28,17 @@ pub(super) use crate::ui::retained_host::callback_dispatch::{
     dispatch_layout_command, dispatch_menu_action, dispatch_mesh_import_path_edit,
     dispatch_tab_drop, dispatch_viewport_command, dispatch_viewport_pointer_event,
     BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceTemplateBridge,
-    BuiltinHostDrawerSourceTemplateBridge, BuiltinHostWindowTemplateBridge,
-    BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
-    BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge, SharedViewportPointerBridge,
-    WorkbenchCommandPaletteOpenState,
+    BuiltinHostWindowTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
+    BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
+    BuiltinWelcomeSurfaceTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    SharedViewportPointerBridge, WorkbenchCommandPaletteOpenState,
+    WORKBENCH_CONTEXT_MENU_CONTROL_ID, WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+    WORKBENCH_TOAST_CONTROL_ID,
 };
 pub(super) use crate::ui::retained_host::tab_drag::{
     HostDragTargetGroup, ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop,
 };
+pub(super) use crate::ui::retained_host::WorkbenchContextMenuRequestData;
 pub(super) use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId, SplitAxis, SplitPlacement,
     WorkspaceTarget,

@@ -8,7 +8,7 @@ use zircon_runtime::plugin::{
     ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePlugin,
     RuntimePluginAvailabilityCategory, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
-use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 use super::super::{
     bootstrap_export_runtime_with_native_plugins_from_export_root,

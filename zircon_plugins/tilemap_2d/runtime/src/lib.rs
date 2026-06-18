@@ -49,14 +49,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Tilemap 2D",
-        zircon_runtime::RuntimePluginId::Tilemap2d,
+        zircon_runtime::builtin::RuntimePluginId::Tilemap2d,
         "zircon_plugin_tilemap_2d_runtime",
     )
     .with_category("authoring")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.tilemap_2d")
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(

@@ -33,7 +33,7 @@ impl UiSurfaceInputState {
             .any(|capture| capture.owner == owner)
     }
 
-    pub fn has_legacy_or_indexed_pointer_capture_for_owner(&self, owner: UiNodeId) -> bool {
+    pub fn has_pointer_capture_or_unindexed_fallback_for_owner(&self, owner: UiNodeId) -> bool {
         self.has_pointer_capture_for_owner(owner)
             || (self.pointer_captures.is_empty() && self.captured_pointer_id.is_some())
     }

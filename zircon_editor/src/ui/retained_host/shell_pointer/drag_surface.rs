@@ -10,13 +10,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTreeNode},
 };
 
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
-    resolve_root_document_region_frame, resolve_root_left_region_frame,
-    resolve_root_right_region_frame, resolve_root_status_bar_frame,
-};
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::{ShellFrame, ShellSizePx};
 use crate::ui::workbench::layout::DockEdge;
@@ -40,7 +35,7 @@ pub(super) fn build_drag_surface(
     root_size: ShellSizePx,
     drawers_visible: bool,
     floating_windows: &[FloatingWindowModel],
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
 ) -> (
     UiSurface,
@@ -117,13 +112,33 @@ pub(super) fn build_drag_surface(
         root_size.width.max(0.0),
         root_size.height.max(0.0),
     );
-    let resolved_center_band_frame = resolve_root_center_band_frame(shared_root_frames);
-    let resolved_status_bar_frame = resolve_root_status_bar_frame(shared_root_frames);
-    let resolved_document_region_frame = resolve_direct_document_host_frame(shared_root_frames)
-        .unwrap_or_else(|| resolve_root_document_region_frame(shared_root_frames));
-    let resolved_left_region_frame = resolve_root_left_region_frame(shared_root_frames);
-    let resolved_right_region_frame = resolve_root_right_region_frame(shared_root_frames);
-    let resolved_bottom_region_frame = resolve_root_bottom_region_frame(shared_root_frames);
+    let resolved_center_band_frame = componentized_workbench_layout_frames
+        .center_band_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame)
+        .unwrap_or_default();
+    let resolved_status_bar_frame = componentized_workbench_layout_frames
+        .status_bar_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame)
+        .unwrap_or_default();
+    let resolved_document_region_frame = componentized_workbench_layout_frames
+        .document_region_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame)
+        .unwrap_or_default();
+    let resolved_left_region_frame = componentized_workbench_layout_frames
+        .left_region_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame);
+    let resolved_right_region_frame = componentized_workbench_layout_frames
+        .right_region_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame);
+    let resolved_bottom_region_frame = componentized_workbench_layout_frames
+        .bottom_region_frame
+        .and_then(frame_if_visible)
+        .map(shell_frame);
     let root_projection_visible =
         frame_is_visible(resolved_center_band_frame) && frame_is_visible(resolved_status_bar_frame);
     let overlay_top = resolved_center_band_frame.y.max(0.0);
@@ -133,46 +148,36 @@ pub(super) fn build_drag_surface(
         .max(overlay_top);
     let overlay_height = (overlay_bottom - overlay_top).max(0.0);
 
-    let left_width = resolved_left_region_frame.width.max(MIN_SIDE_DROP_EXTENT);
-    let right_width = resolved_right_region_frame.width.max(MIN_SIDE_DROP_EXTENT);
-    let bottom_height = resolved_bottom_region_frame
-        .height
-        .max(MIN_BOTTOM_DROP_EXTENT);
-
     let left_drag_frame = (drawers_visible && root_projection_visible)
-        .then(|| {
+        .then(|| resolved_left_region_frame)
+        .flatten()
+        .and_then(|frame| {
+            let left_width = frame.width.max(MIN_SIDE_DROP_EXTENT);
             frame_if_visible(clamp_frame_to_root(
-                UiFrame::new(0.0, overlay_top, left_width, overlay_height),
+                UiFrame::new(frame.x, overlay_top, left_width, overlay_height),
                 root_frame,
             ))
-        })
-        .flatten();
+        });
     let right_drag_frame = (drawers_visible && root_projection_visible)
-        .then(|| {
+        .then(|| resolved_right_region_frame)
+        .flatten()
+        .and_then(|frame| {
+            let right_width = frame.width.max(MIN_SIDE_DROP_EXTENT);
             frame_if_visible(clamp_frame_to_root(
-                UiFrame::new(
-                    (root_frame.width - right_width).max(0.0),
-                    overlay_top,
-                    right_width,
-                    overlay_height,
-                ),
+                UiFrame::new(frame.x, overlay_top, right_width, overlay_height),
                 root_frame,
             ))
-        })
-        .flatten();
+        });
     let bottom_drag_frame = (drawers_visible && root_projection_visible)
-        .then(|| {
+        .then(|| resolved_bottom_region_frame)
+        .flatten()
+        .and_then(|frame| {
+            let bottom_height = frame.height.max(MIN_BOTTOM_DROP_EXTENT);
             frame_if_visible(clamp_frame_to_root(
-                UiFrame::new(
-                    0.0,
-                    (overlay_bottom - bottom_height).max(overlay_top),
-                    root_frame.width,
-                    bottom_height,
-                ),
+                UiFrame::new(frame.x, frame.y, frame.width, bottom_height),
                 root_frame,
             ))
-        })
-        .flatten();
+        });
     let document_drag_frame = frame_if_visible(clamp_frame_to_root(
         UiFrame::new(
             resolved_document_region_frame.x.max(0.0),
@@ -363,15 +368,6 @@ pub(super) fn build_drag_surface(
 
     surface.rebuild();
     (surface, drag_dispatcher, drag_routes)
-}
-
-fn resolve_direct_document_host_frame(
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
-) -> Option<ShellFrame> {
-    shared_root_frames
-        .and_then(|frames| frames.document_host_frame)
-        .map(shell_frame)
-        .filter(|frame| frame.width > 0.0 && frame.height > 0.0)
 }
 
 fn shell_frame(frame: UiFrame) -> ShellFrame {

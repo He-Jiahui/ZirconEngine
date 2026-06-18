@@ -8,7 +8,7 @@ fn browser_gamepad_backend_is_separate_from_gilrs() {
 
     let without_browser_backend = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::WebGpu,
-        crate::RuntimeTargetMode::ClientRuntime,
+        crate::builtin::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(
@@ -33,7 +33,7 @@ fn browser_gamepad_backend_is_separate_from_gilrs() {
     features.gamepad_browser = true;
     let with_browser_backend = PlatformCapabilityMatrix::new(features).report(
         PlatformTarget::WebGpu,
-        crate::RuntimeTargetMode::ClientRuntime,
+        crate::builtin::RuntimeTargetMode::ClientRuntime,
     );
 
     assert_eq!(

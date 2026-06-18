@@ -1,7 +1,10 @@
-use crate::plugin::{
+use crate::plugin::native::{
     native_bridge_method_descriptors_from_manifest, NativeBridgeMethodBinding,
-    NativeHostBridgeCallScope, PluginModuleKind, PluginPackageManifest,
-    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleState,
+    NativeHostBridgeCallScope,
+};
+use crate::plugin::{
+    PluginModuleKind, PluginPackageManifest, RuntimePluginBridgeLifecycleEvent,
+    RuntimePluginBridgeLifecycleState,
 };
 
 use super::diagnostics::unloaded_plugin_error;

@@ -64,9 +64,9 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
-            .read_external(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS)
+            .read_external_texture(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS)
             .read_texture(PostProcessGraphResourceNames::TAA_REACTIVE_MASK)
-            .write_external(PostProcessGraphResourceNames::TAA_HISTORY_CURRENT)
+            .write_external_texture(PostProcessGraphResourceNames::TAA_HISTORY_CURRENT)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::TAA_OUTPUT,
                 RenderGraphAttachmentOps::clear_store(),

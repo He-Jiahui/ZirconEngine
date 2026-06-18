@@ -3,10 +3,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::asset::AssetUri;
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
     plugin::ExportTargetPlatform, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]

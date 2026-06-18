@@ -3,7 +3,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassGpuExecutionContext;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
-use crate::render_graph::RenderGraphAttachmentOps;
+use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 
 impl RenderPassGpuExecutionContext<'_> {
     pub(in crate::graphics::scene::scene_renderer) fn record_velocity_object_to_resource(
@@ -13,10 +13,20 @@ impl RenderPassGpuExecutionContext<'_> {
         depth_resource_name: &str,
         attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
-        let velocity_view = self
-            .resources
-            .require_texture_view(velocity_resource_name)?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver();
+        let velocity_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            velocity_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!(
                 "mesh object velocity graph executor for pass `{pass_name}` requires mesh draw context"

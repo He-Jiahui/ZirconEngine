@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 const EXPECTED_QUERY_STATE_MODULES: &[&str] = &[
+    "cache",
     "cached_direct",
     "helpers",
     "mod",
@@ -95,6 +96,7 @@ fn query_state_stays_folder_backed_by_query_owner() {
         );
     }
 
+    let cache_text = read_source(&owner_root.join("cache.rs"));
     let read_only_text = read_source(&owner_root.join("read_only.rs"));
     let read_only_cached_text = read_source(&owner_root.join("read_only_cached.rs"));
     let cached_direct_text = read_source(&owner_root.join("cached_direct.rs"));
@@ -117,8 +119,8 @@ fn query_state_stays_folder_backed_by_query_owner() {
     }
 
     assert!(
-        root_text.contains("pub(crate) fn cached_entity_location("),
-        "query_state/mod.rs must own shared cache-slot resolution for cached query owners"
+        cache_text.contains("pub(crate) fn cached_entity_location("),
+        "query_state/cache.rs must own shared cache-slot resolution for cached query owners"
     );
     assert!(
         root_text.contains("cache_hits: u64")
@@ -135,15 +137,16 @@ fn query_state_stays_folder_backed_by_query_owner() {
             && stats_text.contains("ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC")
             && stats_text.contains("\"ecs.query.archetype_cache_hits\"")
             && stats_text.contains("cache_hits: self.cache_hits")
-            && stats_text.contains("candidate_entity_count: self.last_candidate_entity_count"),
-        "query_state/stats.rs must expose the Runtime 07 cache telemetry snapshot without moving cache ownership"
+            && stats_text.contains("candidate_entity_count: self.last_candidate_entity_count")
+            && stats_text.contains("pub(crate) fn record_change_detection_stats("),
+        "query_state/stats.rs must expose Runtime 07 cache and change-detection telemetry without moving cache ownership"
     );
     assert!(
         root_text.contains("cached_component_locations: Vec<ComponentStorageLocation>")
             && root_text.contains("cached_component_location_offsets: Vec<usize>")
-            && root_text.contains("Vec::with_capacity(self.access.reads().len())")
-            && root_text.contains(".extend(component_locations.iter().copied())"),
-        "QueryState cache rebuilds must store cached component locations as one flat buffer plus per-entity offsets"
+            && cache_text.contains("Vec::with_capacity(component_count)")
+            && cache_text.contains(".extend(component_locations.iter().copied())"),
+        "QueryState cache owner must store cached component locations as one flat buffer plus per-entity offsets"
     );
     assert!(
         !root_text.contains("Vec<Vec<ComponentStorageLocation>>"),
@@ -455,12 +458,14 @@ fn query_many_cached_iter_uses_borrowed_cache_index_membership() {
         .expect("read cached get-after-update implementation");
     assert!(
         contains_cached.contains("self.cached_entity_location(entity)")
-            && contains_cached.contains("F::matches_component_locations("),
+            && (contains_cached.contains("F::matches_component_locations(")
+                || contains_cached.contains("F::matches_component_locations_with_stats(")),
         "cached contains must use the resolved cache slot and component-location filter path"
     );
     assert!(
         get_cached_after_update.contains("self.cached_entity_location(entity)")
-            && get_cached_after_update.contains("F::matches_component_locations(")
+            && (get_cached_after_update.contains("F::matches_component_locations(")
+                || get_cached_after_update.contains("F::matches_component_locations_with_stats("))
             && get_cached_after_update.contains("D::fetch_with_component_locations("),
         "cached get paths must reuse cached component locations for filter and fetch"
     );
@@ -474,7 +479,7 @@ fn query_many_cached_iter_uses_borrowed_cache_index_membership() {
         read_only_cached_text
             .split("pub(crate) fn get_cached_with_ticks")
             .nth(1)
-            .and_then(|text| text.split("fn cached_entity_location").next())
+            .and_then(|text| text.split("fn get_cached_after_update_with_ticks").next())
             .is_some_and(|text| text.contains("world.contains_entity(entity)")),
         "get_cached_with_ticks must keep NotSpawned detection before cache membership errors"
     );
@@ -604,7 +609,8 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
         .join("scene")
         .join("ecs")
         .join("query");
-    let state_text = read_source(&query_root.join("query_state").join("mod.rs"));
+    let root_text = read_source(&query_root.join("query_state").join("mod.rs"));
+    let cache_text = read_source(&query_root.join("query_state").join("cache.rs"));
     let access_text = read_source(&query_root.join("query_access.rs"));
     let data_text = read_source(&query_root.join("query_data.rs"));
     let filter_text = read_source(&query_root.join("query_filter.rs"));
@@ -632,26 +638,26 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
         "QueryAccess::insert_id must not push then re-sort each access insertion"
     );
     assert!(
-        state_text.contains(
+        cache_text.contains(
             "component_storage_locations_for_internal("
         ),
         "QueryState cache rebuilds must reuse access.reads() for cached component storage locations"
     );
     assert!(
-        state_text.contains("self.access.reads(),")
-            && state_text.contains("&mut component_locations"),
+        cache_text.contains("self.access.reads(),")
+            && cache_text.contains("&mut component_locations"),
         "QueryState cache rebuilds must fill a reusable component-location scratch Vec from access.reads()"
     );
     assert!(
-        state_text.contains("let matched_archetypes = world.matching_query_archetypes(&self.access);")
-            && state_text.contains(
+        cache_text.contains("let matched_archetypes = world.matching_query_archetypes(&self.access);")
+            && cache_text.contains(
                 "let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);",
             )
-            && state_text.contains(
+            && cache_text.contains(
                 "world.visit_entity_locations_matching_archetypes(&matched_archetypes, |location| {",
             )
-            && !state_text.contains("entity_locations_matching_query_archetypes")
-            && !state_text.contains("candidate_locations"),
+            && !cache_text.contains("entity_locations_matching_query_archetypes")
+            && !cache_text.contains("candidate_locations"),
         "QueryState cache rebuilds must visit matching world locations directly instead of receiving a temporary candidate-location Vec"
     );
     let world_archetype_lookup = world_query_text
@@ -726,31 +732,31 @@ fn query_state_cache_rebuild_uses_access_reads_without_per_rebuild_merge() {
         "World component-location scratch fill must clear, reserve from access-read count, and push storage locations directly without iterator filter_map/extend growth"
     );
     assert!(
-        state_text.contains("let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);")
-            && state_text.contains("let component_count = self.access.reads().len();")
-            && state_text.contains("self.cached_entities.reserve(candidate_count);")
-            && state_text.contains("self.cached_entity_indices.reserve(candidate_count);")
-            && state_text.contains("self.cached_locations.reserve(candidate_count);")
-            && state_text.contains(
+        cache_text.contains("let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);")
+            && cache_text.contains("let component_count = self.access.reads().len();")
+            && cache_text.contains("self.cached_entities.reserve(candidate_count);")
+            && cache_text.contains("self.cached_entity_indices.reserve(candidate_count);")
+            && cache_text.contains("self.cached_locations.reserve(candidate_count);")
+            && cache_text.contains(
                 "self.cached_component_location_offsets\n            .reserve(candidate_count);",
             )
-            && state_text.contains(
+            && cache_text.contains(
                 "self.cached_component_locations\n            .reserve(candidate_count.saturating_mul(component_count));",
             ),
         "QueryState cache rebuilds must reserve candidate-sized entity/location caches before repopulating them"
     );
     assert!(
-        !state_text.contains("cached_component_ids"),
+        !cache_text.contains("cached_component_ids"),
         "QueryState::update_cache must not rebuild a temporary cached_component_ids Vec per cache revision"
     );
     assert!(
-        state_text.contains("cached_component_locations: Vec<ComponentStorageLocation>")
-            && state_text.contains("cached_component_location_offsets: Vec<usize>")
-            && !state_text.contains("Vec<Vec<ComponentStorageLocation>>"),
+        root_text.contains("cached_component_locations: Vec<ComponentStorageLocation>")
+            && root_text.contains("cached_component_location_offsets: Vec<usize>")
+            && !root_text.contains("Vec<Vec<ComponentStorageLocation>>"),
         "QueryState must keep component-location cache storage flat instead of retaining one Vec per entity"
     );
     assert!(
-        !state_text.contains("self.access.writes().iter()"),
+        !cache_text.contains("self.access.writes().iter()"),
         "QueryState::update_cache must not rescan writes when QueryAccess already mirrors writes into reads"
     );
 

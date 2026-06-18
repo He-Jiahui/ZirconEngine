@@ -1,4 +1,4 @@
-use crate::{RuntimePluginId, RuntimeTargetMode};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 use super::asset_rows::asset_builtin_catalog_rows;
 use super::core_rows::core_builtin_catalog_rows;

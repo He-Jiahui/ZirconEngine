@@ -1,6 +1,6 @@
 use crate::core::framework::render::CapturedFrame;
 
-use crate::CompiledRenderPipeline;
+use crate::graphics::CompiledRenderPipeline;
 
 use super::viewport_record::ViewportRecord;
 

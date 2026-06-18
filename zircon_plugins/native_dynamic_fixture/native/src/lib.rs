@@ -4,15 +4,15 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use serde::Deserialize;
 use serde_json::json;
 
-const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
-const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
-#[cfg(not(feature = "abi_v2_only"))]
 const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = 3;
+#[cfg(feature = "abi_unknown_version")]
+const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = 99;
+#[cfg(not(feature = "abi_unknown_version"))]
+const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
 const ZIRCON_NATIVE_PLUGIN_STATUS_ERROR: u32 = 1;
 const ZIRCON_NATIVE_PLUGIN_STATUS_DENIED: u32 = 2;
 const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
-const FIXTURE_HOST_HANDLE_REQUIRED: u64 = 1;
 const FIXTURE_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
@@ -24,7 +24,7 @@ version = "0.1.0"
 sdk_api_version = "0.1.0"
 display_name = "Native Dynamic Fixture"
 category = "sdk"
-description = "Real dynamic library fixture for ABI v3 native plugin loading with ABI v2 fallback coverage."
+description = "Real dynamic library fixture for ABI v3 native plugin loading and unknown-version rejection coverage."
 maturity = "experimental"
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]
@@ -48,54 +48,28 @@ capabilities = ["editor.extension.native_dynamic_fixture"]
 );
 
 const PLUGIN_ID: &[u8] = b"native_dynamic_fixture\0";
-const RUNTIME_ENTRY_V1: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v1\0";
-const EDITOR_ENTRY_V1: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v1\0";
-const RUNTIME_ENTRY_V2: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v2\0";
-const EDITOR_ENTRY_V2: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v2\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_runtime_entry_v3\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_ENTRY: &[u8] = b"zircon_native_dynamic_fixture_editor_entry_v3\0";
 const REQUESTED_CAPABILITIES: &[u8] =
     b"runtime.plugin.native_dynamic_fixture\neditor.extension.native_dynamic_fixture\0";
 const RUNTIME_NEGOTIATED_CAPABILITIES: &[u8] = b"runtime.plugin.native_dynamic_fixture\0";
 const EDITOR_NEGOTIATED_CAPABILITIES: &[u8] = b"editor.extension.native_dynamic_fixture\0";
-const RUNTIME_DIAGNOSTICS_V1: &[u8] = b"runtime entry reached\0";
-const EDITOR_DIAGNOSTICS_V1: &[u8] = b"editor entry reached\0";
-const EDITOR_DIAGNOSTICS_V2: &[u8] =
-    b"editor entry reached with v2 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_DIAGNOSTICS_V3: &[u8] =
     b"editor entry reached with v3 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
-const MISSING_HOST_DIAGNOSTICS: &[u8] = b"native v2 entry missing negotiated host ABI table\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const MISSING_HOST_DIAGNOSTICS_V3: &[u8] = b"native v3 entry missing negotiated host ABI table\0";
-const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY: &[u8] = b"runtime v2 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY_V3: &[u8] = b"runtime v3 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
 const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const COMMAND_MANIFEST_SCHEMA: &[u8] = b"zircon.native.command-manifest/3\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EVENT_MANIFEST_SCHEMA: &[u8] = b"zircon.native.event-manifest/3\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.runtime\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_HOST_LOG_TARGET: &[u8] = b"native_dynamic_fixture.editor\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_HOST_LOG_MESSAGE: &[u8] = b"runtime v3 host log callback reached\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_HOST_LOG_MESSAGE: &[u8] = b"editor v3 host log callback reached\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_HOST_DIAGNOSTIC_PATH: &[u8] = b"plugin.native_dynamic_fixture.runtime.entry\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_HOST_DIAGNOSTIC_PATH: &[u8] = b"plugin.native_dynamic_fixture.editor.entry\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const HOST_DIAGNOSTIC_UNIT: &[u8] = b"count\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const RUNTIME_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,runtime\0";
-#[cfg(not(feature = "abi_v2_only"))]
 const EDITOR_HOST_DIAGNOSTIC_TAGS: &[u8] = b"plugin,native,editor\0";
 const EDITOR_COMMAND_MANIFEST: &[u8] = b"\0";
 const EDITOR_EVENT_MANIFEST: &[u8] = b"\0";
@@ -116,32 +90,13 @@ const STATUS_STATELESS_UNLOAD_DIAGNOSTICS: &[u8] = b"stateless unload callback r
 const STATUS_STATELESS_COMMAND_DENIED_DIAGNOSTICS: &[u8] =
     b"stateless editor command dispatch has no commands\0";
 const STATUS_FREE_MISMATCH_DIAGNOSTICS: &[u8] = b"allocation/free owner mismatch\0";
-const RUNTIME_STATE_BLOB: &[u8] = b"state:v2:native_dynamic_fixture";
+const RUNTIME_STATE_BLOB: &[u8] = b"state:v3:native_dynamic_fixture";
 
 #[derive(Deserialize)]
 struct NativeAssetImportRequestMetadata {
     importer_id: String,
     source_uri: String,
     source_path: String,
-}
-
-#[repr(C)]
-pub struct NativePluginAbiV1 {
-    pub abi_version: u32,
-    pub plugin_id: *const c_char,
-    pub package_manifest_toml: *const c_char,
-    pub runtime_entry_name: *const c_char,
-    pub editor_entry_name: *const c_char,
-}
-
-#[repr(C)]
-pub struct NativePluginAbiV2 {
-    pub abi_version: u32,
-    pub plugin_id: *const c_char,
-    pub package_manifest_toml: *const c_char,
-    pub runtime_entry_name: *const c_char,
-    pub editor_entry_name: *const c_char,
-    pub requested_capabilities: *const c_char,
 }
 
 #[repr(C)]
@@ -162,22 +117,6 @@ pub struct NativePluginSchemaVersionsV3 {
 }
 
 #[repr(C)]
-pub struct NativePluginEntryReportV1 {
-    pub abi_version: u32,
-    pub package_manifest_toml: *const c_char,
-    pub diagnostics: *const c_char,
-}
-
-#[repr(C)]
-pub struct NativePluginEntryReportV2 {
-    pub abi_version: u32,
-    pub package_manifest_toml: *const c_char,
-    pub diagnostics: *const c_char,
-    pub negotiated_capabilities: *const c_char,
-    pub behavior: *const NativePluginBehaviorV2,
-}
-
-#[repr(C)]
 pub struct NativePluginEntryReportV3 {
     pub abi_version: u32,
     pub package_manifest_toml: *const c_char,
@@ -185,16 +124,6 @@ pub struct NativePluginEntryReportV3 {
     pub negotiated_capabilities: *const c_char,
     pub behavior: *const NativePluginBehaviorV3,
     pub bridge_methods: *const NativePluginBridgeMethodTableV3,
-}
-
-#[repr(C)]
-pub struct NativePluginHostFunctionTableV2 {
-    pub abi_version: u32,
-    pub host_handle: u64,
-    pub granted_capabilities: *const c_char,
-    pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
-    pub host_has_capability:
-        Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32>,
 }
 
 #[repr(C)]
@@ -246,18 +175,6 @@ pub struct NativePluginOwnedByteBufferV2 {
 pub struct NativePluginCallbackStatusV2 {
     pub code: u32,
     pub diagnostics: *const c_char,
-}
-
-#[repr(C)]
-pub struct NativePluginBehaviorV2 {
-    pub abi_version: u32,
-    pub is_stateless: u32,
-    pub command_manifest: *const c_char,
-    pub event_manifest: *const c_char,
-    pub invoke_command: Option<NativePluginInvokeCommandFnV2>,
-    pub save_state: Option<NativePluginSaveStateFnV2>,
-    pub restore_state: Option<NativePluginRestoreStateFnV2>,
-    pub unload: Option<NativePluginUnloadFnV2>,
 }
 
 #[repr(C)]
@@ -324,50 +241,16 @@ pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallback
 pub type NativePluginBridgeMethodFnV3 =
     unsafe extern "C" fn(NativePluginBridgeMethodCallV3) -> NativePluginHostStatusV3;
 
-struct SyncDescriptorV1(NativePluginAbiV1);
-struct SyncDescriptorV2(NativePluginAbiV2);
-#[cfg(not(feature = "abi_v2_only"))]
 struct SyncDescriptorV3(NativePluginAbiV3);
-struct SyncEntryReportV1(NativePluginEntryReportV1);
-struct SyncEntryReportV2(NativePluginEntryReportV2);
-#[cfg(not(feature = "abi_v2_only"))]
 struct SyncEntryReportV3(NativePluginEntryReportV3);
-struct SyncBehaviorV2(NativePluginBehaviorV2);
-#[cfg(not(feature = "abi_v2_only"))]
 struct SyncBehaviorV3(NativePluginBehaviorV3);
 
-unsafe impl Sync for SyncDescriptorV1 {}
-unsafe impl Sync for SyncDescriptorV2 {}
-#[cfg(not(feature = "abi_v2_only"))]
 unsafe impl Sync for SyncDescriptorV3 {}
-unsafe impl Sync for SyncEntryReportV1 {}
-unsafe impl Sync for SyncEntryReportV2 {}
-#[cfg(not(feature = "abi_v2_only"))]
 unsafe impl Sync for SyncEntryReportV3 {}
-unsafe impl Sync for SyncBehaviorV2 {}
-#[cfg(not(feature = "abi_v2_only"))]
 unsafe impl Sync for SyncBehaviorV3 {}
 
-static DESCRIPTOR_V1: SyncDescriptorV1 = SyncDescriptorV1(NativePluginAbiV1 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
-    plugin_id: PLUGIN_ID.as_ptr().cast(),
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    runtime_entry_name: RUNTIME_ENTRY_V1.as_ptr().cast(),
-    editor_entry_name: EDITOR_ENTRY_V1.as_ptr().cast(),
-});
-
-static DESCRIPTOR: SyncDescriptorV2 = SyncDescriptorV2(NativePluginAbiV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    plugin_id: PLUGIN_ID.as_ptr().cast(),
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    runtime_entry_name: RUNTIME_ENTRY_V2.as_ptr().cast(),
-    editor_entry_name: EDITOR_ENTRY_V2.as_ptr().cast(),
-    requested_capabilities: REQUESTED_CAPABILITIES.as_ptr().cast(),
-});
-
-#[cfg(not(feature = "abi_v2_only"))]
 static DESCRIPTOR_V3: SyncDescriptorV3 = SyncDescriptorV3(NativePluginAbiV3 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+    abi_version: ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION,
     plugin_id: PLUGIN_ID.as_ptr().cast(),
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
     runtime_entry_name: RUNTIME_ENTRY.as_ptr().cast(),
@@ -375,41 +258,6 @@ static DESCRIPTOR_V3: SyncDescriptorV3 = SyncDescriptorV3(NativePluginAbiV3 {
     requested_capabilities: REQUESTED_CAPABILITIES.as_ptr().cast(),
 });
 
-static RUNTIME_REPORT_V1: SyncEntryReportV1 = SyncEntryReportV1(NativePluginEntryReportV1 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: RUNTIME_DIAGNOSTICS_V1.as_ptr().cast(),
-});
-
-static EDITOR_REPORT_V1: SyncEntryReportV1 = SyncEntryReportV1(NativePluginEntryReportV1 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: EDITOR_DIAGNOSTICS_V1.as_ptr().cast(),
-});
-
-static RUNTIME_BEHAVIOR: SyncBehaviorV2 = SyncBehaviorV2(NativePluginBehaviorV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    is_stateless: 0,
-    command_manifest: RUNTIME_COMMAND_MANIFEST.as_ptr().cast(),
-    event_manifest: RUNTIME_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: Some(fixture_invoke_command),
-    save_state: Some(fixture_save_state),
-    restore_state: Some(fixture_restore_state),
-    unload: Some(fixture_unload),
-});
-
-static EDITOR_BEHAVIOR: SyncBehaviorV2 = SyncBehaviorV2(NativePluginBehaviorV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    is_stateless: 1,
-    command_manifest: EDITOR_COMMAND_MANIFEST.as_ptr().cast(),
-    event_manifest: EDITOR_EVENT_MANIFEST.as_ptr().cast(),
-    invoke_command: Some(fixture_stateless_invoke_command),
-    save_state: None,
-    restore_state: None,
-    unload: Some(fixture_stateless_unload),
-});
-
-#[cfg(not(feature = "abi_v2_only"))]
 static RUNTIME_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     is_stateless: 0,
@@ -426,7 +274,6 @@ static RUNTIME_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehavior
     unload: Some(fixture_unload),
 });
 
-#[cfg(not(feature = "abi_v2_only"))]
 static EDITOR_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     is_stateless: 1,
@@ -443,31 +290,6 @@ static EDITOR_BEHAVIOR_V3: SyncBehaviorV3 = SyncBehaviorV3(NativePluginBehaviorV
     unload: Some(fixture_stateless_unload),
 });
 
-static RUNTIME_REPORT: SyncEntryReportV2 = SyncEntryReportV2(NativePluginEntryReportV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY.as_ptr().cast(),
-    negotiated_capabilities: RUNTIME_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-    behavior: &RUNTIME_BEHAVIOR.0,
-});
-
-static EDITOR_REPORT: SyncEntryReportV2 = SyncEntryReportV2(NativePluginEntryReportV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: EDITOR_DIAGNOSTICS_V2.as_ptr().cast(),
-    negotiated_capabilities: EDITOR_NEGOTIATED_CAPABILITIES.as_ptr().cast(),
-    behavior: &EDITOR_BEHAVIOR.0,
-});
-
-static MISSING_HOST_REPORT: SyncEntryReportV2 = SyncEntryReportV2(NativePluginEntryReportV2 {
-    abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
-    package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
-    diagnostics: MISSING_HOST_DIAGNOSTICS.as_ptr().cast(),
-    negotiated_capabilities: b"\0".as_ptr().cast(),
-    behavior: std::ptr::null(),
-});
-
-#[cfg(not(feature = "abi_v2_only"))]
 static RUNTIME_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
@@ -479,7 +301,6 @@ static RUNTIME_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntr
     bridge_methods: std::ptr::null(),
 });
 
-#[cfg(not(feature = "abi_v2_only"))]
 static EDITOR_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
@@ -489,7 +310,6 @@ static EDITOR_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntry
     bridge_methods: std::ptr::null(),
 });
 
-#[cfg(not(feature = "abi_v2_only"))]
 static MISSING_HOST_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePluginEntryReportV3 {
     abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
     package_manifest_toml: PLUGIN_MANIFEST.as_bytes().as_ptr().cast(),
@@ -500,59 +320,11 @@ static MISSING_HOST_REPORT_V3: SyncEntryReportV3 = SyncEntryReportV3(NativePlugi
 });
 
 #[no_mangle]
-pub extern "C" fn zircon_native_plugin_descriptor_v1() -> *const NativePluginAbiV1 {
-    &DESCRIPTOR_V1.0
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_plugin_descriptor_v2() -> *const NativePluginAbiV2 {
-    &DESCRIPTOR.0
-}
-
-#[no_mangle]
-#[cfg(not(feature = "abi_v2_only"))]
 pub extern "C" fn zircon_native_plugin_descriptor_v3() -> *const NativePluginAbiV3 {
     &DESCRIPTOR_V3.0
 }
 
 #[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v1(
-) -> *const NativePluginEntryReportV1 {
-    &RUNTIME_REPORT_V1.0
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_editor_entry_v1() -> *const NativePluginEntryReportV1
-{
-    &EDITOR_REPORT_V1.0
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v2(
-    host_functions: *const NativePluginHostFunctionTableV2,
-) -> *const NativePluginEntryReportV2 {
-    if host_supports_capability(host_functions, "runtime.plugin.native_dynamic_fixture")
-        && !host_supports_capability(host_functions, "runtime.plugin.denied_fixture")
-    {
-        &RUNTIME_REPORT.0
-    } else {
-        &MISSING_HOST_REPORT.0
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn zircon_native_dynamic_fixture_editor_entry_v2(
-    host_functions: *const NativePluginHostFunctionTableV2,
-) -> *const NativePluginEntryReportV2 {
-    if host_supports_capability(host_functions, "editor.extension.native_dynamic_fixture") {
-        &EDITOR_REPORT.0
-    } else {
-        &MISSING_HOST_REPORT.0
-    }
-}
-
-#[no_mangle]
-#[cfg(not(feature = "abi_v2_only"))]
 pub extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
 ) -> *const NativePluginEntryReportV3 {
@@ -567,7 +339,6 @@ pub extern "C" fn zircon_native_dynamic_fixture_runtime_entry_v3(
 }
 
 #[no_mangle]
-#[cfg(not(feature = "abi_v2_only"))]
 pub extern "C" fn zircon_native_dynamic_fixture_editor_entry_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
 ) -> *const NativePluginEntryReportV3 {
@@ -850,37 +621,6 @@ unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV2) -> &'a [u8] {
     }
 }
 
-fn host_supports_capability(
-    host_functions: *const NativePluginHostFunctionTableV2,
-    capability: &str,
-) -> bool {
-    if host_functions.is_null() {
-        return false;
-    }
-    let host_functions = unsafe { &*host_functions };
-    let host_version = host_functions
-        .host_abi_version
-        .map(|host_abi_version| unsafe { host_abi_version() })
-        .unwrap_or_default();
-    if host_functions.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
-        || host_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
-    {
-        return false;
-    }
-    if host_functions.host_handle != FIXTURE_HOST_HANDLE_REQUIRED {
-        return false;
-    }
-    if let Some(host_has_capability) = host_functions.host_has_capability {
-        let Ok(capability) = CString::new(capability) else {
-            return false;
-        };
-        return unsafe { host_has_capability(host_functions, capability.as_ptr()) }
-            == ZIRCON_NATIVE_PLUGIN_STATUS_OK;
-    }
-    capability_list_contains(host_functions.granted_capabilities, capability)
-}
-
-#[cfg(not(feature = "abi_v2_only"))]
 fn host_supports_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
@@ -909,7 +649,6 @@ fn host_supports_capability_v3(
     capability_list_contains(host_functions.granted_capabilities, capability)
 }
 
-#[cfg(not(feature = "abi_v2_only"))]
 fn emit_host_v3_runtime_signals(host_functions: *const NativePluginHostFunctionTableV3) {
     if host_functions.is_null() {
         return;
@@ -938,7 +677,6 @@ fn emit_host_v3_runtime_signals(host_functions: *const NativePluginHostFunctionT
     }
 }
 
-#[cfg(not(feature = "abi_v2_only"))]
 fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTableV3) {
     if host_functions.is_null() {
         return;

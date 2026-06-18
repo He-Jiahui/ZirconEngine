@@ -5,7 +5,7 @@ use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::{
     RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
 };
@@ -126,6 +126,7 @@ impl SpriteRenderer {
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         stage: RenderPassStage,
+        render_region: ViewportRenderRegion,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
@@ -174,6 +175,9 @@ impl SpriteRenderer {
                 timestamp_writes: None,
                 multiview_mask: None,
             });
+            if !render_region.apply_to_render_pass(&mut pass) {
+                return;
+            }
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, scene_bind_group, &[]);
             pass.set_bind_group(1, &texture.bind_group, &[]);

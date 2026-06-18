@@ -4,11 +4,11 @@ use crate::asset::{AssetReference, AssetUri, AssetUuid};
 use crate::graphics::feature::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
 };
-use crate::render_graph::QueueLane;
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset,
 };
+use crate::render_graph::QueueLane;
 
 #[test]
 fn renderer_asset_projects_to_renderer_data_document_with_authoring_names() {

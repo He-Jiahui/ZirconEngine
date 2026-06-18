@@ -15,6 +15,7 @@ mod owner_route;
 mod pointer;
 mod pointer_reply;
 mod popup;
+mod route_authority;
 mod route_policy;
 mod route_steps;
 mod state;

@@ -1,5 +1,6 @@
 struct PostProcessParams {
     viewport_and_clusters: vec4<u32>,
+    cluster_dimensions: vec4<u32>,
     feature_flags: vec4<u32>,
     lighting_flags: vec4<u32>,
     hybrid_gi_counts: vec4<u32>,
@@ -131,16 +132,51 @@ fn color_luminance(color: vec3<f32>) -> f32 {
     return dot(color, vec3<f32>(0.299, 0.587, 0.114));
 }
 
-fn load_scene_rgb(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
+fn viewport_size() -> vec2<u32> {
+    return max(params.viewport_and_clusters.xy, vec2<u32>(1u, 1u));
+}
+
+fn viewport_origin() -> vec2<u32> {
+    return params.viewport_and_clusters.zw;
+}
+
+fn scene_color_origin() -> vec2<u32> {
+    return params.cluster_dimensions.zw;
+}
+
+fn local_coord(position: vec4<f32>) -> vec2<u32> {
+    let size = viewport_size();
+    return min(vec2<u32>(position.xy), size - vec2<u32>(1u, 1u));
+}
+
+fn physical_coord(coord: vec2<u32>) -> vec2<u32> {
+    return viewport_origin() + coord;
+}
+
+fn physical_coord_i32(coord: vec2<i32>) -> vec2<i32> {
+    return vec2<i32>(viewport_origin()) + coord;
+}
+
+fn scene_color_coord_i32(coord: vec2<i32>) -> vec2<i32> {
+    return vec2<i32>(scene_color_origin()) + coord;
+}
+
+fn load_scene_color(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec4<f32> {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
-    return textureLoad(scene_color_tex, clamped, 0).rgb;
+    return textureLoad(scene_color_tex, scene_color_coord_i32(clamped), 0);
+}
+
+fn load_scene_rgb(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
+    return load_scene_color(coord, viewport_size).rgb;
 }
 
 fn load_scene_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
-    let uv = (vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)) / vec2<f32>(viewport_size);
+    let physical_coord = physical_coord_i32(clamped);
+    let target_size = vec2<f32>(textureDimensions(scene_depth_tex));
+    let uv = (vec2<f32>(physical_coord) + vec2<f32>(0.5, 0.5)) / max(target_size, vec2<f32>(1.0, 1.0));
     return clamp(textureSample(scene_depth_tex, scene_depth_sampler, uv), 0.0, 1.0);
 }
 
@@ -538,6 +574,10 @@ fn sample_effect_lut(color: vec3<f32>, binding_mode: u32) -> vec3<f32> {
 }
 
 fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
+    if (params.effect_flags.y == 4u) {
+        return sample_effect_lut_3d(color);
+    }
+
     let exposure = exp2(params.effect_tonemap_lut.x);
     let white_point = max(params.effect_tonemap_lut.y, 0.001);
     var mapped = max(color * exposure, vec3<f32>(0.0));
@@ -568,28 +608,80 @@ fn load_resolved_screen_space_reflection(coord: vec2<i32>, viewport_size: vec2<u
     return vec4<f32>(resolved.rgb, clamp(resolved.a, 0.0, 1.0));
 }
 
+fn apply_scene_composite(uv: vec2<f32>, coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let coord_i32 = vec2<i32>(coord);
+    let resolved_reflection =
+        load_resolved_screen_space_reflection(coord_i32, viewport_size);
+    let reflection_weight =
+        resolved_reflection.a * clamp(params.effect_dither_ssr.z, 0.0, 1.0);
+    var composited = mix(color, resolved_reflection.rgb, reflection_weight);
+    composited = apply_effect_fog(uv, coord, viewport_size, composited);
+    return composited;
+}
+
+@fragment
+fn fs_depth_of_field(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let viewport_size = viewport_size();
+    let coord = local_coord(position);
+    let coord_i32 = vec2<i32>(coord);
+    let scene_color = load_scene_color(coord_i32, viewport_size);
+    let blurred = apply_effect_blur_family(coord, viewport_size, scene_color.rgb);
+    return vec4<f32>(blurred, scene_color.a);
+}
+
+@fragment
+fn fs_blur(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let viewport_size = viewport_size();
+    let coord = local_coord(position);
+    let coord_i32 = vec2<i32>(coord);
+    let scene_color = load_scene_color(coord_i32, viewport_size);
+    let blurred = apply_effect_blur_family(coord, viewport_size, scene_color.rgb);
+    return vec4<f32>(blurred, scene_color.a);
+}
+
+@fragment
+fn fs_motion_blur(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let viewport_size = viewport_size();
+    let coord = local_coord(position);
+    let coord_i32 = vec2<i32>(coord);
+    let scene_color = load_scene_color(coord_i32, viewport_size);
+    let blurred = apply_motion_blur_vector_gather(coord, viewport_size, scene_color.rgb);
+    return vec4<f32>(blurred, scene_color.a);
+}
+
+@fragment
+fn fs_scene_composite(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let viewport_size = viewport_size();
+    let coord = local_coord(position);
+    let coord_i32 = vec2<i32>(coord);
+    let uv = (vec2<f32>(coord) + vec2<f32>(0.5)) / vec2<f32>(viewport_size);
+    let scene_color = load_scene_color(coord_i32, viewport_size);
+    let composited = apply_scene_composite(uv, coord, viewport_size, scene_color.rgb);
+    return vec4<f32>(composited, scene_color.a);
+}
+
 @fragment
 fn fs_screen_space_reflection_resolve(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-    let viewport_size = params.viewport_and_clusters.xy;
-    let coord = min(vec2<u32>(position.xy), viewport_size - vec2<u32>(1u, 1u));
+    let viewport_size = viewport_size();
+    let coord = local_coord(position);
     return resolve_screen_space_reflection_history(coord, viewport_size);
 }
 
 @fragment
 fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
-    let viewport_size = params.viewport_and_clusters.xy;
-    let cluster_dims = params.viewport_and_clusters.zw;
-    let coord = min(vec2<u32>(position.xy), viewport_size - vec2<u32>(1u, 1u));
+    let viewport_size = viewport_size();
+    let cluster_dims = max(params.cluster_dimensions.xy, vec2<u32>(1u, 1u));
+    let coord = local_coord(position);
     let coord_i32 = vec2<i32>(coord);
     let uv = (vec2<f32>(coord) + vec2<f32>(0.5)) / vec2<f32>(viewport_size);
 
-    let scene_color = textureLoad(scene_color_tex, coord_i32, 0);
+    let scene_color = load_scene_color(coord_i32, viewport_size);
     var color = scene_color.rgb;
 
     if (params.feature_flags.x != 0u || params.lighting_flags.x != 0u) {
         var occlusion_factor = 1.0;
         if (params.feature_flags.x != 0u) {
-            let ao = textureLoad(ambient_occlusion_tex, coord_i32, 0).r;
+            let ao = textureLoad(ambient_occlusion_tex, physical_coord_i32(coord_i32), 0).r;
             occlusion_factor = occlusion_factor * max(ao * ao, 0.12);
         }
         if (params.lighting_flags.x != 0u) {
@@ -609,7 +701,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     }
 
     if (params.feature_flags.z != 0u) {
-        let history = textureLoad(history_scene_color_tex, coord_i32, 0).rgb;
+        let history = textureLoad(history_scene_color_tex, physical_coord_i32(coord_i32), 0).rgb;
         color = mix(color, history, params.blends.x);
     }
 
@@ -721,7 +813,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
             * params.hybrid_gi_color_and_intensity.w;
         if (params.hybrid_gi_counts.z != 0u) {
             let global_illumination_history_sample =
-                textureLoad(history_global_illumination_tex, coord_i32, 0);
+                textureLoad(history_global_illumination_tex, physical_coord_i32(coord_i32), 0);
             global_illumination_history = global_illumination_history_sample.rgb;
             let spatial_history_blend =
                 params.blends.x
@@ -764,10 +856,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         color = apply_effect_blur_family(coord, viewport_size, color);
         color = apply_motion_blur_vector_gather(coord, viewport_size, color);
         color = apply_chromatic_aberration(coord, viewport_size, color);
-        let resolved_reflection =
-            load_resolved_screen_space_reflection(coord_i32, viewport_size);
-        color = mix(color, resolved_reflection.rgb, resolved_reflection.a);
-        color = apply_effect_fog(uv, coord, viewport_size, color);
+        color = apply_scene_composite(uv, coord, viewport_size, color);
         color = apply_vignette(uv, color);
         color = apply_grain_and_dither(coord, color);
     }
@@ -777,7 +866,9 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
     }
 
     color = apply_tonemap_and_lut(color);
-    color = apply_color_grading(color);
+    if (params.effect_flags.y != 4u) {
+        color = apply_color_grading(color);
+    }
     var output: FragmentOutput;
     output.final_color = vec4<f32>(color, scene_color.a);
     output.global_illumination = vec4<f32>(indirect_light, indirect_light_history_signature);

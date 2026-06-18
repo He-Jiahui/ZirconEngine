@@ -111,6 +111,17 @@ impl PrimitiveRelevance {
         self.has(Self::MOTION_VECTOR_CANDIDATE)
     }
 
+    pub fn view_visible_for_layers(
+        self,
+        camera_layers: &RenderLayerSet,
+        render_layer_mask: u32,
+    ) -> bool {
+        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+            return false;
+        }
+        self.is_opaque() || self.is_alpha_mask() || self.is_transparent()
+    }
+
     pub fn is_relevant_to_phase(self, phase: RenderPhase) -> bool {
         match phase {
             RenderPhase::Prepass => self.depth_prepass(),

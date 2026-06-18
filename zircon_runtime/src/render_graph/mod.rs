@@ -1,11 +1,16 @@
 //! Render graph construction and compilation.
 
 mod builder;
+mod dump;
 mod error;
 mod graph;
 mod types;
 
 pub use builder::RenderGraphBuilder;
+pub use dump::{
+    RenderGraphDump, RenderGraphDumpPassResourceRow, RenderGraphDumpPassRow,
+    RenderGraphDumpResourceDesc, RenderGraphDumpResourceRow, RenderGraphDumpTransientSlotRow,
+};
 pub use error::RenderGraphError;
 pub use graph::{
     CompiledRenderGraph, CompiledRenderGraphStats, CompiledRenderGraphTransientAllocation,
@@ -14,9 +19,11 @@ pub use graph::{
 pub use types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
     RenderGraphAttachmentStoreOp, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
-    RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
-    RenderGraphResourceLifetime, RenderPassId, RgBufferHandle, RgTextureHandle,
+    RenderGraphExternalResourceBinding, RenderGraphExternalResourceRequirement,
+    RenderGraphExternalResourceType, RenderGraphPassResourceAccess, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
+    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderGraphResourceUsageFlags,
+    RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 
 #[cfg(test)]

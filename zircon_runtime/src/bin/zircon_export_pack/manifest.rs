@@ -30,6 +30,7 @@ pub struct ExportPackInputs {
     pub trim_report: ZrPackTrimReport,
     pub pack_assets: Vec<ZrPackInputAsset>,
     pub diagnostics: Vec<String>,
+    pub asset_source_errors: Vec<String>,
 }
 
 impl ExportAssetPackManifest {
@@ -60,20 +61,31 @@ impl ExportAssetPackManifest {
         }
 
         let mut pack_assets = Vec::new();
+        let mut asset_source_errors = Vec::new();
         for path in &trim_report.included_assets {
-            let entry = self
-                .assets
-                .iter()
-                .find(|asset| asset.path == *path)
-                .ok_or_else(|| format!("included asset {path} was not found in manifest"))?;
-            let source = entry
-                .source
-                .as_ref()
-                .ok_or_else(|| format!("included asset {path} is missing source"))?;
+            let Some(entry) = self.assets.iter().find(|asset| asset.path == *path) else {
+                let diagnostic = format!("included asset {path} was not found in manifest");
+                diagnostics.push(diagnostic.clone());
+                asset_source_errors.push(diagnostic);
+                continue;
+            };
+            let Some(source) = entry.source.as_ref() else {
+                let diagnostic = format!("included asset {path} is missing source");
+                diagnostics.push(diagnostic.clone());
+                asset_source_errors.push(diagnostic);
+                continue;
+            };
             let source = source_path(manifest_dir, source);
-            let bytes = std::fs::read(&source).map_err(|error| {
-                format!("failed to read asset source {}: {error}", source.display())
-            })?;
+            let bytes = match std::fs::read(&source) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    let diagnostic =
+                        format!("failed to read asset source {}: {error}", source.display());
+                    diagnostics.push(diagnostic.clone());
+                    asset_source_errors.push(diagnostic);
+                    continue;
+                }
+            };
             pack_assets.push(ZrPackInputAsset::new(path.clone(), bytes));
         }
 
@@ -81,6 +93,7 @@ impl ExportAssetPackManifest {
             trim_report,
             pack_assets,
             diagnostics,
+            asset_source_errors,
         })
     }
 }

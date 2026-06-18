@@ -848,12 +848,21 @@ fn event_ui_api_moves_under_event_ui_namespace() {
         );
     }
 
-    for required in ["UiBindingCodec", "UiEventManager"] {
+    for required in ["UiEventManager"] {
         assert!(
             event_ui_mod_source.contains(required),
             "zircon_ui::event_ui should expose runtime behavior helper `{required}`"
         );
     }
+
+    assert!(
+        interface_event_ui_mod_source.contains("UiBindingCodec"),
+        "zircon_runtime_interface::ui::event_ui should own neutral binding codec helper `UiBindingCodec`"
+    );
+    assert!(
+        !event_ui_mod_source.contains("UiBindingCodec"),
+        "zircon_ui::event_ui should not re-export interface binding codec helper `UiBindingCodec`"
+    );
 
     for forbidden in [
         "UiActionDescriptor",

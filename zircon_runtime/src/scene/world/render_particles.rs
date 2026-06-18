@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    ParticleExtract, RenderLayerSet, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
+    ParticleExtract, RenderLayerSet, RenderParticleBoundsSnapshot, RenderParticleGpuFrameExtract,
+    RenderParticleSpriteSnapshot,
 };
 use crate::core::math::{Vec2, Vec3, Vec4};
 use crate::scene::EntityId;
@@ -29,6 +30,7 @@ impl World {
         let mut emitters = Vec::new();
         let mut sprites = Vec::new();
         let mut bounds = Vec::new();
+        let mut gpu_frame_builder = ParticleGpuFrameBuilder::default();
 
         for entity in self.entities.iter().copied() {
             if self.active_in_hierarchy(entity) != Some(true)
@@ -37,11 +39,20 @@ impl World {
                 continue;
             }
             let mut entity_sprites = Vec::new();
+            let mut entity_gpu_bounds = Vec::new();
+            let mut has_gpu_frame = false;
             for component_id in PARTICLE_COMPONENT_IDS {
                 let Some(value) = self.dynamic_component(entity, component_id) else {
                     continue;
                 };
                 collect_particle_sprites_from_value(entity, value, &mut entity_sprites);
+                if let Some(contribution) = particle_gpu_frame_contribution(value) {
+                    has_gpu_frame = true;
+                    if let Some(bound) = contribution.bounds {
+                        entity_gpu_bounds.push(bound);
+                    }
+                    gpu_frame_builder.push(contribution.frame);
+                }
             }
             for component_id in WORLD_HUD_BAR_COMPONENT_IDS {
                 let Some(value) = self.dynamic_component(entity, component_id) else {
@@ -49,24 +60,30 @@ impl World {
                 };
                 collect_world_hud_bar_sprites_from_value(entity, value, &mut entity_sprites);
             }
-            if entity_sprites.is_empty() {
+            if entity_sprites.is_empty() && !has_gpu_frame {
                 continue;
             }
 
             let center = self
                 .world_transform(entity)
                 .map(|transform| transform.translation)
+                .or_else(|| entity_gpu_bounds.first().map(|bound| bound.center))
                 .unwrap_or(camera_position);
-            let radius = entity_sprites
+            let sprite_radius = entity_sprites
                 .iter()
                 .map(|sprite| (sprite.position - center).length() + sprite.size)
+                .filter(|value| value.is_finite())
+                .fold(0.0_f32, f32::max);
+            let gpu_radius = entity_gpu_bounds
+                .iter()
+                .map(|bound| (bound.center - center).length() + bound.radius)
                 .filter(|value| value.is_finite())
                 .fold(0.0_f32, f32::max);
             emitters.push(entity);
             bounds.push(RenderParticleBoundsSnapshot {
                 entity,
                 center,
-                radius: radius.max(0.01),
+                radius: sprite_radius.max(gpu_radius).max(0.01),
             });
             sprites.extend(entity_sprites);
         }
@@ -88,8 +105,41 @@ impl World {
             previous_sprites: Vec::new(),
             bounds,
             sort_camera_position: Some(camera_position),
-            gpu_frame: None,
+            gpu_frame: gpu_frame_builder.finish(),
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ParticleGpuFrameContribution {
+    frame: RenderParticleGpuFrameExtract,
+    bounds: Option<RenderParticleBoundsSnapshot>,
+}
+
+#[derive(Default)]
+struct ParticleGpuFrameBuilder {
+    alive_count: u32,
+    spawned_total: u32,
+    per_emitter_spawned: Vec<u32>,
+}
+
+impl ParticleGpuFrameBuilder {
+    fn push(&mut self, frame: RenderParticleGpuFrameExtract) {
+        self.alive_count = self.alive_count.saturating_add(frame.alive_count);
+        self.spawned_total = self.spawned_total.saturating_add(frame.spawned_total);
+        self.per_emitter_spawned.extend(frame.per_emitter_spawned);
+    }
+
+    fn finish(self) -> Option<RenderParticleGpuFrameExtract> {
+        let has_frame = self.alive_count > 0
+            || self.spawned_total > 0
+            || self.per_emitter_spawned.iter().any(|count| *count > 0);
+        has_frame.then_some(RenderParticleGpuFrameExtract {
+            alive_count: self.alive_count,
+            spawned_total: self.spawned_total,
+            per_emitter_spawned: self.per_emitter_spawned,
+            indirect_draw_args: [6, self.alive_count, 0, 0],
+        })
     }
 }
 
@@ -119,6 +169,55 @@ fn collect_particle_sprites_from_value(
     }
 }
 
+fn particle_gpu_frame_contribution(
+    value: &serde_json::Value,
+) -> Option<ParticleGpuFrameContribution> {
+    let frame_value = value.get("gpu_frame").unwrap_or(value);
+    if !frame_value.is_object() {
+        return None;
+    }
+    let mut per_emitter_spawned =
+        u32_array_field(frame_value, "per_emitter_spawned").unwrap_or_default();
+    let per_emitter_total = per_emitter_spawned
+        .iter()
+        .fold(0_u32, |total, count| total.saturating_add(*count));
+    let alive_count = u32_field(frame_value, "alive_count")
+        .or_else(|| u32_field(frame_value, "alive"))
+        .unwrap_or(per_emitter_total);
+    let spawned_total = u32_field(frame_value, "spawned_total")
+        .or_else(|| u32_field(frame_value, "spawned"))
+        .unwrap_or(per_emitter_total.max(alive_count));
+    if per_emitter_spawned.is_empty() && (alive_count > 0 || spawned_total > 0) {
+        per_emitter_spawned.push(spawned_total.max(alive_count));
+    }
+    if alive_count == 0 && spawned_total == 0 && per_emitter_spawned.iter().all(|count| *count == 0)
+    {
+        return None;
+    }
+
+    Some(ParticleGpuFrameContribution {
+        frame: RenderParticleGpuFrameExtract {
+            alive_count,
+            spawned_total,
+            per_emitter_spawned,
+            indirect_draw_args: [6, alive_count, 0, 0],
+        },
+        bounds: particle_gpu_bounds(frame_value),
+    })
+}
+
+fn particle_gpu_bounds(value: &serde_json::Value) -> Option<RenderParticleBoundsSnapshot> {
+    let bounds = value.get("bounds").unwrap_or(value);
+    let center = vec3_field(bounds, "center").or_else(|| vec3_field(value, "bounds_center"))?;
+    let radius = positive_f32_field(bounds, "radius")
+        .or_else(|| positive_f32_field(value, "bounds_radius"))?;
+    Some(RenderParticleBoundsSnapshot {
+        entity: 0,
+        center,
+        radius,
+    })
+}
+
 fn particle_sprite(
     entity: EntityId,
     value: &serde_json::Value,
@@ -140,6 +239,7 @@ fn particle_sprite(
         sort_order: i32_field(value, "sort_order").unwrap_or(0),
         color,
         intensity: f32_field(value, "intensity").unwrap_or(1.0).max(0.0),
+        depth_test: true,
         material: None,
         texture: None,
     })
@@ -253,6 +353,7 @@ fn push_world_hud_bar_quad(
         sort_order,
         color,
         intensity,
+        depth_test: false,
         material: None,
         texture: None,
     });
@@ -321,6 +422,23 @@ fn u64_field(value: &serde_json::Value, field: &str) -> Option<u64> {
     value.get(field)?.as_u64()
 }
 
+fn u32_field(value: &serde_json::Value, field: &str) -> Option<u32> {
+    value
+        .get(field)?
+        .as_u64()
+        .and_then(|value| u32::try_from(value).ok())
+}
+
+fn u32_array_field(value: &serde_json::Value, field: &str) -> Option<Vec<u32>> {
+    let values = value.get(field)?.as_array()?;
+    Some(
+        values
+            .iter()
+            .filter_map(|value| value.as_u64().and_then(|value| u32::try_from(value).ok()))
+            .collect(),
+    )
+}
+
 fn positive_u64_field(value: &serde_json::Value, field: &str) -> Option<u64> {
     u64_field(value, field).filter(|value| *value > 0)
 }
@@ -381,6 +499,90 @@ mod tests {
         );
 
         assert_eq!(stable_sprite_keys(&sprites), vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn world_hud_bar_sprites_use_overlay_depth_path() {
+        let mut sprites = Vec::new();
+
+        collect_world_hud_bar_sprites_from_value(
+            42,
+            &json!({
+                "position": [0.0, 1.0, 2.0],
+                "ratio": 0.5
+            }),
+            &mut sprites,
+        );
+
+        assert!(!sprites.is_empty());
+        assert!(sprites.iter().all(|sprite| !sprite.depth_test));
+    }
+
+    #[test]
+    fn authored_particle_sprites_keep_depth_test_path() {
+        let sprite = particle_sprite(
+            42,
+            &json!({
+                "position": [0.0, 1.0, 2.0],
+                "size": 0.25
+            }),
+        )
+        .expect("valid authored particle sprite");
+
+        assert!(sprite.depth_test);
+    }
+
+    #[test]
+    fn particle_gpu_frame_contribution_defaults_indirect_args_to_alive_count() {
+        let contribution = particle_gpu_frame_contribution(&json!({
+            "gpu_frame": {
+                "alive_count": 5,
+                "spawned_total": 7,
+                "per_emitter_spawned": [2, 5],
+                "bounds": {
+                    "center": [1.0, 2.0, 3.0],
+                    "radius": 4.0
+                }
+            }
+        }))
+        .expect("gpu frame should parse");
+
+        assert_eq!(contribution.frame.alive_count, 5);
+        assert_eq!(contribution.frame.spawned_total, 7);
+        assert_eq!(contribution.frame.per_emitter_spawned, vec![2, 5]);
+        assert_eq!(contribution.frame.indirect_draw_args, [6, 5, 0, 0]);
+        assert_eq!(
+            contribution.bounds,
+            Some(RenderParticleBoundsSnapshot {
+                entity: 0,
+                center: Vec3::new(1.0, 2.0, 3.0),
+                radius: 4.0
+            })
+        );
+    }
+
+    #[test]
+    fn particle_gpu_frame_builder_aggregates_scene_visible_emitters() {
+        let mut builder = ParticleGpuFrameBuilder::default();
+        builder.push(RenderParticleGpuFrameExtract {
+            alive_count: 2,
+            spawned_total: 3,
+            per_emitter_spawned: vec![3],
+            indirect_draw_args: [6, 2, 0, 0],
+        });
+        builder.push(RenderParticleGpuFrameExtract {
+            alive_count: 4,
+            spawned_total: 5,
+            per_emitter_spawned: vec![2, 3],
+            indirect_draw_args: [6, 4, 0, 0],
+        });
+
+        let frame = builder.finish().expect("aggregate gpu frame");
+
+        assert_eq!(frame.alive_count, 6);
+        assert_eq!(frame.spawned_total, 8);
+        assert_eq!(frame.per_emitter_spawned, vec![3, 2, 3]);
+        assert_eq!(frame.indirect_draw_args, [6, 6, 0, 0]);
     }
 
     fn stable_sprite_keys(sprites: &[RenderParticleSpriteSnapshot]) -> Vec<u64> {

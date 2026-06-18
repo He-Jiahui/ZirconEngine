@@ -19,11 +19,6 @@ use crate::ui::retained_host::callback_dispatch::BuiltinHostWindowTemplateBridge
 use crate::ui::retained_host::floating_window_projection::{
     build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
 };
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_bottom_region_frame, resolve_root_document_region_frame,
-    resolve_root_left_region_frame, resolve_root_right_region_frame,
-    resolve_root_viewport_content_frame,
-};
 use crate::ui::retained_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::retained_host::tab_drag::host_shell_pointer_route_group_key;
 use crate::ui::template_runtime::{
@@ -92,6 +87,7 @@ fn welcome_shell_fixture() -> (
             scene_entries: Vec::new(),
             inspector: None,
             status_line: "Ready".to_string(),
+            status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
             scene_viewport_settings: crate::scene::viewport::SceneViewportSettings::default(),
@@ -158,9 +154,41 @@ fn apply_presentation(
     ui_asset_panes: &BTreeMap<String, UiAssetEditorPanePresentation>,
     animation_panes: &BTreeMap<String, AnimationEditorPanePresentation>,
     runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
-    shared_root_frames: Option<
+    _shared_root_frames: Option<
         &crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames,
     >,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+) {
+    apply_presentation_with_workbench_layout_frames(
+        ui,
+        model,
+        chrome,
+        geometry,
+        preset_names,
+        active_preset_name,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        _shared_root_frames,
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
+        floating_window_projection_bundle,
+    );
+}
+
+fn apply_presentation_with_workbench_layout_frames(
+    ui: &crate::ui::retained_host::UiHostWindow,
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    preset_names: &[String],
+    active_preset_name: Option<&str>,
+    ui_asset_panes: &BTreeMap<String, UiAssetEditorPanePresentation>,
+    animation_panes: &BTreeMap<String, AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    _shared_root_frames: Option<
+        &crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames,
+    >,
+    componentized_workbench_layout_frames: crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) {
     apply_presentation_with_module_plugins(
@@ -177,10 +205,19 @@ fn apply_presentation(
         &host_window::BuildExportPaneViewData::default(),
         None,
         None,
-        shared_root_frames,
+        componentized_workbench_layout_frames,
         floating_window_projection_bundle,
         None,
     );
+}
+
+fn frame_rect_from_ui_frame(frame: UiFrame) -> crate::ui::retained_host::FrameRect {
+    crate::ui::retained_host::FrameRect {
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+    }
 }
 
 fn document_pane(
@@ -1689,7 +1726,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
 }
 
 #[test]
-fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collapsed() {
+fn apply_presentation_ignores_root_projection_frames_when_workbench_layout_frames_are_missing() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -1702,35 +1739,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
 
     let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let projection_frames = bridge.root_shell_frames();
-    let geometry = WorkbenchShellGeometry {
-        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
-            9.0, 19.0, 333.0, 444.0,
-        ),
-        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
-            15.0, 520.0, 640.0, 18.0,
-        ),
-        region_frames: [
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Left,
-                crate::ui::workbench::autolayout::ShellFrame::default(),
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Document,
-                crate::ui::workbench::autolayout::ShellFrame::new(21.0, 37.0, 410.0, 250.0),
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Right,
-                crate::ui::workbench::autolayout::ShellFrame::default(),
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
-                crate::ui::workbench::autolayout::ShellFrame::default(),
-            ),
-        ]
-        .into_iter()
-        .collect(),
-        ..WorkbenchShellGeometry::default()
-    };
+    let geometry = WorkbenchShellGeometry::default();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
         None,
@@ -1753,29 +1762,22 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
-    let center_band = host_layout.center_band_frame;
-    assert_eq!(center_band.x, 0.0);
-    assert_eq!(center_band.y, 57.0);
-    assert_eq!(center_band.width, 1280.0);
-    assert_eq!(center_band.height, 639.0);
-
-    let document_region = host_layout.document_region_frame;
-    assert_eq!(document_region.x, 44.0);
-    assert_eq!(document_region.y, 57.0);
-    assert_eq!(document_region.width, 1236.0);
-    assert_eq!(document_region.height, 639.0);
-
-    let status_bar = host_layout.status_bar_frame;
-    assert_eq!(status_bar.x, 0.0);
-    assert_eq!(status_bar.y, 696.0);
-    assert_eq!(status_bar.width, 1280.0);
-    assert_eq!(status_bar.height, 24.0);
-
-    let viewport_content = host_layout.viewport_content_frame;
-    assert_eq!(viewport_content.x, 44.0);
-    assert_eq!(viewport_content.y, 117.0);
-    assert_eq!(viewport_content.width, 1236.0);
-    assert_eq!(viewport_content.height, 579.0);
+    assert_eq!(
+        host_layout.center_band_frame,
+        crate::ui::retained_host::FrameRect::default()
+    );
+    assert_eq!(
+        host_layout.document_region_frame,
+        crate::ui::retained_host::FrameRect::default()
+    );
+    assert_eq!(
+        host_layout.status_bar_frame,
+        crate::ui::retained_host::FrameRect::default()
+    );
+    assert_eq!(
+        host_layout.viewport_content_frame,
+        crate::ui::retained_host::FrameRect::default()
+    );
 }
 
 #[test]
@@ -1822,7 +1824,7 @@ fn apply_presentation_projects_default_design_stack_ids_into_host_shell() {
 }
 
 #[test]
-fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document_region() {
+fn apply_presentation_uses_workbench_layout_frames_for_document_and_viewport() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -1839,19 +1841,18 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
-    let left_geometry =
-        crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 312.0, 440.0);
-    let right_geometry =
-        crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 440.0);
-    let bottom_geometry =
-        crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 1232.0, 180.0);
-    let expected_document_frame = resolve_root_document_region_frame(Some(&projection_frames));
-    let geometry_document_frame =
-        crate::ui::workbench::autolayout::ShellFrame::new(734.0, 91.0, 222.0, 109.0);
-    let expected_viewport_frame =
-        resolve_root_viewport_content_frame(Some(&projection_frames), true);
-    let geometry_viewport_frame =
-        crate::ui::workbench::autolayout::ShellFrame::new(888.0, 144.0, 155.0, 77.0);
+    let center_frame = UiFrame::new(5.0, 17.0, 400.0, 500.0);
+    let document_frame = UiFrame::new(357.0, 57.0, 615.0, 458.0);
+    let status_frame = UiFrame::new(11.0, 696.0, 700.0, 24.0);
+    let viewport_frame = UiFrame::new(357.0, 114.0, 615.0, 401.0);
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            center_band_frame: Some(center_frame),
+            document_region_frame: Some(document_frame),
+            status_bar_frame: Some(status_frame),
+            viewport_content_frame: Some(viewport_frame),
+            ..Default::default()
+        };
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -1859,27 +1860,6 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             11.0, 520.0, 700.0, 18.0,
         ),
-        region_frames: [
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Left,
-                left_geometry,
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Document,
-                geometry_document_frame,
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Right,
-                right_geometry,
-            ),
-            (
-                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
-                bottom_geometry,
-            ),
-        ]
-        .into_iter()
-        .collect(),
-        viewport_content_frame: geometry_viewport_frame,
         ..WorkbenchShellGeometry::default()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
@@ -1889,7 +1869,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -1900,37 +1880,31 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
-    let center_band = host_layout.center_band_frame;
-    assert_eq!(center_band.x, 0.0);
-    assert_eq!(center_band.y, 57.0);
-    assert_eq!(center_band.width, 1280.0);
-    assert_eq!(center_band.height, 639.0);
-
-    let document_region = host_layout.document_region_frame;
-    assert_eq!(document_region.x, expected_document_frame.x);
-    assert_eq!(document_region.y, expected_document_frame.y);
-    assert_eq!(document_region.width, expected_document_frame.width);
-    assert_eq!(document_region.height, expected_document_frame.height);
-
-    let status_bar = host_layout.status_bar_frame;
-    assert_eq!(status_bar.x, 0.0);
-    assert_eq!(status_bar.y, 696.0);
-    assert_eq!(status_bar.width, 1280.0);
-    assert_eq!(status_bar.height, 24.0);
-
-    let viewport_content = host_layout.viewport_content_frame;
-    assert_eq!(viewport_content.x, expected_viewport_frame.x);
-    assert_eq!(viewport_content.y, expected_viewport_frame.y);
-    assert_eq!(viewport_content.width, expected_viewport_frame.width);
-    assert_eq!(viewport_content.height, expected_viewport_frame.height);
+    assert_eq!(
+        host_layout.center_band_frame,
+        frame_rect_from_ui_frame(center_frame)
+    );
+    assert_eq!(
+        host_layout.document_region_frame,
+        frame_rect_from_ui_frame(document_frame)
+    );
+    assert_eq!(
+        host_layout.status_bar_frame,
+        frame_rect_from_ui_frame(status_frame)
+    );
+    assert_eq!(
+        host_layout.viewport_content_frame,
+        frame_rect_from_ui_frame(viewport_frame)
+    );
 }
 
 #[test]
-fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale() {
+fn apply_presentation_leaves_viewport_default_when_workbench_viewport_frame_is_missing() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -1943,29 +1917,16 @@ fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale
 
     let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     let mut projection_frames = bridge.root_shell_frames();
-    projection_frames.left_drawer_shell_frame = Some(UiFrame::new(44.0, 57.0, 312.0, 480.0));
     projection_frames.pane_surface_frame = Some(UiFrame::new(369.0, 100.0, 602.0, 420.0));
+    let document_frame = UiFrame::new(44.0 + 312.0 + 1.0, 57.0, 1280.0 - 312.0 - 1.0, 639.0);
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            left_region_frame: Some(UiFrame::new(44.0, 57.0, 312.0, 480.0)),
+            document_region_frame: Some(document_frame),
+            viewport_content_frame: None,
+            ..Default::default()
+        };
 
-    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
-    let shell_frame = projection_frames
-        .shell_frame
-        .expect("root shell projection frame should exist");
-    let body_frame = projection_frames
-        .host_body_frame
-        .expect("workbench body projection frame should exist");
-    let expected_document_frame = crate::ui::workbench::autolayout::ShellFrame::new(
-        shell_frame.x + 312.0 + metrics.separator_thickness,
-        body_frame.y,
-        body_frame.width - 312.0 - metrics.separator_thickness,
-        body_frame.height,
-    );
-    let document_chrome_height = metrics.document_header_height + metrics.separator_thickness;
-    let expected_viewport_frame = crate::ui::workbench::autolayout::ShellFrame::new(
-        expected_document_frame.x,
-        expected_document_frame.y + document_chrome_height + metrics.viewport_toolbar_height,
-        expected_document_frame.width,
-        expected_document_frame.height - document_chrome_height - metrics.viewport_toolbar_height,
-    );
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -1985,7 +1946,7 @@ fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -1996,21 +1957,23 @@ fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
-    let viewport_content = ui
-        .get_host_presentation()
-        .host_layout
-        .viewport_content_frame;
-    assert_eq!(viewport_content.x, expected_viewport_frame.x);
-    assert_eq!(viewport_content.y, expected_viewport_frame.y);
-    assert_eq!(viewport_content.width, expected_viewport_frame.width);
-    assert_eq!(viewport_content.height, expected_viewport_frame.height);
+    let host_layout = ui.get_host_presentation().host_layout;
+    assert_eq!(
+        host_layout.document_region_frame,
+        frame_rect_from_ui_frame(document_frame)
+    );
+    assert_eq!(
+        host_layout.viewport_content_frame,
+        crate::ui::retained_host::FrameRect::default()
+    );
 }
 
 #[test]
-fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_positions() {
+fn apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_positions() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -2033,9 +1996,28 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 401.0);
     let bottom_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 777.0, 180.0);
-    let expected_left_region = resolve_root_left_region_frame(Some(&projection_frames));
-    let expected_right_region = resolve_root_right_region_frame(Some(&projection_frames));
-    let expected_bottom_region = resolve_root_bottom_region_frame(Some(&projection_frames));
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            left_region_frame: Some(UiFrame::new(
+                left_geometry.x,
+                left_geometry.y,
+                left_geometry.width,
+                left_geometry.height,
+            )),
+            right_region_frame: Some(UiFrame::new(
+                right_geometry.x,
+                right_geometry.y,
+                right_geometry.width,
+                right_geometry.height,
+            )),
+            bottom_region_frame: Some(UiFrame::new(
+                bottom_geometry.x,
+                bottom_geometry.y,
+                bottom_geometry.width,
+                bottom_geometry.height,
+            )),
+            ..Default::default()
+        };
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -2072,7 +2054,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -2083,31 +2065,39 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
-    let left_region = host_layout.left_region_frame;
-    assert_eq!(left_region.x, expected_left_region.x);
-    assert_eq!(left_region.y, expected_left_region.y);
-    assert_eq!(left_region.width, expected_left_region.width);
-    assert_eq!(left_region.height, expected_left_region.height);
-
-    let right_region = host_layout.right_region_frame;
-    assert_eq!(right_region.x, expected_right_region.x);
-    assert_eq!(right_region.y, expected_right_region.y);
-    assert_eq!(right_region.width, expected_right_region.width);
-    assert_eq!(right_region.height, expected_right_region.height);
-
-    let bottom_region = host_layout.bottom_region_frame;
-    assert_eq!(bottom_region.x, expected_bottom_region.x);
-    assert_eq!(bottom_region.y, expected_bottom_region.y);
-    assert_eq!(bottom_region.width, expected_bottom_region.width);
-    assert_eq!(bottom_region.height, expected_bottom_region.height);
+    assert_eq!(
+        host_layout.left_region_frame,
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .left_region_frame
+                .unwrap()
+        )
+    );
+    assert_eq!(
+        host_layout.right_region_frame,
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .right_region_frame
+                .unwrap()
+        )
+    );
+    assert_eq!(
+        host_layout.bottom_region_frame,
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .bottom_region_frame
+                .unwrap()
+        )
+    );
 }
 
 #[test]
-fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_extents() {
+fn apply_presentation_prefers_workbench_layout_frames_for_visible_drawer_region_extents() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -2127,6 +2117,13 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         )
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            left_region_frame: Some(UiFrame::new(180.0, 91.0, 180.0, 519.0)),
+            right_region_frame: Some(UiFrame::new(1024.0, 117.0, 144.0, 401.0)),
+            bottom_region_frame: Some(UiFrame::new(48.0, 712.0, 777.0, 120.0)),
+            ..Default::default()
+        };
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -2163,7 +2160,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -2174,41 +2171,39 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
     assert_eq!(
         host_layout.left_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.left_drawer_shell_frame.unwrap().x,
-            y: projection_frames.left_drawer_shell_frame.unwrap().y,
-            width: projection_frames.left_drawer_shell_frame.unwrap().width,
-            height: projection_frames.left_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .left_region_frame
+                .unwrap()
+        )
     );
     assert_eq!(
         host_layout.right_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.right_drawer_shell_frame.unwrap().x,
-            y: projection_frames.right_drawer_shell_frame.unwrap().y,
-            width: projection_frames.right_drawer_shell_frame.unwrap().width,
-            height: projection_frames.right_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .right_region_frame
+                .unwrap()
+        )
     );
     assert_eq!(
         host_layout.bottom_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.bottom_drawer_shell_frame.unwrap().x,
-            y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
-            width: projection_frames.bottom_drawer_shell_frame.unwrap().width,
-            height: projection_frames.bottom_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .bottom_region_frame
+                .unwrap()
+        )
     );
 }
 
 #[test]
-fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geometry_is_zeroed() {
+fn apply_presentation_prefers_workbench_layout_frames_when_legacy_geometry_is_zeroed() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -2228,6 +2223,15 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         )
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            left_region_frame: Some(UiFrame::new(44.0, 57.0, 312.0, 639.0)),
+            document_region_frame: Some(UiFrame::new(357.0, 57.0, 615.0, 458.0)),
+            right_region_frame: Some(UiFrame::new(973.0, 57.0, 307.0, 458.0)),
+            bottom_region_frame: Some(UiFrame::new(44.0, 516.0, 1236.0, 180.0)),
+            viewport_content_frame: Some(UiFrame::new(357.0, 114.0, 615.0, 401.0)),
+            ..Default::default()
+        };
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -2267,7 +2271,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -2278,75 +2282,55 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
     assert_eq!(
         host_layout.left_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.left_drawer_shell_frame.unwrap().x,
-            y: projection_frames.left_drawer_shell_frame.unwrap().y,
-            width: projection_frames.left_drawer_shell_frame.unwrap().width,
-            height: projection_frames.left_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .left_region_frame
+                .unwrap()
+        )
     );
     assert_eq!(
         host_layout.right_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.right_drawer_shell_frame.unwrap().x,
-            y: projection_frames.right_drawer_shell_frame.unwrap().y,
-            width: projection_frames.right_drawer_shell_frame.unwrap().width,
-            height: projection_frames.right_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .right_region_frame
+                .unwrap()
+        )
     );
     assert_eq!(
         host_layout.bottom_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: projection_frames.bottom_drawer_shell_frame.unwrap().x,
-            y: projection_frames.bottom_drawer_shell_frame.unwrap().y,
-            width: projection_frames.bottom_drawer_shell_frame.unwrap().width,
-            height: projection_frames.bottom_drawer_shell_frame.unwrap().height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .bottom_region_frame
+                .unwrap()
+        )
     );
-    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
-    let separator = metrics.separator_thickness;
-    let body_frame = projection_frames
-        .host_body_frame
-        .expect("shared host projection should expose a body frame");
-    let left_frame = projection_frames.left_drawer_shell_frame.unwrap();
-    let right_frame = projection_frames.right_drawer_shell_frame.unwrap();
-    let bottom_frame = projection_frames.bottom_drawer_shell_frame.unwrap();
     assert_eq!(
         host_layout.document_region_frame,
-        crate::ui::retained_host::FrameRect {
-            x: body_frame.x + left_frame.width + separator,
-            y: body_frame.y,
-            width: (body_frame.width
-                - left_frame.width
-                - separator
-                - right_frame.width
-                - separator)
-                .max(0.0),
-            height: (body_frame.height - bottom_frame.height - separator).max(0.0),
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .document_region_frame
+                .unwrap()
+        )
     );
-    let viewport_chrome_height = metrics.document_header_height
-        + metrics.separator_thickness
-        + metrics.viewport_toolbar_height;
     assert_eq!(
         host_layout.viewport_content_frame,
-        crate::ui::retained_host::FrameRect {
-            x: host_layout.document_region_frame.x,
-            y: host_layout.document_region_frame.y + viewport_chrome_height,
-            width: host_layout.document_region_frame.width,
-            height: host_layout.document_region_frame.height - viewport_chrome_height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .viewport_content_frame
+                .unwrap()
+        )
     );
 }
 
 #[test]
-fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection() {
+fn apply_presentation_resolves_splitters_from_workbench_layout_frames() {
     let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
     let ui =
         crate::ui::retained_host::UiHostWindow::new().expect("workbench shell should instantiate");
@@ -2366,6 +2350,26 @@ fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection()
         )
         .unwrap();
     let projection_frames = bridge.root_shell_frames();
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let split_half = metrics.splitter_hit_size * 0.5;
+    let componentized_workbench_layout_frames =
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
+            right_region_frame: Some(UiFrame::new(620.0, 117.0, 144.0, 320.0)),
+            bottom_region_frame: Some(UiFrame::new(0.0, 460.0, 760.0, 120.0)),
+            right_resize_splitter_frame: Some(UiFrame::new(
+                620.0 - metrics.separator_thickness - split_half,
+                117.0,
+                metrics.splitter_hit_size,
+                320.0,
+            )),
+            bottom_resize_splitter_frame: Some(UiFrame::new(
+                0.0,
+                460.0 - metrics.separator_thickness - split_half,
+                760.0,
+                metrics.splitter_hit_size,
+            )),
+            ..Default::default()
+        };
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -2417,7 +2421,7 @@ fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection()
         &[],
     );
 
-    apply_presentation(
+    apply_presentation_with_workbench_layout_frames(
         &ui,
         &model,
         &chrome,
@@ -2428,30 +2432,27 @@ fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection()
         &animation_panes,
         None,
         Some(&projection_frames),
+        componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
     );
 
     let host_layout = ui.get_host_presentation().host_layout;
-    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
-    let split_half = metrics.splitter_hit_size * 0.5;
 
     assert_eq!(
         host_layout.right_splitter_frame,
-        crate::ui::retained_host::FrameRect {
-            x: host_layout.right_region_frame.x - metrics.separator_thickness - split_half,
-            y: host_layout.right_region_frame.y,
-            width: metrics.splitter_hit_size,
-            height: host_layout.right_region_frame.height,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .right_resize_splitter_frame
+                .unwrap()
+        )
     );
     assert_eq!(
         host_layout.bottom_splitter_frame,
-        crate::ui::retained_host::FrameRect {
-            x: host_layout.bottom_region_frame.x,
-            y: host_layout.bottom_region_frame.y - metrics.separator_thickness - split_half,
-            width: host_layout.bottom_region_frame.width,
-            height: metrics.splitter_hit_size,
-        }
+        frame_rect_from_ui_frame(
+            componentized_workbench_layout_frames
+                .bottom_resize_splitter_frame
+                .unwrap()
+        )
     );
     assert!(
         host_layout.right_splitter_frame.x >= host_layout.document_region_frame.x,

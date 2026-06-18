@@ -7,7 +7,7 @@ pub(in super::super) struct ModuleContributionParserState {
     pub(in super::super) current_name: Option<String>,
     pub(in super::super) current_kind: Option<zircon_runtime::plugin::PluginModuleKind>,
     pub(in super::super) current_crate_name: Option<String>,
-    pub(in super::super) current_target_modes: Vec<zircon_runtime::RuntimeTargetMode>,
+    pub(in super::super) current_target_modes: Vec<zircon_runtime::builtin::RuntimeTargetMode>,
     pub(in super::super) current_capabilities: Vec<String>,
     pub(in super::super) inside_module: bool,
 }

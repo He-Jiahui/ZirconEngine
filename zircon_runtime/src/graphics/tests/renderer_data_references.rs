@@ -1,5 +1,5 @@
 use crate::asset::{AssetReference, AssetUri, AssetUuid};
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset, RendererFeatureReferenceListKind,
 };

@@ -23,7 +23,7 @@ impl UiLayoutPassEngineContext {
             UiLayoutEngineSelection::select(
                 &UiLayoutEngineRequest::from_container_kind(container),
                 &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-                &UiLayoutEngineCapability::legacy_zircon(),
+                &UiLayoutEngineCapability::zircon(),
             )
             .with_node_id(node_id)
             .with_taffy_tree_build(taffy_tree_build),
@@ -41,7 +41,7 @@ impl UiLayoutPassEngineContext {
             node_id: Some(node_id),
             request: UiLayoutEngineRequest::from_container_kind(container),
             requested_backend: UiLayoutEngineBackend::Taffy,
-            selected_backend: UiLayoutEngineBackend::LegacyZircon,
+            selected_backend: UiLayoutEngineBackend::Zircon,
             support: UiLayoutEngineSupport::Fallback,
             fallback_reason: Some(reason),
             taffy_tree_build,
@@ -53,7 +53,7 @@ impl UiLayoutPassEngineContext {
             UiLayoutEngineSelection::select(
                 &UiLayoutEngineRequest::from_container_kind(container),
                 &UiLayoutEngineCapability::taffy_flex_grid_wrap_block(),
-                &UiLayoutEngineCapability::legacy_zircon(),
+                &UiLayoutEngineCapability::zircon(),
             )
             .with_node_id(node_id),
         );

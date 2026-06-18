@@ -1,4 +1,4 @@
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 pub(super) fn validate_runtime_plugin_package_capability_status_target_uniqueness(
     capability: &str,

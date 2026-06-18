@@ -1,20 +1,40 @@
 use crate::core::framework::render::{PostProcessPassNode, RenderFrameExtract};
 use crate::core::CoreRuntime;
 
+use super::extract_cache::RuntimeFrameExtractCacheStatus;
+
 pub(super) const EXTRACT_REBUILD_CLONES_DIAGNOSTIC: &str = "extract.rebuild_clones";
 pub(super) const EXTRACT_OUTPUT_BYTES_DIAGNOSTIC: &str = "extract.output_bytes";
+pub(super) const EXTRACT_CACHE_HITS_DIAGNOSTIC: &str = "extract.cache_hits";
+pub(super) const EXTRACT_CACHE_MISSES_DIAGNOSTIC: &str = "extract.cache_misses";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeFrameExtractStats {
     pub rebuild_clones: u64,
     pub output_bytes: usize,
+    pub cache_hits: u64,
+    pub cache_misses: u64,
 }
 
 impl RuntimeFrameExtractStats {
-    pub fn from_extract(extract: &RenderFrameExtract) -> Self {
+    pub fn from_extract(
+        extract: &RenderFrameExtract,
+        status: RuntimeFrameExtractCacheStatus,
+    ) -> Self {
         Self {
-            rebuild_clones: 1,
+            rebuild_clones: match status {
+                RuntimeFrameExtractCacheStatus::Rebuilt => 1,
+                RuntimeFrameExtractCacheStatus::Reused => 0,
+            },
             output_bytes: estimate_extract_output_bytes(extract),
+            cache_hits: match status {
+                RuntimeFrameExtractCacheStatus::Rebuilt => 0,
+                RuntimeFrameExtractCacheStatus::Reused => 1,
+            },
+            cache_misses: match status {
+                RuntimeFrameExtractCacheStatus::Rebuilt => 1,
+                RuntimeFrameExtractCacheStatus::Reused => 0,
+            },
         }
     }
 
@@ -34,11 +54,29 @@ impl RuntimeFrameExtractStats {
             Some("byte"),
             ["runtime", "extract"],
         );
+        runtime.record_diagnostic(
+            EXTRACT_CACHE_HITS_DIAGNOSTIC,
+            frame_index,
+            self.cache_hits as f64,
+            Some("count"),
+            ["runtime", "extract"],
+        );
+        runtime.record_diagnostic(
+            EXTRACT_CACHE_MISSES_DIAGNOSTIC,
+            frame_index,
+            self.cache_misses as f64,
+            Some("count"),
+            ["runtime", "extract"],
+        );
     }
 }
 
-pub(super) fn record_frame_extract_stats(runtime: &CoreRuntime, extract: &RenderFrameExtract) {
-    RuntimeFrameExtractStats::from_extract(extract).record_diagnostics(runtime);
+pub(super) fn record_frame_extract_stats(
+    runtime: &CoreRuntime,
+    extract: &RenderFrameExtract,
+    status: RuntimeFrameExtractCacheStatus,
+) {
+    RuntimeFrameExtractStats::from_extract(extract, status).record_diagnostics(runtime);
 }
 
 fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {

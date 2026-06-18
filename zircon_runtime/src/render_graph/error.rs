@@ -34,4 +34,6 @@ pub enum RenderGraphError {
         first_writer: String,
         second_writer: String,
     },
+    #[error("render graph `{graph_name}` has no present, readback, persistent, or side-effect cull root")]
+    MissingCullRoot { graph_name: String },
 }

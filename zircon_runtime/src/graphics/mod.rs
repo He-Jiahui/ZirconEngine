@@ -49,6 +49,7 @@ pub use runtime_builtin_graphics::{
     module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
     RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };
+pub(crate) use runtime_prepare_collector::RuntimePrepareExternalBufferBinding;
 pub use runtime_prepare_collector::{
     RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
     RuntimePrepareCollectorRegistration,
@@ -56,15 +57,19 @@ pub use runtime_prepare_collector::{
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
 pub use scene::{
-    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
-    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
+    RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext, SceneRenderer,
 };
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
 pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
-pub(crate) use types::ViewportRenderFrame;
-pub(crate) use types::ViewportRenderOutputTarget;
-pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
+pub use types::{
+    GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle,
+    ViewportRenderRegion,
+};
+pub(crate) use types::{
+    ViewportCameraStackOutputPolicy, ViewportRenderFrame, ViewportRenderOutputTarget,
+};
 pub use virtual_geometry_runtime_provider::{
     VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,

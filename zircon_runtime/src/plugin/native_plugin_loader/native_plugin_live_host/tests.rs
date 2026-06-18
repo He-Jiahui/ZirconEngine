@@ -1,14 +1,16 @@
 use super::*;
 
 use crate::core::framework::bridge::{BridgeError, PluginInterface};
+use crate::plugin::native::{
+    NativeBridgeCall, NativeBridgeMethodBinding, NativeBridgeMethodFn,
+    NativePluginBehaviorValidationReport, NativePluginDescriptor, NativePluginEntryReport,
+    NativePluginLoadReport, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+};
 use crate::plugin::{
-    BridgeOwnerTransitionMode, ExportPackagingStrategy, NativeBridgeCall,
-    NativeBridgeMethodBinding, NativeBridgeMethodFn, NativePluginBehaviorValidationReport,
-    NativePluginDescriptor, NativePluginEntryReport, NativePluginLoadReport,
-    PluginDependencyManifest, PluginInterfaceManifest, PluginInterfaceMethodManifest,
-    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
-    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
-    RuntimePluginRegistrationReport, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    BridgeOwnerTransitionMode, ExportPackagingStrategy, PluginDependencyManifest,
+    PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginPackageManifest,
+    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimePluginBridgeLifecycleEvent,
+    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -16,6 +18,8 @@ use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusC
 
 use super::super::behavior_calls::NativePluginBehavior;
 
+#[path = "tests/hot_reload_failures.rs"]
+mod hot_reload_failures;
 #[path = "tests/hot_update_application.rs"]
 mod hot_update_application;
 
@@ -1158,7 +1162,7 @@ fn native_live_host_test_plugin_with_bridge_manifest_slot(
     plugin
 }
 
-fn native_live_host_test_plugin_with_behavior(
+pub(super) fn native_live_host_test_plugin_with_behavior(
     plugin_id: &str,
     behavior: NativePluginBehavior,
 ) -> LoadedNativePlugin {
@@ -1199,12 +1203,12 @@ static INTERIOR_NUL_INVOKE_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 static HOT_RELOAD_STATE_BYTES: &[u8] = b"state:physics";
 
-fn restored_payloads() -> &'static Mutex<Vec<Vec<u8>>> {
+pub(super) fn restored_payloads() -> &'static Mutex<Vec<Vec<u8>>> {
     static PAYLOADS: OnceLock<Mutex<Vec<Vec<u8>>>> = OnceLock::new();
     PAYLOADS.get_or_init(|| Mutex::new(Vec::new()))
 }
 
-unsafe extern "C" fn hot_reload_save_state(
+pub(super) unsafe extern "C" fn hot_reload_save_state(
     output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
 ) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
     if !output.is_null() {
@@ -1222,7 +1226,7 @@ unsafe extern "C" fn hot_reload_save_state(
     }
 }
 
-unsafe extern "C" fn hot_reload_restore_state(
+pub(super) unsafe extern "C" fn hot_reload_restore_state(
     state: super::super::abi_declarations::NativePluginByteSliceV2,
 ) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
     let payload = if state.data.is_null() || state.len == 0 {
@@ -1234,6 +1238,21 @@ unsafe extern "C" fn hot_reload_restore_state(
     super::super::abi_declarations::NativePluginCallbackStatusV2 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
+    }
+}
+
+pub(super) unsafe extern "C" fn hot_reload_restore_state_failure(
+    state: super::super::abi_declarations::NativePluginByteSliceV2,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    let payload = if state.data.is_null() || state.len == 0 {
+        Vec::new()
+    } else {
+        std::slice::from_raw_parts(state.data, state.len).to_vec()
+    };
+    restored_payloads().lock().unwrap().push(payload);
+    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+        diagnostics: c"restore failed during hot reload".as_ptr(),
     }
 }
 

@@ -1,9 +1,9 @@
+use crate::builtin::RuntimeTargetMode;
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
     RuntimePluginCatalog, RuntimePluginFeature, RuntimePluginFeatureRegistrationReport,
 };
-use crate::RuntimeTargetMode;
 
 #[test]
 fn runtime_plugin_feature_registration_report_rejects_invalid_feature_ids() {

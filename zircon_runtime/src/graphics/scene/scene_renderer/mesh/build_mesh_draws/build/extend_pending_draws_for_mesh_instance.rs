@@ -18,6 +18,7 @@ use super::super::super::super::super::resources::{
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MaterialTextureSet;
+use super::super::super::mesh_draw::MeshCommandSortInput;
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
@@ -40,6 +41,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     frame: &ViewportRenderFrame,
     build_context: &MeshDrawBuildContext,
     mesh_instance: &RenderMeshSnapshot,
+    command_sort_input: MeshCommandSortInput,
 ) {
     if let Some(allowed_entities) = build_context.allowed_virtual_geometry_entities.as_ref() {
         if !allowed_entities.contains(&mesh_instance.node_id) {
@@ -85,6 +87,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     static_state,
                     mesh_instance.material,
                     mesh_instance.mobility,
+                    command_sort_input,
                     mesh.index_count,
                     &dynamic_primitive.primitive,
                     instance_tint,
@@ -106,6 +109,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     static_state,
                     mesh_instance.material,
                     mesh_instance.mobility,
+                    command_sort_input,
                     mesh,
                     instance_tint,
                     model_matrix,
@@ -165,6 +169,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 static_state,
                 mesh_instance.material,
                 mesh_instance.mobility,
+                command_sort_input,
                 mesh.index_count,
                 &skinned_primitive.primitive,
                 instance_tint,
@@ -192,10 +197,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
 
         for (first_index, draw_index_count, draw_tint) in raster_draws {
             let material = streamer.material(&mesh_instance.material.id());
+            let source_draw_ordinal = next_draw_ordinal(&mut draw_ordinal);
             pending_draws.push(PendingMeshDraw {
                 mesh: PendingMeshGeometry::Prepared(mesh.clone()),
                 source_entity: mesh_instance.node_id,
-                source_draw_ordinal: next_draw_ordinal(&mut draw_ordinal),
+                source_draw_ordinal,
                 transform_revision: mesh_instance.transform_revision,
                 mobility: mesh_instance.mobility,
                 static_state,
@@ -220,6 +226,10 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 skinned_gpu_source: None,
                 resolved_skinned_gpu_source: None,
                 previous_skinned_gpu_source: None,
+                command_sort_input: command_sort_input.with_tie_breaker(command_sort_tie_breaker(
+                    mesh_instance.node_id,
+                    source_draw_ordinal,
+                )),
                 first_index,
                 draw_index_count,
                 indirect_draw_ref: None,
@@ -476,6 +486,7 @@ fn push_dynamic_mesh_draws(
     static_state: RenderMeshStaticState,
     material_id: ResourceHandle<MaterialMarker>,
     mobility: Mobility,
+    command_sort_input: MeshCommandSortInput,
     index_count: u32,
     dynamic_primitive: &ModelPrimitiveAsset,
     instance_tint: Vec4,
@@ -498,10 +509,11 @@ fn push_dynamic_mesh_draws(
         index_count,
         material_tinted(streamer, material_id, instance_tint),
     ) {
+        let source_draw_ordinal = next_draw_ordinal(draw_ordinal);
         pending_draws.push(PendingMeshDraw {
             mesh: PendingMeshGeometry::Dynamic(dynamic_primitive.clone()),
             source_entity,
-            source_draw_ordinal: next_draw_ordinal(draw_ordinal),
+            source_draw_ordinal,
             transform_revision,
             mobility,
             static_state,
@@ -526,6 +538,8 @@ fn push_dynamic_mesh_draws(
             skinned_gpu_source: skinned_gpu_source.clone(),
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,
+            command_sort_input: command_sort_input
+                .with_tie_breaker(command_sort_tie_breaker(source_entity, source_draw_ordinal)),
             first_index,
             draw_index_count,
             indirect_draw_ref: None,
@@ -624,6 +638,7 @@ fn push_prepared_mesh_draws(
     static_state: RenderMeshStaticState,
     material_id: ResourceHandle<MaterialMarker>,
     mobility: Mobility,
+    command_sort_input: MeshCommandSortInput,
     mesh: &Arc<GpuMeshResource>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
@@ -640,10 +655,11 @@ fn push_prepared_mesh_draws(
         mesh.index_count,
         material_tinted(streamer, material_id, instance_tint),
     ) {
+        let source_draw_ordinal = next_draw_ordinal(draw_ordinal);
         pending_draws.push(PendingMeshDraw {
             mesh: PendingMeshGeometry::Prepared(mesh.clone()),
             source_entity,
-            source_draw_ordinal: next_draw_ordinal(draw_ordinal),
+            source_draw_ordinal,
             transform_revision,
             mobility,
             static_state,
@@ -668,9 +684,15 @@ fn push_prepared_mesh_draws(
             skinned_gpu_source: None,
             resolved_skinned_gpu_source: None,
             previous_skinned_gpu_source: None,
+            command_sort_input: command_sort_input
+                .with_tie_breaker(command_sort_tie_breaker(source_entity, source_draw_ordinal)),
             first_index,
             draw_index_count,
             indirect_draw_ref: None,
         });
     }
+}
+
+fn command_sort_tie_breaker(source_entity: EntityId, draw_ordinal: u32) -> u64 {
+    crate::core::framework::render::render_mesh_stable_instance_key(source_entity, draw_ordinal)
 }

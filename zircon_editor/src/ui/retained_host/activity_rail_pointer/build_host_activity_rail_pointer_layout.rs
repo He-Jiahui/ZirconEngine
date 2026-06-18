@@ -1,20 +1,38 @@
 use zircon_runtime_interface::ui::layout::UiFrame;
 
+#[cfg(test)]
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_activity_rail_frame, resolve_root_right_region_frame,
-};
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
+use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchChromeMetrics};
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::collect_tabs::collect_tabs;
 use super::host_activity_rail_pointer_layout::HostActivityRailPointerLayout;
 
+#[cfg(test)]
 pub(crate) fn build_host_activity_rail_pointer_layout(
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> HostActivityRailPointerLayout {
+    let root_activity_rail_frame = shared_root_frames
+        .and_then(|frames| frames.activity_rail_frame)
+        .filter(ui_frame_is_visible);
+    build_host_activity_rail_pointer_layout_with_workbench_layout_frames(
+        model,
+        metrics,
+        BuiltinWorkbenchWindowLayoutFrames {
+            activity_rail_frame: root_activity_rail_frame,
+            ..BuiltinWorkbenchWindowLayoutFrames::default()
+        },
+    )
+}
+
+pub(crate) fn build_host_activity_rail_pointer_layout_with_workbench_layout_frames(
+    model: &WorkbenchViewModel,
+    metrics: &WorkbenchChromeMetrics,
+    workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> HostActivityRailPointerLayout {
     let left_tabs = collect_tabs(
         model,
@@ -27,9 +45,15 @@ pub(crate) fn build_host_activity_rail_pointer_layout(
             ActivityDrawerSlot::RightBottom,
         ],
     );
-    let right_region = resolve_root_right_region_frame(shared_root_frames);
+    let right_region = workbench_layout_frames
+        .drawer_shell_frame(ShellRegionId::Right)
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
     let rail_width = metrics.rail_width.max(0.0);
-    let resolved_left_strip_frame = resolve_root_activity_rail_frame(metrics, shared_root_frames);
+    let resolved_left_strip_frame = workbench_layout_frames
+        .activity_rail_frame
+        .filter(ui_frame_is_visible)
+        .unwrap_or_default();
 
     let left_strip_frame = if resolved_left_strip_frame.width > 0.0
         && resolved_left_strip_frame.height > 0.0
@@ -61,4 +85,8 @@ pub(crate) fn build_host_activity_rail_pointer_layout(
         right_strip_frame,
         right_tabs,
     }
+}
+
+fn ui_frame_is_visible(frame: &UiFrame) -> bool {
+    frame.width > f32::EPSILON && frame.height > f32::EPSILON
 }

@@ -62,6 +62,7 @@ impl World {
             observers: Default::default(),
             command_queue: Default::default(),
             deferred_command_errors: Vec::new(),
+            ecs_frame_performance_diagnostics: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,

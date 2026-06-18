@@ -14,7 +14,7 @@ struct RayonReference {
 }
 
 #[test]
-fn rayon_is_only_reachable_through_core_task_primitives_or_tracked_render_exception() {
+fn rayon_is_only_reachable_through_core_task_primitives() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source_root = manifest_root.join("src");
     let files = rust_source_files(&source_root);
@@ -46,7 +46,7 @@ fn rayon_is_only_reachable_through_core_task_primitives_or_tracked_render_except
 
     assert!(
         unclassified.is_empty(),
-        "direct rayon usage must be routed through core task primitives or a documented owner exception:\n{}",
+        "direct rayon usage must be routed through core task primitives:\n{}",
         unclassified.join("\n")
     );
 }
@@ -63,7 +63,7 @@ fn rayon_boundary_guard_rejects_unclassified_runtime_source() {
     );
     assert_eq!(
         classify_rayon_reference("src/graphics/visibility/culling/parallel_frustum.rs"),
-        Some("render-owner-pending-runtime-11-m2-1-cutover")
+        None
     );
     assert_eq!(
         classify_rayon_reference("src/scene/ecs/schedule_parallel_executor.rs"),
@@ -72,7 +72,7 @@ fn rayon_boundary_guard_rejects_unclassified_runtime_source() {
 }
 
 #[test]
-fn rayon_render_exception_is_bound_to_runtime_11_m2_1_status() {
+fn rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status() {
     let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let source_root = manifest_root.join("src");
     let files = rust_source_files(&source_root);
@@ -87,43 +87,42 @@ fn rayon_render_exception_is_bound_to_runtime_11_m2_1_status() {
         std::collections::BTreeSet::from([
             "src/core/runtime/tasks/parallel_for.rs",
             "src/core/runtime/tasks/pool.rs",
-            "src/graphics/visibility/culling/parallel_frustum.rs",
         ]),
-        "Runtime 11 M2.1 pre-guard allows only core task owners plus the tracked render exception"
+        "Runtime 11 M2.1 cutover allows direct Rayon only in core task owners"
     );
 
     for required_doc_anchor in [
-        "pre_m2_1_rayon_render_exception_guard_static_passed_pending_render_owner",
-        "render-owner-pending-runtime-11-m2-1-cutover",
-        "actual graphics cutover not executed",
+        "runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending",
+        "direct_rayon_paths = 2",
         "parallel_frustum.rs",
+        "compute_task_pool",
     ] {
         assert!(
             JOB_SYSTEM_DOC.contains(required_doc_anchor),
-            "JobSystem doc must record Runtime 11 M2.1 pre-guard anchor `{required_doc_anchor}`"
+            "JobSystem doc must record Runtime 11 M2.1 cutover anchor `{required_doc_anchor}`"
         );
     }
 
     for required_plan_anchor in [
-        "pre_m2_1_rayon_render_exception_guard_static_passed_pending_render_owner",
-        "render-owner-pending-runtime-11-m2-1-cutover",
-        "actual graphics cutover not executed",
+        "runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending",
+        "direct_rayon_paths = 2",
         "parallel_frustum.rs",
+        "compute_task_pool",
     ] {
         assert!(
             RUNTIME_11_PLAN.contains(required_plan_anchor),
-            "Runtime 11 plan must record M2.1 pre-guard anchor `{required_plan_anchor}`"
+            "Runtime 11 plan must record M2.1 cutover anchor `{required_plan_anchor}`"
         );
     }
 
     for required_index_anchor in [
-        "pre_m2_1_rayon_render_exception_guard_static_passed_pending_render_owner",
-        "render-owner-pending-runtime-11-m2-1-cutover",
+        "runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending",
+        "direct_rayon_paths = 2",
         "parallel_frustum",
     ] {
         assert!(
             RUNTIME_INDEX.contains(required_index_anchor),
-            "runtime index must record Runtime 11 M2.1 pre-guard anchor `{required_index_anchor}`"
+            "runtime index must record Runtime 11 M2.1 cutover anchor `{required_index_anchor}`"
         );
     }
 }
@@ -182,9 +181,6 @@ fn classify_rayon_reference(relative_path: &str) -> Option<&'static str> {
     match relative_path {
         "src/core/runtime/tasks/pool.rs" => Some("core-task-pool-rayon-owner"),
         "src/core/runtime/tasks/parallel_for.rs" => Some("core-task-parallel-for-owner"),
-        "src/graphics/visibility/culling/parallel_frustum.rs" => {
-            Some("render-owner-pending-runtime-11-m2-1-cutover")
-        }
         _ => None,
     }
 }

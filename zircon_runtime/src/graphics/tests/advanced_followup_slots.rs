@@ -4,7 +4,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::Vec4;
 use crate::graphics::feature::descriptor_only_advanced_slots;
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPipelineAsset,
     RenderPipelineCompileOptions, RendererFeatureAsset,
 };

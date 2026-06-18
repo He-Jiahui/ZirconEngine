@@ -1,9 +1,11 @@
 use std::{collections::HashSet, path::Path};
 use zircon_runtime::asset::project::ProjectManifest;
 
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::native::NativePluginLoader;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::NativePluginLoader, plugin::PluginModuleKind,
-    plugin::PluginPackageManifest, plugin::RuntimePluginCatalog, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::PluginModuleKind, plugin::PluginPackageManifest,
+    plugin::RuntimePluginCatalog,
 };
 
 use super::super::super::editor_manager::EditorManager;

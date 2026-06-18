@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{plugin::PluginMaturity, RuntimePluginId};
+use crate::builtin::RuntimePluginId;
+use crate::plugin::PluginMaturity;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimePluginAvailabilityReport {

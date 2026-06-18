@@ -3,6 +3,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::{
     ShadowAtlasResources, SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING,
     SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
+use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::DeferredSceneResources;
@@ -25,6 +26,7 @@ impl DeferredSceneResources {
         background_view: &wgpu::TextureView,
         scene_color_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
+        render_region: ViewportRenderRegion,
     ) {
         let shadow_atlas_view = shadow_atlas_resources
             .map(ShadowAtlasResources::atlas_view)
@@ -107,6 +109,9 @@ impl DeferredSceneResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return;
+        }
         pass.set_pipeline(&self.lighting_pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &bind_group, &[]);

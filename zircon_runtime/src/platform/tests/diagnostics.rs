@@ -5,8 +5,10 @@ fn capability_reports_format_stable_diagnostic_lines() {
     let mut features = PlatformFeatureSelection::bevy_default_platform();
     features.platform_wayland = false;
 
-    let report = PlatformCapabilityMatrix::new(features)
-        .report(PlatformTarget::Linux, crate::RuntimeTargetMode::EditorHost);
+    let report = PlatformCapabilityMatrix::new(features).report(
+        PlatformTarget::Linux,
+        crate::builtin::RuntimeTargetMode::EditorHost,
+    );
 
     assert_eq!(
         report.diagnostic_lines(),
@@ -53,7 +55,7 @@ fn platform_config_diagnostics_include_enabled_policy() {
     let config = PlatformConfig {
         enabled: false,
         target: PlatformTarget::Headless,
-        target_mode: crate::RuntimeTargetMode::ServerRuntime,
+        target_mode: crate::builtin::RuntimeTargetMode::ServerRuntime,
         features: PlatformFeatureSelection::headless(),
     };
 

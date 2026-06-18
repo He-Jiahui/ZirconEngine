@@ -19,7 +19,9 @@ mod host_document_tab_pointer_target;
 mod register_handled_pointer_node;
 mod route_conversion;
 
+#[cfg(test)]
 pub(crate) use build_host_document_tab_pointer_layout::build_host_document_tab_pointer_layout;
+pub(crate) use build_host_document_tab_pointer_layout::build_host_document_tab_pointer_layout_with_workbench_layout_frames;
 pub(crate) use host_document_tab_pointer_bridge::HostDocumentTabPointerBridge;
 pub(crate) use host_document_tab_pointer_dispatch::HostDocumentTabPointerDispatch;
 #[cfg(test)]

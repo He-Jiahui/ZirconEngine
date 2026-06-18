@@ -1,4 +1,5 @@
-use crate::{plugin::PluginFeatureBundleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginFeatureBundleManifest;
 
 pub(super) fn feature_project_selection_target_modes(
     feature: &PluginFeatureBundleManifest,

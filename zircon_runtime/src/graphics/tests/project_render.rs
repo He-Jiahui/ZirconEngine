@@ -24,7 +24,7 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 use crate::scene::world::World;
 use image::{ImageBuffer, ImageFormat, Rgba};
 
-use crate::{runtime::WgpuRenderFramework, SceneRenderer};
+use crate::graphics::{SceneRenderer, WgpuRenderFramework};
 
 use super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 

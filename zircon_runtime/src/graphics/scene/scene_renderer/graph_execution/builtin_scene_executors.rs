@@ -31,6 +31,16 @@ fn sprite_stage_for_executor(executor_id: &str) -> Result<RenderPassStage, Strin
     }
 }
 
+pub(super) fn particle_billboard_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let gpu = context.require_gpu()?;
+    gpu.record_particle_billboards_to_resources(
+        PostProcessGraphResourceNames::SCENE_COLOR,
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+    )
+}
+
 pub(super) fn depth_prepass_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {

@@ -10,11 +10,11 @@ use super::RenderPassExecutorId;
 mod gpu;
 mod resource_resolver;
 
-pub use gpu::RenderPassGpuExecutionContext;
+pub use gpu::{ParticleGpuTransparentDrawContext, RenderPassGpuExecutionContext};
 pub(in crate::graphics::scene::scene_renderer) use gpu::{
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
-pub use resource_resolver::RenderPassResourceResolver;
+pub use resource_resolver::RgResourceResolver;
 
 pub struct RenderPassExecutionContext<'a> {
     pub pass_name: String,
@@ -24,7 +24,7 @@ pub struct RenderPassExecutionContext<'a> {
     pub flags: PassFlags,
     pub dependencies: Vec<RenderPassId>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
-    resource_resolver: Option<RenderPassResourceResolver<'a>>,
+    resource_resolver: Option<RgResourceResolver<'a>>,
     gpu: Option<RenderPassGpuExecutionContext<'a>>,
 }
 
@@ -148,16 +148,16 @@ impl<'a> RenderPassExecutionContext<'a> {
         graph: &'a CompiledRenderGraph,
         pass_id: RenderPassId,
     ) -> Self {
-        self.resource_resolver = Some(RenderPassResourceResolver::new(graph, pass_id));
+        self.resource_resolver = Some(RgResourceResolver::new(graph, pass_id));
         self
     }
 
     pub fn with_gpu(mut self, gpu: RenderPassGpuExecutionContext<'a>) -> Self {
-        self.gpu = Some(gpu);
+        self.gpu = Some(gpu.with_resource_resolver(self.resource_resolver));
         self
     }
 
-    pub fn resource_resolver(&self) -> Option<RenderPassResourceResolver<'a>> {
+    pub fn resource_resolver(&self) -> Option<RgResourceResolver<'a>> {
         self.resource_resolver
     }
 
@@ -186,6 +186,61 @@ impl<'a> RenderPassExecutionContext<'a> {
             .is_some_and(|resolver| resolver.pass_declares_resource_access(resource, access))
     }
 
+    pub fn declares_resource_name_access(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> bool {
+        if let Some(resolver) = self.resource_resolver {
+            return resolver
+                .pass_resource_access_by_name(resource_name, access)
+                .is_some();
+        }
+        self.resources
+            .iter()
+            .any(|resource| resource.name == resource_name && resource.access == access)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name(
+        &mut self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&wgpu::TextureView, String> {
+        let declaration = match self.resource_resolver {
+            Some(resolver) => {
+                Some(resolver.require_pass_resource_declaration_by_name(resource_name, access)?)
+            }
+            None => None,
+        };
+        let gpu = self.require_gpu()?;
+        if let Some(declaration) = declaration {
+            gpu.resources
+                .require_texture_view_for_declaration(declaration)
+        } else {
+            gpu.resources.require_texture_view(resource_name)
+        }
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(in crate::graphics::scene::scene_renderer) fn require_buffer_by_name(
+        &mut self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<&wgpu::Buffer, String> {
+        let declaration = match self.resource_resolver {
+            Some(resolver) => {
+                Some(resolver.require_pass_resource_declaration_by_name(resource_name, access)?)
+            }
+            None => None,
+        };
+        let gpu = self.require_gpu()?;
+        if let Some(declaration) = declaration {
+            gpu.resources.require_buffer_for_declaration(declaration)
+        } else {
+            gpu.resources.require_buffer(resource_name)
+        }
+    }
+
     pub fn gpu(&self) -> Option<&RenderPassGpuExecutionContext<'a>> {
         self.gpu.as_ref()
     }
@@ -209,6 +264,22 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn attachment_ops_for_write(
+        &self,
+        resource_name: &str,
+    ) -> Option<RenderGraphAttachmentOps> {
+        let graph_ops = self.graph_attachment_ops_for_write(resource_name)?;
+        Some(
+            self.gpu
+                .as_ref()
+                .map(|gpu| {
+                    gpu.camera_stack_attachment_policy()
+                        .apply_to_first_attachment_write(resource_name, graph_ops)
+                })
+                .unwrap_or(graph_ops),
+        )
+    }
+
+    fn graph_attachment_ops_for_write(
         &self,
         resource_name: &str,
     ) -> Option<RenderGraphAttachmentOps> {
@@ -479,5 +550,52 @@ mod tests {
             !context.reads_texture("backbuffer"),
             "resolver-backed name queries must follow the compiled pass contract instead of stale context resource rows"
         );
+    }
+
+    #[test]
+    fn resolver_backed_name_access_ignores_stale_context_resource_rows() {
+        let mut builder = RenderGraphBuilder::new("resolver-name-access");
+        let color = builder.create_texture(TextureDesc::new(
+            "scene-color",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let output = builder.import_external_resource("viewport-output");
+        let write = builder.add_pass("write", QueueLane::Graphics);
+        let present = builder.add_pass("present", QueueLane::Graphics);
+        builder.write_texture(write, color).unwrap();
+        builder.read_texture(present, color).unwrap();
+        builder.write_external(present, output).unwrap();
+        let graph = builder.compile().unwrap();
+        let pass = graph
+            .passes()
+            .iter()
+            .find(|pass| pass.name == "write")
+            .unwrap();
+        let mut resources = pass.resources.clone();
+        resources.push(RenderGraphPassResourceAccess {
+            name: "viewport-output".to_string(),
+            kind: RenderGraphResourceKind::External,
+            access: RenderGraphResourceAccessKind::Read,
+            attachment_ops: None,
+        });
+        let context =
+            RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
+                pass.name.clone(),
+                RenderPassExecutorId::new(pass.executor_id.clone().unwrap_or_default()),
+                pass.queue,
+                pass.declared_queue,
+                pass.flags,
+                pass.dependencies.clone(),
+                resources,
+            )
+            .with_resource_resolver(&graph, pass.id);
+
+        assert!(!context
+            .declares_resource_name_access("viewport-output", RenderGraphResourceAccessKind::Read));
+        assert!(context
+            .declares_resource_name_access("scene-color", RenderGraphResourceAccessKind::Write));
     }
 }

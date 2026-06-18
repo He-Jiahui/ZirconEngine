@@ -578,6 +578,7 @@ fn decorate_prototype_component_root(
     }
     append_classes(&mut root.classes, &instance_node.classes);
     root.bindings.extend(instance_node.bindings.clone());
+    merge_prototype_instance_props_override(&mut root.attributes, instance_node, tokens, params);
     merge_prototype_instance_layout_override(
         &mut root.style_overrides,
         instance_node,
@@ -607,6 +608,16 @@ fn decorate_prototype_component_root(
     if let Some(widget) = &instance_node.widget {
         root.widget = widget.clone();
     }
+}
+
+fn merge_prototype_instance_props_override(
+    target: &mut BTreeMap<String, Value>,
+    instance_node: &UiNodePrototype,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+) {
+    let props = resolve_value_map(&instance_node.props, tokens, params);
+    merge_value_maps(target, &props);
 }
 
 fn merge_prototype_instance_layout_override(

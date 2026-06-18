@@ -2,26 +2,30 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
+use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
+use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::RenderFeatureDescriptor;
-use crate::CompiledRenderPipeline;
 
 use super::builtin_postprocess_executors::{
-    bloom_extract_executor, bloom_postprocess_executor, clustered_lighting_executor,
-    color_lut_bake_postprocess_executor, depth_of_field_prepare_executor,
+    bloom_extract_executor, bloom_postprocess_executor, blur_postprocess_executor,
+    clustered_lighting_executor, color_lut_bake_postprocess_executor,
+    depth_of_field_postprocess_executor, depth_of_field_prepare_executor,
     exposure_histogram_executor, exposure_resolve_executor, fxaa_postprocess_executor,
-    hzb_build_executor, hzb_occlusion_cull_executor, motion_vector_neighbor_max_executor,
-    motion_vector_tile_max_coarse_executor, motion_vector_tile_max_executor,
-    output_transfer_postprocess_executor, particle_velocity_executor,
+    hzb_build_executor, hzb_occlusion_cull_executor, motion_blur_postprocess_executor,
+    motion_vector_neighbor_max_executor, motion_vector_tile_max_coarse_executor,
+    motion_vector_tile_max_executor, output_transfer_postprocess_executor,
+    particle_velocity_executor, scene_composite_postprocess_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
     screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
-    screen_space_reflection_specular_occlusion_executor, ssao_executor,
+    screen_space_reflection_specular_occlusion_executor, smaa_postprocess_executor, ssao_executor,
     taa_reactive_mask_clear_executor, taa_reactive_mask_mesh_executor,
-    taa_resolve_postprocess_executor, uber_postprocess_executor, velocity_camera_executor,
-    velocity_mesh_object_executor,
+    taa_resolve_postprocess_executor, uber_postprocess_executor, upscale_postprocess_executor,
+    velocity_camera_executor, velocity_mesh_object_executor,
 };
 use super::builtin_scene_executors::{
     deferred_gbuffer_executor, deferred_lighting_executor, depth_prepass_executor, mesh_executor,
-    overlay_gizmo_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
+    overlay_gizmo_executor, particle_billboard_executor, screen_space_ui_executor,
+    shadow_atlas_executor, sprite_executor,
 };
 use super::preview_sky_executor::{
     preview_sky_final_color_executor, preview_sky_scene_color_executor,
@@ -59,10 +63,13 @@ impl RenderPassExecutorRegistry {
             "post.output-transfer".into(),
             output_transfer_postprocess_executor,
         );
+        registry.register("post.upscale".into(), upscale_postprocess_executor);
         registry.register(FXAA_EXECUTOR_ID.into(), fxaa_postprocess_executor);
+        registry.register(SMAA_EXECUTOR_ID.into(), smaa_postprocess_executor);
         registry.register("sprite.opaque".into(), sprite_executor);
         registry.register("sprite.alpha-mask".into(), sprite_executor);
         registry.register("sprite.transparent".into(), sprite_executor);
+        registry.register("particle.transparent".into(), particle_billboard_executor);
         registry.register("mesh.depth-prepass".into(), depth_prepass_executor);
         registry.register("mesh.opaque".into(), mesh_executor);
         registry.register("mesh.alpha-mask".into(), mesh_executor);
@@ -116,6 +123,16 @@ impl RenderPassExecutorRegistry {
         registry.register(
             "post.motion-vector-neighbor-max".into(),
             motion_vector_neighbor_max_executor,
+        );
+        registry.register("post.motion-blur".into(), motion_blur_postprocess_executor);
+        registry.register("post.blur".into(), blur_postprocess_executor);
+        registry.register(
+            "post.depth-of-field".into(),
+            depth_of_field_postprocess_executor,
+        );
+        registry.register(
+            "post.scene-composite".into(),
+            scene_composite_postprocess_executor,
         );
         registry.register(
             "post.depth-of-field-prepare".into(),

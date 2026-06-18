@@ -1,7 +1,7 @@
 use crate::core::framework::render::{FrameHistoryInvalidationReason, RenderPipelineHandle};
 use crate::core::math::UVec2;
 
-use crate::FrameHistoryBinding;
+use crate::graphics::FrameHistoryBinding;
 
 use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 

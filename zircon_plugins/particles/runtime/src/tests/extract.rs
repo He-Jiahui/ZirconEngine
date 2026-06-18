@@ -78,4 +78,13 @@ fn cpu_extract_preserves_material_texture_rotation_bounds_and_sort_metadata() {
     assert_approx_eq(extract.bounds[0].radius, 3.0_f32.sqrt());
     assert_eq!(extract.sprites[0].material, Some(material));
     assert_eq!(extract.sprites[0].texture, Some(texture));
+    assert!(extract.sprites[0].stable_sprite_key > 0);
+    assert_eq!(extract.sprites[0].aspect_ratio, 1.0);
+    assert_eq!(
+        extract.sprites[0].billboard_offset,
+        zircon_runtime::core::math::Vec2::ZERO
+    );
+    assert_eq!(extract.sprites[0].sort_order, 0);
+    assert!(extract.sprites[0].depth_test);
+    assert!(extract.previous_sprites.is_empty());
 }

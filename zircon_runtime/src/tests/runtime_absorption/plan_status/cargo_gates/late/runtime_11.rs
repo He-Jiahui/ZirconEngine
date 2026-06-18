@@ -40,17 +40,17 @@ fn runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass(
         (
             "2.1 剔除旁路收编",
             &[
-                "pre_m2_1_rayon_render_exception_guard_static_passed_pending_render_owner",
-                "render-owner-pending-runtime-11-m2-1-cutover",
-                "actual graphics cutover not executed",
+                "runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending",
+                "parallel_frustum.rs",
+                "direct_rayon_paths = 2",
             ][..],
         ),
         (
             "2.2 rayon 守卫",
             &[
-                "code_static_pending_render_cutover_cargo",
+                "code_static_pending_cargo",
                 "M2.2 Cargo 仍待",
-                "render owner",
+                "direct_rayon_paths = 2",
             ][..],
         ),
         (
@@ -77,8 +77,14 @@ fn runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass(
         let row_anchor = format!("| {row_name} |");
         let row = runtime_11_plan
             .lines()
-            .find(|line| line.contains(&row_anchor))
-            .unwrap_or_else(|| panic!("Runtime 11 should keep status row `{row_name}`"));
+            .filter(|line| line.contains(&row_anchor))
+            .find(|line| required_anchors.iter().all(|anchor| line.contains(anchor)))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Runtime 11 should keep status row `{row_name}` with anchors `{}`",
+                    required_anchors.join("`, `")
+                )
+            });
         assert_contains_all("Runtime 11 pending status row", row, required_anchors);
     }
 
@@ -118,6 +124,7 @@ fn runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass(
             "runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass",
             "parallel_frustum",
             "tasks/ecs_schedule/worker_pool/rayon",
+            "direct_rayon_paths = 2",
         ],
     );
 

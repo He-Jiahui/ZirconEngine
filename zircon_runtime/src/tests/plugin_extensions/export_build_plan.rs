@@ -2,12 +2,12 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{AssetUri, ProjectManifest};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::{
     plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportPipelineStage,
     plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ExportValidateReport,
     plugin::LibraryEmbedCompileHostTarget, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog,
 };
 
 #[test]

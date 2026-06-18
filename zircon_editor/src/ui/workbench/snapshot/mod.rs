@@ -15,7 +15,7 @@ pub use data::{
     EditorBridgeDiagnosticsSnapshot, EditorBridgeDiagnosticsSummarySnapshot,
     EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
     InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
-    ProjectOverviewSnapshot, SceneEntry,
+    ProjectOverviewSnapshot, SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone,
 };
 pub use workbench::{
     ActivityDrawerSnapshot, DocumentWorkspaceSnapshot, FloatingWindowSnapshot, MainPageSnapshot,

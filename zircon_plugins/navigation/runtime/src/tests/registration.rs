@@ -73,9 +73,9 @@ fn navigation_registration_contributes_runtime_module_and_components() {
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::ServerRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ]
     );
     assert_eq!(report.package_manifest.category, "runtime");

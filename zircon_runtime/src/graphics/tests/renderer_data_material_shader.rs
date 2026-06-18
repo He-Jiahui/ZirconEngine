@@ -12,7 +12,7 @@ use crate::core::framework::render::{
     RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, RenderPipelineAsset, RenderPipelineAssetContext,
     RenderPipelineCompileOptions, RendererFeatureAsset, RendererFeatureContractDiagnostic,
 };

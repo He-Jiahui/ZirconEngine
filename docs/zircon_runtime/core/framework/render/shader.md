@@ -9,38 +9,88 @@ related_code:
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
+  - zircon_runtime/src/core/framework/render/shader/geometry_source.rs
   - zircon_runtime/src/core/framework/render/shader/definition_value.rs
   - zircon_runtime/src/core/framework/render/shader/dependency.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/asset/assets/material/alpha_mode.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/zmaterial.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/shader_runtime.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame_with_shader_quality.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - tools/zircon_build.py
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
+  - zircon_runtime/src/core/framework/render/shader/geometry_source.rs
   - zircon_runtime/src/core/framework/render/shader/definition_value.rs
   - zircon_runtime/src/core/framework/render/shader/dependency.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs
+  - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/asset/assets/material/alpha_mode.rs
+  - zircon_runtime/src/asset/assets/material/material_asset.rs
+  - zircon_runtime/src/asset/assets/material/zmaterial.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/shader_runtime.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame.rs
+  - zircon_runtime/src/graphics/types/viewport_render_frame_with_shader_quality.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/dynamic_api/shader_prewarm.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - tools/zircon_build.py
 plan_sources:
   - user: 2026-05-20 Bevy rendering completion plan continuation
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
@@ -50,6 +100,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-25-typed-shader-definitions-design.md
   - docs/superpowers/plans/2026-05-24-shader-readiness-report.md
   - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
+  - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
 tests:
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_shader_defs_accept_legacy_flags_and_typed_values
@@ -66,6 +117,53 @@ tests:
   - cargo test -p zircon_runtime --lib shader --locked --jobs 1 --target-dir D:/cargo-targets/zircon-shader-readiness -- --test-threads=1 (2026-05-25 shader readiness report: passed, 24 passed)
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo check -p zircon_runtime --lib --locked
+  - zircon_runtime/src/core/framework/render/shader/geometry_source.rs::tests::render_shader_geometry_source_ids_reserve_builtin_segment
+  - zircon_runtime/src/core/framework/render/shader/variant_key.rs::tests::render_shader_variant_key_packs_dimensions_stably
+  - zircon_runtime/src/core/framework/render/shader/variant_key.rs::tests::render_shader_feature_bits_reports_named_flags
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-16 Plan 08 shader variant key contract slice: passed with existing warnings)
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs::tests::pipeline_key_derives_material_shader_variant_key
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_derives_material_shader_variant_key
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs (2026-06-17 PipelineKey to ShaderVariantKey bridge slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shading-model-check-0616 (2026-06-17 PipelineKey to ShaderVariantKey bridge slice: passed with existing warnings)
+  - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_hits_disk_after_restart
+  - zircon_runtime/src/graphics/shader/variant_cache/disk.rs::tests::render_shader_variant_cache_treats_corrupt_entry_as_miss_after_cleanup
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs::tests::render_shader_variant_prewarm_writes_disk_entries
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_counts_variant_misses_and_memory_hits
+  - rustfmt --edition 2021 on Plan 08 MS-M4-S1b touched files (2026-06-17 shader variant disk cache slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-variant-cache-check-0617 (2026-06-17 shader variant disk cache slice: passed with existing warnings)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-prewarm-check-0617 (2026-06-17 shader prewarm slice: passed with existing warnings)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-prewarm-bin-check-0617 (2026-06-17 shader prewarm slice: passed with existing warnings)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/shader/variant_key.rs and cargo check -p zircon_editor --lib --locked (2026-06-17 Workbench resize splitter validation exposed shader variant key GeometrySourceId owner import drift; passed after variant_key imports GeometrySourceId from geometry_source)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned shader prewarm slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets/shaders --pretty (2026-06-17 asset-scanned shader prewarm slice: wrote 4/4 variants)
+  - python tools\zircon_build.py --targets runtime --out D:\zircon-shader-asset-prewarm-dry-run --mode debug --prewarm-shaders --dry-run (2026-06-17 asset-scanned shader prewarm slice: command includes --asset-root ZirconEngine/assets)
+  - rustfmt --edition 2021 zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs (2026-06-17 asset-scanned multi-pass prewarm slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned multi-pass prewarm slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets/shaders --pretty (2026-06-17 asset-scanned multi-pass prewarm slice: wrote 20/20 variants)
+  - rustfmt --edition 2021 --check zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs (2026-06-17 asset-scanned material-feature prewarm slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned material-feature prewarm slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets --pretty (2026-06-17 asset-scanned material-feature prewarm slice: wrote 40/40 variants)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets/shaders --pretty (2026-06-17 asset-scanned material-feature prewarm regression: wrote 20/20 variants)
+  - rustfmt --edition 2021 --check zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs (2026-06-17 asset-scanned shading-model prewarm slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned shading-model prewarm slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets --pretty (2026-06-17 asset-scanned shading-model prewarm slice: wrote 40/40 variants)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets/shaders --pretty (2026-06-17 asset-scanned shading-model prewarm regression: wrote 20/20 variants)
+  - rustfmt --edition 2021 --check zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs (2026-06-17 asset-scanned initial revision prewarm slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned initial revision prewarm slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets --pretty (2026-06-17 asset-scanned initial revision prewarm slice: wrote 40/40 variants)
+  - rustfmt --edition 2021 --check zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs (2026-06-17 asset-scanned alpha-blend pass filtering slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 (2026-06-17 asset-scanned alpha-blend pass filtering slice: passed with existing warnings)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-asset-prewarm-check-0617 -- --project-root <temp> --cache-dir <temp>/cache --report <temp>/report.json --asset-root examples/vampire/assets --pretty (2026-06-17 asset-scanned alpha-blend pass filtering slice: wrote 40/40 variants)
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_separates_shader_quality_tiers
+  - rustfmt --edition 2021 touched runtime shader-quality files (2026-06-17 runtime shader quality key wiring slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-quality-check-0617 (2026-06-17 runtime shader quality key wiring slice: passed with existing warnings)
+  - rustfmt --edition 2021 --check zircon_runtime/src/bin/zircon_shader_prewarm/{args,manifest,run}.rs (2026-06-17 quality-tier prewarm enumeration slice: passed)
+  - python -m py_compile tools/zircon_build.py (2026-06-17 quality-tier prewarm enumeration slice: passed)
+  - cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-quality-prewarm-check-0617 (2026-06-17 quality-tier prewarm enumeration slice: passed with existing warnings)
+  - python tools\zircon_build.py --targets runtime --out D:\zircon-shader-quality-prewarm-dry-run --mode debug --prewarm-shaders --shader-quality-tier high --shader-quality-tier ultra --dry-run (2026-06-17 quality-tier prewarm enumeration slice: command includes --quality-tier high --quality-tier ultra)
+  - cargo run -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir D:\cargo-targets\zircon-runtime-shader-quality-prewarm-check-0617 -- --asset-root examples/vampire/assets --quality-tier high --quality-tier ultra (2026-06-17 quality-tier prewarm runtime probe: timed out during build/run; no pass claimed)
+  - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/{mesh_pipeline_cache,new,ensure_pipeline}.rs (2026-06-17 base mesh quality-aware cache owner slice: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir D:\cargo-targets\zircon-runtime-shader-quality-cache-check-0617 (2026-06-17 base mesh quality-aware cache owner slice: passed with existing warnings)
 doc_type: module-detail
 ---
 
@@ -97,7 +195,19 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 
 `RenderShaderDefinitionValue` records Bevy-style shader definition inputs as bool, signed integer, or unsigned integer values. `From<&str>` and `From<String>` create bool-true flag definitions so legacy authoring paths and small tests can stay concise while the runtime contract is no longer string-only.
 
-`RenderShaderVariantKey` records an optional entry point, optional stage, and typed definition list. It is a neutral key for material or pipeline specialization diagnostics, not a concrete pipeline-cache key. Concrete renderer caches can combine it with target format, material state, mesh layout, backend limits, and the typed definition values when the render prepare/cache layer starts consuming them.
+`RenderShaderVariantKey` records an optional entry point, optional stage, and typed definition list. It is a neutral key for material or pipeline specialization diagnostics and single-module compile requests, not the full material pipeline-cache key.
+
+`GeometrySourceId` is the geometry-source dimension for the material shader variant space. Built-in ids are reserved as `0 = StaticMesh`, `1 = SkinnedMesh`, `2 = MorphedMesh`, and `3 = SkinnedMorphed`; plugin geometry sources start at `GEOMETRY_SOURCE_PLUGIN_ID_START`. This keeps VertexFactory-style geometry source selection in the framework contract without pulling WGPU vertex-buffer declarations into the neutral layer.
+
+`GeometrySourceId` is owned by `shader/geometry_source.rs`. `shader/mod.rs` may re-export it for public callers, but internal shader submodules that need the type should import it from `super::geometry_source::GeometrySourceId`. That keeps `variant_key.rs` tied to the canonical geometry-source owner instead of relying on a facade re-export that can disappear during hard-cutover module cleanup.
+
+`ShaderVariantKey` is the Plan 08 material pipeline variant key contract. It combines `material_shader`, `material_revision`, `geometry_source`, `shading_model`, `pass_type`, `features`, `quality`, and a backend `platform_token`. `packed_dims()` reserves stable bit segments for fast in-memory specialization dimensions: geometry bits `0..3`, shading model bits `4..11`, pass bits `12..15`, feature bits `16..47`, and quality bits `48..49`. `canonical_string()` serializes the full stable key, including material id/revision and platform token, for later disk-cache hashing and shader prewarm manifests. The type remains backend-agnostic; WGPU shader modules, render pipelines, and cache entries still belong under `graphics`. `RenderQualityProfile::shader_quality` is the runtime-facing quality source and defaults to `ShaderQualityTier::Medium`; callers can override it with `RenderQualityProfile::with_shader_quality(...)`.
+
+`ShaderPassType`, `ShaderFeatureBits`, and `ShaderQualityTier` are the typed subdimensions of that key. Pass type covers forward, G-buffer, depth prepass, shadow, and velocity passes. Feature bits currently reserve alpha-test, receive-shadows, double-sided, LOD dither crossfade, and instanced previous-transform flags. Quality tiers are low, medium, high, and ultra. The names and bit positions are intentionally stable because future mesh pipeline cache and disk-cache code will use them as part of persisted shader variant identity.
+
+`ShaderVariantMissReport` is the neutral diagnostic DTO for variant cache behavior. It records variant requests, memory hits, disk hits, compile misses, disk writes, and disk errors for the last frame so runtime diagnostics can verify whether prewarm and disk-cache slices actually removed runtime compiles.
+
+`ShaderVariantPrewarmManifest`, `ShaderVariantPrewarmRequest`, and `ShaderVariantPrewarmReport` are the neutral offline-cache DTOs. The manifest version-gates a list of requests; each request carries the final `ShaderVariantKey`, WGSL source, include/source hashes, and template/compiler version strings. The report records requested, written, and failed counts plus per-variant failures. These DTOs let build tooling and headless runtime code populate `graphics::shader::variant_cache` without depending on WGPU objects. The `zircon_shader_prewarm` tool can read an authored manifest, emit the built-in fallback manifest, or scan asset roots for `.zmeta` compound shader packages, `.zshader` files, standalone `.wgsl` files, and `.zmaterial` material instances. Automatically generated built-in and asset-root requests can be expanded with repeated `--quality-tier low|medium|high|ultra` or `--quality-tier all`; no explicit tier still defaults to Medium so existing staging size stays stable. Authored manifest files keep their serialized quality keys unchanged. `tools/zircon_build.py --prewarm-shaders` forwards those tiers through its `--shader-quality-tier` option. The scan path mirrors the shader package importer by reading `.zshader` `wgsl_files` in order and combining those files into the runtime WGSL payload before writing disk-cache entries. `.zshader` entry-point stages drive static-mesh StandardPBR pass expansion: vertex+fragment sources emit Forward, GBuffer, DepthPrepass, Shadow, and Velocity; vertex-only sources emit DepthPrepass, Shadow, and Velocity; fragment-only sources emit Forward and GBuffer; compute-only sources do not enter the material-variant prewarm space. Standalone `.wgsl` sources default to the full material pass set because they do not carry serialized stage metadata. Scanned shader requests use material revision `1`, matching `ResourceManager::register_ready` initial ready resource revision, while source/include hashes remain part of the disk-cache key payload for stale-entry invalidation. `.zmaterial` files are parsed through `MaterialAsset`, joined back to scanned shader sources by shader `AssetReference` URL or resource id, and expanded into deduplicated material-dimension variants. The feature mapping matches runtime `PipelineKey`: `AlphaMode::Mask` sets `ShaderFeatureBits::ALPHA_TEST`, and `double_sided = true` sets `ShaderFeatureBits::DOUBLE_SIDED`. Built-in material lighting models also enter the prewarm key through `ShadingModelId::from_lighting_model`: PBR maps to StandardPBR, BlinnPhong maps to BlinnPhong, and Unlit maps to Unlit. `AlphaMode::Blend` material-instance requests are filtered to the Forward pass so transparent materials align with the current runtime transparent queue instead of prewarming unused G-buffer, depth, shadow, or velocity variants for that material instance. Custom lighting models still need a project shading-model registry export before prewarm can assign plugin ids safely, so unknown custom models continue to fall back to StandardPBR in this tool path.
 
 `RenderShaderPipelineLayoutDescriptor` records the intended shader resource interface. Each `RenderShaderBindGroupLayoutDescriptor` stores a group index, optional label, and binding rows. Each `RenderShaderBindingDescriptor` stores binding index, optional label, resource type, and stage visibility. `RenderShaderBindingResourceType` currently names uniform buffers, storage buffers, sampled textures, storage textures, and samplers. `push_constant_ranges` is intentionally a vector of labels or range descriptions rather than a WGPU-native range type because the neutral contract must remain serializable and backend-agnostic.
 
@@ -115,7 +225,7 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 
 `ResourceStreamer::ensure_shader_source(...)` is the current concrete bridge. It resolves the referenced `ShaderAsset`, requires `runtime_wgsl_source()`, stores the selected WGSL in `ShaderRuntime`, and returns a material readiness fallback report when the shader is missing or cannot provide runtime WGSL. This keeps shader-source failure visible to material diagnostics instead of silently using a fallback.
 
-The mesh renderer cache currently creates WGPU shader modules from the prepared WGSL source and caches modules by shader resource id plus revision. Render pipelines are then keyed by `PipelineKey`, which combines shader identity with material and pipeline state. That is narrower than Bevy's `PipelineCache`, but it preserves the same separation: source and descriptor contracts are asset/framework data, while module and pipeline objects are renderer-owned resources.
+The mesh renderer cache currently creates WGPU shader modules from the prepared WGSL source and caches modules by shader resource id plus revision. `PipelineKey` can now derive the neutral `ShaderVariantKey`, and `MeshPipelineVariantKey` stores that derived key beside the full `PipelineKey` with a WGPU platform token and a pass-type mapping for forward, G-buffer/depth, shadow, and velocity pass kinds. Viewport quality now flows from `RenderQualityProfile::shader_quality` through `ViewportRecordState`, `FrameSubmissionContext`, `ViewportRenderFrame`, and `MeshPassBuildContext` before `MeshPipelineVariantRegistry` writes it into `ShaderVariantKey.quality`; distinct quality tiers therefore produce distinct mesh variant ids and sort-key material bits. The base mesh render-command path now resolves pipelines by `MeshPipelineVariantId` and uses the registry-owned `ShaderVariantKey` for both shader-module cache identity and `graphics::shader::variant_cache::ShaderVariantCacheDisk` lookup/write. Disk entries are keyed by `ShaderVariantKey::canonical_string()` plus a WGSL source hash, first checking the runtime writable cache and then the staged prewarm cache produced by `zircon_shader_prewarm` / `tools/zircon_build.py --prewarm-shaders`. Build staging passes `ZirconEngine/assets` to the tool as `--asset-root`, so source packages copied into the staged runtime can contribute disk-cache entries in the same pass as the built-in fallback shader. Velocity/TAA/deferred/template variants still keep their current narrower pipeline maps until their pass-specific cache owners are moved onto the same `ShaderVariantKey` path.
 
 ## Current Limits
 
@@ -124,6 +234,8 @@ This module is not a full Bevy `ShaderPlugin`, `ShaderCache`, or `PipelineCache`
 Asset-level shader readiness is intentionally narrower than renderer readiness. It can report missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, source-only versus redirected import rows, and copied validation diagnostics, but it does not decide whether a concrete device can create a module or pipeline.
 
 The layout descriptor is serialized intent, not reflection. It does not yet derive bind groups from WGSL, validate binding type compatibility, model dynamic offsets, express texture sample types, or map push constants to backend feature gates. Future shader milestones should add those checks below the framework DTO layer so `.zshader` authoring and renderer preparation continue to share one stable contract.
+
+Asset-root prewarm scanning is still intentionally conservative. It emits only static-mesh requests, but now covers the pass dimension from `.zshader` entry-point stages plus material-instance alpha-test, double-sided, built-in shading-model variants, alpha-blend Forward-only filtering, selected quality tiers, and initial runtime revision alignment. Runtime draw submission can carry a non-Medium `ShaderQualityTier` into `ShaderVariantKey.quality`, build staging can prewarm matching quality tiers explicitly, and the base mesh WGPU cache path now consumes that same quality-aware key. The asset-root prewarm tool does not yet enumerate non-static geometry sources, custom shading-model plugin ids, or edited-project resource revisions beyond the initial `1`. Base shader-source requests also remain conservative when no material instance narrows the pass set. Runtime `ResourceManager` revision export plus Velocity/TAA/deferred/template cache-owner migration are still needed before "second launch miss = 0" can be claimed for long-lived projects after asset edits.
 
 ## Test Coverage
 

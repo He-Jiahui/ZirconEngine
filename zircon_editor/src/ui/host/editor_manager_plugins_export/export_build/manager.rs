@@ -2,10 +2,9 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::{
-    plugin::ExportBuildPlan, plugin::NativePluginLoadReport, plugin::NativePluginLoader,
-    RuntimeTargetMode,
-};
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
+use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::super::native_dynamic_export_preparation::{

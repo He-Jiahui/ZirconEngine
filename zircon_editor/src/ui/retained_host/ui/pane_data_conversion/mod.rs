@@ -26,6 +26,8 @@ pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_h
 use self::pane_component_projection::host_template_node;
 pub(super) use self::pane_component_projection::{
     projected_command_palette_options, projected_command_palette_structured_options,
+    projected_notification_center_options, projected_notification_center_structured_options,
+    projected_notification_center_value_text,
 };
 pub(super) use self::pane_menu_projection::structured_menu_items;
 pub(super) use self::pane_option_projection::structured_options_for_node;

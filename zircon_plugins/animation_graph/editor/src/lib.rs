@@ -79,7 +79,7 @@ pub fn editor_plugin() -> AnimationGraphEditorPlugin {
 fn base_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
     zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Animation Graph")
         .with_category("authoring")
-        .with_supported_targets([zircon_runtime::RuntimeTargetMode::EditorHost])
+        .with_supported_targets([zircon_runtime::builtin::RuntimeTargetMode::EditorHost])
         .with_capabilities([CAPABILITY])
         .with_dependency(
             zircon_runtime::plugin::PluginDependencyManifest::new("animation", true)
@@ -502,7 +502,7 @@ mod tests {
         assert_eq!(manifest.category, "authoring");
         assert_eq!(
             manifest.supported_targets,
-            vec![zircon_runtime::RuntimeTargetMode::EditorHost]
+            vec![zircon_runtime::builtin::RuntimeTargetMode::EditorHost]
         );
         assert_eq!(manifest.capabilities, vec![CAPABILITY.to_string()]);
         assert_eq!(editor_module.capabilities, manifest.capabilities);

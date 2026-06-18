@@ -158,13 +158,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Navigation",
-        zircon_runtime::RuntimePluginId::Navigation,
+        zircon_runtime::builtin::RuntimePluginId::Navigation,
         "zircon_plugin_navigation_runtime",
     )
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::ServerRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.navigation")
     .with_capability("runtime.plugin.navigation.recast")

@@ -1,5 +1,6 @@
 use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
-use zircon_runtime::{plugin::PluginPackageManifest, RuntimeTargetMode};
+use zircon_runtime::plugin::PluginPackageManifest;
+use zircon_runtime::builtin::{RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "asset_importer.texture";
 pub const IMPORTER_FAMILY: &str = "texture";

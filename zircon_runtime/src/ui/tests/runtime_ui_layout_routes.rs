@@ -45,7 +45,7 @@ fn runtime_quest_log_fixture_exports_layout_engine_route_report() {
 
     assert!(report.request_count >= 3, "{report:#?}");
     assert!(report.taffy_selected_count >= 2, "{report:#?}");
-    assert!(report.legacy_selected_count >= 1, "{report:#?}");
+    assert!(report.zircon_selected_count >= 1, "{report:#?}");
     assert!(report.fallback_count >= 1, "{report:#?}");
     assert_eq!(report.unsupported_count, 0, "{report:#?}");
     assert!(
@@ -69,7 +69,7 @@ fn runtime_quest_log_fixture_exports_layout_engine_route_report() {
     assert!(
         report.selections.iter().any(|selection| {
             selection.request.family == UiLayoutEngineFamily::Overlay
-                && selection.selected_backend == UiLayoutEngineBackend::LegacyZircon
+                && selection.selected_backend == UiLayoutEngineBackend::Zircon
                 && selection.support == UiLayoutEngineSupport::Fallback
                 && selection.fallback_reason
                     == Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -102,13 +102,13 @@ fn runtime_inventory_fixture_reports_virtualized_list_zircon_fallback() {
     let report = surface.layout_engine_report.clone();
 
     assert!(report.request_count >= 2, "{report:#?}");
-    assert!(report.legacy_selected_count >= 2, "{report:#?}");
+    assert!(report.zircon_selected_count >= 2, "{report:#?}");
     assert!(report.fallback_count >= 2, "{report:#?}");
     assert_eq!(report.unsupported_count, 0, "{report:#?}");
     assert!(
         report.selections.iter().any(|selection| {
             selection.request.family == UiLayoutEngineFamily::Overlay
-                && selection.selected_backend == UiLayoutEngineBackend::LegacyZircon
+                && selection.selected_backend == UiLayoutEngineBackend::Zircon
                 && selection.support == UiLayoutEngineSupport::Fallback
                 && selection.fallback_reason
                     == Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -119,7 +119,7 @@ fn runtime_inventory_fixture_reports_virtualized_list_zircon_fallback() {
         report.selections.iter().any(|selection| {
             selection.node_id == Some(inventory_list_id)
                 && selection.request.family == UiLayoutEngineFamily::VirtualizedList
-                && selection.selected_backend == UiLayoutEngineBackend::LegacyZircon
+                && selection.selected_backend == UiLayoutEngineBackend::Zircon
                 && selection.support == UiLayoutEngineSupport::Fallback
                 && selection.fallback_reason
                     == Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -402,10 +402,10 @@ fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurfac
         .iter()
         .filter(|selection| selection.selected_backend == UiLayoutEngineBackend::Taffy)
         .count() as u64;
-    let legacy_count = report
+    let zircon_count = report
         .selections
         .iter()
-        .filter(|selection| selection.selected_backend == UiLayoutEngineBackend::LegacyZircon)
+        .filter(|selection| selection.selected_backend == UiLayoutEngineBackend::Zircon)
         .count() as u64;
     let fallback_count = report
         .selections
@@ -424,7 +424,7 @@ fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurfac
         "{report:#?}"
     );
     assert_eq!(report.taffy_selected_count, taffy_count, "{report:#?}");
-    assert_eq!(report.legacy_selected_count, legacy_count, "{report:#?}");
+    assert_eq!(report.zircon_selected_count, zircon_count, "{report:#?}");
     assert_eq!(report.fallback_count, fallback_count, "{report:#?}");
     assert_eq!(report.unsupported_count, unsupported_count, "{report:#?}");
     assert_eq!(
@@ -453,8 +453,8 @@ fn assert_route_report_counts_and_reasons(surface: &crate::ui::surface::UiSurfac
             UiLayoutEngineSupport::Fallback => {
                 assert_eq!(
                     selection.selected_backend,
-                    UiLayoutEngineBackend::LegacyZircon,
-                    "fallback route should select LegacyZircon explicitly: {selection:#?}"
+                    UiLayoutEngineBackend::Zircon,
+                    "fallback route should select Zircon explicitly: {selection:#?}"
                 );
                 assert!(
                     selection.fallback_reason.is_some(),

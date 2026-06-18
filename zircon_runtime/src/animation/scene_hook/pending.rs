@@ -5,6 +5,7 @@ use crate::scene::{AnimationStateTransitionRuntime, EntityId};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct AnimationSceneScan {
+    pub(super) scanned_entities: usize,
     pub(super) sequences: Vec<PendingSequenceSample>,
     pub(super) clip_samples: Vec<PendingPoseSample>,
     pub(super) clip_event_samples: Vec<PendingClipEventSample>,

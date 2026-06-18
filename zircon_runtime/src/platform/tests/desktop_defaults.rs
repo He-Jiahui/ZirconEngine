@@ -5,7 +5,7 @@ fn client_desktop_default_platform_declares_window_input_and_gilrs() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Windows,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         );
 
     assert_eq!(

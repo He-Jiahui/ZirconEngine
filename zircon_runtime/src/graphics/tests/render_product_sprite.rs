@@ -47,6 +47,7 @@ fn render_product_sprite_contract_is_distinct_from_particle_sprites() {
         sort_order: 0,
         color: sprite.color,
         intensity: 1.0,
+        depth_test: true,
         material: sprite.material,
         texture: Some(sprite.image),
     };

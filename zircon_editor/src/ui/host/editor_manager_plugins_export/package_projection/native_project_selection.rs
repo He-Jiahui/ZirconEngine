@@ -1,7 +1,8 @@
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, plugin::PluginModuleKind,
     plugin::PluginPackageManifest, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginSelection, RuntimeTargetMode,
+    plugin::ProjectPluginSelection,
 };
 
 use super::module_crate_lookup::module_crate;
@@ -87,9 +88,10 @@ fn feature_target_modes(feature: &PluginFeatureBundleManifest) -> Vec<RuntimeTar
 
 #[cfg(test)]
 mod tests {
+    use zircon_runtime::builtin::RuntimeTargetMode;
     use zircon_runtime::{
         plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
-        plugin::PluginModuleManifest, RuntimeTargetMode,
+        plugin::PluginModuleManifest,
     };
 
     use super::*;

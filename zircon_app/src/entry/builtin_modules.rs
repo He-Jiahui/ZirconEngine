@@ -5,7 +5,7 @@ use zircon_runtime::builtin::{
     runtime_modules_for_runtime_profile_manifest_with_plugin_registration_reports,
     runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_plugin_registration_reports,
+    runtime_modules_for_target_with_plugin_registration_reports, RuntimeTargetMode,
 };
 use zircon_runtime::core::{CoreError, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
@@ -13,7 +13,6 @@ use zircon_runtime::plugin::{
     ProjectPluginManifest, RuntimePluginAvailabilityReport, RuntimePluginBridgeLifecycleState,
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
-use zircon_runtime::RuntimeTargetMode;
 
 use super::{entry_profile::EntryProfile, EntryConfig};
 

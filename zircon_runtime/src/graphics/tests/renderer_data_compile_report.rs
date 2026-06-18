@@ -6,9 +6,9 @@ use crate::core::framework::render::{
 };
 use crate::core::math::Vec4;
 use crate::graphics::{
-    RenderPipelineAsset, RenderPipelineCompileReport, RendererFeatureContractDiagnosticSeverity,
+    RenderPipelineAsset, RenderPipelineCompileReport, RendererFeatureContractDiagnostic,
+    RendererFeatureContractDiagnosticSeverity,
 };
-use crate::RendererFeatureContractDiagnostic;
 
 #[test]
 fn render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_shader() {
@@ -329,7 +329,7 @@ fn asset_reference(locator: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(locator).unwrap())
 }
 
-fn empty_compiled_pipeline() -> crate::CompiledRenderPipeline {
+fn empty_compiled_pipeline() -> crate::graphics::CompiledRenderPipeline {
     RenderPipelineAsset::default_forward_plus()
         .compile(&test_extract())
         .unwrap()

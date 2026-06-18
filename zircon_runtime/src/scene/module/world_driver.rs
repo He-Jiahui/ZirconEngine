@@ -19,6 +19,7 @@ impl WorldDriver {
         let fixed_delta_seconds = duration_to_real_seconds(fixed_step_plan.timestep);
         let schedule = level.with_world(|world| world.schedule().stage_plan());
         let hooks = core.scene_runtime_hook_stage_plan_snapshot();
+        level.with_world_mut(|world| world.reset_ecs_frame_performance_diagnostics());
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {
                 for _ in 0..fixed_step_plan.step_count {

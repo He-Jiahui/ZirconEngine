@@ -9,6 +9,7 @@ impl RenderPipelineAsset {
     pub fn default_deferred() -> Self {
         Self {
             handle: RenderPipelineHandle::new(2),
+            revision: 1,
             name: "deferred".to_string(),
             core_pipeline: CorePipelineKind::Core3d,
             phase_mapping: vec![

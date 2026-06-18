@@ -1,10 +1,9 @@
 use std::ffi::CString;
 
 use super::abi_declarations::{
-    NativePluginBehaviorV2, NativePluginBehaviorV3, NativePluginByteSliceV2,
-    NativePluginCallbackStatusV2, NativePluginInvokeCommandFnV2, NativePluginOwnedByteBufferV2,
-    NativePluginRestoreStateFnV2, NativePluginSaveStateFnV2, NativePluginUnloadFnV2,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    NativePluginBehaviorV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
+    NativePluginInvokeCommandFnV2, NativePluginOwnedByteBufferV2, NativePluginRestoreStateFnV2,
+    NativePluginSaveStateFnV2, NativePluginUnloadFnV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::native_strings::read_optional_c_string;
@@ -31,27 +30,6 @@ pub struct NativePluginBehaviorCallReport {
 }
 
 impl NativePluginBehavior {
-    pub(super) unsafe fn from_abi_v2(abi: &NativePluginBehaviorV2) -> Result<Self, String> {
-        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
-            return Err(format!(
-                "unsupported native plugin behavior ABI version {}; expected {}",
-                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
-            ));
-        }
-        Ok(Self {
-            is_stateless: abi.is_stateless != 0,
-            state_schema_version: 0,
-            command_manifest_schema: None,
-            event_manifest_schema: None,
-            command_manifest: read_optional_c_string(abi.command_manifest),
-            event_manifest: read_optional_c_string(abi.event_manifest),
-            invoke_command: abi.invoke_command,
-            save_state: abi.save_state,
-            restore_state: abi.restore_state,
-            unload: abi.unload,
-        })
-    }
-
     pub(super) unsafe fn from_abi_v3(abi: &NativePluginBehaviorV3) -> Result<Self, String> {
         if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
             return Err(format!(

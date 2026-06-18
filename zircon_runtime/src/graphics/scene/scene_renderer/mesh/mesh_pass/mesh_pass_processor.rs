@@ -4,7 +4,7 @@ use super::{
 };
 use crate::core::framework::render::{
     packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
-    RenderPhaseSortComponents,
+    RenderPhaseSortComponents, ShaderQualityTier,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::PipelineKey;
@@ -32,7 +32,7 @@ pub(crate) struct MeshBatchRef {
     pub(crate) taa_reactive_mask_strength: f32,
     pub(crate) static_state: RenderMeshStaticState,
     pub(crate) pipeline_key: PipelineKey,
-    pub(crate) sort_key: u64,
+    pub(crate) sort_components: RenderPhaseSortComponents,
     pub(crate) geometry: MeshGeometryHandle,
     pub(crate) previous_velocity_geometry: Option<MeshGeometryHandle>,
     pub(crate) draw_args: MeshDrawArgs,
@@ -48,7 +48,7 @@ impl MeshBatchRef {
     pub(crate) fn new(
         queue_profile: MeshDrawQueueProfile,
         pipeline_key: PipelineKey,
-        sort_key: u64,
+        sort_components: RenderPhaseSortComponents,
         geometry: MeshGeometryHandle,
         draw_args: MeshDrawArgs,
     ) -> Self {
@@ -64,7 +64,7 @@ impl MeshBatchRef {
             taa_reactive_mask_strength: 0.0,
             static_state: RenderMeshStaticState::default(),
             pipeline_key,
-            sort_key,
+            sort_components,
             geometry,
             previous_velocity_geometry: None,
             draw_args,
@@ -79,6 +79,15 @@ impl MeshBatchRef {
 
     pub(crate) fn with_source_draw_index(mut self, source_draw_index: usize) -> Self {
         self.source_draw_index = source_draw_index;
+        self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_sort_components(
+        mut self,
+        sort_components: RenderPhaseSortComponents,
+    ) -> Self {
+        self.sort_components = sort_components;
         self
     }
 
@@ -200,7 +209,7 @@ impl MeshBatchRef {
     ) -> MeshDrawCommand {
         let sort_key = packed_sort_key_u64(
             phase,
-            RenderPhaseSortComponents::new(0.0, self.sort_key),
+            self.sort_components,
             pipeline_variant_id.value(),
             self.material_discriminant(),
         );
@@ -264,14 +273,23 @@ impl MeshBatchRef {
 
 pub(crate) struct MeshPassBuildContext<'a, R: MeshPipelineVariantResolver + ?Sized> {
     variant_resolver: &'a mut R,
+    shader_quality: ShaderQualityTier,
 }
 
 impl<'a, R> MeshPassBuildContext<'a, R>
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    pub(crate) fn new(variant_resolver: &'a mut R) -> Self {
-        Self { variant_resolver }
+    pub(crate) fn new(variant_resolver: &'a mut R, shader_quality: ShaderQualityTier) -> Self {
+        Self {
+            variant_resolver,
+            shader_quality,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_default_quality(variant_resolver: &'a mut R) -> Self {
+        Self::new(variant_resolver, ShaderQualityTier::default())
     }
 
     pub(crate) fn pipeline_variant_id(
@@ -280,7 +298,7 @@ where
         pipeline_key: &PipelineKey,
     ) -> MeshPipelineVariantId {
         self.variant_resolver
-            .resolve_variant(pipeline_kind, pipeline_key)
+            .resolve_variant(pipeline_kind, pipeline_key, self.shader_quality)
     }
 }
 
@@ -296,7 +314,7 @@ pub(crate) trait MeshPassProcessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::RenderPhase;
+    use crate::core::framework::render::{RenderPhase, RenderPhaseSortComponents};
     use crate::core::framework::scene::Mobility;
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
@@ -319,7 +337,7 @@ mod tests {
                 true,
             ),
             default_pipeline_key(),
-            10,
+            RenderPhaseSortComponents::new(0.0, 10),
             MeshGeometryHandle::test(1),
             MeshDrawArgs::direct_indexed(0, 3),
         )

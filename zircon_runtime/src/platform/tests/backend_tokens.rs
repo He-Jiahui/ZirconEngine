@@ -168,7 +168,7 @@ fn diagnostic_status_prefixes_stay_stable() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())
         .report(
             PlatformTarget::Windows,
-            crate::RuntimeTargetMode::ClientRuntime,
+            crate::builtin::RuntimeTargetMode::ClientRuntime,
         );
     let lines = report.diagnostic_lines();
 

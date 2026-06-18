@@ -6,7 +6,9 @@ use crate::core::framework::scene::EntityId;
 use crate::core::framework::scene::Mobility;
 use crate::core::math::Vec4;
 use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource};
-use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MaterialTextureSet;
+use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
+    MaterialTextureSet, MeshCommandSortInput,
+};
 use bytemuck::{Pod, Zeroable};
 
 use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
@@ -67,6 +69,7 @@ pub(super) struct PendingMeshDraw {
     pub(super) skinned_gpu_source: Option<PendingSkinnedGpuSource>,
     pub(super) resolved_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
     pub(super) previous_skinned_gpu_source: Option<Arc<GpuMeshResource>>,
+    pub(super) command_sort_input: MeshCommandSortInput,
     pub(super) first_index: u32,
     pub(super) draw_index_count: u32,
     pub(super) indirect_draw_ref: Option<VirtualGeometryIndirectDrawRef>,

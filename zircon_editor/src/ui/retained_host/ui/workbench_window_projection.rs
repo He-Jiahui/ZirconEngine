@@ -14,7 +14,8 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
     projected_command_palette_options, projected_command_palette_structured_options,
-    structured_menu_items, structured_options_for_node,
+    projected_notification_center_options, projected_notification_center_structured_options,
+    projected_notification_center_value_text, structured_menu_items, structured_options_for_node,
 };
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
@@ -101,9 +102,18 @@ fn to_host_contract_workbench_window_node(
     {
         component_role = "command-palette".to_string();
     }
+    if component_role.is_empty()
+        && is_workbench_notification_center_mount(node.component.as_str(), control_id.as_str())
+    {
+        component_role = "notification-center".to_string();
+    }
+    let button_style_values = toml_values_from_host_properties(&node.properties);
     let value_text = node
         .value_text
         .clone()
+        .or_else(|| {
+            projected_notification_center_value_text(component_role.as_str(), &button_style_values)
+        })
         .or_else(|| first_string_property(&node.properties, &["value_text", "value"]))
         .unwrap_or_default();
     let media_source = first_string_property(&node.properties, &["image", "source", "media"])
@@ -116,9 +126,11 @@ fn to_host_contract_workbench_window_node(
     let icon_name = node.icon.clone().unwrap_or_default();
     let preview_image = load_preview_image(&media_source, &icon_name);
     let preview_size = preview_image.size();
-    let button_style_values = toml_values_from_host_properties(&node.properties);
     let option_values =
         projected_command_palette_options(component_role.as_str(), &button_style_values)
+            .or_else(|| {
+                projected_notification_center_options(component_role.as_str(), &button_style_values)
+            })
             .unwrap_or_else(|| string_array_property(&node.properties, "options", &node.options));
     let menu_item_values = string_array_property(&node.properties, "menu_items", &node.menu_items);
     let collection_item_values =
@@ -134,6 +146,12 @@ fn to_host_contract_workbench_window_node(
         preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
     let structured_options =
         projected_command_palette_structured_options(component_role.as_str(), &button_style_values)
+            .or_else(|| {
+                projected_notification_center_structured_options(
+                    component_role.as_str(),
+                    &button_style_values,
+                )
+            })
             .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
         .or_else(|| default_workbench_surface_variant(&node.component, &component_role))
@@ -393,6 +411,9 @@ fn is_status_right_control(node: &RetainedUiHostNodeModel) -> bool {
         Some(
             "WorkbenchStatusGrid"
                 | "WorkbenchStatusSnap"
+                | "WorkbenchStatusTaskProgress"
+                | "WorkbenchStatusTaskLabel"
+                | "WorkbenchStatusTaskBar"
                 | "WorkbenchStatusSnapToggle"
                 | "WorkbenchStatusWorld"
                 | "WorkbenchStatusTarget"
@@ -406,7 +427,7 @@ fn resolve_workbench_role(component: &str) -> &'static str {
         "Button" => "Button",
         "IconButton" => "IconButton",
         "ComboBox" | "Dropdown" | "SearchSelect" => "Dropdown",
-        "ContextActionMenu" | "Menu" | "PopupMenu" => "Menu",
+        "ContextActionMenu" | "ContextMenu" | "Menu" | "PopupMenu" => "Menu",
         "InputField" | "TextField" | "NumberField" => "InputField",
         "Checkbox" => "Checkbox",
         "Radio" => "Radio",
@@ -417,6 +438,7 @@ fn resolve_workbench_role(component: &str) -> &'static str {
         "SvgIcon" => "SvgIcon",
         "Icon" => "Icon",
         "Tooltip" => "Tooltip",
+        "NotificationCenter" => "NotificationCenter",
         "Label" | "Text" => "Label",
         _ => "Mount",
     }
@@ -433,6 +455,12 @@ fn default_workbench_surface_variant(component: &str, component_role: &str) -> O
 
 fn is_workbench_command_palette_mount(component: &str, control_id: &str) -> bool {
     component == "WorkbenchCommandPalette" || control_id == "WorkbenchCommandPalette"
+}
+
+fn is_workbench_notification_center_mount(component: &str, control_id: &str) -> bool {
+    component == "NotificationCenter"
+        || component == "WorkbenchNotificationCenter"
+        || control_id == "WorkbenchNotificationCenter"
 }
 
 fn default_text_tone(component: &str, component_role: &str, surface_variant: &str) -> String {

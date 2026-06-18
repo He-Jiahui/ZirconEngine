@@ -13,7 +13,6 @@ mod host_contract;
 pub(crate) mod host_page_pointer;
 pub(crate) mod menu_pointer;
 pub(crate) mod primitives;
-pub(crate) mod root_shell_projection;
 pub(crate) mod scroll_surface_host;
 pub(crate) mod shell_pointer;
 pub mod tab_drag;
@@ -22,6 +21,7 @@ pub(crate) mod ui_perf;
 mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_pointer;
+pub(crate) mod workbench_notifications;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 

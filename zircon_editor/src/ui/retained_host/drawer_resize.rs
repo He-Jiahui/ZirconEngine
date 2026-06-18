@@ -5,7 +5,9 @@ use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::layout::{ActivityDrawerSlot, LayoutCommand};
 
 #[cfg(test)]
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::{
+    BuiltinHostRootShellFrames, BuiltinWorkbenchWindowLayoutFrames,
+};
 #[cfg(test)]
 use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
@@ -39,6 +41,23 @@ pub(crate) fn resolve_host_resize_target_group_with_root_frames(
 ) -> Option<HostResizeTargetGroup> {
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(root_size, true, &[], shared_root_frames, None);
+    bridge.resize_target_at(point)
+}
+
+#[cfg(test)]
+pub(crate) fn resolve_host_resize_target_group_with_workbench_layout_frames(
+    root_size: ShellSizePx,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    point: UiPoint,
+) -> Option<HostResizeTargetGroup> {
+    let mut bridge = HostShellPointerBridge::new();
+    bridge.update_layout_with_workbench_layout_frames(
+        root_size,
+        true,
+        &[],
+        componentized_workbench_layout_frames,
+        None,
+    );
     bridge.resize_target_at(point)
 }
 

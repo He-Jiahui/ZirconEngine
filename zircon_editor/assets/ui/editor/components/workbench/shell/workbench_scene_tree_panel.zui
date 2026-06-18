@@ -22,14 +22,21 @@ component = "VerticalGroup"
 control_id = "WorkbenchSceneTreePanel"
 classes = ["workbench-panel", "workbench-left-panel"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 332.0, preferred = 332.0, max = 332.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "scene_tabs" }, { node = "scene_search_row" }, { node = "scene_tree" }]
+children = [{ node = "scene_tabs" }, { node = "scene_content" }]
 
 [nodes.scene_tabs]
 component = "HorizontalGroup"
-control_id = "WorkbenchSceneTabs"
+control_id = "LeftDrawerHeaderRoot"
 classes = ["workbench-tabs"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
 children = [{ node = "scene_tab_scene" }, { node = "scene_tab_layers" }]
+
+[nodes.scene_content]
+component = "VerticalGroup"
+control_id = "LeftDrawerContentRoot"
+classes = ["workbench-left-drawer-content"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "scene_search_row" }, { node = "scene_tree" }]
 
 [nodes.scene_tab_scene]
 component = "WorkbenchTab"

@@ -8,17 +8,19 @@ use crate::scene::{EntityId, LevelSystem, World};
 pub(super) fn apply_pose_transforms_to_scene_nodes(
     level: &LevelSystem,
     poses: &BTreeMap<EntityId, AnimationPoseOutput>,
-) {
+) -> usize {
     if poses.is_empty() {
-        return;
+        return 0;
     }
 
     level.with_world_mut(|world| {
         let updates = node_pose_transform_updates(world, poses);
+        let update_count = updates.len();
         for (entity, transform) in updates {
             let _ = world.update_transform(entity, transform);
         }
-    });
+        update_count
+    })
 }
 
 fn node_pose_transform_updates(

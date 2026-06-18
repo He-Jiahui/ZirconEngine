@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::{
-    plugin::{ExportBuildMode, ExportPipelineStage, ExportProfile, ExportTargetPlatform},
-    RuntimeTargetMode,
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{
+    ExportBuildMode, ExportPackagingStrategy, ExportPipelineStage, ExportProfile,
+    ExportTargetPlatform,
 };
 
 use super::*;
@@ -11,8 +12,15 @@ use super::*;
 fn export_wizard_compile_host_path_feeds_platform_bundle_host_input() {
     let profile = desktop_windows_profile();
     let out = output_root();
+    let validate_report = PathBuf::from(out.as_str())
+        .join("stages")
+        .join("validate")
+        .join("report.json")
+        .to_string_lossy()
+        .into_owned();
     let mut options =
         ExportWizardPipelineOptions::new(profile.name.as_str(), "zircon-project.toml", out);
+    options.strategies = Some(profile.strategies.clone());
     options.source_asset_manifest = Some(
         PathBuf::from("target")
             .join("source-assets")
@@ -34,6 +42,17 @@ fn export_wizard_compile_host_path_feeds_platform_bundle_host_input() {
         .command(ExportPipelineStage::CompileHost)
         .expect("CompileHost command should be planned");
     assert!(compile_host.expected_stdout_keys.contains(&"host"));
+
+    let native_dynamic = plan
+        .command(ExportPipelineStage::NativeDynamic)
+        .expect("NativeDynamic command should be planned");
+    assert_eq!(
+        native_dynamic.argument_value("--validate-report"),
+        Some(validate_report.as_str())
+    );
+    assert!(native_dynamic
+        .expected_stdout_keys
+        .contains(&"loader_manifest"));
 
     let platform_bundle = plan
         .command(ExportPipelineStage::PlatformBundle)
@@ -77,6 +96,11 @@ fn desktop_windows_profile() -> ExportProfile {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
+    .with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+        ExportPackagingStrategy::NativeDynamic,
+    ])
 }
 
 fn output_root() -> String {

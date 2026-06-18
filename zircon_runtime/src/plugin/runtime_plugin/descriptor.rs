@@ -1,7 +1,7 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::{
     plugin::CapabilityStatusManifest, plugin::ExportPackagingStrategy,
-    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity,
 };
 
 mod builder;

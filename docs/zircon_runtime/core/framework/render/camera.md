@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
+  - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
@@ -68,6 +69,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
+  - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
@@ -134,8 +136,13 @@ tests:
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_filters_lights_by_camera_layers
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_extract
+  - zircon_runtime/src/core/framework/tests.rs::render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
+  - zircon_runtime/src/core/framework/render/camera_stack.rs::tests::render_camera_sequence_sorts_by_render_order
+  - zircon_runtime/src/core/framework/render/camera_stack.rs::tests::render_camera_stack_overlay_follows_base_and_inherits_target_viewport
+  - zircon_runtime/src/core/framework/render/camera_stack.rs::tests::render_camera_stack_rejects_invalid_members
   - zircon_runtime/src/scene/tests/render_extract.rs::world_render_camera_order_report_projects_active_scene_cameras
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_carries_scene_camera_order_report_for_scene_camera
+  - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_render_frame_extract_has_no_scene_camera_order_report
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_camera_product_fields
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields
@@ -211,7 +218,7 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::render::camera` owns the neutral camera data surface used by render extraction and graphics backends. M2A expands the earlier viewport-only snapshot into a Bevy-informed camera contract without moving concrete renderer execution out of `zircon_runtime::graphics`.
 
-The contract is still data-oriented: it describes projection, target, viewport, render order, active state, HDR, exposure, clear color, MSAA sample count, and render layers. Scene and editor systems project their local state into this contract before render graph or RHI code consumes it.
+The contract is still data-oriented, but Plan 09 splits camera state by ownership. `ViewportCameraSnapshot` carries the per-camera payload used for matrices, exposure, HDR, MSAA, dynamic resolution, and temporal jitter. `CameraRenderDescriptor` owns render scheduling and output facts: target, viewport rectangle, render order, clear policy, culling mask, and volume mask. Scene and editor systems project their local state into that descriptor before render graph or RHI code consumes it.
 
 ## Bevy Evidence
 
@@ -223,17 +230,18 @@ The M2A shape follows four local Bevy source areas:
 - `dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs` makes render layer intersection a first-class rule: default entities and cameras are on layer `0`, and an empty layer set is invisible.
 - `dev/bevy/crates/bevy_render/src/camera.rs` removes extracted camera components when `Camera::is_active` is false, and `dev/bevy/crates/bevy_core_pipeline/src/core_2d/mod.rs` plus `core_3d/mod.rs` skip phase preparation for inactive cameras.
 
-Zircon keeps the same product semantics but does not copy Bevy ECS components one-for-one. The stable boundary is `ViewportCameraSnapshot`, because current runtime render extraction already passes that snapshot through `RenderViewExtract`, `RenderFrameExtract`, picking, visibility, and renderer preparation.
+Zircon keeps the same product semantics but does not copy Bevy ECS components one-for-one. The stable boundary is now split between `CameraRenderDescriptor` for Bevy-like camera ownership and `ViewportCameraSnapshot` for the projected payload still used by matrix, visibility, post-process, and temporal math paths during the single-effective-camera transition.
 
 ## Data Model
 
 `ViewportCameraSnapshot` now includes:
 
 - projection data: `projection_mode`, `fov_y_radians`, `ortho_size`, `z_near`, `z_far`, and `aspect_ratio`;
-- output data: `target`, optional `viewport`, `order`, `is_active`, `clear_color`, and `msaa_samples`;
-- imaging data: `hdr` and `exposure_ev100`;
-- visibility data: `render_layers`;
+- activation and imaging data: `is_active`, `hdr`, `exposure_ev100`, and `msaa_samples`;
+- dynamic sizing data: `dynamic_resolution`;
 - temporal data: `temporal_jitter`, defaulting to a zero `TemporalJitterSample`.
+
+`CameraRenderDescriptor` now includes the data that used to be loose snapshot fields: `render_order`, `render_type`, `stack`, `target`, `viewport_rect`, `clear`, `clear_depth`, `culling_mask`, `volume_mask`, and the current `ViewportCameraSnapshot` payload.
 
 `temporal_jitter.rs` owns the neutral jitter sample and sequence types for Plan 06. `TemporalJitterSequence::sample(...)` uses Halton base 2/3 with `(frame_index % period) + 1`, matching the URP convention of avoiding Halton index 0. The render-framework submit path now chooses the sample from the effective anti-aliasing state: effective TAA reads `ViewportRecord.temporal_frame_index`, while Off/Fxaa/Msaa and TAA fallback modes force a zero sample. The index advances only after successful submit/present paths, so failed or skipped frames do not consume the jitter sequence.
 
@@ -253,11 +261,11 @@ TP-M2-S3 adds a product-level guard for that neutral path: `render_product_tempo
 
 `RenderLayerSet` is the Bevy-style layer contract. Its default value is layer `0`; `RenderLayerSet::none()` belongs to no layers and does not intersect anything, including another empty set.
 
-The current scene component still stores a legacy `u32` mask, so M2A provides `RenderLayerSet::from_legacy_mask(...)`, `to_legacy_mask_lossy(...)`, and `intersects_legacy_mask(...)`. This lets scene extraction enforce Bevy-style visibility immediately while leaving the broader scene serialization migration for a later deliberate cutover.
+The current scene component still stores a legacy `u32` mask, so M2A provides `RenderLayerSet::from_legacy_mask(...)`, `to_legacy_mask_lossy(...)`, `intersects_legacy_mask(...)`, and `union(...)`. This lets scene extraction enforce Bevy-style visibility immediately while leaving the broader scene serialization migration for a later deliberate cutover.
 
-During scene render extraction, `World::build_render_camera(...)` projects the active camera entity's `RenderLayerMask` into `ViewportCameraSnapshot::render_layers`. Mesh, sprite, and scene-light extraction then filters scene entities against the effective camera layer set before building `GeometryExtract`, phase inputs, lighting extracts, and visibility input. Explicit `SceneViewportExtractRequest::camera` snapshots keep their own layer set and can override the scene camera. Request-only projection and viewport-size overrides are applied in this request-aware path, not in the shared scene-component camera snapshot helper.
+During scene render extraction, `World::build_render_camera_descriptor_for_component(...)` projects the active camera entity's `RenderLayerMask` into `CameraRenderDescriptor::culling_mask` and `volume_mask`. Mesh, sprite, scene-light, and volume extraction filter scene entities against the selected descriptor layer set before building `GeometryExtract`, phase inputs, lighting extracts, post-process volumes, and visibility input. Explicit `SceneViewportExtractRequest::camera` descriptors keep their own masks and can override the scene camera. Request-only projection and viewport-size overrides are applied in this request-aware path, not in the shared scene-component descriptor helper.
 
-Scene camera snapshots are active only when `CameraComponent::is_active` is true and the owning entity is active in hierarchy. When `ViewportCameraSnapshot::is_active` is false, scene extraction keeps the camera data available for diagnostics and editor state but emits no scene meshes, sprites, phase inputs, visibility renderables, or scene lights. This mirrors Bevy's inactive-camera path within Zircon's current single-camera extract DTOs.
+Scene camera descriptors are active only when `CameraComponent::is_active` is true and the owning entity is active in hierarchy. When the descriptor payload's `ViewportCameraSnapshot::is_active` is false, scene extraction keeps the camera data available for diagnostics and editor state but emits no scene meshes, sprites, phase inputs, visibility renderables, or scene lights. This mirrors Bevy's inactive-camera path within Zircon's current single-camera extract DTOs.
 
 ## Scene And Asset Projection
 
@@ -293,20 +301,28 @@ M2C validation used `CARGO_TARGET_DIR=D:\cargo-targets\zircon-render-camera-m2c`
 
 ## Camera Ordering
 
-M2D adds the neutral ordering contract needed before Zircon expands from single-camera extracts into split-screen and multi-target camera schedules. `sort_render_cameras(...)` accepts camera snapshots paired with entity ids and returns active cameras sorted by render order, normalized target key, and deterministic entity tie-break.
+M2D adds the neutral ordering contract needed before Zircon expands from single-camera extracts into split-screen and multi-target camera schedules. `sort_render_cameras(...)` accepts descriptor-backed camera order inputs paired with entity ids and returns active cameras sorted by render order, normalized target key, and deterministic entity tie-break. `RenderCameraOrderInput` now carries `CameraRenderDescriptor` directly, so ordering no longer depends on target/order fields being mirrored into `ViewportCameraSnapshot`.
 
-`World::render_camera_order_report(...)` is the scene bridge for that neutral contract. It projects every scene `CameraComponent` through the same request-free `ViewportCameraSnapshot` builder used by direct render extraction, including hierarchy active state, target, HDR flag, order, render layers, and headless target aspect handling, then delegates to `sort_render_cameras(...)`. The report is scheduling evidence only; the current render frame path still extracts one effective camera.
+`World::render_camera_order_report(...)` is the scene bridge for that neutral contract. It projects every scene `CameraComponent` through the same request-free descriptor builder used by direct render extraction, including hierarchy active state, target, HDR flag, order, layer masks, and headless target aspect handling, then delegates to `sort_render_cameras(...)`. `SortedRenderCamera` now preserves the descriptor, so downstream visibility and diagnostics can inspect non-primary target scene cameras without rebuilding scene camera state.
 
-Scene-backed `RenderFrameExtract` carries the selected scene camera entity plus the same ordering report on `RenderViewExtract`. Explicit camera snapshots supplied through `SceneViewportExtractRequest::camera` leave that metadata empty, because they are external view descriptions rather than scene-owned cameras.
+Scene-backed `RenderFrameExtract` carries the selected scene camera entity plus the same ordering report on `RenderViewExtract`. Explicit camera descriptors supplied through `SceneViewportExtractRequest::camera` leave that metadata empty, because they are external view descriptions rather than scene-owned cameras. The current render path still has one effective WGPU-submitted camera; the descriptor bridge feeds target/layer/viewport ownership and plan 04 custom-target visibility until the later Plan 09 camera loop consumes every descriptor.
 
 The behavior follows Bevy's render-app `sort_cameras` path in `dev/bevy/crates/bevy_render/src/camera.rs:663-722`: active cameras are sorted by `(order, target)`, duplicate active `(order, target)` groups are reported as ambiguities, and each camera receives a `sorted_camera_index_for_target` counted per `(target, hdr)`. Inactive cameras are skipped because Bevy removes inactive cameras from extraction before sorting.
 
 `RenderCameraTargetOrderKey` normalizes Zircon targets without depending on concrete WGPU objects: the primary surface is a single key, texture targets use the stable `ResourceId`, and headless targets use their physical size. This keeps the contract usable by later graphics and editor viewport scheduling while true texture residency remains owned by the asset/GPU resource lane.
 
+## Camera Descriptor And Stack Contract
+
+Plan 09 CO-M1 now has a neutral camera descriptor layer in `camera_stack.rs`. `CameraRenderDescriptor` owns render order, Base/Overlay render type, stack membership, target, viewport, clear policy, culling/volume masks, and the current `ViewportCameraSnapshot` payload. The descriptor is the only owner for target/order/viewport/clear/layers; callers that still need matrix-oriented camera data use `as_effective_camera()` or `ViewportRenderFrame::effective_camera()` to get the projected payload.
+
+`resolve_camera_sequence(...)` filters inactive descriptors, orders Base cameras by the same render-order/target/entity rule used by camera ordering, and attaches only the Base camera's declared Overlay stack members. Overlay cameras do not independently create sequence entries. Matching overlays inherit the Base target and viewport so the renderer can later reuse the Base stack's physical attachments without each overlay choosing its own target rectangle.
+
+The resolver reports invalid stack data instead of panicking. Violations cover Overlay cameras that declare their own stack, Base stacks that reference missing cameras, Base stacks that reference non-Overlay cameras, and Overlay targets that do not match the Base target. The WGPU offscreen submit path now loops `RenderViewExtract.cameras` through `camera_loop.rs`, and renderer-bound frames derive `ViewportCameraStackAttachmentPolicy` from the selected descriptor. That policy translates Base `RenderCameraClear` and Overlay `clear_depth` into the first `scene-color` / `scene-depth` graph clear write while leaving later load-store pass writes alone. Physical Base/Overlay attachment reuse, final composite ownership, present/direct runtime-frame multi-camera paths, and per-camera history/post/light ownership remain follow-up work.
+
 M2D validation used WSL/Linux with `CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon-render-camera-m2d-wsl` on 2026-05-17. `cargo test -p zircon_runtime --lib render_camera_ordering --locked --jobs 1 --message-format short --color never` passed the two focused ordering tests, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never` passed afterward with only existing unused-function warnings outside this module. Windows validation currently fails earlier in `wgpu-hal 29.0.3` DX12 dependency compilation, before Zircon source is checked.
 
 ## Scope Boundary
 
-M2A/M2B/M2C/M2D plus the 2026-06-06 and 2026-06-07 follow-ups still leave editor authoring for the new fields, multi-camera submission, split-screen target routing, imported external texture views, broader output-format policy beyond RGBA8 sRGB/linear, and the later hard cutover from scene `RenderLayerMask(u32)` to `RenderLayerSet` for separate milestones. Texture targets now have two renderer-owned paths: matching `rgba8unorm_srgb` targets import the prepared texture as the graph final target and skip output-target writeback, while linear `rgba8unorm` targets use the fullscreen conversion writeback path. This is direct graph rendering only for the single effective camera's prepared sRGB texture target; it is not broad Bevy image/texture-view target parity.
+M2A/M2B/M2C/M2D plus the 2026-06-06 and 2026-06-07 follow-ups still leave editor authoring for the new descriptor fields, split-screen target routing, imported external texture views, broader output-format policy beyond RGBA8 sRGB/linear, and the later hard cutover from scene `RenderLayerMask(u32)` to `RenderLayerSet` for separate milestones. Plan 09's descriptor/sequence contract, snapshot-field hard cutover, offscreen camera loop, terminal UI routing, and descriptor-driven first-clear load-op policy are present. Texture targets now have two renderer-owned paths: matching `rgba8unorm_srgb` targets import the prepared texture as the graph final target and skip output-target writeback, while linear `rgba8unorm` targets use the fullscreen conversion writeback path. This is direct graph rendering for selected-camera child submits, not broad Bevy image/texture-view target parity or complete Base/Overlay physical attachment composition.
 
 The M2C entry gate was captured on 2026-05-16 with `CARGO_TARGET_DIR=F:\cargo-targets\zircon-render-camera-m2-1819`: `cargo test -p zircon_runtime camera --locked --jobs 1 --message-format short --color never` passed 13 focused camera/layer/scene-asset tests, and `cargo check -p zircon_runtime --lib --locked --message-format short --color never` passed afterward.

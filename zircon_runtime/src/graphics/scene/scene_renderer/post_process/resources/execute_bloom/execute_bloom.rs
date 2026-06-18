@@ -12,6 +12,7 @@ impl ScenePostProcessResources {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         viewport_size: UVec2,
+        scene_color_origin: [u32; 2],
         scene_color_view: &wgpu::TextureView,
         bloom_view: &wgpu::TextureView,
         settings: RenderBloomSettings,
@@ -23,7 +24,12 @@ impl ScenePostProcessResources {
         }
 
         let params = BloomParams {
-            viewport: [viewport_size.x.max(1), viewport_size.y.max(1), 0, 0],
+            viewport: [
+                viewport_size.x.max(1),
+                viewport_size.y.max(1),
+                scene_color_origin[0],
+                scene_color_origin[1],
+            ],
             tuning: [
                 settings.threshold.clamp(0.0, 4.0),
                 settings.intensity.max(0.0),

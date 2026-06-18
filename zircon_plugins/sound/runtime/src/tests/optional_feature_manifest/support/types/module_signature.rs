@@ -2,6 +2,6 @@ pub(in crate::tests::optional_feature_manifest::support) type OptionalFeatureMod
     String,
     zircon_runtime::plugin::PluginModuleKind,
     String,
-    Vec<zircon_runtime::RuntimeTargetMode>,
+    Vec<zircon_runtime::builtin::RuntimeTargetMode>,
     Vec<String>,
 );

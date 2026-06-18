@@ -3,7 +3,7 @@ use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::viewport_generation_guard::validate_viewport_generation;
 use crate::core::framework::render::{RenderFrameworkError, RenderPluginRendererOutputs};
-use crate::{HybridGiRuntimePrepareInput, VirtualGeometryRuntimePrepareInput};
+use crate::graphics::{HybridGiRuntimePrepareInput, VirtualGeometryRuntimePrepareInput};
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prepare_runtime_submission(
     state: &mut RenderFrameworkState,
@@ -13,11 +13,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
     validate_viewport_generation(state, viewport, context)?;
     let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs) =
         prepare_hybrid_gi_runtime(state, viewport, context)
-            .map(crate::HybridGiRuntimePrepareOutput::into_parts)
+            .map(crate::graphics::HybridGiRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
     let (virtual_geometry_evictable_page_ids, virtual_geometry_renderer_outputs) =
         prepare_virtual_geometry_runtime(state, viewport, context)
-            .map(crate::VirtualGeometryRuntimePrepareOutput::into_parts)
+            .map(crate::graphics::VirtualGeometryRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
     let plugin_renderer_outputs = merge_prepare_plugin_renderer_outputs(
         hybrid_gi_renderer_outputs,
@@ -46,7 +46,7 @@ fn prepare_hybrid_gi_runtime(
     state: &mut RenderFrameworkState,
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
-) -> Option<crate::HybridGiRuntimePrepareOutput> {
+) -> Option<crate::graphics::HybridGiRuntimePrepareOutput> {
     if !context.hybrid_gi_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_hybrid_gi_runtime();
@@ -84,7 +84,7 @@ fn prepare_virtual_geometry_runtime(
     state: &mut RenderFrameworkState,
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
-) -> Option<crate::VirtualGeometryRuntimePrepareOutput> {
+) -> Option<crate::graphics::VirtualGeometryRuntimePrepareOutput> {
     if !context.virtual_geometry_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
             record.clear_virtual_geometry_runtime();

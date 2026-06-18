@@ -1,4 +1,4 @@
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 pub(super) fn validate_runtime_plugin_package_supported_target_uniqueness(
     target_mode: RuntimeTargetMode,

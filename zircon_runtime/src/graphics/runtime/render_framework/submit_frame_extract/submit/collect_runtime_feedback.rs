@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
     RenderVirtualGeometryReadbackOutputs,
 };
-use crate::{
+use crate::graphics::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, ParticleGpuFeedback, ParticleRuntimeFeedback,
     SceneRenderer, VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
 };

@@ -17,7 +17,7 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_veloc
         return Vec::new();
     }
 
-    let camera = &frame.extract.view.camera.transform;
+    let camera = frame.effective_camera().transform;
     let right = camera.right();
     let up = camera.up();
     let ambiguous_anonymous_entities = frame
@@ -43,6 +43,9 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_veloc
 
     let mut vertices = Vec::new();
     for sprite in &frame.extract.particles.sprites {
+        if !sprite.depth_test {
+            continue;
+        }
         if sprite.size <= f32::EPSILON || sprite.color.w <= f32::EPSILON {
             continue;
         }
@@ -291,6 +294,27 @@ mod tests {
         assert_eq!(vertices[0].previous_position[1], -0.5);
     }
 
+    #[test]
+    fn particle_velocity_vertices_skip_overlay_sprites() {
+        let mut overlay = particle_sprite_with_key(7, 12, Vec3::new(0.25, 0.0, -2.5));
+        overlay.depth_test = false;
+        let frame = particle_frame(
+            vec![overlay],
+            vec![RenderParticlePreviousSpriteSnapshot {
+                entity: 7,
+                stable_sprite_key: 12,
+                position: Vec3::new(-0.25, 0.0, -2.5),
+                size: 1.0,
+                aspect_ratio: 1.0,
+                billboard_offset: Vec2::ZERO,
+                rotation: 0.0,
+                billboard_basis: None,
+            }],
+        );
+
+        assert!(build_particle_velocity_vertices(&frame).is_empty());
+    }
+
     fn particle_frame(
         sprites: Vec<RenderParticleSpriteSnapshot>,
         previous_sprites: Vec<RenderParticlePreviousSpriteSnapshot>,
@@ -347,6 +371,7 @@ mod tests {
             sort_order: 0,
             color: Vec4::ONE,
             intensity: 1.0,
+            depth_test: true,
             material: None,
             texture: None,
         }

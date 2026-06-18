@@ -4,15 +4,15 @@ related_code:
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/style_selector
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_icon_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_dropdowns.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_list_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
-  - docs/zircon_editor/ui/retained_host/host_contract/painter/style_selector.md
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/style_selector.md
   - dev/material-ui/packages/mui-material/src/styles
 plan_sources:
   - .codex/plans/Material UI 共享组件风格收束计划.md
@@ -22,11 +22,11 @@ plan_sources:
 status: planned
 ---
 
-# 04 样式主题与 Painter 状态选择器
+# 04 样式主题与中立绘制状态选择器
 
 ## 1. 目标
 
-两件事：(a) 建立中央主题（theme token）治理——目前没有任何 theme 文档/资产类型（归档 M11 未完成项）；(b) 把已存在于接口层的 `UiPainterStyleSelector` 推到全组件覆盖——组件逻辑只产出语义状态，最终视觉样式由 selector 按固定优先级解析，逐组件删除 painter 投影文件里的 hovered/pressed/disabled 内联分支（归档 M2 伪状态样式应用的正面解决）。
+两件事：(a) 建立中央主题（theme token）治理——目前没有任何 theme 文档/资产类型（归档 M11 未完成项）；(b) 把已存在于接口层的 `UiPainterStyleSelector` 推到全组件覆盖——组件逻辑只产出语义状态，最终视觉样式由 selector 按固定优先级解析，逐组件删除中立 `paint_template_nodes/` 绘制族里的 hovered/pressed/disabled 内联分支（归档 M2 伪状态样式应用的正面解决）。
 
 ## 2. 现状（按代码核实修正）
 
@@ -39,14 +39,14 @@ status: planned
 | 基础样式 DTO | 同上 | `UiRgbaColor`（:4）、`UiStyleColor`（:52）、`StyleDimension`（:61）、`UiResolvedElementStyle`（:77） |
 | v2 样式解析骨架 | `zircon_runtime/src/ui/v2/style.rs` | `UiV2StyleResolver::resolve`（:16/:19）——**无伪状态（hover 等）处理** |
 | 模板编译样式链 | `zircon_runtime/src/ui/template/asset/compiler/` | `ui_style_resolver.rs`、`style_apply.rs` + `style_apply/` 目录 |
-| editor native painter 投影族 | `zircon_editor/src/ui/retained_host/host_contract/painter/` | `style_selector/`（已消费接口 selector）、`material_state_layer.rs`、`template_buttons.rs`、`template_icon_buttons.rs(+tests)`、`template_dropdowns.rs`、`template_popup_rows.rs`、`template_list_rows.rs`、`template_property_rows.rs`、`template_inspector_rows.rs`、`template_fields.rs`、`template_chips.rs`、`template_alerts.rs`、`material_primitives/`、`mui_x_primitives/` 等 |
+| editor 中立软件绘制族 | `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/` | `style_selector/`（已消费接口 selector）、`material_state_layer.rs`、`template_buttons.rs`、`template_icon_buttons.rs(+tests)`、`template_dropdowns.rs`、`template_popup_rows.rs`、`template_list_rows.rs`、`template_property_rows.rs`、`template_inspector_rows.rs`、`template_fields.rs`、`template_chips.rs`、`template_alerts.rs`、`material_primitives/`、`mui_x_primitives/` 等；旧 `host_contract/painter/` 目录已在 08 M3.S2 硬删除 |
 
-即：**优先级共享单实现已成立**（selector 在 interface，editor painter 经 `style_selector/` 消费同一份）。
+即：**优先级共享单实现已成立**（selector 在 interface，editor retained-host 软件绘制族经 `paint_template_nodes/style_selector/` 消费同一份）。
 
 ### 2.2 真实缺口
 
-1. **无中央主题**：仓内不存在 `UiThemeDocument`/theme 资产类型（grep 无命中）；颜色/尺寸散落在模板与 painter 常量里，无 token source-chain 可回溯，无裸 hex 禁令，无主题热重载。
-2. **v2 伪状态解析缺失**：`UiV2StyleResolver` 无 `:hover/:pressed/:focused/...` 匹配；render extract 侧拿不到状态分档样式，状态视觉目前只在 native painter 一侧成立——双路不同源。
+1. **无中央主题**：仓内不存在 `UiThemeDocument`/theme 资产类型（grep 无命中）；颜色/尺寸散落在模板与 `paint_template_nodes/` 常量里，无 token source-chain 可回溯，无裸 hex 禁令，无主题热重载。
+2. **v2 伪状态解析缺失**：`UiV2StyleResolver` 无 `:hover/:pressed/:focused/...` 匹配；render extract 侧拿不到状态分档样式，状态视觉目前只在 retained-host 软件绘制一侧成立——双路不同源。
 3. **状态集不全且生产者未收口**：`UiPainterState` 覆盖主要交互态，但 checked/open/dragging 等语义态的写入路径分散（依赖 01 M3 的 reply 统一后才有唯一生产者）。
 4. **组件内联分支未清**：`template_buttons.rs` 等投影文件仍有按状态硬编码的颜色/边框分支，未全部改经 selector + theme token。
 
@@ -135,8 +135,8 @@ impl UiV2StyleResolver {
 |------|--------|
 | `zircon_runtime/src/ui/v2/style.rs` | `resolve_with_state` 伪状态匹配 + selector 折叠 |
 | `zircon_runtime/src/ui/template/asset/compiler/{ui_style_resolver.rs, style_apply.rs}` | token 引用解析（颜色字段接受 token id）、伪状态类生成 |
-| `zircon_editor/.../painter/style_selector/` | 接 theme registry token 表 |
-| `zircon_editor/.../painter/template_buttons.rs` 等切换清单（§3.3） | 状态分支改 selector + token，逐文件 |
+| `zircon_editor/.../paint_template_nodes/style_selector/` | 接 theme registry token 表 |
+| `zircon_editor/.../paint_template_nodes/template_buttons.rs` 等切换清单（§3.3） | 状态分支改 selector + token，逐文件 |
 
 **删除（硬切换义务）**：每个组件切换时，对应 template_* 文件内的 hovered/pressed/disabled 颜色硬编码分支与裸 hex 常量；`material_state_layer.rs` 中与 selector 重复的状态判定段。
 
@@ -150,7 +150,7 @@ impl UiV2StyleResolver {
 |---|------|---------|---------|--------|
 | M1.S1 | style.rs 拆 style/ 目录（纯平移，零行为变化） | interface style/ | `cargo test -p zircon_runtime_interface --locked` | style.rs 删除（被目录取代） |
 | M1.S2 | `UiThemeDocument` + 默认 dark theme TOML + ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `cargo test -p zircon_runtime --lib theme --locked` | 无删除 |
-| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui`/`*.v2.ui.toml`/painter 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | painter 常量表删除 |
+| M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui`/`*.v2.ui.toml`/`paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | 中立绘制族内重复常量表删除 |
 | M2.S1 | `UiPainterState` 状态集盘点补全（checked/open/dragging 字段与折叠规则） | interface style/selector.rs | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
 | M2.S2 | 生产者唯一化：交互态只由 01 reply 写入、语义态只由 reducer 写入（依赖 01 M3） | surface 组件状态写入点 | `cargo test -p zircon_runtime --lib --locked` | 散落写入点删除 |
 | M3.S1 | v2 伪状态匹配 + `resolve_with_state`（折叠调 selector，不复制优先级） | v2/style.rs、ui_style_resolver.rs | `cargo test -p zircon_runtime --lib v2_style --locked` | 无删除 |
@@ -172,14 +172,14 @@ impl UiV2StyleResolver {
 - **M4/M5**：`button_resolved_style_same_for_extract_and_painter`、`dropdown_open_state_styles_from_selector`、每组件 `*_state_matrix_snapshot`
 - **M6**：`theme_reload_invalidates_style_cache_without_tree_rebuild`
 
-落点：interface/runtime 模块内 `#[cfg(test)]`；editor 侧沿 painter 既有 `template_icon_buttons_tests.rs` 同级惯例。
+落点：interface/runtime 模块内 `#[cfg(test)]`；editor 侧沿 `paint_template_nodes` 既有 `template_icon_buttons_tests.rs` 同级惯例。
 
 ## 9. 风险与对策
 
 | 风险 | 对策 / 探测信号 |
 |------|----------------|
 | 全组件视觉基线被 token 化「顺手改色」 | 切换切片只允许等值替换；状态矩阵快照先建基线，diff 必须为空 |
-| v2 与 painter 折叠规则漂移（两份优先级） | 折叠只调 interface selector 函数；对拍测试断言双路同 resolved state |
+| v2 与 retained-host 绘制折叠规则漂移（两份优先级） | 折叠只调 interface selector 函数；对拍测试断言双路同 resolved state |
 | 裸 hex 禁令误伤合理常量（调试色、图标原色） | 白名单文件 + 行级 allow 注释机制，白名单变更需评审 |
 | 状态生产者收口依赖 01 M3 进度 | M2.S2 排在 01 M3 后；之前 M1/M3 可先行 |
 | theme 拆目录引发 interface 大量 use 路径变化 | M1.S1 纯平移 + re-export 保持公开路径不变（curated re-export，非兼容桥） |
@@ -198,7 +198,7 @@ impl UiV2StyleResolver {
 ## 11. 完成定义
 
 - 仓内任何最终颜色/尺寸可回溯 token id；裸 hex 扫描常绿。
-- v2 与 painter 状态折叠同源；全组件状态矩阵快照双路一致。
+- v2 与 retained-host 绘制状态折叠同源；全组件状态矩阵快照双路一致。
 - template_* 投影文件无状态硬编码分支。
 - 实机：hover/press/focus/disabled 视觉无回归；改 theme 文件即时生效。
 - 验收命令组：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib --locked`（theme/v2_style/token_check 过滤）、`cargo test -p zircon_editor --lib --locked`、`node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs`。

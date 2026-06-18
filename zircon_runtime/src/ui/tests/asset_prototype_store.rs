@@ -90,6 +90,99 @@ selector = ".card"
 set = { self = { style_marker = "Styled" } }
 "##;
 
+const FLAT_INSTANCE_PROPS_LAYOUT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "asset://ui/tests/instance_props_layout.ui"
+version = 3
+display_name = "Instance Props Layout"
+
+[imports]
+widgets = ["asset://ui/tests/instance_props_label.ui#InstancePropsLabel"]
+
+[root]
+node = "label_instance"
+
+[nodes.label_instance]
+kind = "reference"
+component_ref = "asset://ui/tests/instance_props_label.ui#InstancePropsLabel"
+control_id = "InstancePropsLabel"
+props = { text = "Instance", foreground_color = "#ff0000", selected = true }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+"##;
+
+const FLAT_INSTANCE_PROPS_WIDGET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "asset://ui/tests/instance_props_label.ui"
+version = 3
+display_name = "Instance Props Label"
+
+[components.InstancePropsLabel]
+root = "label_root"
+
+[nodes.label_root]
+kind = "native"
+type = "Label"
+control_id = "InstancePropsLabelRoot"
+props = { text = "Default", foreground_color = "#aaaaaa", selected = false, layout_padding_left = 2.0 }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+"##;
+
+const FLAT_INSTANCE_STYLE_OVERRIDE_LAYOUT_TOML: &str = r##"
+[asset]
+kind = "layout"
+id = "asset://ui/tests/instance_style_override_layout.ui"
+version = 3
+display_name = "Instance Style Override Layout"
+
+[imports]
+widgets = ["asset://ui/tests/instance_style_override_label.ui#InstanceStyleOverrideLabel"]
+styles = ["asset://ui/tests/instance_style_override_style.ui"]
+
+[root]
+node = "label_instance"
+
+[nodes.label_instance]
+kind = "reference"
+component_ref = "asset://ui/tests/instance_style_override_label.ui#InstanceStyleOverrideLabel"
+control_id = "InstanceStyleOverrideLabel"
+style_overrides = { self = { foreground_color = "#ff0000", text_tone = "error" } }
+"##;
+
+const FLAT_INSTANCE_STYLE_OVERRIDE_WIDGET_TOML: &str = r##"
+[asset]
+kind = "widget"
+id = "asset://ui/tests/instance_style_override_label.ui"
+version = 3
+display_name = "Instance Style Override Label"
+
+[components.InstanceStyleOverrideLabel]
+root = "label_root"
+
+[nodes.label_root]
+kind = "native"
+type = "Label"
+control_id = "InstanceStyleOverrideLabelRoot"
+classes = ["instance-label"]
+props = { text = "Default", foreground_color = "#aaaaaa" }
+"##;
+
+const FLAT_INSTANCE_STYLE_OVERRIDE_STYLE_TOML: &str = r##"
+[asset]
+kind = "style"
+id = "asset://ui/tests/instance_style_override_style.ui"
+version = 3
+display_name = "Instance Style Override Style"
+
+[[stylesheets]]
+id = "instance_style_override_style"
+
+[[stylesheets.rules]]
+selector = ".instance-label"
+set = { self = { foreground_color = "#d8e3e7", text_tone = "primary" } }
+"##;
+
 #[test]
 fn flat_asset_loader_materializes_heap_prototype_without_recursive_tree() {
     let prototype = UiAssetLoader::load_flat_prototype_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
@@ -107,6 +200,102 @@ fn flat_asset_loader_materializes_heap_prototype_without_recursive_tree() {
     assert_eq!(child.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(child.control_id.as_deref(), Some("CardInstance"));
     assert_eq!(child.children.len(), 1);
+}
+
+#[test]
+fn prototype_compiler_applies_reference_instance_props_to_expanded_root() {
+    let layout =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_INSTANCE_PROPS_LAYOUT_TOML).unwrap();
+    let widget =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_INSTANCE_PROPS_WIDGET_TOML).unwrap();
+    let mut builder = UiPrototypeStoreBuilder::new();
+    let _ = builder.insert(layout);
+    let _ = builder.insert(widget);
+    let store = builder.build().unwrap();
+
+    let compiled = UiDocumentCompiler::default()
+        .compile_prototype_asset("asset://ui/tests/instance_props_layout.ui", &store)
+        .unwrap();
+    let root = &compiled.template_instance().root;
+
+    assert_eq!(root.control_id.as_deref(), Some("InstancePropsLabel"));
+    assert_eq!(
+        root.attributes.get("text").and_then(toml::Value::as_str),
+        Some("Instance")
+    );
+    assert_eq!(
+        root.attributes
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("selected")
+            .and_then(toml::Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        root.attributes
+            .get("layout")
+            .and_then(|layout| layout.get("width"))
+            .and_then(|width| width.get("preferred"))
+            .and_then(toml::Value::as_float),
+        Some(96.0)
+    );
+    assert_eq!(
+        root.attributes
+            .get("layout_padding_left")
+            .and_then(toml::Value::as_float),
+        Some(2.0),
+        "component defaults that were not overridden should survive"
+    );
+}
+
+#[test]
+fn prototype_compiler_applies_reference_instance_style_overrides_after_stylesheets() {
+    let layout =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_INSTANCE_STYLE_OVERRIDE_LAYOUT_TOML)
+            .unwrap();
+    let widget =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_INSTANCE_STYLE_OVERRIDE_WIDGET_TOML)
+            .unwrap();
+    let style =
+        UiAssetLoader::load_flat_prototype_toml_str(FLAT_INSTANCE_STYLE_OVERRIDE_STYLE_TOML)
+            .unwrap();
+    let mut builder = UiPrototypeStoreBuilder::new();
+    let _ = builder.insert(layout);
+    let _ = builder.insert(widget);
+    let _ = builder.insert(style);
+    let store = builder.build().unwrap();
+
+    let compiled = UiDocumentCompiler::default()
+        .compile_prototype_asset("asset://ui/tests/instance_style_override_layout.ui", &store)
+        .unwrap();
+    let root = &compiled.template_instance().root;
+
+    assert_eq!(
+        root.control_id.as_deref(),
+        Some("InstanceStyleOverrideLabel")
+    );
+    assert_eq!(
+        root.style_overrides
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("foreground_color")
+            .and_then(toml::Value::as_str),
+        Some("#ff0000")
+    );
+    assert_eq!(
+        root.attributes
+            .get("text_tone")
+            .and_then(toml::Value::as_str),
+        Some("error")
+    );
 }
 
 #[test]

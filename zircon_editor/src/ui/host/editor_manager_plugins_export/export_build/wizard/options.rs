@@ -1,11 +1,14 @@
 const PYTHON_EXECUTABLE: &str = "python";
 
+use zircon_runtime::plugin::ExportPackagingStrategy;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardPipelineOptions {
     pub python: String,
     pub profile: String,
     pub project: String,
     pub out: String,
+    pub strategies: Option<Vec<ExportPackagingStrategy>>,
     pub repo_root: Option<String>,
     pub cargo: Option<String>,
     pub validator: Option<String>,
@@ -38,6 +41,7 @@ impl ExportWizardPipelineOptions {
             profile: profile.into(),
             project: project.into(),
             out: out.into(),
+            strategies: None,
             repo_root: None,
             cargo: None,
             validator: None,
@@ -58,5 +62,13 @@ impl ExportWizardPipelineOptions {
             source_template_build: false,
             determinism_check: false,
         }
+    }
+
+    pub fn with_strategies(
+        mut self,
+        strategies: impl IntoIterator<Item = ExportPackagingStrategy>,
+    ) -> Self {
+        self.strategies = Some(strategies.into_iter().collect());
+        self
     }
 }

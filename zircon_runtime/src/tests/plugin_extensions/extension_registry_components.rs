@@ -1,3 +1,4 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     ComponentTypeDescriptor, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
@@ -5,7 +6,6 @@ use crate::plugin::{
 };
 use crate::scene::{components::NodeKind, World};
 use crate::ui::component::UiComponentDescriptorRegistry;
-use crate::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime_interface::ui::component::{UiComponentCategory, UiSlotSchema, UiValue};
 
 #[test]

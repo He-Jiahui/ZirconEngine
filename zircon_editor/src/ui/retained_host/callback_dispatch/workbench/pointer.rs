@@ -10,6 +10,7 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
     event: UiPointerEvent,
 ) -> Option<Result<UiHostEventEffects, String>> {
     let pressed_before_route = bridge.pointer_pressed_target();
+    let focused_before_route = bridge.pointer_focused_target();
     let route = match bridge.route_pointer_event(event) {
         Ok(route) => route,
         Err(error) => return Some(Err(error.to_string())),
@@ -31,11 +32,17 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
         Ok(dirty) => dirty,
         Err(error) => return Some(Err(error.to_string())),
     };
+    let focus_feedback_dirty =
+        match bridge.refresh_pointer_focus_feedback(&route, focused_before_route) {
+            Ok(dirty) => dirty,
+            Err(error) => return Some(Err(error.to_string())),
+        };
     let Some((control_id, event_kind)) = bridge.activation_route_for_pointer_route(&route) else {
         if hover_feedback_dirty
             || press_feedback_dirty
             || range_feedback_dirty
             || text_input_feedback_dirty
+            || focus_feedback_dirty
         {
             let mut effects = UiHostEventEffects::default();
             effects.request_paint_only();

@@ -5,6 +5,7 @@ related_code:
   - zircon_runtime/src/ui/theme/mod.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/host_nodes.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
@@ -22,7 +23,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
@@ -69,6 +70,7 @@ implementation_files:
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/host_nodes.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
@@ -90,7 +92,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/v2_authoring.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/console_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_body.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/hierarchy_body.v2.ui.toml
@@ -220,6 +222,9 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime_interface\src\ui\v2\style.rs zircon_runtime\src\ui\v2\style.rs zircon_runtime\src\ui\v2\surface_tree\node.rs zircon_runtime\src\ui\tests\v2_asset.rs zircon_editor\src\tests\host\template_runtime\shared_surface.rs zircon_runtime\src\ui\style.rs zircon_runtime\src\ui\tests\material_button_style.rs (2026-06-12 v2 style token provenance metadata: passed)
   - git diff --check -- zircon_runtime_interface/src/ui/v2/style.rs zircon_runtime/src/ui/v2/style.rs zircon_runtime/src/ui/v2/surface_tree/node.rs zircon_runtime/src/ui/tests/v2_asset.rs zircon_editor/src/tests/host/template_runtime/shared_surface.rs zircon_runtime/src/ui/style.rs zircon_runtime/src/ui/tests/material_button_style.rs docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 v2 style token provenance metadata: passed with LF-to-CRLF warnings only)
   - cargo test -p zircon_editor --lib editor_ui_host_runtime_resolves_theme_tokens_for_v2_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-host-theme-0612 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-12 style token provenance metadata assertions: not rerun in this slice after the same focused editor-host target timed out during cold compile earlier in the day)
+  - cargo test -p zircon_editor --lib surface_backed_retained_projection_exposes_style_overrides_as_effective_properties --locked -- --nocapture (2026-06-16 surface-backed retained projection style overrides: passed, 1 passed / 2040 filtered)
+  - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exposes_document_tab_runtime_routes --locked -- --nocapture (2026-06-16 Workbench document tab runtime routes: passed, 1 passed / 2040 filtered)
+  - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exports_surface_projection_frames_and_routes --locked -- --nocapture (2026-06-16 Workbench surface projection frame/route baseline: passed, 1 passed / 2040 filtered)
   - python -c "import tomllib, pathlib; paths=[r'zircon_editor/assets/ui/theme/editor_base.v2.ui.toml', r'zircon_editor/assets/ui/theme/editor_material.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml', r'zircon_editor/assets/ui/editor/workbench_status_bar.v2.ui.toml']; [tomllib.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in paths]" (2026-06-12 editor_base chrome theme role consumer: passed)
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\tests\v2_asset.rs (2026-06-12 editor_base chrome theme role consumer: passed)
   - git diff --check -- zircon_editor/assets/ui/theme/editor_base.v2.ui.toml zircon_runtime/src/ui/tests/v2_asset.rs docs/zircon_runtime/ui/theme.md docs/zircon_runtime/ui/v2.md docs/zircon_editor/ui/template_runtime/runtime_host.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-12 editor_base chrome theme role consumer: passed with LF-to-CRLF warnings only)
@@ -260,7 +265,7 @@ The builtin registry now routes these critical editor shell assets to v2:
 
 - `editor_main_frame.v2.ui.toml`
 - `workbench_shell.v2.ui.toml`
-- `workbench_drawer_source.v2.ui.toml`
+- `workbench_window.v2.ui.toml` (owns the componentized Workbench window and real bottom drawer shell)
 - `floating_window_source.v2.ui.toml`
 - `scene_viewport_toolbar.v2.ui.toml`
 - `animation_sequence_body.v2.ui.toml`
@@ -311,6 +316,10 @@ The retained adapter maps v2 `HorizontalGroup` and `VerticalGroup` containers to
 `build_host_model_with_surface(...)` consumes the arranged surface tree as the spatial authority whenever layout has been computed. Host nodes use `UiArrangedNode.frame` and `UiArrangedNode.clip_frame`, so the retained host sees the same effective clip chain as shared rendering and hit testing. Metadata-only callers that pass an uncomputed surface still fall back to `UiTreeNode.layout_cache`, preserving the older route/property projection path. The arranged path is required for scroll panes such as the Component Showcase center gallery: descendants that are arranged below the visible `ScrollableBox` viewport still project their original frames for layout/debugging, but their `TemplatePaneNodeData.clip_frame` is bounded to the scroll viewport before native painting or template-node hit testing runs.
 
 Workbench shell and viewport toolbar bridges now keep their `UiSurface` instances resident after initial load. Recompute marks the surface root dirty and calls `rebuild_dirty(...)` before projecting the updated retained host model, so these high-frequency bridge layouts no longer rebuild a fresh shared surface for every pointer-adjacent host refresh.
+
+Surface-backed retained projection now carries both `metadata.attributes` and `metadata.style_overrides`. `RetainedUiHostNodeProjection` stores the style override map separately, `runtime/projection.rs` preserves it when host nodes are collected from a materialized surface, and `retained_adapter.rs` folds overrides over attributes when building effective retained properties. This mirrors runtime render extraction precedence: selector/style defaults remain visible for diagnostics, but inline or instance-level style values such as Workbench viewport gizmo foreground colors are the values consumed by retained painters, hit-test metadata, and template bridge assertions.
+
+The componentized Workbench bridge uses that path for its current runtime route baseline. `workbench_viewport_panel.zui` mounts `DocumentTabsRoot` before the viewport toolbar/surface and binds activate/close events to dock commands. `workbench_component_drawer.zui` now relies on the v2 default-slot contract for `WorkbenchLabsTabs`, so the concrete `WorkbenchLabsTabOne/Two/Three` nodes are projected into the host contract rather than being lost inside the reusable tab strip. The bridge regression checks both behaviors in one retained path: document tab Change/Submit bindings normalize to dock commands, Labs tab click dispatch selects the expected tab, and the component drawer's disabled input, list, table, and tab samples all expose projected frames and runtime routes.
 
 ## Remaining Scope
 

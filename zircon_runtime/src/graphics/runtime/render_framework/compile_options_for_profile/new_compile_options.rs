@@ -1,7 +1,7 @@
 use crate::core::framework::render::{RenderCapabilitySummary, RenderQualityProfile};
 use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
 
-use crate::RenderPipelineCompileOptions;
+use crate::graphics::RenderPipelineCompileOptions;
 
 pub(super) fn new_compile_options(
     profile: Option<&RenderQualityProfile>,

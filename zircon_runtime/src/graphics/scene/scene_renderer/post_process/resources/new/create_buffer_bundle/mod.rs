@@ -1,5 +1,6 @@
 mod bloom_params_buffer;
 mod cluster_params_buffer;
+mod color_lut_bake_params_buffer;
 mod create;
 mod default_exposure_buffer;
 mod default_exposure_histogram_buffer;

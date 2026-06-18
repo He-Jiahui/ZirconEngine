@@ -111,7 +111,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("hybrid-gi.history")
             .read_texture("scene-color")
-            .write_external("history-global-illumination"),
+            .write_external_texture("history-global-illumination"),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
@@ -160,12 +160,12 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Hybrid GI",
-        zircon_runtime::RuntimePluginId::HybridGi,
+        zircon_runtime::builtin::RuntimePluginId::HybridGi,
         "zircon_plugin_hybrid_gi_runtime",
     )
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.hybrid_gi")
     .with_capability("runtime.render.advanced.hybrid_gi")
@@ -215,8 +215,8 @@ mod tests {
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
         );
         assert!(report

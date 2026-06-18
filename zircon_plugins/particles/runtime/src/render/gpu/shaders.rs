@@ -161,6 +161,7 @@ fn find_emitter(slot: u32) -> u32 {{
         }}
         i = i + 1u;
     }}
+    return 0u;
 }}
 
 fn hash_u32(value: u32) -> u32 {{
@@ -315,6 +316,15 @@ fn particle_build_indirect_args(@builtin(global_invocation_id) id: vec3<u32>) {{
     if (id.x != 0u) {{
         return;
     }}
+    var spawned_total = 0u;
+    for (var emitter_index = 0u; emitter_index < EMITTER_COUNT; emitter_index = emitter_index + 1u) {{
+        let emitter = emitter_params.emitters[emitter_index];
+        let claimed = atomicLoad(&counters.values[COUNTER_EMITTER_SPAWN_BASE + emitter_index]);
+        let spawned = min(claimed, emitter.spawn_count);
+        atomicStore(&counters.values[COUNTER_EMITTER_SPAWN_BASE + emitter_index], spawned);
+        spawned_total = spawned_total + spawned;
+    }}
+    atomicStore(&counters.values[COUNTER_SPAWNED_TOTAL], spawned_total);
     indirect_args.values[0] = 6u;
     indirect_args.values[1] = atomicLoad(&counters.values[COUNTER_ALIVE_COUNT]);
     indirect_args.values[2] = 0u;

@@ -13,6 +13,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::model::{MainHostStripModel, WorkbenchViewModel};
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, ProjectOverviewSnapshot,
+    StatusTaskProgressSnapshot, StatusTaskProgressTone,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
@@ -81,6 +82,13 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .contains_key(&ActivityDrawerSlot::LeftTop));
     assert_eq!(model.status_bar.primary_text, "Editor booted");
     assert_eq!(model.status_bar.viewport_label, "1280 x 720");
+    assert_eq!(model.status_bar.error_text, "No Errors");
+    assert_eq!(model.status_bar.warning_text, "0 Warnings");
+    assert_eq!(model.status_bar.message_text, "0 Messages");
+    assert_eq!(model.status_bar.grid_text, "Grid: 1 m");
+    assert_eq!(model.status_bar.snap_text, "Snap: Off");
+    assert_eq!(model.status_bar.zoom_text, "100%");
+    assert!(model.status_bar.task_progress.is_none());
     let save_project_binding = model
         .menu_bar
         .menus
@@ -166,6 +174,28 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             .map(|path| path.as_str()),
         Some("window.debug_observatory.open")
     );
+}
+
+#[test]
+fn workbench_view_model_projects_status_task_progress_slot() {
+    let mut chrome = sample_workbench_chrome();
+    chrome.status_task_progress = Some(
+        StatusTaskProgressSnapshot::new("desktop_export:3", "Export desktop_linux")
+            .with_detail("cargo-build - Running generated build")
+            .with_percent(64)
+            .with_tone(StatusTaskProgressTone::Info),
+    );
+
+    let model = WorkbenchViewModel::build(&chrome);
+
+    assert_eq!(model.status_bar.message_text, "1 Message");
+    let task = model
+        .status_bar
+        .task_progress
+        .expect("status task should be projected");
+    assert_eq!(task.task_id, "desktop_export:3");
+    assert_eq!(task.label, "Export desktop_linux");
+    assert_eq!(task.percent, Some(64));
 }
 
 #[test]
@@ -526,6 +556,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             scene_entries: Vec::new(),
             inspector: None,
             status_line: "Ready".to_string(),
+            status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),
             scene_viewport_settings: SceneViewportSettings::default(),

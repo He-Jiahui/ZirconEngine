@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 use super::{
     PlatformCapabilityMatrix, PlatformCapabilityReport, PlatformFeatureSelection, PlatformTarget,

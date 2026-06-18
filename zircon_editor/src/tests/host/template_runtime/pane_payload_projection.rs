@@ -114,6 +114,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
+        status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
         scene_viewport_settings: SceneViewportSettings::default(),
@@ -295,7 +296,7 @@ fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
             &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
@@ -467,7 +468,7 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             line.as_str().is_some_and(|text| {
                 text.contains("node=2")
                     && text.contains("family=Overlay")
-                    && text.contains("selected=LegacyZircon")
+                    && text.contains("selected=Zircon")
                     && text.contains("reason=ZirconOwnedSemantics")
             })
         })));

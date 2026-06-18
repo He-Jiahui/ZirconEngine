@@ -9,12 +9,12 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Sound",
-        zircon_runtime::RuntimePluginId::Sound,
+        zircon_runtime::builtin::RuntimePluginId::Sound,
         "zircon_plugin_sound_runtime",
     )
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_capability("runtime.plugin.sound")

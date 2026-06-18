@@ -1,4 +1,4 @@
-use crate::{RuntimePluginId, RuntimeTargetMode};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 use super::super::rows::BuiltinCatalogRow;
 

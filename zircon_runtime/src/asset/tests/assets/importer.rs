@@ -14,7 +14,7 @@ use crate::asset::{
     ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
-use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
+use zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 #[test]
 fn importer_subtree_uses_ingest_namespace_without_service_shell() {

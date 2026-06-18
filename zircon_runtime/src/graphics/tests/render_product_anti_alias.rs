@@ -17,12 +17,11 @@ use crate::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
 use crate::graphics::scene::anti_alias::fxaa::{FXAA_EXECUTOR_ID, FXAA_PASS_NAME};
-use crate::graphics::WgpuRenderFramework;
-use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
-use crate::scene::world::World;
-use crate::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPassStage, RenderPipelineAsset,
+use crate::graphics::{
+    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset, WgpuRenderFramework,
 };
+use crate::scene::world::World;
 
 use super::plugin_render_feature_fixtures::particle_render_feature_descriptor;
 
@@ -649,6 +648,7 @@ fn particle_taa_product_extract(viewport_size: UVec2) -> RenderFrameExtract {
         sort_order: 0,
         color: Vec4::new(1.0, 0.48, 0.12, 0.85),
         intensity: 1.0,
+        depth_test: true,
         material: None,
         texture: None,
     }];

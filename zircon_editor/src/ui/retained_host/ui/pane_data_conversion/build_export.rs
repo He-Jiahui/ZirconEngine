@@ -681,6 +681,43 @@ mod tests {
     }
 
     #[test]
+    fn build_export_wizard_panel_nodes_respect_target_strategy_list() {
+        let mut target = build_export_target_fixture(
+            "browser_webgpu",
+            "WebGPU",
+            "Ready",
+            "browser export plan ready",
+            false,
+        );
+        target.strategies = "SourceTemplate, LibraryEmbed".into();
+        target.native_dynamic_packages = "0".into();
+        let pane = build_export_pane_fixture(vec![target]);
+        let nodes = build_export_wizard_panel_nodes(
+            &pane.native_body.build_export,
+            PaneContentSize::new(960.0, 420.0),
+        )
+        .expect("browser export wizard panel should project");
+
+        let stage_rows = nodes
+            .iter()
+            .filter(|node| {
+                node.control_id
+                    .as_str()
+                    .starts_with(&format!("{DESKTOP_EXPORT_STAGE_ROWS_SLOT}.stage."))
+            })
+            .collect::<Vec<_>>();
+        assert!(stage_rows
+            .iter()
+            .any(|node| node.text.as_str().contains("SourceTemplate")));
+        assert!(stage_rows
+            .iter()
+            .any(|node| node.text.as_str().contains("PlatformBundle")));
+        assert!(!stage_rows
+            .iter()
+            .any(|node| node.text.as_str().contains("NativeDynamic")));
+    }
+
+    #[test]
     fn build_export_duplicate_platform_profiles_get_unique_projection_ids() {
         let pane = build_export_pane_fixture(vec![
             build_export_target_fixture("desktop_windows", "Windows", "Ready", "", false),

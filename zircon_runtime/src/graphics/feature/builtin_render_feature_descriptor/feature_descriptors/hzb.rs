@@ -1,7 +1,7 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::{FrameHistoryBinding, FrameHistorySlot};
 use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
-use crate::{FrameHistoryBinding, FrameHistorySlot};
 
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;
@@ -34,12 +34,12 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 HZB_OCCLUSION_CULL_WORKGROUP_SIZE,
             ))
             .read_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
-            .read_external(HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE)
-            .read_external(HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE)
-            .write_storage_external(HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE)
-            .write_storage_external(HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE)
-            .write_storage_external(HZB_OCCLUSION_DRAW_COUNT_RESOURCE)
-            .write_storage_external(HZB_OCCLUSION_STATS_RESOURCE),
+            .read_required_external_buffer(HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE)
+            .read_required_external_buffer(HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE)
+            .write_required_external_buffer(HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE)
+            .write_required_external_buffer(HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE)
+            .write_required_external_buffer(HZB_OCCLUSION_DRAW_COUNT_RESOURCE)
+            .write_required_external_buffer(HZB_OCCLUSION_STATS_RESOURCE),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::AmbientOcclusion,
                 "hzb-build",
@@ -63,6 +63,7 @@ mod tests {
         RenderFeatureResourceAccess, RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
     };
     use super::*;
+    use crate::render_graph::RenderGraphExternalResourceBinding;
 
     #[test]
     fn hzb_occlusion_cull_declares_execution_owned_external_buffers() {
@@ -77,11 +78,15 @@ mod tests {
             resource.name == HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE
                 && resource.kind == RenderFeatureResourceKind::External
                 && resource.access == RenderFeatureResourceAccess::Read
+                && resource.external_binding
+                    == RenderGraphExternalResourceBinding::required_buffer()
         }));
         assert!(pass.resources.iter().any(|resource| {
             resource.name == HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE
                 && resource.kind == RenderFeatureResourceKind::External
                 && resource.access == RenderFeatureResourceAccess::Read
+                && resource.external_binding
+                    == RenderGraphExternalResourceBinding::required_buffer()
         }));
         for name in [
             HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE,
@@ -94,6 +99,8 @@ mod tests {
                     && resource.kind == RenderFeatureResourceKind::External
                     && resource.access == RenderFeatureResourceAccess::Write
                     && resource.write_mode == RenderFeatureResourceWriteMode::Storage
+                    && resource.external_binding
+                        == RenderGraphExternalResourceBinding::required_buffer()
             }));
         }
     }

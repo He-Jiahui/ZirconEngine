@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use crate::{plugin::ProjectPluginManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ProjectPluginManifest;
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn enabled_plugin_ids_for_target(
     completed: &ProjectPluginManifest,

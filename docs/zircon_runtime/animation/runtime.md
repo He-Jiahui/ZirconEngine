@@ -9,6 +9,11 @@ related_code:
   - zircon_runtime/src/animation/scene_hook.rs
   - zircon_runtime/src/animation/scene_hook/graph.rs
   - zircon_runtime/src/animation/scene_hook/state_machine.rs
+  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
+  - zircon_runtime/src/animation/scene_hook/events.rs
+  - zircon_runtime/src/animation/scene_hook/node_pose.rs
+  - zircon_runtime/src/animation/scene_hook/pending.rs
+  - zircon_runtime/src/animation/scene_hook/scan.rs
   - zircon_runtime/src/animation/scene_hook/tick.rs
   - zircon_runtime/src/animation/sequence/apply.rs
   - zircon_runtime/src/animation/clip_event.rs
@@ -17,6 +22,12 @@ implementation_files:
   - zircon_runtime/src/animation/module.rs
   - zircon_runtime/src/animation/manager.rs
   - zircon_runtime/src/animation/scene_hook.rs
+  - zircon_runtime/src/animation/scene_hook/diagnostics.rs
+  - zircon_runtime/src/animation/scene_hook/events.rs
+  - zircon_runtime/src/animation/scene_hook/node_pose.rs
+  - zircon_runtime/src/animation/scene_hook/pending.rs
+  - zircon_runtime/src/animation/scene_hook/scan.rs
+  - zircon_runtime/src/animation/scene_hook/tick.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_runtime/src/animation/clip_event.rs
 plan_sources:
@@ -80,6 +91,12 @@ The stable boundary is:
 - `animation` owns runtime evaluation and scene-hook application.
 - `zircon_plugins/animation/runtime` owns plugin package metadata and runtime-system registration, but currently wraps and re-exports the runtime-owned animation family instead of deleting `zircon_runtime::animation`.
 - `render` and `graphics` own GPU skinning and draw submission.
+
+## Scene Hook Diagnostics
+
+Runtime 07 M1.1 adds `AnimationSceneFrameDiagnostics` inside the scene hook owner. The hook records count-only `DiagnosticStore` rows for `animation.scene.scanned_entities`, sequence/clip/graph/state-machine samples, `animation.scene.output_poses`, `animation.scene.applied_transforms`, `animation.scene.published_events`, and `animation.scene.state_transitions`. Empty manager and disabled playback frames write zeroes through the same paths.
+
+This status is `animation_scene_frame_diagnostics_static_passed_cargo_deferred`. It gives Runtime 07 an evidence path for animation scene-hook frame cost before any M2 optimization is proposed; it does not move animation contracts into `core::framework::animation` and does not claim GPU skinning or draw submission ownership.
 
 Runtime 14 M0.1 is therefore complete as an architecture judgement. No code migration is required for this slice.
 

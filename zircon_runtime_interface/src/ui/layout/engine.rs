@@ -9,7 +9,7 @@ use super::UiContainerKind;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiLayoutEngineBackend {
-    LegacyZircon,
+    Zircon,
     Taffy,
 }
 
@@ -59,14 +59,14 @@ pub struct UiLayoutEngineCapability {
 
 impl Default for UiLayoutEngineCapability {
     fn default() -> Self {
-        Self::legacy_zircon()
+        Self::zircon()
     }
 }
 
 impl UiLayoutEngineCapability {
-    pub fn legacy_zircon() -> Self {
+    pub fn zircon() -> Self {
         Self {
-            backend: UiLayoutEngineBackend::LegacyZircon,
+            backend: UiLayoutEngineBackend::Zircon,
             supported_families: vec![
                 UiLayoutEngineFamily::Free,
                 UiLayoutEngineFamily::Canvas,
@@ -226,8 +226,8 @@ impl Default for UiLayoutEngineSelection {
         Self {
             node_id: None,
             request,
-            requested_backend: UiLayoutEngineBackend::LegacyZircon,
-            selected_backend: UiLayoutEngineBackend::LegacyZircon,
+            requested_backend: UiLayoutEngineBackend::Zircon,
+            selected_backend: UiLayoutEngineBackend::Zircon,
             support: UiLayoutEngineSupport::Native,
             fallback_reason: None,
             taffy_tree_build: None,
@@ -284,7 +284,7 @@ pub struct UiLayoutEngineSelectionReport {
     pub selections: Vec<UiLayoutEngineSelection>,
     pub request_count: u64,
     pub taffy_selected_count: u64,
-    pub legacy_selected_count: u64,
+    pub zircon_selected_count: u64,
     pub fallback_count: u64,
     pub unsupported_count: u64,
     pub fallback_reason_counts: Vec<UiLayoutEngineFallbackReasonCount>,
@@ -303,7 +303,7 @@ impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
             selections: Vec<UiLayoutEngineSelection>,
             request_count: u64,
             taffy_selected_count: u64,
-            legacy_selected_count: u64,
+            zircon_selected_count: u64,
             fallback_count: u64,
             unsupported_count: u64,
             fallback_reason_counts: Vec<UiLayoutEngineFallbackReasonCount>,
@@ -316,7 +316,7 @@ impl<'de> Deserialize<'de> for UiLayoutEngineSelectionReport {
             selections: wire.selections,
             request_count: wire.request_count,
             taffy_selected_count: wire.taffy_selected_count,
-            legacy_selected_count: wire.legacy_selected_count,
+            zircon_selected_count: wire.zircon_selected_count,
             fallback_count: wire.fallback_count,
             unsupported_count: wire.unsupported_count,
             fallback_reason_counts: wire.fallback_reason_counts,
@@ -341,7 +341,7 @@ impl UiLayoutEngineSelectionReport {
     pub fn recompute_counts(&mut self) {
         self.request_count = self.selections.len() as u64;
         self.taffy_selected_count = 0;
-        self.legacy_selected_count = 0;
+        self.zircon_selected_count = 0;
         self.fallback_count = 0;
         self.unsupported_count = 0;
         self.taffy_tree_build_count = 0;
@@ -352,7 +352,7 @@ impl UiLayoutEngineSelectionReport {
 
         for selection in &self.selections {
             match selection.selected_backend {
-                UiLayoutEngineBackend::LegacyZircon => self.legacy_selected_count += 1,
+                UiLayoutEngineBackend::Zircon => self.zircon_selected_count += 1,
                 UiLayoutEngineBackend::Taffy => self.taffy_selected_count += 1,
             }
             match selection.support {

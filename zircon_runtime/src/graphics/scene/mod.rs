@@ -11,6 +11,7 @@ mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;
 
+pub(crate) use resources::default_pipeline_key;
 #[cfg(test)]
 pub(crate) use resources::ResourceStreamer;
 pub use scene_renderer::SceneRenderer;
@@ -22,10 +23,11 @@ pub(crate) use scene_renderer::{
     cluster_dimensions_for_size, compute_cascade_ranges, create_depth_texture, lighting,
     pack_lighting_extract, CascadeRange, CascadeSplitConfig, RenderGraphLightGridReport,
     ShadowAtlasAllocator, ShadowAtlasResourceConfig, ShadowLightSlotAssignment,
-    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    FALLBACK_MESH_SHADER, GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT,
+    OFFSCREEN_FORMAT,
 };
 pub use scene_renderer::{
-    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
-    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
+    RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext,
 };

@@ -204,6 +204,8 @@ doc_type: module-detail
 
 同日继续往 runtime/editor 边界再压一层之后，`SceneViewportExtractRequest` 也不再直接携带 selection。它现在只吃中性的 `ViewportRenderSettings + active_camera_override + camera + viewport_size`；`projection_mode / display_mode / preview_lighting / preview_skybox` 这四项通过 `ViewportRenderSettings` 从 editor state 投影出来，而 tool/grid/selection/gizmo 仍留在 editor authoring 状态里。
 
+2026-06-19 的运行时相机顺序契约收束后，`SceneViewportExtractRequest::camera` 不再接收裸 `ViewportCameraSnapshot`，而是接收 `CameraRenderDescriptor`。编辑器视口的单相机路径仍以 `SceneViewportController` 产出的 snapshot 为源，但 `render_packet.rs` 在构造 request 时通过 descriptor conversion 显式补齐 target/order/viewport/layer 所有权，再把 selection/grid/gizmo/handle overlay 留在 editor packet 层追加。
+
 同一轮继续推进到 graphics 侧之后，`DisplayMode`、`ProjectionMode`、`ViewportCameraSnapshot`、`RenderFrameExtract`、`RenderSceneSnapshot`、`ViewportIconId`、`OverlayBillboardIcon`、`OverlayLineSegment`、`OverlayWireShape`、`HandleElementExtract` 等剩余 render/overlay DTO 也已经全部由 `zircon_framework::render` 直接提供；`zircon_graphics` 生产代码里的 scene 语义入口也已切到 `zircon_framework::scene`，`zircon_scene` 在 graphics crate 内只剩 tests fixture 依赖。
 
 继续收尾到 `zircon_scene` 自身之后，`SceneGizmoKind`、`OverlayWireShape`、`RenderFrameExtract`、`RenderWorldSnapshotHandle` 这批 crate-local tests 先前还在通过 `zircon_scene` 根级入口取值的 render 类型也已经切到 `zircon_framework::render`；`zircon_scene/src/lib.rs` 不再保留这组 framework-owned render re-export。
@@ -438,7 +440,7 @@ Scene edit-mode hierarchy and stats projection reads `World::node_records()` so 
 `EditorState::render_snapshot()` 的职责现在是：
 
 1. 让 `SceneViewportController` 准备 viewport camera snapshot
-2. 从 `SceneViewportSettings` 投影出 `ViewportRenderSettings`，连同 camera override / viewport size 构造 `SceneViewportExtractRequest`
+2. 从 `SceneViewportSettings` 投影出 `ViewportRenderSettings`，把 editor camera snapshot 转为 `CameraRenderDescriptor` 后连同 viewport size 构造 `SceneViewportExtractRequest`
 3. 调用 `World::build_viewport_render_packet(...)` 取得基础 scene packet
 4. 在 editor 层补齐 selection / grid / scene gizmo / handle overlay
 

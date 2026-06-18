@@ -2,7 +2,9 @@ mod bridge;
 mod command_palette;
 mod component_property_rows;
 mod componentized_window;
+mod context_menu;
 mod data_sync;
+mod drawer_layout;
 mod error;
 mod extension_module_feedback;
 mod extension_module_navigation;
@@ -11,18 +13,28 @@ mod generated_bottom_panel_feedback;
 mod generated_bottom_panel_lifecycle;
 mod generated_bottom_panel_navigation;
 mod host_projection;
+mod layout_frames;
 mod module_command_feedback;
 mod module_field_edit;
 mod module_navigation;
+mod notifications;
+mod outer_shell_frames;
 mod pointer_feedback;
 mod popup_state;
 mod property_edit;
 mod root_shell_frames;
 mod scene_tree_rows;
+mod status_bar;
 mod transform_edit;
 mod window_menu_state;
 
 pub(crate) use bridge::BuiltinHostWindowTemplateBridge;
 pub(crate) use command_palette::WorkbenchCommandPaletteOpenState;
 pub(crate) use componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+pub(crate) use context_menu::WORKBENCH_CONTEXT_MENU_CONTROL_ID;
+pub(crate) use layout_frames::BuiltinWorkbenchWindowLayoutFrames;
+pub(crate) use notifications::{
+    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
+};
+pub(crate) use outer_shell_frames::BuiltinHostOuterShellFrames;
 pub(crate) use root_shell_frames::BuiltinHostRootShellFrames;

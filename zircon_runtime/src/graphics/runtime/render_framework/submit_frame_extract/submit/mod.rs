@@ -1,5 +1,6 @@
 mod build_runtime_frame;
 mod build_virtual_geometry_debug_snapshot;
+mod camera_loop;
 mod collect_runtime_feedback;
 mod present_frame_extract;
 mod release_previous_history;

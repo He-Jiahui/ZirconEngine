@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::RenderParticleSpriteSnapshot;
 use zircon_runtime::core::framework::scene::EntityId;
-use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec3};
+use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec2, Vec3};
 
 use crate::asset::{evaluate_color_curve, evaluate_scalar_curve};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
@@ -13,6 +13,7 @@ use super::pool::{CpuParticlePool, InitialParticle};
 use super::{ParticleRng, ParticleSimulationError};
 
 const SPAWN_ACCUMULATOR_EPSILON: Real = 1.0e-5;
+const PARTICLE_STABLE_SPRITE_KEY_STRIDE: u64 = 1_000_000;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ParticleEmitterRuntimeState {
@@ -125,6 +126,10 @@ impl ParticleSystemInstance {
 
     pub(crate) fn backend(&self) -> ParticleSimulationBackend {
         self.component.asset.backend
+    }
+
+    pub(crate) fn component(&self) -> &ParticleSystemComponent {
+        &self.component
     }
 
     pub(crate) fn entity(&self) -> EntityId {
@@ -329,16 +334,27 @@ impl ParticleEmitterInstance {
             };
             sprites.push(RenderParticleSpriteSnapshot {
                 entity,
+                stable_sprite_key: stable_sprite_key(self.emitter_index, index),
                 position,
                 size: self.pool.size[index],
+                aspect_ratio: 1.0,
+                billboard_offset: Vec2::ZERO,
                 rotation: self.pool.rotation[index],
+                sort_order: 0,
                 color: self.pool.color[index],
                 intensity: 1.0,
+                depth_test: true,
                 material: self.asset.material,
                 texture: self.asset.texture,
             });
         }
     }
+}
+
+fn stable_sprite_key(emitter_index: u32, slot_index: usize) -> u64 {
+    (u64::from(emitter_index) + 1)
+        .saturating_mul(PARTICLE_STABLE_SPRITE_KEY_STRIDE)
+        .saturating_add(slot_index as u64 + 1)
 }
 
 fn validate_component(component: &ParticleSystemComponent) -> Result<(), ParticleSimulationError> {

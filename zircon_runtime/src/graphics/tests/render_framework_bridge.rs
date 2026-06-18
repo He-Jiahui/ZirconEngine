@@ -3,20 +3,20 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
-    AdvancedRenderFeature, FrameHistoryHandle, FrameHistoryInvalidationReason,
-    PostProcessVolumeExtract, RenderBloomSettings, RenderCameraOrderAmbiguity,
-    RenderCameraOrderReport, RenderCameraTargetOrderKey, RenderCapabilityKind,
-    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderChromaticAberrationSettings,
-    RenderColorGradingSettings, RenderColorLookupSettings, RenderDepthOfFieldSettings,
-    RenderDitherSettings, RenderDynamicResolutionSettings, RenderFilmGrainSettings,
-    RenderFogSettings, RenderFrameExtract, RenderFramework, RenderFrameworkError,
-    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
+    AdvancedRenderFeature, CameraRenderDescriptor, CameraRenderType, FrameHistoryHandle,
+    FrameHistoryInvalidationReason, PostProcessVolumeExtract, RenderBloomSettings,
+    RenderCameraOrderAmbiguity, RenderCameraOrderReport, RenderCameraTargetOrderKey,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+    RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
+    RenderDepthOfFieldSettings, RenderDitherSettings, RenderDynamicResolutionSettings,
+    RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
     RenderHybridGiTraceRegion, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
     RenderPostProcessVolumeProfile, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
     RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SortedRenderCamera,
-    VolumeComponentOverride,
+    ViewportCameraSnapshot, VolumeComponentOverride, COLOR_LUT_SIZE_DEFAULT,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
@@ -27,14 +27,13 @@ use zircon_runtime_interface::ui::surface::{
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
 
-use crate::graphics::runtime::WgpuRenderFramework;
-use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
-use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
-use crate::{
-    BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
+use crate::graphics::{
+    runtime::WgpuRenderFramework, BuiltinRenderFeature, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
     RenderPipelineCompileOptions,
 };
+use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
 use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework, pluginized_wgpu_render_framework_with_advanced_providers,
@@ -91,6 +90,11 @@ fn render_framework_stats_report_scene_camera_ordering_metadata() {
         cameras: vec![
             SortedRenderCamera {
                 entity: 10,
+                camera: CameraRenderDescriptor::from_camera_payload(
+                    Some(10),
+                    ViewportCameraSnapshot::default(),
+                ),
+                render_type: CameraRenderType::Base,
                 order: 0,
                 target: RenderCameraTargetOrderKey::PrimarySurface,
                 hdr: false,
@@ -98,6 +102,11 @@ fn render_framework_stats_report_scene_camera_ordering_metadata() {
             },
             SortedRenderCamera {
                 entity: 11,
+                camera: CameraRenderDescriptor::from_camera_payload(
+                    Some(11),
+                    ViewportCameraSnapshot::default(),
+                ),
+                render_type: CameraRenderType::Base,
                 order: 0,
                 target: RenderCameraTargetOrderKey::PrimarySurface,
                 hdr: false,
@@ -314,6 +323,51 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
 }
 
 #[test]
+fn render_framework_stats_report_neutral_color_lut_readback_identity() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("post-process-neutral-lut")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_temporal_history(false)
+                .with_bloom(false)
+                .with_anti_alias(false),
+        )
+        .unwrap();
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert!(stats
+        .last_post_process_graph_executed_nodes
+        .iter()
+        .any(|node| node == "color-lut-bake"));
+    let report = stats.last_color_lut_readback_report;
+    assert!(report.available, "color LUT readback was not available");
+    assert_eq!(
+        report.size,
+        [
+            COLOR_LUT_SIZE_DEFAULT,
+            COLOR_LUT_SIZE_DEFAULT,
+            COLOR_LUT_SIZE_DEFAULT
+        ]
+    );
+    assert_eq!(report.sample_count, COLOR_LUT_SIZE_DEFAULT.pow(3) as usize);
+    assert!(
+        report.identity_within_epsilon(),
+        "neutral color LUT readback exceeded identity tolerance: {report:?}"
+    );
+}
+
+#[test]
 fn render_framework_stats_report_effect_stack_product_node_when_authored() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
@@ -437,7 +491,7 @@ fn render_framework_stats_report_volume_effect_stack_product_node_when_authored(
     extract.post_process.volumes = vec![PostProcessVolumeExtract::global(
         0.0,
         0.5,
-        extract.view.camera.render_layers.clone(),
+        extract.view.selected_camera_layers().clone(),
         VolumeComponentOverride::from_profile(&profile),
     )];
 

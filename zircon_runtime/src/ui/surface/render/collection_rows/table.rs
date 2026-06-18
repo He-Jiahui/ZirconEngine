@@ -162,7 +162,7 @@ fn table_cells(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .filter(|cells| !cells.is_empty())
-        .or_else(|| row_label(metadata).map(|label| split_legacy_table_text(label.as_str())))
+        .or_else(|| row_label(metadata).map(|label| split_row_label_table_text(label.as_str())))
         .unwrap_or_default()
 }
 
@@ -177,7 +177,7 @@ fn value_text(value: &Value) -> Option<String> {
     }
 }
 
-fn split_legacy_table_text(text: &str) -> Vec<String> {
+fn split_row_label_table_text(text: &str) -> Vec<String> {
     let tokens = text.split_whitespace().collect::<Vec<_>>();
     match tokens.as_slice() {
         [] => Vec::new(),

@@ -18,8 +18,7 @@ use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{
     ResourceHandle, ResourceId, ResourceKind, ResourceRecord, TextureMarker,
 };
-use crate::graphics::WgpuRenderFramework;
-use crate::RenderPipelineAsset;
+use crate::graphics::{RenderPipelineAsset, WgpuRenderFramework};
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const CAMERA_TEXTURE_TARGET_ASSET_CAPABILITY: &str = "camera texture render target asset";
@@ -585,7 +584,11 @@ fn unsupported_headless_camera_surface_present() -> RenderFrameworkError {
 
 fn empty_extract_with_target(target: RenderCameraTarget) -> RenderFrameExtract {
     let mut extract = empty_extract();
-    extract.view.camera.target = target;
+    extract
+        .view
+        .selected_camera_descriptor_mut()
+        .expect("test extract should carry a selected camera descriptor")
+        .target = target;
     extract
 }
 

@@ -3,7 +3,8 @@ mod feature_diagnostics;
 mod feature_merge;
 mod runtime_merge;
 
-use crate::{plugin::ProjectPluginManifest, plugin::RuntimeExtensionRegistry, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::{plugin::ProjectPluginManifest, plugin::RuntimeExtensionRegistry};
 
 use super::extension_report::RuntimeExtensionCatalogReport;
 use super::feature_report::RuntimePluginFeatureDependencyReport;

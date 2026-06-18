@@ -20,11 +20,11 @@ fn shared_host_page_pointer_click_dispatches_activate_main_page_through_runtime_
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
     let mut pointer_bridge = HostPagePointerBridge::new();
-    let root_frames = template_bridge.root_shell_frames();
+    let outer_shell_frames = template_bridge.outer_shell_frames();
     pointer_bridge.sync(build_host_page_pointer_layout(
         &model,
         &WorkbenchChromeMetrics::default(),
-        Some(&root_frames),
+        Some(&outer_shell_frames),
     ));
 
     let dispatched = dispatch_shared_host_page_pointer_click(

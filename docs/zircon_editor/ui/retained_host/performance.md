@@ -26,7 +26,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
@@ -35,12 +39,18 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -54,6 +64,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -68,6 +79,12 @@ related_code:
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/ui/template_runtime/host_nodes.rs
+  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
   - zircon_editor/assets/icons/editor_pages/**
   - docs/zircon_editor/assets/editor-page-function-icon-template-map.md
   - tools/ui-profile-capture.ps1
@@ -96,7 +113,11 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
@@ -105,12 +126,18 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/template_hover.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -124,6 +151,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs
   - zircon_runtime/src/rhi/mod.rs
   - zircon_runtime/src/rhi/ui_surface.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface.rs
@@ -138,6 +166,12 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/ui/template_runtime/host_nodes.rs
+  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
+  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
   - tools/ui-profile-capture.ps1
 plan_sources:
   - user: 2026-05-14 retained-host pointer-move and software painter CPU profile
@@ -169,7 +203,11 @@ tests:
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; profiling artifact ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after profiling artifact test responsibility split: passed with existing warning noise only; geometry regressions live in `profiling_artifacts/tests.rs`, `profiling_artifacts.rs` is 824 lines, and `profiling_artifacts/tests.rs` is 211 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; profiling artifact geometry ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after profiling artifact geometry responsibility split: passed with existing warning noise only; geometry extraction lives in `profiling_artifacts/geometry.rs`, `profiling_artifacts.rs` is 212 lines, and `profiling_artifacts/geometry.rs` is 651 lines)
   - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
@@ -218,6 +256,16 @@ tests:
   - cargo test -p zircon_runtime --lib batch_plan_batches_disjoint_atlas_images_with_same_key_and_distinct_uvs --locked
   - cargo test -p zircon_runtime --lib wgpu_ui_surface_headless_stats_batch_atlas_images_by_resource_key --locked
   - cargo test -p zircon_editor --lib painter --locked
+  - cargo test -p zircon_editor --lib componentized_workbench_status_bar_skips_legacy_skeleton_fill --locked -- --nocapture
+  - cargo test -p zircon_editor --lib status_bar --locked -- --nocapture
+  - cargo test -p zircon_editor --lib componentized_workbench_activity_rail_skips_legacy_left_region_fill --locked -- --nocapture
+  - cargo test -p zircon_editor --lib activity_rail --locked -- --nocapture
+  - cargo test -p zircon_editor --lib componentized_workbench_main_band_skips_legacy_center_band_fill --locked -- --nocapture
+  - cargo test -p zircon_editor --lib componentized_workbench_component_drawer_skips_legacy_bottom_region_fill --locked -- --nocapture
+  - cargo test -p zircon_editor --lib document_tab --locked -- --nocapture
+  - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exposes_document_tab_runtime_routes --locked -- --nocapture
+  - cargo test -p zircon_editor --lib componentized_workbench_window_template_bridge_exports_surface_projection_frames_and_routes --locked -- --nocapture
+  - cargo test -p zircon_editor --lib surface_backed_retained_projection_exposes_style_overrides_as_effective_properties --locked -- --nocapture
   - cargo test -p zircon_editor --lib patch_command_stream_matches_legacy_region_repaint_pixels --locked
   - cargo test -p zircon_editor --lib text_draw_skips_disjoint_active_and_explicit_clips --locked
   - cargo test -p zircon_editor editor_pages_template_icons_have_readable_16px_raster_footprints --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation -- --nocapture
@@ -270,6 +318,9 @@ tests:
   - cargo test -p zircon_editor --lib native_host_hierarchy_press_uses_pane_center_status_damage --offline --message-format=short
   - cargo test -p zircon_editor --lib retained_window --offline --message-format=short
   - cargo check -p zircon_editor --lib --locked
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; window event-loop/template-hover ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after host window responsibility split)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; window module-local test ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after host window test responsibility split: passed with existing warning noise only; `window.rs` is 817 lines, `window/tests.rs` is 83 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer drag/resize ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer drag/resize responsibility split: passed with existing warning noise only; `native_pointer.rs` is 732 lines and `native_pointer/drag_resize.rs` is 242 lines)
   - cargo check -p zircon_editor --lib --tests --locked --message-format=short
   - cargo test -p zircon_editor --lib preview_loader --locked -- --nocapture
   - cargo test -p zircon_editor --lib tests::host::retained_callback_dispatch::template_bridge::workbench_projection::builtin_host_window_template_bridge_recomputes_surface_backed_frames_with_shell_size --locked -- --exact --nocapture
@@ -310,6 +361,8 @@ doc_type: module-detail
 
 The retained editor host now defaults native editor windows to the runtime-owned GPU presenter. `zircon_editor` still owns retained UI state, pointer damage, and command generation, but it does not own a raw `wgpu` swapchain. `ChromeCommandStream` is the backend-neutral draw list consumed by both `GpuChromePresenter` and `SoftbufferHostPresenter`; the GPU path converts it into `zircon_runtime::rhi::UiSurfaceDrawList`, while softbuffer repaints the same stream into a CPU `HostRgbaFrame` only for fallback, tests, and snapshots.
 
+The softbuffer fallback presenter is now split by runtime cost owner. `presenter/softbuffer/diagnostics.rs` owns same-frame refresh overlay planning, full/region paint accounting, command-stream counters, and verbose summaries; `presenter/softbuffer/surface_io.rs` owns size clamp, resize, damage bounds, damage pixel counts, damage rects, and RGBA-to-softbuffer copy. `presenter/softbuffer.rs` remains the lifecycle and present orchestration owner.
+
 The crate boundary is still intentional. `zircon_editor/Cargo.toml` may depend on `winit` and `softbuffer` for the host window and fallback presenter, but retained-host presenter sources must not reference `wgpu::` or name concrete `rhi_wgpu` providers. Runtime viewport rendering continues to route through the shared `RenderFramework`, and retained editor chrome reaches native GPU presentation through `zircon_runtime::rhi::UiSurfaceDescriptor::from_winit_window(...)` plus `zircon_runtime::rhi::create_default_ui_surface_presenter(...)`.
 
 That means the retained host has two different performance surfaces:
@@ -348,6 +401,20 @@ Menu clicks now follow the same retained-state rule. The dispatcher measures men
 When a primary menu click also clears an active text input, the dispatcher unions the old edit frame into that same menu damage request. The result stays a regional repaint, but both the popup/menu change and the removed focus outline are covered by one damage region.
 
 The menu hit-test and damage geometry lives in `native_pointer/menu_geometry.rs` so the pointer dispatcher remains responsible for routing and scenario counters, while popup placement and menu damage math stay isolated. This is deliberately a small ownership split: the module owns menu rectangles only, not command dispatch or editor state mutation.
+
+The native pointer routing/redraw split keeps high-frequency dispatch timing in `native_pointer.rs` while moving hit-route construction into `native_pointer/routing.rs` and `NativePointerDispatchResult` damage wrapping into `native_pointer/redraw_result.rs`. This keeps profiling scenario counters and callback timing in the dispatcher, while route geometry and redraw-result composition can evolve without expanding the root pointer file.
+
+The native pointer drag/resize split keeps capture-state progression in `native_pointer/drag_resize.rs`. Resize and tab-drag move/release paths still short-circuit before ordinary menu/pane routing, but the root dispatcher now delegates state updates, host callback forwarding, drag thresholding, source payload lookup, release redraw, and capture clearing to the child module.
+
+The template-node hit-test test split keeps the high-frequency production route compact. `surface_hit_test/template_node.rs` now only owns pane/workbench template-node hit testing, popup row synthesis, dispatchable filtering, and surface-frame construction, while `surface_hit_test/template_node_tests.rs` owns the former inline Workbench dropdown/menu/text-input/decorative-layer regressions.
+
+The host window split keeps native event-loop and transient hover presentation costs visible. `window/event_loop.rs` owns winit event matching, presenter fallback, external redraw draining, present scenario attribution, and profiling artifact export; `window/template_hover.rs` owns cloned presentation mutation for template-node, dropdown-option, and popup-menu hover state. `window.rs` therefore stays focused on host state and text-input dispatch instead of becoming another high-frequency event and model-rewrite owner.
+
+The host-window test split moves private state regressions into `window/tests.rs`. Those tests cover diagnostics overlay text, close-request callback mutation outside active borrows, frame-update redraw requests that preserve damage regions, and one-shot completed scenario reads, so `window.rs` can keep the production state boundary without inline test bodies.
+
+The profiling artifact geometry path is split into `profiling_artifacts/geometry.rs`. The production artifact writer now stays focused on export gates, schema DTOs, screenshot capture, and profile output paths, while geometry extraction owns splitter/tab/activity/template/viewport-toolbar frame collection, surface-frame clipping, route-hit sampling, and top-hit filtering.
+
+The profiling artifact tests are split into `profiling_artifacts/tests.rs` because they exercise private geometry extraction helpers rather than a public crate surface. The module-local test owner covers geometry edge cases without expanding the hot profiling export file.
 
 Viewport toolbar clicks now have a middle path between paint-only and full-frame invalidation. `HostRedrawRequest::Region` can request a frame update while preserving its damage rectangle, so common toolbar controls such as tool, projection, display, grid, snap, and preview toggles can apply their Rust callback state patch and then repaint only the toolbar frame. Commands that can affect camera, session, or status state broadly, such as play mode, frame selection, and view alignment, use `native_pointer/viewport_toolbar_damage.rs` to repaint the center band plus status bar instead of the full native host.
 
@@ -415,6 +482,18 @@ The presenter boundary lives under `host_contract/presenter/`. `HostChromePresen
 
 `ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded viewport images set it to `None`, while untinted retained template/image sources can resolve generated SpriteAtlas manifests under `library/editor-sprite-atlases` into one atlas texture `resource_key` plus per-entry UV metadata. Full-opacity atlas images record the shared atlas texture key; opacity-baked images keep the non-atlas content key so tinted/translucent pixels do not mutate shared atlas semantics. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
 
+The componentized Workbench status bar is a region-level hard cutover inside that command stream. When `workbench_window_nodes` exist, the Workbench template draws `WorkbenchStatusBar`; the root skeleton no longer records the legacy `STATUS_BAR` quad or `host_shell.status_secondary` marker for the same frame. The non-componentized retained path still keeps the old status bar fallback, but componentized Workbench frames now have one status-bar pixel source.
+
+Activity rail follows the same single-source rule. When a componentized Workbench frame exposes `ActivityRailRoot`, `WorkbenchWindowActivityRail`, or `WorkbenchMainBandActivityRail`, the root skeleton no longer paints the old left-region `SIDE_PANEL` quad through that rail rectangle. The remaining left drawer area is still filled by the retained fallback until drawer migration is complete, but the rail pixels now come from the Workbench activity-rail template instead of being covered by the legacy shell background.
+
+The main band has the same command-stream guard for the old center chrome fill. When componentized Workbench nodes expose `WorkbenchWindowMainBandRegion` or `WorkbenchMainBand`, the retained root skeleton splits the legacy `CENTER_BAND` quad around that frame. Document, viewport, drawer, tab-drag, and pointer-route fallbacks remain until their planned hard-cutover slices, but the main-band frame no longer receives the broad legacy center-band background underneath the runtime Workbench template.
+
+The component drawer lower band follows the same single-source guard. When `workbench_window_nodes` expose `WorkbenchWindowComponentDrawerRegion` or `WorkbenchComponentDrawer`, the retained root skeleton splits the legacy bottom-region `SIDE_PANEL` quad around that frame. The component drawer therefore receives pixels from `WorkbenchComponentDrawer` instead of being covered by the old bottom-dock fill; drawer resize and header pointer bridges remain on the retained fallback path until the dedicated M2.S3 input cutover.
+
+The componentized Workbench skeleton guards now live in `workbench_skeleton_regions.rs` instead of accumulating in the large `workbench.rs` painter. That module owns the control-id ownership markers, visible-frame filtering, and rectangle-splitting helper used by the root skeleton, while `workbench.rs` keeps only the draw order and fallback orchestration. The behavior is intentionally unchanged: status bar, activity rail, main band, and component drawer pixels still follow the same single-source rules, and retained drawer resize/header pointer bridges are still pending a later hard cutover.
+
+The next Workbench surface-projection baseline moves document-tab routing and component-drawer samples onto the same materialized surface path. `workbench_viewport_panel.zui` mounts `DocumentTabsRoot` above the viewport toolbar and surface, with Change/Submit routes normalized to dock focus/close commands. The component drawer now projects `WorkbenchInputDisabled` and forwards `WorkbenchLabsTabOne/Two/Three` through `WorkbenchTabStrip`'s default slot, so component-library samples, disabled fields, selected list/table rows, and Labs tab state all enter the host contract instead of depending on legacy painter-only placeholders. Retained projection also folds surface `style_overrides` over metadata attributes before building effective properties, which lets instance-level Workbench gizmo colors and tab/list/table selected colors override neutral stylesheet defaults in native command-stream assertions.
+
 `GpuChromePresenter<P: UiSurfacePresenter>` converts the chrome command stream into `zircon_runtime::rhi::UiSurfaceDrawList`. It records command full/patch counters, propagates runtime surface failures instead of hiding them, and emits `gpu_upload_bytes`, actual `gpu_draw_calls`, `gpu_visible_commands`, `gpu_visible_draw_items`, `gpu_batch_layers`, and `gpu_batch_dependencies`. It also maps `ChromeImageUvRect` directly into `UiSurfaceImageUvRect`, so atlas metadata crosses the editor/runtime boundary without exposing editor asset-manager or renderer-specific types. It never imports `wgpu`, and its factory no longer names `rhi_wgpu`; the concrete native surface, swapchain, offscreen retained UI target, quad/image pipelines, glyphon text atlas, texture uploads, batch planning, and surface present are selected by the runtime RHI factory.
 
 Softbuffer replay samples atlas UV metadata when atlas-backed payloads embed full atlas RGBA bytes. The software command-stream executor extracts the atlas subimage described by `ChromeImageUvRect`, paints that subimage through the same clipped RGBA path, and falls back to `FALLBACK_IMAGE_COLOR` when bytes are absent or the atlas rect/byte length is invalid. Non-atlas viewport and recorded-image paths continue to set `atlas_uv: None`, preserving byte-for-byte software parity tests while keeping atlas replay deterministic.
@@ -439,7 +518,7 @@ The viewport-image closeout fixed a startup retry hole in the retained host. The
 
 The 2026-05-16 strict captures use temporary `renderable-empty` projects for `idle_hover` and `viewport_image`, leaving `startup` on the default cold-start page. `20260516-001744-startup` reduced `188` visible draw items to `35` GPU draws, `20260516-001914-idle_hover` reduced `37` visible draw items to `32` GPU draws, `20260516-000208-viewport_image` recorded `dirty_paint_only_count=1`, `redraw_region_count=1`, `gpu_upload_bytes=1306792`, and `21` visible draw items to `16` GPU draws, and `20260516-002011-click` reduced `318` visible draw items to `84` GPU draws. All four finished with zero hotspot alerts and no software fallback.
 
-The UI batching validation profile path now exports retained-host evidence beside the runtime trace. `profiling_artifacts.rs` writes `ui_profile_geometry.json` on each profiling present with the client size, selected backend, splitter frames, document/drawer/host tabs, activity-rail buttons, viewport frame, viewport-toolbar controls, dispatchable template controls, and sampled hit points. `profiling_hit_routes.rs` keeps the route-consistency checks out of the already-large artifact writer: each sample records whether the rendered frame contains the point and whether the shared retained-host route or surface hit-test would hit the same control. `tools/ui-profile-capture.ps1` consumes that file for `drag`, `drawer_resize`, `click`, and `idle_hover` auto-interaction before falling back to fixed client ratios, so resize and drag gates now target live splitter/tab geometry rather than approximate coordinates. The drawer-resize gate also writes `ui_interaction_evidence.json` with the selected splitter, pointer path, before/after layout deltas, and a `resize_changed_layout` assertion, which makes border-drag effectiveness testable instead of relying on a visual guess.
+The UI batching validation profile path now exports retained-host evidence beside the runtime trace. `profiling_artifacts.rs` writes `ui_profile_geometry.json` on each profiling present, and `profiling_artifacts/geometry.rs` builds the client size, selected backend, splitter frames, document/drawer/host tabs, activity-rail buttons, viewport frame, viewport-toolbar controls, dispatchable template controls, and sampled hit points. `profiling_artifacts/tests.rs` owns the module-local geometry regressions for absolute splitter/tab frames, clipped template controls, clipped viewport-toolbar controls, and top-hit filtering. `profiling_hit_routes.rs` keeps the route-consistency checks out of the artifact writer: each sample records whether the rendered frame contains the point and whether the shared retained-host route or surface hit-test would hit the same control. `tools/ui-profile-capture.ps1` consumes that file for `drag`, `drawer_resize`, `click`, and `idle_hover` auto-interaction before falling back to fixed client ratios, so resize and drag gates now target live splitter/tab geometry rather than approximate coordinates. The drawer-resize gate also writes `ui_interaction_evidence.json` with the selected splitter, pointer path, before/after layout deltas, and a `resize_changed_layout` assertion, which makes border-drag effectiveness testable instead of relying on a visual guess.
 
 Material Component Lab uses the same evidence path through `--builtin-view editor.material_component_lab`. Its click gate is intentionally component-only: `material_lab_click` uses live `template_controls` instead of document tabs or host page tabs, so the measured click scenario represents Material prototype feedback rather than page activation. The capture script also accepts the comma-separated list used by the plan. The 2026-05-16 strict run produced `20260516-123734-material_lab_startup`, `20260516-123745-material_lab_hover`, and `20260516-123756-material_lab_click`; all three reported zero UI hotspot alerts and no software fallback. The click capture passed with `dirty_paint_only_count=1`, `redraw_region_count=2`, `presentation_rebuild_count=0`, `dirty_layout_count=0`, and `dirty_presentation_count=0`. The hover capture had no presentation churn, and its draw calls equaled visible items only because the patch was fully dependency-bound (`dependency_density=1.000`), so batch reduction was not expected.
 

@@ -4,6 +4,7 @@ pub(super) const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
 pub(super) const HZB_OCCLUSION_CULL_PIPELINE_LABEL: &str = "zircon-hzb-occlusion-cull-pipeline";
 pub(super) const EXPOSURE_HISTOGRAM_PIPELINE_LABEL: &str = "zircon-exposure-histogram-pipeline";
 pub(super) const EXPOSURE_RESOLVE_PIPELINE_LABEL: &str = "zircon-exposure-resolve-pipeline";
+pub(super) const COLOR_LUT_BAKE_PIPELINE_LABEL: &str = "zircon-color-lut-bake-pipeline";
 pub(super) const HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE: &str =
     "mesh.indirect-compaction-metadata";
 pub(super) const HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE: &str =
@@ -19,3 +20,4 @@ pub(super) const HZB_BUILD_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 pub(super) const HZB_OCCLUSION_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
 pub(super) const EXPOSURE_HISTOGRAM_WORKGROUP_SIZE: [u32; 3] = [16, 16, 1];
 pub(super) const EXPOSURE_RESOLVE_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+pub(super) const COLOR_LUT_BAKE_WORKGROUP_SIZE: [u32; 3] = [4, 4, 4];

@@ -688,6 +688,68 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
         },
     );
     assert_eq!(hp_value, ScriptHostValue::Float(30.0));
+    let hp_at_most = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "script_number_at_most",
+                    vec![
+                        ScriptHostValue::Int(entity as i64),
+                        ScriptHostValue::String("hp".to_string()),
+                        ScriptHostValue::Float(30.0),
+                        ScriptHostValue::Float(120.0),
+                    ],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    assert_eq!(hp_at_most, ScriptHostValue::Bool(true));
+    let entity_exists_value = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "entity_exists",
+                    vec![ScriptHostValue::Int(entity as i64)],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    assert_eq!(entity_exists_value, ScriptHostValue::Bool(true));
+    let missing_entity_exists = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports
+                .call_with_capabilities(
+                    GAMEPLAY_MODULE,
+                    "entity_exists",
+                    vec![ScriptHostValue::Int(0)],
+                    &capabilities,
+                )
+                .unwrap()
+        },
+    );
+    assert_eq!(missing_entity_exists, ScriptHostValue::Bool(false));
 
     with_script_runtime_call_context(
         ScriptRuntimeCallContext {

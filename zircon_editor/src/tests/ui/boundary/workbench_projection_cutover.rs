@@ -89,7 +89,6 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
     for asset in [
         "assets/ui/editor/host/editor_main_frame.v2.ui.toml",
         "assets/ui/editor/host/workbench_shell.v2.ui.toml",
-        "assets/ui/editor/host/workbench_drawer_source.v2.ui.toml",
         "assets/ui/editor/host/floating_window_source.v2.ui.toml",
         "assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml",
         "assets/ui/editor/host/pane_surface_controls.v2.ui.toml",
@@ -393,39 +392,25 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
 }
 
 #[test]
-fn workbench_root_shell_projection_uses_shared_frames_without_geometry_fallback() {
-    let projection = source_file(&["src", "ui", "retained_host", "root_shell_projection.rs"]);
+fn workbench_root_shell_projection_module_is_removed_after_layout_frame_cutover() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    assert!(!root
+        .join("src")
+        .join("ui")
+        .join("retained_host")
+        .join("root_shell_projection.rs")
+        .exists());
 
-    for required in [
-        "shared_root_shell_frame(",
-        "shared_root_body_frame(",
-        "shared_document_region_frame(",
-        "shared_visible_drawer_shell_frame(",
-        "frames.host_body_frame",
-        "frames.status_bar_frame",
-        "frames.pane_surface_frame",
-    ] {
-        assert_contains("root_shell_projection.rs", &projection, required);
-    }
-
-    for forbidden in [
-        "derive_layout_frames_from_geometry_with_shared_root",
-        "root_geometry_region_frame",
-        "root_geometry_center_band_frame",
-        "root_geometry_status_bar_frame",
-        "WorkbenchShellGeometry {",
-        ".region_frame(",
-        ".splitter_frame(",
-        "geometry.region_frame",
-        "geometry.splitter_frame",
-        "geometry.viewport_content_frame",
-    ] {
-        assert_does_not_contain("root_shell_projection.rs", &projection, forbidden);
-    }
+    let retained_host_mod = source_file(&["src", "ui", "retained_host", "mod.rs"]);
+    assert_does_not_contain(
+        "retained_host/mod.rs",
+        &retained_host_mod,
+        "root_shell_projection",
+    );
 }
 
 #[test]
-fn shell_pointer_drag_surface_uses_shared_root_frames_without_geometry_fallback() {
+fn shell_pointer_drag_surface_uses_workbench_layout_frames_without_root_fallback() {
     let drag_surface = source_file(&[
         "src",
         "ui",
@@ -435,12 +420,13 @@ fn shell_pointer_drag_surface_uses_shared_root_frames_without_geometry_fallback(
     ]);
 
     for required in [
-        "resolve_root_center_band_frame(shared_root_frames)",
-        "resolve_root_status_bar_frame(shared_root_frames)",
-        "resolve_root_document_region_frame(shared_root_frames)",
-        "resolve_root_left_region_frame(shared_root_frames)",
-        "resolve_root_right_region_frame(shared_root_frames)",
-        "resolve_root_bottom_region_frame(shared_root_frames)",
+        "componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames",
+        "center_band_frame",
+        "status_bar_frame",
+        "document_region_frame",
+        "left_region_frame",
+        "right_region_frame",
+        "bottom_region_frame",
     ] {
         assert_contains("drag_surface.rs", &drag_surface, required);
     }
@@ -450,9 +436,17 @@ fn shell_pointer_drag_surface_uses_shared_root_frames_without_geometry_fallback(
         "ShellRegionId",
         "shared_or_fallback_frame",
         "shared_or_geometry_frame",
+        "shared_root_frames",
         "geometry.center_band_frame",
         "geometry.status_bar_frame",
         "geometry.region_frame",
+        "resolve_root_center_band_frame",
+        "resolve_root_status_bar_frame",
+        "resolve_root_document_region_frame",
+        "resolve_direct_document_host_frame",
+        "resolve_root_left_region_frame(",
+        "resolve_root_right_region_frame(",
+        "resolve_root_bottom_region_frame(",
     ] {
         assert_does_not_contain("drag_surface.rs", &drag_surface, forbidden);
     }
@@ -464,14 +458,17 @@ fn shell_pointer_bridge_does_not_recreate_root_frames_from_geometry() {
 
     for required in [
         "update_layout_with_root_shell_frames(",
+        "test_workbench_layout_frames_from_root_frames(",
+        "update_layout_with_workbench_layout_frames(",
         "build_drag_surface(",
         "update_resize_surface(",
-        "shared_root_frames",
+        "componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames",
     ] {
         assert_contains("bridge.rs", &bridge, required);
     }
 
     for forbidden in [
+        "build_drag_surface(\n            root_size,\n            drawers_visible,\n            floating_windows,\n            shared_root_frames,",
         "root_frames_from_geometry",
         "geometry.center_band_frame",
         "geometry.status_bar_frame",
@@ -483,15 +480,55 @@ fn shell_pointer_bridge_does_not_recreate_root_frames_from_geometry() {
 }
 
 #[test]
-fn tab_drag_strip_hitbox_uses_shared_root_frames_without_geometry_fallback() {
+fn host_presentation_and_viewport_use_workbench_frames_without_root_fallback() {
+    let apply_presentation =
+        source_file(&["src", "ui", "retained_host", "ui", "apply_presentation.rs"]);
+    let host_lifecycle = source_file(&["src", "ui", "retained_host", "app", "host_lifecycle.rs"]);
+    let viewport = source_file(&["src", "ui", "retained_host", "app", "viewport.rs"]);
+
+    for required in [
+        "componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames",
+        "host_window_layout(componentized_workbench_layout_frames)",
+        "center_band_frame",
+        "status_bar_frame",
+        "document_region_frame",
+        "viewport_content_frame",
+    ] {
+        assert_contains("apply_presentation.rs", &apply_presentation, required);
+    }
+
+    for forbidden in [
+        "BuiltinHostRootShellFrames",
+        "shared_root_frames",
+        "document_pane_shows_viewport_toolbar",
+        "resolve_root_center_band_frame",
+        "resolve_root_status_bar_frame",
+        "resolve_root_document_region_frame",
+        "resolve_root_viewport_content_frame",
+    ] {
+        assert_does_not_contain("apply_presentation.rs", &apply_presentation, forbidden);
+    }
+
+    for forbidden in [
+        "resolve_root_viewport_content_frame",
+        "active_document_shows_viewport_toolbar",
+    ] {
+        assert_does_not_contain("host_lifecycle.rs", &host_lifecycle, forbidden);
+        assert_does_not_contain("viewport.rs", &viewport, forbidden);
+    }
+}
+
+#[test]
+fn tab_drag_strip_hitbox_uses_workbench_layout_frames_without_root_fallback() {
     let strip_hitbox = source_file(&["src", "ui", "retained_host", "tab_drag", "strip_hitbox.rs"]);
 
     for required in [
-        "resolve_root_center_band_frame(shared_root_frames)",
-        "resolve_root_document_region_frame(shared_root_frames)",
-        "resolve_root_left_region_frame(shared_root_frames)",
-        "resolve_root_right_region_frame(shared_root_frames)",
-        "resolve_root_bottom_region_frame(shared_root_frames)",
+        "center_band_frame",
+        "document_tabs_frame",
+        "document_region_frame",
+        "left_region_frame",
+        "right_region_frame",
+        "bottom_region_frame",
     ] {
         assert_contains("strip_hitbox.rs", &strip_hitbox, required);
     }
@@ -501,6 +538,12 @@ fn tab_drag_strip_hitbox_uses_shared_root_frames_without_geometry_fallback() {
         "shared_or_geometry_frame",
         "geometry.region_frame",
         "geometry.center_band_frame",
+        "resolve_root_left_region_frame(",
+        "resolve_root_right_region_frame(",
+        "resolve_root_bottom_region_frame(",
+        "resolve_root_center_band_frame",
+        "resolve_root_document_region_frame",
+        "resolve_direct_document_host_frame",
     ] {
         assert_does_not_contain("strip_hitbox.rs", &strip_hitbox, forbidden);
     }

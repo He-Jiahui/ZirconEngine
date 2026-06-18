@@ -57,11 +57,11 @@ mod tests {
         RenderFramework, RenderFrameworkError, RenderPipelineHandle, RenderViewportDescriptor,
     };
     use crate::core::math::UVec2;
-    use crate::render_graph::QueueLane;
-    use crate::{
+    use crate::graphics::{
         BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, WgpuRenderFramework,
     };
+    use crate::render_graph::QueueLane;
 
     use super::set_pipeline_asset;
 

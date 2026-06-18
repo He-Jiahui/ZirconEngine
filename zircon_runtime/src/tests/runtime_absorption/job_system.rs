@@ -17,7 +17,6 @@ const EXPECTED_JOB_SYSTEM_MODULES: &[&str] = &[
 const EXPECTED_DIRECT_RAYON_PATHS: &[&str] = &[
     "src/core/runtime/tasks/parallel_for.rs",
     "src/core/runtime/tasks/pool.rs",
-    "src/graphics/visibility/culling/parallel_frustum.rs",
 ];
 
 #[test]
@@ -79,6 +78,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     for scheduler_anchor in [
         "pub fn schedule(&self",
         "pub fn schedule_after(",
+        "pub fn wait_all(&self",
         "PendingScheduledJob",
         "record_dependency_wait",
     ] {
@@ -139,6 +139,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         "job_diagnostics_track_schedule_complete_and_wait_times",
         "deep_dependency_chain_completes_in_order",
         "wide_fanout_combine_waits_for_all",
+        "scheduler_wait_all_waits_for_all_handles_and_records_sync_time",
         "parallel_for_visits_every_item_exactly_once",
         "parallel_for_chunk_size_bounds_task_granularity",
     ] {
@@ -181,7 +182,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         .collect::<BTreeSet<_>>();
     assert_eq!(
         direct_rayon_paths, expected_direct_rayon_paths,
-        "Runtime 11 direct-Rayon whitelist should match job_system_boundary; only task primitives plus the render-owned parallel_frustum exception are allowed"
+        "Runtime 11 direct-Rayon whitelist should match job_system_boundary; only task primitives are allowed"
     );
 
     let mirror_docs = [
@@ -213,10 +214,10 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         for required_anchor in [
             "job_system_boundary",
             "expected_module_count = 9",
-            "direct_rayon_paths = 3",
+            "direct_rayon_paths = 2",
             "schedule_parallel_executor_direct_rayon = []",
             "diagnostic_anchor_count = 4",
-            "behavior_test_anchor_count = 9",
+            "behavior_test_anchor_count = 10",
             "missing_behavior_test_anchors = []",
             "oversized_modules = []",
             "mirror_docs_guard_present = true",

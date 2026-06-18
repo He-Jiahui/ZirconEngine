@@ -22,10 +22,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("particle.gpu.spawn-update")
             .with_side_effects()
-            .read_external("particles.gpu.particles-a")
-            .read_external("particles.gpu.emitter-params")
-            .write_external("particles.gpu.particles-b")
-            .write_external("particles.gpu.counters"),
+            .read_external_buffer("particles.gpu.particles-a")
+            .read_external_buffer("particles.gpu.emitter-params")
+            .write_external_buffer("particles.gpu.particles-b")
+            .write_external_buffer("particles.gpu.counters"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "particle-gpu-compact-alive",
@@ -33,9 +33,9 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("particle.gpu.compact-alive")
             .with_side_effects()
-            .read_external("particles.gpu.particles-b")
-            .write_external("particles.gpu.alive-indices")
-            .write_external("particles.gpu.counters"),
+            .read_external_buffer("particles.gpu.particles-b")
+            .write_external_buffer("particles.gpu.alive-indices")
+            .write_external_buffer("particles.gpu.counters"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "particle-gpu-build-indirect-args",
@@ -43,18 +43,18 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("particle.gpu.indirect-args")
             .with_side_effects()
-            .read_external("particles.gpu.counters")
-            .write_external("particles.gpu.indirect-draw-args")
-            .write_external("particles.gpu.debug-readback"),
+            .read_external_buffer("particles.gpu.counters")
+            .write_external_buffer("particles.gpu.indirect-draw-args")
+            .write_external_buffer("particles.gpu.debug-readback"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "particle-render",
                 QueueLane::Graphics,
             )
             .with_executor_id("particle.transparent")
-            .read_external("particles.gpu.particles-b")
-            .read_external("particles.gpu.alive-indices")
-            .read_external("particles.gpu.indirect-draw-args")
+            .read_external_buffer("particles.gpu.particles-b")
+            .read_external_buffer("particles.gpu.alive-indices")
+            .read_external_buffer("particles.gpu.indirect-draw-args")
             .read_texture("scene-depth")
             .read_texture("scene-color")
             .write_texture("scene-color"),

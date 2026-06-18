@@ -1,9 +1,9 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_collects_module_contributions() {

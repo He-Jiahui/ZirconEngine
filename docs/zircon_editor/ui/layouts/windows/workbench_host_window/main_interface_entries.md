@@ -47,7 +47,7 @@ related_code:
   - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
@@ -87,7 +87,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/workbench_activity_rail.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/editor_main_frame.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.v2.ui.toml
+  - zircon_editor/assets/ui/editor/windows/workbench_window.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml
@@ -154,7 +154,7 @@ This document records the current accepted entry map for the M3 host cutover wor
 | Document, side, bottom, floating headers | `workbench_dock_header.v2.ui.toml` through dock-header projection functions | Author common tab/header shape, close buttons, subtitle frames and icon metadata | Project document/side/bottom/floating tab data without a per-pane hit table |
 | Status bar | `workbench_status_bar.v2.ui.toml` through `status_bar_nodes(...)` | Author status labels and viewport label frames | Inject status text only |
 | Activity rail | `workbench_activity_rail.v2.ui.toml` through `activity_rail_nodes(...)` | Author activity buttons and icon stencils | Copy active tab state and icon keys |
-| Main shell and drawers | `host/workbench_shell.v2.ui.toml` and `host/workbench_drawer_source.v2.ui.toml` | Author stable workbench regions, drawer roots, document host root and dock routes | Fill `HostWindowSurfaceData` from `ShellPresentation::from_state(...)` |
+| Main shell and drawers | `host/workbench_shell.v2.ui.toml` plus `windows/workbench_window.v2.ui.toml` and the Workbench shell components | Author stable workbench regions, real drawer shell/header/content roots, document host root and dock routes | Fill `HostWindowSurfaceData` from `ShellPresentation::from_state(...)` and keep drawer frame constraints inside the Workbench window bridge |
 | Floating panel source | `host/floating_window_source.v2.ui.toml` plus `collect_floating_windows(...)` | Author floating panel source structure | Place native floating windows and keep current activation state |
 | Scene toolbar | `host/scene_viewport_toolbar.v2.ui.toml` through pane presentation | Author the toolbar as a template-backed pane body/control band | Bind current scene settings and dispatch toolbar actions |
 
@@ -188,7 +188,7 @@ M4 menu overflow keeps this same pointer boundary. `menu_pointer/popup_layout.rs
 ## Edge Cases and Constraints
 
 - Root workbench chrome v2 assets under `assets/ui/editor/` are the canonical chrome projection inputs. The old root `.ui.toml` files and any host-folder duplicates are migration artifacts only; `chrome_template_projection.rs` must keep pointing at the v2 root chrome assets.
-- Host `.ui.toml` assets under `assets/ui/editor/host/` are allowed for native window shell, drawer source, floating source, toolbar, and pane body projection. They are retained template assets, not generated UI business source files.
+- Host `.ui.toml` assets under `assets/ui/editor/host/` are allowed for native window shell, floating source, toolbar, and pane body projection. Drawer frame owners now live in the real Workbench window/component assets; deleted host drawer-source assets and embedded frame-only drawer projection must not return as generated UI business source files.
 - The host must not introduce menu, drawer, floating-window, document-pane, or toolbar hit tables. Hit frames should come from template node frames or shared surface hit data.
 - Fallback chrome nodes must preserve clickable frames and icon metadata. They are guardrails for a failed template load, not a parallel design system.
 

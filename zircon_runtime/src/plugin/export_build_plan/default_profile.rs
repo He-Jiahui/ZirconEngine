@@ -1,7 +1,5 @@
-use crate::{
-    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::RuntimeProfileId,
-    RuntimeTargetMode,
-};
+use crate::builtin::RuntimeTargetMode;
+use crate::{plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::RuntimeProfileId};
 
 pub(super) fn default_profile(profile_name: &str) -> Option<ExportProfile> {
     match profile_name {

@@ -1,4 +1,4 @@
-use crate::runtime::ViewportFrameHistory;
+use crate::graphics::runtime::ViewportFrameHistory;
 
 use super::viewport_record::ViewportRecord;
 

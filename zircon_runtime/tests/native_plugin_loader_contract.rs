@@ -3,11 +3,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::{
-    plugin::NativePluginBehaviorHealth, plugin::NativePluginLoader, plugin::PluginModuleKind,
-    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_OK, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+use zircon_runtime::plugin::native::{
+    NativePluginBehaviorHealth, NativePluginLiveHost, NativePluginLoader,
+    ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
+use zircon_runtime::plugin::PluginModuleKind;
 
 #[test]
 fn native_loader_rejects_load_manifest_entries_outside_export_root() {
@@ -41,6 +42,61 @@ manifest = "../{outside_name}/plugin.toml"
 
     let _ = fs::remove_dir_all(root);
     let _ = fs::remove_dir_all(outside_root);
+}
+
+#[test]
+fn native_runtime_hot_update_loads_real_fixture_from_export_manifest() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-export-target");
+    let export_root = temp_export_root("native-dynamic-fixture-export-root");
+
+    materialize_native_dynamic_fixture_export_root(&fixture_target, &export_root);
+
+    let host = NativePluginLiveHost::default();
+    let report = host
+        .hot_reload_runtime_plugins_from_export_root(&export_root)
+        .expect("manifest-driven hot update should load the real runtime fixture");
+
+    assert_eq!(
+        report.manifest_plugin_ids,
+        vec!["native_dynamic_fixture".to_string()]
+    );
+    assert_eq!(
+        report.runtime_plugin_ids,
+        vec!["native_dynamic_fixture".to_string()]
+    );
+    assert_eq!(
+        report.loaded_plugin_ids,
+        vec!["native_dynamic_fixture".to_string()]
+    );
+    assert!(report.skipped_plugin_ids.is_empty());
+    assert_eq!(report.outcomes.len(), 1);
+    assert_eq!(report.outcomes[0].plugin_id, "native_dynamic_fixture");
+    assert_eq!(report.outcomes[0].module_kind, PluginModuleKind::Runtime);
+    assert!(report.diagnostics.iter().any(|message| {
+        message.contains("native plugin native_dynamic_fixture: runtime v3 entry reached")
+    }));
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .all(|message| !message.contains("editor entry reached")),
+        "runtime hot update must not call the editor entry: {:?}",
+        report.diagnostics
+    );
+
+    assert_eq!(
+        host.loaded_plugin_ids(PluginModuleKind::Runtime).unwrap(),
+        vec!["native_dynamic_fixture".to_string()]
+    );
+    let echo_report = host
+        .invoke_runtime_plugin_command("native_dynamic_fixture", "echo", b"manifest")
+        .unwrap();
+    assert_eq!(echo_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(echo_report.payload.as_deref(), Some(&b"echo:manifest"[..]));
+
+    drop(host);
+    let _ = fs::remove_dir_all(fixture_target);
+    let _ = fs::remove_dir_all(export_root);
 }
 
 #[test]
@@ -197,7 +253,7 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
     assert_eq!(state_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
     assert_eq!(
         state_report.payload.as_deref(),
-        Some(&b"state:v2:native_dynamic_fixture"[..])
+        Some(&b"state:v3:native_dynamic_fixture"[..])
     );
     let restore_report = plugin.restore_runtime_state(state_report.payload.as_ref().unwrap());
     assert_eq!(restore_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
@@ -285,15 +341,15 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
 }
 
 #[test]
-fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
-    let fixture_target = temp_export_root("native-dynamic-fixture-v2-target");
-    let package_root = temp_export_root("native-dynamic-fixture-v2-package");
+fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-unknown-abi-target");
+    let package_root = temp_export_root("native-dynamic-fixture-unknown-abi-package");
     let plugin_root = package_root.join("native_dynamic_fixture");
     let native_root = plugin_root.join("native");
     fs::create_dir_all(&native_root).unwrap();
 
     let library_path =
-        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
+        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_unknown_version"]);
     fs::copy(
         &library_path,
         native_root.join(platform_library_file_name(
@@ -309,30 +365,25 @@ fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
 
     let report = NativePluginLoader.load_discovered_runtime(&package_root);
 
-    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    assert!(report.diagnostics.iter().any(|message| message
+        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("unsupported native plugin ABI version 99; expected 3")));
     assert_eq!(report.loaded.len(), 1);
     let plugin = &report.loaded[0];
-    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 2);
-    assert_eq!(
-        plugin
-            .descriptor
-            .as_ref()
-            .unwrap()
-            .runtime_entry_name
-            .as_deref(),
-        Some("zircon_native_dynamic_fixture_runtime_entry_v2")
-    );
-    assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
-    assert_eq!(
-        plugin.runtime_behavior_health(),
-        Some(NativePluginBehaviorHealth::Clean)
-    );
-    assert_eq!(plugin.runtime_state_schema_version(), Some(0));
+    assert!(plugin.descriptor.is_none());
+    assert!(plugin.runtime_entry_report.is_none());
+    assert!(plugin.runtime_behavior_is_stateless().is_none());
+    assert!(plugin.runtime_behavior_health().is_none());
+    assert!(plugin.runtime_state_schema_version().is_none());
     assert!(plugin.runtime_command_manifest_schema().is_none());
-    assert!(report
-        .diagnostics_for_runtime_plugin("native_dynamic_fixture")
-        .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+    let runtime_diagnostics = report.diagnostics_for_runtime_plugin("native_dynamic_fixture");
+    assert!(runtime_diagnostics.iter().any(|message| message
+        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
+    assert!(runtime_diagnostics.iter().any(|message| message
+        .contains("native plugin native_dynamic_fixture has no ABI descriptor attached")));
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);
@@ -369,6 +420,40 @@ fn build_native_dynamic_fixture_with_features(
     target_root.join("debug").join(platform_library_file_name(
         "zircon_plugin_native_dynamic_fixture_native",
     ))
+}
+
+fn materialize_native_dynamic_fixture_export_root(
+    fixture_target: &std::path::Path,
+    export_root: &std::path::Path,
+) {
+    let plugin_root = export_root.join("plugins").join("native_dynamic_fixture");
+    let native_root = plugin_root.join("native");
+    fs::create_dir_all(&native_root).unwrap();
+
+    let library_path = build_native_dynamic_fixture(fixture_target);
+    fs::copy(
+        &library_path,
+        native_root.join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        )),
+    )
+    .unwrap();
+    fs::copy(
+        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
+        plugin_root.join("plugin.toml"),
+    )
+    .unwrap();
+    fs::write(
+        export_root.join("plugins").join("native_plugins.toml"),
+        r#"
+[[plugins]]
+id = "native_dynamic_fixture"
+path = "plugins/native_dynamic_fixture"
+manifest = "plugins/native_dynamic_fixture/plugin.toml"
+"#
+        .trim_start(),
+    )
+    .unwrap();
 }
 
 fn runtime_plugin_manifest() -> &'static str {

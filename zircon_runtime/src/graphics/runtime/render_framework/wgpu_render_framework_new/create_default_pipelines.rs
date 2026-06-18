@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::core::framework::render::RenderPipelineHandle;
 
 use crate::graphics::RenderFeatureDescriptor;
-use crate::RenderPipelineAsset;
+use crate::graphics::RenderPipelineAsset;
 
 pub(super) fn create_default_pipelines(
     render_features: &[RenderFeatureDescriptor],

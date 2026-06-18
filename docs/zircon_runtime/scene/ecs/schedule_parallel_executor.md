@@ -30,7 +30,7 @@ tests:
   - schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts
   - schedule_parallel_batches_chain_through_job_handles
   - schedule_parallel_executor_does_not_call_rayon_directly
-  - rayon_is_only_reachable_through_core_task_primitives_or_tracked_render_exception
+- rayon_is_only_reachable_through_core_task_primitives
   - cargo test -p zircon_runtime --lib ecs_schedule --locked --target-dir E:/cargo-targets/zircon-runtime-03-0612 -- --nocapture --test-threads=1 failed before executing schedule tests on unrelated unresolved import `crate::asset::ui_v2_asset_references` in zircon_runtime/src/ui/tests/asset_dependency_index.rs
 doc_type: module-detail
 ---
@@ -86,7 +86,7 @@ This preserves deterministic task lookup and task-failure reporting:
 
 ## Validation Status
 
-Source-level validation pins the compatibility wrapper, report fields, disabled serial path, diagnostic constants, JobHandle batch chain, and the no-direct-Rayon executor boundary in `ecs_schedule_parallel_executor_structure.rs`. `runtime_absorption::rayon_boundary` also scans production runtime sources so direct Rayon usage stays limited to `core/runtime/tasks/{pool,parallel_for}.rs`, plus the tracked render-owned `graphics/visibility/culling/parallel_frustum.rs` exception pending Runtime 11 M2.1.
+Source-level validation pins the compatibility wrapper, report fields, disabled serial path, diagnostic constants, JobHandle batch chain, and the no-direct-Rayon executor boundary in `ecs_schedule_parallel_executor_structure.rs`. `runtime_absorption::rayon_boundary` also scans production runtime sources so direct Rayon usage stays limited to `core/runtime/tasks/{pool,parallel_for}.rs`; the previous render-owned `graphics/visibility/culling/parallel_frustum.rs` exception was cut over in Runtime 11 M2.1.
 
 Behavior coverage in `ecs_schedule/parallel_executor.rs` covers:
 

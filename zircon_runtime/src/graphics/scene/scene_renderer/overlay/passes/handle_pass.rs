@@ -1,4 +1,5 @@
-use crate::graphics::scene::scene_renderer::overlay::begin_line_pass;
+use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
+use crate::graphics::types::ViewportRenderRegion;
 
 pub(crate) struct HandlePass;
 
@@ -11,11 +12,20 @@ impl HandlePass {
         scene_bind_group: &wgpu::BindGroup,
         line_pipeline: &wgpu::RenderPipeline,
         buffer: Option<&(wgpu::Buffer, u32)>,
+        render_region: ViewportRenderRegion,
     ) {
         let Some((buffer, count)) = buffer else {
             return;
         };
-        let mut pass = begin_line_pass(encoder, "HandlePass", color_view, depth_view);
+        let Some(mut pass) = begin_line_pass_for_region(
+            encoder,
+            "HandlePass",
+            color_view,
+            depth_view,
+            render_region,
+        ) else {
+            return;
+        };
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_pipeline(line_pipeline);
         pass.set_vertex_buffer(0, buffer.slice(..));

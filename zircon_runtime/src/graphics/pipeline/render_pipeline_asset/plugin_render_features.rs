@@ -1,5 +1,6 @@
 use crate::graphics::feature::RenderFeatureDescriptor;
 use crate::graphics::pipeline::declarations::{RenderPipelineAsset, RendererFeatureAsset};
+use crate::graphics::scene::anti_alias::smaa::{SMAA_EXECUTOR_ID, SMAA_PASS_NAME};
 
 impl RenderPipelineAsset {
     pub fn with_plugin_render_features(
@@ -14,6 +15,7 @@ impl RenderPipelineAsset {
         &mut self,
         descriptors: impl IntoIterator<Item = RenderFeatureDescriptor>,
     ) {
+        let mut changed = false;
         for descriptor in descriptors {
             self.remove_features_replaced_by_plugin_descriptor(&descriptor);
             let feature = RendererFeatureAsset::plugin(descriptor);
@@ -22,6 +24,10 @@ impl RenderPipelineAsset {
             } else {
                 self.renderer.features.push(feature);
             }
+            changed = true;
+        }
+        if changed {
+            self.bump_revision();
         }
     }
 
@@ -90,10 +96,22 @@ fn feature_is_replaced_by_plugin_descriptor(
     feature: &RendererFeatureAsset,
     descriptor: &RenderFeatureDescriptor,
 ) -> bool {
+    if feature.is_builtin(crate::graphics::BuiltinRenderFeature::AntiAlias)
+        && descriptor_declares_smaa_terminal_slot(descriptor)
+    {
+        return false;
+    }
+
     feature.feature_name() == descriptor.name
         || (feature.builtin_feature().is_some()
             && descriptor
                 .capability_requirements
                 .iter()
                 .any(|requirement| feature.requires_capability(*requirement)))
+}
+
+fn descriptor_declares_smaa_terminal_slot(descriptor: &RenderFeatureDescriptor) -> bool {
+    descriptor.stage_passes.iter().any(|pass| {
+        pass.pass_name == SMAA_PASS_NAME || pass.executor_id.as_str() == SMAA_EXECUTOR_ID
+    })
 }

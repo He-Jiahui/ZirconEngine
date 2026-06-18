@@ -6,10 +6,11 @@ use super::error::RenderGraphError;
 use super::graph::{CompiledRenderGraph, CompiledRenderPass};
 use super::types::{
     ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
-    RenderGraphAttachmentStoreOp, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
-    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
-    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
-    RgBufferHandle, RgTextureHandle,
+    RenderGraphAttachmentStoreOp, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderGraphResourceUsageFlags, RenderPassId, RgBufferHandle,
+    RgTextureHandle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,6 +44,8 @@ struct ResourceNode {
     resource: RenderGraphResource,
     name: String,
     desc: RenderGraphResourceDesc,
+    external_binding: RenderGraphExternalResourceBinding,
+    usage: RenderGraphResourceUsageFlags,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +151,8 @@ impl RenderGraphBuilder {
             resource: RenderGraphResource::TransientTexture(handle),
             name,
             desc: RenderGraphResourceDesc::Texture(desc),
+            external_binding: RenderGraphExternalResourceBinding::report_only(),
+            usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
     }
@@ -164,11 +169,46 @@ impl RenderGraphBuilder {
             resource: RenderGraphResource::TransientBuffer(handle),
             name,
             desc: RenderGraphResourceDesc::Buffer(desc),
+            external_binding: RenderGraphExternalResourceBinding::report_only(),
+            usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
     }
 
     pub fn import_external_resource(&mut self, name: impl Into<String>) -> ExternalResource {
+        self.import_external_resource_with_usage(name, RenderGraphResourceUsageFlags::present())
+    }
+
+    pub fn import_external_resource_with_binding(
+        &mut self,
+        name: impl Into<String>,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
+        self.import_external_resource_with_usage_and_binding(
+            name,
+            RenderGraphResourceUsageFlags::present(),
+            external_binding,
+        )
+    }
+
+    pub fn import_external_resource_with_usage(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+    ) -> ExternalResource {
+        self.import_external_resource_with_usage_and_binding(
+            name,
+            usage,
+            RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn import_external_resource_with_usage_and_binding(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        external_binding: RenderGraphExternalResourceBinding,
+    ) -> ExternalResource {
         let id = self.next_external_resource;
         self.next_external_resource += 1;
         let handle = ExternalResource::from_index(id);
@@ -176,8 +216,22 @@ impl RenderGraphBuilder {
             resource: RenderGraphResource::External(handle),
             name: name.into(),
             desc: RenderGraphResourceDesc::External,
+            external_binding,
+            usage,
         });
         handle
+    }
+
+    pub fn mark_persistent(&mut self, texture: RgTextureHandle) -> Result<(), RenderGraphError> {
+        self.mark_resource_usage(RenderGraphResource::TransientTexture(texture), |usage| {
+            usage.persistent = true;
+        })
+    }
+
+    pub fn mark_readback(&mut self, resource: RenderGraphResource) -> Result<(), RenderGraphError> {
+        self.mark_resource_usage(resource, |usage| {
+            usage.readback = true;
+        })
     }
 
     pub fn read_texture(
@@ -323,7 +377,7 @@ impl RenderGraphBuilder {
             self.infer_resource_dependencies(&resource_names, &manual_order)?;
         let ordered = self.topological_order(&inferred_dependencies)?;
         self.validate_reads_have_ordered_producers(&ordered, &resource_names)?;
-        let culled = self.cull_passes(&ordered);
+        let culled = self.cull_passes(&ordered)?;
         let compiled_passes = ordered
             .iter()
             .map(|id| {
@@ -399,6 +453,25 @@ impl RenderGraphBuilder {
         })
     }
 
+    fn mark_resource_usage(
+        &mut self,
+        resource: RenderGraphResource,
+        update: impl FnOnce(&mut RenderGraphResourceUsageFlags),
+    ) -> Result<(), RenderGraphError> {
+        let Some(node) = self
+            .resources
+            .iter_mut()
+            .find(|node| node.resource == resource)
+        else {
+            return Err(RenderGraphError::UnknownResource {
+                resource: format!("{resource:?}"),
+            });
+        };
+
+        update(&mut node.usage);
+        Ok(())
+    }
+
     fn validate_unique_resource_names(&self) -> Result<(), RenderGraphError> {
         let mut seen = HashSet::new();
         for resource in &self.resources {
@@ -426,7 +499,9 @@ impl RenderGraphBuilder {
                 name: resource.name.clone(),
                 kind: resource.resource.kind(),
                 desc: resource.desc.clone(),
+                external_binding: resource.external_binding,
                 imported: matches!(&resource.desc, RenderGraphResourceDesc::External),
+                usage: resource.usage,
             })
             .collect()
     }
@@ -644,10 +719,20 @@ impl RenderGraphBuilder {
         Ok(())
     }
 
-    fn cull_passes(&self, ordered: &[RenderPassId]) -> HashSet<RenderPassId> {
+    fn cull_passes(
+        &self,
+        ordered: &[RenderPassId],
+    ) -> Result<HashSet<RenderPassId>, RenderGraphError> {
+        let cull_root_resources = self
+            .resources
+            .iter()
+            .filter(|resource| resource.usage.is_cull_root())
+            .map(|resource| resource.resource)
+            .collect::<HashSet<_>>();
         let mut needed_resources = HashSet::<RenderGraphResource>::new();
         let mut needed_passes = HashSet::<RenderPassId>::new();
         let mut live_passes = HashSet::<RenderPassId>::new();
+        let mut found_cull_root = false;
 
         for id in ordered.iter().rev() {
             let pass = &self.passes[id.0];
@@ -660,18 +745,17 @@ impl RenderGraphBuilder {
             let writes_needed_resource = writes
                 .iter()
                 .any(|resource| needed_resources.contains(resource));
-            let writes_external = writes
+            let writes_cull_root_resource = writes
                 .iter()
-                .any(|resource| matches!(resource, RenderGraphResource::External(_)));
-            let has_no_writes = writes.is_empty();
-            let live = needed_passes.contains(id)
-                || !pass.flags.allow_culling
+                .any(|resource| cull_root_resources.contains(resource));
+            let is_explicit_pass_root = !pass.flags.allow_culling
                 || pass.flags.has_side_effects
-                || writes_external
-                || has_no_writes
-                || writes_needed_resource;
+                || writes_cull_root_resource;
+            let live =
+                needed_passes.contains(id) || is_explicit_pass_root || writes_needed_resource;
 
             if live {
+                found_cull_root |= is_explicit_pass_root;
                 live_passes.insert(*id);
                 for access in &pass.resources {
                     if access.kind == ResourceAccessKind::Read {
@@ -682,11 +766,18 @@ impl RenderGraphBuilder {
             }
         }
 
-        self.passes
+        if !self.passes.is_empty() && !found_cull_root {
+            return Err(RenderGraphError::MissingCullRoot {
+                graph_name: self.name.clone(),
+            });
+        }
+
+        Ok(self
+            .passes
             .iter()
             .map(|pass| pass.id)
             .filter(|id| !live_passes.contains(id))
-            .collect()
+            .collect())
     }
 
     fn resource_lifetimes(
@@ -704,6 +795,16 @@ impl RenderGraphBuilder {
             .resources
             .iter()
             .map(|resource| (resource.resource, resource.desc.clone()))
+            .collect::<HashMap<_, _>>();
+        let resource_usages = self
+            .resources
+            .iter()
+            .map(|resource| (resource.resource, resource.usage))
+            .collect::<HashMap<_, _>>();
+        let external_bindings = self
+            .resources
+            .iter()
+            .map(|resource| (resource.resource, resource.external_binding))
             .collect::<HashMap<_, _>>();
         let mut spans = HashMap::<RenderGraphResource, (usize, usize)>::new();
 
@@ -746,12 +847,17 @@ impl RenderGraphBuilder {
                         .get(&resource)
                         .cloned()
                         .unwrap_or(RenderGraphResourceDesc::External),
+                    external_binding: external_bindings
+                        .get(&resource)
+                        .copied()
+                        .unwrap_or_default(),
                     first_pass,
                     last_pass,
                     imported: matches!(
                         resource_descs.get(&resource),
                         Some(RenderGraphResourceDesc::External)
                     ),
+                    usage: resource_usages.get(&resource).copied().unwrap_or_default(),
                 }
             })
             .collect::<Vec<_>>();

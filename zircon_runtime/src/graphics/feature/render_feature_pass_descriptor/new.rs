@@ -1,5 +1,8 @@
 use crate::graphics::scene::RenderPassExecutorId;
-use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
+use crate::render_graph::{
+    QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,
+    RenderGraphExternalResourceBinding,
+};
 
 use crate::graphics::pipeline::RenderPassStage;
 
@@ -44,6 +47,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Read,
             None,
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -54,6 +58,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             None,
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -64,6 +69,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             None,
             RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -78,6 +84,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             Some(attachment_ops),
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -88,6 +95,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Read,
             None,
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -98,6 +106,7 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             None,
             RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
         )
     }
 
@@ -108,6 +117,29 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Read,
             None,
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn read_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only_texture(),
+        )
+    }
+
+    pub fn read_external_buffer(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only_buffer(),
         )
     }
 
@@ -118,6 +150,29 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             None,
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn write_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only_texture(),
+        )
+    }
+
+    pub fn write_external_buffer(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only_buffer(),
         )
     }
 
@@ -128,6 +183,99 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             None,
             RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn write_storage_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only_texture(),
+        )
+    }
+
+    pub fn write_storage_external_buffer(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::report_only_buffer(),
+        )
+    }
+
+    pub fn read_required_external_buffer(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::required_buffer(),
+        )
+    }
+
+    pub fn read_required_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::required_texture(),
+        )
+    }
+
+    pub fn write_required_external_buffer(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::required_buffer(),
+        )
+    }
+
+    pub fn write_required_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::required_texture(),
+        )
+    }
+
+    pub fn write_required_external_texture_with_ops(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::required_texture(),
+        )
+    }
+
+    pub fn write_required_storage_external_texture(self, name: impl Into<String>) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            None,
+            RenderFeatureResourceWriteMode::Storage,
+            RenderGraphExternalResourceBinding::required_texture(),
         )
     }
 
@@ -142,6 +290,22 @@ impl RenderFeaturePassDescriptor {
             RenderFeatureResourceAccess::Write,
             Some(attachment_ops),
             RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn write_external_texture_with_ops(
+        self,
+        name: impl Into<String>,
+        attachment_ops: RenderGraphAttachmentOps,
+    ) -> Self {
+        self.with_resource(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Write,
+            Some(attachment_ops),
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only_texture(),
         )
     }
 
@@ -152,6 +316,7 @@ impl RenderFeaturePassDescriptor {
         access: RenderFeatureResourceAccess,
         attachment_ops: Option<RenderGraphAttachmentOps>,
         write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
     ) -> Self {
         self.resources.push(RenderFeatureResourceDescriptor {
             name: name.into(),
@@ -159,6 +324,7 @@ impl RenderFeaturePassDescriptor {
             access,
             attachment_ops,
             write_mode,
+            external_binding,
         });
         self
     }

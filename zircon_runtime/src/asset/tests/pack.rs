@@ -666,6 +666,8 @@ fn duplicate_trim_input_path_is_reported() {
     );
 
     assert_eq!(report.included_assets, ["scenes/main.zscene"]);
+    assert_eq!(report.duplicate_assets, ["scenes/main.zscene"]);
+    assert!(report.has_duplicate_assets());
     assert_eq!(
         report.diagnostics,
         ["asset scenes/main.zscene is duplicated in trim input"]

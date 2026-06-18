@@ -113,6 +113,8 @@ mod tests {
         assert!(POST_PROCESS_SHADER
             .contains("clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * axis_max + vec3<f32>(0.5)"));
         assert!(POST_PROCESS_SHADER.contains("if (binding_mode == 3u)"));
+        assert!(POST_PROCESS_SHADER.contains("if (params.effect_flags.y == 4u)"));
+        assert!(POST_PROCESS_SHADER.contains("return sample_effect_lut_3d(color);"));
     }
 
     #[test]

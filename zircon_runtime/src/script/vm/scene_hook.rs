@@ -1,10 +1,11 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::script::ScriptHostValue;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
+use crate::diagnostic_log::write_log;
 use crate::plugin::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
@@ -17,6 +18,7 @@ use crate::script::{
 
 const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
 const SCRIPT_HOOK_PLUGIN_ID: &str = "zr_vm_language";
+const TRACE_SCRIPT_BINDINGS_ENV: &str = "ZIRCON_TRACE_SCRIPT_BINDINGS";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScriptSceneLifecyclePhase {
@@ -214,14 +216,54 @@ fn call_export_for_binding(
         entity,
         delta_seconds,
     };
+    trace_script_binding_export(binding, entity, export_name, "start", None);
     let result = with_script_runtime_call_context(call_context, || {
         manager.call_package_export(&binding.package, &binding.module, export_name, &arguments)
     });
+    trace_script_binding_export(binding, entity, export_name, "done", Some(result.is_ok()));
     result.map(|_| ()).map_err(|error| {
         format!(
             "script binding {}.{export_name} failed: {error}",
             binding_key(binding)
         )
+    })
+}
+
+fn trace_script_binding_export(
+    binding: &RuntimeSceneScriptBinding,
+    entity: EntityId,
+    export_name: &str,
+    phase: &str,
+    success: Option<bool>,
+) {
+    if !trace_script_bindings_enabled() {
+        return;
+    }
+    let success = success
+        .map(|success| format!(" success={success}"))
+        .unwrap_or_default();
+    write_log(
+        "zr_vm_project_backend",
+        format!(
+            "script_binding_export_{phase} package={} module={} entity={} export={export_name}{success}",
+            binding.package, binding.module, entity
+        ),
+    );
+}
+
+fn trace_script_bindings_enabled() -> bool {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var_os(TRACE_SCRIPT_BINDINGS_ENV)
+            .filter(|value| !value.is_empty())
+            .map(|value| {
+                let value = value.to_string_lossy();
+                !matches!(
+                    value.trim().to_ascii_lowercase().as_str(),
+                    "0" | "false" | "off" | "none"
+                )
+            })
+            .unwrap_or(false)
     })
 }
 

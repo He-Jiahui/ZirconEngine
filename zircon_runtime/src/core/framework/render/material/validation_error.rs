@@ -30,6 +30,10 @@ pub enum RenderMaterialValidationError {
         path: String,
         value: String,
     },
+    UnregisteredShadingModel {
+        path: String,
+        token: String,
+    },
     UnknownPropertyOverride {
         source: RenderMaterialDiagnosticSource,
         path: String,

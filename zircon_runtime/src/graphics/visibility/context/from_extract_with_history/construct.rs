@@ -3,14 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::core::framework::render::{ProjectionMode, RenderFrameExtract, ViewportCameraSnapshot};
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{is_finite_vec3, Real};
+use crate::core::TaskPool;
 
 use super::super::super::culling::parallel_frustum::{
     mesh_frustum_visibility, MeshFrustumCandidate,
 };
 use super::super::super::declarations::{
-    VisibilityBatch, VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan,
-    VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityHistorySnapshot,
-    VisibilityRelevanceEntry,
+    VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
+    VisibilityContext, VisibilityHistorySnapshot, VisibilityRelevanceEntry,
 };
 use super::super::super::planning::{
     build_bvh_update_plan::build_bvh_update_plan, build_draw_commands::build_draw_commands,
@@ -41,6 +41,20 @@ impl VisibilityContext {
         previous: Option<&VisibilityHistorySnapshot>,
         previous_static_index: Option<&VisibilityStaticIndex>,
     ) -> Self {
+        Self::from_extract_with_history_static_index_and_task_pool(
+            value,
+            previous,
+            previous_static_index,
+            None,
+        )
+    }
+
+    pub(crate) fn from_extract_with_history_static_index_and_task_pool(
+        value: &RenderFrameExtract,
+        previous: Option<&VisibilityHistorySnapshot>,
+        previous_static_index: Option<&VisibilityStaticIndex>,
+        task_pool: Option<&TaskPool>,
+    ) -> Self {
         let BatchingResult {
             renderable_entities,
             static_entities,
@@ -67,24 +81,25 @@ impl VisibilityContext {
             &bvh_instances,
             &primitive_relevance,
             &static_index,
+            task_pool,
         );
         static_index_report.main_view_prefilter_used = main_view_culling.prefilter_used;
         static_index_report.main_view_static_input_count = main_view_culling.static_input_count;
         static_index_report.main_view_static_candidate_count =
             main_view_culling.static_candidate_count;
-        let culled_entities = renderable_entities
-            .difference(&main_view_culling.visible_entities)
-            .copied()
-            .collect::<BTreeSet<_>>();
         let frame_visibility = FrameVisibility::from_frame_views(
             &value.view.camera,
+            value.view.scene_camera_entity,
+            &value.view.cameras,
             &value.lighting,
             &bvh_instances,
             &primitive_relevance,
             &main_view_culling.visible_entities,
+            task_pool,
         );
         let main_view_visible_entities = frame_visibility.main_view_visible_entity_set();
-        let visible_batches = visible_batches_for_view(&batches, &main_view_visible_entities);
+        let visible_batches =
+            Self::visible_batches_for_entities(&batches, &main_view_visible_entities);
         let (visible_instances, draw_commands) = build_draw_commands(&visible_batches);
         let (
             hybrid_gi_active_probes,
@@ -130,11 +145,8 @@ impl VisibilityContext {
             renderable_entities: renderable_entities.into_iter().collect(),
             static_entities: static_entities.into_iter().collect(),
             dynamic_entities: dynamic_entities.into_iter().collect(),
-            visible_entities: main_view_visible_entities.iter().copied().collect(),
-            culled_entities: culled_entities.into_iter().collect(),
             primitive_relevance,
             batches,
-            visible_batches,
             visible_instances,
             draw_commands,
             bvh_instances,
@@ -202,6 +214,7 @@ fn cull_main_view_with_static_index(
     bvh_instances: &[VisibilityBvhInstance],
     primitive_relevance: &[VisibilityRelevanceEntry],
     static_index: &VisibilityStaticIndex,
+    task_pool: Option<&TaskPool>,
 ) -> MainViewCullingResult {
     let relevance_by_entity = primitive_relevance
         .iter()
@@ -239,7 +252,7 @@ fn cull_main_view_with_static_index(
             })
         })
         .collect::<Vec<_>>();
-    let visible_entities = mesh_frustum_visibility(&candidates, &value.view.camera)
+    let visible_entities = mesh_frustum_visibility(&candidates, &value.view.camera, task_pool)
         .into_iter()
         .filter_map(|entry| entry.visible.then_some(entry.entity))
         .collect::<BTreeSet<_>>();
@@ -294,32 +307,12 @@ fn conservative_camera_query_bounds(camera: &ViewportCameraSnapshot) -> Option<V
     })
 }
 
-fn visible_batches_for_view(
-    batches: &[VisibilityBatch],
-    visible_entities: &BTreeSet<EntityId>,
-) -> Vec<VisibilityBatch> {
-    batches
-        .iter()
-        .filter_map(|batch| {
-            let entities = batch
-                .entities
-                .iter()
-                .copied()
-                .filter(|entity| visible_entities.contains(entity))
-                .collect::<Vec<_>>();
-            (!entities.is_empty()).then_some(VisibilityBatch {
-                key: batch.key,
-                entities,
-            })
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        CorePipelineKind, DebugOverlayExtract, GeometryExtract, GeometryPhaseInput,
-        LightShadowSettings, LightingExtract, ParticleExtract, PostProcessExtract,
+        sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
+        GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
+        PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
         RenderDirectionalLightSnapshot, RenderFrameExtract, RenderMaterialAlphaMode,
         RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
         RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
@@ -327,7 +320,9 @@ mod tests {
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Real, Transform, Vec3, Vec4};
-    use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+    use crate::core::resource::{
+        MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+    };
     use crate::graphics::visibility::{VisibilityContext, VisibilityViewKey};
 
     #[test]
@@ -365,11 +360,11 @@ mod tests {
 
         let context = VisibilityContext::from_extract(&frame);
 
-        assert_eq!(context.visible_entities, vec![1]);
-        assert_eq!(context.culled_entities, vec![2]);
+        assert_eq!(context.main_view_visible_entities(), vec![1]);
+        assert_eq!(context.main_view_culled_entities(), vec![2]);
         assert_eq!(
             context
-                .visible_batches
+                .main_view_visible_batches()
                 .iter()
                 .flat_map(|batch| batch.entities.iter().copied())
                 .collect::<Vec<_>>(),
@@ -466,7 +461,7 @@ mod tests {
 
         let context = VisibilityContext::from_extract(&frame);
 
-        assert_eq!(context.visible_entities, vec![1]);
+        assert_eq!(context.main_view_visible_entities(), vec![1]);
         let shadow_view = context
             .frame_visibility
             .view(&VisibilityViewKey::ShadowCascade {
@@ -592,6 +587,78 @@ mod tests {
     }
 
     #[test]
+    fn visibility_context_builds_custom_target_view_from_camera_descriptors() {
+        let main_camera = camera_descriptor_with_layers(20, 0, RenderCameraTarget::PrimarySurface);
+        let mut custom_camera = camera_descriptor_with_layers(
+            10,
+            1,
+            RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(
+                ResourceId::from_stable_label("res://textures/custom-target-camera.png"),
+            )),
+        );
+        custom_camera.camera.transform.translation = Vec3::new(0.0, 0.0, 0.0);
+
+        let scene_camera_order_report = sort_render_cameras([
+            RenderCameraOrderInput::from_descriptor(10, custom_camera.clone()),
+            RenderCameraOrderInput::from_descriptor(20, main_camera.clone()),
+        ]);
+        let frame = RenderFrameExtract {
+            world: RenderWorldSnapshotHandle::new(1),
+            view: RenderViewExtract::from_camera(main_camera.camera.clone())
+                .with_cameras(vec![custom_camera.clone(), main_camera.clone()])
+                .with_scene_camera_order_report(20, scene_camera_order_report),
+            geometry: GeometryExtract::from_meshes_and_phase_inputs(
+                CorePipelineKind::Core3d,
+                vec![
+                    mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1),
+                    mesh_at(2, Vec3::new(0.0, 0.0, -5.0), 1 << 1),
+                ],
+                vec![
+                    GeometryPhaseInput::new(1, 0, RenderMaterialAlphaMode::Opaque, -5.0),
+                    GeometryPhaseInput::new(2, 1, RenderMaterialAlphaMode::Opaque, -5.0),
+                ],
+            ),
+            animation_poses: Vec::new(),
+            lighting: LightingExtract::default(),
+            post_process: PostProcessExtract::default(),
+            debug: DebugOverlayExtract {
+                overlays: RenderOverlayExtract::default(),
+            },
+            sprites: SpriteExtract::default(),
+            particles: ParticleExtract::default(),
+            visibility: Default::default(),
+        };
+
+        let context = VisibilityContext::from_extract(&frame);
+
+        assert_eq!(context.main_view_visible_entities(), vec![1]);
+        let custom_view = context
+            .frame_visibility
+            .view(&VisibilityViewKey::CustomTarget { camera: 10 })
+            .expect("texture target scene camera should produce a custom visibility view");
+        assert_eq!(custom_view.visible, vec![1]);
+        assert_eq!(custom_view.stats.input_count, 2);
+        assert_eq!(custom_view.stats.layer_filtered_count, 1);
+        assert_eq!(custom_view.stats.frustum_culled_count, 0);
+        assert_eq!(custom_view.stats.visible_count, 1);
+    }
+
+    fn camera_descriptor_with_layers(
+        entity: crate::core::framework::scene::EntityId,
+        layer: crate::core::framework::render::RenderLayer,
+        target: RenderCameraTarget,
+    ) -> CameraRenderDescriptor {
+        let mut camera = CameraRenderDescriptor::from_camera_payload(
+            Some(entity),
+            ViewportCameraSnapshot::default(),
+        );
+        camera.target = target;
+        camera.culling_mask = crate::core::framework::render::RenderLayerSet::layer(layer);
+        camera.volume_mask = camera.culling_mask.clone();
+        camera
+    }
+
+    #[test]
     fn visibility_context_reuses_static_index_without_frame_rebuild() {
         let frame = frame_from_meshes(vec![
             mesh_at(1, Vec3::new(0.0, 0.0, -5.0), 1),
@@ -660,7 +727,7 @@ mod tests {
             context.static_index_report.main_view_static_candidate_count
                 < context.static_index_report.main_view_static_input_count
         );
-        assert_eq!(context.visible_entities, vec![1]);
+        assert_eq!(context.main_view_visible_entities(), vec![1]);
     }
 
     fn frame_from_meshes(meshes: Vec<RenderMeshSnapshot>) -> RenderFrameExtract {

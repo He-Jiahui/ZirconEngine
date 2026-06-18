@@ -6,6 +6,7 @@ mod editor_state_snapshot_build;
 mod inspector_snapshot;
 mod project_overview_snapshot;
 mod scene_entry;
+mod status_task_progress_snapshot;
 
 pub use bridge_diagnostics_snapshot::{
     EditorBridgeDiagnosticsSnapshot, EditorBridgeDiagnosticsSummarySnapshot,
@@ -18,3 +19,4 @@ pub use inspector_snapshot::{
 };
 pub use project_overview_snapshot::ProjectOverviewSnapshot;
 pub use scene_entry::SceneEntry;
+pub use status_task_progress_snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};

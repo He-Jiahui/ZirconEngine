@@ -11,6 +11,10 @@ related_code:
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_plugins/editor_build_export_desktop/templates/desktop_export_profile.toml
   - zircon_plugins/Cargo.toml
+  - tools/zircon_export/cli.py
+  - tools/zircon_export/pipeline_stages.py
+  - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_plugin.rs
@@ -64,6 +68,10 @@ implementation_files:
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_plugins/editor_build_export_desktop/templates/desktop_export_profile.toml
   - zircon_plugins/Cargo.toml
+  - tools/zircon_export/cli.py
+  - tools/zircon_export/pipeline_stages.py
+  - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_plugin.rs
@@ -111,13 +119,22 @@ plan_sources:
   - docs/plans/zircon_plugins/10-editor-integration.md
 tests:
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - tools/zircon_export/tests/test_pipeline_resume_flow.py
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests.rs
   - export_wizard_descriptor_covers_build_layout_stages_and_reports
+  - report view summary_entry_keys covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
+  - report view template_control_ids covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
+  - report view template_document covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
+  - NativeDynamic shared stage/required_stage covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
   - export_wizard_progress_parses_cli_stream_into_stage_snapshots
   - export_wizard_progress_marks_fatal_stage_reports
   - export_pipeline_stage_parser_accepts_cli_and_report_stage_names
+  - NativeDynamic stage parser covered by export_pipeline_stage_parser_accepts_cli_and_report_stage_names
+  - test_cli_stage_choices_match_shared_pipeline_order
+  - export_wizard_pipeline_plan_selects_stages_from_packaging_strategies
   - export_wizard_pipeline_plan_builds_stage_commands_in_cli_order
   - export_wizard_pipeline_plan_threads_stage_artifact_inputs
+  - NativeDynamic command/loader-manifest plan covered by export_wizard_pipeline_plan_builds_stage_commands_in_cli_order and export_wizard_pipeline_plan_threads_stage_artifact_inputs
   - export_wizard_pipeline_plan_reports_missing_execution_inputs
   - export_wizard_pipeline_banners_drive_progress_parser
   - export_wizard_stage_execution_feeds_stdout_into_progress
@@ -145,24 +162,32 @@ tests:
   - export_wizard_panel_session_cancel_disables_cancel_before_terminal_poll
   - export_wizard_panel_template_state_projects_stage_stdout_and_stderr
   - export_wizard_panel_template_state_projects_pipeline_report_body_entry
+  - report.export_plan.* ReportBody entries covered by export_wizard_panel_template_state_projects_pipeline_report_body_entry
+  - report.native_plugins_payload.* ReportBody entries covered by export_wizard_panel_template_state_projects_pipeline_report_body_entry
   - export_wizard_job_runner_streams_stage_output_before_stage_finished
   - export_wizard_job_runner_cancels_during_active_stage_without_failing
   - export_wizard_compile_host_path_feeds_platform_bundle_host_input
+  - NativeDynamic validate-report handoff covered by export_wizard_compile_host_path_feeds_platform_bundle_host_input
   - export_wizard_compile_host_path_respects_target_dir_override_and_build_mode
   - export_wizard_pipeline_commands_use_repo_root_as_working_dir
   - export_wizard_pipeline_commands_leave_working_dir_unset_without_repo_root
   - export_wizard_report_command_consumes_source_template_report
+  - NativeDynamic report handoff covered by export_wizard_report_command_consumes_source_template_report
+  - export_wizard_report_command_skips_unplanned_strategy_reports
   - export_wizard_panel_template_state_projects_template_slots
   - export_wizard_panel_template_state_reports_missing_inputs
   - export_wizard_panel_retained_projection_applies_controls_and_slot_entries
   - export_wizard_panel_retained_projection_disables_start_for_missing_inputs
+  - export_wizard_panel_retained_projection_preserves_report_body_native_payload_entry
   - build_export_wizard_panel_nodes_project_retained_export_wizard_panel
   - build_export_actions_parse_execute_profile
   - build_export_wizard_surface_action_maps_panel_buttons_to_session_actions
   - desktop_export_wizard_sessions_project_view_model_after_generate_plan
   - desktop_export_wizard_sessions_start_refreshes_existing_plan_options
+  - desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan
   - export_wizard_default_host_executable_points_to_compile_host_output
   - export_wizard_engine_repo_root_contains_python_module_entrypoint
+  - build_export_wizard_panel_nodes_respect_target_strategy_list
   - cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never (2026-06-15 app-owned wizard session validation recovery: passed with existing warnings)
   - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never (2026-06-15 app-owned wizard session validation recovery: passed with existing warnings)
   - cargo test -p zircon_editor --lib build_export_wizard_session --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never (2026-06-15 app-owned wizard session focused tests: timed out after 904 seconds without target output; matching cargo/rustc leftovers stopped)
@@ -228,12 +253,19 @@ document is a TOML template under the plugin `templates/` directory.
 
 `export_wizard.rs` is the M6 data contract for the plugin panel itself. It references
 `docs/ui-and-layout/ai-workbench-style/ai-build-export-layout.png`, declares the
-Profiles/Pipeline/Report regions, lists the full `Validate -> CompileHost ->
-SourceTemplate -> CookAssets -> Pack -> PlatformBundle -> Report` stage flow,
-standardizes every stage report path as `report.json`, exposes
+Profiles/Pipeline/Report regions, lists the full `Validate -> SourceTemplate ->
+NativeDynamic -> CompileHost -> CookAssets -> Pack -> PlatformBundle -> Report`
+stage flow, standardizes every stage report path as `report.json`, exposes
 Pending/Running/Passed/Fatal progress states, and maps SourceTemplate,
 LibraryEmbed, and NativeDynamic report views to the registered `.v2.ui.toml`
-templates. The plugin crate re-exports the host-owned wizard contract so external
+templates. Each report view also declares the stable ReportBody summary entries
+it expects: SourceTemplate and LibraryEmbed consume `report.pipeline_report` plus
+`report.export_plan.*`, while NativeDynamic additionally consumes
+`report.native_plugins_payload.*` bundle/count/hash/package-id rows. The report
+view descriptors also carry the registered template document URI and list the
+template control ids that must exist in that `.v2.ui.toml` document, including
+root, summary, primary field, list/space, and diagnostics anchors for all three
+report types. The plugin crate re-exports the host-owned wizard contract so external
 consumers can continue to use the plugin package as the editor extension entry
 point without creating a reverse dependency from `zircon_editor` into the plugin
 crate.
@@ -245,8 +277,8 @@ without owning process execution. A `zircon_export stage=<Stage>
 profile=<Profile>` banner marks the stage as Running, recognized `key=value`
 lines record report/artifact paths, and top-level JSON `"fatal": false/true`
 report fields move the stage to Passed or Fatal. The parser accepts both CLI
-spellings such as `source_template` and report spellings such as `SourceTemplate`
-for the shared seven-stage pipeline.
+spellings such as `source_template`/`native_dynamic` and report spellings such
+as `SourceTemplate`/`NativeDynamic` for the shared eight-stage pipeline.
 
 The wizard subtree keeps the editor-facing command contract folder-backed:
 `options.rs` describes user/host inputs, `stage.rs` owns CLI and report stage
@@ -282,6 +314,24 @@ inputs, diagnostics, and terminal snapshot state for the future `.zui` binding.
 The plugin crate's template constants are the single source for the registered
 resource URIs, so registration tests can map every UI/template descriptor back to
 an on-disk asset before retained UI rendering is wired.
+The same plan path is now strategy-aware. `ExportWizardPipelineOptions` can carry
+the validated `ExportProfile.strategies`, and `export_pipeline_stages_for_strategies(...)`
+builds the exact SourceTemplate, LibraryEmbed, and NativeDynamic stage closure
+used by the editor command plan, progress snapshots, job snapshots, and
+execution results. SourceTemplate-only profiles plan only Validate,
+SourceTemplate, and Report; LibraryEmbed profiles plan Validate, CompileHost,
+CookAssets, Pack, PlatformBundle, and Report; NativeDynamic profiles include the
+NativeDynamic stage before the shared build/package stages. The Report command
+consumes only the reports for stages in that closure, so the editor no longer
+asks the final Report step for SourceTemplate or NativeDynamic reports when the
+profile did not choose those strategies.
+The Python CLI exposes the same stage universe in the same order through
+`STAGES` and `RESUMABLE_STAGES`: `validate`, `source_template`,
+`native_dynamic`, `compile_host`, `cook_assets`, `pack`, `platform_bundle`, and
+`report`. `pipeline_stages.py` still derives the strategy-specific execution
+closure from the Validate report, but the public `--stage` choices, resume
+choices, editor wizard rows, and final Report `required_stages` now share one
+visible ordering.
 `session.rs` adds the retained UI action/session boundary above the view model:
 it owns the stable Desktop Export button control IDs, binding IDs, custom
 `DesktopExportWizard` call payload, and `GeneratePlan`/`Start`/`Cancel` action
@@ -327,6 +377,32 @@ CLI output in addition to diagnostics. The report body also carries a stable
 `report.pipeline_report` entry: before execution it points at the planned
 `<out>/report.json`, and after the Report stage emits `pipeline_report=...` it
 prefers that runtime path while mapping severity from the Report stage state.
+When the Report stage stdout also includes the final pipeline report JSON,
+`panel_projection.rs` reads its top-level `export_plan` summary and adds stable
+`report.export_plan.strategies`, `report.export_plan.required_stages`,
+`report.export_plan.completed_stages`, and
+`report.export_plan.unsupported_strategies` entries. Empty unsupported strategy
+sets are rendered as `none` with success severity; non-empty sets are danger
+severity so users can see unsupported export paths from the retained report
+body without opening the raw JSON. The JSON extraction tracks object braces only
+outside strings, so braces inside diagnostics or other report text do not
+truncate the parsed report body.
+When the final Report JSON contains a top-level `native_plugins_payload`, the
+same projection adds `report.native_plugins_payload.bundle_path`,
+`report.native_plugins_payload.package_count`,
+`report.native_plugins_payload.file_count`,
+`report.native_plugins_payload.content_hash`, and
+`report.native_plugins_payload.package_ids` rows. These rows expose the
+PlatformBundle-projected NativeDynamic payload summary without making the
+editor parse nested stage evidence; absent payloads or missing fields simply do
+not add rows.
+The plugin report view descriptors publish those same stable summary keys
+through `summary_entry_keys`, so template metadata, retained host projection, and
+plugin contract tests can agree on the ReportBody rows without re-parsing the
+template documents.
+Those descriptors also publish `template_document`, letting host code and tests
+resolve the exact registered report template without keeping a separate
+template-id lookup table.
 The same template state also carries
 `ExportWizardPanelControlBindingState` entries for
 `DesktopExportGeneratePlanButton`, `DesktopExportStartButton`, and
@@ -357,7 +433,8 @@ the legacy `BuildExportAction` control id, so retained button clicks enter the
 BuildExport dispatch path. `retained_host/app/build_export_wizard_session.rs`
 now distinguishes the wizard panel controls from legacy BuildExport row
 buttons: Generate Plan and Start build profile-specific
-`ExportWizardPipelineOptions`, dispatch into `ExportWizardPanelSession`, and
+`ExportWizardPipelineOptions` including the selected `ExportProfile.strategies`,
+dispatch into `ExportWizardPanelSession`, and
 store the resulting `ExportWizardPanelViewModel` by profile. Start deliberately
 refreshes the existing profile plan with the latest options before launching the
 worker, so changing the output root or derived artifact paths after Generate
@@ -367,9 +444,13 @@ host-owned. `host_lifecycle.rs` initializes this app state,
 polls it from the retained host tick, and writes the first target's session view
 model into `BuildExportPaneViewData.wizard_view_model`. The BuildExport panel
 adapter now prefers that live view model and only falls back to the synthetic
-dry-run view model when no session exists. Legacy target-row actions continue
-to use the older queued export path. If the wizard projection cannot be built,
-the existing legacy target-row projection remains the fallback. The follow-up
+dry-run view model when no session exists. That synthetic fallback parses the
+target row strategy text as SourceTemplate, LibraryEmbed, and NativeDynamic
+labels before building a plan, so first-frame browser or library-only export
+panes use the same stage list as a live retained session. Legacy target-row
+actions continue to use the older queued export path. If the wizard projection
+cannot be built, the existing legacy target-row projection remains the fallback.
+The follow-up
 Start/Cancel control-state slice keeps this path responsive before worker events
 return: `ExportWizardPanelViewModel` tracks an explicit `active_job` flag,
 `ExportWizardPanelSession` marks a job started immediately after spawning the
@@ -393,12 +474,12 @@ so PlatformBundle no longer defaults to the old placeholder
 exists; CompileHost owns producing it, and PlatformBundle owns copying it.
 
 The Report stage handoff now matches the Python CLI aggregator. The editor
-command plan lists Validate, CompileHost, SourceTemplate, CookAssets, Pack, and
-PlatformBundle report files as consumed artifacts for the final Report command.
-`pipeline_report.py` still treats SourceTemplate as optional when the profile
-does not materialize a source project, but the editor panel can now display the
-planned SourceTemplate report path instead of omitting that stage from the final
-aggregation inputs.
+command plan lists Validate, SourceTemplate, NativeDynamic, CompileHost,
+CookAssets, Pack, and PlatformBundle report files as consumed artifacts for the
+final Report command. `pipeline_report.py` still treats optional strategy stages
+according to the validated profile, but the editor panel can now display the
+planned SourceTemplate and NativeDynamic report paths instead of omitting those
+stages from the final aggregation inputs.
 
 ## Boundary
 
@@ -430,11 +511,48 @@ component drawer document.
 
 ## Validation
 
+2026-06-18 CLI/editor shared stage order validation:
+`tools/zircon_export/cli.py` now exposes `STAGES` in the shared pipeline order:
+`validate`, `source_template`, `native_dynamic`, `compile_host`, `cook_assets`,
+`pack`, `platform_bundle`, and `report`. This matches `RESUMABLE_STAGES`, the
+editor wizard `export_pipeline_stages()` order, and the strategy-specific
+`pipeline_execution_stage_keys(...)` closure used by final Report. The new
+`test_cli_stage_choices_match_shared_pipeline_order` first failed against the
+old `compile_host`-before-SourceTemplate order, then passed after the CLI
+constant was updated. Validation passed: `python -m py_compile tools\zircon_export\cli.py tools\zircon_export\tests\test_pipeline_resume_flow.py`,
+`python -m unittest tools.zircon_export.tests.test_pipeline_resume_flow` (31
+tests), `python -m unittest tools.zircon_export.tests.test_pipeline_report_stage`
+(28 tests), and full `python -m unittest discover tools.zircon_export.tests`
+(652 tests).
+
+2026-06-18 strategy-aware stage plan validation:
+`ExportWizardPipelineOptions` now carries optional packaging strategies, and
+`export_pipeline_stages_for_strategies(...)` mirrors the CLI strategy closure
+for SourceTemplate, LibraryEmbed, NativeDynamic, and combined profiles. `plan.rs`
+uses that closure for command generation and final Report consumed artifacts,
+while `job.rs`, `run.rs`, and `execution.rs` initialize progress from the same
+planned stage list. The retained app passes `ExportProfile.strategies` into
+session options, and the synthetic BuildExport pane parses target strategy text
+before projecting first-frame stage rows. Focused coverage was added in
+`export_wizard_pipeline_plan_selects_stages_from_packaging_strategies`,
+`export_wizard_report_command_skips_unplanned_strategy_reports`,
+`desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan`, and
+`build_export_wizard_panel_nodes_respect_target_strategy_list`. Static validation
+passed: `rustfmt --edition 2021 --check`, conflict-marker scan, and
+`git diff --check` with only LF/CRLF warnings. Scoped
+`cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-strategy-stage-0618 --message-format short --color never`
+timed out after about 184 seconds without Rust diagnostics, and no matching
+cargo/rustc/rustdoc processes remained afterward, so no Cargo pass is claimed for
+this slice.
+
 The plugin crate test checks that registration produces the panel view,
 operations, report templates, menu entries, asset profile template, and component
 drawer. `export_wizard_descriptor_covers_build_layout_stages_and_reports`
-checks the M6 layout reference, stage flow, report paths, progress states, and
-NativeDynamic report mapping. The host wizard stream-model tests cover CLI banner
+checks the M6 layout reference, stage flow, report paths, progress states,
+report-view summary entry keys, report-template document registration,
+report-template control ids against the real `.v2.ui.toml` assets, and
+NativeDynamic report mapping. The host wizard
+stream-model tests cover CLI banner
 parsing, artifact/report path capture, Passed/Fatal report-state transitions, and
 `source_template`/`SourceTemplate` stage-name normalization. The host wizard
 pipeline tests cover stage command ordering, artifact handoff paths,
@@ -463,7 +581,8 @@ handoff, missing-input warnings, per-stage stdout/stderr TerminalOutput entries,
 final pipeline report ReportBody entry, and GeneratePlan/Start/Cancel control
 enablement. The retained projection tests cover building the shared panel
 surface, applying button disabled state, appending stage rows under their slot
-anchor, and projecting missing-input rows under their slot anchor. The
+anchor, projecting missing-input rows under their slot anchor, and preserving
+ReportBody native payload entry metadata on retained nodes. The
 BuildExport pane projection test covers the production adapter shape: wizard
 panel root projection, removal of legacy `BuildExportRow.*` nodes on the new
 path, Start/Cancel enablement, button binding/action metadata, and synthetic
@@ -825,6 +944,124 @@ Focused
 timed out after 604 seconds without target output; matching target-dir
 cargo/rustc leftovers were stopped, so no focused ReportBody test pass is
 claimed.
+
+2026-06-18 ReportBody export-plan summary projection validation:
+`panel_projection.rs` now reads the final Report stage JSON from stdout and
+projects `export_plan.strategies`, `required_stages`, `completed_stages`, and
+`unsupported_strategies` into the ReportBody slot as stable
+`report.export_plan.*` entries. The existing focused coverage
+`export_wizard_panel_template_state_projects_pipeline_report_body_entry` now
+checks the strategy/stage/unsupported-strategy rows and includes diagnostic text
+with `{}` so object-depth parsing ignores braces inside JSON strings.
+`rustfmt --edition 2021 --check`, conflict-marker scan, trailing-whitespace
+scan, and `git diff --check` passed for the touched files with only LF/CRLF
+warnings. Scoped
+`cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-report-plan-ui-0618 --message-format short --color never`
+timed out after about 308 seconds without Rust diagnostics; the follow-up
+process audit found no matching cargo/rustc/rustdoc leftovers for that target
+directory, so no scoped Cargo pass is claimed for this slice.
+
+2026-06-18 ReportBody NativeDynamic payload summary projection validation:
+`panel_projection.rs` now reads the final Report stage JSON top-level
+`native_plugins_payload` object from stdout and projects its bundle path,
+package count, file count, content hash, and materialized package ids into the
+ReportBody slot as stable `report.native_plugins_payload.*` entries. The
+existing focused coverage
+`export_wizard_panel_template_state_projects_pipeline_report_body_entry` now
+checks those rows alongside the pipeline report path and `export_plan` rows.
+`rustfmt --edition 2021 --check`, conflict-marker scan, and trailing-whitespace
+scan passed for the touched Rust files. `git diff --check` passed with only
+LF/CRLF warnings. Scoped
+`cargo check -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-native-payload-ui-0618 --message-format short --color never`
+timed out after about 364 seconds without Rust diagnostics; matching
+target-dir cargo/rustc/rustdoc leftovers were cleaned, so no scoped Cargo pass
+is claimed for this slice.
+
+2026-06-18 NativeDynamic shared stage contract validation:
+`ExportPipelineStage` now includes `NativeDynamic`, and the editor wizard uses
+the CLI-aligned `Validate -> SourceTemplate -> NativeDynamic -> CompileHost ->
+CookAssets -> Pack -> PlatformBundle -> Report` order. `stage.rs`,
+`progress.rs`, and `plan.rs` now recognize `native_dynamic`/`NativeDynamic`;
+NativeDynamic commands carry `--validate-report`, plan `plugins_dir` and
+`loader_manifest` artifacts, and expect the loader/native plugin stdout keys.
+The final Report command consumes the NativeDynamic stage report, and the
+desktop plugin descriptor exposes a NativeDynamic stage row while binding the
+NativeDynamic report view to `required_stage = NativeDynamic` instead of Pack.
+The focused coverage is extended in
+`export_pipeline_stage_parser_accepts_cli_and_report_stage_names`,
+`export_wizard_pipeline_plan_builds_stage_commands_in_cli_order`,
+`export_wizard_pipeline_plan_threads_stage_artifact_inputs`,
+`export_wizard_compile_host_path_feeds_platform_bundle_host_input`,
+`export_wizard_report_command_consumes_source_template_report`, and
+`export_wizard_descriptor_covers_build_layout_stages_and_reports`.
+`rustfmt --edition 2021 --check`, conflict-marker scan, trailing-whitespace
+scan, and `git diff --check` passed for the touched code/docs with only LF/CRLF
+warnings. Plugin scoped
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-native-dynamic-stage-0618 --message-format short --color never`
+stopped before compilation because `zircon_plugins/Cargo.lock` needs an update
+and `--locked` forbids writing it. Focused editor test
+`cargo test --manifest-path Cargo.toml -p zircon_editor export_pipeline_stage_parser_accepts_cli_and_report_stage_names --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-native-dynamic-stage-0618 --message-format short --color never -- --exact --nocapture`
+and runtime check
+`cargo check --manifest-path Cargo.toml -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-native-dynamic-stage-0618-runtime --message-format short --color never`
+both timed out after about 124 seconds without target output, so no Cargo pass is
+claimed for this slice.
+
+2026-06-18 report-view summary entry contract validation:
+`export_wizard.rs` now gives each `ExportWizardReportViewDescriptor` a
+`summary_entry_keys` slice. SourceTemplate and LibraryEmbed declare the shared
+pipeline report and `report.export_plan.*` rows; NativeDynamic declares those
+plus the `report.native_plugins_payload.*` rows. The plugin crate re-exports the
+constants, and `export_wizard_descriptor_covers_build_layout_stages_and_reports`
+now checks all three report views. `rustfmt --edition 2021 --check`,
+conflict-marker scan, trailing-whitespace scan, and `git diff --check` passed
+for the touched files with only LF/CRLF warnings. Plugin scoped
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-report-view-keys-0618 --message-format short --color never`
+stopped before compilation because `zircon_plugins/Cargo.lock` needs an update
+and `--locked` forbids writing it, so no scoped Cargo pass is claimed for this
+slice.
+
+2026-06-18 report-template control id contract validation:
+`export_wizard.rs` now gives each report view descriptor a
+`template_control_ids` slice. SourceTemplate, LibraryEmbed, and NativeDynamic
+declare their root, summary, primary field/list, and diagnostics controls, and
+the descriptor test loads each registered report `.v2.ui.toml` file to verify
+those ids are present in the real template nodes. `rustfmt --edition 2021
+--check`, conflict-marker scan, trailing-whitespace scan, and `git diff --check`
+passed for the touched files with only LF/CRLF warnings. Plugin scoped
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-report-template-controls-0618 --message-format short --color never`
+stopped before compilation because `zircon_plugins/Cargo.lock` needs an update
+and `--locked` forbids writing it, so no scoped Cargo pass is claimed for this
+slice.
+
+2026-06-18 report-template document descriptor validation:
+`export_wizard.rs` now gives each report view descriptor a `template_document`
+URI. SourceTemplate, LibraryEmbed, and NativeDynamic point directly at their
+registered `.v2.ui.toml` assets, and
+`export_wizard_descriptor_covers_build_layout_stages_and_reports` checks each
+template id/document pair against `EXPORT_REPORT_TEMPLATE_DOCUMENTS` before
+loading the document through `template_document` for control-id validation.
+`rustfmt --edition 2021 --check`, conflict-marker scan, trailing-whitespace
+scan, and `git diff --check` passed for the touched files with only LF/CRLF
+warnings. Plugin scoped
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-report-template-document-0618 --message-format short --color never`
+stopped before compilation because `zircon_plugins/Cargo.lock` needs an update
+and `--locked` forbids writing it, so no scoped Cargo pass is claimed for this
+slice.
+
+2026-06-18 retained ReportBody native payload projection validation:
+`panel_host_projection_tests.rs` now covers the final retained-host hop for
+NativeDynamic payload rows. The focused test injects
+`report.native_plugins_payload.bundle_path` into the ReportBody slot on a real
+panel retained projection and asserts that the resulting label node preserves
+the display text, value text, success validation level/message, stable
+`entry_key`, ReportBody `slot_kind`, detail, severity, and `stage=report`
+properties. `rustfmt --edition 2021 --check`, conflict-marker scan,
+trailing-whitespace scan, and `git diff --check` passed for the touched files
+with only LF/CRLF warnings. Focused
+`cargo test -p zircon_editor --lib export_wizard_panel_retained_projection_preserves_report_body_native_payload_entry --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-retained-native-payload-0618 --message-format short --color never -- --exact --nocapture`
+timed out after about 364 seconds without target test output; matching
+target-dir cargo/rustc/rustdoc leftovers were cleaned, so no focused pass is
+claimed for this slice.
 
 2026-06-15 streaming StageOutput event validation:
 `execution.rs` now lets command runners expose `run_with_output(...)`, and the

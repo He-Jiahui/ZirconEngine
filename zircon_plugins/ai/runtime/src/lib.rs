@@ -48,15 +48,15 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "AI",
-        zircon_runtime::RuntimePluginId::Ai,
+        zircon_runtime::builtin::RuntimePluginId::Ai,
         "zircon_plugin_ai_runtime",
     )
     .with_category("runtime")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::ServerRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability(AI_RUNTIME_CAPABILITY)
     .with_capability(AI_BEHAVIOR_TREE_CAPABILITY)

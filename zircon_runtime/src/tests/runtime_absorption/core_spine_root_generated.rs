@@ -42,14 +42,19 @@ const EXPECTED_RUNTIME_02_GUARD_TEST_ANCHORS: &[(&str, &[&str])] = &[
             "runtime_crate_root_does_not_flatten_plugin_surface",
             "runtime_crate_root_does_not_flatten_builtin_module_assembly_functions",
             "builtin_root_stays_structural_after_runtime_module_split",
+            "runtime_navigation_boundary_file_set_requires_doc_update",
+            "runtime_animation_backlog_boundary_requires_doc_update",
+            "runtime_animation_status_json_boundary_sanitizes_non_finite_values",
+            "runtime_14_module_family_root_seats_match_documented_judgements",
+            "runtime_14_module_family_mirror_docs_match_structure_audit_counts",
         ],
     ),
     (
         "zircon_runtime/src/tests/runtime_absorption/root_surface.rs",
         &[
             "runtime_crate_root_public_surface_stays_curated",
-            "graphics_alias_debt_is_private_and_documented_until_m3_cutover",
-            "graphics_type_alias_debt_has_m3_2_pre_guard_until_render_cutover",
+            "graphics_alias_debt_is_removed_from_runtime_root",
+            "graphics_type_alias_debt_symbols_are_only_available_through_graphics_namespace",
             "core_spine_and_root_surface_docs_stay_in_sync",
             "root_surface_m1_gate_matches_runtime_14_module_family_seats",
             "root_surface_interface_convergence_mirror_uses_current_audit_counts",
@@ -129,17 +134,17 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
     let crate_root = runtime_root.join("src").join("lib.rs");
     assert_eq!(
         public_modules(&crate_root).len(),
-        20,
+        19,
         "runtime root public module count changed without Runtime 02 audit sync"
     );
     assert_eq!(
         public_use_count(&crate_root),
-        3,
+        2,
         "runtime root public `pub use` count changed without Runtime 02 audit sync"
     );
     assert_eq!(
         crate_visible_graphics_reexport_count(&crate_root),
-        80,
+        0,
         "crate-visible graphics alias debt count changed without Runtime 02 audit sync"
     );
 
@@ -209,10 +214,10 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
             "core root entries 6/6",
             "core public modules 5/5",
             "retired core root entries 0",
-            "runtime root public modules 20/20",
-            "public `pub use` sites 3/3",
-            "crate-visible graphics alias debt 80/80",
-            "root-surface M1 gate `migration-debt-present`",
+            "runtime root public modules 19/19",
+            "public `pub use` sites 2/2",
+            "crate-visible graphics alias debt 0/0",
+            "root-surface M1 gate `classified-and-clear`",
             "generated export templates 10/10",
             "generated behavior 6/6",
             "generated allowed adapters 6/6",
@@ -221,7 +226,7 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
             "root_entries guard tests 13",
             "root_surface guard tests 6/6",
             "generated-code guard tests 7/7",
-            "guard_test_anchor_count = 21",
+            "guard_test_anchor_count = 26",
             "missing_guard_test_anchors = []",
             "mirror_docs_guard_present = true",
             "risks = []",
@@ -248,8 +253,8 @@ fn assert_runtime_02_guard_test_anchors(workspace_root: &Path) {
         }
     }
     assert_eq!(
-        guard_test_anchor_count, 21,
-        "Runtime 02 guard test anchor inventory should stay at 21 anchors"
+        guard_test_anchor_count, 26,
+        "Runtime 02 guard test anchor inventory should stay at 26 anchors"
     );
 }
 
@@ -292,9 +297,9 @@ fn public_use_count(path: &Path) -> usize {
 fn crate_visible_graphics_reexport_count(path: &Path) -> usize {
     let source = read_source(path);
     let start_marker = "pub(crate) use graphics::{";
-    let start = source
-        .find(start_marker)
-        .expect("runtime root should keep the current crate-visible graphics alias block");
+    let Some(start) = source.find(start_marker) else {
+        return 0;
+    };
     let body_start = start + start_marker.len();
     let body_end = source[body_start..]
         .find("};")

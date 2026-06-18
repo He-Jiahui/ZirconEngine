@@ -22,8 +22,9 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
 
 
 TARGETS = ("hub", "editor", "runtime", "plugins")
-MODES = ("debug", "release")
+MODES = ("debug", "release", "profiling")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
+TARGET_FEATURES = ("target-client", "target-server", "target-editor-host")
 ENGINE_DIR_NAME = "ZirconEngine"
 HUB_TAURI_BUNDLE_TARGET = "nsis"
 HUB_INSTALLERS_DIR_NAME = "installers"
@@ -87,11 +88,14 @@ class BuildConfig:
     cargo: str
     mode: str
     targets: tuple[str, ...]
+    runtime_features: tuple[str, ...]
     plugins: tuple[PluginPackage, ...]
     plugin_carrier: str
     locked: bool
     jobs: str | None
     dry_run: bool
+    prewarm_shaders: bool
+    shader_quality_tiers: tuple[str, ...]
 
     @property
     def engine_root(self) -> Path:
@@ -103,7 +107,32 @@ class BuildConfig:
 
     @property
     def profile_dir(self) -> str:
-        return "release" if self.mode == "release" else "debug"
+        if self.mode == "release":
+            return "release"
+        if self.mode == "profiling":
+            return "profiling"
+        return "debug"
+
+    @property
+    def runtime_feature_arg(self) -> str:
+        return " ".join(self.runtime_features)
+
+    def feature_arg_for_target(self, target_feature: str) -> str:
+        features = [target_feature]
+        features.extend(
+            feature
+            for feature in self.runtime_features
+            if feature not in TARGET_FEATURES and feature not in features
+        )
+        return " ".join(features)
+
+    @property
+    def shader_prewarm_cache_root(self) -> Path:
+        return self.engine_root / "cache" / "shader_variants"
+
+    @property
+    def shader_prewarm_report_path(self) -> Path:
+        return self.engine_root / "cache" / "shader_variants_report.json"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -129,6 +158,7 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 Examples:
   python tools/zircon_build.py --targets hub,editor,runtime --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets editor,runtime --out E:\\zircon-build --mode debug
+  python tools/zircon_build.py --targets runtime --out E:\\zircon-build-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
   python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets plugins --plugins all --plugin-carrier native_dynamic --out E:\\zircon-build --mode release
 
@@ -144,6 +174,13 @@ Plugin carrier boundary:
     )
     parser.add_argument("--out", "--output", help="Build output directory.")
     parser.add_argument("--mode", choices=MODES, help="Cargo profile mode.")
+    parser.add_argument(
+        "--runtime-features",
+        help=(
+            "Comma-separated runtime/app feature set for runtime and editor targets. "
+            "Defaults to target-client for runtime builds and target-editor-host for editor-only staging."
+        ),
+    )
     parser.add_argument(
         "--cargo",
         default="cargo",
@@ -175,6 +212,21 @@ Plugin carrier boundary:
         help="Print Cargo/copy actions without executing them.",
     )
     parser.add_argument(
+        "--prewarm-shaders",
+        action="store_true",
+        help="Prewarm built-in shader variants into ZirconEngine/cache/shader_variants.",
+    )
+    parser.add_argument(
+        "--shader-quality-tier",
+        action="append",
+        choices=("low", "medium", "high", "ultra", "all"),
+        default=[],
+        help=(
+            "Shader quality tier(s) to prewarm when --prewarm-shaders is enabled. "
+            "Repeat for multiple tiers or use all. Default: medium."
+        ),
+    )
+    parser.add_argument(
         "--list-plugins",
         action="store_true",
         help="List discovered plugins and exit.",
@@ -195,7 +247,17 @@ def resolve_config(
     targets = parse_targets(args.targets) if args.targets else prompt_targets()
     out_root = resolve_out_root(args.out) if args.out else prompt_out_root()
     mode = args.mode or prompt_mode()
+    runtime_features = (
+        parse_feature_list(args.runtime_features)
+        if args.runtime_features
+        else default_runtime_features(targets)
+    )
     plugin_carrier = args.plugin_carrier
+
+    if mode == "profiling" and "hub" in targets:
+        raise SystemExit("--mode profiling is not supported for the hub/Tauri target.")
+    if mode == "profiling" and "plugins" in targets:
+        raise SystemExit("--mode profiling is not supported for the plugin workspace target.")
 
     selected_plugins: tuple[PluginPackage, ...] = ()
     if "plugins" in targets:
@@ -213,11 +275,14 @@ def resolve_config(
         cargo=args.cargo,
         mode=mode,
         targets=targets,
+        runtime_features=runtime_features,
         plugins=selected_plugins,
         plugin_carrier=plugin_carrier,
         locked=not args.no_locked,
         jobs=args.jobs or None,
         dry_run=args.dry_run,
+        prewarm_shaders=args.prewarm_shaders,
+        shader_quality_tiers=parse_shader_quality_tiers(args.shader_quality_tier),
     )
 
 
@@ -235,6 +300,28 @@ def parse_targets(raw: str) -> tuple[str, ...]:
 
 def parse_csv(raw: str) -> list[str]:
     return [part.strip().lower() for part in raw.split(",") if part.strip()]
+
+
+def parse_feature_list(raw: str) -> tuple[str, ...]:
+    values = parse_csv(raw)
+    if not values:
+        raise SystemExit("--runtime-features must name at least one feature.")
+    return tuple(unique_in_order(values))
+
+
+def parse_shader_quality_tiers(raw: Sequence[str]) -> tuple[str, ...]:
+    values = tuple(raw) or ("medium",)
+    if "all" in values:
+        return ("low", "medium", "high", "ultra")
+    return tuple(unique_in_order(values))
+
+
+def default_runtime_features(targets: Sequence[str]) -> tuple[str, ...]:
+    if "runtime" in targets:
+        return ("target-client",)
+    if "editor" in targets:
+        return ("target-editor-host",)
+    return ("target-client",)
 
 
 def resolve_out_root(raw: str) -> Path:
@@ -265,7 +352,7 @@ def prompt_out_root() -> Path:
 
 def prompt_mode() -> str:
     require_tty("--mode")
-    raw = input("Build mode [debug/release] (default debug): ").strip().lower()
+    raw = input("Build mode [debug/release/profiling] (default debug): ").strip().lower()
     if not raw:
         return "debug"
     if raw not in MODES:
@@ -444,11 +531,21 @@ def print_plan(config: BuildConfig) -> None:
     print(f"  cargo:   {config.cargo}")
     print(f"  mode:    {config.mode}")
     print(f"  targets: {','.join(config.targets)}")
+    if "runtime" in config.targets:
+        print(f"  runtime features: {config.runtime_feature_arg}")
+    if "editor" in config.targets:
+        print(
+            "  editor runtime features: "
+            f"{config.feature_arg_for_target('target-editor-host')}"
+        )
     print(f"  locked:  {config.locked}")
     if config.jobs:
         print(f"  jobs:    {config.jobs}")
     if config.dry_run:
         print("  dry-run: enabled")
+    if config.prewarm_shaders:
+        print("  shader prewarm: enabled")
+        print(f"  shader quality tiers: {','.join(config.shader_quality_tiers)}")
     if config.plugins:
         print("  plugins:")
         for package in config.plugins:
@@ -465,21 +562,26 @@ def build(config: BuildConfig) -> None:
 
     runtime_staged = False
     if "runtime" in config.targets:
-        build_runtime(config, runtime_feature="target-client", include_preview=True)
+        build_runtime(config, config.runtime_feature_arg, include_preview=True)
         runtime_staged = True
     if "editor" in config.targets:
+        editor_features = config.feature_arg_for_target("target-editor-host")
         if not runtime_staged:
-            build_runtime(config, runtime_feature="target-editor-host", include_preview=False)
+            build_runtime(config, editor_features, include_preview=False)
             runtime_staged = True
-        build_editor(config)
+        build_editor(config, editor_features)
     if "editor" in config.targets or "runtime" in config.targets:
         stage_engine_assets(config)
+        if config.prewarm_shaders:
+            prewarm_shaders(config)
     if "plugins" in config.targets:
         ensure_plugin_base_artifacts(config)
         build_plugins(config)
 
 
 def build_hub(config: BuildConfig) -> None:
+    if config.mode == "profiling":
+        raise SystemExit("--mode profiling is not supported for the hub/Tauri target.")
     target_dir = config.targets_root / "hub"
     run_tauri_build(config, target_dir)
     stage_hub_tauri_outputs(config, target_dir)
@@ -578,9 +680,7 @@ def stage_hub_tauri_installers(
         raise SystemExit(f"Tauri bundle output has no files: {bundle_root}")
 
 
-def build_runtime(
-    config: BuildConfig, runtime_feature: str, include_preview: bool
-) -> None:
+def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview: bool) -> None:
     runtime_root = config.targets_root / "runtime"
     lib_target_dir = runtime_root / "lib"
     bin_target_dir = runtime_root / "bin"
@@ -593,7 +693,7 @@ def build_runtime(
             "--lib",
             "--no-default-features",
             "--features",
-            runtime_feature,
+            runtime_feature_arg,
             "--target-dir",
             str(lib_target_dir),
         ],
@@ -609,7 +709,7 @@ def build_runtime(
                 "zircon_runtime",
                 "--no-default-features",
                 "--features",
-                "target-client",
+                runtime_feature_arg,
                 "--target-dir",
                 str(bin_target_dir),
             ],
@@ -621,7 +721,54 @@ def build_runtime(
         copy_artifact(config, bin_target_dir, platform_executable_name("zircon_runtime"))
 
 
-def build_editor(config: BuildConfig) -> None:
+def prewarm_shaders(config: BuildConfig) -> None:
+    target_dir = config.targets_root / "shader_prewarm"
+    command = [
+        config.cargo,
+        "run",
+        "-p",
+        "zircon_runtime",
+        "--bin",
+        "zircon_shader_prewarm",
+        "--no-default-features",
+        "--features",
+        config.feature_arg_for_target("target-server"),
+        "--target-dir",
+        str(target_dir),
+    ]
+    if config.locked:
+        command.append("--locked")
+    if config.mode == "release":
+        command.append("--release")
+    elif config.mode == "profiling":
+        command.extend(["--profile", "profiling"])
+    if config.jobs:
+        command.extend(["--jobs", config.jobs])
+    command.extend(
+        [
+            "--",
+            "--project-root",
+            str(config.engine_root),
+            "--cache-dir",
+            str(config.shader_prewarm_cache_root),
+            "--report",
+            str(config.shader_prewarm_report_path),
+            "--asset-root",
+            str(config.engine_root / "assets"),
+            "--builtin-fallback",
+            "--pretty",
+        ]
+    )
+    for quality_tier in config.shader_quality_tiers:
+        command.extend(["--quality-tier", quality_tier])
+    if config.dry_run:
+        print("DRY-RUN", quote_command(command))
+        return
+    print(quote_command(command))
+    subprocess.run(command, cwd=config.repo_root, check=True)
+
+
+def build_editor(config: BuildConfig, editor_feature_arg: str) -> None:
     target_dir = config.targets_root / "editor"
     run_cargo(
         config,
@@ -633,7 +780,7 @@ def build_editor(config: BuildConfig) -> None:
             "zircon_editor",
             "--no-default-features",
             "--features",
-            "target-editor-host",
+            editor_feature_arg,
             "--target-dir",
             str(target_dir),
         ],
@@ -727,6 +874,8 @@ def run_cargo(config: BuildConfig, args: list[str]) -> None:
         command.append("--locked")
     if config.mode == "release":
         command.append("--release")
+    elif config.mode == "profiling":
+        command.extend(["--profile", "profiling"])
     if config.jobs:
         command.extend(["--jobs", config.jobs])
     if config.dry_run:

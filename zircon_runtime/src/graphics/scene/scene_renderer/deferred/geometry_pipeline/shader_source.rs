@@ -109,7 +109,30 @@ mod tests {
             "occlusion = occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r;"
         ));
         assert!(DEFERRED_GEOMETRY_SHADER.contains(
-            "vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), 1.0)"
+            "let shading_model_id = select(decode_shading_model_id(material_properties.data8.y), ZR_SHADING_MODEL_UNLIT_ID, material_properties.data0.w >= 0.5);"
         ));
+        assert!(DEFERRED_GEOMETRY_SHADER.contains(
+            "vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_shading_model_id(shading_model_id))"
+        ));
+    }
+
+    #[test]
+    fn deferred_geometry_shader_encodes_shading_model_id_into_gbuffer_material_alpha() {
+        for expected in [
+            "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
+            "const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;",
+            "fn encode_shading_model_id(id: u32) -> f32",
+            "fn decode_shading_model_id(encoded: f32) -> u32",
+            "return f32(id) / 255.0;",
+            "round(clamp(encoded, 0.0, 1.0) * 255.0)",
+            "material_properties.data8.y",
+            "material_properties.data0.w >= 0.5",
+            "encode_shading_model_id(shading_model_id)",
+        ] {
+            assert!(
+                DEFERRED_GEOMETRY_SHADER.contains(expected),
+                "deferred geometry shader should use `{expected}` for shading-model G-buffer packing"
+            );
+        }
     }
 }

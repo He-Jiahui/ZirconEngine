@@ -44,6 +44,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         ],
         inspector: None,
         status_line: "Hierarchy ready".to_string(),
+        status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),
         scene_viewport_settings: SceneViewportSettings::default(),

@@ -91,8 +91,7 @@ fn builtin_host_window_template_bridge_recomputes_surface_backed_frames_with_she
 }
 
 #[test]
-fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_frames_from_workbench_model(
-) {
+fn builtin_host_window_template_bridge_does_not_export_drawer_shell_or_header_frames() {
     let _guard = env_lock().lock().unwrap();
 
     let fixture = default_preview_fixture();
@@ -108,100 +107,83 @@ fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_f
         .unwrap();
 
     let root_frames = bridge.root_shell_frames();
-    let body_frame = root_frames
-        .host_body_frame
-        .expect("workbench body projection frame should exist");
+    assert!(root_frames.host_body_frame.is_some());
+    assert!(root_frames.document_host_frame.is_some());
+    assert!(bridge.control_frame("LeftDrawerShellRoot").is_none());
+    assert!(bridge.control_frame("LeftDrawerHeaderRoot").is_none());
+    assert!(bridge.control_frame("RightDrawerShellRoot").is_none());
+    assert!(bridge.control_frame("RightDrawerHeaderRoot").is_none());
+    assert!(bridge.control_frame("BottomDrawerShellRoot").is_none());
+    assert!(bridge.control_frame("BottomDrawerHeaderRoot").is_none());
+}
+
+#[test]
+fn componentized_workbench_layout_frames_own_drawer_shell_and_header_frames() {
+    let _guard = env_lock().lock().unwrap();
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
     let metrics = WorkbenchChromeMetrics::default();
-    let requested_bottom_height = 164.0_f32;
-    let expected_bottom_height =
-        compact_bottom_height_limit((body_frame.height - metrics.separator_thickness).max(0.0))
-            .map(|limit| requested_bottom_height.min(limit))
-            .unwrap_or(requested_bottom_height);
-    let expected_bottom_height = round_to_layout_pixel(expected_bottom_height);
-    let expected_center_height = round_to_layout_pixel(
-        body_frame.height - expected_bottom_height - metrics.separator_thickness,
-    );
-    let expected_bottom_y =
-        round_to_layout_pixel(body_frame.y + body_frame.height - expected_bottom_height);
-    let expected_bottom_content_height = round_to_layout_pixel(
-        (expected_bottom_height - metrics.panel_header_height - metrics.separator_thickness)
-            .max(0.0),
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .unwrap();
+
+    let layout_frames = bridge.layout_frames();
+    assert_eq!(
+        layout_frames.left_drawer_shell_frame,
+        bridge.control_frame("LeftDrawerShellRoot")
     );
     assert_eq!(
-        root_frames.left_drawer_shell_frame,
-        Some(UiFrame::new(
-            body_frame.x,
-            body_frame.y,
-            312.0,
-            expected_center_height
-        ))
+        layout_frames.left_drawer_header_frame,
+        bridge.control_frame("LeftDrawerHeaderRoot")
     );
     assert_eq!(
-        root_frames.left_drawer_header_frame,
-        Some(UiFrame::new(body_frame.x + 35.0, body_frame.y, 277.0, 25.0))
+        layout_frames.right_drawer_shell_frame,
+        bridge.control_frame("RightDrawerShellRoot")
     );
     assert_eq!(
-        root_frames.left_drawer_content_frame,
-        Some(UiFrame::new(
-            body_frame.x + 35.0,
-            body_frame.y + 25.0,
-            277.0,
-            expected_center_height - 25.0,
-        ))
+        layout_frames.right_drawer_header_frame,
+        bridge.control_frame("RightDrawerHeaderRoot")
     );
     assert_eq!(
-        root_frames.right_drawer_shell_frame,
-        Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
-            body_frame.y,
-            308.0,
-            expected_center_height,
-        ))
+        layout_frames.bottom_drawer_shell_frame,
+        bridge.control_frame("BottomDrawerShellRoot")
     );
     assert_eq!(
-        root_frames.right_drawer_header_frame,
-        Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
-            body_frame.y,
-            273.0,
-            25.0,
-        ))
+        layout_frames.bottom_drawer_header_frame,
+        bridge.control_frame("BottomDrawerHeaderRoot")
+    );
+}
+
+#[test]
+fn componentized_workbench_layout_frames_own_drawer_content_frames() {
+    let _guard = env_lock().lock().unwrap();
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .unwrap();
+
+    let layout_frames = bridge.layout_frames();
+    assert_eq!(
+        layout_frames.left_drawer_content_frame,
+        bridge.control_frame("LeftDrawerContentRoot")
     );
     assert_eq!(
-        root_frames.right_drawer_content_frame,
-        Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
-            body_frame.y + 25.0,
-            273.0,
-            expected_center_height - 25.0,
-        ))
+        layout_frames.right_drawer_content_frame,
+        bridge.control_frame("RightDrawerContentRoot")
     );
     assert_eq!(
-        root_frames.bottom_drawer_shell_frame,
-        Some(UiFrame::new(
-            body_frame.x,
-            expected_bottom_y,
-            body_frame.width,
-            expected_bottom_height,
-        ))
-    );
-    assert_eq!(
-        root_frames.bottom_drawer_header_frame,
-        Some(UiFrame::new(
-            body_frame.x,
-            expected_bottom_y,
-            body_frame.width,
-            25.0,
-        ))
-    );
-    assert_eq!(
-        root_frames.bottom_drawer_content_frame,
-        Some(UiFrame::new(
-            body_frame.x,
-            expected_bottom_y + metrics.panel_header_height + metrics.separator_thickness,
-            body_frame.width,
-            expected_bottom_content_height,
-        ))
+        layout_frames.bottom_drawer_content_frame,
+        bridge.control_frame("BottomDrawerContentRoot")
     );
 }
 
@@ -1331,6 +1313,44 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
             .frame,
         bridge.frames().viewport
     );
+}
+
+#[test]
+fn componentized_workbench_window_template_bridge_exposes_document_tab_runtime_routes() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+
+    let document_tabs = bridge
+        .host_projection()
+        .node_by_control_id("DocumentTabsRoot")
+        .expect("componentized Workbench should expose document tabs");
+    assert_eq!(document_tabs.component, "DocumentTabs");
+    assert!(document_tabs.routes.iter().any(|route| {
+        route.binding_id == "DocumentTabs/ActivateTab"
+            && route.event_kind == UiEventKind::Change
+            && route.route_id.is_some()
+    }));
+    assert!(document_tabs.routes.iter().any(|route| {
+        route.binding_id == "DocumentTabs/CloseTab"
+            && route.event_kind == UiEventKind::Submit
+            && route.route_id.is_some()
+    }));
+    assert!(matches!(
+        bridge
+            .binding_for_control("DocumentTabsRoot", UiEventKind::Change)
+            .expect("document tab activation binding")
+            .payload(),
+        EditorUiBindingPayload::DockCommand(_)
+    ));
+    assert!(matches!(
+        bridge
+            .binding_for_control("DocumentTabsRoot", UiEventKind::Submit)
+            .expect("document tab close binding")
+            .payload(),
+        EditorUiBindingPayload::DockCommand(_)
+    ));
 }
 
 #[test]
@@ -3560,8 +3580,11 @@ fn render_background_for_control(
         .list
         .commands
         .iter()
-        .find(|command| command.node_id == node_id)
-        .and_then(|command| command.style.background_color.clone())
+        .find_map(|command| {
+            (command.node_id == node_id)
+                .then(|| command.style.background_color.clone())
+                .flatten()
+        })
 }
 
 fn render_border_for_control(
@@ -3580,8 +3603,11 @@ fn render_border_for_control(
         .list
         .commands
         .iter()
-        .find(|command| command.node_id == node_id)
-        .and_then(|command| command.style.border_color.clone())
+        .find_map(|command| {
+            (command.node_id == node_id)
+                .then(|| command.style.border_color.clone())
+                .flatten()
+        })
 }
 
 fn style_color_u8(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {

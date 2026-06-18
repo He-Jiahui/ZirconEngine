@@ -35,7 +35,7 @@ mod tests {
     fn processors_emit_expected_mesh_phases() {
         let mut list = MeshDrawCommandList::new();
         let mut variants = MeshPipelineVariantRegistry::default();
-        let mut context = MeshPassBuildContext::new(&mut variants);
+        let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
         let opaque = batch(MeshDrawQueuePhase::Opaque, 10)
             .with_casts_shadow(true)
             .with_taa_reactive_mask_strength(0.75);
@@ -91,7 +91,7 @@ mod tests {
     fn taa_reactive_mask_processor_draws_visible_main_view_batches_by_mask_semantics() {
         let mut list = MeshDrawCommandList::new();
         let mut variants = MeshPipelineVariantRegistry::default();
-        let mut context = MeshPassBuildContext::new(&mut variants);
+        let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
         let opaque = batch(MeshDrawQueuePhase::Opaque, 1).with_taa_reactive_mask_strength(0.25);
         let alpha = batch(MeshDrawQueuePhase::AlphaMask, 4).with_taa_reactive_mask_strength(0.5);
         let transparent = batch(MeshDrawQueuePhase::Transparent, 2);
@@ -141,7 +141,7 @@ mod tests {
     fn velocity_processor_requires_velocity_history_and_previous_transform() {
         let mut list = MeshDrawCommandList::new();
         let mut variants = MeshPipelineVariantRegistry::default();
-        let mut context = MeshPassBuildContext::new(&mut variants);
+        let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
         let dynamic_without_previous = batch(MeshDrawQueuePhase::Opaque, 1);
         let dynamic_with_previous =
             batch(MeshDrawQueuePhase::Opaque, 2).with_previous_velocity_transform(true);
@@ -157,7 +157,7 @@ mod tests {
                 false,
             ),
             default_pipeline_key(),
-            3,
+            RenderPhaseSortComponents::new(3.0, 3),
             MeshGeometryHandle::test(3),
             MeshDrawArgs::direct_indexed(0, 3),
         )
@@ -177,7 +177,7 @@ mod tests {
             commands[0].sort_key,
             packed_sort_key_u64(
                 RenderPhase::PostProcess,
-                RenderPhaseSortComponents::new(0.0, 2),
+                RenderPhaseSortComponents::new(2.0, 2),
                 commands[0].pipeline_variant_id.value(),
                 202,
             )
@@ -188,7 +188,7 @@ mod tests {
     fn processors_keep_shadow_candidate_when_main_view_layer_filters_mesh() {
         let mut list = MeshDrawCommandList::new();
         let mut variants = MeshPipelineVariantRegistry::default();
-        let mut context = MeshPassBuildContext::new(&mut variants);
+        let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
         let hidden_main_shadow_caster = batch(MeshDrawQueuePhase::AlphaMask, 10)
             .with_casts_shadow(true)
             .with_visibility(Some(hidden_alpha_mask_relevance()), false, true);
@@ -217,7 +217,7 @@ mod tests {
     fn shadow_processor_respects_shadow_view_visibility() {
         let mut list = MeshDrawCommandList::new();
         let mut variants = MeshPipelineVariantRegistry::default();
-        let mut context = MeshPassBuildContext::new(&mut variants);
+        let mut context = MeshPassBuildContext::with_default_quality(&mut variants);
         let shadow_culled = batch(MeshDrawQueuePhase::Opaque, 10)
             .with_casts_shadow(true)
             .with_visibility(Some(visible_opaque_relevance()), true, false);
@@ -238,7 +238,7 @@ mod tests {
                 false,
             ),
             default_pipeline_key(),
-            sort_key,
+            RenderPhaseSortComponents::new(sort_key as f32, sort_key),
             MeshGeometryHandle::test(sort_key),
             MeshDrawArgs::direct_indexed(0, 3),
         )

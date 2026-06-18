@@ -1,4 +1,5 @@
 use zircon_runtime::core::math::Vec3;
+use zircon_runtime::graphics::ViewportRenderRegion;
 
 use super::program::{
     ParticleGpuTransparentShaderEntries, PARTICLE_GPU_TRANSPARENT_RENDER_PARAMS_BYTES,
@@ -177,6 +178,7 @@ impl ParticleGpuTransparentRenderer {
         active_buffer_index: usize,
         indirect_draw_args_buffer: &wgpu::Buffer,
         params: ParticleGpuTransparentRenderParams,
+        render_region: ViewportRenderRegion,
     ) {
         queue.write_buffer(&self.render_params_buffer, 0, &params.encode());
 
@@ -203,6 +205,9 @@ impl ParticleGpuTransparentRenderer {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !render_region.apply_to_render_pass(&mut pass) {
+            return;
+        }
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
         pass.set_bind_group(1, &self.render_bind_groups[active_buffer_index], &[]);

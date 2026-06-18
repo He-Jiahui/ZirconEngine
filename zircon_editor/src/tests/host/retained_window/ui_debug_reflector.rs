@@ -70,7 +70,7 @@ fn runtime_diagnostics_host_conversion_keeps_payload_reflector_text_and_overlay(
         model_texts(&projected.nodes).iter().any(|text| {
             text.contains("node=2")
                 && text.contains("family=Overlay")
-                && text.contains("selected=LegacyZircon")
+                && text.contains("selected=Zircon")
                 && text.contains("reason=ZirconOwnedSemantics")
         }),
         "payload route detail should survive host conversion"
@@ -126,7 +126,7 @@ fn runtime_diagnostics_body_refresh_preserves_active_payload_reflector() {
             .any(|text| {
                 text.contains("node=2")
                     && text.contains("family=Overlay")
-                    && text.contains("selected=LegacyZircon")
+                    && text.contains("selected=Zircon")
                     && text.contains("reason=ZirconOwnedSemantics")
             }),
         "active payload route detail should not be replaced during body refresh"
@@ -275,7 +275,7 @@ fn runtime_diagnostics_pane_with_overlay(primitive: UiDebugOverlayPrimitive) -> 
                             "Layout Engine:".to_string(),
                             "  requests: 2".to_string(),
                             "  selected: taffy=1 zircon=1".to_string(),
-                            "  node=2 family=Overlay requested=Taffy selected=LegacyZircon support=Fallback reason=ZirconOwnedSemantics".to_string(),
+                            "  node=2 family=Overlay requested=Taffy selected=Zircon support=Fallback reason=ZirconOwnedSemantics".to_string(),
                         ],
                         ui_debug_reflector_export_status: "export".to_string(),
                         ui_debug_reflector_overlay_primitives: vec![primitive],

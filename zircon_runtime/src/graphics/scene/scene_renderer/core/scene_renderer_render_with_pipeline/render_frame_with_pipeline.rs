@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     FrameHistoryHandle, PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus,
-    RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource,
+    RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource, ShaderVariantMissReport,
 };
 
 use crate::graphics::backend::ViewportSurface;
@@ -9,8 +9,8 @@ use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::graphics::visibility::HzbOcclusionCullReport;
+use crate::graphics::CompiledRenderPipeline;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
-use crate::CompiledRenderPipeline;
 
 use super::super::runtime_features::runtime_features_from_pipeline;
 use super::super::scene_renderer::SceneRenderer;
@@ -94,6 +94,7 @@ impl SceneRenderer {
         previous_history_available: bool,
     ) -> Result<u64, GraphicsError> {
         reset_last_runtime_outputs(self);
+        self.core.mesh_pipelines.reset_shader_variant_miss_report();
 
         self.streamer.ensure_scene_resources(
             &self.backend.device,
@@ -153,7 +154,9 @@ impl SceneRenderer {
             .is_some_and(|report| {
                 report.status == RenderCameraTargetGraphImportStatus::DirectImported
             });
-        if direct_imported {
+        if !frame.camera_stack_output_policy().writes_output_target() {
+            self.streamer.suppress_output_target_writeback(frame);
+        } else if direct_imported {
             self.streamer
                 .skip_output_target_writeback_after_direct_import(frame);
         } else {
@@ -180,6 +183,9 @@ fn output_target_capture_resource(
     std::sync::Arc<crate::graphics::scene::resources::OutputTargetTextureResource>,
     RenderCaptureReport,
 )> {
+    if !frame.camera_stack_output_policy().writes_output_target() {
+        return None;
+    }
     let graph_import_report = streamer.last_output_target_graph_import_report();
     let writeback_report = streamer.last_output_target_writeback_report();
     let texture = frame.output_target().texture_handle()?;
@@ -328,6 +334,24 @@ impl SceneRenderer {
         self.last_render_graph_execution.resource_report()
     }
 
+    pub(crate) fn last_render_graph_materialization_report(
+        &self,
+    ) -> crate::core::framework::render::RenderGraphMaterializationReport {
+        self.last_render_graph_execution.materialization_report()
+    }
+
+    pub(crate) fn last_render_graph_execution_alias_report(
+        &self,
+    ) -> &crate::core::framework::render::RenderGraphExecutionAliasReport {
+        self.last_render_graph_execution.resource_alias_report()
+    }
+
+    pub(crate) fn last_render_graph_execution_profile_report(
+        &self,
+    ) -> crate::core::framework::render::RenderGraphExecutionProfileReport {
+        self.last_render_graph_execution.profile_report()
+    }
+
     pub(crate) fn last_render_graph_stage_execution_report(
         &self,
     ) -> crate::core::framework::render::RenderGraphStageExecutionReport {
@@ -345,6 +369,12 @@ impl SceneRenderer {
     ) -> crate::core::framework::render::RenderSceneVelocityReadbackReport {
         self.last_render_graph_execution
             .scene_velocity_readback_report()
+    }
+
+    pub(crate) fn last_color_lut_readback_report(
+        &self,
+    ) -> crate::core::framework::render::RenderColorLutReadbackReport {
+        self.last_render_graph_execution.color_lut_readback_report()
     }
 
     pub(crate) fn last_render_graph_executed_queue_fallback_count(&self) -> usize {
@@ -366,6 +396,10 @@ impl SceneRenderer {
 
     pub(crate) fn last_prepared_mesh_queue_stats(&self) -> PreparedMeshQueueStats {
         self.last_prepared_mesh_queue_stats
+    }
+
+    pub(crate) fn last_shader_variant_miss_report(&self) -> ShaderVariantMissReport {
+        self.core.mesh_pipelines.shader_variant_miss_report()
     }
 
     pub(crate) fn last_prepared_sprite_queue_stats(&self) -> PreparedSpriteQueueStats {

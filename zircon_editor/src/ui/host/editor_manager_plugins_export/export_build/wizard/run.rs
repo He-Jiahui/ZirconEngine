@@ -68,7 +68,8 @@ pub fn run_export_wizard_job(
     job.begin();
     emit_job_event(emit_event, ExportWizardJobEventKind::Started, &job);
 
-    let mut progress = ExportWizardProgressState::new();
+    let mut progress =
+        ExportWizardProgressState::for_stages(plan.stages.iter().map(|command| command.stage));
     for command in &plan.stages {
         if cancel_signal.is_cancel_requested() {
             job.request_cancel();

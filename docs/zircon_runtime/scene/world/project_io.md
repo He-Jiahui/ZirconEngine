@@ -24,7 +24,7 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/project_io/camera.rs zircon_runtime/src/scene/world/project_io/physics.rs zircon_runtime/src/scene/world/project_io/post_process.rs zircon_runtime/src/scene/world/project_io/references.rs zircon_runtime/src/scene/world/project_io/script.rs zircon_runtime/src/scene/world/project_io/transform.rs
   - runtime_07_project_io_folder_split_keeps_entry_and_converter_owners
-  - performance_hotpath_boundary_audit reports large_file_hotspot_count = 37 and runtime-other = 12 after build_export_actions.rs left the current large-file hotspot set
+  - performance_hotpath_boundary_audit reports large_file_hotspot_count = 40 and runtime-other = 15 after the render product diagnostics owner split removed one runtime hotspot
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked attempted 2026-06-14; timed out while unrelated active editor/render lanes were compiling
 doc_type: module-detail
 ---
@@ -78,7 +78,7 @@ Script bindings remain JSON-decoded from the dynamic component store under `scri
 
 `runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` locks the project_io folder split. It verifies the entry file declares the six child modules, keeps the `World` project I/O entry points, does not reclaim converter helper definitions, and requires each child module to retain its narrow `pub(super)` conversion owner.
 
-The Runtime 07 owner-budget evidence now reports `large_file_hotspot_count = 37` and `runtime-other = 12` after `zircon_editor/src/ui/retained_host/app/build_export_actions.rs` left the current large-file hotspot set. `performance_hotpath_boundary` still has `hotspot_guard_anchor_count = 20` after adding the project_io folder split guard. Package-level Cargo validation remains pending because the shared Windows workspace had active editor/render compile lanes during this slice.
+The Runtime 07 owner-budget evidence now reports `large_file_hotspot_count = 40` and `runtime-other = 15` after the render product diagnostics owner split removed one runtime hotspot and added the corresponding Runtime 07 guard. `performance_hotpath_boundary` now has `hotspot_guard_anchor_count = 25` after adding the render product diagnostics owner split guard. Package-level Cargo validation remains pending because the shared Windows workspace had active editor/render compile lanes during this slice.
 
 ## Plan Sources
 

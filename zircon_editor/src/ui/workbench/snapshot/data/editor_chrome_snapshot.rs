@@ -7,7 +7,7 @@ use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 use super::super::asset::AssetWorkspaceSnapshot;
 use super::super::workbench::WorkbenchSnapshot;
-use super::{InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry};
+use super::{InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry, StatusTaskProgressSnapshot};
 
 #[derive(Clone, Debug)]
 pub struct EditorChromeSnapshot {
@@ -15,6 +15,7 @@ pub struct EditorChromeSnapshot {
     pub scene_entries: Vec<SceneEntry>,
     pub inspector: Option<InspectorSnapshot>,
     pub status_line: String,
+    pub status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub hovered_axis: Option<GizmoAxis>,
     pub viewport_size: UVec2,
     pub scene_viewport_settings: SceneViewportSettings,

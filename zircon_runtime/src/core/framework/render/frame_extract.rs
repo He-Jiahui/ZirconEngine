@@ -8,8 +8,8 @@ use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 mod particle_extract_policy;
 
 use super::{
-    build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CorePipelineKind,
-    DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
+    build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CameraRenderDescriptor,
+    CorePipelineKind, DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
     PostProcessStackDescriptor, PostProcessVolumeExtract, PreviewEnvironmentExtract,
     RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderBloomSettings,
     RenderCameraOrderReport, RenderCameraTarget, RenderColorGradingSettings,
@@ -63,6 +63,7 @@ pub trait RenderExtractProducer {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
+    pub cameras: Vec<CameraRenderDescriptor>,
     pub scene_camera_entity: Option<EntityId>,
     pub scene_camera_order_report: Option<RenderCameraOrderReport>,
     pub core_pipeline: CorePipelineKind,
@@ -74,8 +75,10 @@ impl RenderViewExtract {
     pub fn from_camera(camera: ViewportCameraSnapshot) -> Self {
         let core_pipeline = camera.core_pipeline_kind();
         let anti_alias = AntiAliasSettings::from_camera_msaa_samples(camera.msaa_samples);
-        let target_size = camera_target_size(&camera);
+        let descriptor = CameraRenderDescriptor::from_camera_payload(None, camera.clone());
+        let target_size = camera_target_size_from_descriptor(Some(&descriptor));
         Self {
+            cameras: vec![descriptor],
             camera,
             scene_camera_entity: None,
             scene_camera_order_report: None,
@@ -95,25 +98,109 @@ impl RenderViewExtract {
         self
     }
 
+    pub fn with_cameras(mut self, cameras: Vec<CameraRenderDescriptor>) -> Self {
+        self.cameras = cameras;
+        self
+    }
+
+    pub fn with_selected_camera_descriptor(
+        mut self,
+        mut descriptor: CameraRenderDescriptor,
+    ) -> Self {
+        descriptor.apply_target_size(
+            self.target_size
+                .or_else(|| camera_target_size_from_descriptor(Some(&descriptor)))
+                .unwrap_or_else(|| UVec2::new(1, 1)),
+        );
+        self.core_pipeline = descriptor.camera.core_pipeline_kind();
+        self.anti_alias =
+            AntiAliasSettings::from_camera_msaa_samples(descriptor.camera.msaa_samples);
+        self.camera = descriptor.camera.clone();
+        self.scene_camera_entity = descriptor.entity;
+        self.cameras = vec![descriptor];
+        self
+    }
+
+    pub fn selected_camera_descriptor(&self) -> Option<&CameraRenderDescriptor> {
+        self.scene_camera_entity
+            .and_then(|entity| {
+                self.cameras
+                    .iter()
+                    .find(|camera| camera.entity == Some(entity))
+            })
+            .or_else(|| self.cameras.first())
+    }
+
+    pub fn selected_camera_descriptor_mut(&mut self) -> Option<&mut CameraRenderDescriptor> {
+        if let Some(entity) = self.scene_camera_entity {
+            if let Some(index) = self
+                .cameras
+                .iter()
+                .position(|camera| camera.entity == Some(entity))
+            {
+                return self.cameras.get_mut(index);
+            }
+        }
+        self.cameras.first_mut()
+    }
+
+    pub fn selected_camera_target(&self) -> &RenderCameraTarget {
+        self.selected_camera_descriptor()
+            .map(|camera| &camera.target)
+            .expect("render view extract must carry a selected camera descriptor")
+    }
+
+    pub fn selected_camera_layers(&self) -> &RenderLayerSet {
+        self.selected_camera_descriptor()
+            .map(|camera| &camera.culling_mask)
+            .expect("render view extract must carry a selected camera descriptor")
+    }
+
+    pub fn selected_effective_camera(&self) -> ViewportCameraSnapshot {
+        self.selected_camera_descriptor()
+            .map(CameraRenderDescriptor::as_effective_camera)
+            .unwrap_or_else(|| self.camera.clone())
+    }
+
+    pub fn sync_selected_descriptor_camera_payload(&mut self) {
+        let camera_payload = self.camera.clone();
+        if let Some(camera) = self.selected_camera_descriptor_mut() {
+            camera.camera = camera_payload;
+            self.camera = camera.camera.clone();
+        }
+    }
+
     pub fn apply_target_size(&mut self, target_size: UVec2) {
         self.target_size = Some(target_size);
-        self.camera.apply_viewport_size(target_size);
+        self.sync_selected_descriptor_camera_payload();
+        if let Some(camera) = self.selected_camera_descriptor_mut() {
+            camera.apply_target_size(target_size);
+            self.camera = camera.camera.clone();
+        } else {
+            self.camera.apply_viewport_size(target_size);
+        }
     }
 
     pub fn effective_view_size(&self) -> UVec2 {
+        let camera = self.selected_effective_camera();
         let target_size = self
             .target_size
-            .or_else(|| camera_target_size(&self.camera))
+            .or_else(|| camera_target_size_from_descriptor(self.selected_camera_descriptor()))
             .unwrap_or_else(|| UVec2::new(1, 1));
-        self.camera.effective_viewport_size(target_size)
+        self.selected_camera_descriptor()
+            .map(|camera| camera.effective_viewport_size(target_size))
+            .unwrap_or_else(|| camera.effective_viewport_size(target_size))
     }
 
     pub fn effective_render_size(&self) -> UVec2 {
+        let camera = self.selected_effective_camera();
         let target_size = self
             .target_size
-            .or_else(|| camera_target_size(&self.camera))
+            .or_else(|| camera_target_size_from_descriptor(self.selected_camera_descriptor()))
             .unwrap_or_else(|| UVec2::new(1, 1));
-        self.camera.effective_render_size(target_size)
+        self.selected_camera_descriptor()
+            .map(|camera| camera.effective_render_size(target_size))
+            .unwrap_or_else(|| camera.effective_render_size(target_size))
     }
 }
 
@@ -743,6 +830,11 @@ impl RenderFrameExtract {
         self
     }
 
+    pub fn with_selected_camera_descriptor(mut self, descriptor: CameraRenderDescriptor) -> Self {
+        self.view = self.view.with_selected_camera_descriptor(descriptor);
+        self
+    }
+
     /// Builds a diagnostics summary for the frame's mesh and sprite phase queues.
     pub fn phase_queue_summary(&self) -> RenderFramePhaseQueueSummary {
         RenderFramePhaseQueueSummary::new(
@@ -752,12 +844,101 @@ impl RenderFrameExtract {
     }
 }
 
-fn camera_target_size(camera: &ViewportCameraSnapshot) -> Option<UVec2> {
-    if let Some(viewport) = camera.viewport {
+fn camera_target_size_from_descriptor(camera: Option<&CameraRenderDescriptor>) -> Option<UVec2> {
+    let camera = camera?;
+    if let Some(viewport) = camera.viewport_rect {
         return Some(viewport.physical_size);
     }
     match &camera.target {
         RenderCameraTarget::Headless { size } => Some(*size),
         RenderCameraTarget::PrimarySurface | RenderCameraTarget::Texture(_) => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{RenderCameraTarget, RenderLayerSet, RenderViewportRect};
+    use crate::core::resource::TextureMarker;
+
+    #[test]
+    fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
+        let mut view = RenderViewExtract::from_camera(ViewportCameraSnapshot::default());
+        let mut descriptor =
+            CameraRenderDescriptor::from_camera_payload(Some(7), ViewportCameraSnapshot::default());
+        descriptor.target = RenderCameraTarget::Headless {
+            size: UVec2::new(320, 180),
+        };
+        descriptor.viewport_rect = Some(RenderViewportRect::new(UVec2::ZERO, UVec2::new(320, 160)));
+        descriptor.culling_mask = RenderLayerSet::layer(3);
+        descriptor.volume_mask = RenderLayerSet::layer(4);
+        view.scene_camera_entity = Some(7);
+        view.cameras = vec![descriptor];
+
+        view.apply_target_size(UVec2::new(1280, 720));
+
+        let selected = view
+            .selected_camera_descriptor()
+            .expect("selected scene camera descriptor should remain present");
+        assert!(matches!(
+            selected.target,
+            RenderCameraTarget::Headless {
+                size: UVec2 { x: 320, y: 180 }
+            }
+        ));
+        assert_eq!(selected.culling_mask.to_legacy_mask_lossy(), 1 << 3);
+        assert_eq!(selected.volume_mask.to_legacy_mask_lossy(), 1 << 4);
+        assert!((view.camera.aspect_ratio - 2.0).abs() < 1.0e-4);
+    }
+
+    #[test]
+    fn render_frame_extract_selected_camera_descriptor_replaces_active_selection_only() {
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/camera-loop/rt",
+        ));
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(10),
+            RenderSceneSnapshot {
+                scene: RenderSceneGeometryExtract {
+                    camera: ViewportCameraSnapshot::default(),
+                    meshes: Vec::new(),
+                    directional_lights: Vec::new(),
+                    point_lights: Vec::new(),
+                    spot_lights: Vec::new(),
+                    ambient_lights: Vec::new(),
+                    rect_lights: Vec::new(),
+                },
+                overlays: RenderOverlayExtract::default(),
+                preview: PreviewEnvironmentExtract {
+                    lighting_enabled: false,
+                    skybox_enabled: false,
+                    fallback_skybox: FallbackSkyboxKind::None,
+                    clear_color: crate::core::math::Vec4::ZERO,
+                },
+                virtual_geometry_debug: None,
+            },
+        );
+        let mut primary =
+            CameraRenderDescriptor::from_camera_payload(Some(1), ViewportCameraSnapshot::default());
+        primary.render_order = 0;
+        let mut target =
+            CameraRenderDescriptor::from_camera_payload(Some(2), ViewportCameraSnapshot::default());
+        target.render_order = 10;
+        target.target = RenderCameraTarget::Texture(texture);
+        target.culling_mask = RenderLayerSet::layer(4);
+        extract.view = extract.view.with_cameras(vec![primary, target.clone()]);
+
+        let selected = extract.with_selected_camera_descriptor(target.clone());
+
+        assert_eq!(selected.view.scene_camera_entity, Some(2));
+        assert_eq!(selected.view.cameras.len(), 1);
+        assert_eq!(selected.view.selected_camera_target(), &target.target);
+        assert_eq!(
+            selected
+                .view
+                .selected_camera_layers()
+                .to_legacy_mask_lossy(),
+            1 << 4
+        );
     }
 }

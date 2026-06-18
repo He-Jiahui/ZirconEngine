@@ -25,14 +25,21 @@ component = "VerticalGroup"
 control_id = "WorkbenchInspectorPanel"
 classes = ["workbench-panel", "workbench-right-panel"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { min = 404.0, preferred = 404.0, max = 404.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-children = [{ node = "inspector_tabs" }, { node = "inspector_title" }, { node = "inspector_tags" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }]
+children = [{ node = "inspector_tabs" }, { node = "inspector_content" }]
 
 [nodes.inspector_tabs]
 component = "HorizontalGroup"
-control_id = "WorkbenchInspectorTabs"
+control_id = "RightDrawerHeaderRoot"
 classes = ["workbench-tabs"]
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
 children = [{ node = "inspector_tab_inspector" }, { node = "inspector_tab_history" }]
+
+[nodes.inspector_content]
+component = "VerticalGroup"
+control_id = "RightDrawerContentRoot"
+classes = ["workbench-right-drawer-content"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "inspector_title" }, { node = "inspector_tags" }, { node = "inspector_transform" }, { node = "inspector_mesh" }, { node = "inspector_add_component" }]
 
 [nodes.inspector_tab_inspector]
 component = "WorkbenchTab"

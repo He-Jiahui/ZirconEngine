@@ -1,6 +1,7 @@
 mod context;
 
-use crate::{plugin::ProjectPluginManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ProjectPluginManifest;
 
 use super::feature_definition_collection::feature_definition_map;
 use super::feature_report::RuntimePluginFeatureDependencyReport;

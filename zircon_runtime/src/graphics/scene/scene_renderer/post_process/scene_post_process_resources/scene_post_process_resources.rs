@@ -15,6 +15,8 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) color_lut_bake_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer) taa_resolve_bind_group_layout:
@@ -27,7 +29,11 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) upscale_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) output_transfer_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) smaa_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
         wgpu::RenderPipeline,
@@ -41,13 +47,23 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) color_lut_bake_pipeline:
+        wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_prepare_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) depth_of_field_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer) taa_resolve_pipeline: wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer) velocity_camera_pipeline: wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_neighbor_max_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) motion_blur_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) blur_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) scene_composite_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) screen_space_reflection_reflection_pyramid_pipeline:
         wgpu::RenderPipeline,
@@ -59,7 +75,17 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pipeline:
         wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) upscale_pipeline:
+        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) output_transfer_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) fxaa_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) smaa_edge_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) smaa_blend_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) smaa_resolve_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_params_buffer: wgpu::Buffer,
@@ -67,6 +93,8 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_params_buffer: wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_params_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) color_lut_bake_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) default_exposure_buffer:
         wgpu::Buffer,
@@ -96,6 +124,7 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) effect_lut_sampler: wgpu::Sampler,
     pub(in crate::graphics::scene::scene_renderer::post_process) scene_depth_sampler: wgpu::Sampler,
+    pub(in crate::graphics::scene::scene_renderer::post_process) upscale_sampler: wgpu::Sampler,
 }
 
 impl ScenePostProcessResources {

@@ -1,11 +1,11 @@
-use crate::{HybridGiRuntimeState, VirtualGeometryRuntimeState};
+use crate::graphics::{HybridGiRuntimeState, VirtualGeometryRuntimeState};
 
 use super::viewport_record::ViewportRecord;
 
 impl ViewportRecord {
     pub(in crate::graphics::runtime::render_framework) fn ensure_hybrid_gi_runtime(
         &mut self,
-        provider: &dyn crate::HybridGiRuntimeProvider,
+        provider: &dyn crate::graphics::HybridGiRuntimeProvider,
     ) -> &mut (dyn HybridGiRuntimeState + 'static) {
         if self.hybrid_gi_runtime.is_none() {
             self.hybrid_gi_runtime = Some(provider.create_state());
@@ -27,7 +27,7 @@ impl ViewportRecord {
 
     pub(in crate::graphics::runtime::render_framework) fn ensure_virtual_geometry_runtime(
         &mut self,
-        provider: &dyn crate::VirtualGeometryRuntimeProvider,
+        provider: &dyn crate::graphics::VirtualGeometryRuntimeProvider,
     ) -> &mut (dyn VirtualGeometryRuntimeState + 'static) {
         if self.virtual_geometry_runtime.is_none() {
             self.virtual_geometry_runtime = Some(provider.create_state());

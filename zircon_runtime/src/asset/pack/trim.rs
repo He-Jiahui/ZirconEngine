@@ -20,6 +20,7 @@ pub struct ZrPackTrimReport {
     pub included_assets: Vec<String>,
     pub trimmed_assets: Vec<ZrPackTrimmedAsset>,
     pub missing_dependencies: Vec<ZrPackMissingDependency>,
+    pub duplicate_assets: Vec<String>,
     pub diagnostics: Vec<String>,
 }
 
@@ -91,6 +92,10 @@ impl ZrPackTrimReport {
     pub fn has_missing_dependencies(&self) -> bool {
         !self.missing_dependencies.is_empty()
     }
+
+    pub fn has_duplicate_assets(&self) -> bool {
+        !self.duplicate_assets.is_empty()
+    }
 }
 
 impl ZrPackTrimmedAsset {
@@ -130,7 +135,7 @@ impl ZrPackTrimPlanner {
         config: ZrPackTrimConfig,
         assets: impl IntoIterator<Item = ZrPackTrimInputAsset>,
     ) -> ZrPackTrimReport {
-        let (asset_map, diagnostics) = collect_assets(assets);
+        let (asset_map, mut duplicate_assets, diagnostics) = collect_assets(assets);
         let (reachable_assets, mut missing_dependencies, mut diagnostics) =
             reachable_asset_closure(&config, &asset_map, diagnostics);
         let mut included_assets = Vec::new();
@@ -159,12 +164,15 @@ impl ZrPackTrimPlanner {
                 .cmp(&right.owner)
                 .then(left.dependency.cmp(&right.dependency))
         });
+        duplicate_assets.sort();
+        duplicate_assets.dedup();
         diagnostics.sort();
 
         ZrPackTrimReport {
             included_assets,
             trimmed_assets,
             missing_dependencies,
+            duplicate_assets,
             diagnostics,
         }
     }
@@ -172,18 +180,24 @@ impl ZrPackTrimPlanner {
 
 fn collect_assets(
     assets: impl IntoIterator<Item = ZrPackTrimInputAsset>,
-) -> (BTreeMap<String, ZrPackTrimInputAsset>, Vec<String>) {
+) -> (
+    BTreeMap<String, ZrPackTrimInputAsset>,
+    Vec<String>,
+    Vec<String>,
+) {
     let mut asset_map = BTreeMap::new();
+    let mut duplicate_assets = Vec::new();
     let mut diagnostics = Vec::new();
     for asset in assets {
         if asset_map.contains_key(&asset.path) {
             diagnostics.push(format!("asset {} is duplicated in trim input", asset.path));
+            duplicate_assets.push(asset.path);
             continue;
         }
         asset_map.insert(asset.path.clone(), asset);
     }
 
-    (asset_map, diagnostics)
+    (asset_map, duplicate_assets, diagnostics)
 }
 
 fn reachable_asset_closure(

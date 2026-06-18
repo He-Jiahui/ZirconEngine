@@ -1,4 +1,4 @@
-use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 use crate::{plugin_registration, runtime_capabilities, runtime_plugin_descriptor, AI_MODULE_NAME};
 

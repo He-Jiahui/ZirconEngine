@@ -1,5 +1,9 @@
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
+use crate::graphics::scene::scene_renderer::post_process::resources::render_region::{
+    apply_render_region_to_pass, create_terminal_region_params_buffer,
+};
+use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ScenePostProcessResources {
@@ -10,14 +14,26 @@ impl ScenePostProcessResources {
         tonemapped_view: &wgpu::TextureView,
         final_color_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
+        render_region: ViewportRenderRegion,
     ) {
+        let terminal_region_params_buffer = create_terminal_region_params_buffer(
+            device,
+            "zircon-output-transfer-terminal-region-params",
+            render_region,
+        );
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-output-transfer-bind-group"),
             layout: &self.output_transfer_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(tonemapped_view),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(tonemapped_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: terminal_region_params_buffer.as_entire_binding(),
+                },
+            ],
         });
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("OutputTransferPass"),
@@ -32,6 +48,9 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
+        if !apply_render_region_to_pass(&mut pass, render_region) {
+            return;
+        }
         pass.set_pipeline(&self.output_transfer_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);

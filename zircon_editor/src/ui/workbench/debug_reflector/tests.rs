@@ -107,7 +107,7 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
             && section.lines.iter().any(|line| {
                 line.contains("node=2")
                     && line.contains("family=Overlay")
-                    && line.contains("selected=LegacyZircon")
+                    && line.contains("selected=Zircon")
                     && line.contains("reason=ZirconOwnedSemantics")
                     && line.contains("taffy_tree_builds=0")
                     && line.contains("taffy_tree_nodes=0")
@@ -526,7 +526,7 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
 
 fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
     let taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
-    let zircon = UiLayoutEngineCapability::legacy_zircon();
+    let zircon = UiLayoutEngineCapability::zircon();
     UiLayoutEngineSelectionReport::from_selections(vec![
         UiLayoutEngineSelection::select(
             &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Flex),
@@ -547,7 +547,7 @@ fn layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
 fn unsupported_layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
     let mut taffy = UiLayoutEngineCapability::taffy_flex_grid_wrap_block();
     taffy.supported_families.clear();
-    let mut zircon = UiLayoutEngineCapability::legacy_zircon();
+    let mut zircon = UiLayoutEngineCapability::zircon();
     zircon.supported_families.clear();
     UiLayoutEngineSelectionReport::from_selections(vec![UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block),

@@ -329,7 +329,6 @@ pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
         )
         .with_executor_id("particle.transparent")
         .read_texture("scene-depth")
-        .read_texture("scene-color")
         .write_texture("scene-color")],
     )
 }
@@ -362,7 +361,6 @@ pub(super) fn particle_render_feature_descriptor_with_velocity() -> RenderFeatur
             )
             .with_executor_id("particle.transparent")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
         ],
     )
@@ -553,13 +551,13 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
             .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
-            .read_external(PostProcessGraphResourceNames::BLOOM)
+            .read_texture(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
             .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
             .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
-            .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
         ],
     )
 }

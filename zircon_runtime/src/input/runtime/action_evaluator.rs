@@ -1,6 +1,9 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-use crate::input::{InputActionMap, InputActionState, InputButton, InputFrameSnapshot};
+use crate::input::{
+    GamepadAxisInput, InputActionMap, InputActionState, InputBinding, InputButton,
+    InputFrameSnapshot,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct InputActionEvaluator {
@@ -29,15 +32,72 @@ impl InputActionEvaluator {
         frame: &InputFrameSnapshot,
         consumed_buttons: &[InputButton],
     ) -> InputActionState {
+        self.evaluate_with_consumed_input(frame, consumed_buttons, &[])
+    }
+
+    pub fn evaluate_with_consumed_input(
+        &self,
+        frame: &InputFrameSnapshot,
+        consumed_buttons: &[InputButton],
+        consumed_axes: &[GamepadAxisInput],
+    ) -> InputActionState {
+        self.evaluate_with_active_contexts_and_consumed_input(
+            frame,
+            &[] as &[&str],
+            consumed_buttons,
+            consumed_axes,
+        )
+    }
+
+    pub fn evaluate_with_active_contexts(
+        &self,
+        frame: &InputFrameSnapshot,
+        active_contexts: &[impl AsRef<str>],
+    ) -> InputActionState {
+        self.evaluate_with_active_contexts_and_consumed_buttons(frame, active_contexts, &[])
+    }
+
+    pub fn evaluate_with_active_contexts_and_consumed_buttons(
+        &self,
+        frame: &InputFrameSnapshot,
+        active_contexts: &[impl AsRef<str>],
+        consumed_buttons: &[InputButton],
+    ) -> InputActionState {
+        self.evaluate_with_active_contexts_and_consumed_input(
+            frame,
+            active_contexts,
+            consumed_buttons,
+            &[],
+        )
+    }
+
+    pub fn evaluate_with_active_contexts_and_consumed_input(
+        &self,
+        frame: &InputFrameSnapshot,
+        active_contexts: &[impl AsRef<str>],
+        consumed_buttons: &[InputButton],
+        consumed_axes: &[GamepadAxisInput],
+    ) -> InputActionState {
         let consumed_buttons = consumed_buttons.iter().cloned().collect::<BTreeSet<_>>();
+        let consumed_axes = consumed_axes.iter().cloned().collect::<BTreeSet<_>>();
+        let active_contexts = active_contexts
+            .iter()
+            .map(|context| context.as_ref())
+            .collect::<BTreeSet<_>>();
         let mut pressed = BTreeSet::new();
         let mut just_activated = BTreeSet::new();
         let mut just_deactivated = BTreeSet::new();
+        let mut values = BTreeMap::new();
 
         for action in &self.action_map.actions {
+            if !self.action_context_is_active(action.context.as_deref(), &active_contexts) {
+                continue;
+            }
+
             let mut action_pressed = false;
             let mut action_just_activated = false;
             let mut action_just_deactivated = false;
+            let mut action_value = 0.0;
 
             for binding in self.action_map.bindings_for_action(&action.id) {
                 if binding
@@ -48,6 +108,8 @@ impl InputActionEvaluator {
                     continue;
                 }
 
+                let has_buttons = !binding.buttons.is_empty();
+                let has_axes = !binding.axes.is_empty();
                 let all_pressed = binding
                     .buttons
                     .iter()
@@ -61,8 +123,28 @@ impl InputActionEvaluator {
                     .iter()
                     .any(|button| frame.buttons.just_released(button));
 
+                if has_axes {
+                    if !all_pressed {
+                        action_just_deactivated |= has_buttons && any_just_released;
+                        continue;
+                    }
+
+                    let axis_transition = binding_axis_transition(frame, binding, &consumed_axes);
+                    let axis_value = binding_axis_value(frame, binding, &consumed_axes);
+                    if axis_value != 0.0 {
+                        action_pressed = true;
+                        action_value = dominant_action_value(action_value, axis_value);
+                        action_just_activated |=
+                            (has_buttons && any_just_pressed) || axis_transition.activated;
+                    } else {
+                        action_just_deactivated |= axis_transition.deactivated;
+                    }
+                    continue;
+                }
+
                 if all_pressed {
                     action_pressed = true;
+                    action_value = dominant_action_value(action_value, 1.0);
                     action_just_activated |= any_just_pressed;
                 } else {
                     action_just_deactivated |= any_just_released;
@@ -71,6 +153,7 @@ impl InputActionEvaluator {
 
             if action_pressed {
                 pressed.insert(action.id.clone());
+                values.insert(action.id.clone(), action_value);
                 if action_just_activated {
                     just_activated.insert(action.id.clone());
                 }
@@ -79,6 +162,115 @@ impl InputActionEvaluator {
             }
         }
 
-        InputActionState::from_sets(pressed, just_activated, just_deactivated)
+        InputActionState::from_sets_and_values(pressed, just_activated, just_deactivated, values)
+    }
+
+    fn action_context_is_active(
+        &self,
+        action_context: Option<&str>,
+        active_contexts: &BTreeSet<&str>,
+    ) -> bool {
+        let Some(context) = action_context else {
+            return true;
+        };
+
+        if !self.action_map.context_enabled(context) {
+            return false;
+        }
+
+        active_contexts.is_empty() || active_contexts.contains(context)
+    }
+}
+
+fn binding_axis_consumed(
+    gamepad_axis: GamepadAxisInput,
+    consumed_axes: &BTreeSet<GamepadAxisInput>,
+) -> bool {
+    consumed_axes.contains(&gamepad_axis)
+}
+
+fn binding_axis_value(
+    frame: &InputFrameSnapshot,
+    binding: &InputBinding,
+    consumed_axes: &BTreeSet<GamepadAxisInput>,
+) -> f32 {
+    binding
+        .axes
+        .iter()
+        .filter(|binding_axis| {
+            !binding_axis_consumed(
+                GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis),
+                consumed_axes,
+            )
+        })
+        .filter_map(|binding_axis| {
+            frame
+                .gamepad_axes
+                .iter()
+                .find(|axis| axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis)
+                .map(|axis| binding_axis.value(axis.value))
+        })
+        .fold(0.0, dominant_action_value)
+}
+
+fn binding_axis_transition(
+    frame: &InputFrameSnapshot,
+    binding: &InputBinding,
+    consumed_axes: &BTreeSet<GamepadAxisInput>,
+) -> BindingAxisTransition {
+    let mut any_transition = false;
+    let mut previous_value = 0.0;
+    let mut value = 0.0;
+
+    for binding_axis in &binding.axes {
+        if binding_axis_consumed(
+            GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis),
+            consumed_axes,
+        ) {
+            continue;
+        }
+
+        let axis_transition = frame
+            .gamepad_axis_transitions
+            .iter()
+            .find(|axis| axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis);
+        let current_source = axis_transition
+            .map(|axis| axis.value)
+            .or_else(|| {
+                frame
+                    .gamepad_axes
+                    .iter()
+                    .find(|axis| {
+                        axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis
+                    })
+                    .map(|axis| axis.value)
+            })
+            .unwrap_or(0.0);
+        let previous_source = axis_transition
+            .map(|axis| axis.previous_value)
+            .unwrap_or(current_source);
+
+        any_transition |= axis_transition.is_some();
+        previous_value = dominant_action_value(previous_value, binding_axis.value(previous_source));
+        value = dominant_action_value(value, binding_axis.value(current_source));
+    }
+
+    BindingAxisTransition {
+        activated: any_transition && previous_value == 0.0 && value != 0.0,
+        deactivated: any_transition && previous_value != 0.0 && value == 0.0,
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct BindingAxisTransition {
+    activated: bool,
+    deactivated: bool,
+}
+
+fn dominant_action_value(current: f32, candidate: f32) -> f32 {
+    if candidate.abs() > current.abs() {
+        candidate
+    } else {
+        current
     }
 }

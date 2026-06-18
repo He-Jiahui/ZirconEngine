@@ -3,6 +3,11 @@ related_code:
   - zircon_runtime/src/navigation/mod.rs
   - zircon_runtime/src/navigation/module.rs
   - zircon_runtime/src/navigation/runtime.rs
+  - zircon_runtime/src/navigation/runtime/avoidance.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh.rs
+  - zircon_runtime/src/navigation/runtime/math.rs
+  - zircon_runtime/src/navigation/runtime/state.rs
+  - zircon_runtime/src/navigation/runtime/world_scan.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -13,6 +18,12 @@ implementation_files:
   - zircon_runtime/src/navigation/mod.rs
   - zircon_runtime/src/navigation/module.rs
   - zircon_runtime/src/navigation/runtime.rs
+  - zircon_runtime/src/navigation/runtime/avoidance.rs
+  - zircon_runtime/src/navigation/runtime/baked_mesh.rs
+  - zircon_runtime/src/navigation/runtime/math.rs
+  - zircon_runtime/src/navigation/runtime/state.rs
+  - zircon_runtime/src/navigation/runtime/tests.rs
+  - zircon_runtime/src/navigation/runtime/world_scan.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -27,6 +38,7 @@ tests:
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_navigation_boundary_file_set_requires_doc_update
+  - zircon_runtime/src/navigation/runtime/tests.rs::tick_world_agent_moves_only_selected_agent_and_avoids_local_colliders
   - "pending: cargo test -p zircon_runtime --lib navigation --locked"
 doc_type: module-detail
 ---
@@ -55,6 +67,16 @@ The runtime stores baked vertices, polygons, and graph edges, then supports:
 - agent ticking toward dynamic destinations
 - local separation from obstacles and nearby agents
 
+The folder-backed runtime owner split keeps those responsibilities in focused files without changing the public `BuiltinNavigationManager` contract:
+
+- `runtime.rs` owns manager construction, service trait orchestration, mesh selection, public method routing, and per-agent tick flow.
+- `runtime/state.rs` owns loaded mesh handles, selected mesh state, runtime settings, and stats.
+- `runtime/baked_mesh.rs` owns baked polygon storage, adjacency, A* pathfinding, sample-position, raycast, and path result helpers.
+- `runtime/world_scan.rs` owns ECS component scanning for runtime agents, nearby agents, and runtime obstacles.
+- `runtime/avoidance.rs` owns local obstacle and agent separation.
+- `runtime/math.rs` owns shared navigation math helpers.
+- `runtime/tests.rs` owns focused fallback runtime behavior tests.
+
 Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agent component to the mover and invokes the navigation runtime. This keeps enemy chase behavior tied to the baked scene instead of raw per-frame translation.
 
 ## Scope
@@ -65,7 +87,7 @@ The current runtime navigation module does not replace that plugin. It gives `zi
 
 ## Runtime 14 Boundary Judgment
 
-Runtime 14 corrected the earlier "thin navigation module" assumption. The module still has only three Rust files, but `runtime.rs` owns real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance.
+Runtime 14 corrected the earlier "thin navigation module" assumption. The module now has 9 Rust owner files after the folder-backed runtime owner split, and `runtime.rs` remains the manager owner for real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance.
 
 The crate-root seat remains intentional. `core::framework::navigation` owns contracts and DTOs, while `zircon_runtime::navigation` owns the built-in fallback implementation used when the external Recast-backed plugin stack is not linked into the process.
 
@@ -75,5 +97,6 @@ The Runtime 14 judgement is:
 
 - Keep `navigation` at crate root as a self-contained runtime fallback.
 - Do not split behavior into more root-level navigation families unless baking/editor/Recast ownership moves into `zircon_runtime`, which is currently a non-goal.
+- Keep the folder-backed runtime owner split documented whenever `runtime/avoidance.rs`, `runtime/baked_mesh.rs`, `runtime/world_scan.rs`, `runtime/state.rs`, `runtime/math.rs`, or `runtime/tests.rs` changes ownership.
 - If future code adds new navigation behavior files, document whether they extend the fallback runtime or belong in `zircon_plugins/navigation`.
 `runtime_navigation_boundary_file_set_requires_doc_update` asserts the current file set and forces new behavior files to update this document before expanding the fallback runtime.

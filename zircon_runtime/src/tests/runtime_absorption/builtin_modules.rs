@@ -1,8 +1,8 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::{
     builtin::{builtin_runtime_modules, runtime_modules_for_target},
     plugin::ProjectPluginManifest,
     plugin::ProjectPluginSelection,
-    RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]

@@ -3,9 +3,8 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use zircon_runtime::{
-    plugin::ExportBuildPlan, plugin::NativePluginLoadReport, plugin::PluginModuleKind,
-};
+use zircon_runtime::plugin::native::NativePluginLoadReport;
+use zircon_runtime::plugin::{ExportBuildPlan, PluginModuleKind};
 
 use super::artifacts::{
     copy_built_native_artifact, copy_native_artifacts, dynamic_library_file_name,

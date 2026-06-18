@@ -12,7 +12,8 @@ pub(in super::super) struct OptionalFeatureParserState {
     pub(in super::super) current_module_name: Option<String>,
     pub(in super::super) current_module_kind: Option<zircon_runtime::plugin::PluginModuleKind>,
     pub(in super::super) current_module_crate_name: Option<String>,
-    pub(in super::super) current_module_target_modes: Vec<zircon_runtime::RuntimeTargetMode>,
+    pub(in super::super) current_module_target_modes:
+        Vec<zircon_runtime::builtin::RuntimeTargetMode>,
     pub(in super::super) current_module_capabilities: Vec<String>,
     pub(in super::super) section: OptionalFeatureSection,
 }

@@ -101,6 +101,7 @@ fn projected_node(
             .into_iter()
             .map(|(name, value)| (name.to_owned(), value))
             .collect::<BTreeMap<_, _>>(),
+        style_overrides: BTreeMap::new(),
         style_tokens: BTreeMap::new(),
         bindings: Vec::new(),
     }

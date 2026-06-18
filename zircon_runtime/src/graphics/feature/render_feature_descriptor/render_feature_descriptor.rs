@@ -1,4 +1,4 @@
-use crate::FrameHistoryBinding;
+use crate::graphics::FrameHistoryBinding;
 
 use super::super::render_feature_capability_requirement::RenderFeatureCapabilityRequirement;
 use super::super::render_feature_pass_descriptor::RenderFeaturePassDescriptor;

@@ -1,19 +1,27 @@
 mod bloom_pipeline;
+mod blur_pipeline;
 mod build;
 mod cluster_pipeline;
+mod color_lut_bake_pipeline;
+mod depth_of_field_pipeline;
 mod depth_of_field_prepare_pipeline;
 mod exposure_histogram_pipeline;
 mod exposure_resolve_pipeline;
+mod fxaa_pipeline;
 mod hzb_pipeline;
+mod motion_blur_pipeline;
 mod motion_vector_neighbor_max_pipeline;
 mod motion_vector_tile_max_pipeline;
 mod output_transfer_pipeline;
 mod post_process_pipeline;
+mod scene_composite_pipeline;
 mod screen_space_reflection_reflection_pyramid_coarse_pipeline;
 mod screen_space_reflection_reflection_pyramid_pipeline;
 mod screen_space_reflection_resolve_pipeline;
 mod screen_space_reflection_specular_occlusion_pipeline;
+mod smaa_pipeline;
 mod taa_resolve_pipeline;
+mod upscale_pipeline;
 mod velocity_camera_pipeline;
 
 pub(super) use build::create_pipeline_bundle;

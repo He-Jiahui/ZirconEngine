@@ -7,11 +7,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTreeNode},
 };
 
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
-use crate::ui::retained_host::root_shell_projection::{
-    resolve_root_bottom_splitter_frame, resolve_root_left_splitter_frame,
-    resolve_root_right_splitter_frame,
-};
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::autolayout::ShellSizePx;
@@ -100,7 +96,7 @@ pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
 pub(super) fn update_resize_surface(
     surface: &mut UiSurface,
     root_size: ShellSizePx,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) {
     let root_frame = UiFrame::new(
         0.0,
@@ -124,7 +120,9 @@ pub(super) fn update_resize_surface(
             surface,
             node_id,
             frame_if_visible(clamp_frame_to_root(
-                resize_splitter_frame(shared_root_frames, region),
+                resize_splitter_frame(
+                    componentized_workbench_layout_frames.resize_splitter_frame(region),
+                ),
                 root_frame,
             )),
         );
@@ -133,14 +131,8 @@ pub(super) fn update_resize_surface(
     surface.rebuild();
 }
 
-fn resize_splitter_frame(
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
-    region: ShellRegionId,
-) -> ShellFrame {
-    match region {
-        ShellRegionId::Left => resolve_root_left_splitter_frame(shared_root_frames),
-        ShellRegionId::Right => resolve_root_right_splitter_frame(shared_root_frames),
-        ShellRegionId::Bottom => resolve_root_bottom_splitter_frame(shared_root_frames),
-        ShellRegionId::Document => Default::default(),
-    }
+fn resize_splitter_frame(componentized_resize_splitter_frame: Option<UiFrame>) -> ShellFrame {
+    componentized_resize_splitter_frame
+        .filter(|frame| frame.width > 0.0 && frame.height > 0.0)
+        .unwrap_or_default()
 }

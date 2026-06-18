@@ -11,6 +11,24 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 14 animation family 28-file audit sync",
+        [
+            "animation = 28",
+            "navigation = 9",
+            "module_family_boundary",
+            "module_family_source_count_static_passed_cargo_pending",
+        ],
+    ),
+    (
+        "Runtime 14 navigation fallback runtime owner split",
+        [
+            "navigation_runtime_owner_split_static_passed_cargo_pending",
+            "folder-backed runtime owner split",
+            "navigation = 9",
+            "runtime/avoidance.rs",
+        ],
+    ),
+    (
         "Runtime 14 Module family guard anchors 审计同步",
         [
             "module_family_guard_anchor_count = 7",

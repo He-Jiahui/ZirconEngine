@@ -1,11 +1,36 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/chrome_press.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/close_prompt_hit.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/asset_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/viewport_button.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/resize_capture.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/tab_drag.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/bar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/frames.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/popup.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -52,11 +77,36 @@ related_code:
   - zircon_editor/src/tests/workbench/layout/drawer_attachment.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/chrome_press.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/close_prompt_hit.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/asset_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/viewport_button.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/resize_capture.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/tab_drag.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/bar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/frames.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/popup.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -143,12 +193,53 @@ tests:
   - tools/ui-profile-capture.ps1 -Scenario viewport_image -AutoInteract -RequireScenarioEvidence -AutoCloseSeconds 3 -SkipBuild (20260516-000208-viewport_image: dirty_paint_only_count=1, redraw_region_count=1, gpu_draw_calls=16, gpu_visible_draw_items=21, zero alerts/fallback)
   - cargo test -p zircon_editor --lib retained_window --offline --message-format=short
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -TargetDir target/codex-shared-a
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer routing/redraw ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer routing/redraw responsibility split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer drag/resize ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer drag/resize responsibility split: passed with existing warning noise only; `native_pointer.rs` is 732 lines and `native_pointer/drag_resize.rs` is 242 lines)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer move-dispatch ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer move-dispatch responsibility split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer button/scroll dispatch ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer button/scroll responsibility split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer button subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer button subtree split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer pane callback subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer pane callback subtree split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer routing subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer routing subtree split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer menu geometry subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer menu geometry subtree split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer drag/resize capture subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer drag/resize capture subtree split: passed with existing warning noise only)
 doc_type: module-detail
 ---
 
 # Native Pointer Host Contract
 
-The native retained host contract is the editor-side boundary that translates root window pointer and keyboard input into editor shell callbacks. `native_pointer.rs` owns hit routing for top-level chrome, pane surfaces, template nodes, tab dragging, and shell resize splitters. `window.rs` owns keyboard/text dispatch after `native_pointer.rs` has established a focused text-input target.
+The native retained host contract is the editor-side boundary that translates root window pointer and keyboard input into editor shell callbacks. `native_pointer.rs` owns only the native pointer subtree assembly, shared pointer constants, and `NativePointerButtonState`. `native_pointer/button_dispatch.rs` owns the root pointer button event ordering and delegates pane callback fanout, chrome callback fanout, text-focus activation, close-prompt hit resolution, and viewport button id conversion to its folder-backed children. `native_pointer/move_dispatch.rs` owns the root pointer-move flow. `native_pointer/scroll_dispatch.rs` owns root pointer scroll dispatch. `native_pointer/drag_resize.rs` owns transient resize capture and tab-drag state progression. `native_pointer/routing.rs` owns route payload types and delegates hit routing for top-level chrome, pane surfaces, workbench template nodes, viewport toolbar targets, floating-window content, and shell resize splitters to its folder-backed children. `window.rs` owns keyboard/text dispatch after the native pointer subtree has established a focused text-input target.
+
+## Routing Ownership
+
+`native_pointer/routing.rs` is the pure hit-routing owner. It exposes route helpers for top-level chrome, default pane hit testing, pointer-move pane hit testing, and componentized Workbench template-node hit testing, while keeping `ChromePointerRoute`, `PanePointerRoute`, and `PanePointerTarget` as the shared route payload contract.
+
+The concrete route construction now lives under the routing subtree. `routing/chrome.rs` owns resize splitters, document tabs, drawer headers, activity rails, host page tabs, and floating-window header hit testing. `routing/panes.rs` owns floating/local pane body routing, viewport toolbar priority, template-node pane hits, and pane-kind target mapping. `routing/geometry.rs` owns containment, translation, side-dock content frames, and floating-window content geometry. `routing/workbench.rs` owns componentized Workbench template-node routing. The parent dispatcher consumes those route results but no longer defines tab/header/activity-rail/floating-window/pane route construction itself.
+
+## Redraw Result Ownership
+
+`native_pointer/redraw_result.rs` owns the wrapper layer that turns route-specific damage calculations into `NativePointerDispatchResult` values. It centralizes pointer-move hover damage, Workbench template-node hover damage, resize redraw, chrome press redraw, tab-drag release redraw, and hierarchy row hover damage. The specialized damage geometry remains in `chrome_damage.rs`, `resize_damage.rs`, `tab_drag_damage.rs`, and `template_hover_damage.rs`; the parent dispatcher now chooses when those redraw helpers apply.
+
+## Move Dispatch Ownership
+
+`native_pointer/move_dispatch.rs` owns the pointer-move path after winit input reaches the retained host. It first lets resize and tab-drag captures consume movement, then routes menu hover, componentized Workbench template hover, pane hover, viewport move events, and hover clearing.
+
+The module also owns the special Workbench structured-row hover mapping for dropdown options and popup menu items. This keeps the root native-pointer dispatcher from mixing high-frequency hover orchestration with button press, scroll, text focus, and chrome click behavior.
+
+## Button Dispatch Ownership
+
+`native_pointer/button_dispatch.rs` owns pointer press/release dispatch after winit input reaches the retained host. It preserves the existing event ordering: finish active resize or tab-drag capture on primary release, block close-prompt overlay clicks, clear text focus on primary press, route menu and outside-popup presses, route top-level chrome press/capture setup, then route Workbench template hits and pane body button callbacks.
+
+The helper responsibilities now live under the button-dispatch subtree. `button_dispatch/chrome_press.rs` owns top-level chrome callback fanout and resize arm delegation. `button_dispatch/pane_callbacks.rs` owns the pane-button routing entry and final pane-press damage fallback, while `pane_callbacks/native_panes.rs`, `pane_callbacks/asset_panes.rs`, `pane_callbacks/viewport.rs`, and `pane_callbacks/template_nodes.rs` own the concrete pane-family callback fanout. `button_dispatch/text_focus.rs` owns template text-input focus activation. `button_dispatch/close_prompt_hit.rs` owns close-prompt button hit resolution. `button_dispatch/viewport_button.rs` owns native-to-viewport button id conversion. Keeping these helpers in named children prevents `button_dispatch.rs` from becoming a second mixed native-pointer root.
+
+## Scroll Dispatch Ownership
+
+`native_pointer/scroll_dispatch.rs` owns scroll input after winit dispatch. It routes menu scroll first, then pane scroll targets, forwarding native pane scroll callbacks and viewport scroll events with the shared viewport pointer constants. It intentionally ignores non-scrollable template, toolbar, UI asset, and fallback pane targets without touching button or hover state.
+
+## Drag And Resize Ownership
+
+`native_pointer/drag_resize.rs` owns the capture-style lifecycle entry points for shell splitters and document/drawer tab drags. The concrete state machines now live in children: `drag_resize/resize_capture.rs` arms resize capture on a splitter press, short-circuits subsequent root moves while resize is active, forwards down/move/up events to host resize callbacks, clears resize state on release, and asks the redraw-result layer for bounded resize damage.
+
+`drag_resize/tab_drag.rs` arms tab drag state from document tabs, drawer-header tabs, and floating-window tabs; waits for the drag-start distance threshold; forwards drag down/move/up events; resolves the source tab payload; and clears drag state after release. Keeping these state machines outside `native_pointer.rs` leaves the root dispatcher focused on event ordering, route selection, and callback timing.
 
 ## Text Input Focus
 
@@ -166,7 +257,9 @@ This keeps binding-only template inputs typable: pointer press can focus the nod
 
 ## Menu Damage
 
-Menu hit testing and popup damage math are isolated in `native_pointer/menu_geometry.rs`. `native_pointer.rs` still owns pointer routing and callback dispatch, but the menu helper module owns the top-bar, popup, nested-popup, and menu-damage rectangles.
+Menu hit testing and popup damage math are isolated in the `native_pointer/menu_geometry` subtree. `native_pointer.rs` still owns pointer routing and callback dispatch, while `menu_geometry.rs` re-exports the menu entry points consumed by button, move, and scroll dispatch.
+
+`menu_geometry/bar.rs` owns top-bar and scrolled menu-control containment. `menu_geometry/popup.rs` owns open-menu popup containment, nested submenu containment, and the blocking region under the menu bar. `menu_geometry/damage.rs` owns menu damage rectangles for the current and explicit menu state. `menu_geometry/frames.rs` owns the shared popup constraints, row frames, menu-bar fallback frame, shell extents, and submenu frame math.
 
 Primary menu clicks measure menu damage before and after `HostMenuStateData` changes, then request a regional repaint for the union of those rectangles. If the same click clears a focused text input, the old edit frame is unioned into that region as well. This keeps menu open/close and focus-outline cleanup on the paint-only path instead of requesting a full host frame update.
 
@@ -202,7 +295,7 @@ The dispatcher still requests a frame update for these paths, so Rust callbacks 
 
 ## Resize Capture
 
-Resize splitters live in `HostResizeLayerData` and are hit by `route_top_level_chrome(...)` as `ChromePointerRoute::Resize`. A splitter press starts a host resize session by storing `HostResizeStateData` in `HostContractState` and emitting `HOST_POINTER_DOWN`.
+Resize splitters live in `HostResizeLayerData` and are hit by `route_top_level_chrome(...)` as `ChromePointerRoute::Resize`. A splitter press enters `native_pointer/drag_resize/resize_capture.rs`, starts a host resize session by storing `HostResizeStateData` in `HostContractState`, and emits `HOST_POINTER_DOWN`.
 
 While that resize state is active, root pointer move dispatch short-circuits before tab dragging, menus, and pane routing. Every move emits `HOST_POINTER_MOVE`, updates the stored pointer coordinates, and requests a frame update with regional damage. Primary release emits `HOST_POINTER_UP`, clears the resize state, and uses the same regional damage path.
 
@@ -212,7 +305,7 @@ The resize damage rectangle is the committed center band, computed in `native_po
 
 ## Tab Drag Release Damage
 
-Tab drag release still emits `HOST_POINTER_UP` before clearing capture, but it no longer blindly requests a full native frame for every active drag. After the callback updates `HostDragStateData.active_drag_target_group`, the dispatcher computes release damage from `native_pointer/tab_drag_damage.rs`.
+Tab drag release still emits `HOST_POINTER_UP` before clearing capture, but it no longer blindly requests a full native frame for every active drag. `native_pointer/drag_resize/tab_drag.rs` forwards the release callback, reads the updated `HostDragStateData.active_drag_target_group`, and asks the redraw-result layer to compute release damage from `native_pointer/tab_drag_damage.rs`.
 
 Resolvable dock releases use this regional path. When `drag_source_group` and `active_drag_target_group` are the same local dock group, the redraw request keeps the required frame update and limits damage to that dock plus status. When both groups are known but different local docks, or when the target is a `document-left/right/top/bottom` edge split, the damage widens to center band plus status because the move can rearrange drawers and document chrome.
 
@@ -246,6 +339,18 @@ For each drawer, the normalization rule is:
 4. Write the same resolved id back to both fields.
 
 The resulting invariant is zero or one active drawer item per drawer. This prevents a selected drawer title drag/drop path from leaving one active id in the tab stack and another in the drawer view field, which looked like multi-selection at the target location.
+
+The 2026-06-18 button/scroll dispatch split reduced `native_pointer.rs` to 33 lines. `native_pointer/button_dispatch.rs` is 460 lines, `native_pointer/scroll_dispatch.rs` is 109 lines, and `native_pointer/move_dispatch.rs` remains 133 lines. The parent now stays structural: it declares the subtree, re-exports dispatch entries, and keeps shared pointer constants/state; button, move, scroll, drag/resize, routing, damage, and geometry responsibilities live in named children.
+
+The 2026-06-18 button subtree split reduced `native_pointer/button_dispatch.rs` to 173 lines. The new `button_dispatch/chrome_press.rs`, `button_dispatch/pane_callbacks.rs`, `button_dispatch/text_focus.rs`, `button_dispatch/close_prompt_hit.rs`, and `button_dispatch/viewport_button.rs` keep callback fanout, text focus, close-prompt hit testing, and button-id conversion out of the root button event-ordering module.
+
+The 2026-06-18 pane callback subtree split reduced `native_pointer/button_dispatch/pane_callbacks.rs` to 126 lines. The new `pane_callbacks/native_panes.rs`, `pane_callbacks/asset_panes.rs`, `pane_callbacks/viewport.rs`, and `pane_callbacks/template_nodes.rs` keep concrete pane-family callback fanout out of the pane button ordering entry.
+
+The 2026-06-18 routing subtree split reduced `native_pointer/routing.rs` to 88 lines. The new `routing/chrome.rs`, `routing/panes.rs`, `routing/geometry.rs`, and `routing/workbench.rs` keep chrome hit routing, pane hit routing, route geometry, and Workbench template-node route entry separate from shared route payload declarations.
+
+The 2026-06-18 menu geometry subtree split reduced `native_pointer/menu_geometry.rs` to 8 lines. The new `menu_geometry/bar.rs`, `menu_geometry/popup.rs`, `menu_geometry/damage.rs`, and `menu_geometry/frames.rs` keep menu-bar containment, popup containment, damage calculation, and shared popup frame math separated while preserving the original menu dispatch entry points.
+
+The 2026-06-18 drag/resize capture subtree split reduced `native_pointer/drag_resize.rs` to 9 lines. The new `drag_resize/resize_capture.rs` and `drag_resize/tab_drag.rs` keep splitter resize capture and document/drawer/floating tab-drag capture in separate state-machine owners while preserving the original dispatch-facing function names.
 
 ## Focused Regression Coverage
 

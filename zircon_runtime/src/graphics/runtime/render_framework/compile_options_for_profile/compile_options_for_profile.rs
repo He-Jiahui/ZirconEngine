@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
 };
 
-use crate::RenderPipelineCompileOptions;
+use crate::graphics::RenderPipelineCompileOptions;
 
 use super::apply_disabled_profile_features::apply_disabled_profile_features;
 use super::apply_flagship_profile_features::apply_flagship_profile_features;
@@ -24,7 +24,7 @@ mod tests {
         AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
     };
     use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
-    use crate::RenderFeatureCapabilityRequirement;
+    use crate::graphics::RenderFeatureCapabilityRequirement;
 
     use super::compile_options_for_profile;
 

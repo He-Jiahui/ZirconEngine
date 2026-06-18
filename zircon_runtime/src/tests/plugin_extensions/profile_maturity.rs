@@ -1,9 +1,9 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginMaturity, PluginPackageManifest,
     RuntimePluginAvailabilityEntry, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
     RuntimeProfileDescriptor, RuntimeProfileId,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn plugin_manifest_roundtrips_maturity_and_capability_statuses() {

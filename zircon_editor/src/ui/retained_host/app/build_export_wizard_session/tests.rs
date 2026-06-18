@@ -1,9 +1,10 @@
+use super::surface_actions::{build_export_wizard_surface_action, BuildExportWizardSurfaceAction};
 use super::*;
 use crate::ui::host::{
     ExportWizardCommandExecution, ExportWizardCommandRunner, ExportWizardJobStatus,
     ExportWizardPipelineStageCommand, DESKTOP_EXPORT_START_BUTTON,
 };
-use zircon_runtime::plugin::ExportPipelineStage;
+use zircon_runtime::plugin::{ExportPackagingStrategy, ExportPipelineStage};
 
 #[derive(Clone, Copy, Debug, Default)]
 struct ImmediateSuccessRunner;
@@ -149,6 +150,39 @@ fn desktop_export_wizard_sessions_start_refreshes_existing_plan_options() {
 }
 
 #[test]
+fn desktop_export_wizard_sessions_use_profile_strategies_for_stage_plan() {
+    let mut sessions = DesktopExportWizardSessions::default();
+    let update = sessions
+        .dispatch_profile_action(
+            "browser_webgpu",
+            ExportWizardPanelAction::GeneratePlan,
+            Some(ready_options("browser_webgpu").with_strategies([
+                ExportPackagingStrategy::SourceTemplate,
+                ExportPackagingStrategy::LibraryEmbed,
+            ])),
+        )
+        .expect("generate plan should accept the browser profile strategies");
+
+    assert_eq!(update.snapshot.profile, "browser_webgpu");
+    let session = sessions
+        .sessions
+        .get("browser_webgpu")
+        .expect("browser profile session should exist");
+    assert!(session
+        .plan()
+        .command(ExportPipelineStage::SourceTemplate)
+        .is_some());
+    assert!(session
+        .plan()
+        .command(ExportPipelineStage::NativeDynamic)
+        .is_none());
+    assert!(session
+        .plan()
+        .command(ExportPipelineStage::PlatformBundle)
+        .is_some());
+}
+
+#[test]
 fn export_wizard_default_host_executable_points_to_compile_host_output() {
     let profile = build_export_actions::desktop_export_profile("desktop_windows")
         .expect("desktop_windows profile should exist");
@@ -181,7 +215,17 @@ fn ready_options(profile_name: &str) -> ExportWizardPipelineOptions {
 }
 
 fn ready_options_with_out(profile_name: &str, out: &str) -> ExportWizardPipelineOptions {
-    let mut options = ExportWizardPipelineOptions::new(profile_name, "zircon-project.toml", out);
+    let strategies = build_export_actions::desktop_export_profile(profile_name)
+        .map(|profile| profile.strategies)
+        .unwrap_or_else(|| {
+            vec![
+                ExportPackagingStrategy::SourceTemplate,
+                ExportPackagingStrategy::LibraryEmbed,
+                ExportPackagingStrategy::NativeDynamic,
+            ]
+        });
+    let mut options = ExportWizardPipelineOptions::new(profile_name, "zircon-project.toml", out)
+        .with_strategies(strategies);
     options.source_asset_manifest = Some(format!("{out}\\assets\\assets.json"));
     options.host_executable = Some(format!("{out}\\host\\zircon_game.exe"));
     options

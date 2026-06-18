@@ -14,7 +14,7 @@ where
     F: Fn(ViewportIconId) -> bool,
 {
     let mut vertices = Vec::new();
-    let camera = frame.camera();
+    let camera = frame.effective_camera();
     let camera_right = camera.transform.right();
     let camera_up = camera.transform.up();
     for gizmo in &frame.overlays().scene_gizmos {

@@ -4,7 +4,7 @@ use crate::core::framework::render::{
     RenderQualityProfile, RenderViewportHandle, SolariProviderAvailability, SolariRuntimeReport,
 };
 
-use crate::RenderPipelineAsset;
+use crate::graphics::RenderPipelineAsset;
 
 use super::super::super::capability_validation::validate_quality_profile_capabilities;
 use super::super::super::compile_options_for_profile::compile_options_for_profile;
@@ -23,6 +23,7 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         temporal_frame_index,
         quality_profile,
+        shader_quality,
         quality_profile_taa_quality,
         previous_visibility,
         previous_static_index,
@@ -74,6 +75,10 @@ pub(super) fn resolve_viewport_record_state(
             record.generation(),
             record.temporal_frame_index(),
             record.quality_profile().map(|profile| profile.name.clone()),
+            record
+                .quality_profile()
+                .map(|profile| profile.shader_quality)
+                .unwrap_or_default(),
             record.quality_profile().map(|profile| profile.taa_quality),
             record.history().map(|history| history.visibility().clone()),
             record.visibility_static_index().cloned(),
@@ -102,6 +107,7 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         temporal_frame_index,
         quality_profile,
+        shader_quality,
         quality_profile_taa_quality,
         previous_visibility,
         previous_static_index,

@@ -9,6 +9,8 @@ const EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
     "concurrent_requests_for_same_asset_decode_once_and_notify_all",
     "worker_pool_diagnostics_track_in_flight_and_failure_counts",
+    "worker_pool_frame_sampler_records_per_frame_completion_deltas",
+    "project_asset_manager_spawns_worker_pool_with_frame_sampler",
     "rapid_successive_writes_within_debounce_window_emit_single_reload",
     "watcher_failure_on_removed_directory_surfaces_observable_error",
     "hot_reload_transitions_through_reloading_state_and_emits_modified_event",
@@ -41,7 +43,10 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         "src/asset/watch/watch_loop.rs",
         "src/asset/watch/asset_watch_error.rs",
         "src/asset/artifact/cache_payload.rs",
+        "src/asset/artifact/cache_payload/json_value.rs",
+        "src/asset/artifact/cache_payload/mesh.rs",
         "src/asset/artifact/cache_payload/scene.rs",
+        "src/asset/artifact/cache_payload/toml_value.rs",
         "src/asset/artifact/store.rs",
         "src/asset/module.rs",
         "src/core/resource/manager/registry_ops.rs",
@@ -110,6 +115,8 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
         "concurrent_requests_for_same_asset_decode_once_and_notify_all",
         "worker_pool_diagnostics_track_in_flight_and_failure_counts",
+        "worker_pool_frame_sampler_records_per_frame_completion_deltas",
+        "project_asset_manager_spawns_worker_pool_with_frame_sampler",
         "rapid_successive_writes_within_debounce_window_emit_single_reload",
         "watcher_failure_on_removed_directory_surfaces_observable_error",
         "hot_reload_transitions_through_reloading_state_and_emits_modified_event",
@@ -130,7 +137,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
 
     assert_eq!(
         EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS.len(),
-        18,
+        20,
         "Runtime 04 behavior-test anchor count should mirror asset_pipeline_boundary"
     );
     for behavior_anchor in EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS {
@@ -184,17 +191,17 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for expected_anchor in [
             "asset_pipeline_boundary",
-            "expected_source_file_count = 19",
+            "expected_source_file_count = 22",
             "expected_guard_file_count = 11",
-            "worker_diagnostic_count = 5",
-            "expected_worker_diagnostic_count = 5",
+            "worker_diagnostic_count = 7",
+            "expected_worker_diagnostic_count = 7",
             "artifact_store_roundtrip_count = 4",
             "expected_artifact_store_roundtrip_count = 4",
             "watcher_acceptance_reference_count = 1",
             "expected_watcher_acceptance_count = 7",
             "artifact_acceptance_reference_count = 3",
-            "test_anchor_count = 22",
-            "behavior_test_anchor_count = 18",
+            "test_anchor_count = 24",
+            "behavior_test_anchor_count = 20",
             "missing_behavior_test_anchors = []",
             "missing_doc_anchors = []",
             "missing_cargo_gate_anchors = []",

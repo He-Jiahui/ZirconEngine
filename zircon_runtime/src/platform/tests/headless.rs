@@ -4,7 +4,7 @@ use super::super::*;
 fn server_runtime_stays_headless() {
     let report = PlatformCapabilityMatrix::new(PlatformFeatureSelection::headless()).report(
         PlatformTarget::Linux,
-        crate::RuntimeTargetMode::ServerRuntime,
+        crate::builtin::RuntimeTargetMode::ServerRuntime,
     );
 
     assert_eq!(

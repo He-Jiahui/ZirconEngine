@@ -1,5 +1,5 @@
 use crate::core::framework::render::{RenderFrameworkError, RenderPipelineHandle};
-use crate::RenderPipelineAsset;
+use crate::graphics::RenderPipelineAsset;
 
 use super::super::capability_validation::validate_compiled_pipeline_capabilities;
 use super::super::register_pipeline_asset::compile_pipeline_for_validation;
@@ -10,7 +10,7 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
     let _operation_guard = server.lock_operation();
-    let state = server.lock_state();
+    let mut state = server.lock_state();
     let pipeline_asset =
         state
             .pipelines
@@ -35,6 +35,10 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
     if active_for_viewport {
         validate_compiled_pipeline_capabilities(&compiled, &state.stats.capabilities)?;
     }
+    if let Some(pipeline_asset) = state.pipelines.get_mut(&pipeline) {
+        pipeline_asset.bump_revision();
+    }
+    state.compiled_graph_cache.invalidate_pipeline(pipeline);
     Ok(())
 }
 
@@ -44,12 +48,12 @@ mod tests {
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
     use crate::core::framework::render::RenderFrameworkError;
-    use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
-    use crate::render_graph::QueueLane;
-    use crate::{
+    use crate::graphics::{
         RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
         RenderPassStage, RenderPipelineAsset, WgpuRenderFramework,
     };
+    use crate::graphics::{RenderPassExecutionContext, RenderPassExecutorRegistration};
+    use crate::render_graph::QueueLane;
 
     use super::reload_pipeline;
 

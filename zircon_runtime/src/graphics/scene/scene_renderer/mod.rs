@@ -20,8 +20,8 @@ mod ui;
 pub use core::SceneRenderer;
 pub(crate) use graph_execution::RenderGraphLightGridReport;
 pub use graph_execution::{
-    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
-    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
+    RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext,
 };
 
@@ -31,6 +31,7 @@ pub(crate) use lighting::{
     light_buffer::pack_lighting_extract, light_grid_pass::build_light_grid_for_frame,
 };
 pub(in crate::graphics::scene) use mesh::skinning::SkinnedMeshJointPaletteUniform;
+pub(crate) use mesh::FALLBACK_MESH_SHADER;
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;
 pub(crate) use post_process::{

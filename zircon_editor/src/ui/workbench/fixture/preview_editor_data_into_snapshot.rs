@@ -17,6 +17,7 @@ impl PreviewEditorData {
                 .collect(),
             inspector: self.inspector.map(super::PreviewInspector::into_snapshot),
             status_line: self.status_line,
+            status_task_progress: None,
             hovered_axis: self
                 .hovered_axis
                 .map(super::PreviewGizmoAxis::into_gizmo_axis),

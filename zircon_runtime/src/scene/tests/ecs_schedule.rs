@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::core::framework::render::{
-    DisplayMode, ProjectionMode, RenderCameraClearColor, RenderExposureMode, RenderExtractContext,
-    RenderLayerSet, RenderMaterialAlphaMode, RenderPhase, RenderViewportRect,
-    RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
-    ViewportCameraSnapshot, ViewportRenderSettings,
+    CameraRenderDescriptor, DisplayMode, ProjectionMode, RenderCameraClear, RenderCameraClearColor,
+    RenderExposureMode, RenderExtractContext, RenderLayerSet, RenderMaterialAlphaMode, RenderPhase,
+    RenderViewportRect, RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::core::CoreRuntime;
@@ -944,8 +944,7 @@ fn render_extract_filters_meshes_by_active_camera_layers() {
         .all(|mesh| mesh.render_layer_mask & 0b0010 != 0));
     assert!(extract
         .view
-        .camera
-        .render_layers
+        .selected_camera_layers()
         .intersects_legacy_mask(0b0010));
 }
 
@@ -962,10 +961,7 @@ fn explicit_render_camera_snapshot_layers_override_scene_camera_layers() {
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(58),
         SceneViewportExtractRequest {
-            camera: Some(ViewportCameraSnapshot {
-                render_layers: RenderLayerSet::from_legacy_mask(0b0100),
-                ..ViewportCameraSnapshot::default()
-            }),
+            camera: Some(camera_descriptor_with_layers(0b0100)),
             ..SceneViewportExtractRequest::default()
         },
     ));
@@ -982,8 +978,7 @@ fn explicit_render_camera_snapshot_layers_override_scene_camera_layers() {
         .all(|mesh| mesh.node_id != hidden_mesh));
     assert!(extract
         .view
-        .camera
-        .render_layers
+        .selected_camera_layers()
         .intersects_legacy_mask(0b0100));
 }
 
@@ -1027,7 +1022,14 @@ fn render_extract_projects_scene_camera_component_product_fields() {
     assert_eq!(extract.view.camera.z_near, 0.05);
     assert_eq!(extract.view.camera.z_far, 750.0);
     assert_eq!(extract.view.camera.aspect_ratio, 2.0);
-    assert_eq!(extract.view.camera.order, 4);
+    assert_eq!(
+        extract
+            .view
+            .selected_camera_descriptor()
+            .expect("scene camera descriptor should be selected")
+            .render_order,
+        4
+    );
     assert!(!extract.view.camera.is_active);
     assert!(extract.view.camera.hdr);
     assert_eq!(extract.view.camera.exposure_ev100, 12.0);
@@ -1037,10 +1039,22 @@ fn render_extract_projects_scene_camera_component_product_fields() {
     );
     assert_eq!(extract.post_process.exposure.manual_ev100, 12.0);
     assert_eq!(
-        extract.view.camera.clear_color,
-        RenderCameraClearColor::None
+        extract
+            .view
+            .selected_camera_descriptor()
+            .expect("scene camera descriptor should be selected")
+            .clear,
+        RenderCameraClear::None
     );
     assert_eq!(extract.view.camera.msaa_samples, 4);
+}
+
+fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
+    let mut camera =
+        CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.volume_mask = camera.culling_mask.clone();
+    camera
 }
 
 #[test]

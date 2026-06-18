@@ -1,16 +1,22 @@
 use crate::core::framework::render::{
-    RenderFrameExtract, RenderPreparedRuntimeSidebands, RenderSceneSnapshot,
-    RenderVirtualGeometryDebugSnapshot, ViewportCameraSnapshot,
+    CameraRenderDescriptor, RenderFrameExtract, RenderPreparedRuntimeSidebands,
+    RenderSceneSnapshot, RenderVirtualGeometryDebugSnapshot, ShaderQualityTier,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::visibility::FrameVisibility;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
+
+use super::{
+    ViewportCameraStackAttachmentPolicy, ViewportCameraStackOutputPolicy, ViewportRenderRegion,
+};
 
 #[derive(Clone, Debug)]
 pub struct ViewportRenderFrame {
     pub scene: RenderSceneSnapshot,
     pub extract: RenderFrameExtract,
     pub viewport_size: UVec2,
+    pub(crate) shader_quality: ShaderQualityTier,
     /// Screen-space runtime UI payload selected for this viewport target.
     pub ui: Option<UiRenderExtract>,
     pub(crate) output_target: super::ViewportRenderOutputTarget,
@@ -18,11 +24,18 @@ pub struct ViewportRenderFrame {
     pub(crate) frame_visibility: Option<FrameVisibility>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
+    pub(crate) camera_stack_attachment_policy: ViewportCameraStackAttachmentPolicy,
+    pub(crate) camera_stack_output_policy: ViewportCameraStackOutputPolicy,
+    pub(crate) render_region: ViewportRenderRegion,
 }
 
 impl ViewportRenderFrame {
     pub(crate) fn prepared_runtime_sidebands(&self) -> &RenderPreparedRuntimeSidebands {
         &self.prepared_runtime_sidebands
+    }
+
+    pub(crate) fn shader_quality(&self) -> ShaderQualityTier {
+        self.shader_quality
     }
 
     pub(crate) fn output_target(&self) -> super::ViewportRenderOutputTarget {
@@ -36,12 +49,31 @@ impl ViewportRenderFrame {
         self.output_target.writeback_plan(target_format)
     }
 
-    pub(crate) fn camera(&self) -> &crate::core::framework::render::ViewportCameraSnapshot {
-        &self.extract.view.camera
+    pub(crate) fn camera(&self) -> &CameraRenderDescriptor {
+        self.extract
+            .view
+            .selected_camera_descriptor()
+            .expect("viewport render frame must carry a selected camera descriptor")
+    }
+
+    pub(crate) fn effective_camera(&self) -> ViewportCameraSnapshot {
+        self.extract.view.selected_effective_camera()
     }
 
     pub(crate) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
         self.previous_motion_vector_camera.as_ref()
+    }
+
+    pub(crate) fn camera_stack_attachment_policy(&self) -> ViewportCameraStackAttachmentPolicy {
+        self.camera_stack_attachment_policy
+    }
+
+    pub(crate) fn camera_stack_output_policy(&self) -> ViewportCameraStackOutputPolicy {
+        self.camera_stack_output_policy
+    }
+
+    pub(crate) fn render_region(&self) -> ViewportRenderRegion {
+        self.render_region
     }
 
     pub(crate) fn frame_visibility(&self) -> Option<&FrameVisibility> {

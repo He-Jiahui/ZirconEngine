@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use zircon_runtime::plugin::{ExportPipelineStage, ExportProfile, LibraryEmbedCompileHostPlan};
 
 use super::{
-    export_pipeline_stage_cli_id, export_pipeline_stages, ExportWizardPipelineOptions,
-    ExportWizardPipelineStageCommand, ExportWizardStageArtifactPath,
+    export_pipeline_stage_cli_id, export_pipeline_stages, export_pipeline_stages_for_strategies,
+    ExportWizardPipelineOptions, ExportWizardPipelineStageCommand, ExportWizardStageArtifactPath,
 };
 
 const ZIRCON_EXPORT_MODULE: &str = "zircon_export";
@@ -16,6 +16,8 @@ const REPORT_FILE_NAME: &str = "report.json";
 const COOKED_ASSET_MANIFEST_NAME: &str = "assets.json";
 const PACK_FILE_NAME: &str = "assets.zrpack";
 const SOURCE_TEMPLATE_PROJECT_DIR: &str = "project";
+const NATIVE_DYNAMIC_PLUGINS_DIR: &str = "plugins";
+const NATIVE_DYNAMIC_LOADER_MANIFEST_NAME: &str = "native_plugins.toml";
 const SOURCE_ASSET_MANIFEST_INPUT: &str = "source_asset_manifest";
 const HOST_EXECUTABLE_INPUT: &str = "host_executable";
 const DELTA_PACK_PAIR_INPUT: &str = "previous_pack+delta_pack";
@@ -46,10 +48,11 @@ pub fn export_wizard_pipeline_plan(
     options: ExportWizardPipelineOptions,
 ) -> ExportWizardPipelinePlan {
     let diagnostics = pipeline_diagnostics(&options);
-    let stages = export_pipeline_stages()
+    let planned_stages = planned_pipeline_stages(&options);
+    let stages = planned_stages
         .iter()
         .copied()
-        .map(|stage| stage_command(&options, stage))
+        .map(|stage| stage_command(&options, stage, &planned_stages))
         .collect();
     ExportWizardPipelinePlan {
         profile: options.profile,
@@ -85,6 +88,7 @@ pub fn export_wizard_compile_host_executable_path(
 fn stage_command(
     options: &ExportWizardPipelineOptions,
     stage: ExportPipelineStage,
+    planned_stages: &[ExportPipelineStage],
 ) -> ExportWizardPipelineStageCommand {
     let mut args = base_args(options, stage);
     let mut consumed_artifacts = Vec::new();
@@ -95,12 +99,6 @@ fn stage_command(
     match stage {
         ExportPipelineStage::Validate => {
             push_option(&mut args, "--validator", options.validator.as_deref());
-        }
-        ExportPipelineStage::CompileHost => {
-            let validate_report = validate_report_path(&options.out);
-            push_required_option(&mut args, "--validate-report", &validate_report);
-            consumed_artifacts.push(artifact("validate_report", validate_report));
-            expected_stdout_keys.extend(["validate_report", "host"]);
         }
         ExportPipelineStage::SourceTemplate => {
             let validate_report = validate_report_path(&options.out);
@@ -121,6 +119,31 @@ fn stage_command(
                 ),
             ));
             expected_stdout_keys.extend(["validate_report", "project"]);
+        }
+        ExportPipelineStage::NativeDynamic => {
+            let validate_report = validate_report_path(&options.out);
+            push_required_option(&mut args, "--validate-report", &validate_report);
+            consumed_artifacts.push(artifact("validate_report", validate_report));
+            produced_artifacts.push(artifact(
+                "plugins_dir",
+                native_dynamic_plugins_dir_path(&options.out),
+            ));
+            produced_artifacts.push(artifact(
+                "loader_manifest",
+                native_dynamic_loader_manifest_path(&options.out),
+            ));
+            expected_stdout_keys.extend([
+                "validate_report",
+                "native_plugin_root",
+                "stage_output",
+                "loader_manifest",
+            ]);
+        }
+        ExportPipelineStage::CompileHost => {
+            let validate_report = validate_report_path(&options.out);
+            push_required_option(&mut args, "--validate-report", &validate_report);
+            consumed_artifacts.push(artifact("validate_report", validate_report));
+            expected_stdout_keys.extend(["validate_report", "host"]);
         }
         ExportPipelineStage::CookAssets => {
             if let Some(source_asset_manifest) = &options.source_asset_manifest {
@@ -196,17 +219,14 @@ fn stage_command(
                 "bundle",
                 join_path(&options.out, &[BUNDLE_DIR, &options.profile]),
             ));
-            expected_stdout_keys.extend(["bundle", "host", "pack", "template"]);
+            expected_stdout_keys.extend(["bundle", "host", "native_plugins", "pack", "template"]);
         }
         ExportPipelineStage::Report => {
-            for dependency in [
-                ExportPipelineStage::Validate,
-                ExportPipelineStage::CompileHost,
-                ExportPipelineStage::SourceTemplate,
-                ExportPipelineStage::CookAssets,
-                ExportPipelineStage::Pack,
-                ExportPipelineStage::PlatformBundle,
-            ] {
+            for dependency in planned_stages
+                .iter()
+                .copied()
+                .filter(|dependency| *dependency != ExportPipelineStage::Report)
+            {
                 consumed_artifacts.push(artifact(
                     "report",
                     stage_report_path(&options.out, dependency),
@@ -237,6 +257,13 @@ fn stage_command(
         produced_artifacts,
         expected_stdout_keys,
         missing_inputs,
+    }
+}
+
+fn planned_pipeline_stages(options: &ExportWizardPipelineOptions) -> Vec<ExportPipelineStage> {
+    match options.strategies.as_deref() {
+        Some(strategies) => export_pipeline_stages_for_strategies(strategies),
+        None => export_pipeline_stages().to_vec(),
     }
 }
 
@@ -320,6 +347,29 @@ fn cooked_asset_manifest_path(out: &str) -> String {
     join_path(
         out,
         &[STAGES_DIR, "cook_assets", COOKED_ASSET_MANIFEST_NAME],
+    )
+}
+
+fn native_dynamic_plugins_dir_path(out: &str) -> String {
+    join_path(
+        out,
+        &[
+            STAGES_DIR,
+            export_pipeline_stage_cli_id(ExportPipelineStage::NativeDynamic),
+            NATIVE_DYNAMIC_PLUGINS_DIR,
+        ],
+    )
+}
+
+fn native_dynamic_loader_manifest_path(out: &str) -> String {
+    join_path(
+        out,
+        &[
+            STAGES_DIR,
+            export_pipeline_stage_cli_id(ExportPipelineStage::NativeDynamic),
+            NATIVE_DYNAMIC_PLUGINS_DIR,
+            NATIVE_DYNAMIC_LOADER_MANIFEST_NAME,
+        ],
     )
 }
 

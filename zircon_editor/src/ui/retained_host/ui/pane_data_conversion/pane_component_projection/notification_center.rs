@@ -9,7 +9,7 @@ const FOCUSED_INDEX: &str = "focused_index";
 const VISIBLE_LIMIT: &str = "visible_limit";
 const EMPTY_TEXT: &str = "empty_text";
 
-pub(super) fn projected_notification_center_value_text(
+pub(in crate::ui::retained_host::ui) fn projected_notification_center_value_text(
     component_role: &str,
     attributes: &BTreeMap<String, Value>,
 ) -> Option<String> {
@@ -19,7 +19,7 @@ pub(super) fn projected_notification_center_value_text(
     string_attribute(attributes, EMPTY_TEXT)
 }
 
-pub(super) fn projected_notification_center_options(
+pub(in crate::ui::retained_host::ui) fn projected_notification_center_options(
     component_role: &str,
     attributes: &BTreeMap<String, Value>,
 ) -> Option<Vec<String>> {
@@ -31,7 +31,7 @@ pub(super) fn projected_notification_center_options(
     })
 }
 
-pub(super) fn projected_notification_center_structured_options(
+pub(in crate::ui::retained_host::ui) fn projected_notification_center_structured_options(
     component_role: &str,
     attributes: &BTreeMap<String, Value>,
 ) -> Option<Vec<host_contract::TemplatePaneOptionData>> {

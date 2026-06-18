@@ -16,6 +16,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface.surface.focus.pressed
     }
 
+    pub(crate) fn pointer_focused_target(&self) -> Option<UiNodeId> {
+        self.template_surface.surface.focus.focused
+    }
+
     pub(crate) fn refresh_pointer_hover_feedback(
         &mut self,
         route: &UiPointerRoute,
@@ -93,6 +97,24 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         route: &UiPointerRoute,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         if !route_focuses_text_input_control(&self.template_surface.surface, route) {
+            return Ok(false);
+        }
+
+        self.refresh_dirty_pointer_feedback(true)
+    }
+
+    pub(crate) fn refresh_pointer_focus_feedback(
+        &mut self,
+        route: &UiPointerRoute,
+        focused_before_route: Option<UiNodeId>,
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        if route.activation_phase != UiPointerActivationPhase::PrimaryPress {
+            return Ok(false);
+        }
+        if route.button != Some(UiPointerButton::Primary) {
+            return Ok(false);
+        }
+        if route.focused == focused_before_route {
             return Ok(false);
         }
 

@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::views::build_view_template_nodes;
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
-use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
 use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
@@ -23,9 +23,9 @@ pub(crate) fn build_host_menu_pointer_layout(
     shell_size: UiSize,
     preset_names: &[String],
     active_layout_preset: Option<&str>,
-    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    outer_shell_frames: Option<&BuiltinHostOuterShellFrames>,
 ) -> HostMenuPointerLayout {
-    let shell_frame = shared_root_frames
+    let shell_frame = outer_shell_frames
         .and_then(|frames| frames.shell_frame)
         .unwrap_or_else(|| UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height));
     let menu_count = menu_bar.menus.len().max(MENU_BUTTON_COUNT);
@@ -34,7 +34,7 @@ pub(crate) fn build_host_menu_pointer_layout(
         .iter()
         .map(|menu| menu.label.as_str())
         .collect::<Vec<_>>();
-    let button_frames = shared_root_frames
+    let button_frames = outer_shell_frames
         .and_then(|frames| frames.menu_bar_frame)
         .map(|frame| menu_button_frames_from_chrome_asset(frame, &menu_labels, menu_count))
         .unwrap_or_else(|| {

@@ -3,21 +3,21 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::core::framework::scene::EntityId;
 use crate::core::resource::ResourceId;
 
-use super::{RenderCameraTarget, ViewportCameraSnapshot};
+use super::{CameraRenderDescriptor, CameraRenderType, RenderCameraTarget};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderCameraOrderInput {
     pub entity: EntityId,
-    pub camera: ViewportCameraSnapshot,
+    pub camera: CameraRenderDescriptor,
 }
 
 impl RenderCameraOrderInput {
-    pub fn new(entity: EntityId, camera: ViewportCameraSnapshot) -> Self {
+    pub fn from_descriptor(entity: EntityId, camera: CameraRenderDescriptor) -> Self {
         Self { entity, camera }
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderCameraOrderReport {
     pub cameras: Vec<SortedRenderCamera>,
     pub ambiguities: Vec<RenderCameraOrderAmbiguity>,
@@ -29,9 +29,11 @@ impl RenderCameraOrderReport {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SortedRenderCamera {
     pub entity: EntityId,
+    pub camera: CameraRenderDescriptor,
+    pub render_type: CameraRenderType,
     pub order: i32,
     pub target: RenderCameraTargetOrderKey,
     pub hdr: bool,
@@ -75,13 +77,22 @@ pub fn sort_render_cameras(
 ) -> RenderCameraOrderReport {
     let mut sorted = cameras
         .into_iter()
-        .filter(|input| input.camera.is_active)
-        .map(|input| SortedRenderCamera {
-            entity: input.entity,
-            order: input.camera.order,
-            target: RenderCameraTargetOrderKey::from_target(&input.camera.target),
-            hdr: input.camera.hdr,
-            sorted_camera_index_for_target: 0,
+        .filter(|input| input.camera.is_active())
+        .map(|input| {
+            let descriptor = input.camera;
+            let order = descriptor.render_order;
+            let target = RenderCameraTargetOrderKey::from_target(&descriptor.target);
+            let hdr = descriptor.hdr();
+            let render_type = descriptor.render_type;
+            SortedRenderCamera {
+                entity: input.entity,
+                order,
+                target,
+                hdr,
+                render_type,
+                camera: descriptor,
+                sorted_camera_index_for_target: 0,
+            }
         })
         .collect::<Vec<_>>();
 
@@ -116,5 +127,21 @@ pub fn sort_render_cameras(
     RenderCameraOrderReport {
         cameras: sorted,
         ambiguities: ambiguities.into_iter().collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_camera_order_report_carries_descriptor_render_type() {
+        let mut overlay = CameraRenderDescriptor::from_camera_payload(Some(7), Default::default());
+        overlay.render_type = CameraRenderType::Overlay;
+
+        let report = sort_render_cameras([RenderCameraOrderInput::from_descriptor(7, overlay)]);
+
+        assert_eq!(report.cameras.len(), 1);
+        assert_eq!(report.cameras[0].render_type, CameraRenderType::Overlay);
     }
 }

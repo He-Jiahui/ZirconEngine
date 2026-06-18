@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     AdvancedProviderAvailability, RenderCapabilitySummary, RenderQualityProfile,
 };
 
-use crate::{RenderFeatureCapabilityRequirement, RenderPipelineCompileOptions};
+use crate::graphics::{RenderFeatureCapabilityRequirement, RenderPipelineCompileOptions};
 
 pub(super) fn apply_flagship_profile_features(
     profile: Option<&RenderQualityProfile>,

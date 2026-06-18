@@ -110,6 +110,37 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
 }
 
 #[test]
+fn deferred_lighting_shader_decodes_shading_model_id_from_gbuffer_material_alpha() {
+    for expected in [
+        "const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;",
+        "const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;",
+        "const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;",
+        "fn decode_shading_model_id(encoded: f32) -> u32",
+        "round(clamp(encoded, 0.0, 1.0) * 255.0)",
+        "let shading_model_id = decode_shading_model_id(material.a);",
+        "fn shade_standard_pbr_light_vector",
+        "fn shade_blinn_phong_light_vector",
+        "fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32)",
+        "if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID)",
+        "return shade_blinn_phong_light_vector(light_vector, radiance, normal, roughness, diffuse_color, view_dir);",
+        "return shade_standard_pbr_light_vector(light_vector, radiance, normal, roughness, metallic, diffuse_color, view_dir);",
+        "fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u32) -> vec3<f32>",
+        "fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32)",
+        "let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id);",
+        "return shade_deferred_unlit(albedo);",
+        "return shade_deferred_blinn_phong(position, coord, albedo, material, normal);",
+        "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);",
+        "return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_STANDARD_PBR_ID);",
+        "return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_BLINN_PHONG_ID);",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should use `{expected}` for shading model dispatch"
+        );
+    }
+}
+
+#[test]
 fn deferred_lighting_shader_is_valid_wgsl() {
     let module = naga::front::wgsl::parse_str(DEFERRED_LIGHTING_SHADER)
         .unwrap_or_else(|error| panic!("{}", error.emit_to_string(DEFERRED_LIGHTING_SHADER)));

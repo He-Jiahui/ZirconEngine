@@ -1,4 +1,5 @@
-use crate::{plugin::PluginMaturity, RuntimePluginId, RuntimeTargetMode};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::plugin::PluginMaturity;
 
 use super::descriptor::{RuntimeProfileDescriptor, RuntimeProfileId};
 

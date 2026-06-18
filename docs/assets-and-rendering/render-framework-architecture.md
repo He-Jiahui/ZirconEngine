@@ -208,6 +208,8 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_with_asset_context.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
+  - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -251,6 +253,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
@@ -335,6 +338,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
@@ -836,6 +840,8 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
+  - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_public_runtime.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
@@ -869,6 +875,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
@@ -1440,6 +1447,7 @@ tests:
   - zircon_runtime/src/graphics/tests/render_framework_post_process_submit.rs::render_framework_submits_advanced_postprocess_graph_passes
   - cargo test -p zircon_runtime --lib disabled_advanced_features_do_not_carry_previous_runtime_states --locked --jobs 1
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
+  - cargo fmt -p zircon_runtime -p zircon_editor; cargo fmt -p zircon_runtime -p zircon_editor --check; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after editor axis-label split exposed the final-target alias iterator support fix in `bind_frame_graph_resources.rs`: passed with existing warning noise only)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-m6-root-0605-fresh-e --message-format short --color never (2026-06-05 shadow-map `Real` radius compile repair passed with existing warnings)
   - cargo test -p zircon_plugin_animation_runtime --lib --no-run --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-m6-root-0605-fresh-e --message-format short --color never (2026-06-05 animation no-run passed after the lower shadow-map compile repair)
   - cargo test -p zircon_runtime --lib virtual_geometry_payload_source --locked --jobs 1 --message-format short --color never
@@ -1447,6 +1455,10 @@ tests:
   - cargo test -p zircon_runtime --lib resolve_enabled_features --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib collect_runtime_feedback --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib advanced --locked --jobs 1 --message-format short --color never
+  - cargo test -p zircon_plugin_particles_runtime particle_runtime_prepare --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-runtime-prepare-0618 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_plugin_particles_runtime cpu_extract_preserves_material_texture_rotation_bounds_and_sort_metadata --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-runtime-prepare-0618 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_plugin_particles_runtime particles_runtime_plugin_module_and_runtime_prepare_share_manager --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-gpu-owner-0618 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_plugin_particles_runtime particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-gpu-owner-0618 --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 rhi::tests -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 ui::tests::component_catalog -- --nocapture
   - zircon_rhi/src/tests/capabilities.rs
@@ -1591,6 +1603,8 @@ tests:
   - cargo test -p zircon_app --locked --verbose runtime_entry
   - cargo check -p zircon_app --locked
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
+  - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
@@ -1881,7 +1895,7 @@ This slice also finished the neutral runtime-prepare collector propagation neede
 
 Particle GPU feedback now has the same neutral runtime-submission handoff shape without introducing concrete particle simulation ownership in `zircon_runtime`. `collect_runtime_feedback(...)` drains `SceneRenderer::take_last_particle_gpu_readback_outputs()`, falls back to prepared sideband particle outputs when renderer output is empty, and packages non-empty readback as `ParticleRuntimeFeedback` / `ParticleGpuFeedback`. Both extract-driven submission and direct `submit_runtime_frame(...)` attach prepared runtime sidebands to `ViewportRenderFrame` before renderer execution, so runtime-prepare collectors see the same neutral sideband package regardless of submit entry point. Submission stats copy alive count, spawned total, emitter readback count, and indirect instance count into `RenderStats`; plugin or host owners can feed the packet to `ParticlesManager::apply_gpu_feedback(...)` for diagnostics and parity state. This closes the mailbox-to-feedback routing gap while leaving automatic particles runtime provider ownership as a separate future step.
 
-Task 2 wires the same seam through plugin registration. The extension registry stores `RuntimePrepareCollectorRegistration` values, rejects duplicate collector ids with `DuplicateRuntimePrepareCollector`, and the runtime plugin catalog applies reported collectors into the aggregate registry. The VG and HGI runtime plugins now each publish one collector id, `virtual-geometry.runtime-prepare` and `hybrid-gi.runtime-prepare`, beside their render feature, executor, and runtime-provider registrations. Those collectors mirror only neutral packets that runtime providers already placed in `RenderPreparedRuntimeSidebands`: VG copies `prepared_virtual_geometry_readback_outputs()` into `RenderPluginRendererOutputs.virtual_geometry`, and HGI copies `prepared_hybrid_gi_readback_outputs()` into `RenderPluginRendererOutputs.hybrid_gi`. They do not synthesize readback packets from CPU prepare heuristics, and `collect_runtime_feedback(...)` drains the central renderer mailbox once for VG/HGI so future real provider sidebands are not also merged directly a second time.
+Task 2 wires the same seam through plugin registration. The extension registry stores `RuntimePrepareCollectorRegistration` values, rejects duplicate collector ids with `DuplicateRuntimePrepareCollector`, and the runtime plugin catalog applies reported collectors into the aggregate registry. The VG, HGI, and particles runtime plugins now publish collector ids: `virtual-geometry.runtime-prepare`, `hybrid-gi.runtime-prepare`, and `particles.runtime-prepare`, beside their render feature, executor, and runtime-provider registrations. VG and HGI mirror only neutral packets that runtime providers already placed in `RenderPreparedRuntimeSidebands`: VG copies `prepared_virtual_geometry_readback_outputs()` into `RenderPluginRendererOutputs.virtual_geometry`, and HGI copies `prepared_hybrid_gi_readback_outputs()` into `RenderPluginRendererOutputs.hybrid_gi`. Particles registers the collector with the same shared `ParticlesManager` exposed by its runtime module; when that manager has concrete GPU instances, `ParticleGpuRuntimeOwner` executes `ParticleGpuBackend` and registers real `particles.gpu.*` WGPU buffer backings for graph materialization, while frames with only `ParticleExtract.gpu_frame` still use neutral summary-derived buffers. This keeps concrete particle simulation ownership in the plugin and keeps `zircon_runtime` limited to neutral collector contracts, WGPU buffer registration, and `RenderPluginRendererOutputs` merging.
 
 本轮代码已打通：pipeline asset 注册/重载时做 graph validation，feature descriptor 真实写入 RenderGraph resource IO 与 executor id，Hybrid GI / Virtual Geometry 作为可开关 feature pass 家族进入 compiled graph。旧文中独立 crate 路径仅作为历史路线描述保留，新的实现路径以上方 `zircon_runtime/src/...` 为准。
 
@@ -2579,9 +2593,12 @@ reflection probes 与 baked lighting 当前已经有一条 capability/profile ga
 粒子当前已经有独立的透明阶段 runtime pass，而不是 overlay hack：
 
 - `ParticleRenderer` 会从 `RenderParticleSpriteSnapshot` 组装 CPU 侧 billboard 顶点流
-- `particle.transparent` 不再由 `SceneRenderer` 的固定分支私下绘制；启用粒子插件时必须随 descriptor 一起注册显式 `RenderPassExecutorRegistration`
+- `particle.transparent` 不再由 `SceneRenderer` 的固定分支私下绘制；插件自定义粒子 pass 仍必须随 descriptor 一起注册显式 `RenderPassExecutorRegistration`
+- 当 scene extract 已经包含粒子 sprite、pipeline 有 `Transparent3d` stage、且没有插件 descriptor 提供 `particle-render` / `particle.transparent` 时，`RenderPipelineAsset::compile(...)` 会插入一个 descriptor-only core scene particle pass，保证世界 HUD 和 gameplay-authored billboard 不依赖项目额外声明才能进入图执行
 - `RenderPassGpuExecutionContext::record_particle_billboards_to_resources(...)` 是插件 executor 使用的中立 host 能力，只暴露 graph resource 名称，不暴露 runtime 内部 `ParticleRenderer` 类型
-- pass 在 `Transparent3d` graph stage 写 `scene-color`、读 `scene-depth`，并使用 additive color blend
+- pass 在 `Transparent3d` graph stage 读 `scene-depth`、写 `scene-color`，不同时读取 `scene-color`，避免同一 texture 在一个 render pass 内既作为 sampled resource 又作为 color attachment
+- 粒子颜色路径使用 `SrcAlpha` / `OneMinusSrcAlpha` 的透明 alpha blend；普通粒子仍用 `LessEqual` 深度测试，世界 HUD bar 由 `RenderParticleSpriteSnapshot.depth_test = false` 进入 overlay pipeline 并使用 `Always` 深度比较
+- `particle.velocity` 只为 depth-tested 粒子写 velocity，跳过 world-HUD overlay sprites，避免 HUD bar 进入 TAA/motion-vector 语义
 - `particle_rendering` quality toggle 会通过 built-in feature disable path 干净关闭整条粒子 pass
 
 这让粒子在架构上继续归属于统一 SRP feature/pipeline/runtime 体系，而不是重新开一条私有 renderer 分支。
@@ -3188,6 +3205,7 @@ render-server façade 当前也开始把这条前处理链与 runtime host 的�
 - `zircon_runtime` 的 M8 compute/storage 写入边界现在从 SRP descriptor 贯通到 RenderGraph：`RenderFeatureResourceWriteMode` 把 attachment write 与 storage write 分开，`write_storage_texture(...)` / `write_storage_external(...)` 记录无 attachment ops 的写边，仍参与 producer/read dependency、culling、queue fallback 与 debug-marker 证据。内置 `ao.ssao-evaluate` 现在读取 graph `scene-depth` / `gbuffer-normal`，把 `ambient-occlusion` 写成 storage external output；AsyncCompute 不可用时可 fallback 到 graphics queue，但不会再把 SSAO 输出伪装成带 clear/load/store 的 render attachment。2026-06-03 focused validation 已通过 storage-write graph regression、async-compute fallback regression、read-access storage-mode guard，以及 `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never`。
 - `zircon_runtime` 的 M8 compute workload 计划元数据现在也从 SRP descriptor 进入 compiled RenderGraph：`RenderGraphComputeWorkload` 只保存 pipeline label、workgroup size 与 dispatch extent（viewport、cluster-grid、fixed groups），`RenderFeaturePassDescriptor::with_compute_workload(...)` 负责声明，`RenderPipelineAsset::compile(...)` 校验它只能挂在 `AsyncCompute` pass 上且 label/size 有效，再把该计划保存在 `CompiledRenderPass.compute_workload`。内置 SSAO 和 clustered-lighting 分别用 descriptor-local 常量声明 viewport/cluster-grid workload；测试侧插件 descriptor 也必须遵守同一合同，`plugin.neural.inference` 与 `ao.ssao-evaluate` 使用 viewport workload，`hybrid-gi-trace-schedule` 与 `virtual-geometry-node-cluster-cull` 使用 fixed group workload。`plugin_feature_compile` 覆盖这些 fixture pass 的 pipeline label、workgroup size 与 dispatch extent preservation，避免插件测试从旧的 async-compute/no-workload 形状回退。这一层是计划/审计/未来 plan-vs-execution 诊断元数据，不是 WGPU pipeline/bind group，也不能当成实际 dispatch 证据。
 - `zircon_runtime` 的 M8 compute dispatch 执行证据已经接到 graph/runtime diagnostics：`RenderGraphComputeDispatchRecord` 记录 pass、executor、renderer-private pipeline label、workgroup size、dispatch group 与 storage-write resource 名称，SSAO 和 clustered-lighting executor 只在对应 runtime feature 启用且真实记录 compute pass 后推送该记录；禁用 fallback 的 clear/write buffer 不计入 dispatch。`execute_graph_stage(...)` 把 GPU context 的 dispatch 记录并入 `RenderGraphExecutionRecord`，并用当前 viewport 与派生 cluster grid 建立 dispatch audit context，把计划 workload 的 viewport、cluster-grid、fixed extent 转成 expected dispatch groups 后再对比实际记录；pipeline label、workgroup size 或 dispatch group 不一致都会进入 workload mismatch 计数。`RenderStats.last_graph_compute_*` 和 `render.graph.compute_dispatch_count`、`render.graph.compute_dispatch_group_count`、`render.graph.compute_storage_write_resource_count`、`render.graph.compute_*_workload_count` 让 façade/diagnostics 能证明 concrete compute body 已执行并匹配 SRP 计划，同时仍不暴露 WGPU object。
+- 2026-06-18 的 final-target alias support repair 保持最终输出别名绑定在 renderer graph import 层。`bind_frame_graph_resources.rs` 现在用 `for &alias in FINAL_TARGET_ALIASES` / `for &resource in FINAL_TARGET_ALIASES` 迭代 `final-color`、`viewport-output`、`final-composited`、`color-graded`、`effect-stacked` 等别名，确保 borrowed view、texture alias 和测试图导入都以 `&str` 进入 `RenderGraphExecutionResources` / `RenderPipelineAssetBuilder`，不再把 `&&str` 传给 `impl Into<String>` 接口。
 - `zircon_graphics::visibility` 的 support-layer 编译边界：`culling/` 与 `planning/` 的 helper 现在通过显式模块路径暴露给 `VisibilityContext`，`is_mesh_visible(...)` 也稳定改用 `transform_point3(...)`，从而恢复 `cargo test -p zircon_graphics --lib --locked`
 - `zircon_editor` 的 retained viewport controller 通过 `RenderFramework` 创建/重建 viewport，并从 capture 拉回最新帧
 - `zircon_editor` 的 shared viewport toolbar pointer route 通过同一 runtime dispatch 路径触发 typed `ViewportCommand`

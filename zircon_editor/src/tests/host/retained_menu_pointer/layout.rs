@@ -11,7 +11,7 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
         UiSize::new(1280.0, 720.0),
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
-        Some(&BuiltinHostRootShellFrames {
+        Some(&BuiltinHostOuterShellFrames {
             shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
             menu_bar_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 40.0)),
             ..Default::default()
@@ -48,7 +48,7 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
         UiSize::new(1280.0, 720.0),
         &["alpha-00".to_string(), "alpha-01".to_string()],
         Some("compact"),
-        Some(&BuiltinHostRootShellFrames {
+        Some(&BuiltinHostOuterShellFrames {
             shell_frame: Some(UiFrame::new(32.0, 18.0, 1440.0, 900.0)),
             menu_bar_frame: None,
             ..Default::default()

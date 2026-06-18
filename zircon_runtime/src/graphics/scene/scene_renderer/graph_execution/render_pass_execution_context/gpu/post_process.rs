@@ -1,33 +1,31 @@
 use crate::core::framework::render::{
-    PostProcessEffectKind, PostProcessGraphResourceNames, RenderExposureMode,
-    RenderPostProcessEffectStackSettings,
+    PostProcessEffectKind, PostProcessGraphResourceNames, RenderPostProcessEffectStackSettings,
 };
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::lighting::light_grid_pass::{
-    build_light_grid_for_frame, write_light_grid_buffers,
-};
 use crate::graphics::scene::scene_renderer::post_process::{
-    clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size,
-    exposure_histogram_dispatch_groups, exposure_histogram_workgroup_size,
-    exposure_resolve_dispatch_groups, exposure_resolve_workgroup_size, hzb_build_dispatch_groups,
-    hzb_build_workgroup_size, ssao_dispatch_groups, ssao_workgroup_size, ScenePostProcessResources,
+    color_lut_bake_dispatch_groups, color_lut_bake_workgroup_size, ScenePostProcessResources,
     SceneRuntimeFeatureFlags,
 };
-use crate::graphics::visibility::HzbBuilder;
-use crate::render_graph::RenderGraphAttachmentOps;
-
-use super::super::super::{
-    RenderGraphComputeDispatchRecord, RenderGraphExecutionResources, RenderGraphLightGridReport,
+use crate::graphics::types::ViewportRenderFrame;
+use crate::render_graph::{
+    RenderGraphPassResourceAccess, RenderGraphResourceAccessKind, RenderGraphResourceKind,
 };
+
+use super::super::super::{RenderGraphComputeDispatchRecord, RenderGraphExecutionResources};
 use super::RenderPassGpuExecutionContext;
 
+mod computed_resources;
+mod effects;
 mod screen_space_reflection;
+mod temporal;
+mod terminal;
 
 const HZB_BUILD_PIPELINE_LABEL: &str = "zircon-hzb-build-pipeline";
 const EXPOSURE_HISTOGRAM_PIPELINE_LABEL: &str = "zircon-exposure-histogram-pipeline";
 const EXPOSURE_RESOLVE_PIPELINE_LABEL: &str = "zircon-exposure-resolve-pipeline";
+const COLOR_LUT_BAKE_PIPELINE_LABEL: &str = "zircon-color-lut-bake-pipeline";
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn with_post_process_stack_context(
@@ -50,20 +48,36 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let target = stack.target;
         let history = stack.history_textures;
         let features = stack.runtime_features;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_COLOR)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH)?;
         let graph = &self.frame.extract.post_process.graph;
+        let scene_composite_split =
+            post_process_graph_has_node(graph, PostProcessEffectKind::SceneComposite);
+        let blur_split = post_process_graph_has_node(graph, PostProcessEffectKind::Blur);
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let scene_color_resource =
+            latest_scene_color_after_composite_resource(resources, resource_resolver)?;
+        let scene_color_origin = post_process_texture_origin(self.frame, scene_color_resource);
+        let scene_color_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            scene_color_resource,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let scene_depth_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::SCENE_DEPTH,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let motion_vector_neighbor_max_view = optional_texture_view_or_black(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
             stack.post_process,
         )?;
         let scene_normal_view = optional_texture_view_or_black(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::GBUFFER_NORMAL,
             stack.post_process,
         )?;
@@ -71,63 +85,90 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             .material_gbuffer_valid
             .then(|| {
                 optional_texture_view_or_black(
-                    self.resources,
+                    resources,
+                    resource_resolver,
                     PostProcessGraphResourceNames::GBUFFER_MATERIAL,
                     stack.post_process,
                 )
             })
             .transpose()?;
         let ambient_occlusion_view = optional_texture_view_or_white(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
             stack.post_process,
         )?;
         let contact_shadow_view = optional_texture_view_or_white(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
             stack.post_process,
         )?;
         let bloom_view = if post_process_graph_has_node(graph, PostProcessEffectKind::Bloom) {
-            self.resources
-                .require_texture_view(PostProcessGraphResourceNames::BLOOM)?
+            Self::require_texture_view_by_name(
+                resources,
+                resource_resolver,
+                PostProcessGraphResourceNames::BLOOM,
+                RenderGraphResourceAccessKind::Read,
+            )?
         } else {
             stack.post_process.black_texture_view()
         };
         let depth_of_field_coc_view = optional_texture_view_or_black(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
             stack.post_process,
         )?;
         let depth_of_field_bokeh_view = optional_texture_view_or_black(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
             stack.post_process,
         )?;
-        let tonemapped_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::TONEMAPPED)?;
-        let global_illumination_view = self
-            .resources
-            .require_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION)?;
+        let tonemapped_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::TONEMAPPED,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let global_illumination_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
+            RenderGraphResourceAccessKind::Write,
+        )?;
         let screen_space_reflection_history_view = optional_texture_view_or_black(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
             stack.post_process,
         )?;
         let screen_space_reflection_specular_occlusion_view = optional_texture_view_or_white(
-            self.resources,
+            resources,
+            resource_resolver,
             PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
             stack.post_process,
         )?;
-        let cluster_buffer = self
-            .resources
-            .require_buffer(PostProcessGraphResourceNames::LIGHT_LIST)?;
-        let exposure_buffer = if self
-            .resources
-            .has_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
-        {
-            self.resources
-                .require_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)?
+        let baked_color_lut_view = Self::optional_texture_view_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::COLOR_LUT,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let cluster_buffer = Self::require_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::LIGHT_LIST,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::EXPOSURE_CURRENT,
+            RenderGraphResourceAccessKind::Read,
+        )? {
+            exposure_buffer
         } else {
             stack.post_process.default_exposure_buffer()
         };
@@ -137,6 +178,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.encoder,
             target.size,
             target.cluster_dimensions,
+            scene_color_origin,
             scene_color_view,
             scene_depth_view,
             motion_vector_neighbor_max_view,
@@ -154,553 +196,101 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             global_illumination_view,
             screen_space_reflection_history_view,
             screen_space_reflection_specular_occlusion_view,
+            baked_color_lut_view,
             cluster_buffer,
             exposure_buffer,
             self.frame,
             stack.streamer,
             features,
             stack.history_available,
+            post_process_graph_has_node(graph, PostProcessEffectKind::DepthOfField),
+            post_process_graph_has_node(graph, PostProcessEffectKind::MotionBlur),
+            blur_split,
+            scene_composite_split,
         );
         Ok(())
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn record_exposure_histogram_to_resource(
+    pub(in crate::graphics::scene::scene_renderer) fn record_color_lut_bake_to_resource(
         &mut self,
         pass_name: &str,
         executor_id: &str,
-        scene_color_resource_name: &str,
-        histogram_resource_name: &str,
+        color_lut_resource_name: &str,
     ) -> Result<(), String> {
-        let settings = self.frame.extract.post_process.exposure;
-        if settings.mode != RenderExposureMode::Histogram {
-            return Ok(());
-        }
         let stack = self.post_process_stack.ok_or_else(|| {
             format!(
-                "exposure histogram graph executor for pass `{pass_name}` requires post-process stack context"
+                "color LUT bake graph executor for pass `{pass_name}` requires post-process stack context"
             )
         })?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let histogram_buffer = self.resources.require_buffer(histogram_resource_name)?;
-        let target = stack.target;
-        stack.post_process.execute_exposure_histogram(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            scene_color_view,
-            histogram_buffer,
-            settings,
-        );
-        self.compute_dispatches
-            .push(RenderGraphComputeDispatchRecord::new(
-                pass_name,
-                executor_id,
-                EXPOSURE_HISTOGRAM_PIPELINE_LABEL,
-                exposure_histogram_workgroup_size(),
-                exposure_histogram_dispatch_groups(target.size),
-                vec![histogram_resource_name.to_string()],
-            ));
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_exposure_resolve_to_resource(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        histogram_resource_name: &str,
-        previous_resource_name: &str,
-        current_resource_name: &str,
-    ) -> Result<(), String> {
-        let settings = self.frame.extract.post_process.exposure;
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "exposure resolve graph executor for pass `{pass_name}` requires post-process stack context"
-            )
+        let resources = &*self.resources;
+        let resource_resolver = self.resource_resolver;
+        let color_lut_texture = Self::require_owned_texture_by_name(
+            resources,
+            resource_resolver,
+            color_lut_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )
+        .map_err(|error| {
+            format!("{error}; color LUT bake graph executor for pass `{pass_name}` requires owned transient texture `{color_lut_resource_name}`")
         })?;
-        let histogram_buffer = if settings.mode == RenderExposureMode::Histogram {
-            self.resources.require_buffer(histogram_resource_name)?
-        } else {
-            stack.post_process.default_exposure_histogram_buffer()
-        };
-        let previous_exposure_buffer = if self.resources.has_buffer(previous_resource_name) {
-            self.resources.require_buffer(previous_resource_name)?
+        let exposure_buffer = if let Some(exposure_buffer) = Self::optional_buffer_by_name(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::EXPOSURE_CURRENT,
+            RenderGraphResourceAccessKind::Read,
+        )? {
+            exposure_buffer
         } else {
             stack.post_process.default_exposure_buffer()
         };
-        let current_exposure_buffer = self.resources.require_buffer(current_resource_name)?;
-        let target = stack.target;
-        stack.post_process.execute_exposure_resolve(
+        stack.post_process.execute_color_lut_bake(
             self.device,
             self.queue,
             self.encoder,
-            target.size,
-            histogram_buffer,
-            previous_exposure_buffer,
-            current_exposure_buffer,
-            settings,
+            &color_lut_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+            exposure_buffer,
+            self.frame,
+            stack.streamer,
         );
-        self.compute_dispatches
-            .push(RenderGraphComputeDispatchRecord::new(
+        self.compute_dispatches.push(
+            RenderGraphComputeDispatchRecord::new(
                 pass_name,
                 executor_id,
-                EXPOSURE_RESOLVE_PIPELINE_LABEL,
-                exposure_resolve_workgroup_size(),
-                exposure_resolve_dispatch_groups(),
-                vec![current_resource_name.to_string()],
-            ));
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_output_transfer_to_resource(
-        &mut self,
-        pass_name: &str,
-        tonemapped_resource_name: &str,
-        final_color_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "output-transfer graph executor for pass `{pass_name}` requires post-process stack context"
+                COLOR_LUT_BAKE_PIPELINE_LABEL,
+                color_lut_bake_workgroup_size(),
+                color_lut_bake_dispatch_groups(),
+                vec![color_lut_resource_name.to_string()],
             )
-        })?;
-        let tonemapped_view = self
-            .resources
-            .require_texture_view(tonemapped_resource_name)?;
-        let final_color_view = self
-            .resources
-            .require_texture_view(final_color_resource_name)?;
-        stack.post_process.execute_output_transfer(
-            self.device,
-            self.encoder,
-            tonemapped_view,
-            final_color_view,
-            attachment_ops,
+            .with_resource_accesses(color_lut_bake_dispatch_resource_accesses(
+                color_lut_resource_name,
+            )),
         );
         Ok(())
     }
+}
 
-    pub(in crate::graphics::scene::scene_renderer) fn record_ssao_to_resources(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        depth_resource_name: &str,
-        normal_resource_name: &str,
-        hzb_furthest_resource_name: &str,
-        ambient_occlusion_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "SSAO graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let normal_view = self.resources.require_texture_view(normal_resource_name)?;
-        let hzb_furthest_view = self
-            .resources
-            .require_texture_view(hzb_furthest_resource_name)?;
-        let hzb_furthest_full_mip_view = self
-            .resources
-            .owned_texture_full_mip_view(hzb_furthest_resource_name)
-            .ok();
-        let hzb_furthest_sampling_view = hzb_furthest_full_mip_view
-            .as_ref()
-            .unwrap_or(hzb_furthest_view);
-        let ambient_occlusion_view = self
-            .resources
-            .require_texture_view(ambient_occlusion_resource_name)?;
-        let target = stack.target;
-        let enabled = stack.runtime_features.ssao_enabled;
-        let dispatch_groups = ssao_dispatch_groups(target.size);
-        let workgroup_size = ssao_workgroup_size();
-        stack.post_process.execute_ssao(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            depth_view,
-            normal_view,
-            hzb_furthest_sampling_view,
-            stack
-                .history_textures
-                .map(|history| &history.ambient_occlusion_view),
-            ambient_occlusion_view,
-            enabled,
-            stack.history_available,
-        );
-        if enabled {
-            self.compute_dispatches
-                .push(RenderGraphComputeDispatchRecord::new(
-                    pass_name,
-                    executor_id,
-                    "zircon-ssao-pipeline",
-                    workgroup_size,
-                    dispatch_groups,
-                    vec![ambient_occlusion_resource_name.to_string()],
-                ));
-        }
-        Ok(())
+pub(super) fn post_process_texture_origin(
+    frame: &ViewportRenderFrame,
+    resource_name: &str,
+) -> [u32; 2] {
+    if fixed_frame_texture_resource(resource_name) {
+        frame.render_region().physical_origin()
+    } else {
+        [0, 0]
     }
+}
 
-    pub(in crate::graphics::scene::scene_renderer) fn record_clustered_lighting_to_resources(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        light_grid_params_resource_name: &str,
-        light_zbins_resource_name: &str,
-        light_tile_masks_resource_name: &str,
-        legacy_light_list_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "light grid graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let light_grid_params_buffer = self
-            .resources
-            .require_buffer(light_grid_params_resource_name)?;
-        let light_zbins_buffer = self.resources.require_buffer(light_zbins_resource_name)?;
-        let light_tile_masks_buffer = self
-            .resources
-            .require_buffer(light_tile_masks_resource_name)?;
-        let legacy_light_list_buffer = self
-            .resources
-            .require_buffer(legacy_light_list_resource_name)?;
-        let target = stack.target;
-        let enabled = stack.runtime_features.clustered_lighting_enabled;
-        let light_grid = build_light_grid_for_frame(&self.frame.extract, target.size, enabled);
-        self.light_grid_report = Some(RenderGraphLightGridReport::from_stats(&light_grid.stats));
-        write_light_grid_buffers(
-            self.queue,
-            light_grid_params_buffer,
-            light_zbins_buffer,
-            light_tile_masks_buffer,
-            &light_grid,
-        );
-        let dispatch_groups = clustered_lighting_dispatch_groups(target.cluster_dimensions);
-        let workgroup_size = clustered_lighting_workgroup_size();
-        stack.post_process.execute_clustered_lighting(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            target.cluster_dimensions,
-            legacy_light_list_buffer,
-            target.cluster_buffer_bytes,
-            &self.frame.extract.lighting.directional_lights,
-            enabled,
-        );
-        if enabled {
-            self.compute_dispatches
-                .push(RenderGraphComputeDispatchRecord::new(
-                    pass_name,
-                    executor_id,
-                    "zircon-cluster-pipeline",
-                    workgroup_size,
-                    dispatch_groups,
-                    vec![
-                        light_grid_params_resource_name.to_string(),
-                        light_zbins_resource_name.to_string(),
-                        light_tile_masks_resource_name.to_string(),
-                        legacy_light_list_resource_name.to_string(),
-                    ],
-                ));
-        }
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_hzb_build_to_resource(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        depth_resource_name: &str,
-        hzb_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!("HZB graph executor for pass `{pass_name}` requires post-process stack context")
-        })?;
-        let depth_view = self.resources.require_texture_view(depth_resource_name)?;
-        let _hzb_view = self.resources.require_texture_view(hzb_resource_name)?;
-        let plan = HzbBuilder::new(self.frame.extract.view.effective_render_size()).build_plan();
-        for mip_level in 0..plan.mip_count {
-            let source_view = if mip_level == 0 {
-                None
-            } else {
-                Some(
-                    self.resources
-                        .owned_texture_mip_view(hzb_resource_name, mip_level - 1)?,
-                )
-            };
-            let target_view = self
-                .resources
-                .owned_texture_mip_view(hzb_resource_name, mip_level)?;
-            stack.post_process.execute_hzb_build_mip(
-                self.device,
-                self.queue,
-                self.encoder,
-                depth_view,
-                source_view.as_ref(),
-                &target_view,
-                plan.mip_size(mip_level),
-                mip_level,
-            );
-        }
-        let dispatch_groups = hzb_build_dispatch_groups(plan.hzb_size);
-        let workgroup_size = hzb_build_workgroup_size();
-        self.compute_dispatches
-            .push(RenderGraphComputeDispatchRecord::new(
-                pass_name,
-                executor_id,
-                HZB_BUILD_PIPELINE_LABEL,
-                workgroup_size,
-                dispatch_groups,
-                vec![hzb_resource_name.to_string()],
-            ));
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_bloom_to_resources(
-        &mut self,
-        pass_name: &str,
-        scene_color_resource_name: &str,
-        bloom_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "bloom graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let bloom_view = self.resources.require_texture_view(bloom_resource_name)?;
-        let target = stack.target;
-        stack.post_process.execute_bloom(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            scene_color_view,
-            bloom_view,
-            self.frame.extract.post_process.bloom,
-            stack.runtime_features.bloom_enabled,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_depth_of_field_prepare_to_resources(
-        &mut self,
-        pass_name: &str,
-        scene_color_resource_name: &str,
-        scene_depth_resource_name: &str,
-        coc_resource_name: &str,
-        bokeh_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "depth-of-field prepare graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let coc_view = self.resources.require_texture_view(coc_resource_name)?;
-        let bokeh_view = self.resources.require_texture_view(bokeh_resource_name)?;
-        stack.post_process.execute_depth_of_field_prepare(
-            self.device,
-            self.queue,
-            self.encoder,
-            stack.target.size,
-            scene_color_view,
-            scene_depth_view,
-            coc_view,
-            bokeh_view,
-            self.frame.extract.post_process.effect_stack.depth_of_field,
-            &self.frame.extract.view.camera,
-        );
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(in crate::graphics::scene::scene_renderer) fn record_taa_resolve_to_resources(
-        &mut self,
-        pass_name: &str,
-        scene_color_resource_name: &str,
-        scene_depth_resource_name: &str,
-        scene_velocity_resource_name: &str,
-        taa_history_previous_resource_name: &str,
-        taa_reactive_mask_resource_name: &str,
-        taa_output_resource_name: &str,
-        taa_history_current_resource_name: &str,
-        taa_output_attachment_ops: RenderGraphAttachmentOps,
-        taa_history_attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "TAA resolve graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let scene_color_view = self
-            .resources
-            .require_texture_view(scene_color_resource_name)?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let scene_velocity_view = self
-            .resources
-            .require_texture_view(scene_velocity_resource_name)?;
-        let taa_history_previous_view = self
-            .resources
-            .require_texture_view(taa_history_previous_resource_name)?;
-        let taa_reactive_mask_view = self
-            .resources
-            .require_texture_view(taa_reactive_mask_resource_name)?;
-        let taa_output_view = self
-            .resources
-            .require_texture_view(taa_output_resource_name)?;
-        let taa_history_current_view = self
-            .resources
-            .require_texture_view(taa_history_current_resource_name)?;
-        let taa_history_valid = stack
-            .history_textures
-            .is_some_and(SceneFrameHistoryTextures::taa_scene_color_history_valid);
-        stack.post_process.execute_taa_resolve(
-            self.device,
-            self.queue,
-            self.encoder,
-            stack.target.size,
-            scene_color_view,
-            scene_depth_view,
-            scene_velocity_view,
-            taa_history_previous_view,
-            taa_reactive_mask_view,
-            taa_output_view,
-            taa_history_current_view,
-            taa_output_attachment_ops,
-            taa_history_attachment_ops,
-            taa_history_valid,
-            self.frame.extract.view.anti_alias,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_taa_reactive_mask_clear_to_resource(
-        &mut self,
-        pass_name: &str,
-        taa_reactive_mask_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "TAA reactive mask clear graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let taa_reactive_mask_view = self
-            .resources
-            .require_texture_view(taa_reactive_mask_resource_name)?;
-        stack.post_process.execute_taa_reactive_mask_clear(
-            self.encoder,
-            taa_reactive_mask_view,
-            attachment_ops,
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_velocity_camera_to_resource(
-        &mut self,
-        pass_name: &str,
-        scene_depth_resource_name: &str,
-        velocity_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "velocity camera graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let scene_depth_view = self
-            .resources
-            .require_texture_view(scene_depth_resource_name)?;
-        let velocity_view = self
-            .resources
-            .require_texture_view(velocity_resource_name)?;
-        self.motion_vector_camera_status = stack.post_process.execute_velocity_camera(
-            self.device,
-            self.queue,
-            self.encoder,
-            stack.target.size,
-            scene_depth_view,
-            velocity_view,
-            attachment_ops,
-            &self.frame.extract.view.camera,
-            self.frame.previous_motion_vector_camera(),
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_motion_vector_tile_max_to_resource(
-        &mut self,
-        pass_name: &str,
-        motion_vector_source_resource_name: &str,
-        motion_vector_tile_max_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "motion-vector tile-max graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let motion_vector_source_view = self
-            .resources
-            .require_texture_view(motion_vector_source_resource_name)?;
-        let motion_vector_tile_max_view = self
-            .resources
-            .require_texture_view(motion_vector_tile_max_resource_name)?;
-        stack.post_process.execute_motion_vector_tile_max(
-            self.device,
-            self.encoder,
-            motion_vector_source_view,
-            motion_vector_tile_max_view,
-            attachment_ops,
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
-        );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_motion_vector_neighbor_max_to_resource(
-        &mut self,
-        pass_name: &str,
-        motion_vector_tile_max_coarse_resource_name: &str,
-        motion_vector_neighbor_max_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "motion-vector neighbor-max graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let motion_vector_tile_max_coarse_view = self
-            .resources
-            .require_texture_view(motion_vector_tile_max_coarse_resource_name)?;
-        let motion_vector_neighbor_max_view = self
-            .resources
-            .require_texture_view(motion_vector_neighbor_max_resource_name)?;
-        stack.post_process.execute_motion_vector_neighbor_max(
-            self.device,
-            self.encoder,
-            motion_vector_tile_max_coarse_view,
-            motion_vector_neighbor_max_view,
-            attachment_ops,
-            effect_stack_uses_reconstructed_velocity(self.frame.extract.post_process.effect_stack),
-        );
-        Ok(())
-    }
+fn fixed_frame_texture_resource(resource_name: &str) -> bool {
+    matches!(
+        resource_name,
+        PostProcessGraphResourceNames::SCENE_COLOR
+            | PostProcessGraphResourceNames::SCENE_DEPTH
+            | PostProcessGraphResourceNames::SCENE_VELOCITY
+            | PostProcessGraphResourceNames::GBUFFER_ALBEDO
+            | PostProcessGraphResourceNames::GBUFFER_NORMAL
+            | PostProcessGraphResourceNames::GBUFFER_MATERIAL
+            | PostProcessGraphResourceNames::AMBIENT_OCCLUSION
+    )
 }
 
 fn post_process_graph_has_node(
@@ -710,38 +300,142 @@ fn post_process_graph_has_node(
     graph.nodes.iter().any(|node| node.kind == kind)
 }
 
+fn latest_scene_color_resource(
+    resources: &RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
+) -> Result<&'static str, String> {
+    let resource_name = if optional_texture_resource_is_bound(
+        resources,
+        resource_resolver,
+        PostProcessGraphResourceNames::MOTION_BLURRED,
+        RenderGraphResourceAccessKind::Read,
+    )? {
+        PostProcessGraphResourceNames::MOTION_BLURRED
+    } else if optional_texture_resource_is_bound(
+        resources,
+        resource_resolver,
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+        RenderGraphResourceAccessKind::Read,
+    )? {
+        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+    } else if optional_texture_resource_is_bound(
+        resources,
+        resource_resolver,
+        PostProcessGraphResourceNames::TAA_OUTPUT,
+        RenderGraphResourceAccessKind::Read,
+    )? {
+        PostProcessGraphResourceNames::TAA_OUTPUT
+    } else {
+        PostProcessGraphResourceNames::SCENE_COLOR
+    };
+    Ok(resource_name)
+}
+
+fn latest_scene_color_after_composite_resource(
+    resources: &RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
+) -> Result<&'static str, String> {
+    let resource_name = if optional_texture_resource_is_bound(
+        resources,
+        resource_resolver,
+        PostProcessGraphResourceNames::BLURRED,
+        RenderGraphResourceAccessKind::Read,
+    )? {
+        PostProcessGraphResourceNames::BLURRED
+    } else if optional_texture_resource_is_bound(
+        resources,
+        resource_resolver,
+        PostProcessGraphResourceNames::SCENE_COMPOSITED,
+        RenderGraphResourceAccessKind::Read,
+    )? {
+        PostProcessGraphResourceNames::SCENE_COMPOSITED
+    } else {
+        latest_scene_color_resource(resources, resource_resolver)?
+    };
+    Ok(resource_name)
+}
+
 fn optional_texture_view_or_black<'a>(
     resources: &'a RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
     resource_name: &str,
     post_process: &'a ScenePostProcessResources,
 ) -> Result<&'a wgpu::TextureView, String> {
-    optional_texture_view_or(resources, resource_name, post_process.black_texture_view())
+    optional_texture_view_or(
+        resources,
+        resource_resolver,
+        resource_name,
+        post_process.black_texture_view(),
+    )
 }
 
 fn optional_texture_view_or_white<'a>(
     resources: &'a RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
     resource_name: &str,
     post_process: &'a ScenePostProcessResources,
 ) -> Result<&'a wgpu::TextureView, String> {
-    optional_texture_view_or(resources, resource_name, post_process.white_texture_view())
+    optional_texture_view_or(
+        resources,
+        resource_resolver,
+        resource_name,
+        post_process.white_texture_view(),
+    )
 }
 
 fn optional_texture_view_or<'a>(
     resources: &'a RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
     resource_name: &str,
     fallback: &'a wgpu::TextureView,
 ) -> Result<&'a wgpu::TextureView, String> {
-    if resources.has_texture_view(resource_name) {
-        resources.require_texture_view(resource_name)
-    } else {
-        Ok(fallback)
-    }
+    RenderPassGpuExecutionContext::optional_texture_view_by_name(
+        resources,
+        resource_resolver,
+        resource_name,
+        RenderGraphResourceAccessKind::Read,
+    )
+    .map(|view| view.unwrap_or(fallback))
+}
+
+fn optional_texture_resource_is_bound(
+    resources: &RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
+    resource_name: &str,
+    access: RenderGraphResourceAccessKind,
+) -> Result<bool, String> {
+    RenderPassGpuExecutionContext::optional_texture_view_by_name(
+        resources,
+        resource_resolver,
+        resource_name,
+        access,
+    )
+    .map(|view| view.is_some())
 }
 
 fn effect_stack_uses_reconstructed_velocity(
     effect_stack: RenderPostProcessEffectStackSettings,
 ) -> bool {
     effect_stack.motion_blur.is_enabled() || effect_stack.screen_space_reflection.is_enabled()
+}
+
+fn color_lut_bake_dispatch_resource_accesses(
+    color_lut_resource_name: &str,
+) -> Vec<RenderGraphPassResourceAccess> {
+    vec![
+        RenderGraphPassResourceAccess {
+            name: PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string(),
+            kind: RenderGraphResourceKind::TransientBuffer,
+            access: RenderGraphResourceAccessKind::Read,
+            attachment_ops: None,
+        },
+        RenderGraphPassResourceAccess {
+            name: color_lut_resource_name.to_string(),
+            kind: RenderGraphResourceKind::TransientTexture,
+            access: RenderGraphResourceAccessKind::Write,
+            attachment_ops: None,
+        },
+    ]
 }
 
 #[derive(Clone, Copy)]
@@ -757,11 +451,31 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassPostProcessStack
 
 #[cfg(test)]
 mod tests {
-    use super::effect_stack_uses_reconstructed_velocity;
-    use crate::core::framework::render::{
-        RenderMotionBlurSettings, RenderPostProcessEffectStackSettings,
-        RenderScreenSpaceReflectionSettings,
+    use super::{
+        color_lut_bake_dispatch_resource_accesses, effect_stack_uses_reconstructed_velocity,
     };
+    use crate::core::framework::render::{
+        PostProcessGraphResourceNames, RenderMotionBlurSettings,
+        RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
+    };
+    use crate::render_graph::{RenderGraphResourceAccessKind, RenderGraphResourceKind};
+
+    #[test]
+    fn color_lut_bake_dispatch_reports_exposure_read_and_lut_write() {
+        let accesses =
+            color_lut_bake_dispatch_resource_accesses(PostProcessGraphResourceNames::COLOR_LUT);
+
+        assert_eq!(accesses.len(), 2);
+        assert_eq!(
+            accesses[0].name,
+            PostProcessGraphResourceNames::EXPOSURE_CURRENT
+        );
+        assert_eq!(accesses[0].kind, RenderGraphResourceKind::TransientBuffer);
+        assert_eq!(accesses[0].access, RenderGraphResourceAccessKind::Read);
+        assert_eq!(accesses[1].name, PostProcessGraphResourceNames::COLOR_LUT);
+        assert_eq!(accesses[1].kind, RenderGraphResourceKind::TransientTexture);
+        assert_eq!(accesses[1].access, RenderGraphResourceAccessKind::Write);
+    }
 
     #[test]
     fn reconstructed_velocity_is_requested_for_temporal_effects() {

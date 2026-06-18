@@ -14,6 +14,7 @@ use crate::scene::viewport::SceneViewportTool;
 use crate::ui::binding::{
     DockCommand, EditorUiBinding, EditorUiBindingPayload, SelectionCommand, ViewportCommand,
 };
+use crate::ui::retained_host::callback_dispatch::constants::DOCUMENT_TABS_CONTROL_ID;
 use crate::ui::retained_host::callback_dispatch::template_bridge::projection_support::{
     binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
 };
@@ -23,12 +24,19 @@ use crate::ui::template_runtime::{
 };
 use crate::ui::workbench::reference::{
     build_editor_workbench_template_surface, EditorWorkbenchReferenceMetrics,
-    EditorWorkbenchTemplateFrames, EditorWorkbenchTemplateSurface,
+    EditorWorkbenchTemplateControlIds, EditorWorkbenchTemplateFrames,
+    EditorWorkbenchTemplateSurface,
 };
 
 use super::super::popup_primitives::toml_value_string_list;
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
+use super::drawer_layout::{
+    BOTTOM_DRAWER_CONTENT_CONTROL_ID, BOTTOM_DRAWER_HEADER_CONTROL_ID,
+    BOTTOM_DRAWER_SHELL_CONTROL_ID, LEFT_DRAWER_CONTENT_CONTROL_ID, LEFT_DRAWER_HEADER_CONTROL_ID,
+    LEFT_DRAWER_SHELL_CONTROL_ID, RIGHT_DRAWER_CONTENT_CONTROL_ID, RIGHT_DRAWER_HEADER_CONTROL_ID,
+    RIGHT_DRAWER_SHELL_CONTROL_ID,
+};
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::extension_module_navigation::{
     is_workbench_extension_action, workbench_extension_panel_command_control_id,
@@ -38,6 +46,11 @@ use super::extension_module_navigation::{
     EXTENSION_MODULE_WORKSPACE_CONTROLS,
 };
 use super::generated_bottom_panel_navigation::is_workbench_generated_bottom_action;
+use super::layout_frames::{
+    bottom_resize_splitter_frame_from_drawer_shell, left_resize_splitter_frame_from_drawer_shell,
+    right_resize_splitter_frame_from_drawer_shell, union_visible_frames,
+    BuiltinWorkbenchWindowLayoutFrames,
+};
 use super::module_navigation::{
     is_workbench_module_action, workbench_module_command_control_id,
     workbench_module_panel_command_control_id, workbench_module_panel_row_control_id,
@@ -105,6 +118,46 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
         self.template_surface.visible_control_frame(control_id)
+    }
+
+    pub(crate) fn layout_frames(&self) -> BuiltinWorkbenchWindowLayoutFrames {
+        BuiltinWorkbenchWindowLayoutFrames {
+            center_band_frame: self.control_frame(EditorWorkbenchTemplateControlIds::MAIN_BAND),
+            activity_rail_frame: self
+                .control_frame(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
+            left_region_frame: union_visible_frames([
+                self.control_frame(EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL),
+                self.control_frame(EditorWorkbenchTemplateControlIds::SCENE_TREE),
+            ]),
+            left_drawer_shell_frame: self.control_frame(LEFT_DRAWER_SHELL_CONTROL_ID),
+            left_drawer_header_frame: self.control_frame(LEFT_DRAWER_HEADER_CONTROL_ID),
+            left_drawer_content_frame: self.control_frame(LEFT_DRAWER_CONTENT_CONTROL_ID),
+            document_tabs_frame: self.control_frame(DOCUMENT_TABS_CONTROL_ID),
+            document_region_frame: self.control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT),
+            right_drawer_shell_frame: self.control_frame(RIGHT_DRAWER_SHELL_CONTROL_ID),
+            right_drawer_header_frame: self.control_frame(RIGHT_DRAWER_HEADER_CONTROL_ID),
+            right_drawer_content_frame: self.control_frame(RIGHT_DRAWER_CONTENT_CONTROL_ID),
+            right_region_frame: self.control_frame(EditorWorkbenchTemplateControlIds::INSPECTOR),
+            bottom_drawer_shell_frame: self.control_frame(BOTTOM_DRAWER_SHELL_CONTROL_ID),
+            bottom_drawer_header_frame: self.control_frame(BOTTOM_DRAWER_HEADER_CONTROL_ID),
+            bottom_drawer_content_frame: self.control_frame(BOTTOM_DRAWER_CONTENT_CONTROL_ID),
+            bottom_region_frame: self
+                .control_frame(EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER),
+            status_bar_frame: self.control_frame(EditorWorkbenchTemplateControlIds::STATUS_BAR),
+            viewport_toolbar_frame: self
+                .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT_TOOLBAR),
+            viewport_content_frame: self
+                .control_frame(EditorWorkbenchTemplateControlIds::VIEWPORT_SURFACE),
+            left_resize_splitter_frame: left_resize_splitter_frame_from_drawer_shell(
+                self.control_frame(LEFT_DRAWER_SHELL_CONTROL_ID),
+            ),
+            right_resize_splitter_frame: right_resize_splitter_frame_from_drawer_shell(
+                self.control_frame(RIGHT_DRAWER_SHELL_CONTROL_ID),
+            ),
+            bottom_resize_splitter_frame: bottom_resize_splitter_frame_from_drawer_shell(
+                self.control_frame(BOTTOM_DRAWER_SHELL_CONTROL_ID),
+            ),
+        }
     }
 
     pub(crate) fn binding_for_control(

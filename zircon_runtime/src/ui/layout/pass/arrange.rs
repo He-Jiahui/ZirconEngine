@@ -1,9 +1,9 @@
-use crate::ui::layout::virtual_window_for_scrollable_box;
+use crate::ui::layout::plan_scrollable_virtual_window;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
         DesiredSize, UiAxis, UiContainerKind, UiFrame, UiGridBoxConfig, UiMasonryBoxConfig,
-        UiScrollState, UiScrollableBoxConfig, UiSize, UiVirtualListWindow, UiWrapBoxConfig,
+        UiScrollableBoxConfig, UiSize, UiVirtualListWindow, UiWrapBoxConfig,
     },
     tree::{UiTree, UiTreeError},
 };
@@ -424,37 +424,40 @@ fn arrange_scrollable_children(
     config: UiScrollableBoxConfig,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
-    let (content_size, previous_offset) = {
+    let (content_size, previous_state, previous_window) = {
         let node = tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         (
             node.layout_cache.content_size,
-            node.scroll_state.unwrap_or_default().offset,
+            node.scroll_state.unwrap_or_default(),
+            node.layout_cache.virtual_window,
         )
     };
 
     let viewport_extent = frame_axis_extent(frame, config.axis);
     let content_extent = size_axis_extent(content_size, config.axis);
-    let max_offset = (content_extent - viewport_extent).max(0.0);
-    let offset = previous_offset.max(0.0).min(max_offset);
-    let visible_window =
-        virtual_window_for_scrollable_box(config, offset, children.len(), viewport_extent)
-            .unwrap_or(UiVirtualListWindow {
-                first_visible: 0,
-                last_visible_exclusive: children.len(),
-            });
+    let plan = plan_scrollable_virtual_window(
+        config,
+        previous_state,
+        previous_window,
+        previous_state.offset,
+        children.len(),
+        viewport_extent,
+        content_extent,
+    );
+    let visible_window = plan.virtual_window.unwrap_or(UiVirtualListWindow {
+        first_visible: 0,
+        last_visible_exclusive: children.len(),
+    });
 
     {
         let node = tree
             .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        node.scroll_state = Some(UiScrollState {
-            offset,
-            viewport_extent,
-            content_extent,
-        });
+        node.scroll_state = Some(plan.scroll_state);
         node.layout_cache.virtual_window = Some(visible_window);
+        node.dirty.visible_range |= plan.visible_range_changed;
     }
 
     let positions = child_positions(tree, children, config.axis, config.gap)?;
@@ -464,8 +467,14 @@ fn arrange_scrollable_children(
             continue;
         }
 
-        let child_frame =
-            scrollable_child_frame(tree, child_id, frame, config.axis, positions[index], offset)?;
+        let child_frame = scrollable_child_frame(
+            tree,
+            child_id,
+            frame,
+            config.axis,
+            positions[index],
+            plan.scroll_state.offset,
+        )?;
         arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
     }
 

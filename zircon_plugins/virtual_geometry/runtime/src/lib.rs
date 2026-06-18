@@ -105,7 +105,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("virtual-geometry.page-feedback")
             .read_buffer("virtual-geometry-visible-clusters")
-            .write_external("virtual-geometry-feedback"),
+            .write_external_buffer("virtual-geometry-feedback"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::DepthPrepass,
                 "virtual-geometry-visbuffer",
@@ -175,12 +175,12 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Virtual Geometry",
-        zircon_runtime::RuntimePluginId::VirtualGeometry,
+        zircon_runtime::builtin::RuntimePluginId::VirtualGeometry,
         "zircon_plugin_virtual_geometry_runtime",
     )
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.virtual_geometry")
     .with_capability("runtime.render.advanced.virtual_geometry")
@@ -234,8 +234,8 @@ mod tests {
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
         );
         assert!(report

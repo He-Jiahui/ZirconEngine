@@ -7,6 +7,9 @@ use super::shared::{
     EXPECTED_RUNTIME_10_SOURCE_FILES,
 };
 
+const EXTRA_RUNTIME_10_GUARD_ANCHOR_FILES: &[&str] =
+    &["zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_10.rs"];
+
 #[test]
 fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -29,6 +32,9 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
         "runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces",
         "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
         "runtime_10_dynamic_session_test_owner_split_keeps_focused_modules",
+        "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+        "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+        "runtime_10_ui_v2_contract_sync_matches_runtime_09_verdict_and_interface_owner",
         "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
         "runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation",
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
@@ -44,7 +50,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 21",
+            "expected_source_file_count = 23",
             "function_table_structs = 10/10",
             "field_count_mismatches = 0",
             "missing_repr_c_tables = 0",
@@ -57,6 +63,9 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             "behavior_test_anchor_count = 15",
             "missing_behavior_test_anchors = []",
             "ui_pending_gate_anchors = 8/8",
+            "ui_contract_single_source_anchors = 7/7",
+            "ui_contract_duplicate_public_types = 0",
+            "ui_v2_contract_sync_anchors = 9/9",
             "pending_cargo_gate_anchors = 5/5",
             "doc_anchors = 7/7",
             "mirror_docs_guard_present = true",
@@ -74,8 +83,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        21,
-        "Runtime 10 dynamic API source inventory should stay at 21 files"
+        23,
+        "Runtime 10 dynamic API source inventory should stay at 23 files"
     );
     for relative_file in files {
         assert!(
@@ -163,6 +172,7 @@ fn assert_runtime_10_ffi_wrappers(exports_source: &str, session_source: &str) {
 fn source_tree_contains(repo_root: &Path, needle: &str) -> bool {
     EXPECTED_RUNTIME_10_SOURCE_FILES
         .iter()
+        .chain(EXTRA_RUNTIME_10_GUARD_ANCHOR_FILES.iter())
         .any(|relative_file| {
             fs::read_to_string(repo_root.join(relative_file))
                 .map(|source| source.contains(needle))

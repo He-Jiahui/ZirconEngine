@@ -46,14 +46,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Animation",
-        zircon_runtime::RuntimePluginId::Animation,
+        zircon_runtime::builtin::RuntimePluginId::Animation,
         "zircon_plugin_animation_runtime",
     )
     .with_category("runtime")
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::ServerRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.animation")
     .with_capability("runtime.feature.animation.timeline_event_track")
@@ -131,9 +131,9 @@ mod tests {
         assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![
-                zircon_runtime::RuntimeTargetMode::ClientRuntime,
-                zircon_runtime::RuntimeTargetMode::ServerRuntime,
-                zircon_runtime::RuntimeTargetMode::EditorHost,
+                zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::ServerRuntime,
+                zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
             ]
         );
         assert_eq!(report.package_manifest.category, "runtime");

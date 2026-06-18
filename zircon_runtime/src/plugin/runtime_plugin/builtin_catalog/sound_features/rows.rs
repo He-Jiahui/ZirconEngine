@@ -1,4 +1,4 @@
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 pub(super) struct SoundFeatureRow {
     pub id_suffix: &'static str,

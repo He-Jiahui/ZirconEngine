@@ -1,3 +1,4 @@
+use crate::builtin::RuntimePluginId;
 use crate::core::runtime::ServiceObject;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use crate::engine_module::{factory, qualified_name};
@@ -5,7 +6,6 @@ use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor,
 };
-use crate::RuntimePluginId;
 
 #[test]
 fn runtime_extension_registry_collects_manager_contributions_and_projects_into_modules() {

@@ -2,7 +2,7 @@ use crate::core::framework::render::RenderPipelineHandle;
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 use crate::render_graph::CompiledRenderGraph;
 
-use crate::extract::FrameHistoryBinding;
+use crate::graphics::extract::FrameHistoryBinding;
 
 use super::{render_pass_stage::RenderPassStage, renderer_feature_asset::RendererFeatureAsset};
 

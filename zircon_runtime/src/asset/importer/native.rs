@@ -8,7 +8,7 @@ use super::{
     AssetSchemaMigrationReport, ImportedAssetEntry,
 };
 use crate::asset::{asset_kind_for_imported_asset, AssetImportError, AssetUri};
-use crate::plugin::{
+use crate::plugin::native::{
     LoadedNativePlugin, NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
     ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,

@@ -1,9 +1,9 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
-use crate::render_graph::QueueLane;
-use crate::{
+use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
 };
+use crate::render_graph::QueueLane;
 
 use super::super::super::{
     RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration,
@@ -63,17 +63,17 @@ fn plugin_render_feature_descriptors_require_explicit_executor_registration() {
 }
 
 #[test]
-fn particle_plugin_executor_ids_require_explicit_registration() {
+fn plugin_particle_extensions_still_require_explicit_registration_for_custom_executor_ids() {
     let descriptor = RenderFeatureDescriptor::new(
         "particle",
         Vec::new(),
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
             RenderPassStage::Transparent3d,
-            "particle-render",
+            "particle-plugin-gpu-simulation",
             QueueLane::Graphics,
         )
-        .with_executor_id("particle.transparent")
+        .with_executor_id("particle.plugin-gpu-simulation")
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
         .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
@@ -88,8 +88,8 @@ fn particle_plugin_executor_ids_require_explicit_registration() {
     let error = registry.validate_compiled_pipeline(&compiled).unwrap_err();
 
     assert!(
-        error.contains("unregistered executor `particle.transparent`"),
-        "particle graph pass should require an explicit plugin executor registration: {error}"
+        error.contains("unregistered executor `particle.plugin-gpu-simulation`"),
+        "custom particle graph pass should require an explicit plugin executor registration: {error}"
     );
 }
 

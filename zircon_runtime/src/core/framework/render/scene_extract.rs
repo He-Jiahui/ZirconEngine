@@ -423,6 +423,7 @@ pub struct RenderParticleSpriteSnapshot {
     pub sort_order: i32,
     pub color: Vec4,
     pub intensity: Real,
+    pub depth_test: bool,
     pub material: Option<ResourceHandle<MaterialMarker>>,
     pub texture: Option<ResourceHandle<TextureMarker>>,
 }
@@ -499,6 +500,7 @@ impl Default for RenderParticleSpriteSnapshot {
             sort_order: 0,
             color: Vec4::ZERO,
             intensity: 0.0,
+            depth_test: true,
             material: None,
             texture: None,
         }

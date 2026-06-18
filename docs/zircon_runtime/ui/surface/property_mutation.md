@@ -41,6 +41,7 @@ tests:
   - cargo test -p zircon_runtime --lib surface_property_mutation_keeps_template_visibility_metadata_in_sync --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 latest workbench visibility refresh: passed, 1 passed)
   - cargo test -p zircon_runtime --lib ui_v2_surface_property_mutation_updates_runtime_style_baseline_metadata --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 latest runtime style baseline: passed, 1 passed)
   - cargo test -p zircon_runtime --lib ui_v2_surface_property_mutation_restyles_focused_pseudo_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 retained pseudo-state sync: passed, 1 passed)
+  - 2026-06-16 Runtime 09 property visibility flag rename: rustfmt check; Python py_compile; direct ui_architecture_boundary_audit; standalone ui_architecture.rs 14/14; standalone plan-status status-output filters 2/2 (static passed, Cargo behavior filters pending)
 doc_type: module-detail
 ---
 
@@ -82,6 +83,8 @@ Every accepted mutation marks the touched node dirty through `UiDirtyFlags`. The
 The binding report mirrors that invalidation through `UiBindingDirtyDomain`. If `UiSurface::mutate_property` adds render dirtiness while syncing runtime component state or pseudo-state styles, the binding report is refreshed so the report's retained invalidation and binding dirty domains stay consistent.
 
 The legacy `state_flags.dirty` compatibility bit is now reserved for state changes that affect hit-test or input routing. Render-only changes must not set it, because `UiSurface::dirty_flags()` still treats that legacy bit as a conservative hit-test/input/render invalidation. This keeps paint-only state, Material metadata, and dispatch redraw effects on the render-only rebuild path instead of rebuilding the arranged tree or hit grid.
+
+Runtime 09 M1.2 records `runtime_09_m1_2_property_visibility_flag_renamed_static_passed_cargo_pending`: the visibility transition helper names the boolean passed into `UiVisibility::effective(...)` as `state_visible_flag`. The dirty behavior is unchanged; `runtime_09_property_visibility_flag_rename_reduces_ui_surface_debt` only prevents the old local wording from returning.
 
 The current dirty mapping is intentionally conservative:
 

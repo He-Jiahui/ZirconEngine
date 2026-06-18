@@ -1,13 +1,19 @@
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::mpsc;
+use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+
 use zircon_runtime::core::framework::render::RenderParticleGpuReadbackOutputs;
-use zircon_runtime::core::math::{Transform, Vec3, Vec4};
+use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 
 use crate::{
     compile_particle_gpu_layout, compile_particle_gpu_program, ParticleBurst, ParticleColorKey,
-    ParticleEmitterAsset, ParticleGpuCounterReadback, ParticleGpuCpuParityReport,
-    ParticleGpuEmitterFrameParams, ParticleGpuFramePlanner, ParticleGpuPassKind,
-    ParticleGpuTransparentRenderParams, ParticleShape, ParticleSimulationBackend,
-    ParticleSystemAsset, ParticleSystemComponent, ParticleVec3Range, ParticlesManager,
-    PARTICLE_GPU_MAX_PARTICLES,
+    ParticleEmitterAsset, ParticleGpuBackend, ParticleGpuCounterReadback,
+    ParticleGpuCpuParityReport, ParticleGpuEmitterFrameParams, ParticleGpuFramePlanner,
+    ParticleGpuPassKind, ParticleGpuReadbackRequest, ParticleGpuRuntimeOwner,
+    ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams, ParticleShape,
+    ParticleSimulationBackend, ParticleSystemAsset, ParticleSystemComponent, ParticleVec3Range,
+    ParticlesManager, PARTICLE_GPU_MAX_PARTICLES,
 };
 
 use super::support::spawn_rate_asset;
@@ -259,4 +265,510 @@ fn gpu_layout_clamps_capacity_and_reports_diagnostic() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.reason == crate::ParticleGpuFallbackReason::CapacityExceeded));
+}
+
+#[test]
+fn particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(
+            77,
+            ParticleSystemAsset::new("gpu-owner")
+                .with_backend(ParticleSimulationBackend::Gpu)
+                .with_seed(7)
+                .with_emitters(vec![ParticleEmitterAsset::sprite("gpu")
+                    .with_spawn_rate(0.0)
+                    .with_burst(ParticleBurst::new(0.0, 3))
+                    .with_max_particles(16)]),
+        ))
+        .unwrap();
+    manager.tick(0.001).unwrap();
+
+    let instances = manager.gpu_runtime_instances();
+    assert_eq!(instances.len(), 1);
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-test"),
+    });
+    let mut owner = ParticleGpuRuntimeOwner::default();
+
+    let frame = owner
+        .execute_instances(&device, &queue, &mut encoder, &instances)
+        .unwrap()
+        .expect("playing GPU particle instance should execute a backend frame");
+
+    assert_eq!(frame.outputs.spawned_total, 3);
+    assert_eq!(frame.outputs.indirect_draw_args, [6, 3, 0, 0]);
+    let bindings = owner.active_bindings().unwrap();
+    assert_eq!(bindings.indirect_draw_args.size(), 16);
+    assert!(bindings.particles_a.size() > 0);
+    assert_eq!(bindings.particles_a.size(), bindings.particles_b.size());
+    assert!(!std::ptr::eq(bindings.particles_a, bindings.particles_b));
+    queue.submit([encoder.finish()]);
+}
+
+#[test]
+fn particle_gpu_runtime_owner_aggregates_playing_gpu_instances() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(
+            81,
+            ParticleSystemAsset::new("gpu-owner-a")
+                .with_backend(ParticleSimulationBackend::Gpu)
+                .with_seed(11)
+                .with_emitters(vec![ParticleEmitterAsset::sprite("gpu-a")
+                    .with_spawn_rate(0.0)
+                    .with_burst(ParticleBurst::new(0.0, 2))
+                    .with_max_particles(16)]),
+        ))
+        .unwrap();
+    manager
+        .instantiate(ParticleSystemComponent::new(
+            82,
+            ParticleSystemAsset::new("gpu-owner-b")
+                .with_backend(ParticleSimulationBackend::Gpu)
+                .with_seed(13)
+                .with_emitters(vec![ParticleEmitterAsset::sprite("gpu-b")
+                    .with_spawn_rate(0.0)
+                    .with_burst(ParticleBurst::new(0.0, 4))
+                    .with_max_particles(32)]),
+        ))
+        .unwrap();
+    manager.tick(0.001).unwrap();
+
+    let instances = manager.gpu_runtime_instances();
+    assert_eq!(instances.len(), 2);
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-aggregate-test"),
+    });
+    let mut owner = ParticleGpuRuntimeOwner::default();
+
+    let frame = owner
+        .execute_instances(&device, &queue, &mut encoder, &instances)
+        .unwrap()
+        .expect("playing GPU particle instances should execute an aggregate backend frame");
+
+    assert_eq!(frame.outputs.spawned_total, 6);
+    assert_eq!(frame.outputs.per_emitter_spawned, vec![2, 4]);
+    assert_eq!(frame.outputs.indirect_draw_args, [6, 6, 0, 0]);
+    let bindings = owner.active_bindings().unwrap();
+    assert!(bindings.particles_a.size() > 0);
+    assert_eq!(bindings.particles_a.size(), bindings.particles_b.size());
+    assert!(!std::ptr::eq(bindings.particles_a, bindings.particles_b));
+    queue.submit([encoder.finish()]);
+}
+
+#[test]
+fn render_particle_cpu_gpu_parity_small_scene_matches_counts_and_indirect_args() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let asset = ParticleSystemAsset::new("gpu-parity-small-scene")
+        .with_backend(ParticleSimulationBackend::Gpu)
+        .with_seed(23)
+        .with_emitters(vec![ParticleEmitterAsset::sprite("gpu-parity")
+            .with_spawn_rate(0.0)
+            .with_burst(ParticleBurst::new(0.0, 5))
+            .with_max_particles(16)
+            .with_lifetime(crate::ParticleScalarRange::constant(4.0))
+            .with_initial_velocity(ParticleVec3Range::new(Vec3::ZERO, Vec3::ZERO))
+            .with_gravity(Vec3::ZERO)
+            .with_drag(0.0)]);
+    let frame_dt = 0.001;
+
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(93, asset.clone()))
+        .unwrap();
+    manager.tick(frame_dt).unwrap();
+    let cpu_extract = manager.build_extract(None);
+    let cpu_live_particles = cpu_extract.sprites.len() as u32;
+    let cpu_spawned_particles = cpu_extract
+        .gpu_frame
+        .as_ref()
+        .expect("GPU backend extract should expose neutral spawn counts")
+        .spawned_total;
+
+    let mut planner = ParticleGpuFramePlanner::new(asset.clone());
+    let frame = planner
+        .build_frame(frame_dt, Transform::default())
+        .expect("deterministic GPU parity frame should build");
+    let mut backend = ParticleGpuBackend::new(&device, &asset).unwrap();
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-cpu-parity-small-scene-test"),
+    });
+    backend
+        .execute_frame(
+            &queue,
+            &mut encoder,
+            &frame,
+            ParticleGpuReadbackRequest::Counters,
+        )
+        .unwrap();
+    queue.submit([encoder.finish()]);
+
+    let gpu_counters = backend.read_counter_readback(&device).unwrap();
+    let parity = ParticleGpuCpuParityReport::compare_counts(
+        cpu_live_particles,
+        cpu_spawned_particles,
+        &gpu_counters,
+    );
+    assert!(
+        parity.matches(),
+        "CPU/GPU particle count parity failed: {:?}",
+        parity.mismatches()
+    );
+
+    let gpu_outputs = backend.read_render_outputs_readback(&device).unwrap();
+    assert_eq!(
+        gpu_outputs.indirect_draw_args,
+        [6, cpu_live_particles, 0, 0]
+    );
+    assert_eq!(gpu_outputs.per_emitter_spawned, vec![cpu_spawned_particles]);
+}
+
+#[test]
+fn particle_gpu_runtime_owner_records_transparent_draw_from_executed_backend() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(
+            91,
+            ParticleSystemAsset::new("gpu-transparent-owner")
+                .with_backend(ParticleSimulationBackend::Gpu)
+                .with_seed(17)
+                .with_emitters(vec![ParticleEmitterAsset::sprite("gpu-transparent")
+                    .with_spawn_rate(0.0)
+                    .with_burst(ParticleBurst::new(0.0, 2))
+                    .with_max_particles(16)]),
+        ))
+        .unwrap();
+    manager.tick(0.001).unwrap();
+
+    let instances = manager.gpu_runtime_instances();
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-transparent-test"),
+    });
+    let mut owner = ParticleGpuRuntimeOwner::default();
+    owner
+        .execute_instances(&device, &queue, &mut encoder, &instances)
+        .unwrap()
+        .expect("playing GPU particle instance should execute before transparent draw");
+
+    let (scene_layout, _scene_uniform, scene_bind_group) =
+        create_test_scene_bind_group(&device, &queue);
+    let (color_texture, color_view) = create_test_texture_view(
+        &device,
+        "zircon-particle-gpu-transparent-owner-color",
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+    );
+    let (_depth_texture, depth_view) = create_test_texture_view(
+        &device,
+        "zircon-particle-gpu-transparent-owner-depth",
+        wgpu::TextureFormat::Depth32Float,
+        wgpu::TextureUsages::RENDER_ATTACHMENT,
+    );
+    clear_test_render_targets(&mut encoder, &color_view, &depth_view);
+
+    let recorded = owner
+        .record_transparent_render(
+            &device,
+            &scene_layout,
+            ParticleGpuTransparentRenderConfig::new(
+                wgpu::TextureFormat::Rgba8Unorm,
+                wgpu::TextureFormat::Depth32Float,
+            ),
+            &queue,
+            &mut encoder,
+            &color_view,
+            &depth_view,
+            &scene_bind_group,
+            ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
+            zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
+        )
+        .unwrap();
+
+    assert!(recorded);
+    queue.submit([encoder.finish()]);
+
+    let color_pixels = read_test_texture_rgba8(&device, &queue, &color_texture, 32, 32);
+    let visible_pixel_count = color_pixels
+        .chunks_exact(4)
+        .filter(|pixel| pixel[3] > 0 && pixel[..3].iter().any(|channel| *channel > 0))
+        .count();
+    assert!(
+        visible_pixel_count > 0,
+        "transparent GPU draw should write visible RGBA pixels into the color target"
+    );
+}
+
+#[test]
+fn particle_gpu_runtime_owner_skips_transparent_draw_without_executed_backend() {
+    let Some((device, queue)) = offscreen_wgpu_device() else {
+        return;
+    };
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-empty-transparent-test"),
+    });
+    let (scene_layout, _scene_uniform, scene_bind_group) =
+        create_test_scene_bind_group(&device, &queue);
+    let (_color_texture, color_view) = create_test_texture_view(
+        &device,
+        "zircon-particle-gpu-transparent-owner-empty-color",
+        wgpu::TextureFormat::Rgba8Unorm,
+        wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+    );
+    let (_depth_texture, depth_view) = create_test_texture_view(
+        &device,
+        "zircon-particle-gpu-transparent-owner-empty-depth",
+        wgpu::TextureFormat::Depth32Float,
+        wgpu::TextureUsages::RENDER_ATTACHMENT,
+    );
+    clear_test_render_targets(&mut encoder, &color_view, &depth_view);
+
+    let mut owner = ParticleGpuRuntimeOwner::default();
+    let recorded = owner
+        .record_transparent_render(
+            &device,
+            &scene_layout,
+            ParticleGpuTransparentRenderConfig::new(
+                wgpu::TextureFormat::Rgba8Unorm,
+                wgpu::TextureFormat::Depth32Float,
+            ),
+            &queue,
+            &mut encoder,
+            &color_view,
+            &depth_view,
+            &scene_bind_group,
+            ParticleGpuTransparentRenderParams::new(Vec3::X, Vec3::Y, 1.0),
+            zircon_runtime::graphics::ViewportRenderRegion::full_target(UVec2::new(32, 32)),
+        )
+        .unwrap();
+
+    assert!(!recorded);
+    queue.submit([encoder.finish()]);
+}
+
+fn offscreen_wgpu_device() -> Option<(wgpu::Device, wgpu::Queue)> {
+    let instance = wgpu::Instance::default();
+    let adapter = block_on_test_future(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::HighPerformance,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }))
+    .ok()?;
+    block_on_test_future(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("zircon-particle-gpu-runtime-owner-test-device"),
+        required_features: wgpu::Features::empty(),
+        required_limits: wgpu::Limits::default(),
+        memory_hints: wgpu::MemoryHints::Performance,
+        trace: wgpu::Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+    }))
+    .ok()
+}
+
+fn create_test_scene_bind_group(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+) -> (wgpu::BindGroupLayout, wgpu::Buffer, wgpu::BindGroup) {
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("zircon-particle-gpu-transparent-test-scene-layout"),
+        entries: &[wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX
+                | wgpu::ShaderStages::FRAGMENT
+                | wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        }],
+    });
+    let uniform = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-particle-gpu-transparent-test-scene-uniform"),
+        size: 256,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    let mut bytes = [0u8; 256];
+    for (index, value) in [
+        1.0_f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+    ]
+    .iter()
+    .enumerate()
+    {
+        bytes[index * 4..index * 4 + 4].copy_from_slice(&value.to_le_bytes());
+    }
+    queue.write_buffer(&uniform, 0, &bytes);
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("zircon-particle-gpu-transparent-test-scene-bind-group"),
+        layout: &layout,
+        entries: &[wgpu::BindGroupEntry {
+            binding: 0,
+            resource: uniform.as_entire_binding(),
+        }],
+    });
+    (layout, uniform, bind_group)
+}
+
+fn create_test_texture_view(
+    device: &wgpu::Device,
+    label: &'static str,
+    format: wgpu::TextureFormat,
+    usage: wgpu::TextureUsages,
+) -> (wgpu::Texture, wgpu::TextureView) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some(label),
+        size: wgpu::Extent3d {
+            width: 32,
+            height: 32,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    (texture, view)
+}
+
+fn clear_test_render_targets(
+    encoder: &mut wgpu::CommandEncoder,
+    color_view: &wgpu::TextureView,
+    depth_view: &wgpu::TextureView,
+) {
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("zircon-particle-gpu-transparent-test-clear"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: color_view,
+            resolve_target: None,
+            depth_slice: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: depth_view,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Clear(1.0),
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        occlusion_query_set: None,
+        timestamp_writes: None,
+        multiview_mask: None,
+    });
+}
+
+fn read_test_texture_rgba8(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    width: u32,
+    height: u32,
+) -> Vec<u8> {
+    let bytes_per_pixel = 4_u32;
+    let unpadded_bytes_per_row = width * bytes_per_pixel;
+    let padded_bytes_per_row = unpadded_bytes_per_row.div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
+        * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+    let buffer_size = padded_bytes_per_row as u64 * height as u64;
+    let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-particle-gpu-transparent-readback"),
+        size: buffer_size,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-particle-gpu-transparent-readback-encoder"),
+    });
+    encoder.copy_texture_to_buffer(
+        texture.as_image_copy(),
+        wgpu::TexelCopyBufferInfo {
+            buffer: &buffer,
+            layout: wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(padded_bytes_per_row),
+                rows_per_image: Some(height),
+            },
+        },
+        wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        },
+    );
+    queue.submit([encoder.finish()]);
+
+    let slice = buffer.slice(..);
+    let (sender, receiver) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .expect("transparent draw readback poll should succeed");
+    receiver
+        .recv()
+        .expect("transparent draw readback should report map status")
+        .expect("transparent draw readback buffer should map");
+
+    let mapped = slice.get_mapped_range();
+    let mut rgba = vec![0_u8; (width * height * bytes_per_pixel) as usize];
+    for row in 0..height as usize {
+        let source_offset = row * padded_bytes_per_row as usize;
+        let target_offset = row * unpadded_bytes_per_row as usize;
+        rgba[target_offset..target_offset + unpadded_bytes_per_row as usize].copy_from_slice(
+            &mapped[source_offset..source_offset + unpadded_bytes_per_row as usize],
+        );
+    }
+    drop(mapped);
+    buffer.unmap();
+
+    rgba
+}
+
+fn block_on_test_future<T>(future: impl Future<Output = T>) -> T {
+    let waker = noop_waker();
+    let mut context = Context::from_waker(&waker);
+    let mut future = Box::pin(future);
+    loop {
+        match Pin::new(&mut future).poll(&mut context) {
+            Poll::Ready(value) => return value,
+            Poll::Pending => std::thread::yield_now(),
+        }
+    }
+}
+
+fn noop_waker() -> Waker {
+    unsafe fn clone(_: *const ()) -> RawWaker {
+        noop_raw_waker()
+    }
+    unsafe fn wake(_: *const ()) {}
+    unsafe fn wake_by_ref(_: *const ()) {}
+    unsafe fn drop(_: *const ()) {}
+
+    fn noop_raw_waker() -> RawWaker {
+        RawWaker::new(
+            std::ptr::null(),
+            &RawWakerVTable::new(clone, wake, wake_by_ref, drop),
+        )
+    }
+
+    unsafe { Waker::from_raw(noop_raw_waker()) }
 }

@@ -7,7 +7,7 @@ pub(super) fn update_particle_previous_state_after_success(
     record: &mut ViewportRecord,
     frame: &ViewportRenderFrame,
 ) {
-    let camera = &frame.extract.view.camera.transform;
+    let camera = frame.effective_camera().transform;
     let right = camera.right();
     let up = camera.up();
     let ambiguous_anonymous_entities = frame
@@ -64,6 +64,7 @@ mod tests {
             sort_order: 3,
             color: Vec4::ONE,
             intensity: 1.0,
+            depth_test: true,
             material: None,
             texture: None,
         }];
@@ -84,8 +85,8 @@ mod tests {
         assert_eq!(
             previous.billboard_basis,
             Some(RenderParticleBillboardBasisSnapshot::new(
-                frame.extract.view.camera.transform.right(),
-                frame.extract.view.camera.transform.up(),
+                frame.effective_camera().transform.right(),
+                frame.effective_camera().transform.up(),
             ))
         );
     }
@@ -109,6 +110,7 @@ mod tests {
                 sort_order: 3,
                 color: Vec4::ONE,
                 intensity: 1.0,
+                depth_test: true,
                 material: None,
                 texture: None,
             },
@@ -123,6 +125,7 @@ mod tests {
                 sort_order: 4,
                 color: Vec4::ONE,
                 intensity: 1.0,
+                depth_test: true,
                 material: None,
                 texture: None,
             },
@@ -137,6 +140,7 @@ mod tests {
                 sort_order: 5,
                 color: Vec4::ONE,
                 intensity: 1.0,
+                depth_test: true,
                 material: None,
                 texture: None,
             },

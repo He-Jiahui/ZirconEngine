@@ -1,12 +1,17 @@
 #[cfg(test)]
-use crate::core::framework::render::RenderSceneVelocityReadbackReport;
+use crate::asset::{TextureAsset, TexturePayload};
 use crate::core::framework::render::{
     AntiAliasMode, PostProcessGraphResourceNames, RenderCameraTargetGraphImportReport,
     RenderCapabilitySummary, RenderPluginRendererOutputs,
 };
 #[cfg(test)]
-use crate::graphics::backend::read_texture_rgba;
+use crate::core::framework::render::{
+    RenderColorLookupSettings, RenderColorLookupTextureLayout, RenderColorLutReadbackReport,
+    RenderImageDescriptor, RenderPostProcessEffectStackSettings, RenderSceneVelocityReadbackReport,
+};
 use crate::graphics::backend::OffscreenTarget;
+#[cfg(test)]
+use crate::graphics::backend::{read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::debug_markers::{
     insert_marker, pop_group, push_group, RENDERDOC_MARKER_FRAME_EXTRACT,
     RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
@@ -31,10 +36,10 @@ use crate::graphics::types::{
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
+use crate::graphics::CompiledRenderPipeline;
 use crate::render_graph::RenderGraphResourceAccessKind;
 #[cfg(test)]
 use crate::rhi::TextureFormat;
-use crate::CompiledRenderPipeline;
 use std::sync::Arc;
 
 use super::super::super::scene_renderer_core::{
@@ -42,10 +47,14 @@ use super::super::super::scene_renderer_core::{
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
-use super::build_compiled_scene_draws::build_compiled_scene_draws;
-use super::execute_graph_stage::{
-    execute_graph_stage, import_frame_targets, RenderGraphStageExecution,
+use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
+use super::bind_frame_graph_resources::bind_frame_graph_resources;
+use super::bind_history_graph_resources::{
+    bind_history_graph_resources, HistoryGraphResourceBindingFlags,
 };
+use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
+use super::build_compiled_scene_draws::build_compiled_scene_draws;
+use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
 
 const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
@@ -129,6 +138,7 @@ impl SceneRendererCore {
             &mut self.mesh_pipelines,
             &mut self.cached_mesh_draw_commands,
             frame_generation,
+            frame.shader_quality(),
         );
         self.cached_mesh_draw_commands
             .retain_generation(frame_generation);
@@ -246,7 +256,8 @@ impl SceneRendererCore {
                 .map(|resource| RenderGraphImportedFinalTarget {
                     view: resource.view(),
                 });
-        import_frame_targets(
+        bind_frame_graph_resources(
+            &pipeline.graph,
             &mut graph_resources,
             target,
             imported_final_target,
@@ -255,42 +266,20 @@ impl SceneRendererCore {
         let direct_import_report = direct_imported_final_target
             .as_ref()
             .map(|resource| RenderCameraTargetGraphImportReport::direct_imported(resource.size()));
-        if let Some(history_textures) = history_textures.as_deref() {
-            if taa_history_enabled {
-                graph_resources.import_texture_view(
-                    PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
-                    history_textures.taa_scene_color_previous_view(),
-                );
-                graph_resources.import_texture_view(
-                    PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
-                    history_textures.taa_scene_color_current_view(),
-                );
-            }
-            if history_available && screen_space_reflection_history_enabled {
-                graph_resources.import_texture_view(
-                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
-                    history_textures
-                        .screen_space_reflection
-                        .create_view(&wgpu::TextureViewDescriptor::default()),
-                );
-            }
-            if history_available && hzb_history_enabled {
-                graph_resources.import_texture_view(
-                    PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST,
-                    history_textures.hzb_furthest_view.clone(),
-                );
-            }
-            if exposure_history_enabled {
-                graph_resources.insert_buffer(
-                    PostProcessGraphResourceNames::EXPOSURE_PREVIOUS,
-                    history_textures.exposure_previous_buffer(),
-                );
-                graph_resources.insert_buffer(
-                    PostProcessGraphResourceNames::EXPOSURE_CURRENT,
-                    history_textures.exposure_current_buffer(),
-                );
-            }
-        }
+        bind_history_graph_resources(
+            &pipeline.graph,
+            &mut graph_resources,
+            history_textures.as_deref(),
+            HistoryGraphResourceBindingFlags {
+                taa_scene_color: taa_history_enabled,
+                screen_space_reflection: history_available
+                    && screen_space_reflection_history_enabled,
+                hzb: history_available && hzb_history_enabled,
+                hybrid_global_illumination: history_available
+                    && runtime_features.hybrid_global_illumination_enabled,
+                exposure: exposure_history_enabled,
+            },
+        );
         graph_resources
             .materialize_transient_resources_with_pool(
                 device,
@@ -298,8 +287,26 @@ impl SceneRendererCore {
                 &mut self.transient_resource_pool,
             )
             .map_err(GraphicsError::Asset)?;
+        bind_execution_owned_graph_resources(
+            device,
+            &pipeline.graph,
+            &mut graph_resources,
+            mesh_draw_lists,
+            self.hzb_occlusion_culler.as_ref(),
+        );
+        bind_plugin_graph_resources(
+            device,
+            &pipeline.graph,
+            advanced_plugin_readbacks.external_buffer_bindings(),
+            &mut graph_resources,
+        );
+        let materialization_report = graph_resources
+            .validate_materialized_graph_resources(&pipeline.graph)
+            .map_err(GraphicsError::Asset)?;
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
+        graph_execution_record.set_materialization_report(materialization_report);
         graph_execution_record.set_resource_report(graph_resources.resource_report());
+        graph_execution_record.set_resource_alias_report(graph_resources.resource_alias_report());
         let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
         let mut graph_execution = RenderGraphStageExecution::new(
             &mut graph_resources,
@@ -340,6 +347,9 @@ impl SceneRendererCore {
                 queue,
                 &mut encoder,
                 frame,
+                &self.scene_bind_group_layout,
+                self.target_format,
+                self.depth_format,
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
@@ -372,6 +382,9 @@ impl SceneRendererCore {
                 queue,
                 &mut encoder,
                 frame,
+                &self.scene_bind_group_layout,
+                self.target_format,
+                self.depth_format,
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 Some(early_post_process_stack),
@@ -434,6 +447,9 @@ impl SceneRendererCore {
             queue,
             &mut encoder,
             &runtime_frame,
+            &self.scene_bind_group_layout,
+            self.target_format,
+            self.depth_format,
             &self.scene_bind_group,
             &mut self.screen_space_ui_renderer,
             Some(post_process_stack),
@@ -466,6 +482,7 @@ impl SceneRendererCore {
         let history_copy_report = self.copy_history_textures(
             &mut encoder,
             target,
+            runtime_frame.render_region(),
             &*graph_execution.resources,
             history_textures,
             runtime_features,
@@ -493,6 +510,9 @@ impl SceneRendererCore {
                 queue,
                 &mut encoder,
                 frame,
+                &self.scene_bind_group_layout,
+                self.target_format,
+                self.depth_format,
                 &self.scene_bind_group,
                 &mut self.screen_space_ui_renderer,
                 None,
@@ -524,6 +544,15 @@ impl SceneRendererCore {
         attach_scene_velocity_readback_stats(
             device,
             queue,
+            &graph_resources,
+            &mut graph_execution_record,
+        );
+        #[cfg(test)]
+        attach_color_lut_readback_stats(
+            device,
+            queue,
+            streamer,
+            frame,
             &graph_resources,
             &mut graph_execution_record,
         );
@@ -598,6 +627,261 @@ fn attach_scene_velocity_readback_stats(
     );
 }
 
+#[cfg(test)]
+fn attach_color_lut_readback_stats(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+    graph_resources: &RenderGraphExecutionResources,
+    graph_execution_record: &mut RenderGraphExecutionRecord,
+) {
+    let resource_name = PostProcessGraphResourceNames::COLOR_LUT;
+    let Some(texture) = graph_resources.owned_texture(resource_name) else {
+        return;
+    };
+    let Some(desc) = graph_resources.owned_texture_desc(resource_name) else {
+        return;
+    };
+    if desc.format != TextureFormat::Rgba16Float || desc.sample_count != 1 {
+        return;
+    }
+    let size = [desc.width, desc.height, desc.depth];
+    if size.iter().any(|extent| *extent == 0) {
+        return;
+    }
+    let Ok(bytes) = read_texture_rgba16float_3d(device, queue, texture, size) else {
+        return;
+    };
+    graph_execution_record.set_color_lut_readback_report(color_lut_readback_report_for_frame(
+        streamer, frame, size, &bytes,
+    ));
+}
+
+#[cfg(test)]
+fn color_lut_readback_report_for_frame(
+    streamer: &ResourceStreamer,
+    frame: &ViewportRenderFrame,
+    size: [u32; 3],
+    bytes: &[u8],
+) -> RenderColorLutReadbackReport {
+    if let Some(reference) = UserColorLutReadbackReference::from_frame(streamer, frame, size) {
+        return RenderColorLutReadbackReport::from_raw_rgba16_float_user_lut_bytes(
+            size,
+            bytes,
+            |source_color| reference.expected_rgb(source_color),
+        );
+    }
+
+    RenderColorLutReadbackReport::from_raw_rgba16_float_identity_bytes(size, bytes)
+}
+
+#[cfg(test)]
+struct UserColorLutReadbackReference {
+    rgba: Vec<u8>,
+    width: u32,
+    height: u32,
+    mode: UserColorLutReadbackMode,
+    intensity: f32,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy)]
+enum UserColorLutReadbackMode {
+    Texture2d,
+    Texture2dStrip { size: u32 },
+    Texture3d { size: u32 },
+}
+
+#[cfg(test)]
+impl UserColorLutReadbackMode {
+    fn rgba_byte_len(self, width: u32, height: u32) -> Option<usize> {
+        match self {
+            Self::Texture2d | Self::Texture2dStrip { .. } => rgba8_len(width, height),
+            Self::Texture3d { size } => (size as usize)
+                .checked_mul(size as usize)?
+                .checked_mul(size as usize)?
+                .checked_mul(4),
+        }
+    }
+}
+
+#[cfg(test)]
+impl UserColorLutReadbackReference {
+    fn from_frame(
+        streamer: &ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        readback_size: [u32; 3],
+    ) -> Option<Self> {
+        let effect_stack = frame.extract.post_process.effect_stack;
+        if !user_lut_readback_supports_effect_stack(effect_stack) {
+            return None;
+        }
+        Self::from_settings(streamer, effect_stack.color_lookup, readback_size)
+    }
+
+    fn from_settings(
+        streamer: &ResourceStreamer,
+        settings: RenderColorLookupSettings,
+        readback_size: [u32; 3],
+    ) -> Option<Self> {
+        let texture_id = settings
+            .is_enabled()
+            .then(|| settings.texture.map(|texture| texture.id()))
+            .flatten()?;
+        let texture = streamer
+            .asset_manager()
+            .load_texture_asset(texture_id)
+            .ok()?;
+        let descriptor = texture.render_image_descriptor();
+        let mode = user_lut_readback_mode(
+            streamer,
+            texture_id,
+            settings.texture_layout,
+            &descriptor,
+            readback_size,
+        )?;
+        let TextureAsset {
+            rgba,
+            width,
+            height,
+            payload,
+            ..
+        } = texture;
+        if payload != TexturePayload::Rgba8 || rgba.len() < mode.rgba_byte_len(width, height)? {
+            return None;
+        }
+
+        Some(Self {
+            rgba,
+            width,
+            height,
+            mode,
+            intensity: (settings.render_intensity() as f32).clamp(0.0, 1.0),
+        })
+    }
+
+    fn expected_rgb(&self, source_color: [f32; 3]) -> [f32; 3] {
+        let user_color = self.sample(source_color);
+        [
+            mix_channel(source_color[0], user_color[0], self.intensity),
+            mix_channel(source_color[1], user_color[1], self.intensity),
+            mix_channel(source_color[2], user_color[2], self.intensity),
+        ]
+    }
+
+    fn sample(&self, color: [f32; 3]) -> [f32; 3] {
+        match self.mode {
+            UserColorLutReadbackMode::Texture2d => [
+                self.sample_1d_channel(color[0]),
+                self.sample_1d_channel(color[1]),
+                self.sample_1d_channel(color[2]),
+            ],
+            UserColorLutReadbackMode::Texture2dStrip { size } => {
+                let red = lut_axis_index(color[0], size);
+                let green = lut_axis_index(color[1], size);
+                let blue = lut_axis_index(color[2], size);
+                let x = blue.saturating_mul(size).saturating_add(red);
+                self.texel_rgb(x.min(self.width.saturating_sub(1)), green.min(size - 1))
+            }
+            UserColorLutReadbackMode::Texture3d { size } => {
+                let red = lut_axis_index(color[0], size);
+                let green = lut_axis_index(color[1], size);
+                let blue = lut_axis_index(color[2], size);
+                let x = red.min(self.width.saturating_sub(1));
+                let y = green.min(self.height.saturating_sub(1));
+                let z_offset = blue.saturating_mul(self.width.saturating_mul(self.height));
+                self.texel_rgb_by_flat_index(z_offset.saturating_add(y * self.width + x))
+            }
+        }
+    }
+
+    fn sample_1d_channel(&self, value: f32) -> f32 {
+        let x = lut_axis_index(value, self.width);
+        self.texel_rgb(x.min(self.width.saturating_sub(1)), 0)[0]
+    }
+
+    fn texel_rgb(&self, x: u32, y: u32) -> [f32; 3] {
+        self.texel_rgb_by_flat_index(y.saturating_mul(self.width).saturating_add(x))
+    }
+
+    fn texel_rgb_by_flat_index(&self, flat_index: u32) -> [f32; 3] {
+        let offset = flat_index as usize * 4;
+        if offset + 2 >= self.rgba.len() {
+            return [0.0; 3];
+        }
+        [
+            self.rgba[offset] as f32 / 255.0,
+            self.rgba[offset + 1] as f32 / 255.0,
+            self.rgba[offset + 2] as f32 / 255.0,
+        ]
+    }
+}
+
+#[cfg(test)]
+fn user_lut_readback_supports_effect_stack(
+    effect_stack: RenderPostProcessEffectStackSettings,
+) -> bool {
+    effect_stack.tonemap == Default::default()
+}
+
+#[cfg(test)]
+fn user_lut_readback_mode(
+    streamer: &ResourceStreamer,
+    texture_id: crate::core::resource::ResourceId,
+    layout: RenderColorLookupTextureLayout,
+    descriptor: &RenderImageDescriptor,
+    readback_size: [u32; 3],
+) -> Option<UserColorLutReadbackMode> {
+    let lut_size = readback_size[0];
+    if readback_size != [lut_size; 3] || lut_size == 0 {
+        return None;
+    }
+    if streamer
+        .prepared_post_process_lut_3d_view(texture_id, layout)
+        .is_some()
+        && layout.matches_texture_3d(descriptor)
+        && descriptor.width == lut_size
+        && descriptor.height == lut_size
+        && descriptor.depth_or_array_layers == lut_size
+    {
+        return Some(UserColorLutReadbackMode::Texture3d { size: lut_size });
+    }
+    if let Some((_, is_strip)) = streamer.prepared_post_process_lut_2d_view(texture_id, layout) {
+        if is_strip
+            && layout.matches_texture_2d_strip(descriptor)
+            && descriptor.width == lut_size.saturating_mul(lut_size)
+            && descriptor.height == lut_size
+        {
+            return Some(UserColorLutReadbackMode::Texture2dStrip { size: lut_size });
+        }
+        if !is_strip && descriptor.width == lut_size && descriptor.height > 0 {
+            return Some(UserColorLutReadbackMode::Texture2d);
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+fn lut_axis_index(value: f32, size: u32) -> u32 {
+    let max_index = size.max(1) - 1;
+    (value.clamp(0.0, 1.0) * max_index as f32)
+        .round()
+        .min(max_index as f32) as u32
+}
+
+#[cfg(test)]
+fn mix_channel(a: f32, b: f32, t: f32) -> f32 {
+    a * (1.0 - t) + b * t
+}
+
+#[cfg(test)]
+fn rgba8_len(width: u32, height: u32) -> Option<usize> {
+    (width as usize)
+        .checked_mul(height as usize)?
+        .checked_mul(4)
+}
+
 fn attach_hzb_occlusion_readback_stats(
     culler: &HzbOcclusionCuller,
     device: &wgpu::Device,
@@ -669,6 +953,9 @@ fn direct_imported_final_target(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
 ) -> Option<Arc<OutputTargetTextureResource>> {
+    if !frame.camera_stack_output_policy().writes_output_target() {
+        return None;
+    }
     let texture = frame.output_target().texture_handle()?;
     let prepared = streamer.output_target_texture_resource(&texture.id())?;
     let plan = frame

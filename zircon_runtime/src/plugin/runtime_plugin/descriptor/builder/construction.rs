@@ -1,4 +1,5 @@
-use crate::{plugin::ExportPackagingStrategy, plugin::PluginMaturity, RuntimePluginId};
+use crate::builtin::RuntimePluginId;
+use crate::{plugin::ExportPackagingStrategy, plugin::PluginMaturity};
 
 use super::super::RuntimePluginDescriptor;
 

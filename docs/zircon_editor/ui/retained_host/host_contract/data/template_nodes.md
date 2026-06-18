@@ -2,16 +2,20 @@
 related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
+  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
@@ -27,6 +31,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
   - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
@@ -34,16 +40,20 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
+  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
@@ -58,6 +68,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
@@ -78,16 +89,18 @@ tests:
   - export_wizard_panel_route_prefers_action_over_binding
   - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/context_menu.rs
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs inline unit tests
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs inline unit tests
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup text-search keyboard baseline)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/window.rs zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs (2026-06-14: passed after native popup Home/End keyboard boundary baseline)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
-  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs (2026-06-14: passed after native PopupRow projection parity baseline)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs (2026-06-14: passed after M3.S1 popup shell role/projected frame geometry baseline)
   - node docs/ui-and-layout/ai-workbench-style/component-prototype/verify-native-component-contract.mjs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 touched DragOverlay Workbench/native Rust files (2026-06-15: passed after M3.S4 DragOverlay Workbench/native parity baseline)
+  - cargo test -p zircon_editor --lib apply_presentation_carries_componentized_workbench_window_nodes_separately --locked -- --nocapture --test-threads=1
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
   - cargo test -p zircon_editor --lib component_showcase_template_nodes_preserve_scroll_clip_frames --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 1 passed)
@@ -108,6 +121,14 @@ doc_type: module-detail
 # Template Pane Nodes
 
 `TemplatePaneNodeData` is the retained host DTO for editor-authored template panes. It carries the visual and interaction facts that the native host needs after a shared `UiSurface` has already compiled and arranged the source document. The host contract must not rederive template geometry from component names or from per-pane coordinate tables.
+
+## Action And Binding Identity
+
+`action_id` is the executable route identity. Projection chooses the first authored route action for click, toggle, change, commit, or edit behavior, falling back to a normalized binding id only when the route has no explicit action. Native activation and host dispatch must treat this field as the command/action path to execute.
+
+`binding_id` is the authored template binding identity. It preserves source metadata such as `ComponentLab/Primary` for diagnostics, round-trip checks, and legacy lookup compatibility, but it is not the preferred executable id when an explicit runtime action such as `component_lab.button.primary` exists.
+
+Workbench window node projection follows the same split as pane node projection. `workbench_window_projection.rs` emits `action_id` for dispatch and keeps the authored binding in `binding_id`, so host-contract tests should assert both fields instead of requiring action ids to carry template binding paths.
 
 ## Spatial Authority
 
@@ -148,7 +169,7 @@ CLI output without inspecting job execution internals.
 
 ## Painting
 
-`host_contract/painter/template_nodes.rs` intersects three regions before emitting paint commands:
+`host_contract/paint_template_nodes/template_nodes.rs` intersects three regions before emitting paint commands:
 
 - the pane body clip;
 - the active frame damage clip, when the native presenter is repainting a subregion;
@@ -171,7 +192,7 @@ The state-layer/ripple fields are:
 
 Projection accepts both retained names and source-compatible names. `pane_component_projection::host_template_node(...)` maps `state_layer_enabled` / `display_state_layer`, `state_layer_color` / `ripple_color` / `color`, `ripple_enabled` / `ripple`, `ripple_pressed_x` / `pressed_x`, `ripple_pressed_y` / `pressed_y`, and `clip_ripple`. Older conversion paths in `template_node_conversion.rs` default all M2 metadata to inactive values so existing template nodes do not accidentally draw overlays.
 
-`host_contract/painter/material_state_layer.rs` applies the retained priority `disabled > focus/selected/checked > pressed/enter_pressed > drag > hover/drop/active-drag-target > default`. Disabled uses focus opacity to preserve the source `root.state_layer_opacity: MaterialPalette.state_layer_opacity_focus` behavior for disabled display backgrounds. `ripple_enabled` does not imply `state_layer_enabled`, so callers may request only the static press ripple without the full overlay. Ripple is intentionally static in M2: it draws a width-derived press-origin circle with press opacity while animation timing remains metadata in `editor_material.v2.ui.toml` for a later motion layer.
+`host_contract/paint_template_nodes/material_state_layer.rs` applies the retained priority `disabled > focus/selected/checked > pressed/enter_pressed > drag > hover/drop/active-drag-target > default`. Disabled uses focus opacity to preserve the source `root.state_layer_opacity: MaterialPalette.state_layer_opacity_focus` behavior for disabled display backgrounds. `ripple_enabled` does not imply `state_layer_enabled`, so callers may request only the static press ripple without the full overlay. Ripple is intentionally static in M2: it draws a width-derived press-origin circle with press opacity while animation timing remains metadata in `editor_material.v2.ui.toml` for a later motion layer.
 
 ## Structured Popup Rows
 
@@ -180,6 +201,8 @@ Projection accepts both retained names and source-compatible names. `pane_compon
 `pane_option_projection.rs` treats real `DropdownPopup` option metadata as a structured source instead of a flat string list. It accepts `id|label=...` or `id|text=...` row declarations, merges `value`, `selected_options`, and MUI-style `selectedOptions`, and projects `disabled_options`, `focused_options`, `hovered_options`, `pressed_options`, `loading_options`, `focused_index`, and `hovered_option_id` into per-row state. Matching compares option id, label, and raw declaration so existing authored values and new canonical ids both work.
 
 `pane_menu_projection.rs` keeps legacy menu item parsing but now preserves the `loading` flag in `TemplatePaneMenuItemData`. This keeps `ContextActionMenu` and real `ContextMenu` row metadata aligned with the same native popup-row selector priority used by runtime render extract.
+
+`WorkbenchContextMenuRequestData` is the retained host DTO for editor Workbench right-click routing. It carries the hit target control id, authored action/dispatch/role metadata, display text, semantic target path, pointer anchor, and provider-generated menu rows. `host_contract/workbench_context_menu.rs` creates this request from `TemplateNodePointerHit` on secondary press: scene rows map to scene menu actions, module rows map to module actions, actionable Workbench controls fall back to inspect/copy/reveal actions, and existing popup rows are ignored to prevent nested context menus. The host contract does not execute the selected action here; it only asks the retained app to open the Workbench context-menu overlay with enough target metadata for the later command route.
 
 `pane_component_projection::popup_frame.rs` now recognizes `context-menu`, `context-action-menu`, `dropdown-popup`, and `notification-center` as anchor-positioned overlay roles. That means `TemplatePaneNodeData.frame` is already the projected popup frame when these shell nodes carry `popup_anchor_x`/`popup_anchor_y`; native painter, hit-test, keyboard navigation, and outside-dismiss code must consume that frame as popup geometry rather than re-deriving another trigger-relative frame.
 

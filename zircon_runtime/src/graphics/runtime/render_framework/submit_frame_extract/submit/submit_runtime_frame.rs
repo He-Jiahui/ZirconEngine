@@ -169,6 +169,7 @@ fn apply_effective_post_process_graph_to_runtime_frame(
     frame.extract.post_process.volumes.clear();
     frame.extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
     frame.extract.view.camera.temporal_jitter = context.temporal_jitter();
+    frame.extract.view.sync_selected_descriptor_camera_payload();
     frame.extract.post_process.stack = context.post_process_stack().clone();
     frame.extract.post_process.graph = context.post_process_graph().clone();
 }
@@ -302,9 +303,10 @@ mod tests {
             crate::core::framework::render::RenderPipelineHandle::new(1),
             0,
             None,
-            empty_pipeline(),
+            Default::default(),
+            std::sync::Arc::new(empty_pipeline()),
             RenderCapabilitySummary::default(),
-            crate::VisibilityContext::from_extract(&extract),
+            crate::graphics::VisibilityContext::from_extract(&extract),
             None,
             Default::default(),
             None,
@@ -348,15 +350,15 @@ mod tests {
         )
     }
 
-    fn empty_pipeline() -> crate::CompiledRenderPipeline {
+    fn empty_pipeline() -> crate::graphics::CompiledRenderPipeline {
         let graph = crate::render_graph::RenderGraphBuilder::new("direct-runtime-frame-test")
             .compile()
             .unwrap();
-        crate::CompiledRenderPipeline {
+        crate::graphics::CompiledRenderPipeline {
             handle: crate::core::framework::render::RenderPipelineHandle::new(1),
             name: "empty".to_string(),
             renderer_name: "empty".to_string(),
-            stages: vec![crate::RenderPassStage::Opaque3d],
+            stages: vec![crate::graphics::RenderPassStage::Opaque3d],
             pass_stages: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),

@@ -42,6 +42,7 @@ impl EditorChromeSnapshot {
             scene_entries: data.scene_entries,
             inspector: data.inspector,
             status_line: data.status_line,
+            status_task_progress: data.status_task_progress,
             hovered_axis: data.hovered_axis,
             viewport_size: data.viewport_size,
             scene_viewport_settings: data.scene_viewport_settings,

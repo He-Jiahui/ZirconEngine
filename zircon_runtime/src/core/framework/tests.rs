@@ -11,13 +11,13 @@ use super::{
     net::{NetEndpoint, NetError, NetPacket, NetSocketId},
     physics::{PhysicsCombineRule, PhysicsMaterialMetadata, PhysicsSettings},
     render::{
-        CapturedFrame, CorePipelineKind, FallbackSkyboxKind, FrameHistoryHandle, GeometryExtract,
-        GeometryPhaseInput, PostProcessEffectKind, PostProcessEffectSettings,
-        PostProcessGraphResourceNames, PostProcessGraphValidationError, PostProcessPassGraph,
-        PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-        RenderBloomSettings, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
-        RenderCameraTarget, RenderCameraTargetOrderKey, RenderCapabilityKind,
-        RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
+        CameraRenderDescriptor, CapturedFrame, CorePipelineKind, FallbackSkyboxKind,
+        FrameHistoryHandle, GeometryExtract, GeometryPhaseInput, PostProcessEffectKind,
+        PostProcessEffectSettings, PostProcessGraphResourceNames, PostProcessGraphValidationError,
+        PostProcessPassGraph, PostProcessStackDescriptor, PreviewEnvironmentExtract,
+        RenderAmbientLightSnapshot, RenderBloomSettings, RenderCameraOrderAmbiguity,
+        RenderCameraOrderInput, RenderCameraTarget, RenderCameraTargetOrderKey,
+        RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
         RenderDynamicResolutionSettings, RenderFeatureQualitySettings, RenderFrameExtract,
         RenderFrameworkError, RenderHybridGiDebugView, RenderHybridGiExtract,
         RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode,
@@ -687,13 +687,16 @@ fn render_product_post_process_graph_rejects_missing_taa_history_dependency() {
 #[test]
 fn render_product_post_process_graph_rejects_duplicate_output_resource() {
     let stack = PostProcessStackDescriptor {
-        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        initial_resources: vec![
+            PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
+            PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string(),
+        ],
         effects: vec![
             PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
             PostProcessEffectSettings::new(PostProcessEffectKind::ColorLutBake)
-                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_required_inputs([PostProcessGraphResourceNames::EXPOSURE_CURRENT])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
         ],
     };
@@ -710,15 +713,18 @@ fn render_product_post_process_graph_rejects_duplicate_output_resource() {
 #[test]
 fn render_product_post_process_graph_rejects_cycles() {
     let stack = PostProcessStackDescriptor {
-        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        initial_resources: vec![
+            PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
+            PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string(),
+        ],
         effects: vec![
             PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
                 .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
                 .with_produced_outputs([PostProcessGraphResourceNames::BLOOM])
                 .with_after([PostProcessEffectKind::ColorLutBake]),
             PostProcessEffectSettings::new(PostProcessEffectKind::ColorLutBake)
-                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
-                .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
+                .with_required_inputs([PostProcessGraphResourceNames::EXPOSURE_CURRENT])
+                .with_produced_outputs([PostProcessGraphResourceNames::COLOR_LUT])
                 .with_after([PostProcessEffectKind::Bloom]),
         ],
     };
@@ -770,10 +776,47 @@ fn render_product_post_process_graph_allows_color_grading_without_bloom() {
     assert_eq!(
         graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
         vec![
+            PostProcessEffectKind::ExposureResolve,
             PostProcessEffectKind::ColorLutBake,
             PostProcessEffectKind::OutputTransfer,
         ]
     );
+}
+
+#[test]
+fn render_product_post_process_graph_bakes_tonemap_and_user_lut_without_color_grading() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &RenderBloomSettings::default(),
+        &super::render::RenderColorGradingSettings::default(),
+        &RenderPostProcessEffectStackSettings {
+            tonemap: super::render::RenderTonemapSettings {
+                operator: super::render::RenderTonemapOperator::Aces,
+                ..Default::default()
+            },
+            color_lookup: super::render::RenderColorLookupSettings {
+                intensity: 0.5,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &super::render::AntiAliasSettings::off(),
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+    let color_lut_bake = graph
+        .nodes
+        .iter()
+        .find(|node| node.kind == PostProcessEffectKind::ColorLutBake)
+        .expect("tonemap and user LUT should enable the color LUT bake node");
+
+    assert!(color_lut_bake
+        .required_inputs
+        .contains(&PostProcessGraphResourceNames::EXPOSURE_CURRENT.to_string()));
+    assert!(color_lut_bake
+        .produced_outputs
+        .contains(&PostProcessGraphResourceNames::COLOR_LUT.to_string()));
 }
 
 #[test]
@@ -831,6 +874,7 @@ fn render_product_post_process_effect_stack_runs_before_output_transfer_when_aut
     assert_eq!(
         graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
         vec![
+            PostProcessEffectKind::ExposureResolve,
             PostProcessEffectKind::Bloom,
             PostProcessEffectKind::ColorLutBake,
             PostProcessEffectKind::Uber,
@@ -842,7 +886,7 @@ fn render_product_post_process_effect_stack_runs_before_output_transfer_when_aut
         .contains(&PostProcessGraphResourceNames::BLOOM.to_string()));
     assert!(effect_stack
         .required_inputs
-        .contains(&PostProcessGraphResourceNames::COLOR_GRADED.to_string()));
+        .contains(&PostProcessGraphResourceNames::COLOR_LUT.to_string()));
     assert!(effect_stack
         .required_inputs
         .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
@@ -921,25 +965,28 @@ fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
         0b1010
     );
 
-    let mut camera = ViewportCameraSnapshot {
-        viewport: Some(RenderViewportRect::new(
-            UVec2::new(100, 0),
-            UVec2::new(320, 160),
-        )),
-        render_layers: RenderLayerSet::from_layers([3]),
-        hdr: true,
-        msaa_samples: 4,
-        ..ViewportCameraSnapshot::default()
-    };
-    camera.apply_viewport_size(UVec2::new(1920, 1080));
+    let mut camera = CameraRenderDescriptor::from_camera_payload(
+        None,
+        ViewportCameraSnapshot {
+            hdr: true,
+            msaa_samples: 4,
+            ..ViewportCameraSnapshot::default()
+        },
+    );
+    camera.viewport_rect = Some(RenderViewportRect::new(
+        UVec2::new(100, 0),
+        UVec2::new(320, 160),
+    ));
+    camera.culling_mask = RenderLayerSet::from_layers([3]);
+    camera.apply_target_size(UVec2::new(1920, 1080));
 
-    assert_eq!(camera.aspect_ratio, 2.0);
-    assert!(camera.hdr);
-    assert_eq!(camera.msaa_samples, 4);
-    assert!(camera.render_layers.intersects_legacy_mask(0b1000));
-    assert!(!camera.render_layers.intersects_legacy_mask(0b0010));
+    assert_eq!(camera.camera.aspect_ratio, 2.0);
+    assert!(camera.camera.hdr);
+    assert_eq!(camera.camera.msaa_samples, 4);
+    assert!(camera.culling_mask.intersects_legacy_mask(0b1000));
+    assert!(!camera.culling_mask.intersects_legacy_mask(0b0010));
 
-    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
+    camera.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
     assert_eq!(
         camera.effective_viewport_size(UVec2::new(1920, 1080)),
         UVec2::new(320, 160),
@@ -951,14 +998,14 @@ fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
         "dynamic resolution should scale only the internal render extent"
     );
 
-    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.0);
+    camera.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.0);
     assert_eq!(
         camera.effective_render_size(UVec2::new(1920, 1080)),
         UVec2::new(32, 16),
         "render scale is clamped so graph resources never collapse to zero"
     );
 
-    camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(f32::NAN);
+    camera.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(f32::NAN);
     assert_eq!(
         camera.effective_render_size(UVec2::new(1920, 1080)),
         UVec2::new(320, 160),
@@ -973,19 +1020,15 @@ fn render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
     ));
 
     let report = super::render::sort_render_cameras([
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             40,
             camera_order_input(2, RenderCameraTarget::PrimarySurface),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             30,
-            ViewportCameraSnapshot {
-                target: RenderCameraTarget::Texture(texture_a),
-                hdr: true,
-                ..camera_order_input(2, RenderCameraTarget::PrimarySurface)
-            },
+            hdr_camera_order_input(2, RenderCameraTarget::Texture(texture_a)),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             10,
             camera_order_input(
                 -1,
@@ -994,15 +1037,11 @@ fn render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
                 },
             ),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             20,
-            ViewportCameraSnapshot {
-                target: RenderCameraTarget::Texture(texture_a),
-                hdr: true,
-                ..camera_order_input(0, RenderCameraTarget::PrimarySurface)
-            },
+            hdr_camera_order_input(0, RenderCameraTarget::Texture(texture_a)),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             50,
             camera_order_input(0, RenderCameraTarget::PrimarySurface),
         ),
@@ -1030,12 +1069,12 @@ fn render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index
 #[test]
 fn render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras() {
     let report = super::render::sort_render_cameras([
-        RenderCameraOrderInput::new(30, inactive_camera_order_input(1)),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(30, inactive_camera_order_input(1)),
+        RenderCameraOrderInput::from_descriptor(
             20,
             camera_order_input(1, RenderCameraTarget::PrimarySurface),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             40,
             camera_order_input(
                 1,
@@ -1044,7 +1083,7 @@ fn render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras() {
                 },
             ),
         ),
-        RenderCameraOrderInput::new(
+        RenderCameraOrderInput::from_descriptor(
             10,
             camera_order_input(1, RenderCameraTarget::PrimarySurface),
         ),
@@ -1067,20 +1106,24 @@ fn render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras() {
     );
 }
 
-fn camera_order_input(order: i32, target: RenderCameraTarget) -> ViewportCameraSnapshot {
-    ViewportCameraSnapshot {
-        order,
+fn camera_order_input(order: i32, target: RenderCameraTarget) -> CameraRenderDescriptor {
+    CameraRenderDescriptor {
+        render_order: order,
         target,
-        ..ViewportCameraSnapshot::default()
+        ..CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default())
     }
 }
 
-fn inactive_camera_order_input(order: i32) -> ViewportCameraSnapshot {
-    ViewportCameraSnapshot {
-        order,
-        is_active: false,
-        ..ViewportCameraSnapshot::default()
-    }
+fn hdr_camera_order_input(order: i32, target: RenderCameraTarget) -> CameraRenderDescriptor {
+    let mut camera = camera_order_input(order, target);
+    camera.camera.hdr = true;
+    camera
+}
+
+fn inactive_camera_order_input(order: i32) -> CameraRenderDescriptor {
+    let mut camera = camera_order_input(order, RenderCameraTarget::PrimarySurface);
+    camera.camera.is_active = false;
+    camera
 }
 
 fn assert_mesh_phase_order(pipeline: CorePipelineKind, expected: &[RenderPhase; 3]) {

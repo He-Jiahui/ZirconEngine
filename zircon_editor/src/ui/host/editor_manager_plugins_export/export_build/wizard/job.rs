@@ -56,7 +56,9 @@ impl ExportWizardJobState {
                     ExportWizardJobStatus::Pending
                 },
                 current_stage: None,
-                progress: ExportWizardProgressState::new(),
+                progress: ExportWizardProgressState::for_stages(
+                    plan.stages.iter().map(|command| command.stage),
+                ),
                 stages: Vec::new(),
                 live_stage_outputs: Vec::new(),
                 diagnostics: plan.diagnostics.clone(),

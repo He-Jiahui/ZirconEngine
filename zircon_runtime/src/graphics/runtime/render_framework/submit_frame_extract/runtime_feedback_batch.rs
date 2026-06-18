@@ -1,4 +1,6 @@
-use crate::{HybridGiRuntimeFeedback, ParticleRuntimeFeedback, VirtualGeometryRuntimeFeedback};
+use crate::graphics::{
+    HybridGiRuntimeFeedback, ParticleRuntimeFeedback, VirtualGeometryRuntimeFeedback,
+};
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) struct RuntimeFeedbackBatch
 {

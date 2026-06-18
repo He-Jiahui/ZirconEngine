@@ -1,4 +1,4 @@
-use crate::render_graph::{QueueLane, RenderGraphBuilder};
+use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 #[test]
@@ -9,6 +9,15 @@ fn compile_orders_passes_by_declared_dependencies() {
     let lighting = builder.add_pass("lighting", QueueLane::Graphics);
     builder.add_dependency(depth, lighting).unwrap();
     builder.add_dependency(shadow, lighting).unwrap();
+    builder
+        .set_pass_flags(
+            lighting,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
 
     let graph = builder.compile().unwrap();
     let ordered = graph
@@ -28,6 +37,15 @@ fn compile_preserves_declared_dependencies_on_compiled_passes() {
     let lighting = builder.add_pass("lighting", QueueLane::Graphics);
     builder.add_dependency(depth, lighting).unwrap();
     builder.add_dependency(shadow, lighting).unwrap();
+    builder
+        .set_pass_flags(
+            lighting,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
 
     let graph = builder.compile().unwrap();
     let lighting_pass = graph
@@ -53,6 +71,15 @@ fn compile_exposes_inferred_resource_dependencies_on_compiled_passes() {
     let final_blit = builder.add_pass("final-blit", QueueLane::Graphics);
     builder.write_texture(opaque, color).unwrap();
     builder.read_texture(final_blit, color).unwrap();
+    builder
+        .set_pass_flags(
+            final_blit,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
 
     let graph = builder.compile().unwrap();
     let final_blit_pass = graph

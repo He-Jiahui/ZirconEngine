@@ -1,4 +1,6 @@
 use super::*;
+use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::plugin::{ExportPackagingStrategy, ExportTargetPlatform};
 
 #[test]
 fn build_export_actions_parse_execute_profile() {
@@ -166,4 +168,29 @@ fn desktop_export_job_snapshot_projects_stage_progress() {
         .diagnostics
         .as_str()
         .contains("Running generated SourceTemplate Cargo build"));
+}
+
+#[test]
+fn desktop_export_job_snapshot_projects_status_bar_task_progress() {
+    let snapshot = DesktopExportJobSnapshot {
+        id: 7,
+        profile_name: "desktop_windows".to_string(),
+        output_root: PathBuf::from("Builds/windows"),
+        phase: DesktopExportJobPhase::Running,
+        progress: Some(DesktopExportProgressSnapshot {
+            stage: "cargo-build".to_string(),
+            percent: 72,
+            message: "Running generated SourceTemplate Cargo build".to_string(),
+        }),
+    };
+
+    let task = desktop_export_status_task_from_job(&snapshot);
+
+    assert_eq!(task.task_id, "desktop_export:7");
+    assert_eq!(task.label, "Export desktop_windows");
+    assert_eq!(task.percent, Some(72));
+    assert_eq!(
+        task.detail,
+        "cargo-build - Running generated SourceTemplate Cargo build"
+    );
 }

@@ -17,7 +17,10 @@ use crate::scene::ecs::{
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
 
-use super::{dirty_state::DerivedStateDirty, ComponentTypeRegistry};
+use super::{
+    dirty_state::DerivedStateDirty, performance_diagnostics::WorldEcsFramePerformanceDiagnostics,
+    ComponentTypeRegistry,
+};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct QueryCacheRevision(u64);
@@ -126,6 +129,8 @@ pub struct World {
     pub(super) command_queue: CommandQueue,
     #[serde(skip, default)]
     pub(super) deferred_command_errors: Vec<DeferredCommandError>,
+    #[serde(skip, default)]
+    pub(super) ecs_frame_performance_diagnostics: WorldEcsFramePerformanceDiagnostics,
     #[serde(skip, default)]
     pub(super) query_cache_revision: QueryCacheRevision,
     #[serde(skip, default = "default_change_tick")]
@@ -245,6 +250,7 @@ impl<'de> Deserialize<'de> for World {
             observers: Default::default(),
             command_queue: Default::default(),
             deferred_command_errors: Vec::new(),
+            ecs_frame_performance_diagnostics: Default::default(),
             query_cache_revision: QueryCacheRevision::default(),
             change_tick: default_change_tick(),
             last_change_tick: ChangeTick::ZERO,

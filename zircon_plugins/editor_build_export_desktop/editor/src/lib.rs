@@ -11,9 +11,9 @@ use zircon_editor::core::editor_operation::{
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest,
-    RuntimeTargetMode,
 };
 
 pub const PLUGIN_ID: &str = "editor_build_export_desktop";
@@ -64,7 +64,18 @@ pub const EXPORT_PROFILE_ASSET_KIND: &str = "DesktopExportProfile";
 pub use export_wizard::{
     export_wizard_descriptor, stage_progress_kinds, ExportWizardAction, ExportWizardDescriptor,
     ExportWizardRegion, ExportWizardRegionDescriptor, ExportWizardReportViewDescriptor,
-    ExportWizardStageDescriptor, BUILD_EXPORT_LAYOUT_REFERENCE, PIPELINE_REPORT_PATH,
+    ExportWizardStageDescriptor, BUILD_EXPORT_LAYOUT_REFERENCE,
+    EXPORT_PLAN_REPORT_SUMMARY_ENTRY_KEYS, LIBRARY_EMBED_REPORT_SUMMARY_ENTRY_KEYS,
+    LIBRARY_EMBED_REPORT_TEMPLATE_CONTROL_IDS, NATIVE_DYNAMIC_REPORT_SUMMARY_ENTRY_KEYS,
+    NATIVE_DYNAMIC_REPORT_TEMPLATE_CONTROL_IDS, PIPELINE_REPORT_PATH,
+    REPORT_EXPORT_PLAN_COMPLETED_STAGES_ENTRY_KEY, REPORT_EXPORT_PLAN_REQUIRED_STAGES_ENTRY_KEY,
+    REPORT_EXPORT_PLAN_STRATEGIES_ENTRY_KEY, REPORT_EXPORT_PLAN_UNSUPPORTED_STRATEGIES_ENTRY_KEY,
+    REPORT_NATIVE_PLUGINS_PAYLOAD_BUNDLE_PATH_ENTRY_KEY,
+    REPORT_NATIVE_PLUGINS_PAYLOAD_CONTENT_HASH_ENTRY_KEY,
+    REPORT_NATIVE_PLUGINS_PAYLOAD_FILE_COUNT_ENTRY_KEY,
+    REPORT_NATIVE_PLUGINS_PAYLOAD_PACKAGE_COUNT_ENTRY_KEY,
+    REPORT_NATIVE_PLUGINS_PAYLOAD_PACKAGE_IDS_ENTRY_KEY, REPORT_PIPELINE_REPORT_ENTRY_KEY,
+    SOURCE_TEMPLATE_REPORT_SUMMARY_ENTRY_KEYS, SOURCE_TEMPLATE_REPORT_TEMPLATE_CONTROL_IDS,
 };
 pub use zircon_editor::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
@@ -407,8 +418,9 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![
                 zircon_runtime::plugin::ExportPipelineStage::Validate,
-                zircon_runtime::plugin::ExportPipelineStage::CompileHost,
                 zircon_runtime::plugin::ExportPipelineStage::SourceTemplate,
+                zircon_runtime::plugin::ExportPipelineStage::NativeDynamic,
+                zircon_runtime::plugin::ExportPipelineStage::CompileHost,
                 zircon_runtime::plugin::ExportPipelineStage::CookAssets,
                 zircon_runtime::plugin::ExportPipelineStage::Pack,
                 zircon_runtime::plugin::ExportPipelineStage::PlatformBundle,
@@ -422,13 +434,79 @@ mod tests {
                 .report_path,
             "report.json"
         );
+        let source_template_report = wizard
+            .report_view("source_template")
+            .expect("source template report");
         assert_eq!(
-            wizard
-                .report_view("native_dynamic")
-                .expect("native dynamic report")
-                .template_id,
-            NATIVE_DYNAMIC_REPORT_ID
+            source_template_report.required_stage,
+            zircon_runtime::plugin::ExportPipelineStage::SourceTemplate
         );
+        assert_eq!(
+            source_template_report.template_document,
+            SOURCE_TEMPLATE_REPORT_DOCUMENT
+        );
+        assert_eq!(
+            source_template_report.summary_entry_keys,
+            SOURCE_TEMPLATE_REPORT_SUMMARY_ENTRY_KEYS
+        );
+        assert_eq!(
+            source_template_report.template_control_ids,
+            SOURCE_TEMPLATE_REPORT_TEMPLATE_CONTROL_IDS
+        );
+        assert!(source_template_report
+            .summary_entry_keys
+            .contains(&REPORT_EXPORT_PLAN_STRATEGIES_ENTRY_KEY));
+
+        let library_embed_report = wizard
+            .report_view("library_embed")
+            .expect("library embed report");
+        assert_eq!(
+            library_embed_report.required_stage,
+            zircon_runtime::plugin::ExportPipelineStage::CompileHost
+        );
+        assert_eq!(
+            library_embed_report.template_document,
+            LIBRARY_EMBED_REPORT_DOCUMENT
+        );
+        assert_eq!(
+            library_embed_report.summary_entry_keys,
+            LIBRARY_EMBED_REPORT_SUMMARY_ENTRY_KEYS
+        );
+        assert_eq!(
+            library_embed_report.template_control_ids,
+            LIBRARY_EMBED_REPORT_TEMPLATE_CONTROL_IDS
+        );
+        assert!(library_embed_report
+            .summary_entry_keys
+            .contains(&REPORT_PIPELINE_REPORT_ENTRY_KEY));
+
+        let native_dynamic_report = wizard
+            .report_view("native_dynamic")
+            .expect("native dynamic report");
+        assert_eq!(native_dynamic_report.template_id, NATIVE_DYNAMIC_REPORT_ID);
+        assert_eq!(
+            native_dynamic_report.required_stage,
+            zircon_runtime::plugin::ExportPipelineStage::NativeDynamic
+        );
+        assert_eq!(
+            native_dynamic_report.template_document,
+            NATIVE_DYNAMIC_REPORT_DOCUMENT
+        );
+        assert_eq!(
+            native_dynamic_report.summary_entry_keys,
+            NATIVE_DYNAMIC_REPORT_SUMMARY_ENTRY_KEYS
+        );
+        assert_eq!(
+            native_dynamic_report.template_control_ids,
+            NATIVE_DYNAMIC_REPORT_TEMPLATE_CONTROL_IDS
+        );
+        assert!(native_dynamic_report
+            .summary_entry_keys
+            .contains(&REPORT_NATIVE_PLUGINS_PAYLOAD_PACKAGE_IDS_ENTRY_KEY));
+
+        for report in &wizard.report_views {
+            assert_report_template_contains_controls(report);
+        }
         assert_eq!(stage_progress_kinds().len(), 4);
     }
 
@@ -490,6 +568,33 @@ mod tests {
             asset.root_node_id().is_some(),
             "view template {expected_id} should declare a root node"
         );
+    }
+
+    fn assert_report_template_contains_controls(report: &ExportWizardReportViewDescriptor) {
+        assert!(
+            EXPORT_REPORT_TEMPLATE_DOCUMENTS
+                .iter()
+                .any(|(template_id, document)| {
+                    *template_id == report.template_id && *document == report.template_document
+                }),
+            "report template {} should register {}",
+            report.template_id,
+            report.template_document
+        );
+        let path = plugin_asset_path(report.template_document);
+        let asset = UiV2AssetLoader::load_toml_file(&path)
+            .unwrap_or_else(|error| panic!("{} should parse: {error}", path.display()));
+
+        for control_id in report.template_control_ids {
+            assert!(
+                asset
+                    .nodes
+                    .values()
+                    .any(|node| node.control_id.as_deref() == Some(*control_id)),
+                "report template {} should define control id {control_id}",
+                report.template_id
+            );
+        }
     }
 
     fn assert_component_template_asset(document: &str, component_name: &str) {

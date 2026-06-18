@@ -4,9 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{
-    GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings, ImeEvent,
-    ImeHostRequest, InputButton, InputEvent, InputEventRecord, InputFrameSnapshot, InputSnapshot,
-    MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
+    GamepadAxisSettings, GamepadAxisTransition, GamepadButtonAxisSettings, GamepadButtonSettings,
+    ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventRecord, InputFrameSnapshot,
+    InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
 
 use super::InputState;
@@ -28,6 +28,7 @@ impl InputManagerFacade for DefaultInputManager {
         state.ime_commits.clear();
         state.ime_delete_surrounding.clear();
         state.ime_host_requests.clear();
+        state.gamepad_axis_transitions.clear();
         state.gamepad_rumble_requests.clear();
         state.window_status_events.clear();
         state.file_drag_drop_events.clear();
@@ -154,6 +155,23 @@ impl InputManagerFacade for DefaultInputManager {
                     state.connected_gamepads.insert(info.gamepad);
                 } else {
                     state.connected_gamepads.remove(&info.gamepad);
+                    let disconnected_axis_transitions = state
+                        .gamepad_axes
+                        .iter()
+                        .filter_map(|((gamepad, axis), value)| {
+                            (gamepad == &info.gamepad && *value != 0.0).then_some(
+                                GamepadAxisTransition {
+                                    gamepad: *gamepad,
+                                    axis: *axis,
+                                    previous_value: *value,
+                                    value: 0.0,
+                                },
+                            )
+                        })
+                        .collect::<Vec<_>>();
+                    state
+                        .gamepad_axis_transitions
+                        .extend(disconnected_axis_transitions);
                     state
                         .gamepad_axes
                         .retain(|(gamepad, _), _| gamepad != &info.gamepad);
@@ -201,6 +219,26 @@ impl InputManagerFacade for DefaultInputManager {
                 if let Some(value) =
                     GamepadAxisSettings::default().process_value(*value, previous_value)
                 {
+                    let previous_value = previous_value.unwrap_or(0.0);
+                    if previous_value != value {
+                        if let Some(transition) =
+                            state
+                                .gamepad_axis_transitions
+                                .iter_mut()
+                                .find(|transition| {
+                                    transition.gamepad == *gamepad && transition.axis == *axis
+                                })
+                        {
+                            transition.value = value;
+                        } else {
+                            state.gamepad_axis_transitions.push(GamepadAxisTransition {
+                                gamepad: *gamepad,
+                                axis: *axis,
+                                previous_value,
+                                value,
+                            });
+                        }
+                    }
                     state.gamepad_axes.insert((*gamepad, *axis), value);
                 }
             }
@@ -239,6 +277,7 @@ impl InputManagerFacade for DefaultInputManager {
             active_touches: state.active_touches.values().copied().collect(),
             connected_gamepads: state.connected_gamepads.iter().copied().collect(),
             gamepad_axes: state.gamepad_axis_states(),
+            gamepad_axis_transitions: state.gamepad_axis_transitions.clone(),
             gamepad_button_values: state.gamepad_button_value_states(),
             gamepad_rumble_requests: state.gamepad_rumble_requests.clone(),
             ime_enabled: state.ime_enabled,

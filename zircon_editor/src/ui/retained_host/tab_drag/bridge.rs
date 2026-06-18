@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+#[cfg(test)]
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::shell_pointer::HostShellPointerBridge;
 use crate::ui::workbench::autolayout::ShellSizePx;
 
@@ -38,6 +40,23 @@ impl HostDragTargetBridge {
         );
     }
 
+    #[cfg(test)]
+    pub(crate) fn update_layout_with_workbench_layout_frames(
+        &mut self,
+        root_size: ShellSizePx,
+        drawers_visible: bool,
+        componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    ) {
+        self.shell_pointer
+            .update_layout_with_workbench_layout_frames(
+                root_size,
+                drawers_visible,
+                &[],
+                componentized_workbench_layout_frames,
+                None,
+            );
+    }
+
     pub(crate) fn resolve(&mut self, point: UiPoint) -> Option<HostDragTargetGroup> {
         self.shell_pointer.drag_target_at(point)
     }
@@ -59,5 +78,21 @@ pub fn resolve_host_drag_target_group_with_root_frames(
 ) -> Option<HostDragTargetGroup> {
     let mut bridge = HostDragTargetBridge::new();
     bridge.update_layout_with_root_frames(root_size, drawers_visible, shared_root_frames);
+    bridge.resolve(point)
+}
+
+#[cfg(test)]
+pub(crate) fn resolve_host_drag_target_group_with_workbench_layout_frames(
+    root_size: ShellSizePx,
+    drawers_visible: bool,
+    point: UiPoint,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> Option<HostDragTargetGroup> {
+    let mut bridge = HostDragTargetBridge::new();
+    bridge.update_layout_with_workbench_layout_frames(
+        root_size,
+        drawers_visible,
+        componentized_workbench_layout_frames,
+    );
     bridge.resolve(point)
 }

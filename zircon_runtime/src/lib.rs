@@ -19,7 +19,7 @@ pub use crate::core::resource;
 pub mod graphics;
 pub mod render_graph;
 pub mod rhi;
-pub mod rhi_wgpu;
+mod rhi_wgpu;
 
 pub mod builtin;
 pub mod foundation;
@@ -31,44 +31,6 @@ pub mod script;
 
 pub use zircon_runtime_reflection_macros::{
     zircon_host_function, zircon_host_module, ZirconScriptType,
-};
-
-pub use builtin::{
-    RuntimeModuleLoadReport, RuntimePluginId, RuntimeRequiredPluginMissing, RuntimeTargetMode,
-};
-#[allow(unused_imports)]
-pub(crate) use graphics::pipeline::RendererFeatureReferenceListKind;
-#[allow(unused_imports)]
-pub(crate) use graphics::scene::{
-    cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
-    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
-};
-#[allow(unused_imports)]
-pub(crate) use graphics::{
-    backend, extract, feature, material, pipeline, runtime, types, visibility,
-    BuiltinRenderFeature, CompiledRenderPipeline, CompiledRenderPipelinePassStage,
-    FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, FrameVisibility,
-    GraphicsError, HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
-    HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
-    HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate, MaterialDomain,
-    OfflineBakeOutput, OfflineBakeSettings, ParticleGpuFeedback, ParticleRuntimeFeedback,
-    RenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
-    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
-    RenderFeatureResourceKind, RenderFeatureResourceWriteMode, RenderPassStage,
-    RenderPipelineAsset, RenderPipelineAssetContext, RenderPipelineCompileOptions,
-    RenderPipelineCompileReport, RendererAsset, RendererDataDocument, RendererDataDocumentError,
-    RendererFeatureAsset, RendererFeatureAssetReferences, RendererFeatureContractDiagnostic,
-    RendererFeatureContractDiagnosticSeverity, RendererFeatureDocument, SceneRenderer,
-    SolariRuntimeProvider, SolariRuntimeProviderRegistration, ViewCullingStats,
-    ViewVisibilityContext, ViewportFrame, ViewportFrameTextureHandle, VirtualGeometryGpuCompletion,
-    VirtualGeometryRuntimeExtractOutput, VirtualGeometryRuntimeFeedback,
-    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
-    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
-    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
-    VisibilityContext, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
-    VisibilityHybridGiUpdatePlan, VisibilityViewKey, VisibilityVirtualGeometryCluster,
-    VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,
-    VisibilityVirtualGeometryPageUploadPlan, WgpuRenderFramework, RENDERER_DATA_DOCUMENT_VERSION,
 };
 #[cfg(test)]
 mod tests;

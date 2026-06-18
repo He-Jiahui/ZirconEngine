@@ -11,6 +11,7 @@ struct MaterialPropertyUniform {
     data5: vec4<f32>,
     data6: vec4<f32>,
     data7: vec4<f32>,
+    data8: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
@@ -51,6 +52,16 @@ struct DeferredGeometryOutput {
 };
 
 const EPSILON: f32 = 0.000001;
+const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
+const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+
+fn encode_shading_model_id(id: u32) -> f32 {
+    return f32(id) / 255.0;
+}
+
+fn decode_shading_model_id(encoded: f32) -> u32 {
+    return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
+}
 
 fn skin_weight(joint_index: u32, weight: f32) -> f32 {
     if (weight <= EPSILON || joint_index >= zr_skinned_joint_count()) {
@@ -151,8 +162,9 @@ fn fs_main(input: VertexOutput) -> DeferredGeometryOutput {
         occlusion = 1.0;
     }
     occlusion = occlusion * textureSample(occlusion_tex, occlusion_sampler, occlusion_uv).r;
+    let shading_model_id = select(decode_shading_model_id(material_properties.data8.y), ZR_SHADING_MODEL_UNLIT_ID, material_properties.data0.w >= 0.5);
     return DeferredGeometryOutput(
         albedo,
-        vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), 1.0)
+        vec4<f32>(metallic, clamp(roughness, 0.04, 1.0), clamp(occlusion, 0.0, 1.0), encode_shading_model_id(shading_model_id))
     );
 }

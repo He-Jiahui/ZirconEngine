@@ -1,19 +1,19 @@
 use super::super::*;
 
-const TARGET_MODES: &[crate::RuntimeTargetMode] = &[
-    crate::RuntimeTargetMode::ClientRuntime,
-    crate::RuntimeTargetMode::ServerRuntime,
-    crate::RuntimeTargetMode::EditorHost,
+const TARGET_MODES: &[crate::builtin::RuntimeTargetMode] = &[
+    crate::builtin::RuntimeTargetMode::ClientRuntime,
+    crate::builtin::RuntimeTargetMode::ServerRuntime,
+    crate::builtin::RuntimeTargetMode::EditorHost,
 ];
 
 const EVENT_LOOP_POLICY_TOKENS: &[&str] =
     &["game", "desktop_app", "mobile", "continuous", "headless"];
 
-fn target_mode_as_str(mode: crate::RuntimeTargetMode) -> &'static str {
+fn target_mode_as_str(mode: crate::builtin::RuntimeTargetMode) -> &'static str {
     match mode {
-        crate::RuntimeTargetMode::ClientRuntime => "client_runtime",
-        crate::RuntimeTargetMode::ServerRuntime => "server_runtime",
-        crate::RuntimeTargetMode::EditorHost => "editor_host",
+        crate::builtin::RuntimeTargetMode::ClientRuntime => "client_runtime",
+        crate::builtin::RuntimeTargetMode::ServerRuntime => "server_runtime",
+        crate::builtin::RuntimeTargetMode::EditorHost => "editor_host",
     }
 }
 
@@ -89,7 +89,7 @@ fn explicit_event_loop_policy_diagnostic_stays_plain_metadata() {
     let matrix = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform());
     let report = matrix.report_with_event_loop_policy(
         PlatformTarget::Windows,
-        crate::RuntimeTargetMode::ClientRuntime,
+        crate::builtin::RuntimeTargetMode::ClientRuntime,
         EventLoopPolicy::Continuous,
     );
     let lines = report.diagnostic_lines();
@@ -105,7 +105,7 @@ fn platform_config_enabled_diagnostic_stays_plain_boolean_metadata() {
         let config = PlatformConfig {
             enabled,
             target: PlatformTarget::Headless,
-            target_mode: crate::RuntimeTargetMode::ServerRuntime,
+            target_mode: crate::builtin::RuntimeTargetMode::ServerRuntime,
             features: PlatformFeatureSelection::headless(),
         };
         let lines = config.diagnostic_lines();

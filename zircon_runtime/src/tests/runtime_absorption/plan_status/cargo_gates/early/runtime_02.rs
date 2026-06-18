@@ -19,29 +19,17 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
     assert_eq!(
         frontmatter_status(runtime_02_plan),
         Some("in_progress"),
-        "Runtime 02 should stay in progress until core/root/generated validation and render-owner alias cutover close"
+        "Runtime 02 should stay in progress until core/root/generated validation closes"
     );
 
     for (row_name, required_anchors) in [
         ("M2 | 测试阶段", &["进行中", "Cargo", "render/graphics"][..]),
         (
-            "M2 | P2 总表状态复核",
-            &["M2 测试阶段仍保持", "Cargo", "render owner"][..],
-        ),
-        (
-            "M3 | 3.1 模块名别名清除",
+            "M3 | 3.3 root graphics alias block removal",
             &[
-                "pre_m3_root_surface_guard_static_passed_pending_render_owner",
-                "Cargo/rustc",
-                "render owner",
-            ][..],
-        ),
-        (
-            "M3 | 3.2 类型别名清除",
-            &[
-                "pre_m3_type_alias_guard_static_passed_pending_render_owner",
-                "actual type alias deletion not executed",
-                "render owner",
+                "graphics_alias_block_removed_static_passed_cargo_pending",
+                "crate_visible_graphics_reexport_count = 0",
+                "crate-visible graphics alias debt 0/0",
             ][..],
         ),
         (
@@ -85,7 +73,7 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
         &[
             "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
             "M2/M4 全量 Cargo 回归",
-            "M3 lib.rs graphics alias 清理需等待 render owner",
+            "root alias cutover 已静态完成但包级 Cargo 待验证",
         ],
     );
 
@@ -98,7 +86,8 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
         runtime_02_problem_row,
         &[
             "runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation",
-            "pre_m3_type_alias_guard_static_passed_pending_render_owner",
+            "graphics_alias_block_removed_static_passed_cargo_pending",
+            "crate-visible graphics alias debt 0/0",
             "Cargo default/lib-test",
         ],
     );
@@ -121,9 +110,9 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
         "Runtime root surface doc",
         root_surface_doc,
         &[
-            "pre_m3_type_alias_guard_static_passed_pending_render_owner",
-            "crate-private type alias debt",
-            "render owner window",
+            "graphics_alias_block_removed_static_passed_cargo_pending",
+            "crate-visible graphics alias debt 0/0",
+            "core/root/generated/export_build_plan/app/editor/plugin",
         ],
     );
 

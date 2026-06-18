@@ -18,6 +18,6 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         )
         .with_executor_id("post.bloom-extract")
         .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .write_external(PostProcessGraphResourceNames::BLOOM)],
+        .write_texture(PostProcessGraphResourceNames::BLOOM)],
     )
 }

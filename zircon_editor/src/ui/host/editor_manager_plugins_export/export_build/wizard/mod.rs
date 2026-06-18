@@ -41,9 +41,9 @@ pub use plan::{
     export_wizard_pipeline_plan, ExportWizardPipelinePlan,
 };
 pub use progress::{
-    export_pipeline_stages, parse_export_pipeline_stage, ExportStageProgressKind,
-    ExportWizardProgressState, ExportWizardStageArtifactPath, ExportWizardStageProgressSnapshot,
-    ExportWizardStreamEvent,
+    export_pipeline_stages, export_pipeline_stages_for_strategies, parse_export_pipeline_stage,
+    ExportStageProgressKind, ExportWizardProgressState, ExportWizardStageArtifactPath,
+    ExportWizardStageProgressSnapshot, ExportWizardStreamEvent,
 };
 pub use run::{
     run_export_wizard_job, ExportWizardCancelSignal, ExportWizardJobEvent,

@@ -47,6 +47,7 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
@@ -110,6 +111,7 @@ implementation_files:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
@@ -184,6 +186,8 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_csm_directional
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_multi_spot_shadows
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_forward_plus_preserves_shadow_atlas_required_external_texture_binding
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_deferred_preserves_shadow_atlas_required_external_texture_binding
 doc_type: module-detail
 ---
 
@@ -201,7 +205,7 @@ This module is the Plan 05 LS-M3/LS-M4 shadow foundation. The compiled graph dec
 - `shadow/plan.rs` bridges the full viewport frame to atlas allocation, `GpuShadowSlot`/`GpuShadowGlobals` upload payloads, `ShadowAtlasSlotPass` depth-write descriptors, and `GpuLightData.shadow_slot_layer` patching. It derives directional cascade, spot, and point-face view-projection matrices, and tags atlas slot passes with `VisibilityViewKey::ShadowCascade`, `VisibilityViewKey::ShadowPointFace`, or `VisibilityViewKey::ShadowSpot`.
 - `shadow/slot.rs` owns the GPU POD layout for shadow slots/globals. Buffer ownership exists in `ShadowAtlasResources`, and the forward/deferred group1 bindings now expose those buffers to fragment shaders.
 - `shadow/shaders/zr_shadow.wgsl` owns the shader-side atlas sampling helper. It reads `GpuLightData.shadow_slot_layer`, chooses directional cascades or point faces, projects through `ZrShadowSlot.view_proj`, and selects Low/Medium/High comparison-sampler PCF kernels from the slot quality flags.
-- `PostProcessGraphResourceNames::SHADOW_ATLAS` names the graph-visible external atlas resource. The built-in `shadow-atlas` pass writes it, and forward mesh/deferred lighting/deferred transparent mesh declare reads so graph ordering keeps atlas depth production before atlas sampling. `PostProcessGraphResourceNames::SHADOW_MAP` is no longer part of the runtime graph contract.
+- `PostProcessGraphResourceNames::SHADOW_ATLAS` names the graph-visible external atlas resource. The built-in `shadow-atlas` pass writes it as a required external texture, and forward mesh/deferred lighting/deferred transparent mesh declare required texture reads so graph ordering keeps atlas depth production before atlas sampling. `PostProcessGraphResourceNames::SHADOW_MAP` is no longer part of the runtime graph contract.
 - `PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION` names the optional screen-space contact shadow output. The `rendering.contact_shadow` plugin owns the HZB-driven `contact-shadow` pass and its minimal WGPU compute executor/shader, so atlas shadows remain built-in while short-distance screen-space shadowing stays opt-in. The executor reads `scene-depth`, `gbuffer-normal`, and `hzb-furthest`, writes the Rgba8Unorm visibility output, and records its compute dispatch through the public plugin-facing GPU context method. The built-in `post.stack` pass declares a read from that texture and the post-process shader samples binding 27 under `contact_shadow_enabled`; feature-off or missing-resource paths bind a white fallback, so no visual multiplier is applied.
 - `core/framework/render/light/shadow_settings.rs` remains the framework-facing authoring contract for `casts_shadow`, bias, strength, resolution preference, and `ShadowPcfQuality`.
 
@@ -247,7 +251,7 @@ These constants are code-owned and active in the forward/deferred group1 layouts
 
 `ShadowAtlasResourceConfig::default()` follows Plan 05: 4096x4096 and 256 shadow slots. Construction clamps the atlas to device capability and falls back to 2048x2048 when a device cannot host the requested 4096 dimension. This keeps LS-M3 compatible with lower-limit WGPU adapters while preserving the default design for capable devices.
 
-`upload_frame()` writes packed `GpuShadowSlot` data and `GpuShadowGlobals`. When a later frame uploads fewer slots than the previous frame, the stale tail is explicitly overwritten with disabled slots so shader-visible storage cannot retain old valid flags. `SceneRendererCore::render_compiled_scene()` and the legacy `render_scene()` path build a `ShadowFramePlan`, upload its slots/globals, pass its light-slot assignment table into GPUScene light packing, and make the uploaded atlas resources available to forward/deferred graph execution. The compiled graph import step binds `SHADOW_ATLAS` to this persistent atlas view so the shadow executor can write it as an external graph resource.
+`upload_frame()` writes packed `GpuShadowSlot` data and `GpuShadowGlobals`. When a later frame uploads fewer slots than the previous frame, the stale tail is explicitly overwritten with disabled slots so shader-visible storage cannot retain old valid flags. `SceneRendererCore::render_compiled_scene()` and the legacy `render_scene()` path build a `ShadowFramePlan`, upload its slots/globals, pass its light-slot assignment table into GPUScene light packing, and make the uploaded atlas resources available to forward/deferred graph execution. The compiled graph import step binds `SHADOW_ATLAS` to this persistent atlas view, and the required external texture binding means materialization validation fails if that atlas view is missing before executor dispatch.
 
 ## Slot ABI
 

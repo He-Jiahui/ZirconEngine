@@ -1,7 +1,7 @@
-use crate::ui::layout::virtual_window_for_scrollable_box;
+use crate::ui::layout::plan_scrollable_virtual_window;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
-    layout::{UiContainerKind, UiScrollState},
+    layout::UiContainerKind,
     tree::{UiTree, UiTreeError},
 };
 
@@ -28,32 +28,29 @@ impl UiRuntimeTreeScrollExt for UiTree {
             )
         };
 
-        let max_offset = (current_state.content_extent - current_state.viewport_extent).max(0.0);
-        let clamped_offset = offset.max(0.0).min(max_offset);
-        if (current_state.offset - clamped_offset).abs() <= f32::EPSILON {
+        let plan = plan_scrollable_virtual_window(
+            config,
+            current_state,
+            previous_window,
+            offset,
+            child_count,
+            current_state.viewport_extent,
+            current_state.content_extent,
+        );
+        if (current_state.offset - plan.scroll_state.offset).abs() <= f32::EPSILON {
             return Ok(false);
         }
 
-        let next_window = virtual_window_for_scrollable_box(
-            config,
-            clamped_offset,
-            child_count,
-            current_state.viewport_extent,
-        );
         let node = self
             .nodes
             .get_mut(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        node.scroll_state = Some(UiScrollState {
-            offset: clamped_offset,
-            viewport_extent: current_state.viewport_extent,
-            content_extent: current_state.content_extent,
-        });
+        node.scroll_state = Some(plan.scroll_state);
         node.dirty.layout = true;
         node.dirty.hit_test = true;
         node.dirty.render = true;
         node.dirty.input = true;
-        node.dirty.visible_range = previous_window != next_window;
+        node.dirty.visible_range |= plan.visible_range_changed;
         node.state_flags.dirty = true;
         Ok(true)
     }

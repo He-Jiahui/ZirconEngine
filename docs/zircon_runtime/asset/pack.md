@@ -18,6 +18,7 @@ related_code:
   - zircon_runtime/src/asset/pack/reader.rs
   - zircon_runtime/src/asset/pack/trim.rs
   - zircon_runtime/src/bin/zircon_export_pack/pack.rs
+  - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/tests/pack.rs
@@ -43,6 +44,7 @@ implementation_files:
   - zircon_runtime/src/asset/pack/reader.rs
   - zircon_runtime/src/asset/pack/trim.rs
   - zircon_runtime/src/bin/zircon_export_pack/pack.rs
+  - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/tests/pack.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
@@ -56,6 +58,7 @@ tests:
   - unreferenced_asset_trimmed_and_reported
   - asset_filter_trim_is_reported
   - duplicate_trim_input_path_is_reported
+  - run_reports_missing_asset_source_without_writing_pack
   - delta_pack_contains_only_changed_chunks
   - delta_pack_applies_to_base_pack
   - delta_pack_rejects_wrong_base_manifest
@@ -203,12 +206,19 @@ referenced from assets that were reachable but excluded by `asset_filter`. The r
 - `included_assets`: sorted package paths that should be passed to `ZrPackWriter`.
 - `trimmed_assets`: sorted package paths plus a `ZrPackTrimReason`.
 - `missing_dependencies`: root or asset edges that reference a missing path.
+- `duplicate_assets`: duplicate package paths that appeared more than once in trim input.
 - `diagnostics`: human-readable lines suitable for export reports.
 
 This keeps the 09 plan's "no silent trim" rule enforceable before the CLI owns the full CookAssets
 stage. The current API stays independent from the existing asset manager so importer coverage gaps,
 such as glTF sub-assets or material texture references, can be surfaced as missing dependency edges
-instead of hidden inside pack writing.
+instead of hidden inside pack writing. Duplicate input paths are also structured report data, so the
+Pack binary can stop before `ZrPackWriter` without depending on human diagnostic wording.
+The Pack binary also treats included asset source materialization failures as publication preflight
+errors. Missing manifest entries, missing `source` fields, and source read failures are copied into
+the Pack report diagnostics and recorded internally as `asset_source_errors`; when that list is not
+empty, the binary writes a fatal report with `manifest=null` and zero asset/chunk counts without
+writing full or delta pack bytes.
 
 ## Test Coverage
 
@@ -219,8 +229,12 @@ both duplicate asset paths read back correctly. `unreferenced_asset_trimmed_and_
 that a root scene pulls in its texture dependency and reports an unused texture as trimmed.
 `asset_filter_trim_is_reported` verifies that reachable assets without the profile label are reported
 with an explicit `AssetFilterMismatch` reason. `duplicate_trim_input_path_is_reported` verifies that
-the trim input cannot silently overwrite duplicate package paths. `deterministic_pack_double_run_byte_identical`
-proves the writer emits identical bytes when the same logical assets arrive in a different order.
+the trim input cannot silently overwrite duplicate package paths and records those paths in
+`duplicate_assets`. `run_reports_missing_asset_source_without_writing_pack` covers the binary
+boundary for an included asset whose `source` cannot be read: the report still records
+`included_assets`, carries the read diagnostic, returns exit code 2, and leaves no `assets.zrpack`.
+`deterministic_pack_double_run_byte_identical` proves the writer emits identical bytes when the same
+logical assets arrive in a different order.
 `delta_pack_contains_only_changed_chunks` verifies that a delta contains only target chunks missing
 from the base pack, records removed and reused asset paths, and can read changed asset bytes from the
 delta payload. `delta_pack_applies_to_base_pack` verifies that applying the delta to the matching

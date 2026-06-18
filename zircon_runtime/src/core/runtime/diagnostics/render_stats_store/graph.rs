@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_bytes, record_count, DiagnosticStore};
+use super::{record_bool, record_bytes, record_count, record_microseconds, DiagnosticStore};
 
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     record_frame_graph(store, stats);
@@ -114,6 +114,7 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         stats.last_graph_sparse_texture_virtual_bytes,
         &["render", "graph", "transient", "texture", "sparse_texture"],
     );
+    record_graph_compiled_cache(store, frame_index, stats);
     record_count(
         store,
         "render.graph.executed_pass_count",
@@ -137,7 +138,10 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_graph_execution_coverage(store, frame_index, stats);
     record_graph_execution_resources(store, frame_index, stats);
+    record_graph_materialization(store, frame_index, stats);
+    record_graph_execution_aliases(store, frame_index, stats);
     record_graph_stage_execution(store, frame_index, stats);
+    record_graph_execution_profile(store, frame_index, stats);
     record_count(
         store,
         "render.graph.compute_dispatch_count",
@@ -249,6 +253,37 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_async_compute_pass_count,
         &["render", "graph", "async_compute"],
+    );
+}
+
+fn record_graph_compiled_cache(store: &mut DiagnosticStore, frame_index: u64, stats: &RenderStats) {
+    record_count(
+        store,
+        "render.graph.compiled_cache.hit_count",
+        frame_index,
+        stats.last_graph_compiled_cache_hit_count,
+        &["render", "graph", "compiled_cache", "hit"],
+    );
+    record_count(
+        store,
+        "render.graph.compiled_cache.miss_count",
+        frame_index,
+        stats.last_graph_compiled_cache_miss_count,
+        &["render", "graph", "compiled_cache", "miss"],
+    );
+    record_count(
+        store,
+        "render.graph.compiled_cache.eviction_count",
+        frame_index,
+        stats.last_graph_compiled_cache_eviction_count,
+        &["render", "graph", "compiled_cache", "eviction"],
+    );
+    record_count(
+        store,
+        "render.graph.compiled_cache.entry_count",
+        frame_index,
+        stats.last_graph_compiled_cache_entry_count,
+        &["render", "graph", "compiled_cache"],
     );
 }
 
@@ -482,6 +517,66 @@ fn record_graph_execution_resources(
         pool.buffer_pool_entry_count,
         &["render", "graph", "execution", "resource", "pool", "buffer"],
     );
+    record_bytes(
+        store,
+        "render.graph.execution.transient_pool.texture_pool_retained_bytes",
+        frame_index,
+        pool.texture_pool_retained_bytes,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "retained",
+        ],
+    );
+    record_bytes(
+        store,
+        "render.graph.execution.transient_pool.buffer_pool_retained_bytes",
+        frame_index,
+        pool.buffer_pool_retained_bytes,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "buffer",
+            "retained",
+        ],
+    );
+    record_bytes(
+        store,
+        "render.graph.execution.transient_pool.texture_pool_budget_bytes",
+        frame_index,
+        pool.texture_pool_budget_bytes,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "budget",
+        ],
+    );
+    record_bytes(
+        store,
+        "render.graph.execution.transient_pool.buffer_pool_budget_bytes",
+        frame_index,
+        pool.buffer_pool_budget_bytes,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "buffer",
+            "budget",
+        ],
+    );
     record_count(
         store,
         "render.graph.execution.transient_pool.evicted_texture_count",
@@ -511,6 +606,388 @@ fn record_graph_execution_resources(
             "buffer",
             "evicted",
         ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.transient_pool.budget_evicted_texture_count",
+        frame_index,
+        pool.budget_evicted_texture_count,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "texture",
+            "budget",
+            "evicted",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.transient_pool.budget_evicted_buffer_count",
+        frame_index,
+        pool.budget_evicted_buffer_count,
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "pool",
+            "buffer",
+            "budget",
+            "evicted",
+        ],
+    );
+}
+
+fn record_graph_execution_aliases(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = &stats.last_graph_execution_alias_report;
+    record_count(
+        store,
+        "render.graph.execution.alias.texture_logical_count",
+        frame_index,
+        report.texture_logical_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "texture",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.alias.texture_alias_count",
+        frame_index,
+        report.texture_alias_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "texture",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.alias.texture_backing_count",
+        frame_index,
+        report.texture_backing_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "texture",
+            "backing",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.alias.buffer_logical_count",
+        frame_index,
+        report.buffer_logical_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "buffer",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.alias.buffer_alias_count",
+        frame_index,
+        report.buffer_alias_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "buffer",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.execution.alias.buffer_backing_count",
+        frame_index,
+        report.buffer_backing_count(),
+        &[
+            "render",
+            "graph",
+            "execution",
+            "resource",
+            "alias",
+            "buffer",
+            "backing",
+        ],
+    );
+}
+
+fn record_graph_materialization(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = stats.last_graph_materialization_report;
+    record_count(
+        store,
+        "render.graph.materialization.required_resource_count",
+        frame_index,
+        report.required_resource_count(),
+        &["render", "graph", "materialization", "resource"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_resource_count",
+        frame_index,
+        report.bound_resource_count(),
+        &["render", "graph", "materialization", "resource", "bound"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_resource_count",
+        frame_index,
+        report.missing_resource_count(),
+        &["render", "graph", "materialization", "resource", "missing"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_materialized_resource_count",
+        frame_index,
+        report.missing_materialized_resource_count(),
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "resource",
+            "missing",
+            "typed",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.required_texture_count",
+        frame_index,
+        report.required_texture_count,
+        &["render", "graph", "materialization", "texture"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_texture_count",
+        frame_index,
+        report.bound_texture_count,
+        &["render", "graph", "materialization", "texture", "bound"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_texture_count",
+        frame_index,
+        report.missing_texture_count,
+        &["render", "graph", "materialization", "texture", "missing"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.required_buffer_count",
+        frame_index,
+        report.required_buffer_count,
+        &["render", "graph", "materialization", "buffer"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_buffer_count",
+        frame_index,
+        report.bound_buffer_count,
+        &["render", "graph", "materialization", "buffer", "bound"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_buffer_count",
+        frame_index,
+        report.missing_buffer_count,
+        &["render", "graph", "materialization", "buffer", "missing"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.required_external_count",
+        frame_index,
+        report.required_external_count,
+        &["render", "graph", "materialization", "external"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_external_count",
+        frame_index,
+        report.bound_external_count(),
+        &["render", "graph", "materialization", "external", "bound"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_external_count",
+        frame_index,
+        report.missing_external_count(),
+        &["render", "graph", "materialization", "external", "missing"],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_required_external_count",
+        frame_index,
+        report.bound_required_external_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "external",
+            "required",
+            "bound",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_required_external_count",
+        frame_index,
+        report.missing_required_external_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "external",
+            "required",
+            "missing",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.report_only_external_count",
+        frame_index,
+        report.report_only_external_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "external",
+            "report_only",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.bound_report_only_external_count",
+        frame_index,
+        report.bound_report_only_external_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "external",
+            "report_only",
+            "bound",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.missing_report_only_external_count",
+        frame_index,
+        report.missing_report_only_external_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "external",
+            "report_only",
+            "missing",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.stale_binding_count",
+        frame_index,
+        report.stale_binding_count(),
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "resource",
+            "stale_binding",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.stale_texture_binding_count",
+        frame_index,
+        report.stale_texture_binding_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "texture",
+            "stale_binding",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.stale_buffer_binding_count",
+        frame_index,
+        report.stale_buffer_binding_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "buffer",
+            "stale_binding",
+        ],
+    );
+    record_count(
+        store,
+        "render.graph.materialization.sparse_texture_reservation_count",
+        frame_index,
+        report.sparse_texture_reservation_count,
+        &[
+            "render",
+            "graph",
+            "materialization",
+            "texture",
+            "sparse_texture",
+        ],
+    );
+}
+
+fn record_graph_execution_profile(
+    store: &mut DiagnosticStore,
+    frame_index: u64,
+    stats: &RenderStats,
+) {
+    let report = &stats.last_graph_execution_profile_report;
+    record_count(
+        store,
+        "render.graph.execution.profile.pass_count",
+        frame_index,
+        report.pass_count(),
+        &["render", "graph", "execution", "profile"],
+    );
+    record_microseconds(
+        store,
+        "render.graph.execution.profile.cpu_elapsed_total_us",
+        frame_index,
+        report.total_cpu_elapsed_micros(),
+        &["render", "graph", "execution", "profile", "cpu"],
+    );
+    record_microseconds(
+        store,
+        "render.graph.execution.profile.cpu_elapsed_max_us",
+        frame_index,
+        report.max_cpu_elapsed_micros(),
+        &["render", "graph", "execution", "profile", "cpu"],
     );
 }
 

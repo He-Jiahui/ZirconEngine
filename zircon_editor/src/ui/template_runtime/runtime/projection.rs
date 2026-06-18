@@ -195,6 +195,12 @@ fn merge_projection_metadata(
             .entry(key.clone())
             .or_insert_with(|| value.clone());
     }
+    for (key, value) in &projection_node.style_overrides {
+        surface_node
+            .style_overrides
+            .entry(key.clone())
+            .or_insert_with(|| value.clone());
+    }
 }
 
 fn project_node(
@@ -356,6 +362,7 @@ fn collect_host_nodes(
             clip_frame: None,
             z_index: 0,
             attributes: frame.node.attributes.clone(),
+            style_overrides: BTreeMap::new(),
             style_tokens: frame.node.style_tokens.clone(),
             bindings: node_bindings,
         });
@@ -420,6 +427,7 @@ fn collect_surface_host_nodes(
                 .map(|arranged_node| arranged_node.z_index)
                 .unwrap_or(node.z_index),
             attributes: metadata.attributes.clone(),
+            style_overrides: metadata.style_overrides.clone(),
             style_tokens: metadata.style_tokens.clone(),
             bindings: node_bindings,
         });

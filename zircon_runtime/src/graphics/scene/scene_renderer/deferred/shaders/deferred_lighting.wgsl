@@ -20,6 +20,13 @@ struct VertexOutput {
 };
 
 const EPSILON: f32 = 0.000001;
+const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
+const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;
+const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+
+fn decode_shading_model_id(encoded: f32) -> u32 {
+    return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
+}
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
@@ -59,13 +66,28 @@ fn light_radiance(light: ZrGpuLightData) -> vec3<f32> {
     return max(light.color_intensity.rgb, vec3<f32>(0.0, 0.0, 0.0)) * max(light.color_intensity.w, 0.0);
 }
 
-fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
+fn shade_standard_pbr_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
     let lambert = max(dot(normal, light_vector), 0.0);
     let half_dir = normalize_or_zero(light_vector + view_dir);
     let specular_power = mix(96.0, 8.0, roughness);
     let specular_strength = (1.0 - roughness) * mix(0.04, 1.0, metallic);
     let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * specular_strength;
     return diffuse_color * radiance * lambert + radiance * specular;
+}
+
+fn shade_blinn_phong_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
+    let lambert = max(dot(normal, light_vector), 0.0);
+    let half_dir = normalize_or_zero(light_vector + view_dir);
+    let specular_power = mix(96.0, 12.0, roughness);
+    let specular = pow(max(dot(normal, half_dir), 0.0), specular_power) * (1.0 - roughness) * 0.5;
+    return diffuse_color * radiance * lambert + radiance * specular;
+}
+
+fn shade_light_vector(light_vector: vec3<f32>, radiance: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32) -> vec3<f32> {
+    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return shade_blinn_phong_light_vector(light_vector, radiance, normal, roughness, diffuse_color, view_dir);
+    }
+    return shade_standard_pbr_light_vector(light_vector, radiance, normal, roughness, metallic, diffuse_color, view_dir);
 }
 
 fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
@@ -88,7 +110,7 @@ fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_posit
     return visibility;
 }
 
-fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, view_z: f32) -> vec3<f32> {
+fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, view_z: f32, shading_model_id: u32) -> vec3<f32> {
     if (light_index >= zr_gpu_scene_light_count()) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -111,6 +133,7 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: ve
             metallic,
             diffuse_color,
             view_dir,
+            shading_model_id,
         );
     }
 
@@ -130,10 +153,11 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, normal: ve
         metallic,
         diffuse_color,
         view_dir,
+        shading_model_id,
     );
 }
 
-fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>) -> vec3<f32> {
+fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, occlusion: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32) -> vec3<f32> {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -162,12 +186,46 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
                 diffuse_color,
                 view_dir,
                 view_z,
+                shading_model_id,
             );
             mask = mask & (mask - 1u);
         }
     }
 
     return accumulated;
+}
+
+fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u32) -> vec3<f32> {
+    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return albedo.rgb;
+    }
+    return albedo.rgb * mix(1.0, 0.55, metallic);
+}
+
+fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32) -> vec4<f32> {
+    let metallic = clamp(material.r, 0.0, 1.0);
+    let roughness = clamp(max(material.g, 0.04), 0.04, 1.0);
+    let occlusion = clamp(max(material.b, 0.0), 0.0, 1.0);
+    let view_dir = vec3<f32>(0.0, 0.0, 1.0);
+    let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
+    let world_position = reconstruct_world_position(coord, depth);
+    let ambient = scene.ambient_color.rgb * occlusion;
+    let diffuse_color = deferred_diffuse_color(albedo, metallic, shading_model_id);
+    let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id);
+    let color = diffuse_color * ambient + direct_lights;
+    return vec4<f32>(color, albedo.a);
+}
+
+fn shade_deferred_standard_pbr(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
+    return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_STANDARD_PBR_ID);
+}
+
+fn shade_deferred_blinn_phong(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
+    return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_BLINN_PHONG_ID);
+}
+
+fn shade_deferred_unlit(albedo: vec4<f32>) -> vec4<f32> {
+    return albedo;
 }
 
 @fragment
@@ -182,15 +240,12 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
     let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
-    let metallic = clamp(material.r, 0.0, 1.0);
-    let roughness = clamp(max(material.g, 0.04), 0.04, 1.0);
-    let occlusion = clamp(max(material.b, 0.0), 0.0, 1.0);
-    let view_dir = vec3<f32>(0.0, 0.0, 1.0);
-    let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
-    let world_position = reconstruct_world_position(coord, depth);
-    let ambient = scene.ambient_color.rgb * occlusion;
-    let diffuse_color = albedo.rgb * mix(1.0, 0.55, metallic);
-    let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir);
-    let color = diffuse_color * ambient + direct_lights;
-    return vec4<f32>(color, albedo.a);
+    let shading_model_id = decode_shading_model_id(material.a);
+    if (shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
+        return shade_deferred_unlit(albedo);
+    }
+    if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
+        return shade_deferred_blinn_phong(position, coord, albedo, material, normal);
+    }
+    return shade_deferred_standard_pbr(position, coord, albedo, material, normal);
 }

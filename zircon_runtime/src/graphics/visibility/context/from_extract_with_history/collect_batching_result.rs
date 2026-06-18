@@ -72,7 +72,7 @@ pub(super) fn collect_batching_result(value: &RenderFrameExtract) -> BatchingRes
             .map(|input| input.material_alpha_mode)
             .unwrap_or(RenderMaterialAlphaMode::Opaque);
         let relevance = PrimitiveRelevance::for_mesh_view(
-            &value.view.camera.render_layers,
+            value.view.selected_camera_layers(),
             value.view.core_pipeline,
             entry.render_layer_mask,
             entry.mobility,

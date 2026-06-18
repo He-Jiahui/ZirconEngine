@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use crate::plugin::{NativePluginCandidate, NativePluginLoadReport, PluginModuleKind};
+use crate::plugin::native::{NativePluginCandidate, NativePluginLoadReport};
+use crate::plugin::PluginModuleKind;
 
 use super::diagnostics::sorted_unique_diagnostics;
 use super::reports::NativePluginRuntimeHotUpdateReport;

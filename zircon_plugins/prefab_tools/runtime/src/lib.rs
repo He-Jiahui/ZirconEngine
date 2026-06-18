@@ -49,14 +49,14 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
         "Prefab Tools",
-        zircon_runtime::RuntimePluginId::PrefabTools,
+        zircon_runtime::builtin::RuntimePluginId::PrefabTools,
         "zircon_plugin_prefab_tools_runtime",
     )
     .with_category("authoring")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Beta)
     .with_target_modes([
-        zircon_runtime::RuntimeTargetMode::ClientRuntime,
-        zircon_runtime::RuntimeTargetMode::EditorHost,
+        zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+        zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.prefab_tools")
     .with_capability_status(zircon_runtime::plugin::CapabilityStatusManifest::new(

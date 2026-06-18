@@ -4,12 +4,13 @@ use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
 };
 use crate::core::framework::render::{
-    DisplayMode, RenderBloomSettings, RenderCameraOrderAmbiguity, RenderCameraTarget,
-    RenderCameraTargetOrderKey, RenderColorGradingSettings, RenderExtractContext,
-    RenderExtractProducer, RenderLayerSet, RenderMaterialAlphaMode, RenderPhase,
-    RenderPhaseMeshSource, RenderPostProcessVolumeProfile, RenderTonemapOperator,
-    RenderTonemapSettings, RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle,
-    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
+    CameraRenderDescriptor, CameraRenderType, DisplayMode, RenderBloomSettings,
+    RenderCameraOrderAmbiguity, RenderCameraTarget, RenderCameraTargetOrderKey,
+    RenderColorGradingSettings, RenderExtractContext, RenderExtractProducer, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderPhase, RenderPhaseMeshSource, RenderPostProcessVolumeProfile,
+    RenderTonemapOperator, RenderTonemapSettings, RenderVirtualGeometryDebugState,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{
@@ -83,7 +84,7 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert_eq!(extract.world.raw(), 701);
     assert_eq!(extract.view.camera.aspect_ratio, 1920.0 / 1080.0);
     assert_eq!(
-        extract.view.camera.render_layers,
+        *extract.view.selected_camera_layers(),
         RenderLayerSet::from_legacy_mask(0b0111)
     );
 
@@ -477,6 +478,75 @@ fn render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers() {
 }
 
 #[test]
+fn render_frame_extract_collects_dynamic_particle_gpu_frames_by_camera_layers() {
+    let mut world = World::empty();
+    let camera = spawn_camera_on_layer(&mut world, 0b0010);
+    world.set_active_camera(camera);
+    let visible = world.spawn_node(NodeKind::Empty);
+    let hidden = world.spawn_node(NodeKind::Empty);
+    world.set_render_layer_mask(visible, 0b0010).unwrap();
+    world.set_render_layer_mask(hidden, 0b0100).unwrap();
+    world
+        .update_transform(
+            visible,
+            Transform::from_translation(Vec3::new(1.0, 2.0, 3.0)),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            visible,
+            "render.particle_sprites",
+            serde_json::json!({
+                "gpu_frame": {
+                    "alive_count": 5,
+                    "spawned_total": 8,
+                    "per_emitter_spawned": [3, 5],
+                    "bounds": {
+                        "center": [2.0, 2.0, 3.0],
+                        "radius": 4.0
+                    }
+                }
+            }),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(
+            hidden,
+            "render.particle_sprites",
+            serde_json::json!({
+                "gpu_frame": {
+                    "alive_count": 11,
+                    "spawned_total": 13,
+                    "per_emitter_spawned": [13]
+                }
+            }),
+        )
+        .unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(708),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.particles.emitters, vec![visible]);
+    assert!(extract.particles.sprites.is_empty());
+    assert_eq!(extract.particles.bounds.len(), 1);
+    assert_eq!(extract.particles.bounds[0].entity, visible);
+    assert_eq!(extract.particles.bounds[0].center, Vec3::new(1.0, 2.0, 3.0));
+    assert_eq!(extract.particles.bounds[0].radius, 5.0);
+    let gpu_frame = extract
+        .particles
+        .gpu_frame
+        .expect("visible particle gpu frame should be projected");
+    assert_eq!(gpu_frame.alive_count, 5);
+    assert_eq!(gpu_frame.spawned_total, 8);
+    assert_eq!(gpu_frame.per_emitter_spawned, vec![3, 5]);
+    assert_eq!(gpu_frame.indirect_draw_args, [6, 5, 0, 0]);
+    assert!(extract.visibility.dynamic_entities.contains(&visible));
+    assert!(!extract.visibility.dynamic_entities.contains(&hidden));
+}
+
+#[test]
 fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);
@@ -733,10 +803,7 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(705),
         SceneViewportExtractRequest {
-            camera: Some(ViewportCameraSnapshot {
-                render_layers: RenderLayerSet::from_legacy_mask(0b0100),
-                ..ViewportCameraSnapshot::default()
-            }),
+            camera: Some(camera_descriptor_with_layers(0b0100)),
             ..SceneViewportExtractRequest::default()
         },
     ));
@@ -763,8 +830,7 @@ fn explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_
         .all(|sprite| sprite.entity != scene_camera_visible_sprite));
     assert!(extract
         .view
-        .camera
-        .render_layers
+        .selected_camera_layers()
         .intersects_legacy_mask(0b0100));
     assert!(extract
         .visibility
@@ -850,7 +916,7 @@ fn render_frame_extract_carries_scene_post_process_volumes_for_camera_layers() {
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            &extract.view.camera.render_layers,
+            extract.view.selected_camera_layers(),
         )
         .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom.intensity, 0.75);
@@ -899,7 +965,7 @@ fn inactive_post_process_volume_hierarchy_is_excluded_from_frame_extract() {
         .post_process
         .resolved_settings_for_camera(
             extract.view.camera.transform.translation,
-            &extract.view.camera.render_layers,
+            extract.view.selected_camera_layers(),
         )
         .expect("planned volume evaluation should resolve");
     assert_eq!(resolved.bloom, RenderBloomSettings::default());
@@ -1000,6 +1066,30 @@ fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
     ));
 
     assert_eq!(extract.view.scene_camera_entity, Some(primary_a));
+    assert_eq!(
+        extract
+            .view
+            .cameras
+            .iter()
+            .map(|camera| camera.entity)
+            .collect::<Vec<_>>(),
+        vec![Some(texture_camera), Some(primary_a), Some(primary_b)]
+    );
+    let texture_descriptor = extract
+        .view
+        .cameras
+        .iter()
+        .find(|camera| camera.entity == Some(texture_camera))
+        .expect("scene-backed extract should carry texture target descriptor");
+    assert_eq!(texture_descriptor.render_type, CameraRenderType::Base);
+    assert!(matches!(
+        texture_descriptor.target,
+        RenderCameraTarget::Texture(_)
+    ));
+    assert_eq!(
+        texture_descriptor.culling_mask.to_legacy_mask_lossy(),
+        0b0010
+    );
     let report = extract
         .view
         .scene_camera_order_report
@@ -1012,6 +1102,23 @@ fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
             .map(|camera| camera.entity)
             .collect::<Vec<_>>(),
         vec![texture_camera, primary_a, primary_b]
+    );
+    let texture_report_camera = report
+        .cameras
+        .iter()
+        .find(|camera| camera.entity == texture_camera)
+        .expect("texture target camera should keep its camera payload");
+    assert!(matches!(
+        texture_report_camera.camera.target,
+        RenderCameraTarget::Texture(_)
+    ));
+    assert!(texture_report_camera.hdr);
+    assert_eq!(
+        texture_report_camera
+            .camera
+            .culling_mask
+            .to_legacy_mask_lossy(),
+        0b0010
     );
     assert!(report.has_ambiguities());
     assert_eq!(
@@ -1032,18 +1139,73 @@ fn explicit_camera_render_frame_extract_has_no_scene_camera_order_report() {
     let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
         RenderWorldSnapshotHandle::new(707),
         SceneViewportExtractRequest {
-            camera: Some(ViewportCameraSnapshot {
-                order: 42,
-                render_layers: RenderLayerSet::from_legacy_mask(0b0100),
-                ..ViewportCameraSnapshot::default()
+            camera: Some({
+                let mut camera = camera_descriptor_with_layers(0b0100);
+                camera.render_order = 42;
+                camera
             }),
             ..SceneViewportExtractRequest::default()
         },
     ));
 
-    assert_eq!(extract.view.camera.order, 42);
     assert_eq!(extract.view.scene_camera_entity, None);
     assert!(extract.view.scene_camera_order_report.is_none());
+    assert_eq!(extract.view.cameras.len(), 1);
+    assert_eq!(extract.view.cameras[0].entity, None);
+    assert_eq!(extract.view.cameras[0].render_order, 42);
+    assert_eq!(
+        extract.view.cameras[0].culling_mask.to_legacy_mask_lossy(),
+        0b0100
+    );
+}
+
+#[test]
+fn render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views() {
+    let mut world = World::empty();
+    let primary = spawn_camera_on_layer(&mut world, 0b0001);
+    world.set_active_camera(primary);
+
+    let texture_camera = spawn_camera_on_layer(&mut world, 0b0010);
+    {
+        let component = world.get_mut::<CameraComponent>(texture_camera).unwrap();
+        component.order = -1;
+        component.target = RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(
+            ResourceId::from_stable_label("res://textures/custom-target-visibility.png"),
+        ));
+    }
+
+    let main_mesh = spawn_mesh_on_layer(&mut world, 0b0001, Mobility::Static);
+    let custom_target_mesh = spawn_mesh_on_layer(&mut world, 0b0010, Mobility::Static);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(708),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert_eq!(extract.view.scene_camera_entity, Some(primary));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == main_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == custom_target_mesh));
+    assert_eq!(
+        extract.view.selected_camera_layers().to_legacy_mask_lossy(),
+        0b0001,
+        "main camera layer remains unchanged; the layer union is only an extract candidate set"
+    );
+}
+
+fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {
+    let mut camera =
+        CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+    camera.culling_mask = RenderLayerSet::from_legacy_mask(mask);
+    camera.volume_mask = camera.culling_mask.clone();
+    camera
 }
 
 #[test]

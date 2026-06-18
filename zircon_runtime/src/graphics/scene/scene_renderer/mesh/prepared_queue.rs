@@ -65,6 +65,10 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) cached_command_hit_count: usize,
     pub(crate) command_rebuild_count: usize,
     pub(crate) dynamic_command_count: usize,
+    pub(crate) cache_miss_count: usize,
+    pub(crate) cache_invalidated_transform_count: usize,
+    pub(crate) cache_invalidated_geometry_count: usize,
+    pub(crate) cache_invalidated_material_count: usize,
     pub(crate) state_change_count: usize,
     pub(crate) bind_skip_count: usize,
 }
@@ -110,6 +114,10 @@ impl PreparedMeshQueueStats {
         self.cached_command_hit_count = command_stats.cached_command_hit_count;
         self.command_rebuild_count = command_stats.command_rebuild_count;
         self.dynamic_command_count = command_stats.dynamic_command_count;
+        self.cache_miss_count = command_stats.cache_miss_count;
+        self.cache_invalidated_transform_count = command_stats.cache_invalidated_transform_count;
+        self.cache_invalidated_geometry_count = command_stats.cache_invalidated_geometry_count;
+        self.cache_invalidated_material_count = command_stats.cache_invalidated_material_count;
         self.indirect_batch_count = command_stats.indirect_batch_count;
         self.indirect_batched_draw_count = command_stats.indirect_batched_draw_count;
         self.indirect_fallback_draw_count = command_stats.indirect_fallback_draw_count;
@@ -692,6 +700,10 @@ mod tests {
                 cached_command_hit_count: 0,
                 command_rebuild_count: 9,
                 dynamic_command_count: 9,
+                cache_miss_count: 3,
+                cache_invalidated_transform_count: 0,
+                cache_invalidated_geometry_count: 1,
+                cache_invalidated_material_count: 2,
                 indirect_batch_count: 2,
                 indirect_batched_draw_count: 5,
                 indirect_fallback_draw_count: 4,
@@ -710,6 +722,10 @@ mod tests {
         assert_eq!(stats.cached_command_hit_count, 0);
         assert_eq!(stats.command_rebuild_count, 9);
         assert_eq!(stats.dynamic_command_count, 9);
+        assert_eq!(stats.cache_miss_count, 3);
+        assert_eq!(stats.cache_invalidated_transform_count, 0);
+        assert_eq!(stats.cache_invalidated_geometry_count, 1);
+        assert_eq!(stats.cache_invalidated_material_count, 2);
         assert_eq!(stats.indirect_batch_count, 2);
         assert_eq!(stats.indirect_batched_draw_count, 5);
         assert_eq!(stats.indirect_fallback_draw_count, 4);

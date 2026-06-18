@@ -21,17 +21,13 @@ mod native_plugin_loader;
 mod native_strings;
 
 pub use abi_declarations::{
-    NativePluginAbiV1, NativePluginAbiV2, NativePluginAbiV3, NativePluginBehaviorV2,
-    NativePluginBehaviorV3, NativePluginBridgeMethodCallV3, NativePluginBridgeMethodFnV3,
-    NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3, NativePluginByteSliceV2,
-    NativePluginByteSliceV3, NativePluginCallbackStatusV2, NativePluginCallbackStatusV3,
-    NativePluginEntryReportV1, NativePluginEntryReportV2, NativePluginEntryReportV3,
-    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
+    NativePluginAbiV3, NativePluginBehaviorV3, NativePluginBridgeMethodCallV3,
+    NativePluginBridgeMethodFnV3, NativePluginBridgeMethodTableV3, NativePluginBridgeMethodV3,
+    NativePluginByteSliceV2, NativePluginByteSliceV3, NativePluginCallbackStatusV2,
+    NativePluginCallbackStatusV3, NativePluginEntryReportV3, NativePluginHostFunctionTableV3,
     NativePluginOwnedByteBufferV2, NativePluginOwnedByteBufferV3, NativePluginSchemaVersionsV3,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1,
-    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL, ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3,
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };

@@ -12,11 +12,11 @@ use crate::graphics::scene::{
 };
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
+use crate::graphics::RenderPipelineAsset;
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
     RenderGraphResourceAccessKind, RenderGraphResourceKind,
 };
-use crate::RenderPipelineAsset;
 
 #[test]
 fn shadow_atlas_pass_stays_live_as_depth_only_graph_contract() {
@@ -407,7 +407,7 @@ fn product_spot_light(index: u64) -> RenderSpotLightSnapshot {
     }
 }
 
-fn assert_light_grid_reads(compiled: &crate::CompiledRenderPipeline, pass_name: &str) {
+fn assert_light_grid_reads(compiled: &crate::graphics::CompiledRenderPipeline, pass_name: &str) {
     for resource_name in [
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
         PostProcessGraphResourceNames::LIGHT_ZBINS,
@@ -423,7 +423,7 @@ fn assert_light_grid_reads(compiled: &crate::CompiledRenderPipeline, pass_name: 
 }
 
 fn pass_resource_access<'a>(
-    compiled: &'a crate::CompiledRenderPipeline,
+    compiled: &'a crate::graphics::CompiledRenderPipeline,
     pass_name: &str,
     resource_name: &str,
     access: RenderGraphResourceAccessKind,

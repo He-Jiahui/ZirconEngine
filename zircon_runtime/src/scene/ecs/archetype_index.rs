@@ -117,27 +117,12 @@ impl ArchetypeIndex {
         required: &[ComponentId],
         without: &[ComponentId],
     ) -> Vec<ArchetypeId> {
-        if let Some(ids) = self.shortest_required_archetype_ids(required) {
-            if ids.is_empty() {
-                return Vec::new();
-            }
-            let mut matches = Vec::with_capacity(ids.len());
-            for id in ids {
-                if self.archetype_matches_required_without(*id, required, without) {
-                    matches.push(*id);
-                }
-            }
-            return matches;
-        }
-
-        let mut matches = Vec::with_capacity(self.records.len());
-        for record in &self.records {
-            let id = record.id();
-            if self.archetype_matches_required_without(id, required, without) {
-                matches.push(id);
-            }
-        }
-        matches
+        let mut candidates = match self.shortest_required_archetype_ids(required) {
+            Some(ids) => ids.to_vec(),
+            None => Self::all_archetype_ids(&self.records),
+        };
+        candidates.retain(|id| self.archetype_matches_required_without(*id, required, without));
+        candidates
     }
 
     fn shortest_required_archetype_ids(&self, required: &[ComponentId]) -> Option<&[ArchetypeId]> {
@@ -181,6 +166,14 @@ impl ArchetypeIndex {
             }
         }
         true
+    }
+
+    fn all_archetype_ids(records: &[ArchetypeRecord]) -> Vec<ArchetypeId> {
+        let mut ids = Vec::with_capacity(records.len());
+        for record in records {
+            ids.push(record.id());
+        }
+        ids
     }
 
     fn add_entity_to(&mut self, id: ArchetypeId, entity: EntityId) -> usize {

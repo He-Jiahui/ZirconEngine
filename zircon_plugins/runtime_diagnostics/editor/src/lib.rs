@@ -1,7 +1,8 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::{plugin::PluginPackageManifest, RuntimeTargetMode};
+use zircon_runtime::plugin::PluginPackageManifest;
+use zircon_runtime::builtin::{RuntimeTargetMode};
 
 pub const PLUGIN_ID: &str = "runtime_diagnostics";
 pub const RUNTIME_DIAGNOSTICS_VIEW_ID: &str = "editor.runtime_diagnostics";

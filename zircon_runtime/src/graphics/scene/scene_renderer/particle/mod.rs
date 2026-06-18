@@ -18,7 +18,13 @@ mod tests {
         );
         assert!(
             source.contains("depth_compare: Some(wgpu::CompareFunction::LessEqual)"),
-            "particle/world-HUD billboards should still be depth-tested against opaque scene geometry"
+            "ordinary particle billboards should still be depth-tested against opaque scene geometry"
+        );
+        assert!(
+            source.contains("zircon-particle-overlay-pipeline")
+                && source.contains("wgpu::CompareFunction::Always")
+                && source.contains("depth_compare: Some(depth_compare)"),
+            "world-HUD overlay billboards should have a non-depth-tested color path"
         );
         assert!(
             source.contains("src_factor: wgpu::BlendFactor::SrcAlpha")

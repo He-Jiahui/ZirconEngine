@@ -11,6 +11,7 @@ pub enum PostProcessChainSlot {
     ExposureHistogram,
     ExposureResolve,
     SceneComposite,
+    Blur,
     ColorLutBake,
     Uber,
     TerminalAntiAlias,
@@ -19,7 +20,7 @@ pub enum PostProcessChainSlot {
 }
 
 impl PostProcessChainSlot {
-    pub const BACKBONE: [Self; 12] = [
+    pub const BACKBONE: [Self; 13] = [
         Self::TaaResolve,
         Self::DepthOfField,
         Self::MotionBlur,
@@ -27,6 +28,7 @@ impl PostProcessChainSlot {
         Self::ExposureHistogram,
         Self::ExposureResolve,
         Self::SceneComposite,
+        Self::Blur,
         Self::ColorLutBake,
         Self::Uber,
         Self::TerminalAntiAlias,
@@ -47,6 +49,7 @@ impl PostProcessChainSlot {
             Self::ExposureHistogram => "exposure-histogram",
             Self::ExposureResolve => "exposure-resolve",
             Self::SceneComposite => "scene-composite",
+            Self::Blur => "blur",
             Self::ColorLutBake => "color-lut-bake",
             Self::Uber => "uber",
             Self::TerminalAntiAlias => "terminal-anti-alias",
@@ -64,6 +67,7 @@ impl PostProcessChainSlot {
             Self::ExposureHistogram => "post.exposure.histogram",
             Self::ExposureResolve => "post.exposure.resolve",
             Self::SceneComposite => "post.scene-composite",
+            Self::Blur => "post.blur",
             Self::ColorLutBake => "post.color-lut-bake",
             Self::Uber => "post.uber",
             Self::TerminalAntiAlias => "post.terminal-aa",
@@ -75,17 +79,22 @@ impl PostProcessChainSlot {
     pub const fn from_current_effect_kind(kind: PostProcessEffectKind) -> Self {
         match kind {
             PostProcessEffectKind::TaaResolve => Self::TaaResolve,
+            PostProcessEffectKind::DepthOfField => Self::DepthOfField,
+            PostProcessEffectKind::MotionBlur => Self::MotionBlur,
             PostProcessEffectKind::Bloom => Self::Bloom,
             PostProcessEffectKind::ExposureHistogram => Self::ExposureHistogram,
             PostProcessEffectKind::ExposureResolve => Self::ExposureResolve,
+            PostProcessEffectKind::SceneComposite => Self::SceneComposite,
+            PostProcessEffectKind::Blur => Self::Blur,
             PostProcessEffectKind::ColorLutBake => Self::ColorLutBake,
             PostProcessEffectKind::Uber => Self::Uber,
             PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid
             | PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse
             | PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion
             | PostProcessEffectKind::ScreenSpaceReflectionResolve => Self::SceneComposite,
+            PostProcessEffectKind::Upscale => Self::Upscale,
             PostProcessEffectKind::OutputTransfer => Self::OutputTransfer,
-            PostProcessEffectKind::Fxaa => Self::TerminalAntiAlias,
+            PostProcessEffectKind::Fxaa | PostProcessEffectKind::Smaa => Self::TerminalAntiAlias,
         }
     }
 }
@@ -117,6 +126,7 @@ mod tests {
                 "exposure-histogram",
                 "exposure-resolve",
                 "scene-composite",
+                "blur",
                 "color-lut-bake",
                 "uber",
                 "terminal-anti-alias",
@@ -135,6 +145,14 @@ mod tests {
             ),
             (PostProcessEffectKind::Bloom, PostProcessChainSlot::Bloom),
             (
+                PostProcessEffectKind::DepthOfField,
+                PostProcessChainSlot::DepthOfField,
+            ),
+            (
+                PostProcessEffectKind::MotionBlur,
+                PostProcessChainSlot::MotionBlur,
+            ),
+            (
                 PostProcessEffectKind::ExposureHistogram,
                 PostProcessChainSlot::ExposureHistogram,
             ),
@@ -142,6 +160,11 @@ mod tests {
                 PostProcessEffectKind::ExposureResolve,
                 PostProcessChainSlot::ExposureResolve,
             ),
+            (
+                PostProcessEffectKind::SceneComposite,
+                PostProcessChainSlot::SceneComposite,
+            ),
+            (PostProcessEffectKind::Blur, PostProcessChainSlot::Blur),
             (
                 PostProcessEffectKind::ColorLutBake,
                 PostProcessChainSlot::ColorLutBake,
@@ -164,11 +187,19 @@ mod tests {
                 PostProcessChainSlot::SceneComposite,
             ),
             (
+                PostProcessEffectKind::Upscale,
+                PostProcessChainSlot::Upscale,
+            ),
+            (
                 PostProcessEffectKind::OutputTransfer,
                 PostProcessChainSlot::OutputTransfer,
             ),
             (
                 PostProcessEffectKind::Fxaa,
+                PostProcessChainSlot::TerminalAntiAlias,
+            ),
+            (
+                PostProcessEffectKind::Smaa,
                 PostProcessChainSlot::TerminalAntiAlias,
             ),
         ];
@@ -199,6 +230,7 @@ mod tests {
                 "post.exposure.histogram",
                 "post.exposure.resolve",
                 "post.scene-composite",
+                "post.blur",
                 "post.color-lut-bake",
                 "post.uber",
                 "post.terminal-aa",

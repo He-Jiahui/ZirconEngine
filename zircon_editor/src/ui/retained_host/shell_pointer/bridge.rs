@@ -10,7 +10,9 @@ use zircon_runtime_interface::ui::{
 
 #[cfg(test)]
 use crate::ui::host::NativeWindowHostState;
+#[cfg(test)]
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
 #[cfg(test)]
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle_from_windows;
@@ -41,8 +43,13 @@ impl Default for HostShellPointerBridge {
 
 impl HostShellPointerBridge {
     pub(crate) fn new() -> Self {
-        let (drag_surface, drag_dispatcher, drag_routes) =
-            build_drag_surface(ShellSizePx::new(1.0, 1.0), false, &[], None, None);
+        let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
+            ShellSizePx::new(1.0, 1.0),
+            false,
+            &[],
+            BuiltinWorkbenchWindowLayoutFrames::default(),
+            None,
+        );
         let (resize_surface, resize_dispatcher) = build_resize_surface();
         Self {
             drag_surface,
@@ -101,6 +108,7 @@ impl HostShellPointerBridge {
         );
     }
 
+    #[cfg(test)]
     pub(crate) fn update_layout_with_root_shell_frames(
         &mut self,
         root_size: ShellSizePx,
@@ -109,17 +117,38 @@ impl HostShellPointerBridge {
         shared_root_frames: Option<&BuiltinHostRootShellFrames>,
         floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
     ) {
+        self.update_layout_with_workbench_layout_frames(
+            root_size,
+            drawers_visible,
+            floating_windows,
+            test_workbench_layout_frames_from_root_frames(shared_root_frames),
+            floating_window_projection_bundle,
+        );
+    }
+
+    pub(crate) fn update_layout_with_workbench_layout_frames(
+        &mut self,
+        root_size: ShellSizePx,
+        drawers_visible: bool,
+        floating_windows: &[FloatingWindowModel],
+        componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+        floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
+    ) {
         let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
             root_size,
             drawers_visible,
             floating_windows,
-            shared_root_frames,
+            componentized_workbench_layout_frames,
             floating_window_projection_bundle,
         );
         self.drag_surface = drag_surface;
         self.drag_dispatcher = drag_dispatcher;
         self.drag_routes = drag_routes;
-        update_resize_surface(&mut self.resize_surface, root_size, shared_root_frames);
+        update_resize_surface(
+            &mut self.resize_surface,
+            root_size,
+            componentized_workbench_layout_frames,
+        );
     }
 
     pub(crate) fn drag_target_at(&mut self, point: UiPoint) -> Option<HostDragTargetGroup> {
@@ -178,5 +207,17 @@ impl HostShellPointerBridge {
             .dispatch_pointer_event(&self.resize_dispatcher, event)
             .ok()?;
         resize_group_from_dispatch(&dispatch)
+    }
+}
+
+#[cfg(test)]
+fn test_workbench_layout_frames_from_root_frames(
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> BuiltinWorkbenchWindowLayoutFrames {
+    BuiltinWorkbenchWindowLayoutFrames {
+        center_band_frame: shared_root_frames.and_then(|frames| frames.host_body_frame),
+        document_region_frame: shared_root_frames.and_then(|frames| frames.document_host_frame),
+        status_bar_frame: shared_root_frames.and_then(|frames| frames.status_bar_frame),
+        ..BuiltinWorkbenchWindowLayoutFrames::default()
     }
 }

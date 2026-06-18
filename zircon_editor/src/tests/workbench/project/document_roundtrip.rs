@@ -88,3 +88,39 @@ fn editor_project_document_roundtrips_world_and_workspace() {
 
     let _ = fs::remove_dir_all(&root);
 }
+
+#[test]
+fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
+    let manager = DefaultLevelManager::default();
+    let world = manager.create_default_level().snapshot();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root =
+        std::env::temp_dir().join(format!("zircon_editor_project_future_workspace_{unique}"));
+    let workspace = ProjectEditorWorkspace {
+        layout_version: 1,
+        workbench: WorkbenchLayout::default(),
+        open_view_instances: Vec::new(),
+        active_center_tab: None,
+        active_drawers: Vec::new(),
+    };
+
+    EditorProjectDocument::save_to_path(&root, &world, Some(&workspace)).unwrap();
+    let workspace_path = root.join(".zircon").join("editor-workspace.json");
+    let source = fs::read_to_string(&workspace_path)
+        .unwrap()
+        .replace("\"format_version\": 1", "\"format_version\": 999");
+    fs::write(&workspace_path, source).unwrap();
+
+    let loaded = EditorProjectDocument::load_from_path(&root).unwrap();
+
+    assert!(loaded.editor_workspace.is_none());
+    assert_eq!(loaded.workspace_restore_diagnostics.len(), 1);
+    assert!(loaded.workspace_restore_diagnostics[0]
+        .message
+        .contains("unsupported editor workspace format version 999"));
+
+    let _ = fs::remove_dir_all(&root);
+}

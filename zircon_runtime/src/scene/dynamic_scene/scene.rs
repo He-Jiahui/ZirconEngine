@@ -51,8 +51,7 @@ impl DynamicScene {
     }
 
     pub fn spawn_into(&self, world: &mut World) -> Result<EntityRemap, DynamicSceneError> {
-        self.ensure_supported_version()?;
-        self.ensure_unique_sources()?;
+        self.ensure_supported()?;
 
         let remap = self.build_entity_remap(world)?;
         self.insert_entity_records(world, &remap)?;
@@ -61,7 +60,12 @@ impl DynamicScene {
         Ok(remap)
     }
 
-    pub(super) fn ensure_supported_version(&self) -> Result<(), DynamicSceneError> {
+    pub fn ensure_supported(&self) -> Result<(), DynamicSceneError> {
+        self.ensure_supported_version()?;
+        self.ensure_unique_sources()
+    }
+
+    fn ensure_supported_version(&self) -> Result<(), DynamicSceneError> {
         if self.format_version == DYNAMIC_SCENE_FORMAT_VERSION {
             return Ok(());
         }

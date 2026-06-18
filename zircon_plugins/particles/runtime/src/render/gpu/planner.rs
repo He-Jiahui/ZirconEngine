@@ -87,9 +87,6 @@ impl ParticleGpuFrameParams {
                 .iter()
                 .find(|params| params.emitter_index == emitter_index)
             {
-                let mut params = params.clone();
-                params.dt = self.dt;
-                params.age_seconds = self.age_seconds;
                 params.encode(&mut encoded);
             } else {
                 encoded.resize(
@@ -189,6 +186,8 @@ impl ParticleGpuFramePlanner {
                 self.asset.seed,
                 &emitter,
                 transform_rows,
+                dt,
+                self.age_seconds,
             ));
         }
 
@@ -241,6 +240,8 @@ fn emitter_frame_params(
     system_seed: u64,
     emitter: &ParticleEmitterAsset,
     transform_rows: [[Real; 4]; 4],
+    dt: Real,
+    age_seconds: Real,
 ) -> ParticleGpuEmitterFrameParams {
     let lifetime = emitter.lifetime.normalized();
     let initial_size = emitter.initial_size.normalized();
@@ -258,8 +259,8 @@ fn emitter_frame_params(
         initial_velocity_max: emitter.initial_velocity.max,
         gravity: emitter.gravity,
         drag: emitter.drag.max(0.0),
-        dt: 0.0,
-        age_seconds: 0.0,
+        dt,
+        age_seconds,
         start_color: emitter.start_color * color_endpoint(&emitter.color_over_lifetime, true),
         end_color: emitter.start_color * color_endpoint(&emitter.color_over_lifetime, false),
         size_curve: [

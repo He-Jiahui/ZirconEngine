@@ -30,6 +30,7 @@ pub fn build_particle_extract(
     ParticleExtract {
         emitters,
         sprites,
+        previous_sprites: Vec::new(),
         bounds,
         sort_camera_position: camera_position,
         gpu_frame: build_gpu_frame(snapshot),

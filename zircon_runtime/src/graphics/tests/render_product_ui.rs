@@ -13,8 +13,7 @@ use crate::core::math::UVec2;
 use crate::core::resource::{
     ResourceHandle, ResourceId, ResourceKind, ResourceRecord, TextureMarker,
 };
-use crate::graphics::WgpuRenderFramework;
-use crate::{RenderPassStage, RenderPipelineAsset};
+use crate::graphics::{RenderPassStage, RenderPipelineAsset, WgpuRenderFramework};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -190,8 +189,11 @@ fn render_product_ui_submit_targets_direct_import_texture_under_dynamic_resoluti
         .unwrap();
 
     let mut extract = perspective_extract();
-    extract.view.camera.target =
-        RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(texture_id));
+    extract
+        .view
+        .selected_camera_descriptor_mut()
+        .expect("test extract should carry a selected camera descriptor")
+        .target = RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(texture_id));
     extract.view.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
     framework
         .submit_frame_extract_with_ui(

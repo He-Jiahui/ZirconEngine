@@ -9,6 +9,7 @@ impl RenderPipelineAsset {
     pub fn default_forward_plus() -> Self {
         Self {
             handle: RenderPipelineHandle::new(1),
+            revision: 1,
             name: "forward-plus".to_string(),
             core_pipeline: CorePipelineKind::Core3d,
             phase_mapping: vec![

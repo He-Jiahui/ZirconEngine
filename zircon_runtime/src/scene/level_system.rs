@@ -90,6 +90,11 @@ impl LevelSystem {
         *self.inner.lock().unwrap() = world;
     }
 
+    pub fn replace_world_and_reset_runtime_state(&self, world: World) {
+        self.replace(world);
+        *self.runtime_state.lock().unwrap() = WorldRuntimeState::default();
+    }
+
     pub fn with_world<R>(&self, read: impl FnOnce(&World) -> R) -> R {
         let world = self.inner.lock().unwrap();
         read(&world)

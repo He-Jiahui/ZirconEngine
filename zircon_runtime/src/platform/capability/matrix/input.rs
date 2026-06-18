@@ -1,4 +1,4 @@
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 use super::super::backends::{
     GestureEventBackend, InputBackend, KeyboardEventBackend, MouseButtonBackend, MouseWheelBackend,

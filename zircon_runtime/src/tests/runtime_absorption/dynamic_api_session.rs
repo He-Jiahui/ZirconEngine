@@ -10,3 +10,7 @@ mod mirror_docs;
 mod shared;
 #[path = "dynamic_api_session/test_owner_split.rs"]
 mod test_owner_split;
+#[path = "dynamic_api_session/ui_contract.rs"]
+mod ui_contract;
+#[path = "dynamic_api_session/v2_contract.rs"]
+mod v2_contract;

@@ -13,7 +13,7 @@ use crate::render_graph::{
 };
 use crate::rhi::TextureFormat;
 
-use crate::{
+use crate::graphics::{
     BuiltinRenderFeature, FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot,
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
@@ -73,7 +73,6 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "screen-space-reflection-resolve",
             "uber",
             "bloom-extract",
-            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -449,7 +448,6 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "screen-space-reflection-resolve",
             "uber",
             "bloom-extract",
-            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -668,8 +666,21 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
     assert_eq!(extract.view.effective_view_size(), UVec2::new(320, 240));
     assert_eq!(extract.view.effective_render_size(), UVec2::new(160, 120));
 
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        &extract.post_process.bloom,
+        &extract.post_process.color_grading,
+        extract.post_process.exposure,
+        &extract.post_process.effect_stack,
+        false,
+        false,
+        &AntiAliasSettings::off(),
+        true,
+    );
     let compiled = RenderPipelineAsset::default_forward_plus()
-        .compile(&extract)
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
         .unwrap();
 
     let scene_color =
@@ -691,8 +702,44 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
             if scene_depth.kind == RenderGraphResourceKind::TransientTexture
                 && desc.width == 160
                 && desc.height == 120
-                && desc.format == TextureFormat::Depth32Float
+        && desc.format == TextureFormat::Depth32Float
     ));
+
+    let upscaled = graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::UPSCALED);
+    assert!(matches!(
+        &upscaled.desc,
+        RenderGraphResourceDesc::Texture(desc)
+            if upscaled.kind == RenderGraphResourceKind::TransientTexture
+                && desc.width == 320
+                && desc.height == 240
+                && desc.format == TextureFormat::Rgba8Unorm
+    ));
+
+    let upscale_pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "upscale")
+        .expect("dynamic resolution should compile the explicit upscale pass");
+    assert!(upscale_pass.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::TONEMAPPED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(upscale_pass.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
+
+    let output_transfer = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "output-transfer")
+        .expect("dynamic resolution should still compile output transfer");
+    assert!(output_transfer.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::UPSCALED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
 
     let viewport_output = graph_resource_lifetime(&compiled, "viewport-output");
     assert_eq!(viewport_output.kind, RenderGraphResourceKind::External);
@@ -816,7 +863,6 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
             "uber",
-            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -869,7 +915,6 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
             "uber",
-            "color-lut-bake",
             "fxaa",
             "runtime-ui",
             "overlay-gizmo",
@@ -1715,14 +1760,18 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
 
 #[test]
 fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
-    let extract = extract_with_camera(ViewportCameraSnapshot {
-        target: RenderCameraTarget::Headless {
-            size: UVec2::new(1280, 720),
-        },
+    let mut extract = extract_with_camera(ViewportCameraSnapshot {
         hdr: true,
         msaa_samples: 4,
         ..ViewportCameraSnapshot::default()
     });
+    extract
+        .view
+        .selected_camera_descriptor_mut()
+        .expect("test extract should carry a selected camera descriptor")
+        .target = RenderCameraTarget::Headless {
+        size: UVec2::new(1280, 720),
+    };
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile(&extract)
         .unwrap();
@@ -2007,13 +2056,13 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .read_texture(PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX)
             .read_external(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
-            .read_external(PostProcessGraphResourceNames::BLOOM)
+            .read_texture(PostProcessGraphResourceNames::BLOOM)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
             .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
             .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
-            .write_external(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
         ],
     )
 }
@@ -2197,6 +2246,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         "screen-space-reflection-reflection-pyramid-coarse",
         "screen-space-reflection-specular-occlusion",
         "screen-space-reflection-resolve",
+        "upscale",
     ] {
         assert!(
             !live_pass_names.contains(&pass_name),
@@ -2225,6 +2275,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
         PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
+        PostProcessGraphResourceNames::UPSCALED,
     ] {
         assert!(
             !lifetimes.contains(&resource_name),
@@ -2469,17 +2520,17 @@ fn pipeline_compile_rejects_duplicate_descriptor_pass_names() {
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
-                "color-lut-bake",
+                "uber",
                 QueueLane::Graphics,
             )
-            .with_executor_id("post.color-lut-bake")
+            .with_executor_id("post.uber")
             .with_side_effects()],
         ));
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
 
     assert!(
-        error.contains("duplicate render graph pass name `color-lut-bake`"),
+        error.contains("duplicate render graph pass name `uber`"),
         "unexpected error: {error}"
     );
 }
@@ -2698,6 +2749,8 @@ fn pipeline_compile_rejects_storage_write_mode_on_read_access() {
             access: RenderFeatureResourceAccess::Read,
             attachment_ops: None,
             write_mode: RenderFeatureResourceWriteMode::Storage,
+            external_binding: crate::render_graph::RenderGraphExternalResourceBinding::report_only(
+            ),
         });
     *bloom = bloom
         .clone()
@@ -2813,7 +2866,7 @@ fn extract_with_camera(camera: ViewportCameraSnapshot) -> RenderFrameExtract {
 }
 
 fn pass_resource_access<'a>(
-    compiled: &'a crate::CompiledRenderPipeline,
+    compiled: &'a crate::graphics::CompiledRenderPipeline,
     pass_name: &str,
     resource_name: &str,
     access: RenderGraphResourceAccessKind,
@@ -2832,7 +2885,7 @@ fn pass_resource_access<'a>(
 }
 
 fn graph_resource_lifetime<'a>(
-    compiled: &'a crate::CompiledRenderPipeline,
+    compiled: &'a crate::graphics::CompiledRenderPipeline,
     resource_name: &str,
 ) -> &'a crate::render_graph::RenderGraphResourceLifetime {
     compiled

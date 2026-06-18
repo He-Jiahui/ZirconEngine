@@ -9,6 +9,7 @@ impl RenderPipelineAsset {
     pub fn default_core2d() -> Self {
         Self {
             handle: RenderPipelineHandle::new(3),
+            revision: 1,
             name: "core-2d".to_string(),
             core_pipeline: CorePipelineKind::Core2d,
             phase_mapping: vec![

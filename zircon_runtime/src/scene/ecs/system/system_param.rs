@@ -15,6 +15,8 @@ pub trait SystemParam {
         state: &'world mut Self::State,
         ticks: ChangeTickWindow,
     ) -> Self::Item<'world>;
+
+    fn record_performance_diagnostics(_world: &mut World, _state: &mut Self::State) {}
 }
 
 impl SystemParam for () {
@@ -60,6 +62,12 @@ macro_rules! tuple_system_param {
             ) -> Self::Item<'world> {
                 let ($($name,)*) = state;
                 ($($name::get_param(world, $name, ticks),)*)
+            }
+
+            #[allow(non_snake_case)]
+            fn record_performance_diagnostics(world: &mut World, state: &mut Self::State) {
+                let ($($name,)*) = state;
+                $($name::record_performance_diagnostics(world, $name);)*
             }
         }
     };

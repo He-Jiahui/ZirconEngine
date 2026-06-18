@@ -13,6 +13,7 @@ mod hierarchy;
 mod identity;
 mod messages;
 mod observers;
+mod performance_diagnostics;
 mod project_io;
 mod property_access;
 mod query;

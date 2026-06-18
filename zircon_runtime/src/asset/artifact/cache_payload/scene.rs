@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};
+use super::json_value::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};
 use crate::asset::{AssetReference, SceneAsset};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

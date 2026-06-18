@@ -1,0 +1,118 @@
+mod material_primitives;
+mod material_state_layer;
+mod mui_x_primitives;
+mod render_command_conversion;
+mod render_commands;
+mod sprite_atlas;
+mod style_selector;
+mod template_alert_glyphs;
+mod template_alerts;
+mod template_axis_labels;
+mod template_axis_value_field_style;
+mod template_axis_value_fields;
+mod template_button_glyphs;
+mod template_buttons;
+mod template_chip_glyphs;
+mod template_chips;
+mod template_command_palette;
+mod template_dialogs;
+mod template_drag_overlay;
+mod template_dropdown_glyphs;
+mod template_dropdowns;
+mod template_field_stepper;
+mod template_fields;
+mod template_icon_button_glyph_kind;
+mod template_icon_button_glyph_segments;
+mod template_icon_button_glyph_shapes;
+mod template_icon_button_glyphs;
+mod template_icon_buttons;
+mod template_inspector_row_geometry;
+mod template_inspector_row_glyphs;
+mod template_inspector_row_kind;
+mod template_inspector_rows;
+mod template_list_row_glyphs;
+mod template_list_rows;
+mod template_material_feedback;
+mod template_node_images;
+mod template_node_labels;
+mod template_node_pipeline;
+mod template_node_surface;
+mod template_node_text;
+mod template_nodes;
+mod template_notification_center;
+mod template_popup_row_adornments;
+mod template_popup_rows;
+mod template_property_axis_values;
+mod template_property_rows;
+mod template_section_title_glyphs;
+mod template_section_titles;
+mod template_segmented_control_geometry;
+mod template_segmented_controls;
+mod template_selection_control_geometry;
+mod template_selection_controls;
+mod template_shell_panels;
+mod template_slider_geometry;
+mod template_sliders;
+mod template_status_control_geometry;
+mod template_status_controls;
+mod template_status_glyphs;
+mod template_style;
+mod template_style_color;
+mod template_table_rows;
+mod template_tooltip_glyphs;
+mod template_tooltips;
+mod template_tree_row_geometry;
+mod template_tree_row_glyphs;
+mod template_tree_rows;
+mod template_viewport_scene;
+mod template_viewport_scene_architecture;
+mod template_viewport_scene_floor;
+mod template_viewport_scene_gizmos;
+mod template_viewport_scene_light;
+mod template_viewport_scene_props;
+mod template_viewport_scene_structure;
+mod template_viewport_scene_surfaces;
+mod visual_assets;
+
+use crate::ui::retained_host::primitives::ModelRc;
+
+use super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
+use super::paint_frame::HostRgbaFrame;
+
+pub(super) fn draw_template_nodes(
+    frame: &mut HostRgbaFrame,
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    origin: &FrameRect,
+    clip: &FrameRect,
+    text_input_focus: Option<&HostTextInputFocusData>,
+) -> bool {
+    template_node_pipeline::draw_template_nodes(frame, nodes, origin, clip, text_input_focus)
+}
+
+pub(super) fn has_template_nodes(nodes: &ModelRc<TemplatePaneNodeData>) -> bool {
+    template_node_pipeline::has_template_nodes(nodes)
+}
+
+#[cfg(test)]
+pub(crate) use render_commands::paint_runtime_render_commands_for_test;
+
+#[cfg(test)]
+pub(crate) fn paint_template_nodes_for_test(
+    width: u32,
+    height: u32,
+    nodes: ModelRc<TemplatePaneNodeData>,
+) -> Vec<u8> {
+    template_node_pipeline::paint_template_nodes_for_test(width, height, nodes)
+}
+
+#[cfg(test)]
+pub(crate) fn paint_template_nodes_for_test_with_background(
+    width: u32,
+    height: u32,
+    background: [u8; 4],
+    nodes: ModelRc<TemplatePaneNodeData>,
+) -> Vec<u8> {
+    template_node_pipeline::paint_template_nodes_for_test_with_background(
+        width, height, background, nodes,
+    )
+}

@@ -1,6 +1,9 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, LayoutCommand, MenuAction,
 };
+use crate::ui::retained_host::workbench_notifications::{
+    workbench_notifications_for_record, WorkbenchNotification,
+};
 use crate::ui::retained_host::HostInvalidationMask;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -17,6 +20,7 @@ pub(crate) struct UiHostEventEffects {
     pub import_model_requested: bool,
     pub reset_active_layout_preset: bool,
     pub open_command_palette_requested: bool,
+    pub workbench_notifications: Vec<WorkbenchNotification>,
 }
 
 impl UiHostEventEffects {
@@ -69,6 +73,12 @@ impl UiHostEventEffects {
 pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &EditorEventRecord) {
     if record.operation_group.as_deref() == Some("MaterialComponentLab") {
         target.request_paint_only();
+    }
+
+    let notifications = workbench_notifications_for_record(record);
+    if !notifications.is_empty() {
+        target.workbench_notifications.extend(notifications);
+        target.request_presentation();
     }
 
     for effect in &record.effects {

@@ -12,37 +12,78 @@ related_code:
   - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
+  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/post_process.rs
+  - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/rhi/descriptors.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/smaa.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/color_lut_bake_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_histogram.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/color_lut_bake.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/upscale.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/output_transfer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/smaa.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_blur/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_scene_composite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_blur/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_fxaa/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_upscale/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/color_lut_bake_params_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/fxaa_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/smaa_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/upscale_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_histogram_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/color_lut_bake_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/depth_of_field_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/motion_blur_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/scene_composite_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/blur_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
@@ -53,10 +94,14 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/color_lut_bake.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/fxaa.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/smaa.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/upscale.wgsl
 implementation_files:
   - zircon_runtime/src/graphics/resource_limits.rs
   - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
@@ -70,32 +115,70 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
+  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/fallback.rs
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/post_process.rs
+  - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
+  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/rhi/descriptors.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/color_grading.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/smaa.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/color_lut_bake_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_histogram.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/color_lut_bake.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/upscale.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/output_transfer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/smaa.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_blur/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_scene_composite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_blur/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_fxaa/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_upscale/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_buffer_bundle/color_lut_bake_params_buffer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/taa_resolve_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/output_transfer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/fxaa_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/smaa_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/upscale_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_histogram_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/color_lut_bake_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/depth_of_field_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/motion_blur_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/scene_composite_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/blur_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
@@ -111,13 +194,20 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/color_lut_bake.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/fxaa.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/smaa.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/upscale.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/types/viewport_render_region.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
+  - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
 tests:
   - zircon_runtime/src/core/framework/render/post_process/chain.rs::tests::render_post_chain_backbone_order_is_stable
   - zircon_runtime/src/core/framework/render/post_process/chain.rs::tests::render_post_chain_current_effect_kinds_have_migration_slots
@@ -128,6 +218,10 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::non_storage_texture_formats_do_not_request_storage_binding
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::storage_texture_formats_request_storage_binding
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_params_pack_viewport_and_scene_source_origins_separately
+  - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_maps_local_postprocess_coords_to_physical_target_coords
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::tests::history_region_copy_targets_selected_camera_region
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::tests::history_region_copy_clamps_dynamic_resolution_to_viewport_region
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping
@@ -155,6 +249,56 @@ tests:
   - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs::tests
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::manual_exposure_declares_resolve_without_histogram
   - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::histogram_exposure_declares_histogram_before_resolve
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::color_grading_declares_color_lut_bake_before_output_transfer
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs::tests::color_lut_bake_dispatch_covers_default_lut_volume
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs::tests::color_lut_bake_is_required_for_all_color_transform_sources
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake/mod.rs::tests::color_lookup_layout_binding_modes_match_shader_contract
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/color_lut_bake_pipeline.rs::tests::color_lut_bake_shader_declares_compute_entry_and_3d_storage_output
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/color_lut_bake_pipeline.rs::tests::color_lut_bake_shader_bakes_tonemap_grading_and_user_lut
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::color_lut_bake_shader_source_declares_internal_bake_outputs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_tracks_compute_dispatch_metadata
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_color_lut_readback_report
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs::tests::color_lut_bake_dispatch_reports_exposure_read_and_lut_write
+  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs::tests::color_lut_readback_report_accepts_identity_rgba16float_bytes
+  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs::tests::color_lut_readback_report_rejects_non_identity_rgba16float_bytes
+  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs::tests::color_lut_readback_report_tracks_invalid_byte_length
+  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/post_process.rs::tests::post_process_diagnostics_record_color_lut_readback_identity_report
+  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs::tests::rgba16float_3d_readback_strips_row_padding_per_slice
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs::render_framework_stats_report_neutral_color_lut_readback_identity
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::fxaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_routes_output_transfer_through_fxaa_terminal_input
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::output_transfer_executor_targets_terminal_input_when_declared
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::output_transfer_executor_defaults_to_final_color
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/fxaa_pipeline.rs::tests::fxaa_shader_parses
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::fxaa_shader_source_declares_terminal_input_and_neighbor_filter
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/smaa_pipeline.rs::tests::smaa_shader_parses
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/smaa_pipeline.rs::tests::smaa_internal_stage_format_is_sdr_weight_texture
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs::tests::smaa_stage_textures_store_edge_and_blend_weights
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::smaa_shader_source_declares_terminal_input_and_edge_filter
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_routes_output_transfer_through_smaa_terminal_input
+  - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs::builtin_smaa_terminal_aa_pass_compiles_after_output_transfer_when_requested
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::builtin_registry_covers_product_postprocess_executor_ids
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::tests::materialization_overrides_preimported_terminal_aa_input_with_owned_transient
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::dynamic_resolution_declares_upscale_before_output_transfer
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_output
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::output_transfer_executor_reads_upscaled_input_when_declared
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::upscale_shader_source_declares_filtered_source_sampling
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/upscale_pipeline.rs::tests::upscale_shader_parses
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::render_post_dynamic_resolution_scale_swap_releases_pool
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_routes_bloom_extract_after_split_scene_color_passes
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::bloom_executor_reads_motion_blurred_source_when_declared
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::bloom_executor_falls_back_to_scene_color_input
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::effect_stack_blur_feeds_uber_from_dedicated_intermediate
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_blur/mod.rs::tests::blur_pass_writes_dedicated_intermediate_resource
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/blur_pipeline.rs::tests::blur_shader_entry_is_split_from_uber
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs::tests::uber_executor_reads_blurred_source_when_declared
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_resolution_reports_camera_msaa_sample_count_normalization
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::unsupported_terminal_aa_reports_slot_normalization
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::smaa_resolution_keeps_terminal_mode_when_supported
+  - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::auto_resolution_uses_smaa_when_fxaa_is_unavailable
+  - zircon_runtime/src/core/framework/render/backend_types.rs::tests::screen_space_anti_alias_capability_accepts_smaa
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::smaa_terminal_anti_alias_routes_output_transfer_through_terminal_input
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/bind_group_layouts/post_process.rs::tests::post_process_layout_binds_resolved_exposure_storage_buffer
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_multiplies_color_grading_by_resolved_exposure
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs::local_sphere_post_process_volume_uses_camera_distance_for_full_influence
@@ -163,6 +307,7 @@ tests:
   - source scan for Plan 07 PP-M2-S2 extract/shape/override symbols
   - source scan for Plan 07 PP-M2-S3 evaluator/read hook/submit cutover symbols
   - source scan for Plan 07 PP-M3-S1b exposure graph/resource/executor symbols
+  - source scan for Plan 07 PP-M3-S2 COLOR_LUT graph resource, WGPU compute bake pipeline, dispatch record resource accesses, and internal baked-LUT uber mode
   - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 exposure_ -- --nocapture
   - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 runtime_diagnostics -- --nocapture
   - cargo fmt --package zircon_runtime -- --check
@@ -176,6 +321,8 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-post-color-s2-0615 --message-format short --color never (after PP-M2-S1)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-m3-s1-0614 --message-format short --color never
+  - cargo test -p zircon_runtime --lib vm_lifecycle_fallback --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-06-fallback-lifecycle-0616 -- --nocapture --test-threads=1 (2026-06-16: passed 5/5 after restoring compile.rs test-module imports for post-process pipeline descriptors)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-17 editor UI validation rerun: passed after restoring the `SMAA_STAGE_FORMAT` re-export from post-process constants)
 doc_type: module-overview
 ---
 
@@ -200,3 +347,18 @@ This directory documents post-process renderer behavior that is too specific for
 - PP-M2-S2 adds `PostProcessVolumeExtract` as the planned per-frame volume DTO. Scene extraction now emits global/box/sphere shape snapshots plus component override vectors, with local volume projection isolated in `scene/world/render_post_process.rs` so the main render extract module stays below the large-file threshold.
 - PP-M2-S3 adds `VolumeEvaluator` and switches WGPU frame submission to `PostProcessExtract::resolved_settings_for_camera(...)`. Evaluator uses registered component descriptors to read current strong-typed values, apply per-param overrides, compute global/box/sphere weights, and write a `ResolvedPostProcessStack`; the former `volume_stack`/`volume.rs` fallback path has been hard-deleted.
 - PP-M3-S1b adds the WGPU exposure path. Histogram mode declares `exposure-histogram` plus `exposure-resolve`, manual mode declares only resolve, and both modes feed the final post-process shader through the same binding 28 resolved exposure buffer. `SceneFrameHistoryTextures` owns the previous/current exposure buffer pair and runtime diagnostics report `render.history.copy.exposure_copied`.
+- PP-M3-S2 adds `postprocess.color-lut` as a real graph texture and wires the WGPU compute bake. The compiler describes it as a 32x32x32 `Rgba16Float` 3D transient with sampled/storage/copy usage. `post.color-lut-bake` is an async compute workload with fixed `[4, 4, 4]` workgroups and `[8, 8, 8]` dispatch groups, reads `history.current.exposure`, samples optional user LUT textures, writes the storage 3D LUT, and records a compute dispatch before `post.uber`. Dispatch metadata now keeps both the legacy storage-write list and explicit resource accesses, so diagnostics can distinguish the exposure buffer read from the LUT texture write. Test builds also attach `RenderColorLutReadbackReport` to `RenderStats.last_color_lut_readback_report` by reading the graph-owned 3D `Rgba16Float` LUT before transient release, stripping per-row copy padding, decoding half floats, and measuring neutral identity error against the fixed 1/1024 tolerance. Runtime diagnostics mirror that report under `render.post_process.color_lut.readback.*`, including availability, dimensions, byte counts, invalid sample counts, maximum identity error, and out-of-tolerance counts. `post.uber` binds the baked LUT as an internal mode and skips duplicate tonemap/grading when that mode is active.
+- PP-M3-S2 user-LUT readback now tags reports by reference source. `RenderColorLutReadbackReport` distinguishes `Identity` from `UserLut`, records both reference-space and identity-space error, and diagnostics expose `render.post_process.color_lut.readback.reference_*` fields. In test builds the scene renderer can derive a CPU reference from the same prepared RGBA8 user LUT resource used by the color-lut bake path for 1D 2D, 2D strip, and 3D layouts, then compare the baked 3D LUT against the user LUT blend result. This reference path is intentionally limited to neutral tonemap/color-grading stacks until exposure-buffer readback is added for non-neutral product validation.
+- PP-M3-S3 splits depth of field and motion blur out of the uber post-process pass. The stack now declares `postprocess.depth-of-fielded` and `postprocess.motion-blurred`, compiles `post.depth-of-field` before `post.motion-blur`, and routes the later stack/uber source through the most recent split output. The WGPU side owns `fs_depth_of_field`/`fs_motion_blur`, dedicated pipeline builders, `execute_depth_of_field`, `execute_motion_blur`, and registered graph executors. These split shader entry points do not sample the resolved exposure buffer, so their feature descriptors intentionally do not read `EXPOSURE_CURRENT`; scene-composite, color-LUT bake, and uber keep the real exposure reads. When those graph nodes exist, `record_post_process_stack` asks `post.uber` to skip the corresponding internal DoF/motion blur responsibilities so the split passes own the effect.
+- PP-M3-S3 follow-up routes bloom extraction through the latest post-TAA scene color. The compiler rewrites the `post.bloom-extract` read from `scene-color` to `postprocess.motion-blurred`, `postprocess.depth-of-fielded`, or `taa.output.scene-color` when those upstream split passes are active. The executor mirrors the same resource priority from graph metadata, so runtime bloom no longer hard-codes the original scene color after DoF or motion blur have produced newer scene-color intermediates.
+- PP-M3-S3 scene-composite split moves SSR/fog composition into `post.scene-composite`. The stack declares `postprocess.scene-composited` after the latest scene color, bloom/exposure, and optional SSR resolve; `scene_composite_pipeline.rs` builds the `fs_scene_composite` fullscreen pipeline, `execute_scene_composite` records the pass, and the compiler routes `post.uber` to read `SCENE_COMPOSITED` while removing its redundant SSR-history dependency. When this split is active, `post.uber` receives disabled SSR/fog parameters so those responsibilities are not applied twice.
+- PP-M3-S3 blur split moves the general blur radius out of `post.uber` into `post.blur`. The stack declares `postprocess.blurred` after scene-composite or the latest available scene color, `blur_pipeline.rs` builds the `fs_blur` fullscreen pipeline, `execute_blur` records the pass with DoF parameters disabled, and the compiler routes `post.uber` to read `BLURRED` while asking the uber path to skip its duplicate general-blur work. `post.blur` also does not declare `EXPOSURE_CURRENT`; exposure stays owned by the later composite/LUT/uber stages that need it.
+- PP-M4-S1a reconnects the terminal FXAA graph path. `AntiAliasSettings::fxaa()` now enables the `PostProcessEffectKind::Fxaa` node, `post.output-transfer` writes `postprocess.terminal-aa-input` as a transient texture, and the `fxaa` pass reads that terminal input before writing external `final-color`.
+- PP-M4-S1b moves terminal FXAA from the fallback transfer executor to a dedicated WGPU pass. `fxaa.wgsl` samples `postprocess.terminal-aa-input` and applies neighbor-luma edge filtering, `fxaa_pipeline.rs` owns the fullscreen render pipeline, `execute_fxaa` records the pass, and `record_fxaa_to_resource` calls it from `post.fxaa`. The compiler describes `postprocess.terminal-aa-input` as `Rgba8UnormSrgb`, single-sample, renderable/sampled transient; graph execution now lets that transient override the preimported final-color alias. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and SMAA quality validation/upgrade.
+- PP-M4-S1c adds anti-alias normalization diagnostics at the framework/runtime boundary. `AntiAliasFallbackReport` now carries requested/effective graph sample counts plus graph-sample and terminal-slot normalization flags. `build_frame_submission_context` passes the camera MSAA request into AA resolution, so TAA plus camera MSAA is reported as sample-count normalization even when TAA remains the effective mode. Runtime diagnostics mirror these states through `render.anti_alias.normalization.*`. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and SMAA quality validation/upgrade.
+- PP-M4-S1d/S1e moves SMAA from an external plugin-slot requirement to a built-in terminal AA pass and upgrades it to an internal three-stage WGPU path. `AntiAliasSettings::smaa()` resolves when capabilities expose `supports_smaa`, `PostProcessEffectKind::Smaa` maps to the same `TerminalAntiAlias` chain slot as FXAA, and `post.output-transfer` writes `postprocess.terminal-aa-input`. The built-in `post.smaa` executor now creates per-frame `Rgba8Unorm` edge and blend-weight textures, records `SmaaEdgePass`, `SmaaBlendPass`, and `SmaaResolvePass`, then writes external `final-color`. `smaa.wgsl` exposes `fs_edge`, `fs_blend`, and `fs_resolve`; `smaa_pipeline.rs` owns matching edge/blend/resolve pipelines over the dedicated two-texture SMAA bind group layout. The compiler still chooses between built-in FXAA and built-in SMAA by effective stack state, so SMAA no longer requires a plugin pass. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and focused SMAA shader/graph tests.
+- PP-M4-S2a connects dynamic-resolution output to an explicit chain-tail upscale pass. `build_frame_submission_context` compares `effective_render_size` with `effective_view_size` and enables `PostProcessEffectKind::Upscale` when the internal render size is smaller than the viewport. The stack declares `postprocess.upscaled`, `post.upscale` samples `postprocess.tonemapped` through `upscale.wgsl`, and `post.output-transfer` is re-routed to read the full-viewport `postprocess.upscaled` transient instead of the internal-size tonemapped texture. The WGPU path owns `upscale.rs`, `upscale_pipeline.rs`, `execute_upscale`, and a registered `post.upscale` executor. A transient-pool regression now materializes 0.5 scale, 1.0 scale, and 0.5 scale graph frames through `TransientResourcePool`, proving the scale swap keeps only the two descriptor buckets and reuses the half-size backing when the scale returns. Remaining PP-M4 work is product-scene capture, RenderDoc validation, and focused terminal-AA/upscale test reruns.
+- 2026-06-19 Plan 09 CO-M2 carries the selected-camera viewport region through post-process. `PostProcessParams` now packs local viewport size, physical viewport origin, cluster dimensions, and the source origin for fixed full-frame scene textures separately. `post_process.wgsl` and `post_process_screen_space_reflection.wgsl` read graph-owned intermediates in local coordinates while adding the physical origin for fixed frame targets, history textures, G-buffer inputs, ambient occlusion, and scene color/depth/velocity sources. Split bloom, depth-of-field prepare, motion blur, scene-composite, blur, and SSR executors receive the source origin for their current scene-color input. `BLOOM` and `GLOBAL_ILLUMINATION` are graph-owned post-process textures, and the Hybrid GI history copy now copies the graph-owned GI result back into the selected camera's physical history region. Terminal output-transfer, FXAA, and the final SMAA resolve apply the `ViewportRenderRegion` viewport/scissor and subtract a terminal origin uniform before reading local terminal input; SMAA edge and blend stages remain local intermediate passes with origin zero. The validated slice used `cargo fmt --package zircon_runtime`, focused params/viewport/history tests, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked` against `D:\cargo-targets\zircon-runtime-postprocess-region-tests-0619`.
+- 2026-06-16 editor-focused validation repaired the dynamic-resolution upscale pipeline's shader-source import path. `upscale_pipeline.rs` now imports `UPSCALE_SHADER` from the renderer-private `resources::shader_sources` module with the same relative ownership pattern used by the other post-process pipeline builders, instead of depending on a non-existent top-level `post_process::shader_sources` export. This changes module ownership only; `upscale.wgsl` and the render pipeline descriptor remain unchanged.
+- 2026-06-16 runtime fallback validation restored `render_pipeline_asset/compile.rs` test-module imports for `PostProcessStackDescriptor` and `RenderPipelineCompileOptions`. This is a test-owner compile repair only: it lets focused runtime filters compile existing post-process pipeline descriptor tests without changing render production behavior; the Runtime 06 `vm_lifecycle_fallback` Cargo filter passed 5/5 after the repair.
+- 2026-06-17 editor UI validation restored the post-process constants module export for `SMAA_STAGE_FORMAT`. The format already lives in `constants/texture_formats.rs` and the SMAA executor/pipeline import it through `post_process::SMAA_STAGE_FORMAT`; `constants/mod.rs` now re-exports it with the rest of the post-process texture formats so downstream editor checks can compile through the runtime crate. No shader or pipeline descriptor behavior changed.

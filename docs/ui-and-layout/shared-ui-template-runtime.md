@@ -80,6 +80,10 @@ related_code:
   - zircon_runtime/src/ui/template/loader.rs
   - zircon_runtime/src/ui/template/validate.rs
   - zircon_runtime/src/ui/template/instance.rs
+  - zircon_runtime/src/ui/template/pipeline.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime/src/ui/tests/template_pipeline.rs
+  - docs/zircon_runtime/ui/template/pipeline.md
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/tree/node/mod.rs
   - zircon_runtime/src/ui/surface/mod.rs
@@ -297,11 +301,15 @@ implementation_files:
   - zircon_runtime/src/ui/layout/pass/child_frame.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/template/mod.rs
+  - zircon_runtime/src/ui/template/pipeline.rs
   - zircon_runtime/src/ui/template/build/mod.rs
   - zircon_runtime/src/ui/template/build/interaction.rs
   - zircon_runtime/src/ui/template/build/slot_contract.rs
   - zircon_runtime/src/ui/template/build/surface_builder.rs
   - zircon_runtime/src/ui/template/build/tree_builder.rs
+  - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
+  - zircon_runtime/src/ui/tests/template_pipeline.rs
+  - docs/zircon_runtime/ui/template/pipeline.md
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
   - zircon_runtime_interface/src/ui/v2/compiled.rs
@@ -1074,6 +1082,16 @@ root = { component = "UiHostToolbar", children = [
 目前实例层还提供 `binding_refs()`，按树遍历顺序收集稳定 binding 引用。这正是后续 editor/runtime adapter 把模板树映射成 typed command/binding、再投影给 Rust-owned host contract 的入口。
 
 Material/Slate 化后的 `.ui.toml` 组件引用还要求调用点的实例布局能继续约束展开后的真实根控件。`UiDocumentCompiler` 现在会把 `kind = "reference"` 或 `kind = "component"` 实例节点上声明的 `layout` 合并为展开根节点的内联布局覆盖，再由 stylesheet resolver 写入最终 `attributes.layout`。这样 editor toolbar 可以把按钮改成 `MaterialButton` 元组件，同时保留原先的固定宽高、anchor、pivot、position 和 shared surface frame，不需要回到 Rust 坐标表。
+
+## Runtime 09 M3.1 Pipeline Boundary
+
+runtime_09_m3_1_template_compile_instance_validate_boundary_static_passed_cargo_pending
+
+`UiTemplateRuntimePipeline` now records the old recursive template runtime path as an explicit `load -> validate -> instance -> build` pipeline through `UI_TEMPLATE_RUNTIME_PIPELINE_STAGES`. The stage owners stay narrow: `UiTemplateLoader` parses TOML and files, `UiTemplateValidator` rejects structural contract failures, `UiTemplateInstance::from_validated_document(...)` expands already-validated template and slot nodes, and `UiTemplateSurfaceBuilder` builds the lazy `UiSurface`.
+
+`UiTemplateRuntimePipelineError` keeps the failing stage visible. `template_validate_rejects_unknown_component_contract` proves unknown component/template calls surface as validate failures, while `template_instance_failure_surfaces_loader_error` proves invalid TOML stays in the load stage before instance expansion can run.
+
+Compiled package output remains a binary/TOML payload DTO. `UiRuntimeCompiledAssetArtifact::generated_policy()` returns `runtime_09_m3_1_binary_leaf_dto_artifact_not_generated_source`, and `compiled_template_artifact_stays_binary_leaf_dto_not_generated_source` locks that it does not require a generated-source marker. If a future compiler emits source files, the first line must follow the Runtime 02 M4 rule `// @generated <generator> - do not edit by hand`; generated source may only contain leaf DTO/table/adaptor material, never validation, loader, instance, or surface mutation behavior.
 
 ## Shared Tree Bridge
 

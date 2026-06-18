@@ -20,6 +20,7 @@ pub(super) fn scan_animation_scene(
     level.with_world_mut(|world| {
         let entity_ids = world.nodes().iter().map(|node| node.id).collect::<Vec<_>>();
         let mut scan = AnimationSceneScan {
+            scanned_entities: entity_ids.len(),
             next_graph_times: BTreeMap::<EntityId, Real>::new(),
             next_state_machine_times: BTreeMap::<EntityId, Real>::new(),
             ..AnimationSceneScan::default()

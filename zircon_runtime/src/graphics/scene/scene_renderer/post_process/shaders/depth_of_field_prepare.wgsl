@@ -35,13 +35,17 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 fn load_scene_depth(coord: vec2<u32>) -> f32 {
     let viewport_size = max(params.viewport.xy, vec2<u32>(1u, 1u));
     let clamped = min(coord, viewport_size - vec2<u32>(1u, 1u));
-    return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);
+    return clamp(
+        textureLoad(scene_depth_tex, params.viewport.zw + clamped, 0),
+        0.0,
+        1.0
+    );
 }
 
 fn load_scene_color(coord: vec2<u32>) -> vec3<f32> {
     let viewport_size = max(params.viewport.xy, vec2<u32>(1u, 1u));
     let clamped = min(coord, viewport_size - vec2<u32>(1u, 1u));
-    return textureLoad(scene_color_tex, clamped, 0).rgb;
+    return textureLoad(scene_color_tex, params.viewport.zw + clamped, 0).rgb;
 }
 
 fn linearize_scene_depth(raw_depth: f32) -> f32 {

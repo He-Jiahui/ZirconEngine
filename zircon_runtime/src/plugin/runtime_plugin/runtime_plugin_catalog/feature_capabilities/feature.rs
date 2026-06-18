@@ -1,4 +1,5 @@
-use crate::{plugin::PluginFeatureBundleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginFeatureBundleManifest;
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn feature_capabilities_for_target(
     feature: &PluginFeatureBundleManifest,

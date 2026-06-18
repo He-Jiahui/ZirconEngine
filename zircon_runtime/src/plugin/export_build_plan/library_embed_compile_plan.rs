@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-use crate::{plugin::ExportBuildMode, plugin::ExportPackagingStrategy, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::{plugin::ExportBuildMode, plugin::ExportPackagingStrategy};
 
 use super::{ExportBuildPlan, ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
 

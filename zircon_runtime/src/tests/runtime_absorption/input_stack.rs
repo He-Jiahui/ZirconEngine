@@ -10,8 +10,10 @@ const EXPECTED_INPUT_RUNTIME_MODULES: &[&str] = &[
     "module/mod.rs",
     "module/module_type.rs",
     "runtime/action_evaluator.rs",
+    "runtime/default_input_action_manager.rs",
     "runtime/default_input_manager.rs",
     "runtime/input_driver.rs",
+    "runtime/recording.rs",
     "runtime/input_state.rs",
     "runtime/mod.rs",
 ];
@@ -21,6 +23,8 @@ const EXPECTED_FRAMEWORK_INPUT_MODULES: &[&str] = &[
     "gamepad.rs",
     "ime.rs",
     "input_action.rs",
+    "input_action_context.rs",
+    "input_action_manager.rs",
     "input_action_map.rs",
     "input_action_state.rs",
     "input_binding.rs",
@@ -35,27 +39,37 @@ const EXPECTED_FRAMEWORK_INPUT_MODULES: &[&str] = &[
     "window_status.rs",
 ];
 const EXPECTED_INPUT_TEST_MODULES: &[&str] = &[
+    "action_axis_transitions.rs",
     "action_mapping.rs",
     "boundary.rs",
     "gamepad_bridge.rs",
     "input_manager.rs",
     "mod.rs",
+    "recording_replay.rs",
 ];
 const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
     "frame_input_clears_after_level_tick_not_before",
     "action_map_resolves_chords_and_reports_just_activated",
     "rebinding_action_does_not_require_recompilation",
+    "action_contexts_filter_gameplay_and_menu_maps_without_rebinding",
+    "gamepad_axis_binding_reports_continuous_action_value",
+    "consumed_gamepad_axis_does_not_activate_gameplay_action",
+    "gamepad_axis_action_reports_deadzone_transition_edges",
+    "input_config_builds_action_evaluator_from_serialized_action_map",
+    "input_action_manager_resolves_from_runtime_module_descriptor",
     "gamepad_disconnect_clears_held_state_without_panic",
     "gamepad_host_bridge_uses_runtime_gamepad_abi_constructors",
+    "input_recording_captures_drainable_event_records_by_frame",
+    "input_replay_restores_frame_snapshots_in_recorded_order",
 ];
 
 #[test]
 fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 10);
-    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 17);
-    assert_eq!(EXPECTED_INPUT_TEST_MODULES.len(), 5);
-    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 6);
+    assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 12);
+    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 19);
+    assert_eq!(EXPECTED_INPUT_TEST_MODULES.len(), 7);
+    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 14);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_owner_files(
@@ -86,15 +100,28 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     let prelude = include_str!("../../prelude.rs");
     for public_anchor in [
         "DefaultInputManager",
+        "DefaultInputActionManager",
         "InputActionEvaluator",
+        "InputActionManager",
         "InputAction",
+        "InputActionContext",
         "InputBinding",
+        "InputAxisBinding",
+        "InputAxisDirection",
         "InputActionMap",
         "InputActionState",
+        "InputConfig",
         "InputFrameSnapshot",
         "InputSnapshot",
         "GamepadConnectionInfo",
+        "GamepadAxisInput",
+        "GamepadAxisTransition",
         "GamepadRumbleRequest",
+        "InputRecording",
+        "InputRecordingFrame",
+        "InputReplayCursor",
+        "InputReplayFrameReport",
+        "INPUT_ACTION_MANAGER_NAME",
     ] {
         assert!(
             input_mod.contains(public_anchor)
@@ -122,7 +149,9 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     let behavior_test_sources = [
         include_str!("../../input/tests/input_manager.rs"),
         include_str!("../../input/tests/action_mapping.rs"),
+        include_str!("../../input/tests/action_axis_transitions.rs"),
         include_str!("../../input/tests/gamepad_bridge.rs"),
+        include_str!("../../input/tests/recording_replay.rs"),
     ];
     for behavior_anchor in EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS {
         assert!(
@@ -161,15 +190,15 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "input_stack_boundary",
-            "expected_runtime_module_count = 10",
-            "expected_framework_module_count = 17",
-            "expected_test_module_count = 5",
-            "public_surface_anchors = 10/10",
+            "expected_runtime_module_count = 12",
+            "expected_framework_module_count = 19",
+            "expected_test_module_count = 7",
+            "public_surface_anchors = 23/23",
             "runtime_12_guard_anchors = 5/5",
             "missing_gamepad_abi_anchors = []",
             "missing_doc_anchors = []",
             "missing_test_anchors = []",
-            "behavior_test_anchor_count = 6",
+            "behavior_test_anchor_count = 14",
             "missing_behavior_test_anchors = []",
             "missing_cargo_gate_anchors = []",
             "oversized_modules = []",
@@ -194,6 +223,7 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
     let input_doc = include_str!("../../../../docs/zircon_runtime/input/input_state.md");
     let input_mod = include_str!("../../input/mod.rs");
     let framework_input_mod = include_str!("../../core/framework/input/mod.rs");
+    let prelude = include_str!("../../prelude.rs");
     let input_tests = include_str!("../../input/tests/input_manager.rs");
 
     for required_anchor in [
@@ -215,16 +245,30 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
 
     for required_export in [
         "InputAction",
+        "InputActionContext",
         "InputBinding",
+        "InputAxisBinding",
+        "InputAxisDirection",
         "InputActionMap",
         "InputActionState",
+        "InputConfig",
         "InputFrameSnapshot",
         "InputSnapshot",
         "InputActionEvaluator",
+        "InputActionManager",
+        "GamepadAxisInput",
+        "DefaultInputActionManager",
         "DefaultInputManager",
+        "InputRecording",
+        "InputRecordingFrame",
+        "InputReplayCursor",
+        "InputReplayFrameReport",
+        "INPUT_ACTION_MANAGER_NAME",
     ] {
         assert!(
-            input_mod.contains(required_export) || framework_input_mod.contains(required_export),
+            input_mod.contains(required_export)
+                || framework_input_mod.contains(required_export)
+                || prelude.contains(required_export),
             "Runtime input public surface should keep `{required_export}` exported"
         );
     }
@@ -265,49 +309,110 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
     let runtime_index = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
     let input_doc = include_str!("../../../../docs/zircon_runtime/input/input_state.md");
     let action = include_str!("../../core/framework/input/input_action.rs");
+    let action_context = include_str!("../../core/framework/input/input_action_context.rs");
     let binding = include_str!("../../core/framework/input/input_binding.rs");
     let action_map = include_str!("../../core/framework/input/input_action_map.rs");
+    let action_manager = include_str!("../../core/framework/input/input_action_manager.rs");
     let action_state = include_str!("../../core/framework/input/input_action_state.rs");
+    let config = include_str!("../../input/module/config.rs");
+    let descriptor = include_str!("../../input/module/descriptor.rs");
     let evaluator = include_str!("../../input/runtime/action_evaluator.rs");
+    let default_action_manager =
+        include_str!("../../input/runtime/default_input_action_manager.rs");
+    let core_manager = include_str!("../../core/manager/mod.rs");
+    let core_manager_resolver = include_str!("../../core/manager/resolver.rs");
+    let core_manager_service_names = include_str!("../../core/manager/service_names.rs");
     let action_tests = include_str!("../../input/tests/action_mapping.rs");
+    let action_axis_transition_tests = include_str!("../../input/tests/action_axis_transitions.rs");
 
     for required_contract_anchor in [
         "pub struct InputAction",
+        "pub struct InputActionContext",
+        "pub trait InputActionManager",
         "pub struct InputBinding",
+        "pub struct InputAxisBinding",
+        "pub enum InputAxisDirection",
         "pub struct InputActionMap",
         "pub struct InputActionState",
+        "pub struct InputConfig",
         "Serialize, Deserialize",
     ] {
         assert!(
             action.contains(required_contract_anchor)
+                || action_context.contains(required_contract_anchor)
+                || action_manager.contains(required_contract_anchor)
                 || binding.contains(required_contract_anchor)
                 || action_map.contains(required_contract_anchor)
-                || action_state.contains(required_contract_anchor),
+                || action_state.contains(required_contract_anchor)
+                || config.contains(required_contract_anchor),
             "Runtime 12 action contract should retain `{required_contract_anchor}`"
         );
     }
 
     for required_evaluator_anchor in [
         "pub struct InputActionEvaluator",
+        "DefaultInputActionManager",
+        "set_action_map",
         "evaluate_with_consumed_buttons",
+        "evaluate_with_consumed_input",
+        "evaluate_with_active_contexts",
+        "evaluate_with_active_contexts_and_consumed_buttons",
+        "evaluate_with_active_contexts_and_consumed_input",
         "consumed_buttons.contains(button)",
-        "InputActionState::from_sets",
+        "consumed_axes.contains",
+        "action_context_is_active",
+        "InputActionState::from_sets_and_values",
+        "binding_axis_consumed",
+        "binding_axis_value",
+        "binding_axis_transition",
+        "dominant_action_value",
     ] {
         assert!(
-            evaluator.contains(required_evaluator_anchor),
+            evaluator.contains(required_evaluator_anchor)
+                || default_action_manager.contains(required_evaluator_anchor),
             "Runtime 12 action evaluator should retain `{required_evaluator_anchor}`"
+        );
+    }
+
+    for required_registration_anchor in [
+        "module_descriptor_with_config",
+        "INPUT_ACTION_MANAGER_NAME",
+        "InputActionManagerHandle",
+        "resolve_input_action_manager",
+        "InputModule.Manager.InputActionManager",
+    ] {
+        assert!(
+            descriptor.contains(required_registration_anchor)
+                || core_manager.contains(required_registration_anchor)
+                || core_manager_resolver.contains(required_registration_anchor)
+                || core_manager_service_names.contains(required_registration_anchor),
+            "Runtime 12 action manager registration should retain `{required_registration_anchor}`"
         );
     }
 
     for required_test_anchor in [
         "action_map_resolves_chords_and_reports_just_activated",
         "rebinding_action_does_not_require_recompilation",
+        "action_contexts_filter_gameplay_and_menu_maps_without_rebinding",
+        "gamepad_axis_binding_reports_continuous_action_value",
+        "consumed_gamepad_axis_does_not_activate_gameplay_action",
+        "gamepad_axis_action_reports_deadzone_transition_edges",
+        "input_config_builds_action_evaluator_from_serialized_action_map",
+        "input_action_manager_resolves_from_runtime_module_descriptor",
         "evaluate_with_consumed_buttons",
+        "evaluate_with_consumed_input",
+        "evaluate_with_active_contexts",
+        "resolve_input_action_manager",
+        "value(\"gameplay.move_x\")",
+        "action_evaluator()",
+        "action_manager",
         "clear_bindings",
     ] {
         assert!(
-            action_tests.contains(required_test_anchor),
-            "Runtime 12 action mapping tests should retain `{required_test_anchor}`"
+            action_tests.contains(required_test_anchor)
+                || action_axis_transition_tests.contains(required_test_anchor)
+                || config.contains(required_test_anchor),
+            "Runtime 12 action mapping tests/config should retain `{required_test_anchor}`"
         );
     }
 
@@ -316,6 +421,10 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
         "玩法/action mapping 只消费 UI 未处理",
         "action_contract_static_passed_cargo_pending",
         "action_evaluator_static_passed_cargo_pending",
+        "action_context_static_passed_cargo_pending",
+        "action_axis_value_static_passed_cargo_deferred",
+        "action_config_static_passed_cargo_deferred",
+        "action_manager_registration_static_passed_cargo_deferred",
     ] {
         assert!(
             runtime_12_plan.contains(required_plan_anchor)

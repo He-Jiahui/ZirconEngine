@@ -521,7 +521,10 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
     let report = streamer
         .material_readiness_report(&material_id)
         .expect("streamer readiness report");
+    let material = streamer.material(&material_id).expect("runtime material");
     assert!(!report.is_ready());
+    assert!(report.uses_fallback());
+    assert!(material.pipeline_key.uses_fallback_shader());
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
         RenderMaterialValidationError::ShaderReadinessDiagnostic {
@@ -530,7 +533,7 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             diagnostic,
         } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
             && path == "pipeline_layout.group3.binding0"
-            && diagnostic.contains("uniform buffer")
+            && diagnostic.contains("StorageBuffer")
     )));
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
@@ -540,8 +543,71 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             diagnostic,
         } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
             && path == "pipeline_layout.group3.binding1"
-            && diagnostic.contains("supports only group 3 binding 0")
+            && diagnostic.contains("StorageBuffer")
     )));
+    assert!(report
+        .fallback_usages
+        .iter()
+        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
+}
+
+#[test]
+fn render_product_streamer_reports_unregistered_custom_shading_model() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let material_uri = locator("res://materials/custom-shading-model.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let mut material = material_with_refs("builtin://shader/pbr.wgsl", None);
+    material.property_values.insert(
+        "lighting_model".to_string(),
+        toml::Value::String("custom:subsurface".to_string()),
+    );
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("unregistered custom shading model records readiness fallback");
+
+    let report = streamer
+        .material_readiness_report(&material_id)
+        .expect("streamer readiness report");
+    let material = streamer.material(&material_id).expect("runtime material");
+    assert!(!report.is_ready());
+    assert!(report.uses_fallback());
+    assert_eq!(
+        material.lighting_model,
+        RenderMaterialLightingModel::Custom {
+            name: "subsurface".to_string()
+        }
+    );
+    assert_eq!(
+        material.pipeline_key.shading_model_id,
+        SHADING_MODEL_ID_STANDARD_PBR
+    );
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::UnregisteredShadingModel { path, token }
+            if path == "overrides.lighting_model" && token == "custom:subsurface"
+    )));
+    assert!(report
+        .fallback_usages
+        .iter()
+        .any(|usage| matches!(&usage.reason, RenderMaterialFallbackReason::Validation)));
 }
 
 #[test]

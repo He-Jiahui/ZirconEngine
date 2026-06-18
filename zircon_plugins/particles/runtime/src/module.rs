@@ -13,6 +13,10 @@ pub const PARTICLES_MANAGER_NAME: &str = "ParticlesModule.Manager.ParticlesManag
 pub struct ParticlesModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_manager(ParticlesManager::default())
+}
+
+pub fn module_descriptor_with_manager(manager: ParticlesManager) -> ModuleDescriptor {
     ModuleDescriptor::new(PARTICLES_MODULE_NAME, "CPU/GPU sprite particle simulation").with_manager(
         ManagerDescriptor::new(
             qualified_name(
@@ -22,7 +26,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ),
             StartupMode::Lazy,
             Vec::new(),
-            factory(|_| Ok(Arc::new(ParticlesManager::default()) as ServiceObject)),
+            factory(move |_| Ok(Arc::new(manager.clone()) as ServiceObject)),
         ),
     )
 }

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::RuntimeTargetMode;
+use crate::builtin::RuntimeTargetMode;
 
 use super::super::RuntimePluginRegistrationReport;
 

@@ -4,12 +4,16 @@ use std::path::{Path, PathBuf};
 
 const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
     "src/plugin/mod.rs",
+    "src/plugin/native.rs",
     "src/plugin/native_plugin_loader/mod.rs",
     "src/plugin/native_plugin_loader/abi_declarations.rs",
     "src/plugin/native_plugin_loader/native_plugin_abi.rs",
     "src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
     "src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs",
+    "src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs",
     "src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs",
+    "src/script/vm/tests.rs",
+    "src/script/vm/tests/lifecycle_failures.rs",
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
     "src/tests/runtime_absorption/plugin_surface_lifecycle.rs",
     "../zircon_plugins/native_dynamic_fixture/native/src/lib.rs",
@@ -32,13 +36,28 @@ const V1_V2_PATTERNS: &[&str] = &[
     "ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2",
 ];
 
+const NATIVE_LOADER_TEST_PATTERNS: &[&str] = &[
+    "NativePluginAbi",
+    "NativePluginEntryReport",
+    "NativePluginBehavior",
+    "NativePluginLoader",
+    "ZIRCON_NATIVE_PLUGIN_STATUS",
+];
+
+const LIFECYCLE_FALLBACK_TESTS: &[&str] = &[
+    "vm_lifecycle_fallback_activate_bad_entry_module_surfaces_vm_error",
+    "vm_lifecycle_fallback_missing_optional_export_returns_none_not_error",
+    "vm_lifecycle_fallback_deactivate_is_idempotent_after_unload",
+    "vm_lifecycle_fallback_empty_arguments_do_not_require_real_backend",
+];
+
 #[test]
 fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts() {
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     assert_eq!(
         EXPECTED_RUNTIME_06_SOURCE_FILES.len(),
-        10,
+        14,
         "Runtime 06 source inventory should mirror plugin_surface_lifecycle_boundary"
     );
     for source_file in EXPECTED_RUNTIME_06_SOURCE_FILES {
@@ -68,29 +87,36 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-06-14"),
+        plan_doc.contains("last_refined: 2026-06-16"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
-    let plugin_root_symbols = native_plugin_root_reexport_symbols();
+    let plugin_root_source = include_str!("../../plugin/mod.rs");
+    assert!(
+        plugin_root_source.contains("pub mod native;"),
+        "plugin root should expose the hard-cutover plugin::native namespace"
+    );
+    assert!(
+        !plugin_root_source.contains("pub use native_plugin_loader::{"),
+        "plugin root should not re-export native loader symbols after the M2.1 hard-cutover"
+    );
+
+    let native_namespace_symbols = native_plugin_namespace_reexport_symbols();
     assert_eq!(
-        plugin_root_symbols.len(),
-        68,
-        "native plugin root re-export count changed; update native_plugin_public_surface and Runtime 06 mirror docs"
+        native_namespace_symbols.len(),
+        60,
+        "native plugin namespace re-export count changed; update native_plugin_public_surface and Runtime 06 mirror docs"
     );
     for required_symbol in [
-        "NativePluginAbiV1",
-        "NativePluginAbiV2",
         "NativePluginAbiV3",
         "NativePluginBridgeMethodTableV3",
         "NativeHostBridgeCallScope",
         "NativePluginLoader",
-        "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1",
-        "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2",
+        "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3",
     ] {
         assert!(
-            plugin_root_symbols.contains(&required_symbol.to_string()),
-            "native plugin public-surface mirror should still classify `{required_symbol}` while M4 debt is present"
+            native_namespace_symbols.contains(&required_symbol.to_string()),
+            "native plugin public-surface mirror should classify `{required_symbol}` through plugin::native"
         );
     }
 
@@ -116,16 +142,13 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     );
     assert_eq!(
         native_loader_v1_v2_files.len(),
-        6,
+        0,
         "native loader V1/V2 implementation file count changed without Runtime 06 audit sync"
     );
 
     let plugin_v1_v2_usage_files =
         files_containing(&workspace_root.join("zircon_plugins"), V1_V2_PATTERNS);
-    let expected_plugin_v1_v2_usage = ["zircon_plugins/native_dynamic_fixture/native/src/lib.rs"]
-        .into_iter()
-        .map(String::from)
-        .collect::<BTreeSet<_>>();
+    let expected_plugin_v1_v2_usage = BTreeSet::<String>::new();
     assert_eq!(
         plugin_v1_v2_usage_files, expected_plugin_v1_v2_usage,
         "Runtime 06 expects V1/V2 plugin usage to stay limited to the native dynamic fixture"
@@ -166,17 +189,31 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "plugin_surface_lifecycle_boundary",
-            "expected_source_file_count = 10",
+            "expected_source_file_count = 14",
             "expected_doc_file_count = 5",
-            "native root re-export 70/70",
-            "M4 gate `migration-debt-present`",
-            "debt groups 5/5",
-            "unclassified native symbols 0/0",
-            "public native re-export locations 1/1",
+            "fallback lifecycle failure tests 4/4",
+            "root_reexport_count = 0",
+            "native_namespace_reexport_count = 60",
+            "native root re-export 0/0",
+            "native namespace re-export 60/60",
+            "M4 gate `classified-and-clear`",
+            "debt groups 0/0",
+            "native namespace symbol groups 5/5",
+            "unclassified native root symbols 0/0",
+            "unclassified native namespace symbols 0/0",
+            "root public native re-export locations 0/0",
+            "public native namespace re-export locations 1/1",
             "app NativePlugin current call-site files: 7",
-            "native loader V1/V2 implementation files 6/6",
-            "`zircon_plugins` V1/V2 usage files 1/1",
+            "native loader V1/V2 implementation files 0/0",
+            "`zircon_plugins` V1/V2 usage files 0/0",
             "export_build_plan V1/V2 usage 0/0",
+            "unknown ABI rejection",
+            "hot reload failure injection",
+            "native loader test files 3/3",
+            "native test namespace import files 2/2",
+            "native test root import leaks 0/0",
+            "runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed",
+            "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
             "mirror_docs_guard_present = true",
             "risks = []",
             "runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts",
@@ -189,17 +226,93 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     }
 }
 
-fn native_plugin_root_reexport_symbols() -> Vec<String> {
-    let source = include_str!("../../plugin/mod.rs");
-    let start_marker = "pub use native_plugin_loader::{";
+#[test]
+fn runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed() {
+    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let vm_tests_source = include_str!("../../script/vm/tests.rs");
+    assert!(
+        vm_tests_source.contains("mod lifecycle_failures;"),
+        "Runtime 06 M1.2 fallback lifecycle test owner should be mounted by script/vm/tests.rs"
+    );
+
+    let lifecycle_tests_path = runtime_root.join("src/script/vm/tests/lifecycle_failures.rs");
+    assert!(
+        lifecycle_tests_path.exists(),
+        "Runtime 06 M1.2 fallback lifecycle tests should live in a folder-backed script/vm test owner"
+    );
+
+    let lifecycle_tests_source =
+        fs::read_to_string(&lifecycle_tests_path).unwrap_or_else(|error| {
+            panic!("failed to read {}: {error}", lifecycle_tests_path.display())
+        });
+    for test_name in LIFECYCLE_FALLBACK_TESTS {
+        assert!(
+            lifecycle_tests_source.contains(test_name),
+            "Runtime 06 M1.2 fallback lifecycle test `{test_name}` is missing"
+        );
+    }
+    assert!(
+        lifecycle_tests_source.contains("lifecycle:fallback"),
+        "Runtime 06 M1.2 fallback lifecycle tests should not require the real ZrVM backend"
+    );
+}
+
+#[test]
+fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
+    let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let plugin_extension_tests = runtime_root
+        .join("src")
+        .join("tests")
+        .join("plugin_extensions");
+
+    let native_loader_test_files =
+        files_containing(&plugin_extension_tests, NATIVE_LOADER_TEST_PATTERNS);
+    let expected_native_loader_test_files = BTreeSet::from([
+        "zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs".to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs"
+            .to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs".to_string(),
+    ]);
+    assert_eq!(
+        native_loader_test_files, expected_native_loader_test_files,
+        "native loader test files should stay isolated under plugin_extensions and mirror Runtime 06 M2.2"
+    );
+
+    let namespace_import_files = files_containing(
+        &plugin_extension_tests,
+        &[
+            "crate::plugin::native::",
+            "zircon_runtime::plugin::native::",
+        ],
+    );
+    let expected_namespace_import_files = BTreeSet::from([
+        "zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs"
+            .to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs".to_string(),
+    ]);
+    assert_eq!(
+        namespace_import_files, expected_namespace_import_files,
+        "tests that import native loader symbols should use the isolated plugin::native namespace"
+    );
+
+    let native_root_import_leaks = native_root_import_leak_files(&plugin_extension_tests);
+    assert!(
+        native_root_import_leaks.is_empty(),
+        "native loader tests must not import NativePlugin or ZIRCON_NATIVE_PLUGIN symbols from the plugin root: {native_root_import_leaks:?}"
+    );
+}
+
+fn native_plugin_namespace_reexport_symbols() -> Vec<String> {
+    let source = include_str!("../../plugin/native.rs");
+    let start_marker = "pub use super::native_plugin_loader::{";
     let start = source
         .find(start_marker)
-        .expect("plugin root should still expose the native loader re-export block while M4 debt is present");
+        .expect("plugin::native should expose the native loader public namespace");
     let body_start = start + start_marker.len();
     let body_end = source[body_start..]
         .find("};")
         .map(|offset| body_start + offset)
-        .expect("native loader re-export block should terminate");
+        .expect("native namespace re-export block should terminate");
 
     source[body_start..body_end]
         .replace('\n', " ")
@@ -208,6 +321,52 @@ fn native_plugin_root_reexport_symbols() -> Vec<String> {
         .filter(|symbol| !symbol.is_empty())
         .map(String::from)
         .collect()
+}
+
+fn native_root_import_leak_files(root: &Path) -> BTreeSet<String> {
+    let workspace_root = workspace_root_from(root);
+    rust_source_files(root)
+        .into_iter()
+        .filter(|path| {
+            let source = fs::read_to_string(path)
+                .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+            has_native_root_import_leak(&source)
+        })
+        .map(|path| relative_path(&workspace_root, &path))
+        .collect()
+}
+
+fn has_native_root_import_leak(source: &str) -> bool {
+    if source.contains("crate::plugin::NativePlugin")
+        || source.contains("crate::plugin::ZIRCON_NATIVE_PLUGIN")
+        || source.contains("zircon_runtime::plugin::NativePlugin")
+        || source.contains("zircon_runtime::plugin::ZIRCON_NATIVE_PLUGIN")
+    {
+        return true;
+    }
+
+    for marker in ["use crate::plugin::", "use zircon_runtime::plugin::"] {
+        let mut search_start = 0;
+        while let Some(relative_start) = source[search_start..].find(marker) {
+            let statement_start = search_start + relative_start;
+            let statement_tail = &source[statement_start..];
+            if statement_tail.starts_with("use crate::plugin::native::")
+                || statement_tail.starts_with("use zircon_runtime::plugin::native::")
+            {
+                search_start = statement_start + marker.len();
+                continue;
+            }
+
+            let statement_end = statement_tail.find(';').unwrap_or(statement_tail.len());
+            let statement = &statement_tail[..statement_end];
+            if statement.contains("NativePlugin") || statement.contains("ZIRCON_NATIVE_PLUGIN") {
+                return true;
+            }
+            search_start = statement_start + statement_end + 1;
+        }
+    }
+
+    false
 }
 
 fn files_containing(root: &Path, patterns: &[&str]) -> BTreeSet<String> {

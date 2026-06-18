@@ -57,6 +57,13 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
     assert!(executor_ids.contains(&"particle.gpu.compact-alive"));
     assert!(executor_ids.contains(&"particle.gpu.indirect-args"));
     assert!(executor_ids.contains(&"particle.transparent"));
+    let runtime_prepare_ids = report
+        .extensions
+        .runtime_prepare_collectors()
+        .iter()
+        .map(|registration| registration.collector_id())
+        .collect::<Vec<_>>();
+    assert_eq!(runtime_prepare_ids, vec!["particles.runtime-prepare"]);
     let event_catalog = report
         .package_manifest
         .event_catalogs

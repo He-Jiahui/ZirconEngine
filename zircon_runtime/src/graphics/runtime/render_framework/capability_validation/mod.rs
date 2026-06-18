@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     AdvancedRenderFeature, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, SolariCapabilityRequirement,
 };
-use crate::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
+use crate::graphics::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
 
 pub(in crate::graphics::runtime::render_framework) fn validate_quality_profile_capabilities(
     pipeline: Option<RenderPipelineHandle>,
@@ -131,13 +131,13 @@ mod tests {
         RenderFrameExtract, RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile,
         RenderWorldSnapshotHandle,
     };
-    use crate::render_graph::QueueLane;
-    use crate::scene::world::World;
-    use crate::{
+    use crate::graphics::{
         BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
         RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
         RenderPipelineCompileOptions, RendererFeatureAsset,
     };
+    use crate::render_graph::QueueLane;
+    use crate::scene::world::World;
 
     use super::{validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities};
 

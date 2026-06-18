@@ -663,7 +663,7 @@ fn masonry_shortest_column_layout_feeds_arranged_render_hit_from_one_surface_fra
     );
     assert_eq!(
         masonry_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(masonry_selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(

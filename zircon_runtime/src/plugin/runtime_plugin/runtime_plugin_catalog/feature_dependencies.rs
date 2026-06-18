@@ -1,4 +1,5 @@
-use crate::{plugin::ProjectPluginManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ProjectPluginManifest;
 
 use super::features::feature_dependency_report as build_feature_dependency_report;
 use super::{RuntimePluginCatalog, RuntimePluginFeatureDependencyReport};

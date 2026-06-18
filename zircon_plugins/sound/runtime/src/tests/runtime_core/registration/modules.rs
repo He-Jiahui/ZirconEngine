@@ -13,8 +13,8 @@ fn sound_plugin_registration_contributes_runtime_module() {
     assert_eq!(
         report.package_manifest.modules[0].target_modes,
         vec![
-            zircon_runtime::RuntimeTargetMode::ClientRuntime,
-            zircon_runtime::RuntimeTargetMode::EditorHost,
+            zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
+            zircon_runtime::builtin::RuntimeTargetMode::EditorHost,
         ]
     );
 }

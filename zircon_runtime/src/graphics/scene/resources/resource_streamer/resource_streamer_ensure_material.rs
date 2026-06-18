@@ -2,20 +2,23 @@ use std::collections::BTreeMap;
 
 use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
-    RenderMaterialFallbackUsage, RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload,
-    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
-    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
-    RenderMaterialValidationError,
+    RenderMaterialAlphaMode, RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy,
+    RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialLightingModel,
+    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValueState,
+    RenderMaterialPropertyValueSummary, RenderMaterialTextureSlotState,
+    RenderMaterialTextureSlotSummary, RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
 
 use crate::graphics::types::GraphicsError;
 
+use crate::graphics::material::builtin_shading_model_registry;
+
 use super::super::prepared::PreparedMaterial;
 use super::super::{
-    texture_upload_support_from_device, GpuMaterialUniformResource, MaterialRuntime, PipelineKey,
+    default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
+    MaterialRuntime, PipelineKey,
 };
 use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 use super::ResourceStreamer;
@@ -104,10 +107,21 @@ impl ResourceStreamer {
             readiness.push_validation_error_once(validation_error);
             readiness.push_fallback_usage_once(fallback_usage);
         }
-        if let Some(shader) = shader_contract.as_ref() {
-            for error in renderer_material_layout_diagnostics(shader) {
+        let uses_renderer_material_abi_fallback = if let Some(shader) = shader_contract.as_ref() {
+            let abi_diagnostics = renderer_material_layout_diagnostics(shader);
+            let uses_fallback = !abi_diagnostics.is_empty();
+            for error in abi_diagnostics {
                 readiness.push_validation_error_once(error);
             }
+            uses_fallback
+        } else {
+            false
+        };
+        if uses_renderer_material_abi_fallback {
+            readiness.push_fallback_usage_once(RenderMaterialFallbackUsage {
+                reason: RenderMaterialFallbackReason::Validation,
+                fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+            });
         }
         let (alpha_blend, alpha_mask, alpha_cutoff) = match descriptor.alpha_mode {
             RenderMaterialAlphaMode::Opaque => (false, false, None),
@@ -119,6 +133,24 @@ impl ResourceStreamer {
         } else {
             descriptor.lighting_model.clone()
         };
+        let shading_model_registry = builtin_shading_model_registry();
+        let shading_model_descriptor =
+            shading_model_registry.resolve_lighting_model(&lighting_model);
+        let shading_model_id = shading_model_descriptor
+            .map(|descriptor| descriptor.id)
+            .unwrap_or(SHADING_MODEL_ID_STANDARD_PBR);
+        if shading_model_descriptor.is_none() {
+            readiness.push_validation_error_once(
+                RenderMaterialValidationError::UnregisteredShadingModel {
+                    path: "overrides.lighting_model".to_string(),
+                    token: lighting_model.as_token(),
+                },
+            );
+            readiness.push_fallback_usage_once(RenderMaterialFallbackUsage {
+                reason: RenderMaterialFallbackReason::Validation,
+                fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+            });
+        }
         let unlit = lighting_model.is_unlit();
         let texture_support = texture_upload_support_from_device(device);
         let base_color_texture = self.resolve_texture_reference_with_support(
@@ -276,6 +308,13 @@ impl ResourceStreamer {
                 readiness.push_diagnostic_once(diagnostic);
             }
         }
+        let (pipeline_shader_id, pipeline_shader_revision) =
+            if material_uses_renderer_material_abi_fallback(&readiness.validation_errors) {
+                let fallback_key = default_pipeline_key();
+                (fallback_key.shader_id, fallback_key.shader_revision)
+            } else {
+                (shader_id, shader_revision)
+            };
         let runtime = MaterialRuntime {
             base_color: Vec4::from_array(descriptor.base_color),
             emissive: Vec3::from_array(descriptor.emissive),
@@ -285,6 +324,7 @@ impl ResourceStreamer {
             alpha_blend,
             alpha_cutoff,
             lighting_model: lighting_model.clone(),
+            shading_model_id,
             unlit,
             cast_shadows: descriptor.cast_shadows,
             receive_shadows: descriptor.receive_shadows,
@@ -311,13 +351,13 @@ impl ResourceStreamer {
             shader_property_uniform_payload,
             non_standard_texture_slots,
             pipeline_key: PipelineKey {
-                shader_id,
-                shader_revision,
+                shader_id: pipeline_shader_id,
+                shader_revision: pipeline_shader_revision,
                 double_sided: descriptor.double_sided,
                 alpha_blend,
                 alpha_mask,
                 alpha_cutoff_bits: alpha_cutoff.map(f32::to_bits),
-                lighting_model,
+                shading_model_id,
                 unlit,
                 has_base_color_texture: descriptor.base_color_texture.is_some(),
                 has_normal_texture: descriptor.normal_texture.is_some(),
@@ -402,6 +442,20 @@ fn has_blocking_material_validation(validation_errors: &[RenderMaterialValidatio
             error,
             RenderMaterialValidationError::InvalidMaskCutoff { .. }
                 | RenderMaterialValidationError::MissingRuntimeShaderSource
+        )
+    })
+}
+
+fn material_uses_renderer_material_abi_fallback(
+    validation_errors: &[RenderMaterialValidationError],
+) -> bool {
+    validation_errors.iter().any(|error| {
+        matches!(
+            error,
+            RenderMaterialValidationError::ShaderReadinessDiagnostic {
+                source: RenderMaterialDiagnosticSource::RendererMaterialAbi,
+                ..
+            }
         )
     })
 }

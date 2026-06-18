@@ -2,7 +2,8 @@ mod coverage;
 mod editor_host;
 mod uniqueness;
 
-use crate::{plugin::PluginModuleManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginModuleManifest;
 
 use self::{
     coverage::validate_runtime_plugin_module_target_mode_coverage,

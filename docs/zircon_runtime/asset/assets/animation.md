@@ -56,7 +56,7 @@ Payload owners are split by responsibility:
 - `state_machine.rs` owns states, transitions, transition conditions, state-machine binary conversion, and state-machine direct references.
 - `reference.rs` owns reusable direct-reference binary DTOs and de-duplication.
 
-This split removed the former animation asset file from the 1000-line large-file hotspot list. The current Runtime 07 owner-budget mirror records `large_file_hotspot_count = 41`, `runtime-other = 17`, and `large_file_unclassified_hotspot_count = 0`; Cargo-level asset/runtime validation remains pending while active build lanes are occupied.
+This split removed the former animation asset file from the 1000-line large-file hotspot list. The current Runtime 07 owner-budget mirror records `large_file_hotspot_count = 41`, `runtime-other = 16`, and `large_file_unclassified_hotspot_count = 0`; Cargo-level asset/runtime validation remains pending while active build lanes are occupied.
 
 ## Versioned Payloads
 

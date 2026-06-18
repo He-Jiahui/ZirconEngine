@@ -1,0 +1,295 @@
+use std::collections::{BTreeMap, BTreeSet};
+
+use crate::core::framework::render::RenderFrameExtract;
+use crate::graphics::feature::{
+    RenderFeatureDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
+    RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
+};
+use crate::graphics::pipeline::declarations::{
+    CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
+};
+use crate::render_graph::{
+    CompiledRenderGraph, ExternalResource, RenderGraphAttachmentOps, RenderGraphBuilder,
+    RenderPassId, RgBufferHandle, RgTextureHandle,
+};
+
+use super::super::validation::stage_pass_descriptors;
+use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
+use super::resource_descriptors::{buffer_desc_for, texture_desc_for};
+
+pub(super) struct AuthoredRenderGraph {
+    pub(super) pass_stages: Vec<CompiledRenderPipelinePassStage>,
+    pub(super) graph: CompiledRenderGraph,
+}
+
+pub(super) fn author_render_graph(
+    pipeline_name: &str,
+    stages: &[RenderPassStage],
+    descriptors: &[RenderFeatureDescriptor],
+    extract: &RenderFrameExtract,
+    options: &RenderPipelineCompileOptions,
+) -> Result<AuthoredRenderGraph, String> {
+    let mut graph = RenderGraphBuilder::new(pipeline_name.to_string());
+    let graph_resources = pipeline_graph_resources(descriptors)?;
+    let authored_resources = author_graph_resources(&mut graph, &graph_resources, extract, options);
+    let pass_stages = author_graph_passes(
+        &mut graph,
+        stages,
+        descriptors,
+        &authored_resources,
+        options,
+    )?;
+
+    Ok(AuthoredRenderGraph {
+        pass_stages,
+        graph: graph.compile().map_err(|error| error.to_string())?,
+    })
+}
+
+struct AuthoredGraphResources {
+    graph_resources: BTreeMap<String, PipelineGraphResourcePlan>,
+    texture_resources: BTreeMap<String, RgTextureHandle>,
+    buffer_resources: BTreeMap<String, RgBufferHandle>,
+    external_resources: BTreeMap<String, ExternalResource>,
+}
+
+fn author_graph_resources(
+    graph: &mut RenderGraphBuilder,
+    graph_resources: &BTreeMap<String, PipelineGraphResourcePlan>,
+    extract: &RenderFrameExtract,
+    options: &RenderPipelineCompileOptions,
+) -> AuthoredGraphResources {
+    let mut texture_resources = BTreeMap::new();
+    let mut buffer_resources = BTreeMap::new();
+    let mut external_resources = BTreeMap::new();
+
+    for (name, plan) in graph_resources {
+        match plan.kind {
+            RenderFeatureResourceKind::Texture => {
+                texture_resources.insert(
+                    name.clone(),
+                    graph.create_texture(texture_desc_for(name, extract, options)),
+                );
+            }
+            RenderFeatureResourceKind::Buffer => {
+                buffer_resources.insert(
+                    name.clone(),
+                    graph.create_buffer(buffer_desc_for(name, extract)),
+                );
+            }
+            RenderFeatureResourceKind::External => {
+                external_resources.insert(
+                    name.clone(),
+                    graph.import_external_resource_with_binding(name, plan.external_binding),
+                );
+            }
+        }
+    }
+
+    AuthoredGraphResources {
+        graph_resources: graph_resources.clone(),
+        texture_resources,
+        buffer_resources,
+        external_resources,
+    }
+}
+
+fn author_graph_passes(
+    graph: &mut RenderGraphBuilder,
+    stages: &[RenderPassStage],
+    descriptors: &[RenderFeatureDescriptor],
+    resources: &AuthoredGraphResources,
+    options: &RenderPipelineCompileOptions,
+) -> Result<Vec<CompiledRenderPipelinePassStage>, String> {
+    let mut previous = None;
+    let mut pass_stages = Vec::new();
+    let mut produced_texture_resources = BTreeSet::<String>::new();
+
+    for stage in stages {
+        for pass_descriptor in stage_pass_descriptors(*stage, descriptors) {
+            pass_stages.push(CompiledRenderPipelinePassStage::new(
+                pass_descriptor.pass_name.clone(),
+                *stage,
+            ));
+            let pass = graph.add_pass_with_executor_and_declared_queue(
+                pass_descriptor.pass_name.clone(),
+                options.resolve_queue(pass_descriptor.queue),
+                pass_descriptor.queue,
+                Some(pass_descriptor.executor_id.as_str().to_string()),
+            );
+            graph
+                .set_pass_flags(pass, pass_descriptor.flags)
+                .map_err(|error| error.to_string())?;
+            if let Some(workload) = pass_descriptor.compute_workload.clone() {
+                graph
+                    .set_compute_workload(pass, workload)
+                    .map_err(|error| error.to_string())?;
+            }
+
+            for resource in &pass_descriptor.resources {
+                author_pass_resource_access(
+                    graph,
+                    pass,
+                    resource,
+                    resources,
+                    &mut produced_texture_resources,
+                )?;
+            }
+            if let Some(before) = previous {
+                graph
+                    .add_dependency(before, pass)
+                    .map_err(|error| error.to_string())?;
+            }
+            previous = Some(pass);
+        }
+    }
+
+    Ok(pass_stages)
+}
+
+fn author_pass_resource_access(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource: &RenderFeatureResourceDescriptor,
+    resources: &AuthoredGraphResources,
+    produced_texture_resources: &mut BTreeSet<String>,
+) -> Result<(), String> {
+    match (resource.kind, resource.access) {
+        (RenderFeatureResourceKind::Texture, RenderFeatureResourceAccess::Read) => {
+            read_texture_resource(graph, pass, &resource.name, resources)
+        }
+        (RenderFeatureResourceKind::Texture, RenderFeatureResourceAccess::Write) => {
+            write_texture_resource(graph, pass, resource, resources, produced_texture_resources)
+        }
+        (RenderFeatureResourceKind::Buffer, RenderFeatureResourceAccess::Read) => {
+            read_buffer_resource(graph, pass, &resource.name, resources)
+        }
+        (RenderFeatureResourceKind::Buffer, RenderFeatureResourceAccess::Write) => {
+            write_buffer_resource(graph, pass, resource, resources)
+        }
+        (RenderFeatureResourceKind::External, RenderFeatureResourceAccess::Read) => graph
+            .read_external(pass, resources.external_resources[&resource.name])
+            .map_err(|error| error.to_string()),
+        (RenderFeatureResourceKind::External, RenderFeatureResourceAccess::Write) => {
+            write_external_resource(graph, pass, resource, resources)
+        }
+    }
+}
+
+fn read_texture_resource(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource_name: &str,
+    resources: &AuthoredGraphResources,
+) -> Result<(), String> {
+    match resources.graph_resources[resource_name].kind {
+        RenderFeatureResourceKind::Texture => graph
+            .read_texture(pass, resources.texture_resources[resource_name])
+            .map_err(|error| error.to_string()),
+        RenderFeatureResourceKind::External => graph
+            .read_external(pass, resources.external_resources[resource_name])
+            .map_err(|error| error.to_string()),
+        RenderFeatureResourceKind::Buffer => unreachable!(
+            "texture resource `{}` was compiled as a buffer",
+            resource_name
+        ),
+    }
+}
+
+fn write_texture_resource(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource: &RenderFeatureResourceDescriptor,
+    resources: &AuthoredGraphResources,
+    produced_texture_resources: &mut BTreeSet<String>,
+) -> Result<(), String> {
+    match resources.graph_resources[&resource.name].kind {
+        RenderFeatureResourceKind::Texture => {
+            if resource.write_mode == RenderFeatureResourceWriteMode::Storage {
+                graph
+                    .write_storage_texture(pass, resources.texture_resources[&resource.name])
+                    .map_err(|error| error.to_string())?;
+            } else {
+                let ops = resource.attachment_ops.unwrap_or_else(|| {
+                    if produced_texture_resources.contains(&resource.name) {
+                        RenderGraphAttachmentOps::load_store()
+                    } else {
+                        RenderGraphAttachmentOps::clear_store()
+                    }
+                });
+                graph
+                    .write_texture_with_ops(pass, resources.texture_resources[&resource.name], ops)
+                    .map_err(|error| error.to_string())?;
+            }
+            produced_texture_resources.insert(resource.name.clone());
+            Ok(())
+        }
+        RenderFeatureResourceKind::External => {
+            write_external_resource(graph, pass, resource, resources)
+        }
+        RenderFeatureResourceKind::Buffer => unreachable!(
+            "texture resource `{}` was compiled as a buffer",
+            resource.name
+        ),
+    }
+}
+
+fn read_buffer_resource(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource_name: &str,
+    resources: &AuthoredGraphResources,
+) -> Result<(), String> {
+    match resources.graph_resources[resource_name].kind {
+        RenderFeatureResourceKind::Buffer => graph
+            .read_buffer(pass, resources.buffer_resources[resource_name])
+            .map_err(|error| error.to_string()),
+        RenderFeatureResourceKind::External => graph
+            .read_external(pass, resources.external_resources[resource_name])
+            .map_err(|error| error.to_string()),
+        RenderFeatureResourceKind::Texture => unreachable!(
+            "buffer resource `{}` was compiled as a texture",
+            resource_name
+        ),
+    }
+}
+
+fn write_buffer_resource(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource: &RenderFeatureResourceDescriptor,
+    resources: &AuthoredGraphResources,
+) -> Result<(), String> {
+    match resources.graph_resources[&resource.name].kind {
+        RenderFeatureResourceKind::Buffer => graph
+            .write_buffer(pass, resources.buffer_resources[&resource.name])
+            .map_err(|error| error.to_string()),
+        RenderFeatureResourceKind::External => {
+            write_external_resource(graph, pass, resource, resources)
+        }
+        RenderFeatureResourceKind::Texture => unreachable!(
+            "buffer resource `{}` was compiled as a texture",
+            resource.name
+        ),
+    }
+}
+
+fn write_external_resource(
+    graph: &mut RenderGraphBuilder,
+    pass: RenderPassId,
+    resource: &RenderFeatureResourceDescriptor,
+    resources: &AuthoredGraphResources,
+) -> Result<(), String> {
+    if resource.write_mode == RenderFeatureResourceWriteMode::Storage {
+        graph
+            .write_storage_external(pass, resources.external_resources[&resource.name])
+            .map_err(|error| error.to_string())
+    } else {
+        let ops = resource
+            .attachment_ops
+            .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+        graph
+            .write_external_with_ops(pass, resources.external_resources[&resource.name], ops)
+            .map_err(|error| error.to_string())
+    }
+}

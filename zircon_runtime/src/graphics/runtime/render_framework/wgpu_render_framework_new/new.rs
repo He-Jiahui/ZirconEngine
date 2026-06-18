@@ -3,12 +3,14 @@ use std::sync::{Arc, Mutex};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::AdvancedProviderAvailability;
+use crate::core::{TaskPool, TaskPoolDescriptor};
+use crate::graphics::pipeline::CompiledGraphCache;
+use crate::graphics::{GraphicsError, SceneRenderer};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::{GraphicsError, SceneRenderer};
 
 use super::super::capability_summary::capability_summary;
 use super::super::graphics_debugger_capture::{
@@ -73,6 +75,31 @@ impl WgpuRenderFramework {
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
     ) -> Result<Self, GraphicsError> {
+        let compute_task_pool = TaskPool::new(TaskPoolDescriptor::compute());
+        Self::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            hybrid_gi_runtime_providers,
+            solari_runtime_providers,
+            virtual_geometry_runtime_providers,
+            compute_task_pool,
+        )
+    }
+
+    pub(crate) fn new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+        compute_task_pool: TaskPool,
+    ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
@@ -105,11 +132,13 @@ impl WgpuRenderFramework {
         );
         Ok(Self {
             operation_lock: Mutex::new(()),
+            compute_task_pool,
             state: Mutex::new(RenderFrameworkState {
                 renderer,
                 next_viewport_id: 1,
                 next_history_id: 1,
                 pipelines: create_default_pipelines(&render_features),
+                compiled_graph_cache: CompiledGraphCache::default(),
                 hybrid_gi_runtime_provider: selected_hybrid_gi_runtime_provider,
                 solari_runtime_provider: selected_solari_runtime_provider,
                 virtual_geometry_runtime_provider: selected_virtual_geometry_runtime_provider,

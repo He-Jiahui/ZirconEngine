@@ -4,10 +4,12 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    Changed, Component, InternalSceneSystem, QueryState, SystemState,
-    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
-    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
+    ChangeDetectionScanStats, Changed, Component, EcsFramePerformanceDiagnostics,
+    InternalSceneSystem, QueryState, QueryStateCacheStats, SystemState,
+    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
 };
 use crate::scene::{EntityId, NodeKind, World};
 
@@ -43,6 +45,89 @@ fn diagnostic_current(snapshot: &DiagnosticStoreSnapshot, path: &str) -> Option<
         .iter()
         .find(|series| series.path.as_str() == path)
         .and_then(|series| series.current)
+}
+
+#[test]
+fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
+    let mut frame = EcsFramePerformanceDiagnostics::default();
+    frame.add_query_stats(QueryStateCacheStats {
+        cache_hits: 3,
+        cache_misses: 1,
+        cache_rebuilds: 1,
+        cached_revision: 7,
+        cached_archetype_count: 2,
+        cached_entity_count: 64,
+        candidate_entity_count: 96,
+        matched_entity_count: 48,
+    });
+    frame.add_query_stats(QueryStateCacheStats {
+        cache_hits: 5,
+        cache_misses: 2,
+        cache_rebuilds: 2,
+        cached_revision: 11,
+        cached_archetype_count: 3,
+        cached_entity_count: 32,
+        candidate_entity_count: 48,
+        matched_entity_count: 24,
+    });
+    frame.add_change_detection_stats(ChangeDetectionScanStats {
+        scanned_marks: 6,
+        added_matches: 2,
+        changed_matches: 1,
+    });
+    frame.add_change_detection_stats(ChangeDetectionScanStats {
+        scanned_marks: 4,
+        added_matches: 1,
+        changed_matches: 3,
+    });
+
+    assert_eq!(frame.query.cache_hits, 8);
+    assert_eq!(frame.query.cache_misses, 3);
+    assert_eq!(frame.query.cache_rebuilds, 3);
+    assert_eq!(frame.query.cached_revision, 11);
+    assert_eq!(frame.query.cached_archetype_count, 5);
+    assert_eq!(frame.query.cached_entity_count, 96);
+    assert_eq!(frame.query.candidate_entity_count, 144);
+    assert_eq!(frame.query.matched_entity_count, 72);
+    assert_eq!(frame.change_detection.scanned_marks, 10);
+    assert_eq!(frame.change_detection.added_matches, 3);
+    assert_eq!(frame.change_detection.changed_matches, 4);
+
+    let mut diagnostics = DiagnosticStore::default();
+    frame.record_diagnostics(&mut diagnostics, 7);
+    let snapshot = diagnostics.snapshot();
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC),
+        Some(8.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC),
+        Some(3.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC),
+        Some(3.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC),
+        Some(144.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC),
+        Some(72.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC),
+        Some(10.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC),
+        Some(3.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC),
+        Some(4.0)
+    );
 }
 
 #[test]
@@ -194,6 +279,100 @@ fn query_state_reuses_archetype_matches_across_unchanged_frames() {
     assert_eq!(reused.cached_revision, initial.cached_revision);
     assert_eq!(reused.candidate_entity_count, ENTITY_COUNT);
     assert_eq!(reused.matched_entity_count, ENTITY_COUNT);
+}
+
+#[test]
+fn system_state_records_query_cache_stats_into_world_frame_diagnostics() {
+    let mut world = World::empty();
+    spawn_health_entities(&mut world, ENTITY_COUNT);
+
+    type HealthQuery = QueryState<(EntityId, &'static Health)>;
+    let mut first_system = SystemState::<HealthQuery>::new(&mut world).unwrap();
+    let mut second_system = SystemState::<HealthQuery>::new(&mut world).unwrap();
+
+    world.reset_ecs_frame_performance_diagnostics();
+    assert_eq!(
+        world.ecs_frame_performance_diagnostics(),
+        EcsFramePerformanceDiagnostics::default()
+    );
+
+    assert_eq!(
+        first_system.run(&mut world, |query| query.count()),
+        ENTITY_COUNT
+    );
+    assert_eq!(
+        second_system.run(&mut world, |query| query.count()),
+        ENTITY_COUNT
+    );
+    let first_frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(first_frame.query.cache_hits, 2);
+    assert_eq!(first_frame.query.cache_misses, 0);
+    assert_eq!(first_frame.query.cache_rebuilds, 0);
+    assert_eq!(first_frame.query.candidate_entity_count, ENTITY_COUNT * 2);
+    assert_eq!(first_frame.query.matched_entity_count, ENTITY_COUNT * 2);
+
+    world.reset_ecs_frame_performance_diagnostics();
+    assert_eq!(
+        first_system.run(&mut world, |query| query.count()),
+        ENTITY_COUNT
+    );
+    let second_frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(second_frame.query.cache_hits, 1);
+    assert_eq!(second_frame.query.cache_misses, 0);
+    assert_eq!(second_frame.query.cache_rebuilds, 0);
+    assert_eq!(second_frame.query.candidate_entity_count, ENTITY_COUNT);
+    assert_eq!(second_frame.query.matched_entity_count, ENTITY_COUNT);
+}
+
+#[test]
+fn system_state_records_change_detection_stats_into_world_frame_diagnostics() {
+    let mut world = World::empty();
+    let entities = spawn_health_entities(&mut world, ENTITY_COUNT);
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    let mut system = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+
+    world.reset_ecs_frame_performance_diagnostics();
+    let initial = system.run(&mut world, |query| query.iter().count());
+    assert_eq!(initial, ENTITY_COUNT);
+    let first_frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(
+        first_frame.change_detection.scanned_marks,
+        ENTITY_COUNT as u64
+    );
+    assert_eq!(
+        first_frame.change_detection.changed_matches,
+        ENTITY_COUNT as u64
+    );
+    assert_eq!(first_frame.change_detection.added_matches, 0);
+
+    world.reset_ecs_frame_performance_diagnostics();
+    let unchanged = system.run(&mut world, |query| query.count());
+    assert_eq!(unchanged, 0);
+    let second_frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(
+        second_frame.change_detection.scanned_marks,
+        ENTITY_COUNT as u64
+    );
+    assert_eq!(second_frame.change_detection.changed_matches, 0);
+    assert_eq!(second_frame.change_detection.added_matches, 0);
+
+    for entity in entities.iter().copied().take(CHANGED_ENTITY_COUNT) {
+        world.get_mut::<Health>(entity).unwrap().0 += 1;
+    }
+    world.reset_ecs_frame_performance_diagnostics();
+    let changed = system.run(&mut world, |query| query.iter().count());
+    assert_eq!(changed, CHANGED_ENTITY_COUNT);
+    let third_frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(
+        third_frame.change_detection.scanned_marks,
+        ENTITY_COUNT as u64
+    );
+    assert_eq!(
+        third_frame.change_detection.changed_matches,
+        CHANGED_ENTITY_COUNT as u64
+    );
+    assert_eq!(third_frame.change_detection.added_matches, 0);
 }
 
 #[test]

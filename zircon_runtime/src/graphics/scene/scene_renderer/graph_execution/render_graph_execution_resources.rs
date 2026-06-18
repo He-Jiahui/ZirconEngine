@@ -1,15 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderGraphExecutionResourceReport,
+    RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
+    RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
 };
 use crate::render_graph::{
-    CompiledRenderGraph, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
-    RenderGraphResourceKind, RenderGraphResourceLifetime,
+    CompiledRenderGraph, RenderGraphResourceDeclaration, RenderGraphResourceKind,
 };
-use crate::rhi::{
-    BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureFormat, TextureUsage,
-};
+use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::TransientResourcePool;
 
@@ -60,13 +58,25 @@ impl RenderGraphExecutionResources {
         self.buffers.insert(name, buffer)
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn bind_execution_owned_buffer(
+        &mut self,
+        logical_name: impl Into<String>,
+        backing_name: impl Into<String>,
+        buffer: &wgpu::Buffer,
+    ) -> Option<String> {
+        let logical_name = logical_name.into();
+        let backing_name = backing_name.into();
+        self.buffers.insert(backing_name.clone(), buffer.clone());
+        self.buffer_backings.insert(logical_name, backing_name)
+    }
+
     #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn materialize_transient_resources(
         &mut self,
         device: &wgpu::Device,
         graph: &CompiledRenderGraph,
     ) -> Result<(), String> {
-        self.materialize_transient_resources_internal(device, graph, None)
+        super::materialization::materialize_transient_resources(self, device, graph, None)
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn materialize_transient_resources_with_pool(
@@ -75,33 +85,7 @@ impl RenderGraphExecutionResources {
         graph: &CompiledRenderGraph,
         pool: &mut TransientResourcePool,
     ) -> Result<(), String> {
-        self.materialize_transient_resources_internal(device, graph, Some(pool))
-    }
-
-    fn materialize_transient_resources_internal(
-        &mut self,
-        device: &wgpu::Device,
-        graph: &CompiledRenderGraph,
-        mut pool: Option<&mut TransientResourcePool>,
-    ) -> Result<(), String> {
-        // Compiled lifetimes only include live passes, so culled scratch writers
-        // never receive concrete WGPU backing.
-        let lifetimes = graph.resource_lifetimes();
-        self.materialize_transient_texture_slots(device, graph, pool.as_deref_mut())?;
-        self.materialize_transient_buffer_slots(device, graph, pool.as_deref_mut())?;
-        for lifetime in lifetimes {
-            if lifetime.imported {
-                continue;
-            }
-            let Some((parent, mip_level)) =
-                ssr_pyramid_mip_alias_for_lifetimes(lifetimes, &lifetime.name)
-            else {
-                continue;
-            };
-            let view = self.owned_texture_mip_view(parent, mip_level)?;
-            self.import_texture_view(lifetime.name.clone(), view);
-        }
-        Ok(())
+        super::materialization::materialize_transient_resources(self, device, graph, Some(pool))
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn release_transient_backings_into_pool(
@@ -127,11 +111,17 @@ impl RenderGraphExecutionResources {
         self.owned_buffer_descs.clear();
     }
 
-    pub fn texture_view(&self, name: &str) -> Option<&wgpu::TextureView> {
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn texture_view(
+        &self,
+        name: &str,
+    ) -> Option<&wgpu::TextureView> {
         self.imported_texture_views.get(name)
     }
 
-    pub fn buffer(&self, name: &str) -> Option<&wgpu::Buffer> {
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn buffer(
+        &self,
+        name: &str,
+    ) -> Option<&wgpu::Buffer> {
         self.buffer_backing(name)
             .and_then(|backing| self.buffers.get(backing))
     }
@@ -209,12 +199,15 @@ impl RenderGraphExecutionResources {
             .map(|desc| desc.mip_levels)
     }
 
-    pub fn require_texture_view(&self, name: &str) -> Result<&wgpu::TextureView, String> {
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_texture_view(
+        &self,
+        name: &str,
+    ) -> Result<&wgpu::TextureView, String> {
         self.texture_view(name)
             .ok_or_else(|| format!("render graph execution texture resource `{name}` is not bound"))
     }
 
-    pub fn require_texture_view_for_declaration(
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_texture_view_for_declaration(
         &self,
         declaration: &RenderGraphResourceDeclaration,
     ) -> Result<&wgpu::TextureView, String> {
@@ -227,12 +220,15 @@ impl RenderGraphExecutionResources {
         self.require_texture_view(&declaration.name)
     }
 
-    pub fn require_buffer(&self, name: &str) -> Result<&wgpu::Buffer, String> {
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_buffer(
+        &self,
+        name: &str,
+    ) -> Result<&wgpu::Buffer, String> {
         self.buffer(name)
             .ok_or_else(|| format!("render graph execution buffer resource `{name}` is not bound"))
     }
 
-    pub fn require_buffer_for_declaration(
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_buffer_for_declaration(
         &self,
         declaration: &RenderGraphResourceDeclaration,
     ) -> Result<&wgpu::Buffer, String> {
@@ -258,6 +254,14 @@ impl RenderGraphExecutionResources {
         self.has_texture_view(name) || self.has_buffer(name)
     }
 
+    pub(super) fn bound_texture_view_names(&self) -> impl Iterator<Item = &str> {
+        self.imported_texture_views.keys().map(String::as_str)
+    }
+
+    pub(super) fn bound_buffer_names(&self) -> impl Iterator<Item = &str> {
+        self.buffer_backings.keys().map(String::as_str)
+    }
+
     pub fn resource_report(&self) -> RenderGraphExecutionResourceReport {
         let texture_view_count = self.imported_texture_views.len();
         let owned_texture_count = self.owned_textures.len();
@@ -274,9 +278,66 @@ impl RenderGraphExecutionResources {
         )
     }
 
+    pub fn validate_materialized_graph_resources(
+        &self,
+        graph: &CompiledRenderGraph,
+    ) -> Result<RenderGraphMaterializationReport, String> {
+        super::materialization_validation::validate_materialized_graph_resources(self, graph)
+    }
+
+    pub fn resource_alias_report(&self) -> RenderGraphExecutionAliasReport {
+        let mut texture_aliases = self
+            .owned_texture_backings
+            .iter()
+            .map(|(logical_name, backing_name)| {
+                RenderGraphExecutionAliasRecord::new(logical_name.clone(), backing_name.clone())
+            })
+            .collect::<Vec<_>>();
+        for logical_name in self.imported_texture_views.keys() {
+            if self.owned_texture_backings.contains_key(logical_name) {
+                continue;
+            }
+            let Some((parent, mip_level)) =
+                super::transient_materialization::ssr_pyramid_mip_alias(logical_name)
+            else {
+                continue;
+            };
+            if self.owned_texture(parent).is_some() {
+                texture_aliases.push(RenderGraphExecutionAliasRecord::new(
+                    logical_name.clone(),
+                    format!("{parent}:mip{mip_level}"),
+                ));
+            }
+        }
+        texture_aliases.sort_by(|left, right| {
+            left.logical_name
+                .cmp(&right.logical_name)
+                .then_with(|| left.backing_name.cmp(&right.backing_name))
+        });
+
+        let mut buffer_aliases = self
+            .buffer_backings
+            .iter()
+            .filter(|(logical_name, backing_name)| {
+                self.owned_buffer_descs.contains_key(*backing_name)
+                    || logical_name.as_str() != backing_name.as_str()
+            })
+            .map(|(logical_name, backing_name)| {
+                RenderGraphExecutionAliasRecord::new(logical_name.clone(), backing_name.clone())
+            })
+            .collect::<Vec<_>>();
+        buffer_aliases.sort_by(|left, right| {
+            left.logical_name
+                .cmp(&right.logical_name)
+                .then_with(|| left.backing_name.cmp(&right.backing_name))
+        });
+
+        RenderGraphExecutionAliasReport::new(texture_aliases, buffer_aliases)
+    }
+
     fn is_owned_backed_texture_view(&self, name: &str) -> bool {
         self.owned_texture_backings.contains_key(name)
-            || ssr_pyramid_mip_alias(name)
+            || super::transient_materialization::ssr_pyramid_mip_alias(name)
                 .is_some_and(|(parent, _)| self.owned_texture(parent).is_some())
     }
 
@@ -291,7 +352,7 @@ impl RenderGraphExecutionResources {
         )
     }
 
-    fn insert_owned_texture(
+    pub(super) fn insert_owned_texture(
         &mut self,
         name: impl Into<String>,
         texture: wgpu::Texture,
@@ -306,7 +367,7 @@ impl RenderGraphExecutionResources {
         self.owned_textures.insert(name, texture)
     }
 
-    fn insert_owned_texture_backing(
+    pub(super) fn insert_owned_texture_backing(
         &mut self,
         backing_name: impl Into<String>,
         texture: wgpu::Texture,
@@ -317,7 +378,7 @@ impl RenderGraphExecutionResources {
         self.owned_textures.insert(backing_name, texture)
     }
 
-    fn bind_owned_texture_view(
+    pub(super) fn bind_owned_texture_view(
         &mut self,
         logical_name: impl Into<String>,
         backing_name: &str,
@@ -339,7 +400,7 @@ impl RenderGraphExecutionResources {
         self.owned_texture_backings.get(name).map(String::as_str)
     }
 
-    fn insert_buffer_backing(
+    pub(super) fn insert_buffer_backing(
         &mut self,
         backing_name: impl Into<String>,
         buffer: wgpu::Buffer,
@@ -350,7 +411,7 @@ impl RenderGraphExecutionResources {
         self.buffers.insert(backing_name, buffer)
     }
 
-    fn bind_buffer(
+    pub(super) fn bind_buffer(
         &mut self,
         logical_name: impl Into<String>,
         backing_name: &str,
@@ -364,257 +425,6 @@ impl RenderGraphExecutionResources {
             return Some(backing);
         }
         self.buffers.contains_key(name).then_some(name)
-    }
-
-    fn materialize_transient_texture_slots(
-        &mut self,
-        device: &wgpu::Device,
-        graph: &CompiledRenderGraph,
-        mut pool: Option<&mut TransientResourcePool>,
-    ) -> Result<(), String> {
-        let lifetimes = graph.resource_lifetimes();
-        let allocation_plan = graph.transient_allocation_plan();
-        let lifetime_by_name = lifetimes
-            .iter()
-            .map(|lifetime| (lifetime.name.as_str(), lifetime))
-            .collect::<BTreeMap<_, _>>();
-        let mut slot_lifetimes = BTreeMap::<usize, Vec<&RenderGraphResourceLifetime>>::new();
-
-        for allocation in allocation_plan
-            .allocations
-            .iter()
-            .filter(|allocation| allocation.kind == RenderGraphResourceKind::TransientTexture)
-        {
-            let Some(lifetime) = lifetime_by_name.get(allocation.resource_name.as_str()) else {
-                continue;
-            };
-            if !self.should_materialize_texture_lifetime(lifetimes, lifetime)? {
-                continue;
-            }
-            slot_lifetimes
-                .entry(allocation.slot)
-                .or_default()
-                .push(*lifetime);
-        }
-
-        for (slot, lifetimes) in slot_lifetimes {
-            if let Some(desc) = compatible_texture_slot_desc(slot, &lifetimes)? {
-                let backing_name = format!("rg-transient-texture-slot-{slot}");
-                self.insert_owned_texture_backing(
-                    backing_name.clone(),
-                    acquire_wgpu_texture(device, &desc, pool.as_deref_mut()),
-                    desc,
-                );
-                for lifetime in lifetimes {
-                    self.bind_owned_texture_view(lifetime.name.clone(), &backing_name)?;
-                }
-            } else {
-                for lifetime in lifetimes {
-                    let RenderGraphResourceDesc::Texture(desc) = &lifetime.desc else {
-                        return Err(format!(
-                            "render graph resource `{}` has mismatched lifetime kind and descriptor",
-                            lifetime.name
-                        ));
-                    };
-                    self.insert_owned_texture(
-                        lifetime.name.clone(),
-                        acquire_wgpu_texture(device, desc, pool.as_deref_mut()),
-                        desc.clone(),
-                    );
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn materialize_transient_buffer_slots(
-        &mut self,
-        device: &wgpu::Device,
-        graph: &CompiledRenderGraph,
-        mut pool: Option<&mut TransientResourcePool>,
-    ) -> Result<(), String> {
-        let lifetimes = graph.resource_lifetimes();
-        let allocation_plan = graph.transient_allocation_plan();
-        let lifetime_by_name = lifetimes
-            .iter()
-            .map(|lifetime| (lifetime.name.as_str(), lifetime))
-            .collect::<BTreeMap<_, _>>();
-        let mut slot_lifetimes = BTreeMap::<usize, Vec<&RenderGraphResourceLifetime>>::new();
-
-        for allocation in allocation_plan
-            .allocations
-            .iter()
-            .filter(|allocation| allocation.kind == RenderGraphResourceKind::TransientBuffer)
-        {
-            let Some(lifetime) = lifetime_by_name.get(allocation.resource_name.as_str()) else {
-                continue;
-            };
-            if lifetime.imported || self.has_buffer(&lifetime.name) {
-                continue;
-            }
-            slot_lifetimes
-                .entry(allocation.slot)
-                .or_default()
-                .push(*lifetime);
-        }
-
-        for (slot, lifetimes) in slot_lifetimes {
-            let desc = buffer_slot_desc(slot, &lifetimes)?;
-            let backing_name = format!("rg-transient-buffer-slot-{slot}");
-            self.insert_buffer_backing(
-                backing_name.clone(),
-                acquire_wgpu_buffer(device, &desc, pool.as_deref_mut()),
-                desc.clone(),
-            );
-            for lifetime in lifetimes {
-                self.bind_buffer(lifetime.name.clone(), &backing_name);
-            }
-        }
-        Ok(())
-    }
-
-    fn should_materialize_texture_lifetime(
-        &self,
-        lifetimes: &[RenderGraphResourceLifetime],
-        lifetime: &RenderGraphResourceLifetime,
-    ) -> Result<bool, String> {
-        if lifetime.imported || self.has_texture_view(&lifetime.name) {
-            return Ok(false);
-        }
-        let RenderGraphResourceDesc::Texture(desc) = &lifetime.desc else {
-            return Err(format!(
-                "render graph resource `{}` has mismatched lifetime kind and descriptor",
-                lifetime.name
-            ));
-        };
-        Ok(!desc.is_sparse_reserved()
-            && ssr_pyramid_mip_alias_for_lifetimes(lifetimes, &lifetime.name).is_none())
-    }
-}
-
-fn compatible_texture_slot_desc(
-    slot: usize,
-    lifetimes: &[&RenderGraphResourceLifetime],
-) -> Result<Option<TextureDesc>, String> {
-    let Some(first) = lifetimes.first() else {
-        return Ok(None);
-    };
-    let RenderGraphResourceDesc::Texture(first_desc) = &first.desc else {
-        return Err(format!(
-            "render graph resource `{}` has mismatched lifetime kind and descriptor",
-            first.name
-        ));
-    };
-    let mut desc = first_desc.clone();
-    desc.label = Some(format!("rg-transient-texture-slot-{slot}"));
-
-    for lifetime in lifetimes.iter().skip(1) {
-        let RenderGraphResourceDesc::Texture(next) = &lifetime.desc else {
-            return Err(format!(
-                "render graph resource `{}` has mismatched lifetime kind and descriptor",
-                lifetime.name
-            ));
-        };
-        if !texture_descs_can_share_wgpu_backing(&desc, next) {
-            return Ok(None);
-        }
-        desc.usage |= next.usage;
-    }
-
-    Ok(Some(desc))
-}
-
-fn texture_descs_can_share_wgpu_backing(left: &TextureDesc, right: &TextureDesc) -> bool {
-    left.width == right.width
-        && left.height == right.height
-        && left.depth == right.depth
-        && left.mip_levels == right.mip_levels
-        && left.sample_count == right.sample_count
-        && left.format == right.format
-        && left.dimension == right.dimension
-        && left.residency == right.residency
-}
-
-fn buffer_slot_desc(
-    slot: usize,
-    lifetimes: &[&RenderGraphResourceLifetime],
-) -> Result<BufferDesc, String> {
-    let Some(first) = lifetimes.first() else {
-        return Err(format!(
-            "render graph transient buffer slot `{slot}` has no logical resources"
-        ));
-    };
-    let RenderGraphResourceDesc::Buffer(first_desc) = &first.desc else {
-        return Err(format!(
-            "render graph resource `{}` has mismatched lifetime kind and descriptor",
-            first.name
-        ));
-    };
-    let mut desc = BufferDesc::new(
-        format!("rg-transient-buffer-slot-{slot}"),
-        first_desc.size_bytes,
-        first_desc.usage,
-    );
-
-    for lifetime in lifetimes.iter().skip(1) {
-        let RenderGraphResourceDesc::Buffer(next) = &lifetime.desc else {
-            return Err(format!(
-                "render graph resource `{}` has mismatched lifetime kind and descriptor",
-                lifetime.name
-            ));
-        };
-        desc.size_bytes = desc.size_bytes.max(next.size_bytes);
-        desc.usage |= next.usage;
-    }
-
-    Ok(desc)
-}
-
-fn acquire_wgpu_texture(
-    device: &wgpu::Device,
-    desc: &TextureDesc,
-    pool: Option<&mut TransientResourcePool>,
-) -> wgpu::Texture {
-    match pool {
-        Some(pool) => pool.acquire_texture(device, desc),
-        None => create_wgpu_texture(device, desc),
-    }
-}
-
-fn acquire_wgpu_buffer(
-    device: &wgpu::Device,
-    desc: &BufferDesc,
-    pool: Option<&mut TransientResourcePool>,
-) -> wgpu::Buffer {
-    match pool {
-        Some(pool) => pool.acquire_buffer(device, desc),
-        None => create_wgpu_buffer(device, desc),
-    }
-}
-
-fn ssr_pyramid_mip_alias_for_lifetimes<'a>(
-    lifetimes: &'a [crate::render_graph::RenderGraphResourceLifetime],
-    name: &str,
-) -> Option<(&'static str, u32)> {
-    let (parent, mip_level) = ssr_pyramid_mip_alias(name)?;
-    lifetimes
-        .iter()
-        .find(|lifetime| lifetime.name == parent)
-        .and_then(|lifetime| match &lifetime.desc {
-            RenderGraphResourceDesc::Texture(desc) if desc.mip_levels > mip_level => {
-                Some((parent, mip_level))
-            }
-            _ => None,
-        })
-}
-
-fn ssr_pyramid_mip_alias(name: &str) -> Option<(&'static str, u32)> {
-    match name {
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE => Some((
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-            1,
-        )),
-        _ => None,
     }
 }
 
@@ -634,175 +444,13 @@ fn texture_full_mip_view_descriptor(mip_level_count: u32) -> wgpu::TextureViewDe
     }
 }
 
-pub(super) fn create_wgpu_texture(device: &wgpu::Device, desc: &TextureDesc) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: desc.label.as_deref(),
-        size: wgpu::Extent3d {
-            width: desc.width,
-            height: desc.height,
-            depth_or_array_layers: desc.depth,
-        },
-        mip_level_count: desc.mip_levels,
-        sample_count: desc.sample_count,
-        dimension: wgpu_texture_dimension(desc.dimension),
-        format: wgpu_texture_format(desc.format),
-        usage: wgpu_texture_usages(desc.format, desc.usage),
-        view_formats: &[],
-    })
-}
-
-pub(super) fn create_wgpu_buffer(device: &wgpu::Device, desc: &BufferDesc) -> wgpu::Buffer {
-    device.create_buffer(&wgpu::BufferDescriptor {
-        label: desc.label.as_deref(),
-        size: desc.size_bytes,
-        usage: wgpu_buffer_usages(desc.usage),
-        mapped_at_creation: false,
-    })
-}
-
-fn wgpu_texture_dimension(dimension: TextureDimension) -> wgpu::TextureDimension {
-    match dimension {
-        TextureDimension::D1 => wgpu::TextureDimension::D1,
-        TextureDimension::D2 | TextureDimension::D2Array | TextureDimension::Cube => {
-            wgpu::TextureDimension::D2
-        }
-        TextureDimension::D3 => wgpu::TextureDimension::D3,
-    }
-}
-
-fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat {
-    match format {
-        TextureFormat::R8Unorm => wgpu::TextureFormat::R8Unorm,
-        TextureFormat::R16Float => wgpu::TextureFormat::R16Float,
-        TextureFormat::R32Float => wgpu::TextureFormat::R32Float,
-        TextureFormat::Rg16Float => wgpu::TextureFormat::Rg16Float,
-        TextureFormat::Rg11b10Ufloat => wgpu::TextureFormat::Rg11b10Ufloat,
-        TextureFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
-        TextureFormat::Rgba8UnormSrgb => wgpu::TextureFormat::Rgba8UnormSrgb,
-        TextureFormat::Bgra8Unorm => wgpu::TextureFormat::Bgra8Unorm,
-        TextureFormat::Bgra8UnormSrgb => wgpu::TextureFormat::Bgra8UnormSrgb,
-        TextureFormat::Rgba16Float => wgpu::TextureFormat::Rgba16Float,
-        TextureFormat::Rgba32Float => wgpu::TextureFormat::Rgba32Float,
-        TextureFormat::Depth24Plus => wgpu::TextureFormat::Depth24Plus,
-        TextureFormat::Depth24PlusStencil8 => wgpu::TextureFormat::Depth24PlusStencil8,
-        TextureFormat::Depth32Float => wgpu::TextureFormat::Depth32Float,
-    }
-}
-
-fn wgpu_texture_usages(format: TextureFormat, usage: TextureUsage) -> wgpu::TextureUsages {
-    let mut usages = wgpu::TextureUsages::empty();
-    if usage.contains(TextureUsage::RENDER_ATTACHMENT) || usage.contains(TextureUsage::PRESENT) {
-        usages |= wgpu::TextureUsages::RENDER_ATTACHMENT;
-    }
-    if usage.contains(TextureUsage::SAMPLED) {
-        usages |= wgpu::TextureUsages::TEXTURE_BINDING;
-    }
-    if usage.contains(TextureUsage::STORAGE) && supports_storage_binding_usage(format) {
-        usages |= wgpu::TextureUsages::STORAGE_BINDING;
-    }
-    if usage.contains(TextureUsage::COPY_SRC) {
-        usages |= wgpu::TextureUsages::COPY_SRC;
-    }
-    if usage.contains(TextureUsage::COPY_DST) {
-        usages |= wgpu::TextureUsages::COPY_DST;
-    }
-    usages
-}
-
-fn supports_storage_binding_usage(format: TextureFormat) -> bool {
-    matches!(
-        format,
-        TextureFormat::R32Float
-            | TextureFormat::Rgba8Unorm
-            | TextureFormat::Rgba16Float
-            | TextureFormat::Rgba32Float
-    )
-}
-
-fn wgpu_buffer_usages(usage: BufferUsage) -> wgpu::BufferUsages {
-    let mut usages = wgpu::BufferUsages::empty();
-    if usage.contains(BufferUsage::VERTEX) {
-        usages |= wgpu::BufferUsages::VERTEX;
-    }
-    if usage.contains(BufferUsage::INDEX) {
-        usages |= wgpu::BufferUsages::INDEX;
-    }
-    if usage.contains(BufferUsage::UNIFORM) {
-        usages |= wgpu::BufferUsages::UNIFORM;
-    }
-    if usage.contains(BufferUsage::STORAGE) {
-        usages |= wgpu::BufferUsages::STORAGE;
-    }
-    if usage.contains(BufferUsage::STAGING_READ) {
-        usages |= wgpu::BufferUsages::MAP_READ;
-    }
-    if usage.contains(BufferUsage::STAGING_WRITE) {
-        usages |= wgpu::BufferUsages::MAP_WRITE;
-    }
-    if usage.contains(BufferUsage::INDIRECT) {
-        usages |= wgpu::BufferUsages::INDIRECT;
-    }
-    if usage.contains(BufferUsage::COPY_SRC) {
-        usages |= wgpu::BufferUsages::COPY_SRC;
-    }
-    if usage.contains(BufferUsage::COPY_DST) {
-        usages |= wgpu::BufferUsages::COPY_DST;
-    }
-    usages
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{wgpu_texture_usages, RenderGraphExecutionResources};
-    use crate::core::framework::render::PostProcessGraphResourceNames;
-    use crate::graphics::backend::RenderBackend;
+    use super::RenderGraphExecutionResources;
     use crate::render_graph::{
         PassFlags, QueueLane, RenderGraphBuilder, RenderGraphResource, RenderGraphResourceKind,
     };
     use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
-
-    #[test]
-    fn non_storage_texture_formats_do_not_request_storage_binding() {
-        for format in [
-            TextureFormat::R8Unorm,
-            TextureFormat::R16Float,
-            TextureFormat::Rg16Float,
-            TextureFormat::Rg11b10Ufloat,
-        ] {
-            let usages = storage_requested_usages_for(format);
-
-            assert!(usages.contains(wgpu::TextureUsages::RENDER_ATTACHMENT));
-            assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
-            assert!(!usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
-            assert!(usages.contains(wgpu::TextureUsages::COPY_SRC));
-            assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
-        }
-    }
-
-    #[test]
-    fn storage_texture_formats_request_storage_binding() {
-        for format in [
-            TextureFormat::R32Float,
-            TextureFormat::Rgba8Unorm,
-            TextureFormat::Rgba16Float,
-            TextureFormat::Rgba32Float,
-        ] {
-            let usages = storage_requested_usages_for(format);
-
-            assert!(usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
-        }
-    }
-
-    fn storage_requested_usages_for(format: TextureFormat) -> wgpu::TextureUsages {
-        wgpu_texture_usages(
-            format,
-            TextureUsage::RENDER_ATTACHMENT
-                | TextureUsage::SAMPLED
-                | TextureUsage::STORAGE
-                | TextureUsage::COPY_SRC
-                | TextureUsage::COPY_DST,
-        )
-    }
 
     #[test]
     fn resource_registry_reports_missing_named_resources() {
@@ -869,370 +517,5 @@ mod tests {
                 .unwrap_err(),
             "render graph execution resource `light-list` is a buffer declaration, not a texture view"
         );
-    }
-
-    #[test]
-    fn materialization_creates_dense_transients_and_skips_sparse_reservations() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("materialization");
-        let shadow = builder.create_texture(TextureDesc::new(
-            "shadow-atlas",
-            64,
-            64,
-            TextureFormat::Depth32Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let sparse = builder.create_texture(
-            TextureDesc::new(
-                "sparse-pages",
-                128,
-                128,
-                TextureFormat::Rgba8Unorm,
-                TextureUsage::SAMPLED | TextureUsage::STORAGE,
-            )
-            .with_sparse_residency(),
-        );
-        let scratch = builder.create_buffer(BufferDesc::new(
-            "scratch",
-            16,
-            BufferUsage::STORAGE | BufferUsage::COPY_DST,
-        ));
-        let pass = builder.add_pass("materialize", QueueLane::Graphics);
-        builder
-            .set_pass_flags(
-                pass,
-                PassFlags {
-                    allow_culling: true,
-                    has_side_effects: true,
-                },
-            )
-            .unwrap();
-        builder.write_texture(pass, shadow).unwrap();
-        builder.write_storage_texture(pass, sparse).unwrap();
-        builder.write_buffer(pass, scratch).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert!(resources.has_texture_view("shadow-atlas"));
-        assert!(
-            !resources.has_texture_view("sparse-pages"),
-            "sparse reservations must not be silently backed by a dense WGPU texture"
-        );
-        assert!(resources.has_buffer("scratch"));
-        assert!(resources.has_bound_resource("shadow-atlas"));
-        assert!(resources.has_bound_resource("scratch"));
-        assert!(!resources.has_bound_resource("sparse-pages"));
-        assert_eq!(
-            resources.resource_report(),
-            crate::core::framework::render::RenderGraphExecutionResourceReport::new(1, 0, 1, 1)
-        );
-    }
-
-    #[test]
-    fn materialization_aliases_compatible_transient_texture_slots() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("compatible-texture-aliasing");
-        let first = builder.create_texture(TextureDesc::new(
-            "first-color",
-            32,
-            32,
-            TextureFormat::Rgba8Unorm,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let second = builder.create_texture(TextureDesc::new(
-            "second-color",
-            32,
-            32,
-            TextureFormat::Rgba8Unorm,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let output = builder.import_external_resource("viewport-output");
-        let first_write = builder.add_pass("first-write", QueueLane::Graphics);
-        let first_read = builder.add_pass("first-read", QueueLane::Graphics);
-        let second_write = builder.add_pass("second-write", QueueLane::Graphics);
-        let second_read = builder.add_pass("second-read", QueueLane::Graphics);
-        builder.write_texture(first_write, first).unwrap();
-        builder.read_texture(first_read, first).unwrap();
-        builder.write_texture(second_write, second).unwrap();
-        builder.read_texture(second_read, second).unwrap();
-        builder.write_external(second_read, output).unwrap();
-        builder.add_dependency(first_read, second_write).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert_eq!(graph.transient_allocation_plan().texture_slot_count, 1);
-        assert!(resources.has_texture_view("first-color"));
-        assert!(resources.has_texture_view("second-color"));
-        assert!(resources.owned_texture("first-color").is_some());
-        assert!(resources.owned_texture("second-color").is_some());
-        let report = resources.resource_report();
-        assert_eq!(
-            report.owned_texture_count, 1,
-            "compatible non-overlapping logical textures should share one WGPU backing texture"
-        );
-        assert_eq!(report.external_texture_view_count, 0);
-        assert_eq!(report.texture_view_count, 2);
-    }
-
-    #[test]
-    fn materialization_keeps_incompatible_texture_slot_resources_separate() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("incompatible-texture-aliasing");
-        let large = builder.create_texture(TextureDesc::new(
-            "large-color",
-            64,
-            64,
-            TextureFormat::Rgba8Unorm,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let small = builder.create_texture(TextureDesc::new(
-            "small-color",
-            16,
-            16,
-            TextureFormat::Rgba8Unorm,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let output = builder.import_external_resource("viewport-output");
-        let large_write = builder.add_pass("large-write", QueueLane::Graphics);
-        let large_read = builder.add_pass("large-read", QueueLane::Graphics);
-        let small_write = builder.add_pass("small-write", QueueLane::Graphics);
-        let small_read = builder.add_pass("small-read", QueueLane::Graphics);
-        builder.write_texture(large_write, large).unwrap();
-        builder.read_texture(large_read, large).unwrap();
-        builder.write_texture(small_write, small).unwrap();
-        builder.read_texture(small_read, small).unwrap();
-        builder.write_external(small_read, output).unwrap();
-        builder.add_dependency(large_read, small_write).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert_eq!(
-            graph.transient_allocation_plan().texture_slot_count,
-            1,
-            "the neutral byte plan may reserve one slot even when concrete WGPU textures need separate descriptors"
-        );
-        assert!(resources.has_texture_view("large-color"));
-        assert!(resources.has_texture_view("small-color"));
-        let report = resources.resource_report();
-        assert_eq!(
-            report.owned_texture_count, 2,
-            "WGPU backing must not alias logical textures with different extents"
-        );
-        assert_eq!(report.external_texture_view_count, 0);
-        assert_eq!(report.texture_view_count, 2);
-    }
-
-    #[test]
-    fn materialization_aliases_transient_buffer_slots() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("compatible-buffer-aliasing");
-        let first = builder.create_buffer(BufferDesc::new(
-            "first-indirect",
-            64,
-            BufferUsage::STORAGE | BufferUsage::COPY_DST,
-        ));
-        let second = builder.create_buffer(BufferDesc::new(
-            "second-indirect",
-            128,
-            BufferUsage::STORAGE | BufferUsage::INDIRECT,
-        ));
-        let output = builder.import_external_resource("viewport-output");
-        let first_write = builder.add_pass("first-buffer-write", QueueLane::Graphics);
-        let first_read = builder.add_pass("first-buffer-read", QueueLane::Graphics);
-        let second_write = builder.add_pass("second-buffer-write", QueueLane::Graphics);
-        let second_read = builder.add_pass("second-buffer-read", QueueLane::Graphics);
-        builder.write_buffer(first_write, first).unwrap();
-        builder.read_buffer(first_read, first).unwrap();
-        builder.write_buffer(second_write, second).unwrap();
-        builder.read_buffer(second_read, second).unwrap();
-        builder.write_external(second_read, output).unwrap();
-        builder.add_dependency(first_read, second_write).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert_eq!(graph.transient_allocation_plan().buffer_slot_count, 1);
-        assert!(resources.has_buffer("first-indirect"));
-        assert!(resources.has_buffer("second-indirect"));
-        let report = resources.resource_report();
-        assert_eq!(
-            report.buffer_count, 1,
-            "compatible non-overlapping logical buffers should share one WGPU backing buffer"
-        );
-        assert_eq!(report.texture_view_count, 0);
-        assert_eq!(report.total_bound_resource_count, 1);
-    }
-
-    #[test]
-    fn materialization_exposes_owned_texture_mip_views() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("mipped-materialization");
-        let pyramid = builder.create_texture(
-            TextureDesc::new(
-                "mipped-pyramid",
-                64,
-                32,
-                TextureFormat::Rgba16Float,
-                TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-            )
-            .with_mip_levels(3),
-        );
-        let pass = builder.add_pass("write-mip-zero", QueueLane::Graphics);
-        builder.write_texture(pass, pyramid).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert!(resources.has_texture_view("mipped-pyramid"));
-        assert!(resources
-            .owned_texture_mip_view("mipped-pyramid", 1)
-            .is_ok());
-        assert_eq!(
-            resources
-                .owned_texture_mip_view("mipped-pyramid", 3)
-                .unwrap_err(),
-            "render graph execution texture resource `mipped-pyramid` mip level 3 is outside mip_levels 3"
-        );
-    }
-
-    #[test]
-    fn materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("ssr-mip-aliases");
-        let reflection_pyramid = builder.create_texture(
-            TextureDesc::new(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-                64,
-                32,
-                TextureFormat::Rgba16Float,
-                TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-            )
-            .with_mip_levels(3),
-        );
-        let reflection_pyramid_coarse = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
-            32,
-            16,
-            TextureFormat::Rgba16Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let output = builder.import_external_resource("viewport-output");
-        let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
-        builder
-            .write_texture(reflection_pass, reflection_pyramid)
-            .unwrap();
-        let reflection_coarse_pass =
-            builder.add_pass("reflection-pyramid-coarse", QueueLane::Graphics);
-        builder
-            .read_texture(reflection_coarse_pass, reflection_pyramid)
-            .unwrap();
-        builder
-            .write_texture(reflection_coarse_pass, reflection_pyramid_coarse)
-            .unwrap();
-        let output_pass = builder.add_pass("output", QueueLane::Graphics);
-        builder
-            .read_texture(output_pass, reflection_pyramid_coarse)
-            .unwrap();
-        builder.write_external(output_pass, output).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert!(resources.has_texture_view(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-        ));
-        assert!(resources.has_texture_view(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-        ));
-        assert!(resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-            )
-            .is_some());
-        assert!(resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-            )
-            .is_none());
-        let report = resources.resource_report();
-        assert_eq!(report.external_texture_view_count, 0);
-        assert_eq!(report.owned_texture_count, 1);
-        assert_eq!(report.texture_view_count, 2);
-    }
-
-    #[test]
-    fn materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let mut builder = RenderGraphBuilder::new("ssr-small-pyramid");
-        let reflection_pyramid = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-            1,
-            1,
-            TextureFormat::Rgba16Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let reflection_pyramid_coarse = builder.create_texture(TextureDesc::new(
-            PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
-            1,
-            1,
-            TextureFormat::Rgba16Float,
-            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
-        ));
-        let output = builder.import_external_resource("viewport-output");
-        let reflection_pass = builder.add_pass("reflection-pyramid", QueueLane::Graphics);
-        builder
-            .write_texture(reflection_pass, reflection_pyramid)
-            .unwrap();
-        let reflection_coarse_pass =
-            builder.add_pass("reflection-pyramid-coarse", QueueLane::Graphics);
-        builder
-            .read_texture(reflection_coarse_pass, reflection_pyramid)
-            .unwrap();
-        builder
-            .write_texture(reflection_coarse_pass, reflection_pyramid_coarse)
-            .unwrap();
-        let output_pass = builder.add_pass("output", QueueLane::Graphics);
-        builder
-            .read_texture(output_pass, reflection_pyramid_coarse)
-            .unwrap();
-        builder.write_external(output_pass, output).unwrap();
-        let graph = builder.compile().unwrap();
-        let mut resources = RenderGraphExecutionResources::new();
-
-        resources
-            .materialize_transient_resources(&backend.device, &graph)
-            .unwrap();
-
-        assert!(resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID
-            )
-            .is_some());
-        assert!(resources
-            .owned_texture(
-                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE
-            )
-            .is_some());
     }
 }

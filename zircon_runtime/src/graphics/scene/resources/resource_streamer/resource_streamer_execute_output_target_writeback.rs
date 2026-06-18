@@ -105,6 +105,11 @@ impl ResourceStreamer {
                 RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());
         }
     }
+
+    pub(crate) fn suppress_output_target_writeback(&mut self, frame: &ViewportRenderFrame) {
+        self.last_output_target_writeback_report =
+            RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());
+    }
 }
 
 fn output_target_texture_id(frame: &ViewportRenderFrame) -> Option<ResourceId> {

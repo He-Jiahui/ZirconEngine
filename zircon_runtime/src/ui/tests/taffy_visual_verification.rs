@@ -24,7 +24,7 @@ fn taffy_layout_docs_keep_visual_profile_gate() {
         "ui_hotspots.json",
         "Layout Engine",
         "selected=Taffy",
-        "selected=LegacyZircon",
+        "selected=Zircon",
         "no overlapping or clipped rows",
         "If `-CaptureSoftbufferScreenshot` is not available",
     ] {

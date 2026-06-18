@@ -17,6 +17,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process) struct DepthOfField
 impl DepthOfFieldPrepareParams {
     pub(in crate::graphics::scene::scene_renderer::post_process) fn from_camera(
         viewport_size: UVec2,
+        scene_origin: [u32; 2],
         camera: &ViewportCameraSnapshot,
         settings: RenderDepthOfFieldSettings,
     ) -> Self {
@@ -25,7 +26,12 @@ impl DepthOfFieldPrepareParams {
         let max_radius = settings.max_blur_radius.max(0.0);
 
         Self {
-            viewport: [viewport_size.x.max(1), viewport_size.y.max(1), 0, 0],
+            viewport: [
+                viewport_size.x.max(1),
+                viewport_size.y.max(1),
+                scene_origin[0],
+                scene_origin[1],
+            ],
             depth: [
                 near,
                 far,
@@ -76,6 +82,7 @@ mod tests {
         };
         let params = DepthOfFieldPrepareParams::from_camera(
             UVec2::new(1920, 1080),
+            [0, 0],
             &camera,
             RenderDepthOfFieldSettings {
                 focus_distance: 8.0,

@@ -2,11 +2,11 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     CapabilityStatus, ExportPackagingStrategy, PluginModuleKind, PluginPackageManifest,
     RuntimePluginCatalog, RuntimePluginDescriptor,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_members() {

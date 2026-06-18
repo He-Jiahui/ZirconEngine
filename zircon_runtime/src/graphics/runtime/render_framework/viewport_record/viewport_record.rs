@@ -4,8 +4,8 @@ use crate::core::framework::render::{
 };
 
 use crate::graphics::visibility::VisibilityStaticIndex;
-use crate::{
-    graphics::backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
+use crate::graphics::{
+    backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
     HybridGiRuntimeState, VirtualGeometryRuntimeState,
 };
 

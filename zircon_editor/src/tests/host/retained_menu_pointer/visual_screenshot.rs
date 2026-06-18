@@ -96,7 +96,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         &build_export,
         None,
         None,
-        None,
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
         None,
     );
@@ -183,7 +183,7 @@ fn capture_close_prompt_visual_artifact() {
         &build_export,
         None,
         None,
-        None,
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
         None,
     );
@@ -542,7 +542,7 @@ fn presented_window_from_chrome(
         &build_export,
         None,
         None,
-        None,
+        crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
         None,
     );

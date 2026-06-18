@@ -78,7 +78,7 @@ fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass(
         "Runtime script host ledger doc",
         function_ledger,
         &[
-            "6 host modules, 50 fixed host functions, and 2 fixed script type descriptors",
+            "6 host modules, 52 fixed host functions, and 2 fixed script type descriptors",
             "host_function_registry_matches_documented_ledger",
             "host_capability_representatives_are_declared_on_registered_modules",
             "script_held_entity_handle_reports_invalid_after_despawn",

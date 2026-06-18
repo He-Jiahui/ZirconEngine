@@ -226,7 +226,7 @@ fn surface_dirty_layout_preserves_unvisited_layout_engine_routes() {
     assert_eq!(root_selection.request.family, UiLayoutEngineFamily::Free);
     assert_eq!(
         root_selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(root_selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
@@ -282,7 +282,7 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         &initial_report,
         root_id(),
         UiLayoutEngineFamily::Free,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
     );
@@ -290,7 +290,7 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         &initial_report,
         primary_id(),
         UiLayoutEngineFamily::Flex,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::AxisConstraintPriority),
     );
@@ -316,7 +316,7 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         &surface.layout_engine_report,
         root_id(),
         UiLayoutEngineFamily::Free,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
     );
@@ -324,7 +324,7 @@ fn surface_dirty_layout_replaces_visited_layout_engine_routes() {
         &surface.layout_engine_report,
         primary_id(),
         UiLayoutEngineFamily::Overlay,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
     );
@@ -354,7 +354,7 @@ fn surface_dirty_layout_drops_removed_layout_engine_routes() {
         &surface.layout_engine_report,
         primary_id(),
         UiLayoutEngineFamily::Flex,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::AxisConstraintPriority),
     );
@@ -376,7 +376,7 @@ fn surface_dirty_layout_drops_removed_layout_engine_routes() {
         &surface.layout_engine_report,
         root_id(),
         UiLayoutEngineFamily::Free,
-        UiLayoutEngineBackend::LegacyZircon,
+        UiLayoutEngineBackend::Zircon,
         UiLayoutEngineSupport::Fallback,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics),
     );

@@ -8,43 +8,51 @@ use zircon_runtime_interface::ui::{
 };
 
 pub(super) fn pointer_reply(
-    legacy: &UiPointerDispatchResult,
+    routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
 ) -> UiDispatchReply {
-    let effects = pointer_reply_effects(legacy, pointer_id);
-    let component_handler = pointer_component_handler(legacy);
+    let effects = pointer_reply_effects(routed_result, pointer_id);
+    let component_handler = pointer_component_handler(routed_result);
     // A delivered component event is the unified input equivalent of a handled widget reply.
-    let disposition = if legacy.blocked_by.is_some() {
+    let disposition = if routed_result.blocked_by.is_some() {
         UiDispatchDisposition::Blocked
-    } else if legacy.handled_by.is_some() || component_handler.is_some() || !effects.is_empty() {
+    } else if routed_result.handled_by.is_some()
+        || component_handler.is_some()
+        || !effects.is_empty()
+    {
         UiDispatchDisposition::Handled
-    } else if !legacy.passthrough.is_empty() {
+    } else if !routed_result.passthrough.is_empty() {
         UiDispatchDisposition::Passthrough
     } else {
         UiDispatchDisposition::Unhandled
     };
     UiDispatchReply {
         disposition,
-        handler: legacy
+        handler: routed_result
             .handled_by
-            .or(legacy.blocked_by)
+            .or(routed_result.blocked_by)
             .or(component_handler),
-        phase: pointer_reply_phase(legacy, component_handler),
+        phase: pointer_reply_phase(routed_result, component_handler),
         effects,
     }
 }
 
-pub(super) fn pointer_component_handler(legacy: &UiPointerDispatchResult) -> Option<UiNodeId> {
-    legacy.component_events.last().map(|event| event.node_id)
+pub(super) fn pointer_component_handler(
+    routed_result: &UiPointerDispatchResult,
+) -> Option<UiNodeId> {
+    routed_result
+        .component_events
+        .last()
+        .map(|event| event.node_id)
 }
 
 fn pointer_reply_phase(
-    legacy: &UiPointerDispatchResult,
+    routed_result: &UiPointerDispatchResult,
     component_handler: Option<UiNodeId>,
 ) -> Option<UiDispatchPhase> {
-    let handler = legacy.handled_by.or(legacy.blocked_by);
+    let handler = routed_result.handled_by.or(routed_result.blocked_by);
     if let Some(handler) = handler {
-        return legacy
+        return routed_result
             .invocations
             .iter()
             .rev()
@@ -55,7 +63,7 @@ fn pointer_reply_phase(
     if component_handler.is_some() {
         return Some(UiDispatchPhase::Target);
     }
-    legacy
+    routed_result
         .invocations
         .iter()
         .rev()
@@ -71,39 +79,39 @@ fn pointer_reply_phase(
 }
 
 fn pointer_reply_effects(
-    legacy: &UiPointerDispatchResult,
+    routed_result: &UiPointerDispatchResult,
     pointer_id: UiPointerId,
 ) -> Vec<UiDispatchEffect> {
     let mut effects = Vec::new();
-    if let Some(target) = legacy.captured_by {
+    if let Some(target) = routed_result.captured_by {
         effects.push(UiDispatchEffect::CapturePointer {
             target,
             pointer_id,
             reason: UiPointerCaptureReason::Press,
         });
     }
-    if let Some(target) = pointer_release_target(legacy) {
+    if let Some(target) = pointer_release_target(routed_result) {
         effects.push(UiDispatchEffect::ReleasePointerCapture {
             target,
             pointer_id,
             reason: UiPointerCaptureReason::Cancel,
         });
     }
-    if let Some(target) = legacy.focus_changed_to {
+    if let Some(target) = routed_result.focus_changed_to {
         effects.push(UiDispatchEffect::SetFocus {
             target,
             reason: UiFocusEffectReason::Input,
         });
     }
-    if legacy.focus_cleared {
-        if let Some(target) = legacy.route.focused {
+    if routed_result.focus_cleared {
+        if let Some(target) = routed_result.route.focused {
             effects.push(UiDispatchEffect::ClearFocus {
                 target,
                 reason: UiFocusEffectReason::Input,
             });
         }
     }
-    for invocation in &legacy.invocations {
+    for invocation in &routed_result.invocations {
         if let UiPointerDispatchEffect::RequestDirty(dirty) = invocation.effect {
             if dirty.any() {
                 effects.push(UiDispatchEffect::DirtyRedraw {
@@ -114,34 +122,39 @@ fn pointer_reply_effects(
             }
         }
     }
-    if legacy.requested_dirty.any()
+    if routed_result.requested_dirty.any()
         && !effects
             .iter()
             .any(|effect| matches!(effect, UiDispatchEffect::DirtyRedraw { .. }))
     {
-        if let Some(target) = legacy.route.target {
+        if let Some(target) = routed_result.route.target {
             effects.push(UiDispatchEffect::DirtyRedraw {
                 target,
-                dirty: legacy.requested_dirty,
+                dirty: routed_result.requested_dirty,
                 reason: UiRedrawRequestReason::Input,
             });
         } else {
-            effects.extend(legacy.route.root_targets.iter().copied().map(|target| {
-                UiDispatchEffect::DirtyRedraw {
-                    target,
-                    dirty: legacy.requested_dirty,
-                    reason: UiRedrawRequestReason::Input,
-                }
-            }));
+            effects.extend(
+                routed_result
+                    .route
+                    .root_targets
+                    .iter()
+                    .copied()
+                    .map(|target| UiDispatchEffect::DirtyRedraw {
+                        target,
+                        dirty: routed_result.requested_dirty,
+                        reason: UiRedrawRequestReason::Input,
+                    }),
+            );
         }
     }
     effects
 }
 
-fn pointer_release_target(legacy: &UiPointerDispatchResult) -> Option<UiNodeId> {
-    legacy.released_capture.or_else(|| {
-        (legacy.diagnostics.capture_released && legacy.captured_by.is_none())
-            .then_some(legacy.route.captured)
+fn pointer_release_target(routed_result: &UiPointerDispatchResult) -> Option<UiNodeId> {
+    routed_result.released_capture.or_else(|| {
+        (routed_result.diagnostics.capture_released && routed_result.captured_by.is_none())
+            .then_some(routed_result.route.captured)
             .flatten()
     })
 }

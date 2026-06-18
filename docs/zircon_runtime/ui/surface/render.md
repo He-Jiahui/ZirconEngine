@@ -20,7 +20,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
@@ -82,7 +82,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/painter/template_drag_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
   - zircon_runtime/src/ui/surface/render/feedback.rs
@@ -345,9 +345,9 @@ The first focused atom Cargo command used a cold `D:\cargo-targets\zircon-editor
 
 `render_extract_command_palette_draws_search_panel_and_filtered_command_rows` locks the M3.S3 `CommandPalette` baseline. It verifies the open palette emits its own panel and search field, carries focused text-field state for the query, renders `filtered_commands` in order through `PopupRow` commands, paints disabled command rows with unavailable text, and suppresses the generic owner label so the overlay does not double-draw its title.
 
-`render_extract_drag_overlay_draws_preview_chip_and_drop_indicator` locks the M3.S4 drag overlay baseline. It verifies an open asset drag draws the cursor-offset preview surface, payload icon and label, bottom drop indicator, `Chrome` dragging/drop-hover painter states, and no duplicate owner fallback text. `render_extract_closed_drag_overlay_suppresses_owner_fallback` covers the closed shell path: the overlay may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/painter/drag_overlay.md`; it uses `workbench_drag_overlay.zui`, `pane_component_projection/drag_overlay.rs`, and `template_drag_overlay.rs` to keep Workbench-native preview chip and drop-indicator geometry aligned with the runtime render path.
+`render_extract_drag_overlay_draws_preview_chip_and_drop_indicator` locks the M3.S4 drag overlay baseline. It verifies an open asset drag draws the cursor-offset preview surface, payload icon and label, bottom drop indicator, `Chrome` dragging/drop-hover painter states, and no duplicate owner fallback text. `render_extract_closed_drag_overlay_suppresses_owner_fallback` covers the closed shell path: the overlay may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/drag_overlay.md`; it uses `workbench_drag_overlay.zui`, `pane_component_projection/drag_overlay.rs`, and `template_drag_overlay.rs` to keep Workbench-native preview chip and drop-indicator geometry aligned with the runtime render path.
 
-`render_extract_notification_center_draws_panel_header_and_notifications` locks the L3 `NotificationCenter` render baseline. It verifies the open center emits the Toast-family panel, unread header, selected and focused notification rows, severity markers, title/message text, and no generic owner fallback. `render_extract_closed_notification_center_suppresses_owner_fallback` covers the closed shell path: the notification center may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/painter/notification_center.md` and must keep the same open/closed and row-state distinctions.
+`render_extract_notification_center_draws_panel_header_and_notifications` locks the L3 `NotificationCenter` render baseline. It verifies the open center emits the Toast-family panel, unread header, selected and focused notification rows, severity markers, title/message text, and no generic owner fallback. `render_extract_closed_notification_center_suppresses_owner_fallback` covers the closed shell path: the notification center may leave only the inert owner group command but must emit no visible quad, text, or image payload. The retained-host parity path is documented in `docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/notification_center.md` and must keep the same open/closed and row-state distinctions.
 
 2026-06-14 scoped validation for the popup anchor positioning slice passed focused rustfmt for `popup_position.rs`, popup render modules, and the two render tests. Scoped `git diff --check` also passed with LF-to-CRLF warnings only. Runtime Cargo check/test execution is deferred while a separate render Cargo lane is still active in the shared checkout.
 

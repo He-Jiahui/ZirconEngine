@@ -1,4 +1,5 @@
-use crate::{plugin::ExportProfile, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::ExportProfile;
 
 use super::ExportLinkedRuntimeCrate;
 

@@ -15,6 +15,8 @@ pub(super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/test_owner_split.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs",
     "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs",
     "zircon_app/src/entry/runtime_library/loaded_runtime.rs",

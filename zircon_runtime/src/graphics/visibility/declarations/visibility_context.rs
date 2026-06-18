@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::core::framework::scene::EntityId;
 
 use super::super::view_context::FrameVisibility;
@@ -25,11 +27,8 @@ pub struct VisibilityContext {
     pub renderable_entities: Vec<EntityId>,
     pub static_entities: Vec<EntityId>,
     pub dynamic_entities: Vec<EntityId>,
-    pub visible_entities: Vec<EntityId>,
-    pub culled_entities: Vec<EntityId>,
     pub primitive_relevance: Vec<VisibilityRelevanceEntry>,
     pub batches: Vec<VisibilityBatch>,
-    pub visible_batches: Vec<VisibilityBatch>,
     pub visible_instances: Vec<EntityId>,
     pub draw_commands: Vec<VisibilityDrawCommand>,
     pub bvh_instances: Vec<VisibilityBvhInstance>,
@@ -52,5 +51,49 @@ pub struct VisibilityContext {
 impl VisibilityContext {
     pub(crate) fn static_index(&self) -> &VisibilityStaticIndex {
         &self.static_index
+    }
+
+    /// Main-view visibility is derived from `FrameVisibility` so there is only one
+    /// authoritative per-view visibility store in the context.
+    pub fn main_view_visible_entities(&self) -> Vec<EntityId> {
+        self.main_view_visible_entity_set().into_iter().collect()
+    }
+
+    pub fn main_view_visible_entity_set(&self) -> BTreeSet<EntityId> {
+        self.frame_visibility.main_view_visible_entity_set()
+    }
+
+    pub fn main_view_culled_entities(&self) -> Vec<EntityId> {
+        let visible_entities = self.main_view_visible_entity_set();
+        self.renderable_entities
+            .iter()
+            .copied()
+            .filter(|entity| !visible_entities.contains(entity))
+            .collect()
+    }
+
+    pub fn main_view_visible_batches(&self) -> Vec<VisibilityBatch> {
+        Self::visible_batches_for_entities(&self.batches, &self.main_view_visible_entity_set())
+    }
+
+    pub(crate) fn visible_batches_for_entities(
+        batches: &[VisibilityBatch],
+        visible_entities: &BTreeSet<EntityId>,
+    ) -> Vec<VisibilityBatch> {
+        batches
+            .iter()
+            .filter_map(|batch| {
+                let entities = batch
+                    .entities
+                    .iter()
+                    .copied()
+                    .filter(|entity| visible_entities.contains(entity))
+                    .collect::<Vec<_>>();
+                (!entities.is_empty()).then_some(VisibilityBatch {
+                    key: batch.key,
+                    entities,
+                })
+            })
+            .collect()
     }
 }

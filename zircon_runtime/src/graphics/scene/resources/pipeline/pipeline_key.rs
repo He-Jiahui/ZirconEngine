@@ -1,4 +1,7 @@
-use crate::core::framework::render::RenderMaterialLightingModel;
+use crate::core::framework::render::{
+    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+    ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+};
 use crate::core::resource::ResourceId;
 
 use super::super::fallback_shader_uri;
@@ -11,7 +14,7 @@ pub(crate) struct PipelineKey {
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_mask: bool,
     pub(crate) alpha_cutoff_bits: Option<u32>,
-    pub(crate) lighting_model: RenderMaterialLightingModel,
+    pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
     pub(crate) has_base_color_texture: bool,
     pub(crate) has_normal_texture: bool,
@@ -32,10 +35,54 @@ impl PipelineKey {
     pub(crate) fn uses_fallback_shader(&self) -> bool {
         self.shader_id == ResourceId::from_locator(&fallback_shader_uri())
     }
+
+    pub(crate) fn shader_variant_key(
+        &self,
+        pass_type: ShaderPassType,
+        platform_token: impl Into<String>,
+    ) -> ShaderVariantKey {
+        self.shader_variant_key_for_geometry(
+            pass_type,
+            GEOMETRY_SOURCE_ID_STATIC_MESH,
+            platform_token,
+        )
+    }
+
+    pub(crate) fn shader_variant_key_for_geometry(
+        &self,
+        pass_type: ShaderPassType,
+        geometry_source: GeometrySourceId,
+        platform_token: impl Into<String>,
+    ) -> ShaderVariantKey {
+        ShaderVariantKey {
+            material_shader: self.shader_id,
+            material_revision: self.shader_revision,
+            geometry_source,
+            shading_model: self.shading_model_id,
+            pass_type,
+            features: self.shader_feature_bits(),
+            quality: ShaderQualityTier::Medium,
+            platform_token: platform_token.into(),
+        }
+    }
+
+    fn shader_feature_bits(&self) -> ShaderFeatureBits {
+        let mut bits = 0;
+        if self.alpha_mask {
+            bits |= ShaderFeatureBits::ALPHA_TEST;
+        }
+        if self.double_sided {
+            bits |= ShaderFeatureBits::DOUBLE_SIDED;
+        }
+        ShaderFeatureBits::new(bits)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::{
+        ShaderFeatureBits, ShaderPassType, SHADING_MODEL_ID_STANDARD_PBR,
+    };
     use crate::core::resource::ResourceId;
     use crate::graphics::scene::resources::default_pipeline_key;
 
@@ -46,5 +93,23 @@ mod tests {
 
         key.shader_id = ResourceId::from_stable_label("res://shaders/custom-material.wgsl");
         assert!(!key.uses_fallback_shader());
+    }
+
+    #[test]
+    fn pipeline_key_derives_material_shader_variant_key() {
+        let mut key = default_pipeline_key();
+        key.shader_revision = 42;
+        key.double_sided = true;
+        key.alpha_mask = true;
+
+        let variant = key.shader_variant_key(ShaderPassType::GBuffer, "wgpu-test");
+
+        assert_eq!(variant.material_shader, key.shader_id);
+        assert_eq!(variant.material_revision, 42);
+        assert_eq!(variant.shading_model, SHADING_MODEL_ID_STANDARD_PBR);
+        assert_eq!(variant.pass_type, ShaderPassType::GBuffer);
+        assert_eq!(variant.platform_token, "wgpu-test");
+        assert!(variant.features.contains(ShaderFeatureBits::ALPHA_TEST));
+        assert!(variant.features.contains(ShaderFeatureBits::DOUBLE_SIDED));
     }
 }

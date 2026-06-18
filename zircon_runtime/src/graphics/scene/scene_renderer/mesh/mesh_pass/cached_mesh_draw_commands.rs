@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::core::framework::render::{RenderMeshStaticState, RenderPhase};
+use crate::core::framework::render::{
+    RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MeshDrawQueuePhase;
 
@@ -18,6 +20,10 @@ pub(crate) struct MeshDrawCommandCacheStats {
     pub(crate) cached_command_hit_count: usize,
     pub(crate) command_rebuild_count: usize,
     pub(crate) dynamic_command_count: usize,
+    pub(crate) cache_miss_count: usize,
+    pub(crate) cache_invalidated_transform_count: usize,
+    pub(crate) cache_invalidated_geometry_count: usize,
+    pub(crate) cache_invalidated_material_count: usize,
 }
 
 #[derive(Default)]
@@ -43,18 +49,35 @@ impl CachedMeshDrawKey {
 }
 
 impl CachedMeshDrawCommands {
+    pub(crate) fn lookup_status(
+        &mut self,
+        key: &CachedMeshDrawKey,
+        state: &RenderMeshStaticState,
+        generation: u64,
+    ) -> CachedMeshDrawLookup {
+        let Some(entry) = self.entries.get_mut(key) else {
+            return CachedMeshDrawLookup::Miss;
+        };
+        if entry.state != *state {
+            return CachedMeshDrawLookup::Invalidated(CachedMeshDrawInvalidation::from_states(
+                entry.state,
+                *state,
+            ));
+        }
+        entry.last_touched_generation = generation;
+        CachedMeshDrawLookup::Hit(entry.command.clone())
+    }
+
     pub(crate) fn lookup(
         &mut self,
         key: &CachedMeshDrawKey,
         state: &RenderMeshStaticState,
         generation: u64,
     ) -> Option<MeshDrawCommand> {
-        let entry = self.entries.get_mut(key)?;
-        if entry.state != *state {
-            return None;
+        match self.lookup_status(key, state, generation) {
+            CachedMeshDrawLookup::Hit(command) => Some(command),
+            CachedMeshDrawLookup::Miss | CachedMeshDrawLookup::Invalidated(_) => None,
         }
-        entry.last_touched_generation = generation;
-        Some(entry.command.clone())
     }
 
     pub(crate) fn store(
@@ -92,6 +115,43 @@ impl CachedMeshDrawCommands {
     }
 }
 
+pub(crate) enum CachedMeshDrawLookup {
+    Hit(MeshDrawCommand),
+    Miss,
+    Invalidated(CachedMeshDrawInvalidation),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct CachedMeshDrawInvalidation {
+    pub(crate) transform_changed: bool,
+    pub(crate) geometry_changed: bool,
+    pub(crate) material_changed: bool,
+}
+
+impl CachedMeshDrawInvalidation {
+    const fn from_states(previous: RenderMeshStaticState, current: RenderMeshStaticState) -> Self {
+        Self {
+            transform_changed: previous.transform_static != current.transform_static,
+            geometry_changed: previous.geometry_revision != current.geometry_revision,
+            material_changed: previous.material_revision != current.material_revision,
+        }
+    }
+}
+
+impl MeshDrawCommandCacheStats {
+    pub(crate) fn record_invalidation(&mut self, invalidation: CachedMeshDrawInvalidation) {
+        if invalidation.transform_changed {
+            self.cache_invalidated_transform_count += 1;
+        }
+        if invalidation.geometry_changed {
+            self.cache_invalidated_geometry_count += 1;
+        }
+        if invalidation.material_changed {
+            self.cache_invalidated_material_count += 1;
+        }
+    }
+}
+
 fn cacheable_phase_matches_batch(batch: &MeshBatchRef, phase: RenderPhase) -> bool {
     match phase {
         RenderPhase::Prepass => batch.queue_profile.early_z_eligible(),
@@ -105,7 +165,9 @@ fn cacheable_phase_matches_batch(batch: &MeshBatchRef, phase: RenderPhase) -> bo
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{RenderMeshStaticState, RenderPhase};
+    use crate::core::framework::render::{
+        RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    };
     use crate::core::framework::scene::Mobility;
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
@@ -219,7 +281,7 @@ mod tests {
                 false,
             ),
             default_pipeline_key(),
-            1,
+            RenderPhaseSortComponents::new(0.0, 1),
             MeshGeometryHandle::test(1),
             MeshDrawArgs::direct_indexed(0, 3),
         )

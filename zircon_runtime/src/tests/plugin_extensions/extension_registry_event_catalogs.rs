@@ -1,9 +1,9 @@
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
 use crate::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, PluginPackageManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
-use crate::{RuntimePluginId, RuntimeTargetMode};
 
 #[test]
 fn runtime_extension_registry_accepts_valid_plugin_event_catalog() {

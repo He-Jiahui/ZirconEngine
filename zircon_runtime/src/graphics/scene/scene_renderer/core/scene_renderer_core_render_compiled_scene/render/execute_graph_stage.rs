@@ -1,8 +1,8 @@
+use std::time::{Duration, Instant};
+
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, PostProcessGraphResourceNames, PostProcessPassGraph,
-    RenderPluginRendererOutputs,
+    MotionVectorCameraStatus, PostProcessPassGraph, RenderPluginRendererOutputs,
 };
-use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
 };
@@ -13,9 +13,9 @@ use crate::graphics::scene::scene_renderer::cluster_dimensions_for_size;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord,
-    RenderGraphExecutionResources, RenderGraphImportedFinalTarget, RenderPassExecutionContext,
-    RenderPassExecutorId, RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
-    RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
+    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
+    RenderPassExecutorRegistry, RenderPassGpuExecutionContext, RenderPassMeshCommandLists,
+    RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
@@ -66,96 +66,6 @@ impl<'a> RenderGraphStageExecution<'a> {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn import_frame_targets(
-    resources: &mut RenderGraphExecutionResources,
-    target: &OffscreenTarget,
-    imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
-    shadow_atlas_resources: Option<&ShadowAtlasResources>,
-) {
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::SCENE_COLOR,
-        target
-            .scene_color
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::SCENE_DEPTH,
-        target
-            .depth
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    import_final_target_aliases(resources, target, imported_final_target);
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::GBUFFER_ALBEDO,
-        target
-            .gbuffer_albedo
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::GBUFFER_NORMAL,
-        target
-            .normal
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
-        target
-            .gbuffer_material
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
-        target
-            .ambient_occlusion
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
-        target
-            .global_illumination
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    resources.insert_buffer(
-        PostProcessGraphResourceNames::LIGHT_LIST,
-        target.cluster_buffer.clone(),
-    );
-    resources.import_texture_view(
-        PostProcessGraphResourceNames::BLOOM,
-        target
-            .bloom
-            .create_view(&wgpu::TextureViewDescriptor::default()),
-    );
-    if let Some(shadow_atlas_resources) = shadow_atlas_resources {
-        resources.import_borrowed_texture_view(
-            PostProcessGraphResourceNames::SHADOW_ATLAS,
-            shadow_atlas_resources.atlas_view(),
-        );
-    }
-}
-
-fn import_final_target_aliases(
-    resources: &mut RenderGraphExecutionResources,
-    target: &OffscreenTarget,
-    imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
-) {
-    let final_target_aliases = [
-        PostProcessGraphResourceNames::FINAL_COLOR,
-        PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
-        PostProcessGraphResourceNames::FINAL_COMPOSITED,
-        PostProcessGraphResourceNames::COLOR_GRADED,
-        PostProcessGraphResourceNames::EFFECT_STACKED,
-    ];
-    if let Some(imported_final_target) = imported_final_target {
-        for alias in final_target_aliases {
-            resources.import_borrowed_texture_view(alias, imported_final_target.view);
-        }
-    } else {
-        for alias in final_target_aliases {
-            resources.import_texture_alias(alias, &target.final_color);
-        }
-    }
-}
-
 #[allow(clippy::too_many_arguments)]
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn execute_graph_stage(
     pipeline: &CompiledRenderPipeline,
@@ -165,6 +75,9 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     frame: &ViewportRenderFrame,
+    scene_bind_group_layout: &wgpu::BindGroupLayout,
+    target_format: wgpu::TextureFormat,
+    depth_format: wgpu::TextureFormat,
     scene_bind_group: &wgpu::BindGroup,
     screen_space_ui_renderer: &mut ScreenSpaceUiRenderer,
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
@@ -197,6 +110,9 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             queue,
             encoder,
             frame,
+            scene_bind_group_layout,
+            target_format,
+            depth_format,
             scene_bind_group,
             screen_space_ui_renderer,
             post_process_stack,
@@ -222,18 +138,14 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        PostProcessEffectKind, PostProcessGraphResourceNames, PostProcessPassGraph,
-        PostProcessPassNode, RenderPluginRendererOutputs,
+        PostProcessEffectKind, PostProcessPassGraph, PostProcessPassNode,
+        RenderPluginRendererOutputs,
     };
-    use crate::core::math::UVec2;
-    use crate::graphics::backend::{OffscreenTarget, RenderBackend};
     use crate::graphics::scene::scene_renderer::graph_execution::{
-        RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
+        RenderGraphExecutionRecord, RenderGraphExecutionResources,
     };
-    use crate::scene::world::World;
-    use crate::RenderPipelineAsset;
 
-    use super::{import_frame_targets, RenderGraphStageExecution};
+    use super::RenderGraphStageExecution;
 
     #[test]
     fn stage_execution_records_post_process_graph_through_record_owner() {
@@ -260,134 +172,6 @@ mod tests {
         );
         assert!(record.executed_passes().is_empty());
     }
-
-    #[test]
-    fn import_frame_targets_binds_persistent_frame_targets_only() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
-        let mut resources = RenderGraphExecutionResources::new();
-
-        import_frame_targets(&mut resources, &target, None, None);
-
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::FINAL_COLOR));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::VIEWPORT_OUTPUT));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::GBUFFER_NORMAL));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::AMBIENT_OCCLUSION));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION));
-        assert!(resources.has_buffer(PostProcessGraphResourceNames::LIGHT_LIST));
-        for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
-            assert!(
-                !resources.has_texture_view(resource),
-                "`{resource}` must be graph-owned, not pre-bound to the fixed offscreen target"
-            );
-        }
-    }
-
-    #[test]
-    fn import_frame_targets_rebinds_final_aliases_to_imported_texture_target() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
-        let imported = backend.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-test-imported-final-target"),
-            size: wgpu::Extent3d {
-                width: 16,
-                height: 16,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
-            view_formats: &[],
-        });
-        let imported_view = imported.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut resources = RenderGraphExecutionResources::new();
-
-        import_frame_targets(
-            &mut resources,
-            &target,
-            Some(RenderGraphImportedFinalTarget {
-                view: &imported_view,
-            }),
-            None,
-        );
-
-        for resource in FINAL_TARGET_ALIASES {
-            assert!(
-                resources.has_texture_view(resource),
-                "`{resource}` should bind to the imported final target"
-            );
-        }
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
-        assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
-        let report = resources.resource_report();
-        assert!(
-            report.external_texture_view_count >= FINAL_TARGET_ALIASES.len(),
-            "imported final target aliases should count as external graph views; report={report:?}"
-        );
-    }
-
-    #[test]
-    fn graph_materialization_backs_advanced_post_process_transients() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
-        let mut extract = World::new().to_render_frame_extract();
-        extract.apply_viewport_size(UVec2::new(16, 16));
-        let pipeline = RenderPipelineAsset::default_forward_plus()
-            .compile(&extract)
-            .expect("default forward pipeline should compile for transient ownership test");
-        let mut resources = RenderGraphExecutionResources::new();
-
-        import_frame_targets(&mut resources, &target, None, None);
-        resources
-            .materialize_transient_resources(&backend.device, &pipeline.graph)
-            .expect("advanced post-process transient graph resources should materialize");
-
-        for resource in ADVANCED_POST_PROCESS_TRANSIENTS {
-            assert!(
-                resources.has_texture_view(resource),
-                "`{resource}` should be backed by graph materialization"
-            );
-        }
-        let report = resources.resource_report();
-        let aliased_advanced_transient_count = 2;
-        assert!(
-            report.owned_texture_count
-                >= ADVANCED_POST_PROCESS_TRANSIENTS
-                    .len()
-                    .saturating_sub(aliased_advanced_transient_count),
-            "owned texture count should include physically backed advanced post-process transients; report={report:?}"
-        );
-        assert!(
-            report.texture_view_count >= ADVANCED_POST_PROCESS_TRANSIENTS.len(),
-            "texture view count should include logical advanced post-process resources; report={report:?}"
-        );
-    }
-
-    const ADVANCED_POST_PROCESS_TRANSIENTS: &[&str] = &[
-        PostProcessGraphResourceNames::SCENE_VELOCITY,
-        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
-        PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
-        PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,
-        PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
-        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
-        PostProcessGraphResourceNames::HZB_FURTHEST,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
-    ];
-
-    const FINAL_TARGET_ALIASES: &[&str] = &[
-        PostProcessGraphResourceNames::FINAL_COLOR,
-        PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
-        PostProcessGraphResourceNames::FINAL_COMPOSITED,
-        PostProcessGraphResourceNames::COLOR_GRADED,
-        PostProcessGraphResourceNames::EFFECT_STACKED,
-    ];
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -399,6 +183,9 @@ fn execute_graph_pass(
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     frame: &ViewportRenderFrame,
+    scene_bind_group_layout: &wgpu::BindGroupLayout,
+    target_format: wgpu::TextureFormat,
+    depth_format: wgpu::TextureFormat,
     scene_bind_group: &wgpu::BindGroup,
     screen_space_ui_renderer: &mut ScreenSpaceUiRenderer,
     post_process_stack: Option<RenderPassPostProcessStackContext<'_>>,
@@ -446,6 +233,9 @@ fn execute_graph_pass(
         queue,
         encoder,
         frame,
+        scene_bind_group_layout,
+        target_format,
+        depth_format,
         scene_bind_group,
         &mut *execution.resources,
         &mut *execution.plugin_outputs,
@@ -507,9 +297,15 @@ fn execute_graph_pass(
         .with_resource_resolver(&pipeline.graph, pass.id)
         .with_gpu(gpu);
 
-    registry
-        .execute(&mut context)
-        .map_err(GraphicsError::Asset)?;
+    let profile_started = Instant::now();
+    let execute_result = registry.execute(&mut context);
+    let cpu_elapsed_micros = duration_to_micros(profile_started.elapsed());
+    execution.record.push_pass_profile(
+        pass.name.clone(),
+        executor_id.as_str().to_string(),
+        cpu_elapsed_micros,
+    );
+    execute_result.map_err(GraphicsError::Asset)?;
     let (
         compute_dispatches,
         motion_vector_camera_status,
@@ -531,12 +327,16 @@ fn execute_graph_pass(
     let hzb_occlusion_indirect_arg_count = mesh_draw_lists
         .map(|lists| lists.occlusion_cull_candidate_arg_count())
         .unwrap_or(0);
-    let dispatch_context = RenderGraphComputeWorkloadDispatchContext::new(
+    let mut dispatch_context = RenderGraphComputeWorkloadDispatchContext::new(
         [frame.viewport_size.x, frame.viewport_size.y],
         [cluster_grid_size.x, cluster_grid_size.y],
         [hzb_plan.hzb_size.x, hzb_plan.hzb_size.y],
         hzb_occlusion_indirect_arg_count,
     );
+    if let Some(report) = hzb_occlusion_cull_report {
+        dispatch_context =
+            dispatch_context.with_indirect_args_dispatch_group_count(report.dispatch_group_count);
+    }
     execution.record.audit_compute_workload(
         &pass.name,
         executor_id.as_str(),
@@ -571,4 +371,8 @@ fn execute_graph_pass(
         execution.record.push_compute_dispatch(dispatch);
     }
     Ok(())
+}
+
+fn duration_to_micros(duration: Duration) -> u64 {
+    duration.as_micros().min(u128::from(u64::MAX)) as u64
 }

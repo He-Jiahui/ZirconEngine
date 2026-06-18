@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use zircon_runtime::{
-    plugin::PluginModuleManifest, plugin::PluginPackageManifest, RuntimeTargetMode,
+    builtin::RuntimeTargetMode, plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
 use zircon_runtime_interface::RegistrationDiagnostic;
 

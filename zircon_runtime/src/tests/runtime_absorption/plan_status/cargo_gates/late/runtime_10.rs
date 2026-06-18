@@ -62,7 +62,8 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
         runtime_10_problem_row,
         &[
             "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
-            "panic-boundary、完整 app loader 与 UI 镜像契约 Cargo 验证仍待活动编译通道空闲后重跑",
+            "panic-boundary、完整 app loader 与 runtime UI/editor Cargo 验证仍待活动编译通道空闲后重跑",
+            "interface package gate 已 168/168 通过",
         ],
     );
 
@@ -104,17 +105,19 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         (
             "2.1 重复定义消化",
             &[
-                "待开始",
-                "Runtime 09/editor UI owner",
-                "`interface/ui` 与 `runtime/ui` 重复定义清单",
+                "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+                "UiBindingCodec",
+                "UiAssetSchemaVersionPolicy",
+                "ui_contract_duplicate_public_types = 0",
             ][..],
         ),
         (
             "2.2 v2 契约同步",
             &[
-                "待开始",
+                "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
                 "v2-replacement-mainline",
-                "Runtime 09/editor UI owner",
+                "UiComponentApiVersion",
+                "ui_v2_contract_sync_anchors = 9/9",
             ][..],
         ),
     ] {
@@ -136,8 +139,11 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         &[
             "code_static_pending_owner_cargo",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "Runtime 09/editor UI owner",
-            "未修改 UI/interface 生产类型",
+            "2.1 静态硬切已删除两个 runtime-local duplicate contract types",
+            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+            "ui_v2_contract_sync_anchors = 9/9",
+            "interface package gate 已通过",
+            "runtime ui/editor Cargo gates 仍 pending",
         ],
     );
     for forbidden_claim in ["completed", "cargo_passed", "full_package_passed"] {
@@ -165,7 +171,10 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         &[
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
             "M2 UI 镜像契约 owner/Cargo gate",
-            "Runtime 09/editor UI owner",
+            "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+            "ui_contract_duplicate_public_types = 0",
+            "ui_v2_contract_sync_anchors = 9/9",
         ],
     );
 
@@ -179,7 +188,10 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         &[
             "interface `ui/` 22 条目镜像契约",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "UI 镜像契约 M2 owner/Cargo gate",
+            "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+            "ui_contract_duplicate_public_types = 0",
+            "ui_v2_contract_sync_anchors = 9/9",
         ],
     );
 
@@ -197,7 +209,10 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         &[
             "Runtime 10 UI Contract M2 Gate",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "Runtime 09/editor UI owner",
+            "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+            "ui_contract_duplicate_public_types = 0",
+            "ui_v2_contract_sync_anchors = 9/9",
         ],
     );
     assert_contains_all(
@@ -206,7 +221,10 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         &[
             "Runtime 10 UI Contract M2 Gate",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "UI 镜像契约 M2",
+            "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
+            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
+            "ui_contract_duplicate_public_types = 0",
+            "ui_v2_contract_sync_anchors = 9/9",
         ],
     );
 }

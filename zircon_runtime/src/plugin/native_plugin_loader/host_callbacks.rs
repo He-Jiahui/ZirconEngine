@@ -6,41 +6,12 @@ use std::sync::{Mutex, OnceLock};
 use crate::plugin::{PluginModuleKind, PluginModuleManifest};
 
 use super::abi_declarations::{
-    NativePluginHostFunctionTableV2, NativePluginHostFunctionTableV3,
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+    NativePluginHostFunctionTableV3, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use super::native_plugin_abi::NativePluginDescriptor;
 use super::native_strings::{parse_native_string_list, read_optional_c_string};
-
-pub(super) unsafe extern "C" fn native_host_abi_version_v2() -> u32 {
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
-}
-
-pub(super) unsafe extern "C" fn native_host_has_capability_v2(
-    host_functions: *const NativePluginHostFunctionTableV2,
-    capability: *const std::ffi::c_char,
-) -> u32 {
-    if host_functions.is_null() || capability.is_null() {
-        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
-    }
-    let Some(capability) = CStr::from_ptr(capability).to_str().ok() else {
-        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
-    };
-    let Some(granted_capabilities) = read_optional_c_string((*host_functions).granted_capabilities)
-    else {
-        return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
-    };
-    if parse_native_string_list(&granted_capabilities)
-        .iter()
-        .any(|granted_capability| granted_capability == capability)
-    {
-        ZIRCON_NATIVE_PLUGIN_STATUS_OK
-    } else {
-        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED
-    }
-}
 
 pub(super) unsafe extern "C" fn native_host_abi_version_v3() -> u32 {
     ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3

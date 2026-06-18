@@ -9,7 +9,7 @@ pub(super) fn publish_clip_events(
     asset_manager: &ProjectAssetManager,
     level: &LevelSystem,
     pending_samples: Vec<PendingClipEventSample>,
-) {
+) -> usize {
     let events = pending_samples
         .into_iter()
         .filter_map(|pending| {
@@ -26,14 +26,16 @@ pub(super) fn publish_clip_events(
         })
         .flatten()
         .collect::<Vec<_>>();
-    publish_events(level, events);
+    publish_events(level, events)
 }
 
-pub(super) fn publish_events(level: &LevelSystem, events: Vec<AnimationClipEvent>) {
+pub(super) fn publish_events(level: &LevelSystem, events: Vec<AnimationClipEvent>) -> usize {
+    let event_count = events.len();
     if events.is_empty() {
-        return;
+        return event_count;
     }
     level.with_world_mut(|world| publish_events_to_world(world, events));
+    event_count
 }
 
 fn publish_events_to_world(world: &mut crate::scene::World, events: Vec<AnimationClipEvent>) {

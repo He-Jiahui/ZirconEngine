@@ -45,7 +45,10 @@ fn render_product_submit_direct_extract_frame_does_not_use_legacy_scene_snapshot
 
     let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
 
-    assert_eq!(frame.camera().projection_mode, ProjectionMode::Orthographic);
+    assert_eq!(
+        frame.effective_camera().projection_mode,
+        ProjectionMode::Orthographic
+    );
     assert_eq!(
         frame.scene.scene.camera.projection_mode,
         ProjectionMode::Perspective,

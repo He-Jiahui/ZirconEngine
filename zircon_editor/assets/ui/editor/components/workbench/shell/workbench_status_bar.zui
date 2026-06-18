@@ -8,6 +8,7 @@ display_name = "Workbench Status Bar"
 widgets = [
   "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui#WorkbenchProgressBar",
   "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
 ]
 styles = []
@@ -22,7 +23,7 @@ control_id = "WorkbenchWindowStatusBar"
 classes = ["workbench-status"]
 props = { status_right_offset_y = -0.5, status_right_text_color = "#7d8990" }
 layout = { container = { kind = "HorizontalBox", gap = 14.0 }, width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
-children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_fill" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
+children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_fill" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
 
 [nodes.status_ready]
 component = "WorkbenchStatusItem"
@@ -56,6 +57,28 @@ layout = { width = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fix
 component = "Container"
 control_id = "WorkbenchStatusFill"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_task]
+component = "HorizontalGroup"
+control_id = "WorkbenchStatusTaskProgress"
+classes = ["workbench-status-task", "workbench-status-right-control"]
+props = { text = "", value_text = "", value = 0.0, min = 0.0, max = 100.0, variant = "linear", visibility = "collapsed", visible = false, text_tone = "info", track_fill_color = "#2099a2", value_color = "#2099a2" }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { min = 224.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "status_task_label" }, { node = "status_task_bar" }]
+
+[nodes.status_task_label]
+component = "WorkbenchChip"
+control_id = "WorkbenchStatusTaskLabel"
+classes = ["workbench-chip", "workbench-status-task-label"]
+props = { text = "", value_text = "", text_tone = "info" }
+layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.status_task_bar]
+component = "WorkbenchProgressBar"
+control_id = "WorkbenchStatusTaskBar"
+classes = ["workbench-progress-bar", "workbench-status-task-bar"]
+props = { value = 0.0, value_percent = 0.0, min = 0.0, max = 100.0, variant = "linear", label_text = "", show_label = false, track_fill_color = "#2099a2", value_color = "#2099a2" }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.status_grid]
 component = "WorkbenchChip"

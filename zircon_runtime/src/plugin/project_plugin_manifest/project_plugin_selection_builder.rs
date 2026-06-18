@@ -1,4 +1,5 @@
-use crate::{plugin::ExportPackagingStrategy, RuntimePluginId, RuntimeTargetMode};
+use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::plugin::ExportPackagingStrategy;
 
 use super::{ProjectPluginFeatureSelection, ProjectPluginSelection};
 

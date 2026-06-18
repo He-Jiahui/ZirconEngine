@@ -1,4 +1,4 @@
-use crate::CompiledRenderPipeline;
+use crate::graphics::CompiledRenderPipeline;
 
 pub(in crate::graphics::runtime::render_framework) fn compiled_feature_names(
     pipeline: &CompiledRenderPipeline,

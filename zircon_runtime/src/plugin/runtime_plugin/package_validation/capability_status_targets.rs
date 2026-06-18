@@ -3,7 +3,8 @@ mod row;
 mod rows;
 mod uniqueness;
 
-use crate::{plugin::PluginPackageManifest, RuntimeTargetMode};
+use crate::builtin::RuntimeTargetMode;
+use crate::plugin::PluginPackageManifest;
 
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_capability_status_targets(
     package_manifest: &PluginPackageManifest,

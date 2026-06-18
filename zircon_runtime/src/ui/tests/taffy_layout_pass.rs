@@ -69,10 +69,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
     let free_report = &free_frame.layout_engine_report;
     let free_root = selection_for_node(free_report, 5);
     assert_eq!(free_root.request.family, UiLayoutEngineFamily::Free);
-    assert_eq!(
-        free_root.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(free_root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(
         free_root.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -97,7 +94,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
     );
     assert_eq!(
         container_root.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
+        UiLayoutEngineBackend::Zircon
     );
     assert_eq!(
         container_root.fallback_reason,
@@ -114,10 +111,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
     let space_report = &space_frame.layout_engine_report;
     let space_root = selection_for_node(space_report, 9);
     assert_eq!(space_root.request.family, UiLayoutEngineFamily::Container);
-    assert_eq!(
-        space_root.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(space_root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(
         space_root.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -132,10 +126,7 @@ fn layout_pass_reports_taffy_native_and_zircon_fallback_routes() {
     let overlay_frame = overlay.surface_frame();
     let overlay_report = &overlay_frame.layout_engine_report;
     let overlay_root = selection_for_node(overlay_report, 10);
-    assert_eq!(
-        overlay_root.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(overlay_root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(
         overlay_root.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -672,7 +663,7 @@ fn taffy_layout_pass_reports_linear_main_axis_slot_alignment_fallback() {
 
     let root = selection_for_node(&report, 196);
     assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
         root.fallback_reason,
@@ -696,7 +687,7 @@ fn taffy_layout_pass_reports_cross_axis_slot_alignment_without_fixed_extent_fall
 
     let root = selection_for_node(&report, 198);
     assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
         root.fallback_reason,
@@ -827,7 +818,7 @@ fn taffy_layout_pass_reports_child_placement_policy_fallback() {
 
     let root = selection_for_node(&report, 194);
     assert_eq!(root.request.family, UiLayoutEngineFamily::Flex);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(root.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(
         root.fallback_reason,
@@ -849,7 +840,7 @@ fn size_box_contain_aspect_ratio_stays_zircon_owned() {
     assert_eq!(frame(&tree, 201), UiFrame::new(0.0, 25.0, 100.0, 50.0));
     let root = selection_for_node(&report, 200);
     assert_eq!(root.request.family, UiLayoutEngineFamily::Container);
-    assert_eq!(root.selected_backend, UiLayoutEngineBackend::LegacyZircon);
+    assert_eq!(root.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(
         root.fallback_reason,
         Some(UiLayoutEngineFallbackReason::ZirconOwnedSemantics)
@@ -1346,10 +1337,7 @@ fn assert_fallback_route_reason(
 ) {
     let selection = selection_for_node(report, node_id);
     assert_eq!(selection.request.family, family);
-    assert_eq!(
-        selection.selected_backend,
-        UiLayoutEngineBackend::LegacyZircon
-    );
+    assert_eq!(selection.selected_backend, UiLayoutEngineBackend::Zircon);
     assert_eq!(selection.support, UiLayoutEngineSupport::Fallback);
     assert_eq!(selection.fallback_reason, Some(reason));
 }

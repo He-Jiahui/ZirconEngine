@@ -8,7 +8,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec3, Vec4};
 
-use crate::graphics::ViewportRenderFrame;
+use crate::graphics::{ViewportCameraStackOutputPolicy, ViewportRenderFrame};
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -20,6 +20,7 @@ pub(super) fn build_runtime_frame(
     ui: Option<UiRenderExtract>,
     context: &FrameSubmissionContext,
     prepared: &PreparedRuntimeSubmission,
+    output_policy: ViewportCameraStackOutputPolicy,
 ) -> ViewportRenderFrame {
     let extract = apply_effective_advanced_extracts(extract, context);
     let extract = apply_effective_post_process_graph(extract, context);
@@ -32,7 +33,9 @@ pub(super) fn build_runtime_frame(
         virtual_geometry_debug_snapshot.as_ref(),
     );
     ViewportRenderFrame::from_extract(extract, context.size())
+        .with_shader_quality(context.shader_quality())
         .with_output_target(context.output_target())
+        .with_camera_stack_output_policy(output_policy)
         .with_ui(ui)
         .with_frame_visibility(context.visibility_context().frame_visibility.clone())
         .with_previous_motion_vector_camera(context.previous_motion_vector_camera().cloned())
@@ -67,6 +70,7 @@ fn apply_effective_post_process_graph(
     extract.post_process.volumes.clear();
     extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
     extract.view.camera.temporal_jitter = context.temporal_jitter();
+    extract.view.sync_selected_descriptor_camera_payload();
     extract.post_process.stack = context.post_process_stack().clone();
     extract.post_process.graph = context.post_process_graph().clone();
     extract
@@ -352,9 +356,9 @@ mod tests {
     use crate::core::math::{Transform, UVec2, Vec3, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{ViewportTextureWritebackStatus, FRAMEWORK_OUTPUT_FORMAT_LABEL};
+    use crate::graphics::VisibilityContext;
     use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
     use crate::render_graph::RenderGraphBuilder;
-    use crate::VisibilityContext;
 
     #[test]
     fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame() {
@@ -385,7 +389,8 @@ mod tests {
             RenderPipelineHandle::new(1),
             0,
             None,
-            empty_pipeline(),
+            Default::default(),
+            std::sync::Arc::new(empty_pipeline()),
             RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             Some(previous_camera.clone()),
@@ -447,7 +452,13 @@ mod tests {
             },
         );
 
-        let frame = build_runtime_frame(extract, None, &context, &prepared);
+        let frame = build_runtime_frame(
+            extract,
+            None,
+            &context,
+            &prepared,
+            ViewportCameraStackOutputPolicy::new(false, false),
+        );
 
         assert_eq!(frame.viewport_size, UVec2::new(640, 480));
         assert_eq!(
@@ -462,6 +473,7 @@ mod tests {
                 .status(),
             ViewportTextureWritebackStatus::ReadyForSrgbCopy
         );
+        assert!(!frame.camera_stack_output_policy().writes_output_target());
         assert_eq!(
             frame.previous_motion_vector_camera(),
             Some(&previous_camera)
@@ -487,6 +499,14 @@ mod tests {
         );
         assert_ne!(
             frame.extract.view.camera.temporal_jitter,
+            TemporalJitterSample::default()
+        );
+        assert_ne!(
+            frame.camera().camera.temporal_jitter,
+            TemporalJitterSample::default()
+        );
+        assert_ne!(
+            frame.effective_camera().temporal_jitter,
             TemporalJitterSample::default()
         );
     }

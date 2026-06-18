@@ -41,15 +41,15 @@ pub(crate) use template_binding::{
     dispatch_builtin_template_binding, dispatch_builtin_template_binding_with_arguments,
     dispatch_template_binding_with_arguments,
 };
-#[cfg(test)]
-pub(crate) use template_bridge::BuiltinHostDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{
     load_startup_builtin_template_runtime, BuiltinAssetSurfaceTemplateBridge,
     BuiltinFloatingWindowSourceFrames, BuiltinFloatingWindowSourceTemplateBridge,
-    BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
+    BuiltinHostOuterShellFrames, BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
     BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
     BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
-    BuiltinWorkbenchWindowTemplateSurfaceBridge, WorkbenchCommandPaletteOpenState,
+    BuiltinWorkbenchWindowLayoutFrames, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    WorkbenchCommandPaletteOpenState, WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
 };
 pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]

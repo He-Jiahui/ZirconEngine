@@ -4,33 +4,48 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shlex
-import shutil
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any, Sequence
 
+from .compile_host import (
+    compile_host_command,
+    run_compile_host,
+)
 from .cook_assets import default_cooked_asset_manifest, run_cook_assets
 from .pipeline_report import run_report
+from .platform_bundle import run_platform_bundle
 from .pipeline_stages import (
     LIBRARY_EMBED_EXECUTION_STAGES,
     pipeline_stages_after_validate as selected_pipeline_stages_after_validate,
     pipeline_stages_from_resume as selected_pipeline_stages_from_resume,
 )
-from .native_dynamic import native_dynamic_stage_payload_summary, run_native_dynamic
+from .native_dynamic import run_native_dynamic
+from .path_resolve import resolve_stage_optional_path
+from .report_io import write_report_targets
+from .stage_handoff import (
+    compile_host_report_host_executable,
+    cook_assets_report_asset_manifest,
+    native_dynamic_report_plugins_dir,
+    pack_report_delta_pack_file,
+    pack_report_pack_file,
+    stage_report_path_handoff_diagnostic,
+    validate_report_asset_filter,
+    validate_report_asset_filter_diagnostic,
+    validate_report_requires_bundle_strategy_diagnostics,
+)
 from .source_template import run_source_template
 
 
 STAGES = (
     "validate",
-    "compile_host",
     "source_template",
     "native_dynamic",
+    "compile_host",
     "cook_assets",
     "pack",
     "platform_bundle",
@@ -49,26 +64,6 @@ RESUMABLE_STAGES = (
 DEFAULT_EXECUTION_STAGES = LIBRARY_EMBED_EXECUTION_STAGES
 DEFAULT_OUT = "zircon-export"
 REPORT_FILE_NAME = "report.json"
-EXPORT_TEMPLATE_FORMAT_VERSION = 1
-EXPORT_TEMPLATE_MANIFEST_NAME = "template.toml"
-EXPORT_TEMPLATE_ALLOWED_HOST_KINDS = {"desktop", "mobile_app", "browser", "headless"}
-EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES = {
-    "filesystem_bundle",
-    "mobile_asset_bundle",
-    "browser_fetch",
-}
-EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES = {
-    "native_dynamic_allowed",
-    "static_source_or_vm_only",
-}
-EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS = {
-    "directory",
-    "app_bundle",
-    "zip",
-    "web_static",
-}
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     if args.resume_from or not args.stage_explicit:
@@ -152,137 +147,55 @@ def pipeline_stages_from_validate_report(args: argparse.Namespace) -> tuple[str,
 
 def apply_pipeline_stage_defaults(args: argparse.Namespace, stage: str) -> None:
     out_root = resolve_user_path(args.out)
-    if stage == "cook_assets" and not args.asset_filter:
+    if stage == "cook_assets" and args.asset_filter is None:
+        asset_filter_diagnostic = validate_report_asset_filter_diagnostic(
+            out_root,
+            args.profile,
+        )
+        if asset_filter_diagnostic:
+            args.validate_asset_filter_diagnostic = asset_filter_diagnostic
+            return
         asset_filter = validate_report_asset_filter(out_root, args.profile)
         if asset_filter:
             args.asset_filter = asset_filter
         return
-    if stage == "pack" and not args.asset_manifest:
+    if stage == "pack" and args.asset_manifest is None:
         asset_manifest = cook_assets_report_asset_manifest(out_root, args.profile)
         if asset_manifest:
             args.asset_manifest = str(asset_manifest)
         return
     if stage != "platform_bundle":
         return
-    if not args.host_executable:
+    if args.host_executable is None:
         host_executable = compile_host_report_host_executable(out_root, args.profile)
         if host_executable:
             args.host_executable = str(host_executable)
-    if not args.pack_file:
+            args.host_executable_source_origin = "compile_host_report"
+    if args.pack_file is None:
         pack_file = pack_report_pack_file(out_root, args.profile)
         if pack_file:
             args.pack_file = str(pack_file)
-    if not args.delta_pack:
+    if (
+        args.delta_pack is None
+        and not getattr(args, "pack_file_explicit", False)
+        and not getattr(args, "delta_pack_explicit", False)
+    ):
         delta_pack = pack_report_delta_pack_file(out_root, args.profile)
         if delta_pack:
             args.delta_pack = str(delta_pack)
-    if not args.native_plugins_dir:
+    if args.native_plugins_dir is None:
         native_plugins_dir = native_dynamic_report_plugins_dir(out_root, args.profile)
         if native_plugins_dir:
             args.native_plugins_dir = str(native_plugins_dir)
-
-
-def compile_host_report_host_executable(out_root: Path, profile: str) -> Path | None:
-    return stage_report_path_field(out_root, "compile_host", profile, "host_executable")
-
-
-def cook_assets_report_asset_manifest(out_root: Path, profile: str) -> Path | None:
-    return stage_report_path_field(
-        out_root,
-        "cook_assets",
-        profile,
-        "cooked_asset_manifest",
-    )
-
-
-def validate_report_asset_filter(out_root: Path, profile: str) -> str | None:
-    report_path = out_root / "stages" / "validate" / REPORT_FILE_NAME
-    if not report_path.exists():
-        return None
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(report, dict):
-        return None
-    if report.get("fatal") or report.get("profile") != profile:
-        return None
-    profile_summary = report.get("profile_summary")
-    if not isinstance(profile_summary, dict):
-        return None
-    asset_filter = profile_summary.get("asset_filter")
-    if not isinstance(asset_filter, str) or not asset_filter:
-        return None
-    return asset_filter
-
-
-def pack_report_pack_file(out_root: Path, profile: str) -> Path | None:
-    return stage_report_path_field(
-        out_root,
-        "pack",
-        profile,
-        "pack",
-        allow_missing_profile=True,
-    )
-
-
-def pack_report_delta_pack_file(out_root: Path, profile: str) -> Path | None:
-    return stage_report_path_field(
-        out_root,
-        "pack",
-        profile,
-        "delta_pack",
-        allow_missing_profile=True,
-    )
-
-
-def native_dynamic_report_plugins_dir(out_root: Path, profile: str) -> Path | None:
-    return stage_report_path_field(
-        out_root,
-        "native_dynamic",
-        profile,
-        "plugins_dir",
-    )
-
-
-def stage_report_path_field(
-    out_root: Path,
-    stage: str,
-    profile: str,
-    field: str,
-    *,
-    allow_missing_profile: bool = False,
-) -> Path | None:
-    report_path = out_root / "stages" / stage / REPORT_FILE_NAME
-    if not report_path.exists():
-        return None
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(report, dict):
-        return None
-    if report.get("fatal"):
-        return None
-    report_profile = report.get("profile")
-    if not isinstance(report_profile, str):
-        return None if not allow_missing_profile else field_value_path(report, field)
-    if isinstance(report_profile, str) and report_profile != profile:
-        return None
-    return field_value_path(report, field)
-
-
-def field_value_path(report: dict[str, Any], field: str) -> Path | None:
-    value = report.get(field)
-    if not isinstance(value, str) or not value:
-        return None
-    return resolve_user_path(value)
 
 
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     argv_list = list(argv) if argv is not None else sys.argv[1:]
     stage_explicit = option_present(argv_list, "--stage")
     resume_from_explicit = option_present(argv_list, "--resume-from")
+    pack_file_explicit = option_present(argv_list, "--pack-file")
+    delta_pack_explicit = option_present(argv_list, "--delta-pack")
+    host_executable_explicit = option_present(argv_list, "--host-executable")
 
     parser = argparse.ArgumentParser(
         description="Run the staged Zircon export pipeline.",
@@ -291,9 +204,9 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 Examples:
   python -m zircon_export --profile windows-release --project zircon-project.toml --out E:\\zircon-export
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage validate --dry-run
-  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage compile_host --dry-run
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage source_template --dry-run
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage native_dynamic
+  python -m zircon_export --profile windows-release --out E:\\zircon-export --stage compile_host --dry-run
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage cook_assets --asset-manifest cooked-assets.json
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage pack
   python -m zircon_export --profile windows-release --out E:\\zircon-export --stage platform_bundle --template-dir export-templates\\windows-x86_64-library_embed-debug
@@ -370,7 +283,8 @@ Examples:
         default=None,
         help=(
             "Cooked asset manifest input for CookAssets, or explicit Pack input. "
-            "Pack defaults to <out>/stages/cook_assets/assets.json."
+            "Pack defaults from a matching CookAssets report, then "
+            "<out>/stages/cook_assets/assets.json."
         ),
     )
     parser.add_argument(
@@ -378,13 +292,16 @@ Examples:
         default=None,
         help=(
             "Default asset filter written by CookAssets when the cooked manifest "
-            "does not declare asset_filter. Main pipeline defaults to Validate report."
+            "does not declare asset_filter. Defaults from a matching Validate report."
         ),
     )
     parser.add_argument(
         "--pack-file",
         default=None,
-        help="Pack output file. Default: <out>/stages/pack/assets.zrpack.",
+        help=(
+            "Pack output file. PlatformBundle defaults from a matching Pack report, "
+            "then <out>/stages/pack/assets.zrpack."
+        ),
     )
     parser.add_argument(
         "--previous-pack",
@@ -406,7 +323,7 @@ Examples:
         default=None,
         help=(
             "NativeDynamic plugins directory copied into PlatformBundle. "
-            "Main pipeline defaults to <out>/stages/native_dynamic/plugins when reported."
+            "Defaults from a matching NativeDynamic report when reported."
         ),
     )
     parser.add_argument(
@@ -568,6 +485,9 @@ Examples:
     args = parser.parse_args(argv)
     args.stage_explicit = stage_explicit
     args.resume_from_explicit = resume_from_explicit
+    args.pack_file_explicit = pack_file_explicit
+    args.delta_pack_explicit = delta_pack_explicit
+    args.host_executable_explicit = host_executable_explicit
     if args.resume_from and stage_explicit:
         parser.error("--resume-from runs the main pipeline and cannot be combined with --stage")
     return args
@@ -579,53 +499,228 @@ def option_present(argv: Sequence[str], option: str) -> bool:
 
 
 def run_validate(args: argparse.Namespace) -> int:
-    repo_root = resolve_repo_root(args.repo_root)
-    project_path = resolve_user_path(args.project)
     out_root = resolve_user_path(args.out)
     stage_dir = out_root / "stages" / "validate"
     report_path = stage_dir / REPORT_FILE_NAME
 
-    command = validate_command(args, repo_root, project_path, stage_dir, report_path)
+    diagnostics: list[str] = []
+    repo_root = (
+        resolve_validate_path(args.repo_root, "repo_root", diagnostics)
+        if args.repo_root
+        else default_repo_root()
+    )
+    project_path = resolve_validate_path(args.project, "project", diagnostics)
+    validator = resolve_pack_optional_path(args.validator, "validator", diagnostics)
+    target_dir = resolve_pack_optional_path(args.target_dir, "target_dir", diagnostics)
+    command = (
+        validate_command(
+            args,
+            repo_root,
+            project_path,
+            stage_dir,
+            report_path,
+            validator=validator,
+            target_dir=target_dir,
+        )
+        if not diagnostics
+        else None
+    )
     print(f"zircon_export stage=Validate profile={args.profile}")
     print(f"report={report_path}")
-    print(shell_join(command))
+    if command is not None:
+        print(shell_join(command))
+    else:
+        print("command=<skipped>")
     if args.dry_run:
-        return 0
+        for diagnostic in diagnostics:
+            print(f"diagnostic={diagnostic}")
+        return 2 if diagnostics else 0
 
-    stage_dir.mkdir(parents=True, exist_ok=True)
-    return subprocess.call(command, cwd=repo_root)
+    try:
+        stage_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        report = {
+            "stage": "Validate",
+            "profile": args.profile,
+            "fatal": True,
+            "diagnostics": [
+                f"Validate stage directory {stage_dir} could not be created: {error}"
+            ],
+            "project": str(project_path) if project_path else None,
+            "stage_output": str(stage_dir),
+            "command": command if command is not None else [],
+        }
+        print(json.dumps(report, indent=2))
+        return 2
+    if diagnostics:
+        report = {
+            "stage": "Validate",
+            "profile": args.profile,
+            "fatal": True,
+            "diagnostics": diagnostics,
+            "project": str(project_path) if project_path else None,
+            "stage_output": str(stage_dir),
+            "command": [],
+        }
+        write_report_targets([("Validate report", report_path)], report)
+        print(json.dumps(report, indent=2))
+        return 2
+    if command is None:
+        raise AssertionError("Validate command was not built after preflight passed")
+    try:
+        exit_code = subprocess.call(command, cwd=repo_root)
+        if not report_path.is_file():
+            report = validate_preflight_failure_report(
+                args=args,
+                project_path=project_path,
+                stage_dir=stage_dir,
+                command=command,
+                diagnostics=[
+                    f"Validate command exited with code {exit_code} but did not write report {report_path}"
+                ],
+                exit_code=exit_code,
+            )
+            write_report_targets([("Validate report", report_path)], report)
+            print(json.dumps(report, indent=2))
+            return exit_code if exit_code != 0 else 2
+        return exit_code
+    except OSError as error:
+        report = validate_preflight_failure_report(
+            args=args,
+            project_path=project_path,
+            stage_dir=stage_dir,
+            command=command,
+            diagnostics=[f"Validate command {command[0]} could not start: {error}"],
+        )
+        write_report_targets([("Validate report", report_path)], report)
+        print(json.dumps(report, indent=2))
+        return 2
+
+
+def validate_preflight_failure_report(
+    *,
+    args: argparse.Namespace,
+    project_path: Path | None,
+    stage_dir: Path,
+    command: list[str],
+    diagnostics: list[str],
+    exit_code: int | None = None,
+) -> dict[str, Any]:
+    report: dict[str, Any] = {
+        "stage": "Validate",
+        "profile": args.profile,
+        "fatal": True,
+        "diagnostics": diagnostics,
+        "project": str(project_path) if project_path else None,
+        "stage_output": str(stage_dir),
+        "command": command,
+    }
+    if exit_code is not None:
+        report["exit_code"] = exit_code
+    return report
 
 
 def run_pack(args: argparse.Namespace) -> int:
-    repo_root = resolve_repo_root(args.repo_root)
     out_root = resolve_user_path(args.out)
-    asset_manifest = (
-        resolve_user_path(args.asset_manifest)
-        if args.asset_manifest
-        else default_cooked_asset_manifest(out_root)
+    diagnostics: list[str] = []
+    repo_root = (
+        resolve_pack_stage_path(args.repo_root, "repo_root", diagnostics)
+        if args.repo_root
+        else default_repo_root()
+    )
+    asset_manifest_argument_diagnostic = pack_asset_manifest_argument_diagnostic(args)
+    if asset_manifest_argument_diagnostic:
+        diagnostics.append(asset_manifest_argument_diagnostic)
+    pack_file_diagnostic = pack_file_argument_diagnostic(args)
+    if pack_file_diagnostic:
+        diagnostics.append(pack_file_diagnostic)
+    cook_assets_handoff_diagnostic = None
+    diagnostics.extend(pack_delta_argument_diagnostics(args))
+    validate_strategy_diagnostics = validate_report_requires_bundle_strategy_diagnostics(
+        out_root,
+        args.profile,
+        "Pack",
+    )
+    diagnostics.extend(validate_strategy_diagnostics)
+    if args.asset_manifest is None:
+        cook_assets_handoff_diagnostic = stage_report_path_handoff_diagnostic(
+            out_root,
+            "cook_assets",
+            args.profile,
+            "cooked_asset_manifest",
+        )
+        if cook_assets_handoff_diagnostic:
+            diagnostics.append(cook_assets_handoff_diagnostic)
+        else:
+            reported_asset_manifest = cook_assets_report_asset_manifest(
+                out_root,
+                args.profile,
+            )
+            if reported_asset_manifest:
+                args.asset_manifest = str(reported_asset_manifest)
+    asset_manifest = pack_asset_manifest_path(
+        args,
+        out_root,
+        asset_manifest_argument_diagnostic,
+        cook_assets_handoff_diagnostic,
+        diagnostics,
     )
     stage_dir = out_root / "stages" / "pack"
     report_path = stage_dir / REPORT_FILE_NAME
-    pack_path = resolve_user_path(args.pack_file) if args.pack_file else stage_dir / "assets.zrpack"
-    previous_pack = resolve_user_path(args.previous_pack) if args.previous_pack else None
-    delta_pack = resolve_user_path(args.delta_pack) if args.delta_pack else None
+    pack_path = pack_output_path(args, stage_dir, pack_file_diagnostic, diagnostics)
+    previous_pack = resolve_pack_optional_path(
+        args.previous_pack,
+        "previous_pack",
+        diagnostics,
+    )
+    delta_pack = resolve_pack_optional_path(
+        args.delta_pack,
+        "delta_pack",
+        diagnostics,
+    )
+    packer = resolve_pack_optional_path(args.packer, "packer", diagnostics)
+    target_dir = resolve_pack_optional_path(args.target_dir, "target_dir", diagnostics)
 
-    command = pack_command(args, repo_root, asset_manifest, stage_dir, report_path, pack_path)
+    command = (
+        pack_command(
+            args,
+            repo_root,
+            asset_manifest,
+            stage_dir,
+            report_path,
+            pack_path,
+            previous_pack=previous_pack,
+            delta_pack=delta_pack,
+            packer=packer,
+            target_dir=target_dir,
+        )
+        if repo_root is not None
+        and asset_manifest is not None
+        and pack_path is not None
+        and not diagnostics
+        else None
+    )
     print(f"zircon_export stage=Pack profile={args.profile}")
-    print(f"asset_manifest={asset_manifest}")
-    print(f"pack={pack_path}")
+    print(f"asset_manifest={asset_manifest if asset_manifest else '<invalid>'}")
+    print(f"pack={pack_path if pack_path else '<invalid>'}")
     if previous_pack:
         print(f"previous_pack={previous_pack}")
     if delta_pack:
         print(f"delta_pack={delta_pack}")
     print(f"report={report_path}")
-    print(shell_join(command))
+    if command is not None:
+        print(shell_join(command))
+    else:
+        print("command=<skipped>")
     if args.dry_run:
-        return 0
+        for diagnostic in diagnostics:
+            print(f"diagnostic={diagnostic}")
+        return 2 if diagnostics else 0
 
-    stage_dir.mkdir(parents=True, exist_ok=True)
-    manifest_diagnostic = pack_asset_manifest_diagnostic(asset_manifest)
-    if manifest_diagnostic:
+    try:
+        stage_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        diagnostics.append(f"Pack stage directory {stage_dir} could not be created: {error}")
         report = pack_preflight_failure_report(
             args=args,
             asset_manifest=asset_manifest,
@@ -633,12 +728,147 @@ def run_pack(args: argparse.Namespace) -> int:
             pack_path=pack_path,
             previous_pack=previous_pack,
             delta_pack=delta_pack,
-            diagnostics=[manifest_diagnostic],
+            diagnostics=diagnostics,
         )
-        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(json.dumps(report, indent=2))
         return 2
-    return subprocess.call(command, cwd=repo_root)
+    manifest_diagnostic = (
+        None if diagnostics else pack_asset_manifest_diagnostic(asset_manifest)
+    )
+    if manifest_diagnostic:
+        diagnostics.append(manifest_diagnostic)
+    if diagnostics:
+        report = pack_preflight_failure_report(
+            args=args,
+            asset_manifest=asset_manifest,
+            stage_dir=stage_dir,
+            pack_path=pack_path,
+            previous_pack=previous_pack,
+            delta_pack=delta_pack,
+            diagnostics=diagnostics,
+        )
+        write_report_targets([("Pack report", report_path)], report)
+        print(json.dumps(report, indent=2))
+        return 2
+    if command is None:
+        raise AssertionError("Pack command was not built after preflight passed")
+    try:
+        exit_code = subprocess.call(command, cwd=repo_root)
+        if not report_path.is_file():
+            diagnostics.append(
+                f"Pack command exited with code {exit_code} but did not write report {report_path}"
+            )
+            report = pack_preflight_failure_report(
+                args=args,
+                asset_manifest=asset_manifest,
+                stage_dir=stage_dir,
+                pack_path=pack_path,
+                previous_pack=previous_pack,
+                delta_pack=delta_pack,
+                diagnostics=diagnostics,
+            )
+            write_report_targets([("Pack report", report_path)], report)
+            print(json.dumps(report, indent=2))
+            return exit_code if exit_code != 0 else 2
+        return exit_code
+    except OSError as error:
+        diagnostics.append(f"Pack command {command[0]} could not start: {error}")
+        report = pack_preflight_failure_report(
+            args=args,
+            asset_manifest=asset_manifest,
+            stage_dir=stage_dir,
+            pack_path=pack_path,
+            previous_pack=previous_pack,
+            delta_pack=delta_pack,
+            diagnostics=diagnostics,
+        )
+        write_report_targets([("Pack report", report_path)], report)
+        print(json.dumps(report, indent=2))
+        return 2
+
+
+def pack_asset_manifest_argument_diagnostic(args: argparse.Namespace) -> str | None:
+    asset_manifest = getattr(args, "asset_manifest", None)
+    if asset_manifest is None:
+        return None
+    if not isinstance(asset_manifest, str) or not asset_manifest:
+        return "asset_manifest argument must be a non-empty string"
+    return None
+
+
+def pack_file_argument_diagnostic(args: argparse.Namespace) -> str | None:
+    pack_file = getattr(args, "pack_file", None)
+    if pack_file is None:
+        return None
+    if not isinstance(pack_file, str) or not pack_file:
+        return "pack_file argument must be a non-empty string"
+    return None
+
+
+def pack_asset_manifest_path(
+    args: argparse.Namespace,
+    out_root: Path,
+    asset_manifest_argument_diagnostic: str | None,
+    cook_assets_handoff_diagnostic: str | None,
+    diagnostics: list[str],
+) -> Path | None:
+    if asset_manifest_argument_diagnostic or cook_assets_handoff_diagnostic:
+        return None
+    if args.asset_manifest is not None:
+        return resolve_pack_optional_path(args.asset_manifest, "asset_manifest", diagnostics)
+    return default_cooked_asset_manifest(out_root)
+
+
+def pack_output_path(
+    args: argparse.Namespace,
+    stage_dir: Path,
+    pack_file_argument_diagnostic: str | None,
+    diagnostics: list[str],
+) -> Path | None:
+    if pack_file_argument_diagnostic:
+        return None
+    if args.pack_file is not None:
+        return resolve_pack_optional_path(args.pack_file, "pack_file", diagnostics)
+    return stage_dir / "assets.zrpack"
+
+
+def resolve_pack_optional_path(
+    value: object,
+    label: str,
+    diagnostics: list[str],
+) -> Path | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return resolve_user_path(value)
+    except OSError as error:
+        diagnostics.append(f"{label} {value} could not be resolved: {error}")
+        return None
+
+
+def resolve_pack_stage_path(
+    value: object,
+    label: str,
+    diagnostics: list[str],
+) -> Path | None:
+    return resolve_stage_optional_path(value, label, diagnostics, prefix="Pack")
+
+
+def pack_delta_argument_diagnostics(args: argparse.Namespace) -> list[str]:
+    previous_pack = getattr(args, "previous_pack", None)
+    delta_pack = getattr(args, "delta_pack", None)
+    diagnostics: list[str] = []
+    if previous_pack is not None and (
+        not isinstance(previous_pack, str) or not previous_pack
+    ):
+        diagnostics.append("previous_pack argument must be a non-empty string")
+    if delta_pack is not None and (not isinstance(delta_pack, str) or not delta_pack):
+        diagnostics.append("delta_pack argument must be a non-empty string")
+    if not diagnostics and ((previous_pack is None) != (delta_pack is None)):
+        diagnostics.append("previous_pack and delta_pack must be supplied together")
+    return diagnostics
 
 
 def pack_asset_manifest_diagnostic(asset_manifest: Path) -> str | None:
@@ -655,9 +885,9 @@ def pack_asset_manifest_diagnostic(asset_manifest: Path) -> str | None:
 def pack_preflight_failure_report(
     *,
     args: argparse.Namespace,
-    asset_manifest: Path,
+    asset_manifest: Path | None,
     stage_dir: Path,
-    pack_path: Path,
+    pack_path: Path | None,
     previous_pack: Path | None,
     delta_pack: Path | None,
     diagnostics: list[str],
@@ -665,8 +895,8 @@ def pack_preflight_failure_report(
     return {
         "stage": "Pack",
         "profile": args.profile,
-        "asset_manifest": str(asset_manifest),
-        "pack": str(pack_path),
+        "asset_manifest": str(asset_manifest) if asset_manifest else None,
+        "pack": str(pack_path) if pack_path else None,
         "previous_pack": str(previous_pack) if previous_pack else None,
         "delta_pack": str(delta_pack) if delta_pack else None,
         "stage_output": str(stage_dir),
@@ -676,6 +906,7 @@ def pack_preflight_failure_report(
             "included_assets": [],
             "trimmed_assets": [],
             "missing_dependencies": [],
+            "duplicate_assets": [],
             "diagnostics": [],
         },
         "manifest": None,
@@ -688,232 +919,8 @@ def pack_preflight_failure_report(
         "delta_chunk_count": 0,
         "delta_removed_assets": [],
         "delta_reused_assets": [],
+        "delta_apply_verified": False,
     }
-
-
-def run_compile_host(args: argparse.Namespace) -> int:
-    repo_root = resolve_repo_root(args.repo_root)
-    out_root = resolve_user_path(args.out)
-    validate_report = (
-        resolve_user_path(args.validate_report)
-        if args.validate_report
-        else out_root / "stages" / "validate" / REPORT_FILE_NAME
-    )
-    stage_dir = out_root / "stages" / "compile_host"
-    report_path = stage_dir / REPORT_FILE_NAME
-
-    print(f"zircon_export stage=CompileHost profile={args.profile}")
-    print(f"validate_report={validate_report}")
-    print(f"report={report_path}")
-
-    diagnostics: list[str] = []
-    fatal = False
-    compile_plan = load_compile_host_plan(validate_report, args.profile, diagnostics)
-    command: list[str] = []
-    host_executable = None
-
-    if compile_plan is None:
-        fatal = True
-    else:
-        command = compile_host_command(args, out_root, compile_plan)
-        host_executable = compile_host_executable_path(out_root, compile_plan, args)
-        print(shell_join(command))
-        print(f"host={host_executable}")
-
-    if args.dry_run:
-        return 2 if fatal else 0
-
-    stage_dir.mkdir(parents=True, exist_ok=True)
-    exit_code = 2
-    if fatal:
-        exit_code = 2
-    else:
-        exit_code = subprocess.call(command, cwd=repo_root)
-        if exit_code != 0:
-            fatal = True
-            diagnostics.append(f"CompileHost cargo command exited with code {exit_code}")
-        elif host_executable and not host_executable.exists():
-            fatal = True
-            diagnostics.append(f"CompileHost output {host_executable} does not exist")
-
-    report = {
-        "stage": "CompileHost",
-        "profile": args.profile,
-        "fatal": fatal,
-        "diagnostics": diagnostics,
-        "validate_report": str(validate_report),
-        "command": command,
-        "host_executable": str(host_executable) if host_executable else None,
-        "exit_code": exit_code,
-    }
-    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print(json.dumps(report, indent=2))
-    return 2 if fatal else 0
-
-
-def run_platform_bundle(args: argparse.Namespace) -> int:
-    repo_root = resolve_repo_root(args.repo_root)
-    out_root = resolve_user_path(args.out)
-    pack_path = resolve_user_path(args.pack_file) if args.pack_file else out_root / "stages" / "pack" / "assets.zrpack"
-    delta_pack_path = resolve_user_path(args.delta_pack) if args.delta_pack else None
-    stage_dir = out_root / "stages" / "platform_bundle"
-    bundle_dir = out_root / "bundle" / args.profile
-    report_path = stage_dir / REPORT_FILE_NAME
-    host_executable = resolve_user_path(args.host_executable) if args.host_executable else None
-    native_plugins_dir = (
-        resolve_user_path(args.native_plugins_dir)
-        if getattr(args, "native_plugins_dir", None)
-        else None
-    )
-    template_dir = resolve_user_path(args.template_dir) if args.template_dir else None
-    template_root = resolve_user_path(args.template_root) if args.template_root else None
-    diagnostics: list[str] = []
-    template_resolution: dict[str, Any] | None = None
-    native_plugins_payload = native_dynamic_stage_payload_summary(
-        out_root,
-        args.profile,
-        native_plugins_dir,
-        diagnostics,
-    )
-
-    if template_root and not template_dir:
-        expected_engine_version = args.engine_version or workspace_engine_version(repo_root)
-        expected_target_platform = args.target_platform or validated_target_platform(out_root)
-        template_resolution = resolve_export_template_from_root(
-            template_root=template_root,
-            profile=args.profile,
-            expected_engine_version=expected_engine_version,
-            expected_target_platform=expected_target_platform,
-        )
-        diagnostics.extend(template_resolution["diagnostics"])
-        if not template_resolution["fatal"] and template_resolution.get("template_dir"):
-            template_dir = Path(template_resolution["template_dir"])
-
-    print(f"zircon_export stage=PlatformBundle profile={args.profile}")
-    print(f"bundle={bundle_dir}")
-    print(f"report={report_path}")
-    if template_root:
-        print(f"template_root={template_root}")
-    if template_dir:
-        print(f"template={template_dir}")
-    if host_executable:
-        print(f"host={host_executable}")
-    if native_plugins_dir:
-        print(f"native_plugins={native_plugins_dir}")
-    print(f"pack={pack_path}")
-    if delta_pack_path:
-        print(f"delta_pack={delta_pack_path}")
-    if args.dry_run:
-        for diagnostic in diagnostics:
-            print(f"diagnostic={diagnostic}")
-        return 2 if diagnostics else 0
-
-    stage_dir.mkdir(parents=True, exist_ok=True)
-    if bundle_dir.exists():
-        shutil.rmtree(bundle_dir)
-    bundle_dir.mkdir(parents=True, exist_ok=True)
-    fatal = bool(diagnostics)
-    copied_host = None
-    copied_pack = None
-    copied_delta_pack = None
-    copied_native_plugins = None
-    copied_native_plugins_payload = None
-    copied_template_files: list[dict[str, str]] = []
-    template_report: dict[str, Any] | None = None
-
-    if template_dir and not fatal:
-        expected_engine_version = args.engine_version or workspace_engine_version(repo_root)
-        expected_target_platform = args.target_platform or validated_target_platform(out_root)
-        template_report = validate_export_template(
-            template_dir=template_dir,
-            expected_engine_version=expected_engine_version,
-            profile=args.profile,
-            expected_target_platform=expected_target_platform,
-        )
-        diagnostics.extend(template_report["diagnostics"])
-        if template_report["fatal"]:
-            fatal = True
-            diagnostics.append("template validation failed; bundle copy skipped")
-        elif not host_executable and template_report.get("host_executable"):
-            host_executable = Path(template_report["host_executable"])
-
-    if not fatal:
-        materialize_result = materialize_platform_bundle(
-            bundle_dir=bundle_dir,
-            profile=args.profile,
-            host_executable=host_executable,
-            pack_path=pack_path,
-            delta_pack_path=delta_pack_path,
-            native_plugins_dir=native_plugins_dir,
-            template_report=template_report,
-            diagnostics=diagnostics,
-        )
-        fatal = materialize_result["fatal"]
-        copied_host = materialize_result["host_executable"]
-        copied_pack = materialize_result["pack"]
-        copied_delta_pack = materialize_result["delta_pack"]
-        copied_native_plugins = materialize_result["native_plugins"]
-        if copied_native_plugins and native_plugins_payload:
-            copied_native_plugins_payload = native_plugins_payload_for_bundle(
-                native_plugins_payload,
-                copied_native_plugins,
-            )
-        copied_template_files = materialize_result["template_files"]
-        if fatal:
-            if bundle_dir.exists():
-                shutil.rmtree(bundle_dir)
-            copied_host = None
-            copied_pack = None
-            copied_delta_pack = None
-            copied_native_plugins = None
-            copied_native_plugins_payload = None
-            copied_template_files = []
-
-    manifest = {
-        "profile": args.profile,
-        "template_resolution": template_resolution,
-        "template": template_report,
-        "host_executable": str(copied_host) if copied_host else None,
-        "pack": str(copied_pack) if copied_pack else None,
-        "delta_pack": str(copied_delta_pack) if copied_delta_pack else None,
-        "native_plugins": str(copied_native_plugins) if copied_native_plugins else None,
-        "native_plugins_payload": copied_native_plugins_payload,
-        "template_files": copied_template_files,
-    }
-    bundle_manifest: Path | None = bundle_dir / "bundle.json"
-    bundle_manifest_path = template_bundle_manifest_path(
-        bundle_dir,
-        template_report,
-        diagnostics,
-    )
-    if bundle_manifest_path:
-        bundle_manifest = bundle_manifest_path
-    if not fatal:
-        bundle_manifest.parent.mkdir(parents=True, exist_ok=True)
-        bundle_manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    else:
-        if bundle_dir.exists():
-            shutil.rmtree(bundle_dir)
-        bundle_manifest = None
-    report = {
-        "stage": "PlatformBundle",
-        "profile": args.profile,
-        "bundle": str(bundle_dir),
-        "fatal": fatal,
-        "diagnostics": diagnostics,
-        "template_resolution": template_resolution,
-        "template": template_report,
-        "host_executable": str(copied_host) if copied_host else None,
-        "pack": str(copied_pack) if copied_pack else None,
-        "delta_pack": str(copied_delta_pack) if copied_delta_pack else None,
-        "native_plugins": str(copied_native_plugins) if copied_native_plugins else None,
-        "native_plugins_payload": copied_native_plugins_payload,
-        "template_files": copied_template_files,
-        "bundle_manifest": str(bundle_manifest) if bundle_manifest else None,
-    }
-    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print(json.dumps(report, indent=2))
-    return 2 if fatal else 0
 
 
 def validate_command(
@@ -922,6 +929,9 @@ def validate_command(
     project_path: Path,
     stage_dir: Path,
     report_path: Path,
+    *,
+    validator: Path | None = None,
+    target_dir: Path | None = None,
 ) -> list[str]:
     validator_args = [
         "--project",
@@ -936,8 +946,8 @@ def validate_command(
     if args.pretty:
         validator_args.append("--pretty")
 
-    if args.validator:
-        return [str(resolve_user_path(args.validator)), *validator_args]
+    if validator:
+        return [str(validator), *validator_args]
 
     command = [
         args.cargo,
@@ -951,8 +961,8 @@ def validate_command(
         command.append("--locked")
     if args.offline:
         command.append("--offline")
-    if args.target_dir:
-        command.extend(["--target-dir", str(resolve_user_path(args.target_dir))])
+    if target_dir:
+        command.extend(["--target-dir", str(target_dir)])
     command.extend(["--", *validator_args])
     return command
 
@@ -964,6 +974,11 @@ def pack_command(
     stage_dir: Path,
     report_path: Path,
     pack_path: Path,
+    *,
+    previous_pack: Path | None = None,
+    delta_pack: Path | None = None,
+    packer: Path | None = None,
+    target_dir: Path | None = None,
 ) -> list[str]:
     packer_args = [
         "--profile",
@@ -981,13 +996,13 @@ def pack_command(
         packer_args.append("--pretty")
     if args.determinism_check:
         packer_args.append("--determinism-check")
-    if args.previous_pack:
-        packer_args.extend(["--previous-pack", str(resolve_user_path(args.previous_pack))])
-    if args.delta_pack:
-        packer_args.extend(["--delta-pack", str(resolve_user_path(args.delta_pack))])
+    if previous_pack:
+        packer_args.extend(["--previous-pack", str(previous_pack)])
+    if delta_pack:
+        packer_args.extend(["--delta-pack", str(delta_pack)])
 
-    if args.packer:
-        return [str(resolve_user_path(args.packer)), *packer_args]
+    if packer:
+        return [str(packer), *packer_args]
 
     command = [
         args.cargo,
@@ -1001,959 +1016,32 @@ def pack_command(
         command.append("--locked")
     if args.offline:
         command.append("--offline")
-    if args.target_dir:
-        command.extend(["--target-dir", str(resolve_user_path(args.target_dir))])
+    if target_dir:
+        command.extend(["--target-dir", str(target_dir)])
     command.extend(["--", *packer_args])
     return command
-
-
-def load_compile_host_plan(
-    validate_report: Path,
-    profile: str,
-    diagnostics: list[str],
-) -> dict[str, Any] | None:
-    if not validate_report.exists():
-        diagnostics.append(f"validate report {validate_report} does not exist")
-        return None
-    try:
-        report = json.loads(validate_report.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        diagnostics.append(f"validate report {validate_report} is not valid JSON: {error}")
-        return None
-
-    if report.get("fatal"):
-        diagnostics.append("validate report is fatal; CompileHost will not run")
-        return None
-    if report.get("profile") != profile:
-        diagnostics.append(
-            f"validate report profile {report.get('profile')} does not match requested profile {profile}"
-        )
-        return None
-
-    plan_summary = report.get("plan_summary")
-    if not isinstance(plan_summary, dict):
-        diagnostics.append("validate report does not contain plan_summary")
-        return None
-    compile_plan = plan_summary.get("library_embed_compile_host")
-    if not isinstance(compile_plan, dict):
-        diagnostics.append("validate report does not contain a LibraryEmbed CompileHost plan")
-        return None
-    command = compile_plan.get("command")
-    if not isinstance(command, list) or any(not isinstance(value, str) for value in command):
-        diagnostics.append("CompileHost plan command must be a string array")
-        return None
-    return compile_plan
-
-
-def compile_host_command(
-    args: argparse.Namespace,
-    out_root: Path,
-    compile_plan: dict[str, Any],
-) -> list[str]:
-    command = list(compile_plan["command"])
-    if command:
-        command[0] = args.cargo
-    if not args.no_locked and "--locked" not in command:
-        command.append("--locked")
-    if args.offline and "--offline" not in command:
-        command.append("--offline")
-    target_dir = resolve_user_path(args.target_dir) if args.target_dir else compile_host_target_dir(out_root)
-    return command_with_option(command, "--target-dir", str(target_dir))
-
-
-def command_with_option(command: list[str], option: str, value: str) -> list[str]:
-    rewritten: list[str] = []
-    index = 0
-    found = False
-    while index < len(command):
-        rewritten.append(command[index])
-        if command[index] == option and index + 1 < len(command):
-            rewritten.append(value)
-            index += 2
-            found = True
-            continue
-        index += 1
-    if not found:
-        rewritten.extend([option, value])
-    return rewritten
-
-
-def compile_host_target_dir(out_root: Path) -> Path:
-    return (out_root / "stages" / "compile_host" / "target").resolve()
-
-
-def compile_host_executable_path(
-    out_root: Path,
-    compile_plan: dict[str, Any],
-    args: argparse.Namespace | None = None,
-) -> Path | None:
-    binary = compile_plan.get("binary")
-    cargo_profile = compile_plan.get("cargo_profile", "debug")
-    if not isinstance(binary, str) or not binary:
-        return None
-    if not isinstance(cargo_profile, str) or not cargo_profile:
-        cargo_profile = "debug"
-    executable_name = binary + (".exe" if os.name == "nt" else "")
-    target_dir = (
-        resolve_user_path(args.target_dir)
-        if args is not None and getattr(args, "target_dir", None)
-        else compile_host_target_dir(out_root)
-    )
-    return target_dir / cargo_profile / executable_name
-
-
-def materialize_platform_bundle(
-    *,
-    bundle_dir: Path,
-    profile: str,
-    host_executable: Path | None,
-    pack_path: Path,
-    delta_pack_path: Path | None,
-    native_plugins_dir: Path | None,
-    template_report: dict[str, Any] | None,
-    diagnostics: list[str],
-) -> dict[str, Any]:
-    fatal = False
-    copied_host: Path | None = None
-    copied_pack: Path | None = None
-    copied_delta_pack: Path | None = None
-    copied_native_plugins: Path | None = None
-    copied_template_files: list[dict[str, str]] = []
-    bundle_root = template_bundle_root(bundle_dir, template_report, diagnostics)
-    bundle_root.mkdir(parents=True, exist_ok=True)
-
-    host_destination: Path | None = None
-    if host_executable:
-        host_destination = template_bundle_output_path(
-            bundle_root,
-            template_report,
-            "host_path",
-            host_executable.name,
-            diagnostics,
-        )
-    else:
-        diagnostics.append("host executable not supplied; bundle contains assets only")
-        fatal = True
-
-    pack_destination = template_bundle_output_path(
-        bundle_root,
-        template_report,
-        "pack_path",
-        pack_path.name,
-        diagnostics,
-    )
-    delta_pack_destination = None
-    if delta_pack_path:
-        delta_pack_destination = template_bundle_output_path(
-            bundle_root,
-            template_report,
-            "delta_pack_path",
-            delta_pack_path.name,
-            diagnostics,
-        )
-
-    if template_report and not fatal:
-        for entry in template_report.get("files", []):
-            if not isinstance(entry, dict):
-                continue
-            source = Path(template_report["template_dir"]) / entry["path"]
-            destination = resolve_bundle_child(
-                bundle_root,
-                entry.get("bundle_path", entry["path"]),
-                diagnostics,
-            )
-            if not destination:
-                fatal = True
-                continue
-            if host_destination and source.resolve() == host_executable.resolve():
-                continue
-            if not source.exists():
-                diagnostics.append(f"template file {source} does not exist during bundle copy")
-                fatal = True
-                continue
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, destination)
-            copied_template_files.append(
-                {
-                    "source": str(source),
-                    "destination": str(destination),
-                }
-            )
-
-    if host_executable and host_destination:
-        if not host_executable.exists():
-            diagnostics.append(f"host executable {host_executable} does not exist")
-            fatal = True
-        elif not fatal:
-            host_destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(host_executable, host_destination)
-            copied_host = host_destination
-
-    if not pack_path.exists():
-        diagnostics.append(f"pack file {pack_path} does not exist")
-        fatal = True
-    elif not fatal and pack_destination:
-        pack_destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(pack_path, pack_destination)
-        copied_pack = pack_destination
-
-    if delta_pack_path:
-        if not delta_pack_path.exists():
-            diagnostics.append(f"delta pack file {delta_pack_path} does not exist")
-            fatal = True
-        elif not fatal and delta_pack_destination:
-            delta_pack_destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(delta_pack_path, delta_pack_destination)
-            copied_delta_pack = delta_pack_destination
-
-    if native_plugins_dir:
-        plugins_destination = resolve_bundle_child(bundle_root, "plugins", diagnostics)
-        if plugins_destination and native_plugins_dir.exists() and native_plugins_dir.is_dir():
-            if plugins_destination.exists():
-                shutil.rmtree(plugins_destination)
-                copied_template_files = template_files_outside_directory(
-                    copied_template_files,
-                    plugins_destination,
-                )
-            copy_dir_contents(native_plugins_dir, plugins_destination)
-            copied_native_plugins = plugins_destination
-        elif plugins_destination:
-            diagnostics.append(f"native plugins directory {native_plugins_dir} does not exist")
-            fatal = True
-
-    return {
-        "fatal": fatal,
-        "profile": profile,
-        "bundle_root": bundle_root,
-        "host_executable": copied_host,
-        "pack": copied_pack,
-        "delta_pack": copied_delta_pack,
-        "native_plugins": copied_native_plugins,
-        "template_files": copied_template_files,
-    }
-
-
-def copy_dir_contents(source: Path, destination: Path) -> None:
-    destination.mkdir(parents=True, exist_ok=True)
-    for child in source.iterdir():
-        target = destination / child.name
-        if child.is_dir():
-            copy_dir_contents(child, target)
-        else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(child, target)
-
-
-def native_plugins_payload_for_bundle(
-    payload: dict[str, Any],
-    bundle_plugins_dir: Path,
-) -> dict[str, Any]:
-    bundled_payload = dict(payload)
-    bundled_payload["bundle_path"] = str(bundle_plugins_dir)
-    materialized_packages = payload.get("materialized_packages")
-    if isinstance(materialized_packages, list):
-        source = payload.get("source")
-        source_dir = Path(source).expanduser() if isinstance(source, str) else None
-        bundled_payload["materialized_packages"] = [
-            native_plugins_package_for_bundle(package, source_dir, bundle_plugins_dir)
-            for package in materialized_packages
-        ]
-    return bundled_payload
-
-
-def template_files_outside_directory(
-    template_files: list[dict[str, str]],
-    removed_directory: Path,
-) -> list[dict[str, str]]:
-    retained: list[dict[str, str]] = []
-    for entry in template_files:
-        destination = entry.get("destination")
-        if not destination:
-            retained.append(entry)
-            continue
-        try:
-            Path(destination).expanduser().resolve().relative_to(removed_directory.resolve())
-        except (OSError, ValueError):
-            retained.append(entry)
-    return retained
-
-
-def native_plugins_package_for_bundle(
-    package: object,
-    source_dir: Path | None,
-    bundle_plugins_dir: Path,
-) -> object:
-    if not isinstance(package, dict):
-        return package
-    bundled_package = dict(package)
-    destination = package.get("destination")
-    relative_destination = native_plugins_relative_payload_path(destination, source_dir)
-    if relative_destination is None:
-        return bundled_package
-    bundled_package["destination"] = str(bundle_plugins_dir / relative_destination)
-    package_report = package.get("package_report")
-    relative_package_report = native_plugins_relative_payload_path(package_report, source_dir)
-    if relative_package_report is not None:
-        bundled_package["package_report"] = str(bundle_plugins_dir / relative_package_report)
-    return bundled_package
-
-
-def native_plugins_relative_payload_path(
-    value: object,
-    source_dir: Path | None,
-) -> Path | None:
-    if not isinstance(value, str) or source_dir is None:
-        return None
-    try:
-        return Path(value).expanduser().resolve().relative_to(source_dir.resolve())
-    except (OSError, ValueError):
-        return None
-
-
-def template_bundle_root(
-    bundle_dir: Path,
-    template_report: dict[str, Any] | None,
-    diagnostics: list[str],
-) -> Path:
-    if not template_report:
-        return bundle_dir
-    bundle = template_report.get("bundle")
-    if not isinstance(bundle, dict):
-        return bundle_dir
-    root = bundle.get("root")
-    if not isinstance(root, str) or not root or root == ".":
-        return bundle_dir
-    return resolve_bundle_child(bundle_dir, root, diagnostics) or bundle_dir
-
-
-def template_bundle_output_path(
-    bundle_root: Path,
-    template_report: dict[str, Any] | None,
-    field_name: str,
-    fallback_name: str,
-    diagnostics: list[str],
-) -> Path | None:
-    if template_report:
-        bundle = template_report.get("bundle")
-        if isinstance(bundle, dict):
-            value = bundle.get(field_name)
-            if isinstance(value, str) and value:
-                return resolve_bundle_child(bundle_root, value, diagnostics)
-    return bundle_root / fallback_name
-
-
-def template_bundle_manifest_path(
-    bundle_dir: Path,
-    template_report: dict[str, Any] | None,
-    diagnostics: list[str],
-) -> Path | None:
-    if not template_report:
-        return None
-    bundle = template_report.get("bundle")
-    if not isinstance(bundle, dict):
-        return None
-    manifest_path = bundle.get("manifest_path")
-    if not isinstance(manifest_path, str) or not manifest_path:
-        return None
-    return resolve_bundle_child(
-        template_bundle_root(bundle_dir, template_report, diagnostics),
-        manifest_path,
-        diagnostics,
-    )
-
-
-def resolve_export_template_from_root(
-    *,
-    template_root: Path,
-    profile: str,
-    expected_engine_version: str | None,
-    expected_target_platform: str | None,
-) -> dict[str, Any]:
-    diagnostics: list[str] = []
-    root = template_root.resolve()
-    report: dict[str, Any] = {
-        "template_root": str(root),
-        "profile": profile,
-        "expected_engine_version": expected_engine_version,
-        "expected_target_platform": expected_target_platform,
-        "fatal": False,
-        "diagnostics": diagnostics,
-        "candidates": [],
-        "skipped_candidates": [],
-        "template_dir": None,
-    }
-
-    if not root.exists():
-        diagnostics.append(f"export template root {root} does not exist")
-        report["fatal"] = True
-        return report
-    if not root.is_dir():
-        diagnostics.append(f"export template root {root} is not a directory")
-        report["fatal"] = True
-        return report
-
-    for manifest_path in sorted(root.glob(f"*/{EXPORT_TEMPLATE_MANIFEST_NAME}")):
-        candidate_diagnostics: list[str] = []
-        manifest = read_template_manifest_for_resolution(manifest_path, candidate_diagnostics)
-        if manifest is None:
-            if candidate_diagnostics:
-                report["skipped_candidates"].append(
-                    {
-                        "template_dir": str(manifest_path.parent.resolve()),
-                        "diagnostics": candidate_diagnostics,
-                    }
-                )
-            continue
-        if not template_manifest_matches_resolution(
-            manifest,
-            profile=profile,
-            expected_engine_version=expected_engine_version,
-            expected_target_platform=expected_target_platform,
-        ):
-            continue
-        candidate_validation = validate_export_template(
-            template_dir=manifest_path.parent,
-            expected_engine_version=expected_engine_version,
-            profile=profile,
-            expected_target_platform=expected_target_platform,
-        )
-        if candidate_validation["fatal"]:
-            report["skipped_candidates"].append(
-                {
-                    "template_dir": str(manifest_path.parent.resolve()),
-                    "diagnostics": candidate_validation["diagnostics"],
-                }
-            )
-            continue
-        candidate = template_resolution_candidate(manifest_path.parent, manifest)
-        report["candidates"].append(candidate)
-
-    candidates = report["candidates"]
-    if not candidates:
-        target_note = expected_target_platform or "<any>"
-        engine_note = expected_engine_version or "<unresolved>"
-        diagnostics.append(
-            "no export template under "
-            f"{root} matched profile={profile} target_platform={target_note} "
-            f"engine_version={engine_note}"
-        )
-    elif len(candidates) > 1:
-        diagnostics.append(
-            "multiple export templates matched profile="
-            f"{profile}: "
-            + ", ".join(str(candidate["template_dir"]) for candidate in candidates)
-        )
-    else:
-        report["template_dir"] = candidates[0]["template_dir"]
-
-    report["fatal"] = bool(diagnostics) and report["template_dir"] is None
-    return report
-
-
-def read_template_manifest_for_resolution(
-    manifest_path: Path,
-    diagnostics: list[str],
-) -> dict[str, Any] | None:
-    try:
-        with manifest_path.open("rb") as manifest_file:
-            manifest = tomllib.load(manifest_file)
-    except tomllib.TOMLDecodeError as error:
-        diagnostics.append(f"export template manifest {manifest_path} is not valid TOML: {error}")
-        return None
-    if not isinstance(manifest, dict):
-        diagnostics.append(f"export template manifest {manifest_path} must be a TOML table")
-        return None
-    return manifest
-
-
-def template_manifest_matches_resolution(
-    manifest: dict[str, Any],
-    *,
-    profile: str,
-    expected_engine_version: str | None,
-    expected_target_platform: str | None,
-) -> bool:
-    if manifest.get("format_version") != EXPORT_TEMPLATE_FORMAT_VERSION:
-        return False
-    engine_version = manifest.get("engine_version")
-    if expected_engine_version and engine_version != expected_engine_version:
-        return False
-    target_platform = manifest.get("target_platform")
-    if expected_target_platform:
-        if not isinstance(target_platform, str):
-            return False
-        if normalize_target_platform(target_platform) != normalize_target_platform(
-            expected_target_platform
-        ):
-            return False
-    compatible_profiles = manifest.get("compatible_profiles", [])
-    if not compatible_profiles:
-        return True
-    if not isinstance(compatible_profiles, list):
-        return False
-    return profile in compatible_profiles
-
-
-def template_resolution_candidate(
-    template_dir: Path,
-    manifest: dict[str, Any],
-) -> dict[str, Any]:
-    return {
-        "template_dir": str(template_dir.resolve()),
-        "template_id": manifest.get("template_id"),
-        "engine_version": manifest.get("engine_version"),
-        "target_platform": manifest.get("target_platform"),
-        "compatible_profiles": manifest.get("compatible_profiles", []),
-        "bundle_format": manifest.get("bundle_format"),
-    }
-
-
-def validate_export_template(
-    *,
-    template_dir: Path,
-    expected_engine_version: str | None,
-    profile: str,
-    expected_target_platform: str | None,
-) -> dict[str, Any]:
-    diagnostics: list[str] = []
-    template_root = template_dir.resolve()
-    manifest_path = template_root / EXPORT_TEMPLATE_MANIFEST_NAME
-    report: dict[str, Any] = {
-        "template_dir": str(template_root),
-        "manifest": str(manifest_path),
-        "expected_format_version": EXPORT_TEMPLATE_FORMAT_VERSION,
-        "expected_engine_version": expected_engine_version,
-        "expected_target_platform": expected_target_platform,
-        "profile": profile,
-        "fatal": False,
-        "diagnostics": diagnostics,
-        "host_executable": None,
-        "files": [],
-    }
-
-    if not template_root.exists():
-        diagnostics.append(f"export template directory {template_root} does not exist")
-        report["fatal"] = True
-        return report
-    if not manifest_path.exists():
-        diagnostics.append(f"export template manifest {manifest_path} does not exist")
-        report["fatal"] = True
-        return report
-
-    try:
-        with manifest_path.open("rb") as manifest_file:
-            manifest = tomllib.load(manifest_file)
-    except tomllib.TOMLDecodeError as error:
-        diagnostics.append(f"export template manifest is not valid TOML: {error}")
-        report["fatal"] = True
-        return report
-
-    format_version = manifest.get("format_version")
-    report["format_version"] = format_version
-    if type(format_version) is not int:
-        diagnostics.append("template.toml field format_version must be an integer")
-    elif format_version != EXPORT_TEMPLATE_FORMAT_VERSION:
-        diagnostics.append(
-            "template format_version "
-            f"{format_version} is not supported; expected {EXPORT_TEMPLATE_FORMAT_VERSION}"
-        )
-
-    engine_version = template_string_field(manifest, "engine_version", diagnostics)
-    report["engine_version"] = engine_version
-    if not expected_engine_version:
-        diagnostics.append("engine version could not be resolved for template validation")
-    elif engine_version and engine_version != expected_engine_version:
-        diagnostics.append(
-            "template engine_version "
-            f"{engine_version} does not match engine version {expected_engine_version}"
-        )
-
-    template_id = template_string_field(manifest, "template_id", diagnostics)
-    target_platform = template_string_field(manifest, "target_platform", diagnostics)
-    host_kind = template_string_field(manifest, "host_kind", diagnostics)
-    resource_strategy = template_string_field(manifest, "resource_strategy", diagnostics)
-    plugin_strategy = template_string_field(manifest, "plugin_strategy", diagnostics)
-    bundle_format = template_string_field(manifest, "bundle_format", diagnostics)
-    content_hash = template_string_field(manifest, "content_hash", diagnostics)
-    report.update(
-        {
-            "template_id": template_id,
-            "target_platform": target_platform,
-            "host_kind": host_kind,
-            "resource_strategy": resource_strategy,
-            "plugin_strategy": plugin_strategy,
-            "bundle_format": bundle_format,
-            "content_hash": content_hash,
-        }
-    )
-
-    validate_allowed_field("host_kind", host_kind, EXPORT_TEMPLATE_ALLOWED_HOST_KINDS, diagnostics)
-    validate_allowed_field(
-        "resource_strategy",
-        resource_strategy,
-        EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
-        diagnostics,
-    )
-    validate_allowed_field(
-        "plugin_strategy",
-        plugin_strategy,
-        EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
-        diagnostics,
-    )
-    validate_allowed_field(
-        "bundle_format",
-        bundle_format,
-        EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS,
-        diagnostics,
-    )
-
-    if (
-        expected_target_platform
-        and target_platform
-        and normalize_target_platform(target_platform)
-        != normalize_target_platform(expected_target_platform)
-    ):
-        diagnostics.append(
-            "template target_platform "
-            f"{target_platform} does not match requested target platform {expected_target_platform}"
-        )
-
-    compatible_profiles = manifest.get("compatible_profiles", [])
-    if compatible_profiles is None:
-        compatible_profiles = []
-    if not isinstance(compatible_profiles, list) or any(
-        not isinstance(value, str) for value in compatible_profiles
-    ):
-        diagnostics.append("template.toml field compatible_profiles must be a string array")
-        compatible_profiles = []
-    report["compatible_profiles"] = compatible_profiles
-    if compatible_profiles and profile not in compatible_profiles:
-        diagnostics.append(
-            f"template compatible_profiles does not include requested profile {profile}"
-        )
-
-    paths = manifest.get("paths")
-    host_relative_path = None
-    if not isinstance(paths, dict):
-        diagnostics.append("template.toml table [paths] is required")
-    else:
-        host_relative_path = paths.get("host_executable")
-        if not isinstance(host_relative_path, str) or not host_relative_path.strip():
-            diagnostics.append("template.toml field paths.host_executable must be a non-empty string")
-            host_relative_path = None
-        else:
-            host_relative_path = normalize_relative_path(host_relative_path)
-            if not is_safe_relative_path(host_relative_path):
-                diagnostics.append(
-                    "template.toml field paths.host_executable must be a safe relative path"
-                )
-                host_relative_path = None
-
-    bundle_config = template_bundle_config(manifest, diagnostics)
-    report["bundle"] = bundle_config
-
-    checked_files = template_file_manifest(template_root, manifest, diagnostics)
-    report["files"] = checked_files
-    if checked_files:
-        computed_content_hash = compute_template_content_hash(checked_files)
-        report["computed_content_hash"] = computed_content_hash
-        if content_hash and not is_sha256_hex(content_hash):
-            diagnostics.append("template.toml field content_hash must be a SHA-256 hex digest")
-        elif content_hash and content_hash.lower() != computed_content_hash:
-            diagnostics.append(
-                "template content_hash "
-                f"{content_hash} does not match computed hash {computed_content_hash}"
-            )
-    else:
-        diagnostics.append("template.toml must declare at least one [[files]] entry")
-
-    if host_relative_path:
-        host_path = resolve_template_child(template_root, host_relative_path, diagnostics)
-        if host_path:
-            report["host_executable"] = str(host_path)
-            if not host_path.exists():
-                diagnostics.append(f"template host executable {host_path} does not exist")
-            declared_paths = {entry["path"] for entry in checked_files}
-            if host_relative_path.replace("\\", "/") not in declared_paths:
-                diagnostics.append(
-                    "template paths.host_executable must also be listed in [[files]]"
-                )
-
-    report["fatal"] = bool(diagnostics)
-    return report
-
-
-def template_string_field(
-    manifest: dict[str, Any],
-    field_name: str,
-    diagnostics: list[str],
-) -> str | None:
-    value = manifest.get(field_name)
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    diagnostics.append(f"template.toml field {field_name} must be a non-empty string")
-    return None
-
-
-def validate_allowed_field(
-    field_name: str,
-    value: str | None,
-    allowed_values: set[str],
-    diagnostics: list[str],
-) -> None:
-    if value and value not in allowed_values:
-        diagnostics.append(
-            f"template.toml field {field_name}={value!r} is not one of "
-            f"{', '.join(sorted(allowed_values))}"
-        )
-
-
-def template_bundle_config(
-    manifest: dict[str, Any],
-    diagnostics: list[str],
-) -> dict[str, str]:
-    bundle = manifest.get("bundle", {})
-    if bundle is None:
-        bundle = {}
-    if not isinstance(bundle, dict):
-        diagnostics.append("template.toml table [bundle] must be a table when present")
-        bundle = {}
-
-    config = {
-        "root": template_optional_path_field(bundle, "root", ".", diagnostics),
-        "host_path": template_optional_path_field(bundle, "host_path", "", diagnostics),
-        "pack_path": template_optional_path_field(bundle, "pack_path", "", diagnostics),
-        "delta_pack_path": template_optional_path_field(
-            bundle,
-            "delta_pack_path",
-            "",
-            diagnostics,
-        ),
-        "manifest_path": template_optional_path_field(
-            bundle,
-            "manifest_path",
-            "bundle.json",
-            diagnostics,
-        ),
-    }
-    return config
-
-
-def template_optional_path_field(
-    table: dict[str, Any],
-    field_name: str,
-    default: str,
-    diagnostics: list[str],
-) -> str:
-    value = table.get(field_name, default)
-    if value is None:
-        return default
-    if not isinstance(value, str):
-        diagnostics.append(f"template.toml field bundle.{field_name} must be a string")
-        return default
-    normalized = normalize_relative_path(value) if value else default
-    if normalized in {"", "."}:
-        return normalized
-    if not is_safe_relative_path(normalized):
-        diagnostics.append(f"template.toml field bundle.{field_name} must be a safe relative path")
-        return default
-    return normalized
-
-
-def template_file_manifest(
-    template_root: Path,
-    manifest: dict[str, Any],
-    diagnostics: list[str],
-) -> list[dict[str, str]]:
-    files = manifest.get("files", [])
-    if not isinstance(files, list):
-        diagnostics.append("template.toml [[files]] entries must form an array")
-        return []
-
-    checked_files: list[dict[str, str]] = []
-    seen_paths: set[str] = set()
-    for index, entry in enumerate(files):
-        if not isinstance(entry, dict):
-            diagnostics.append(f"template.toml [[files]] entry {index} must be a table")
-            continue
-        relative_path = entry.get("path")
-        if not isinstance(relative_path, str) or not relative_path.strip():
-            diagnostics.append(f"template.toml [[files]] entry {index} needs a non-empty path")
-            continue
-        normalized_path = normalize_relative_path(relative_path)
-        if not is_safe_relative_path(normalized_path):
-            diagnostics.append(
-                f"template.toml [[files]] entry {index} path must be a safe relative path"
-            )
-            continue
-        if normalized_path in seen_paths:
-            diagnostics.append(f"template file {normalized_path} is declared more than once")
-            continue
-        seen_paths.add(normalized_path)
-
-        file_path = resolve_template_child(template_root, normalized_path, diagnostics)
-        declared_sha256 = entry.get("sha256")
-        if not isinstance(declared_sha256, str) or not is_sha256_hex(declared_sha256):
-            diagnostics.append(
-                f"template file {normalized_path} must declare a SHA-256 hex digest"
-            )
-            continue
-        if not file_path or not file_path.exists():
-            diagnostics.append(f"template file {normalized_path} does not exist")
-            continue
-
-        actual_sha256 = hashlib.sha256(file_path.read_bytes()).hexdigest()
-        if declared_sha256.lower() != actual_sha256:
-            diagnostics.append(
-                f"template file {normalized_path} sha256 {declared_sha256} "
-                f"does not match actual {actual_sha256}"
-            )
-            continue
-        checked_files.append(
-            {
-                "path": normalized_path,
-                "bundle_path": template_bundle_file_path(entry, normalized_path, diagnostics),
-                "sha256": actual_sha256,
-                "purpose": str(entry.get("purpose", "")),
-            }
-        )
-    return checked_files
-
-
-def template_bundle_file_path(
-    entry: dict[str, Any],
-    normalized_path: str,
-    diagnostics: list[str],
-) -> str:
-    value = entry.get("bundle_path", normalized_path)
-    if value is None:
-        return normalized_path
-    if not isinstance(value, str) or not value.strip():
-        diagnostics.append(f"template file {normalized_path} has an invalid bundle_path")
-        return normalized_path
-    normalized = normalize_relative_path(value)
-    if not is_safe_relative_path(normalized):
-        diagnostics.append(f"template file {normalized_path} bundle_path must be a safe relative path")
-        return normalized_path
-    return normalized
-
-
-def resolve_template_child(
-    template_root: Path,
-    relative_path: str,
-    diagnostics: list[str],
-) -> Path | None:
-    child_path = Path(relative_path)
-    if child_path.is_absolute():
-        diagnostics.append(f"template path {relative_path} must be relative")
-        return None
-    resolved = (template_root / child_path).resolve()
-    try:
-        resolved.relative_to(template_root)
-    except ValueError:
-        diagnostics.append(f"template path {relative_path} escapes the template directory")
-        return None
-    return resolved
-
-
-def resolve_bundle_child(
-    bundle_root: Path,
-    relative_path: str,
-    diagnostics: list[str],
-) -> Path | None:
-    normalized = normalize_relative_path(relative_path)
-    if not is_safe_relative_path(normalized):
-        diagnostics.append(f"bundle path {relative_path} must be a safe relative path")
-        return None
-    resolved_root = bundle_root.resolve()
-    resolved = (resolved_root / Path(normalized)).resolve()
-    try:
-        resolved.relative_to(resolved_root)
-    except ValueError:
-        diagnostics.append(f"bundle path {relative_path} escapes the bundle directory")
-        return None
-    return resolved
-
-
-def normalize_relative_path(value: str) -> str:
-    return value.strip().replace("\\", "/")
-
-
-def is_safe_relative_path(value: str) -> bool:
-    path = Path(value)
-    if path.is_absolute():
-        return False
-    parts = value.split("/")
-    return bool(value) and all(part not in {"", ".", ".."} for part in parts)
-
-
-def compute_template_content_hash(files: Sequence[dict[str, str]]) -> str:
-    hasher = hashlib.sha256()
-    for entry in sorted(files, key=lambda value: value["path"]):
-        hasher.update(entry["path"].encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(entry.get("bundle_path", "").encode("utf-8"))
-        hasher.update(b"\0")
-        hasher.update(entry["sha256"].lower().encode("ascii"))
-        hasher.update(b"\n")
-    return hasher.hexdigest()
-
-
-def is_sha256_hex(value: str) -> bool:
-    if len(value) != 64:
-        return False
-    return all(character in "0123456789abcdefABCDEF" for character in value)
-
-
-def workspace_engine_version(repo_root: Path) -> str | None:
-    manifest_path = repo_root / "Cargo.toml"
-    if not manifest_path.exists():
-        return None
-    try:
-        with manifest_path.open("rb") as manifest_file:
-            manifest = tomllib.load(manifest_file)
-    except tomllib.TOMLDecodeError:
-        return None
-    version = (
-        manifest.get("workspace", {})
-        .get("package", {})
-        .get("version")
-    )
-    return version if isinstance(version, str) and version else None
-
-
-def validated_target_platform(out_root: Path) -> str | None:
-    report_path = out_root / "stages" / "validate" / REPORT_FILE_NAME
-    if not report_path.exists():
-        return None
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    profile_summary = report.get("profile_summary")
-    if not isinstance(profile_summary, dict):
-        return None
-    target_platform = profile_summary.get("target_platform")
-    return target_platform if isinstance(target_platform, str) and target_platform else None
-
-
-def normalize_target_platform(value: str) -> str:
-    aliases = {
-        "windows": "windows-x86_64",
-        "linux": "linux-x86_64",
-        "macos": "macos-aarch64",
-    }
-    return aliases.get(value, value)
 
 
 def resolve_repo_root(repo_root: str | None) -> Path:
     if repo_root:
         return resolve_user_path(repo_root)
+    return default_repo_root()
+
+
+def default_repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
 def resolve_user_path(path: str | os.PathLike[str]) -> Path:
     return Path(path).expanduser().resolve()
+
+
+def resolve_validate_path(
+    value: object,
+    label: str,
+    diagnostics: list[str],
+) -> Path | None:
+    return resolve_stage_optional_path(value, label, diagnostics, prefix="Validate")
 
 
 def shell_join(command: Sequence[str]) -> str:
