@@ -9,12 +9,12 @@ use super::super::super::template_popup_layout::{
 };
 use super::TemplateNodePointerHit;
 
-pub(super) enum TemplatePopupRowHit {
+pub(in crate::ui::retained_host::host_contract) enum TemplatePopupRowHit {
     Hit(TemplateNodePointerHit),
     Blocked,
 }
 
-pub(super) fn hit_test_template_popup_rows(
+pub(in crate::ui::retained_host::host_contract) fn hit_test_template_popup_rows(
     nodes: &ModelRc<TemplatePaneNodeData>,
     origin: &FrameRect,
     x: f32,

@@ -23,7 +23,7 @@ fn capability_reports_format_stable_diagnostic_lines() {
             "platform.ime=supported:winit_ime",
             "platform.keyboard_events=supported:winit_window_events",
             "platform.cursor_boundary=supported:winit_window_events",
-            "platform.cursor_options=unavailable:desktop cursor options host-request backend is not implemented yet",
+            "platform.cursor_options=supported:winit_window_options",
             "platform.mouse_buttons=supported:winit_window_events",
             "platform.mouse_wheel=supported:winit_window_events",
             "platform.touch_events=supported:winit_window_events",

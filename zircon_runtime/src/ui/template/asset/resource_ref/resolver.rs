@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::core::resource::{
-    ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, UntypedResourceHandle,
+    ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceScheme,
+    UntypedResourceHandle,
 };
 use zircon_runtime_interface::ui::template::{
     UiResourceDiagnosticSeverity, UiResourceFallbackMode, UiResourceKind, UiResourceRef,
@@ -31,6 +32,38 @@ pub struct UiResourceResolverCacheInvalidationReport {
     pub diagnostics_retained: usize,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UiResourceResolverSchemeMap {
+    pub asset_scheme: Option<ResourceScheme>,
+    pub asset_package_id: Option<String>,
+    pub project_scheme: Option<ResourceScheme>,
+    pub project_package_id: Option<String>,
+}
+
+impl UiResourceResolverSchemeMap {
+    pub fn asset_to(mut self, scheme: ResourceScheme) -> Self {
+        self.asset_scheme = Some(scheme);
+        self
+    }
+
+    pub fn asset_to_package(mut self, package_id: impl Into<String>) -> Self {
+        self.asset_scheme = Some(ResourceScheme::Package);
+        self.asset_package_id = Some(package_id.into());
+        self
+    }
+
+    pub fn project_to(mut self, scheme: ResourceScheme) -> Self {
+        self.project_scheme = Some(scheme);
+        self
+    }
+
+    pub fn project_to_package(mut self, package_id: impl Into<String>) -> Self {
+        self.project_scheme = Some(ResourceScheme::Package);
+        self.project_package_id = Some(package_id.into());
+        self
+    }
+}
+
 /// Consumer-level resolution result for a UI template resource reference.
 ///
 /// This layer resolves to the runtime resource registry's untyped handle. Later
@@ -56,6 +89,7 @@ pub enum UiResolvedUiResource {
 #[derive(Clone, Debug)]
 pub struct UiResourceResolver {
     resource_manager: ResourceManager,
+    scheme_map: UiResourceResolverSchemeMap,
     cache: BTreeMap<UiResourceRef, UiResolvedUiResource>,
     diagnostics: Vec<UiResourceResolveDiagnostic>,
 }
@@ -64,9 +98,19 @@ impl UiResourceResolver {
     pub fn new(resource_manager: ResourceManager) -> Self {
         Self {
             resource_manager,
+            scheme_map: UiResourceResolverSchemeMap::default(),
             cache: BTreeMap::new(),
             diagnostics: Vec::new(),
         }
+    }
+
+    pub fn with_scheme_map(mut self, scheme_map: UiResourceResolverSchemeMap) -> Self {
+        self.scheme_map = scheme_map;
+        self
+    }
+
+    pub fn scheme_map(&self) -> &UiResourceResolverSchemeMap {
+        &self.scheme_map
     }
 
     pub fn resolve(&mut self, reference: &UiResourceRef) -> UiResolvedUiResource {
@@ -98,6 +142,7 @@ impl UiResourceResolver {
     {
         let mut requested_uris = Vec::new();
         let mut references_removed = 0;
+        let scheme_map = self.scheme_map.clone();
         for uri in uris {
             let uri = uri.as_ref().trim();
             if uri.is_empty() || requested_uris.iter().any(|existing| existing == uri) {
@@ -105,8 +150,9 @@ impl UiResourceResolver {
             }
             requested_uris.push(uri.to_string());
             let before = self.cache.len();
-            self.cache
-                .retain(|reference, _| !resource_reference_contains_uri(reference, uri));
+            self.cache.retain(|reference, _| {
+                !resource_reference_contains_uri(reference, uri, &scheme_map)
+            });
             references_removed += before.saturating_sub(self.cache.len());
         }
 
@@ -167,7 +213,7 @@ impl UiResourceResolver {
         missing_severity: UiResourceDiagnosticSeverity,
         context: &str,
     ) -> Result<UntypedResourceHandle, usize> {
-        let locator = match runtime_lookup_for_ui_uri(uri) {
+        let locator = match runtime_lookup_for_ui_uri(uri, &self.scheme_map) {
             Ok(RuntimeResourceLookup::Locator(locator)) => locator,
             Ok(RuntimeResourceLookup::UiAssetScheme) => {
                 return Err(self.push_diagnostic(
@@ -250,8 +296,35 @@ impl UiResourceResolver {
     }
 }
 
-fn resource_reference_contains_uri(reference: &UiResourceRef, uri: &str) -> bool {
-    reference.uri == uri || reference.fallback.uri.as_deref() == Some(uri)
+fn resource_reference_contains_uri(
+    reference: &UiResourceRef,
+    uri: &str,
+    scheme_map: &UiResourceResolverSchemeMap,
+) -> bool {
+    resource_uri_matches_invalidation_uri(&reference.uri, uri, scheme_map)
+        || reference.fallback.uri.as_deref().is_some_and(|fallback| {
+            resource_uri_matches_invalidation_uri(fallback, uri, scheme_map)
+        })
+}
+
+fn resource_uri_matches_invalidation_uri(
+    reference_uri: &str,
+    invalidation_uri: &str,
+    scheme_map: &UiResourceResolverSchemeMap,
+) -> bool {
+    reference_uri == invalidation_uri
+        || mapped_runtime_locator_string(reference_uri, scheme_map).as_deref()
+            == Some(invalidation_uri)
+}
+
+fn mapped_runtime_locator_string(
+    uri: &str,
+    scheme_map: &UiResourceResolverSchemeMap,
+) -> Option<String> {
+    match runtime_lookup_for_ui_uri(uri, scheme_map).ok()? {
+        RuntimeResourceLookup::Locator(locator) => Some(locator.to_string()),
+        RuntimeResourceLookup::UiAssetScheme => None,
+    }
 }
 
 enum RuntimeResourceLookup {
@@ -259,10 +332,24 @@ enum RuntimeResourceLookup {
     UiAssetScheme,
 }
 
-fn runtime_lookup_for_ui_uri(uri: &str) -> Result<RuntimeResourceLookup, String> {
+fn runtime_lookup_for_ui_uri(
+    uri: &str,
+    scheme_map: &UiResourceResolverSchemeMap,
+) -> Result<RuntimeResourceLookup, String> {
     let trimmed = uri.trim();
-    if has_ui_asset_scheme(trimmed) {
-        return Ok(RuntimeResourceLookup::UiAssetScheme);
+    if let Some(remainder) = trimmed.strip_prefix("asset://") {
+        return mapped_ui_locator(
+            remainder,
+            scheme_map.asset_scheme,
+            scheme_map.asset_package_id.as_deref(),
+        );
+    }
+    if let Some(remainder) = trimmed.strip_prefix("project://") {
+        return mapped_ui_locator(
+            remainder,
+            scheme_map.project_scheme,
+            scheme_map.project_package_id.as_deref(),
+        );
     }
 
     ResourceLocator::parse(trimmed)
@@ -270,8 +357,38 @@ fn runtime_lookup_for_ui_uri(uri: &str) -> Result<RuntimeResourceLookup, String>
         .map_err(|error| error.to_string())
 }
 
-fn has_ui_asset_scheme(uri: &str) -> bool {
-    uri.starts_with("asset://") || uri.starts_with("project://")
+fn mapped_ui_locator(
+    remainder: &str,
+    scheme: Option<ResourceScheme>,
+    project_package_id: Option<&str>,
+) -> Result<RuntimeResourceLookup, String> {
+    let Some(scheme) = scheme else {
+        return Ok(RuntimeResourceLookup::UiAssetScheme);
+    };
+    let path = match scheme {
+        ResourceScheme::Package => {
+            if let Some(package_id) = project_package_id {
+                format!("{package_id}/{remainder}")
+            } else {
+                remainder.to_string()
+            }
+        }
+        _ => remainder.to_string(),
+    };
+    let (path, label) = split_ui_locator_label(&path)?;
+    ResourceLocator::new(scheme, path, label)
+        .map(RuntimeResourceLookup::Locator)
+        .map_err(|error| error.to_string())
+}
+
+fn split_ui_locator_label(value: &str) -> Result<(String, Option<String>), String> {
+    match value.split_once('#') {
+        Some((_path, label)) if label.is_empty() => {
+            Err("resource locator label cannot be empty".to_string())
+        }
+        Some((path, label)) => Ok((path.to_string(), Some(label.to_string()))),
+        None => Ok((value.to_string(), None)),
+    }
 }
 
 fn resource_kind_for_ui_resource(kind: UiResourceKind) -> ResourceKind {

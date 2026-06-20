@@ -1083,6 +1083,7 @@ fn dummy_component_remove(
 
 fn dummy_resource_adapter() -> ReflectResource {
     ReflectResource {
+        ensure: None,
         contains: dummy_resource_contains,
         read_field: dummy_resource_read_field,
         read_fields: dummy_resource_read_fields,

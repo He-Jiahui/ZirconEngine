@@ -12,7 +12,7 @@ use super::geometry::{
 };
 use super::rows::draw_menu_popup_rows;
 
-pub(super) fn draw_open_menu_popup(
+pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {

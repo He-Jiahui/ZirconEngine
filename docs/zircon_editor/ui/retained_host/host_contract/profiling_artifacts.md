@@ -1,11 +1,14 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/export.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/frame_math.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/hit_samples.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/tabs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/schema.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes/chrome.rs
@@ -17,11 +20,14 @@ related_code:
   - tools/ui-profile-capture.ps1
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/export.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/frame_math.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/hit_samples.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/tabs.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/schema.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes/chrome.rs
@@ -35,6 +41,7 @@ plan_sources:
 tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
+  - profiling artifact export/environment/schema ownership scan
   - profiling artifact geometry ownership scan
   - profiling artifact geometry subtree ownership scan
   - profiling hit-route subtree ownership scan
@@ -44,7 +51,11 @@ doc_type: module-detail
 
 # Profiling Artifacts
 
-`profiling_artifacts.rs` is the retained-host profiling export entry. It checks profiling environment flags, chooses the export directory, writes `ui_profile_geometry.json`, and optionally writes the reference screenshot. It keeps the serializable data records beside the export function so the artifact schema remains visible at the file that writes it.
+`profiling_artifacts.rs` is the retained-host profiling artifact boundary. It is now a structural entry file that wires export, environment, schema, geometry, and module-local tests while preserving the single outward entry `export_present_artifacts(...)`.
+
+`profiling_artifacts/export.rs` owns the export workflow: check the capture switches, create the session directory, serialize `ui_profile_geometry.json`, and optionally write `screenshot_reference.png` from the presenter snapshot path. `profiling_artifacts/environment.rs` owns the environment contract for `ZIRCON_PROFILE_CAPTURE`, `ZIRCON_PROFILE_CAPTURE_SCREENSHOTS`, `ZIRCON_PROFILE_FORCE_SOFTBUFFER`, `ZIRCON_PROFILE_OUTPUT_ROOT`, and `ZIRCON_PROFILE_SESSION`, including session-id sanitization.
+
+`profiling_artifacts/schema.rs` owns the serializable JSON payload records. Keeping the DTOs separate from the writer makes the artifact schema auditable without letting the root module accumulate export control flow and data declarations again.
 
 ## Geometry Ownership
 
@@ -69,6 +80,8 @@ The tests remain in a child module rather than a public API because these checks
 ## Validation Notes
 
 The 2026-06-18 geometry split is implementation-first. Evidence for this slice is formatting, ownership scans, trailing-whitespace/diff checks, and scoped `zircon_editor` library type checks. Full Cargo test matrix and live profiling capture remain deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-20 export/environment/schema split reduced `profiling_artifacts.rs` to a structural module entry. The new child owners are `export.rs` for artifact writes and screenshot capture, `environment.rs` for capture switches and export path selection, and `schema.rs` for the serialized profile DTOs. Validation used `cargo fmt -p zircon_editor --check`, a root ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; Cargo compile/test validation remains deferred because current package checks are blocked by unrelated runtime render-history errors before editor diagnostics.
 
 The 2026-06-18 geometry subtree split reduced `profiling_artifacts/geometry.rs` from 614 lines to 155 lines. The new child owners are `geometry/frame_math.rs` at 112 lines, `geometry/hit_samples.rs` at 61 lines, `geometry/pane_frames.rs` at 235 lines, and `geometry/tabs.rs` at 84 lines. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a geometry subtree ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only.
 

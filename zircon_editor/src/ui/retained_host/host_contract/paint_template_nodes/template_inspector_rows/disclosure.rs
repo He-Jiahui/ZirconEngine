@@ -5,7 +5,7 @@ use super::super::template_inspector_row_glyphs::push_inspector_down_chevron;
 use super::primitives::push_text;
 use super::style::{disclosure_label_color, INSPECTOR_GLYPH_COLOR};
 
-pub(super) fn push_disclosure_row(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_disclosure_row(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

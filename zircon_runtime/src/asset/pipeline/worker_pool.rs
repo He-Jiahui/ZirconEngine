@@ -316,13 +316,6 @@ impl AssetWorkerPool {
         Ok(())
     }
 
-    pub fn request_sender(&self) -> ChannelSender<AssetRequest> {
-        self.request_tx
-            .as_ref()
-            .expect("asset worker request sender alive")
-            .clone()
-    }
-
     pub fn completion_receiver(&self) -> ChannelReceiver<CpuAssetPayload> {
         self.completion_rx.clone()
     }

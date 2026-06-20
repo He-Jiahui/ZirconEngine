@@ -1,7 +1,7 @@
 use super::super::data::HostWindowSceneData;
 use super::geometry::{contains, translated};
 
-pub(super) fn resize_splitter_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn resize_splitter_route_hit(
     scene: &HostWindowSceneData,
     surface: &str,
     x: f32,
@@ -15,7 +15,7 @@ pub(super) fn resize_splitter_route_hit(
     }
 }
 
-pub(super) fn activity_rail_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn activity_rail_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     surface: &str,

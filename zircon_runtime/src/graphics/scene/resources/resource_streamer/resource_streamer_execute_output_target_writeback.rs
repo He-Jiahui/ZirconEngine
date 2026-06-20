@@ -108,7 +108,7 @@ impl ResourceStreamer {
 
     pub(crate) fn suppress_output_target_writeback(&mut self, frame: &ViewportRenderFrame) {
         self.last_output_target_writeback_report =
-            RenderCameraTargetWritebackReport::not_requested(frame.output_target().kind());
+            suppressed_output_target_writeback_report(frame.output_target());
     }
 }
 
@@ -117,6 +117,17 @@ fn output_target_texture_id(frame: &ViewportRenderFrame) -> Option<ResourceId> {
         .output_target()
         .texture_handle()
         .map(|texture| texture.id())
+}
+
+fn suppressed_output_target_writeback_report(
+    target: crate::graphics::types::ViewportRenderOutputTarget,
+) -> RenderCameraTargetWritebackReport {
+    match target.size() {
+        Some(size) if target.texture_handle().is_some() => {
+            RenderCameraTargetWritebackReport::suppressed_by_camera_stack(size)
+        }
+        _ => RenderCameraTargetWritebackReport::not_requested(target.kind()),
+    }
 }
 
 fn should_execute_output_target_writeback(plan: &ViewportTextureWritebackPlan) -> bool {
@@ -198,7 +209,7 @@ mod tests {
 
     use super::{
         output_target_writeback_extent, output_target_writeback_report_for_plan,
-        should_execute_output_target_writeback,
+        should_execute_output_target_writeback, suppressed_output_target_writeback_report,
     };
 
     #[test]
@@ -270,6 +281,27 @@ mod tests {
         assert!(!converted.debug_marker_emitted);
         assert!(converted.conversion_debug_marker_emitted);
         assert_eq!(converted.converted_count, 1);
+    }
+
+    #[test]
+    fn suppressed_output_target_writeback_report_is_texture_only() {
+        let texture = ViewportRenderOutputTarget::Texture {
+            handle: texture_handle("tests/writeback/suppressed"),
+            size: UVec2::new(128, 72),
+        };
+        let texture_report = suppressed_output_target_writeback_report(texture);
+        let primary_report =
+            suppressed_output_target_writeback_report(ViewportRenderOutputTarget::PrimarySurface);
+
+        assert_eq!(
+            texture_report.status,
+            RenderCameraTargetWritebackStatus::SuppressedByCameraStack
+        );
+        assert_eq!(texture_report.target_size, UVec2::new(128, 72));
+        assert_eq!(
+            primary_report.status,
+            RenderCameraTargetWritebackStatus::NotRequested
+        );
     }
 
     #[test]

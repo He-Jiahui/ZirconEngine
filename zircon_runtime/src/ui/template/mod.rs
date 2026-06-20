@@ -28,8 +28,9 @@ pub use asset::{
     UiPrototypeStoreLoadOutcome, UiResolvedResourceDependency, UiResolvedUiResource,
     UiResourcePathResolver, UiResourceResolutionReport, UiResourceResolveDiagnostic,
     UiResourceResolveDiagnosticCode, UiResourceResolver, UiResourceResolverCacheInvalidationReport,
-    UiRuntimeCompiledAssetArtifact, UiStyleResolver, BROAD_SELECTOR_WARNING_THRESHOLD,
-    LARGE_DOCUMENT_NODE_WARNING_THRESHOLD, NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD,
+    UiResourceResolverSchemeMap, UiRuntimeCompiledAssetArtifact, UiStyleResolver,
+    BROAD_SELECTOR_WARNING_THRESHOLD, LARGE_DOCUMENT_NODE_WARNING_THRESHOLD,
+    NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD,
 };
 pub use build::{UiTemplateBuildError, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
 pub use instance::UiTemplateInstance;

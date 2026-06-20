@@ -7,7 +7,6 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, RenderShadowExecutionReport, RenderStats,
 };
 use crate::graphics::pipeline::RenderPassStage;
-use crate::graphics::scene::RenderGraphLightGridReport;
 use crate::graphics::visibility::{
     FrameVisibility, HzbBuilder, HzbOcclusionCullReport, VisibilityStaticIndexReport,
 };
@@ -17,12 +16,16 @@ use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::submission_record_update::SubmissionRecordUpdate;
+use super::light_grid_stats::update_light_grid_stats;
+use super::shared_product_reports::SharedViewportProductReports;
+use super::ui_stats::runtime_ui_graph_pass_order;
 
 pub(super) fn update_base_stats(
     state: &mut RenderFrameworkState,
     context: &FrameSubmissionContext,
     record_update: &SubmissionRecordUpdate,
     frame_generation: u64,
+    shared_product_reports: SharedViewportProductReports,
 ) {
     state.stats.submitted_frames += 1;
     state.stats.last_generation = Some(frame_generation);
@@ -194,7 +197,7 @@ pub(super) fn update_base_stats(
         &mut state.stats,
         state.renderer.last_hzb_occlusion_cull_report(),
     );
-    update_light_grid_stats(&mut state.stats, state.renderer.last_light_grid_report());
+    update_light_grid_stats(&mut state.stats, shared_product_reports.light_grid_report());
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();
@@ -524,32 +527,6 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
     stats.last_visibility_occlusion_culled_count = readback_stats.culled_instance_count as usize;
 }
 
-fn update_light_grid_stats(stats: &mut RenderStats, report: Option<RenderGraphLightGridReport>) {
-    let Some(report) = report else {
-        stats.last_light_grid_reported = false;
-        stats.last_light_grid_light_count = 0;
-        stats.last_light_grid_tile_count = 0;
-        stats.last_light_grid_zbin_count = 0;
-        stats.last_light_grid_non_empty_tile_count = 0;
-        stats.last_light_grid_non_empty_zbin_count = 0;
-        stats.last_light_grid_non_empty_cluster_count = 0;
-        stats.last_light_grid_peak_lights_per_cluster = 0;
-        stats.last_light_grid_average_lights_per_cluster_milli = 0;
-        return;
-    };
-
-    stats.last_light_grid_reported = true;
-    stats.last_light_grid_light_count = report.light_count;
-    stats.last_light_grid_tile_count = report.tile_count;
-    stats.last_light_grid_zbin_count = report.zbin_count;
-    stats.last_light_grid_non_empty_tile_count = report.non_empty_tile_count;
-    stats.last_light_grid_non_empty_zbin_count = report.non_empty_zbin_count;
-    stats.last_light_grid_non_empty_cluster_count = report.non_empty_cluster_count;
-    stats.last_light_grid_peak_lights_per_cluster = report.peak_lights_per_cluster;
-    stats.last_light_grid_average_lights_per_cluster_milli =
-        report.average_lights_per_cluster_milli;
-}
-
 fn graph_execution_coverage_report(
     compiled_pipeline: &crate::graphics::pipeline::CompiledRenderPipeline,
     executed_passes: &[String],
@@ -716,39 +693,18 @@ fn particle_velocity_diagnostics_enabled(
     reconstructed_velocity_requested && particle_transparent_executed
 }
 
-fn runtime_ui_graph_pass_order(
-    executed_passes: &[String],
-    ui_graph_executed_pass_count: usize,
-) -> Option<String> {
-    if ui_graph_executed_pass_count == 0 {
-        return None;
-    }
-
-    let postprocess = executed_passes.iter().position(|pass| pass == "uber")?;
-    let runtime_ui = executed_passes
-        .iter()
-        .position(|pass| pass == "runtime-ui")?;
-    let overlay = executed_passes
-        .iter()
-        .position(|pass| pass == "overlay-gizmo")?;
-
-    (postprocess < runtime_ui && runtime_ui < overlay).then(|| "postprocess-ui-overlay".to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         effect_stack_resource_status, graph_execution_coverage_report_from_names,
         particle_velocity_anonymous_stream_ambiguity_count, particle_velocity_missing_sprite_count,
-        runtime_ui_graph_pass_order, update_hzb_occlusion_stats, update_light_grid_stats,
-        update_visibility_static_index_stats, update_visibility_stats,
+        update_hzb_occlusion_stats, update_visibility_static_index_stats, update_visibility_stats,
     };
     use crate::core::framework::render::{
         MotionVectorCameraStatus, PostProcessEffectKind, PostProcessGraphResourceNames,
         PostProcessPassGraph, PostProcessPassNode, RenderPostProcessEffectStackSettings,
         RenderStats,
     };
-    use crate::graphics::scene::RenderGraphLightGridReport;
     use crate::graphics::visibility::{
         FrameVisibility, HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, ViewCullingStats,
         ViewVisibilityContext, VisibilityStaticIndexReport,
@@ -951,91 +907,6 @@ mod tests {
         assert_eq!(stats.last_hzb_occlusion_compacted_draw_count, 0);
         assert_eq!(stats.last_hzb_occlusion_zero_instance_arg_count, 0);
         assert_eq!(stats.last_hzb_occlusion_remaining_instance_count, 0);
-    }
-
-    #[test]
-    fn update_light_grid_stats_records_latest_grid_report() {
-        let mut stats = RenderStats::default();
-        let report = RenderGraphLightGridReport {
-            light_count: 9,
-            tile_count: 64,
-            zbin_count: 32,
-            non_empty_tile_count: 11,
-            non_empty_zbin_count: 7,
-            non_empty_cluster_count: 23,
-            peak_lights_per_cluster: 5,
-            average_lights_per_cluster_milli: 375,
-        };
-
-        update_light_grid_stats(&mut stats, Some(report));
-
-        assert!(stats.last_light_grid_reported);
-        assert_eq!(stats.last_light_grid_light_count, 9);
-        assert_eq!(stats.last_light_grid_tile_count, 64);
-        assert_eq!(stats.last_light_grid_zbin_count, 32);
-        assert_eq!(stats.last_light_grid_non_empty_tile_count, 11);
-        assert_eq!(stats.last_light_grid_non_empty_zbin_count, 7);
-        assert_eq!(stats.last_light_grid_non_empty_cluster_count, 23);
-        assert_eq!(stats.last_light_grid_peak_lights_per_cluster, 5);
-        assert_eq!(stats.last_light_grid_average_lights_per_cluster_milli, 375);
-    }
-
-    #[test]
-    fn update_light_grid_stats_resets_when_no_report() {
-        let mut stats = RenderStats {
-            last_light_grid_reported: true,
-            last_light_grid_light_count: 9,
-            last_light_grid_tile_count: 64,
-            last_light_grid_zbin_count: 32,
-            last_light_grid_non_empty_tile_count: 11,
-            last_light_grid_non_empty_zbin_count: 7,
-            last_light_grid_non_empty_cluster_count: 23,
-            last_light_grid_peak_lights_per_cluster: 5,
-            last_light_grid_average_lights_per_cluster_milli: 375,
-            ..RenderStats::default()
-        };
-
-        update_light_grid_stats(&mut stats, None);
-
-        assert!(!stats.last_light_grid_reported);
-        assert_eq!(stats.last_light_grid_light_count, 0);
-        assert_eq!(stats.last_light_grid_tile_count, 0);
-        assert_eq!(stats.last_light_grid_zbin_count, 0);
-        assert_eq!(stats.last_light_grid_non_empty_tile_count, 0);
-        assert_eq!(stats.last_light_grid_non_empty_zbin_count, 0);
-        assert_eq!(stats.last_light_grid_non_empty_cluster_count, 0);
-        assert_eq!(stats.last_light_grid_peak_lights_per_cluster, 0);
-        assert_eq!(stats.last_light_grid_average_lights_per_cluster_milli, 0);
-    }
-
-    #[test]
-    fn runtime_ui_graph_pass_order_requires_actual_graph_order() {
-        let passes = ["uber", "runtime-ui", "overlay-gizmo"]
-            .into_iter()
-            .map(str::to_string)
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            runtime_ui_graph_pass_order(&passes, 1).as_deref(),
-            Some("postprocess-ui-overlay")
-        );
-
-        let unordered = ["runtime-ui", "uber", "overlay-gizmo"]
-            .into_iter()
-            .map(str::to_string)
-            .collect::<Vec<_>>();
-
-        assert_eq!(runtime_ui_graph_pass_order(&unordered, 1), None);
-    }
-
-    #[test]
-    fn runtime_ui_graph_pass_order_is_absent_without_ui_execution() {
-        let passes = ["uber", "runtime-ui", "overlay-gizmo"]
-            .into_iter()
-            .map(str::to_string)
-            .collect::<Vec<_>>();
-
-        assert_eq!(runtime_ui_graph_pass_order(&passes, 0), None);
     }
 
     #[test]

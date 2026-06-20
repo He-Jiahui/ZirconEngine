@@ -54,7 +54,7 @@ impl UiHostWindow {
         self.dispatch_text_focus_value(focus.clone(), focus.edit_target_id(), value)
     }
 
-    pub(super) fn dispatch_focused_key_event(
+    pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_key_event(
         &self,
         event: &KeyEvent,
     ) -> NativePointerDispatchResult {
@@ -91,7 +91,7 @@ impl UiHostWindow {
         }
     }
 
-    pub(super) fn dispatch_native_keyboard_event(
+    pub(in crate::ui::retained_host::host_contract) fn dispatch_native_keyboard_event(
         &self,
         event: &KeyEvent,
         modifiers: ModifiersState,
@@ -125,7 +125,9 @@ impl UiHostWindow {
             .invoke_unhandled_keyboard_input(keyboard);
     }
 
-    pub(super) fn dispatch_focused_text_commit(&self) -> NativePointerDispatchResult {
+    pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_text_commit(
+        &self,
+    ) -> NativePointerDispatchResult {
         let focus = self.state.borrow().text_input_focus.clone();
         if !focus.is_active() || focus.commit_action_id.is_empty() {
             return NativePointerDispatchResult::idle();

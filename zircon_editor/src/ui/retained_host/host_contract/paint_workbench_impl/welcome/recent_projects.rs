@@ -10,7 +10,7 @@ use super::style::{
     WELCOME_MUTED_TEXT, WELCOME_SURFACE, WELCOME_SURFACE_INSET, WELCOME_TEXT, WELCOME_WARNING,
 };
 
-pub(super) fn draw_welcome_recent_projects(
+pub(in crate::ui::retained_host::host_contract) fn draw_welcome_recent_projects(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

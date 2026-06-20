@@ -13,7 +13,7 @@ use super::super::{HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP};
 
 const TAB_DRAG_START_DISTANCE_PX: f32 = 4.0;
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn arm_native_tab_drag(
+pub(in crate::ui::retained_host::host_contract) fn arm_native_tab_drag(
     ui: &UiHostWindow,
     presentation: &HostWindowPresentationData,
     route: &ChromePointerRoute,
@@ -35,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer) fn arm_native_ta
         });
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn dispatch_native_tab_drag_move(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_native_tab_drag_move(
     ui: &UiHostWindow,
     x: f32,
     y: f32,
@@ -69,7 +69,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer) fn dispatch_nati
     Some(NativePointerDispatchResult::idle())
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn finish_native_tab_drag(
+pub(in crate::ui::retained_host::host_contract) fn finish_native_tab_drag(
     ui: &UiHostWindow,
     x: f32,
     y: f32,

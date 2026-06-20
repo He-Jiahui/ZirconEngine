@@ -265,7 +265,7 @@ def stage_report_path_handoff_diagnostic(
     if report is None:
         return None
     value = report.get(field)
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         stage_label = stage_report_label(stage)
         return f"{stage_label} report field {field} must be a non-empty string"
     return field_value_path_diagnostic(report, stage, field)
@@ -341,7 +341,7 @@ def stage_report_optional_path_handoff_diagnostic(
     if report is None or field not in report:
         return None
     value = report.get(field)
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         stage_label = stage_report_label(stage)
         return f"{stage_label} report field {field} must be a non-empty string"
     return field_value_path_diagnostic(report, stage, field)
@@ -455,6 +455,8 @@ def stage_report_diagnostics_diagnostic(
         return f"{stage_label} report diagnostics must be a string array"
     if not all(isinstance(diagnostic, str) for diagnostic in diagnostics):
         return f"{stage_label} report diagnostics must be a string array"
+    if any(not diagnostic.strip() for diagnostic in diagnostics):
+        return f"{stage_label} report diagnostics must not contain blank entries"
     return None
 
 
@@ -469,7 +471,7 @@ def normalized_stage_identity(stage: str) -> str:
 
 def field_value_path(report: dict[str, Any], field: str) -> Path | None:
     value = report.get(field)
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         return None
     try:
         return resolve_user_path(value)
@@ -483,7 +485,7 @@ def field_value_path_diagnostic(
     field: str,
 ) -> str | None:
     value = report.get(field)
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         stage_label = stage_report_label(stage)
         return f"{stage_label} report field {field} must be a non-empty string"
     try:

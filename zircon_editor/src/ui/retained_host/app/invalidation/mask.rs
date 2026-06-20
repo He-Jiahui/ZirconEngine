@@ -1,3 +1,6 @@
+mod requirements;
+mod summary;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HostInvalidationMask(u16);
 
@@ -41,37 +44,6 @@ impl HostInvalidationMask {
         self.0 & other.0 != 0
     }
 
-    pub(crate) const fn requires_layout(self) -> bool {
-        self.intersects(
-            Self::LAYOUT
-                .union(Self::TREE_STRUCTURE)
-                .union(Self::WINDOW_METRICS),
-        )
-    }
-
-    pub(crate) const fn requires_presentation(self) -> bool {
-        self.requires_layout() || self.intersects(Self::PRESENTATION_DATA)
-    }
-
-    pub(crate) const fn requires_render(self) -> bool {
-        self.intersects(Self::RENDER)
-    }
-
-    pub(crate) const fn requires_window_metrics(self) -> bool {
-        self.intersects(Self::WINDOW_METRICS)
-    }
-
-    pub(crate) const fn requires_hit_test(self) -> bool {
-        self.intersects(Self::HIT_TEST)
-    }
-
-    pub(crate) const fn requires_host_recompute(self) -> bool {
-        self.requires_layout()
-            || self.requires_presentation()
-            || self.requires_render()
-            || self.requires_hit_test()
-    }
-
     pub(crate) fn from_dirty_flags(
         layout_dirty: bool,
         presentation_dirty: bool,
@@ -92,41 +64,5 @@ impl HostInvalidationMask {
             mask.insert(Self::RENDER);
         }
         mask
-    }
-
-    pub(crate) fn summary(self) -> String {
-        if self.is_empty() {
-            return "none".to_string();
-        }
-
-        let mut names = Vec::new();
-        if self.contains(Self::LAYOUT) {
-            names.push("layout");
-        }
-        if self.contains(Self::TREE_STRUCTURE) {
-            names.push("tree-structure");
-        }
-        if self.contains(Self::PRESENTATION_DATA) {
-            names.push("presentation-data");
-        }
-        if self.contains(Self::PAINT_ONLY) {
-            names.push("paint-only");
-        }
-        if self.contains(Self::POINTER_HOVER) {
-            names.push("pointer-hover");
-        }
-        if self.contains(Self::VIEWPORT_IMAGE) {
-            names.push("viewport-image");
-        }
-        if self.contains(Self::HIT_TEST) {
-            names.push("hit-test");
-        }
-        if self.contains(Self::WINDOW_METRICS) {
-            names.push("window-metrics");
-        }
-        if self.contains(Self::RENDER) {
-            names.push("render");
-        }
-        names.join("|")
     }
 }

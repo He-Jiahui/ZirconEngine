@@ -15,7 +15,7 @@ use super::surface_io::{copy_rgba_to_softbuffer, current_window_size, softbuffer
 use super::SoftbufferHostPresenter;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-pub(super) fn present(
+pub(in crate::ui::retained_host::host_contract) fn present(
     presenter: &mut SoftbufferHostPresenter,
     presentation: &HostWindowPresentationData,
     damage: Option<FrameRect>,

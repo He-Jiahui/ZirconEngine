@@ -4,6 +4,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/saving.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
   - zircon_editor/src/ui/retained_host/app/native_windows.rs
@@ -11,6 +15,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
   - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/saving.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -19,6 +27,7 @@ tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - app native-window close ownership scan
+  - app native-window close prompt-actions subowner ownership scan
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -32,7 +41,7 @@ The native-window close boundary translates platform close requests into Workben
 The app boundary is now split by responsibility:
 
 - `native_window_close.rs` owns only the public close-request entry points and the dirty-document decision that determines whether a prompt is needed.
-- `native_window_close/prompt_actions.rs` owns close prompt button actions, prompt presentation targeting, automatic saves for supported editor documents, and prompted close completion.
+- `native_window_close/prompt_actions.rs` declares the close prompt action child modules. `prompt_actions/actions.rs` owns close prompt button action parsing and dispatch, `prompt_actions/presentation.rs` owns prompt begin/show/clear and target UI lookup, `prompt_actions/completion.rs` owns prompted close completion, and `prompt_actions/saving.rs` owns automatic save policy for supported editor documents.
 - `native_window_close/floating_window.rs` owns floating-window document collection and the no-prompt close path that dispatches `LayoutCommand::CloseView` for each hosted view.
 - `close_prompt.rs` remains the prompt data/projection helper: dirty-view DTOs, host prompt geometry, text, and save capability checks.
 
@@ -61,7 +70,7 @@ Close-request handling, prompt-button handling, and floating-window layout mutat
 
 The root close module keeps the native close callbacks easy to audit. The prompt child owns save semantics because save support is a close-prompt action policy. The floating-window child owns recursive `DocumentNode` traversal because that behavior is specific to deciding which view instances a native floating window contains.
 
-The public callback method `close_prompt_action_clicked(...)` is visible only inside the retained-host app boundary. Helper methods stay at the parent module scope so the root request flow and prompt action flow can share close execution without exposing internals beyond the app boundary.
+The public callback method `close_prompt_action_clicked(...)` is visible only inside the retained-host app boundary. Helper methods shared by the root request flow and prompt action flow are visible only within `native_window_close`, so close prompt UI targeting, save policy, and close completion do not leak beyond the native close family.
 
 ## Control Flow
 
@@ -98,6 +107,10 @@ Prompt action:
 ## Test Coverage
 
 Implementation-slice validation currently covers formatting, ownership scanning, scoped diff checking, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`. Existing retained-host close prompt and native-window tests remain the intended regression surface; full Cargo tests are deferred to the milestone testing stage per the user's instruction.
+
+The 2026-06-19 prompt-actions subowner split reduced `native_window_close/prompt_actions.rs` from 101 lines to a 4-line structural entry. `prompt_actions/actions.rs` is 34 lines and owns save/discard/cancel action dispatch, `prompt_actions/presentation.rs` is 40 lines and owns prompt UI targeting plus show/clear behavior, `prompt_actions/completion.rs` is 18 lines and owns final close execution, and `prompt_actions/saving.rs` is 29 lines and owns dirty document auto-save policy.
+
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app native-window close prompt-actions subowner ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo tests remain deferred to the milestone testing stage per the user's instruction.
 
 ## Plan Sources
 

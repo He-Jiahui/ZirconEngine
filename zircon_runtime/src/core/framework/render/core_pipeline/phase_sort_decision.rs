@@ -6,26 +6,31 @@ use super::RenderPhaseSortDecisionField;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RenderPhaseSortDecision {
     pub field: RenderPhaseSortDecisionField,
-    pub left_value: i128,
-    pub right_value: i128,
+    pub left_value: i64,
+    pub right_value: i64,
     pub left_before_right: bool,
 }
 
 impl RenderPhaseSortDecision {
     pub const fn new(
         field: RenderPhaseSortDecisionField,
-        left_value: i128,
-        right_value: i128,
+        left_value: i64,
+        right_value: i64,
     ) -> Self {
-        Self::from_order_values(field, left_value, right_value, left_value, right_value)
+        Self {
+            field,
+            left_value,
+            right_value,
+            left_before_right: left_value < right_value,
+        }
     }
 
     pub const fn from_order_values(
         field: RenderPhaseSortDecisionField,
-        left_value: i128,
-        right_value: i128,
-        left_order_value: i128,
-        right_order_value: i128,
+        left_value: i64,
+        right_value: i64,
+        left_order_value: u64,
+        right_order_value: u64,
     ) -> Self {
         Self {
             field,

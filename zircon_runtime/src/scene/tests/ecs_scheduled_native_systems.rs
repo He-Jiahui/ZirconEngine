@@ -244,8 +244,8 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(driver_source.contains("let hooks = core.scene_runtime_hook_stage_plan_snapshot();"));
     assert!(driver_source
         .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());"));
-    assert!(driver_source.contains("schedule.internal_systems_for_stage(*stage)"));
-    assert!(driver_source.contains("schedule.native_steps_for_stage(*stage)"));
+    assert!(driver_source.contains("schedule.internal_systems_for_stage(stage)"));
+    assert!(driver_source.contains("schedule.native_steps_for_stage(stage)"));
     assert!(driver_source.contains("hooks.hooks_for_stage(*stage)"));
     assert!(!driver_source.contains("world.schedule().systems().to_vec()"));
     assert!(!driver_source.contains("systems_for_stage(&systems"));
@@ -292,6 +292,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(step_source.contains("type Item = ScheduledSceneStepRef<'a>;"));
     assert!(step_source.contains("pub(crate) enum ScheduledSceneStepRef<'a>"));
     assert!(step_source.contains("fn compare_step_refs("));
+    assert!(step_source.contains("fn before_hook_rank(&self) -> u8"));
+    assert!(step_source.contains(".then(left.before_hook_rank().cmp(&right.before_hook_rank()))"));
+    assert!(step_source.contains(".then(left.id().cmp(right.id()))"));
+    assert!(step_source.contains(".then(left.step_rank().cmp(&right.step_rank()))"));
     assert!(!step_source.contains("pub(crate) fn sorted_for_stage("));
     assert!(!step_source.contains("fn to_owned_step("));
     assert!(!step_source.contains("Internal(SceneSystemDescriptor)"));
@@ -356,8 +360,11 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let schedule_owner_source = include_str!("../ecs/schedule.rs");
     assert!(schedule_owner_source.contains("executor_plan: Arc<SceneScheduleStagePlan>"));
     assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
+    assert!(schedule_owner_source
+        .contains("fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError>"));
     assert!(schedule_owner_source.contains("fn refresh_executor_plan(&mut self)"));
-    assert!(schedule_owner_source.contains("self.refresh_executor_plan();"));
+    assert!(schedule_owner_source.contains("self.refresh_executor_plan()?;"));
+    assert!(schedule_owner_source.contains("self.executor_plan_dirty = true;"));
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec<String>"));
     assert!(schedule_owner_source
         .contains("self.taken_native_system_ids.push(system.id().to_string());"));

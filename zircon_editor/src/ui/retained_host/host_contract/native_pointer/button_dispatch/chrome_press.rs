@@ -4,7 +4,12 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use super::super::drag_resize::arm_native_resize;
 use super::super::routing::ChromePointerRoute;
 
-pub(super) fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y: f32) {
+pub(in crate::ui::retained_host::host_contract) fn dispatch_chrome_press(
+    ui: &UiHostWindow,
+    route: ChromePointerRoute,
+    x: f32,
+    y: f32,
+) {
     let host = ui.global::<UiHostContext>();
     match route {
         ChromePointerRoute::ActivityRail {

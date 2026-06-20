@@ -9,7 +9,7 @@ use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::{ACCENT, FLOATING_PANEL, FLOATING_SHADOW, TOP_BAR};
 use super::pane;
 
-pub(super) fn draw_floating_layer(
+pub(in crate::ui::retained_host::host_contract) fn draw_floating_layer(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
     interaction: &HostPaneInteractionStateData,

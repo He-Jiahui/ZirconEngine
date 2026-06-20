@@ -17,9 +17,9 @@ use super::{
     RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
     RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
-    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
-    RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderQueueValue,
+    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
     SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot, VolumeEvaluationError,
     VolumeEvaluationRequest, VolumeEvaluator, DEFAULT_CAMERA_EXPOSURE_EV100,
@@ -322,12 +322,17 @@ impl GeometryExtract {
             phase_inputs.iter().map(|input| MeshPhaseInput {
                 entity: input.entity,
                 mesh_index: input.mesh_index,
-                material_alpha_mode: &input.material_alpha_mode,
+                queue: resolved_phase_queue(
+                    &input.material_alpha_mode,
+                    input.render_queue,
+                    input.material_queue,
+                ),
                 depth: input.depth,
                 depth_bias: input.depth_bias,
-                render_queue: input.render_queue,
-                material_queue: input.material_queue,
+                camera_order: 0,
+                sorting_layer: 0,
                 order_in_layer: input.order_in_layer,
+                y_sort: None,
                 ui_z_index: input.ui_z_index,
             }),
         );
@@ -350,12 +355,17 @@ impl GeometryExtract {
             self.phase_inputs.iter().map(|input| MeshPhaseInput {
                 entity: input.entity,
                 mesh_index: input.mesh_index,
-                material_alpha_mode: &input.material_alpha_mode,
+                queue: resolved_phase_queue(
+                    &input.material_alpha_mode,
+                    input.render_queue,
+                    input.material_queue,
+                ),
                 depth: input.depth,
                 depth_bias: input.depth_bias,
-                render_queue: input.render_queue,
-                material_queue: input.material_queue,
+                camera_order: 0,
+                sorting_layer: 0,
                 order_in_layer: input.order_in_layer,
+                y_sort: None,
                 ui_z_index: input.ui_z_index,
             }),
         );
@@ -498,12 +508,17 @@ impl SpriteExtract {
             phase_inputs.iter().map(|input| SpritePhaseInput {
                 entity: input.entity,
                 sprite_index: input.sprite_index,
-                material_alpha_mode: input.material_alpha_mode,
+                queue: resolved_phase_queue(
+                    &input.material_alpha_mode,
+                    input.render_queue,
+                    input.material_queue,
+                ),
                 z_order: input.z_order,
                 depth: input.depth,
                 depth_bias: input.depth_bias,
-                render_queue: input.render_queue,
-                material_queue: input.material_queue,
+                camera_order: 0,
+                sorting_layer: 0,
+                y_sort: None,
                 ui_z_index: input.ui_z_index,
             }),
         );
@@ -513,6 +528,15 @@ impl SpriteExtract {
             phase_queue,
         }
     }
+}
+
+fn resolved_phase_queue(
+    alpha_mode: &RenderMaterialAlphaMode,
+    render_queue: i32,
+    material_queue: i32,
+) -> RenderQueueValue {
+    RenderQueueValue::from_authored_queue(alpha_mode, render_queue)
+        .with_material_offset_i32(material_queue)
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]

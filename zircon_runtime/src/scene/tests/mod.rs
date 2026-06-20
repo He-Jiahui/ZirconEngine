@@ -3,6 +3,7 @@ mod authoring_boundary;
 mod component_structure;
 mod derived_state;
 mod dynamic_scene;
+mod dynamic_scene_asset_reload;
 mod dynamic_scene_session;
 mod ecs_archetype_index_structure;
 mod ecs_cached_query_iter_structure;

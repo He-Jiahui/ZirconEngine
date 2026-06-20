@@ -2,7 +2,7 @@ use super::super::data::{FrameRect, HostWindowLayoutData, HostWindowPresentation
 use super::super::paint_diagnostics::presentation_top_bar_frame;
 use super::super::paint_geometry::{frame_or, is_visible_frame};
 
-pub(super) fn resolve_root_frames(
+pub(in crate::ui::retained_host::host_contract) fn resolve_root_frames(
     width: u32,
     height: u32,
     presentation: &HostWindowPresentationData,
@@ -82,7 +82,7 @@ fn has_visible_root_frame(layout: &HostWindowLayoutData) -> bool {
         || is_visible_frame(&layout.viewport_content_frame)
 }
 
-pub(super) fn zero_origin() -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn zero_origin() -> FrameRect {
     FrameRect {
         x: 0.0,
         y: 0.0,
@@ -91,13 +91,13 @@ pub(super) fn zero_origin() -> FrameRect {
     }
 }
 
-pub(super) struct RootFrames {
-    pub(super) top_bar: FrameRect,
-    pub(super) center_band: FrameRect,
-    pub(super) status_bar: FrameRect,
-    pub(super) left_region: FrameRect,
-    pub(super) right_region: FrameRect,
-    pub(super) bottom_region: FrameRect,
-    pub(super) document_region: FrameRect,
-    pub(super) viewport_region: FrameRect,
+pub(in crate::ui::retained_host::host_contract) struct RootFrames {
+    pub(in crate::ui::retained_host::host_contract) top_bar: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) center_band: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) status_bar: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) left_region: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) right_region: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) bottom_region: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) document_region: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) viewport_region: FrameRect,
 }

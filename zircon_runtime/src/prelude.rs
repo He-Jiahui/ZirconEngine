@@ -9,9 +9,10 @@ pub use crate::builtin::{
     runtime_modules_for_target_with_plugin_registration_reports,
 };
 pub use crate::core::diagnostics::{
-    DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,
-    DiagnosticStoreSnapshot, HotspotReport, ProfileCaptureConfig, ProfileCounterSnapshot,
-    ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
+    CounterHotspotEntry, CounterHotspotReport, DiagnosticMeasurement, DiagnosticPath,
+    DiagnosticSeriesSnapshot, DiagnosticStore, DiagnosticStoreSnapshot, HotspotReport,
+    ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSnapshot,
+    ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
 };
 pub use crate::core::framework::state::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
@@ -57,14 +58,15 @@ pub use crate::engine_module::{
 };
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
 pub use crate::input::{
-    ButtonInputState, DefaultInputActionManager, DefaultInputManager, FileDragDropEvent,
-    GamepadAxis, GamepadAxisInput, GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition,
-    GamepadButton, GamepadButtonAxisSettings, GamepadButtonSettings, GamepadButtonValueState,
-    GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea,
-    ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText,
-    InputAction, InputActionContext, InputActionEvaluator, InputActionManager, InputActionMap,
-    InputActionState, InputAxisBinding, InputAxisDirection, InputBinding, InputButton, InputConfig,
-    InputDriver, InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputRecording,
+    ButtonInputState, CursorGrabMode, CursorHostRequest, CursorPosition, DefaultInputActionManager,
+    DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisInput, GamepadAxisSettings,
+    GamepadAxisState, GamepadAxisTransition, GamepadButton, GamepadButtonAxisSettings,
+    GamepadButtonSettings, GamepadButtonValueState, GamepadConnectionInfo, GamepadId,
+    GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea, ImeCursorRange,
+    ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText, InputAction,
+    InputActionContext, InputActionEvaluator, InputActionManager, InputActionMap, InputActionState,
+    InputAxisBinding, InputAxisDirection, InputBinding, InputButton, InputConfig, InputDriver,
+    InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputRecording,
     InputRecordingFrame, InputReplayCursor, InputReplayFrameReport, InputSnapshot, MouseScrollUnit,
     MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent, WindowTheme,
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER,

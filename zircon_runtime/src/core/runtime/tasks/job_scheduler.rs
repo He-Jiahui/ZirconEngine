@@ -1,6 +1,7 @@
 //! Runtime scheduler facade for compute work submitted through the core task pools.
 
 use std::fmt;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -54,9 +55,9 @@ impl JobScheduler {
         let handle_for_task = handle.clone();
         let diagnostics = Arc::clone(&self.diagnostics);
         self.pool.spawn(move || {
-            task();
-            diagnostics.record_completed();
-            handle_for_task.mark_complete();
+            complete_scheduled_task(handle_for_task, diagnostics, move || {
+                task();
+            });
         });
         handle
     }
@@ -86,15 +87,26 @@ impl JobScheduler {
         }
 
         for dependency in dependencies {
+            let dependency_for_callback = dependency.clone();
             let handle_for_callback = handle.clone();
             let pending_for_callback = Arc::clone(&pending);
             let callback = Box::new(move || {
+                if let Some(panic_message) = dependency_for_callback.panic_message() {
+                    pending_for_callback.record_terminal_without_launch();
+                    handle_for_callback.mark_panicked(panic_message);
+                    return;
+                }
                 if handle_for_callback.dependency_completed() {
                     pending_for_callback.try_launch();
                 }
             });
-            if !dependency.add_dependent(callback) && handle.dependency_completed() {
-                pending.try_launch();
+            if !dependency.add_dependent(callback) {
+                if let Some(panic_message) = dependency.panic_message() {
+                    pending.record_terminal_without_launch();
+                    handle.mark_panicked(panic_message);
+                } else if handle.dependency_completed() {
+                    pending.try_launch();
+                }
             }
         }
 
@@ -161,9 +173,46 @@ impl PendingScheduledJob {
         let handle = self.handle.clone();
         let diagnostics = Arc::clone(&self.diagnostics);
         self.pool.spawn(move || {
-            task();
-            diagnostics.record_completed();
-            handle.mark_complete();
+            complete_scheduled_task(handle, diagnostics, move || {
+                task();
+            });
         });
+    }
+
+    fn record_terminal_without_launch(&self) {
+        let task_was_pending = {
+            let mut task = self.task.lock().expect("pending job task lock poisoned");
+            task.take().is_some()
+        };
+        if task_was_pending {
+            if self.dependency_count > 0 {
+                self.diagnostics
+                    .record_dependency_wait(self.created_at.elapsed());
+            }
+            self.diagnostics.record_completed();
+        }
+    }
+}
+
+fn complete_scheduled_task(
+    handle: JobHandle,
+    diagnostics: Arc<JobSchedulerDiagnosticsState>,
+    task: impl FnOnce(),
+) {
+    let result = catch_unwind(AssertUnwindSafe(task));
+    diagnostics.record_completed();
+    match result {
+        Ok(()) => handle.mark_complete(),
+        Err(payload) => handle.mark_panicked(panic_payload_message(payload)),
+    }
+}
+
+fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> Arc<str> {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        Arc::from(*message)
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        Arc::from(message.as_str())
+    } else {
+        Arc::from("non-string panic payload")
     }
 }

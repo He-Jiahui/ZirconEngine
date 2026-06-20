@@ -533,7 +533,7 @@ def platform_bundle_argument_diagnostics(args: argparse.Namespace) -> list[str]:
         "native_plugins_dir",
     ):
         value = getattr(args, field, None)
-        if value is not None and (not isinstance(value, str) or not value):
+        if value is not None and (not isinstance(value, str) or not value.strip()):
             diagnostics.append(f"{field} argument must be a non-empty string")
     return diagnostics
 
@@ -546,7 +546,7 @@ def resolve_optional_platform_bundle_path_argument(
     value = getattr(args, field, None)
     if value is None:
         return None
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value.strip():
         return None
     try:
         return resolve_user_path(value)

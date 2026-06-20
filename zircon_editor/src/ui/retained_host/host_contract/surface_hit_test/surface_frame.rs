@@ -4,13 +4,13 @@ use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint, surface:
 
 use super::super::data::FrameRect;
 
-pub(super) struct SurfaceFramePointerHit {
-    pub(super) node_id: UiNodeId,
-    pub(super) control_id: SharedString,
-    pub(super) control_frame: FrameRect,
+pub(in crate::ui::retained_host::host_contract) struct SurfaceFramePointerHit {
+    pub(in crate::ui::retained_host::host_contract) node_id: UiNodeId,
+    pub(in crate::ui::retained_host::host_contract) control_id: SharedString,
+    pub(in crate::ui::retained_host::host_contract) control_frame: FrameRect,
 }
 
-pub(super) fn hit_test_host_surface_frame(
+pub(in crate::ui::retained_host::host_contract) fn hit_test_host_surface_frame(
     surface_frame: &UiSurfaceFrame,
     origin: &FrameRect,
     x: f32,

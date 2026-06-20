@@ -7,7 +7,7 @@ use crate::asset::{
 };
 use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialLightingModel, RenderMaterialTextureTransform,
-    RenderMaterialValidationError, RenderShaderDefinitionValue,
+    RenderMaterialValidationError, RenderQueueValue, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
 
@@ -434,6 +434,14 @@ custom_gain = 2.0
     assert_eq!(material.material_queue(), 7);
     assert_eq!(material.depth_bias(), -0.25);
     assert_eq!(descriptor.render_queue, -20);
+    assert_eq!(
+        descriptor.render_queue_value,
+        Some(RenderQueueValue::new(1_980))
+    );
+    assert_eq!(
+        descriptor.resolved_render_queue_value(),
+        RenderQueueValue::new(1_980)
+    );
     assert_eq!(descriptor.material_queue, 7);
     assert_eq!(descriptor.depth_bias, -0.25);
     for name in ["render_queue", "material_queue", "depth_bias"] {
@@ -465,6 +473,94 @@ custom_gain = 2.0
     assert!(!encoded.contains("render_queue"));
     assert!(!encoded.contains("material_queue"));
     assert!(!encoded.contains("depth_bias"));
+}
+
+#[test]
+fn material_owned_render_queue_value_resolves_unity_queue_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Late Opaque"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+render_queue = 2900
+"#,
+    )
+    .unwrap();
+
+    let descriptor = material.standard_material_descriptor();
+
+    assert_eq!(material.render_queue(), 2_900);
+    assert_eq!(
+        material.render_queue_value(),
+        Some(RenderQueueValue::new(2_900))
+    );
+    assert_eq!(descriptor.render_queue, 2_900);
+    assert_eq!(
+        descriptor.render_queue_value,
+        Some(RenderQueueValue::new(2_900))
+    );
+    assert_eq!(
+        descriptor.resolved_render_queue_value(),
+        RenderQueueValue::new(2_900)
+    );
+    assert!(material.validation_errors().iter().all(|error| !matches!(
+        error,
+        RenderMaterialValidationError::RenderQueueAlphaModeConflict { .. }
+    )));
+}
+
+#[test]
+fn material_owned_render_queue_reports_blend_queue_alpha_conflict() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 1
+name = "Broken Glass Queue"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+render_queue = 2000
+
+[overrides.alpha_mode]
+mode = "blend"
+"#,
+    )
+    .unwrap();
+
+    let errors = material.validation_errors();
+
+    assert_eq!(
+        material.render_queue_value(),
+        Some(RenderQueueValue::new(2_000))
+    );
+    assert!(errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::RenderQueueAlphaModeConflict {
+            source,
+            path,
+            alpha_mode,
+            render_queue,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.render_queue"
+            && alpha_mode == "blend"
+            && *render_queue == 2_000
+            && expected == "transparent material queue greater than 2500"
+    )));
+
+    let report = material.readiness_report();
+    assert!(!report.is_ready());
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::RenderQueueAlphaModeConflict { .. }
+    )));
 }
 
 #[test]

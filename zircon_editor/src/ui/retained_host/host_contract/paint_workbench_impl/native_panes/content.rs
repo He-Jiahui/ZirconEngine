@@ -3,7 +3,7 @@ use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::welcome;
 use super::{assets, hierarchy};
 
-pub(super) fn draw_native_pane_content(
+pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

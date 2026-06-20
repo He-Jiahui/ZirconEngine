@@ -12,7 +12,7 @@ from tools.zircon_export.pipeline_report_platform_bundle import (
     platform_bundle_template_file_expected_hash,
     platform_bundle_template_file_hashes,
 )
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _write_platform_bundle_fixture,
 )
 

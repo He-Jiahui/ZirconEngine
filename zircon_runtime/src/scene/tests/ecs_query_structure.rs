@@ -783,19 +783,21 @@ fn archetype_index_matching_reuses_sorted_component_index_without_per_query_reso
             .join("src")
             .join("scene")
             .join("ecs")
-            .join("archetype_signature.rs"),
+            .join("archetype")
+            .join("signature.rs"),
     );
     let archetype_text = read_source(
         &manifest_dir()
             .join("src")
             .join("scene")
             .join("ecs")
-            .join("archetype_index.rs"),
+            .join("archetype")
+            .join("index.rs"),
     );
     let matching_archetypes = archetype_text
         .split("pub fn matching_archetypes(")
         .nth(1)
-        .and_then(|text| text.split("fn add_entity_to").next())
+        .and_then(|text| text.split("fn shortest_required_archetype_ids").next())
         .expect("read matching_archetypes implementation");
     let signature_indexer = archetype_text
         .split("fn index_signature_components(")
@@ -825,22 +827,20 @@ fn archetype_index_matching_reuses_sorted_component_index_without_per_query_reso
         "matching_archetypes must rely on sorted unique index ownership instead of resorting each query"
     );
     assert!(
-        matching_archetypes.contains("all_archetype_ids(&self.records)")
+        matching_archetypes.contains("let mut matches = Vec::with_capacity(ids.len());")
+            && matching_archetypes
+                .contains("let mut matches = Vec::with_capacity(self.records.len());")
+            && matching_archetypes.contains("for id in ids")
+            && matching_archetypes.contains("for record in &self.records")
+            && !matching_archetypes.contains("all_archetype_ids(&self.records)")
             && !matching_archetypes
                 .contains("self.records.iter().map(ArchetypeRecord::id).collect()"),
-        "matching_archetypes must size the all-archetype fallback instead of relying on collect growth"
+        "matching_archetypes must size candidate result vectors directly instead of relying on collect growth"
     );
     assert!(
-        matching_archetypes.contains("candidates.retain(|id|"),
-        "matching_archetypes should filter the already-sorted candidate list in place"
-    );
-    assert!(
-        archetype_text
-            .contains("fn all_archetype_ids(records: &[ArchetypeRecord]) -> Vec<ArchetypeId>")
-            && archetype_text.contains("let mut ids = Vec::with_capacity(records.len());")
-            && archetype_text.contains("for record in records")
-            && archetype_text.contains("ids.push(record.id());"),
-        "all-archetype query fallback must use exact-capacity Vec construction"
+        !matching_archetypes.contains("candidates.retain(|id|")
+            && !archetype_text.contains("fn all_archetype_ids"),
+        "matching_archetypes should avoid a candidate clone/retain helper after direct projection"
     );
     assert!(
         signature_text.contains("fn normalize_components(mut components: Vec<ComponentId>)")

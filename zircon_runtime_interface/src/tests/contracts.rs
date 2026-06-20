@@ -71,8 +71,10 @@ use crate::{
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
-    ZrPluginEventCallbackResultV1, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrPluginEventCallbackResultV1, ZrRuntimeApiV1, ZrRuntimeCursorGrabModeV1,
+    ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
     ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionHandle,
@@ -707,14 +709,62 @@ fn plugin_event_callback_request_preserves_payload_slices() {
 #[test]
 fn profiling_dtos_serialize_optional_abi_control_contract() {
     let request = crate::ProfileControlRequest {
-        command: crate::ProfileControlCommand::Snapshot,
+        command: crate::ProfileControlCommand::RuntimeDiagnosticsSnapshot,
         config: None,
     };
     let encoded = serde_json::to_string(&request).unwrap();
     let decoded: crate::ProfileControlRequest = serde_json::from_str(&encoded).unwrap();
     let config = crate::ProfileCaptureConfig::default().normalized();
+    let response = crate::ProfileControlResponse {
+        runtime_diagnostics: Some(crate::RuntimeDiagnosticsSnapshot {
+            frame_index: 7,
+            diagnostic_series: vec![crate::RuntimeDiagnosticSeriesSnapshot {
+                path: "scene.asset_reload.pending".to_string(),
+                unit: Some("count".to_string()),
+                subsystem_tags: vec!["scene".to_string(), "asset_reload".to_string()],
+                current: Some(2.0),
+                smoothed: Some(1.5),
+                min: Some(0.0),
+                max: Some(2.0),
+                history: vec![crate::RuntimeDiagnosticMeasurement {
+                    frame_index: 7,
+                    value: 2.0,
+                }],
+            }],
+            scene_asset_reload: Some(crate::RuntimeSceneAssetReloadDiagnostics {
+                enabled: true,
+                events_drained: 1,
+                scheduled: 1,
+                pending: 2,
+                ..crate::RuntimeSceneAssetReloadDiagnostics::default()
+            }),
+            profile: crate::ProfileSnapshot::default(),
+        }),
+        ..crate::ProfileControlResponse::ok("runtime diagnostics snapshot captured")
+    };
+    let recovered: crate::ProfileControlResponse =
+        serde_json::from_str(&serde_json::to_string(&response).unwrap()).unwrap();
+    let runtime_diagnostics = recovered
+        .runtime_diagnostics
+        .expect("runtime diagnostics response");
+    let scene_reload = runtime_diagnostics
+        .scene_asset_reload
+        .expect("scene asset reload diagnostics");
 
-    assert_eq!(decoded.command, crate::ProfileControlCommand::Snapshot);
+    assert!(encoded.contains("runtime_diagnostics_snapshot"));
+    assert_eq!(
+        decoded.command,
+        crate::ProfileControlCommand::RuntimeDiagnosticsSnapshot
+    );
+    assert_eq!(
+        runtime_diagnostics
+            .series("scene.asset_reload.pending")
+            .expect("diagnostic series")
+            .current,
+        Some(2.0)
+    );
+    assert!(scene_reload.enabled);
+    assert_eq!(scene_reload.scheduled, 1);
     assert_eq!(config.session_id, crate::PROFILE_DEFAULT_SESSION_ID);
     assert_eq!(
         config.frame_budget_ms,
@@ -1184,6 +1234,60 @@ fn runtime_host_request_batch_serializes_gamepad_rumble_requests() {
             weak_motor: 0.0,
             duration_millis: 0,
         })
+    ));
+}
+
+#[test]
+fn runtime_host_request_batch_serializes_cursor_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::cursor(ZrRuntimeCursorHostRequestV1::set_visible(false)),
+            ZrRuntimeHostRequestV1::cursor(ZrRuntimeCursorHostRequestV1::set_grab_mode(
+                ZrRuntimeCursorGrabModeV1::Confined,
+            )),
+            ZrRuntimeHostRequestV1::cursor(ZrRuntimeCursorHostRequestV1::set_hit_test(false)),
+            ZrRuntimeHostRequestV1::cursor(ZrRuntimeCursorHostRequestV1::set_position(
+                ZrRuntimeCursorPositionV1::new(320.0, 180.0),
+            )),
+        ],
+    );
+
+    let decoded: ZrRuntimeHostRequestBatchV1 = ui_input_round_trip(&batch);
+
+    assert_eq!(decoded.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(decoded.requests.len(), 4);
+    assert!(matches!(
+        decoded.requests[0],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetVisible,
+            value: false,
+            ..
+        })
+    ));
+    assert!(matches!(
+        decoded.requests[1],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetGrabMode,
+            grab_mode: Some(ZrRuntimeCursorGrabModeV1::Confined),
+            ..
+        })
+    ));
+    assert!(matches!(
+        decoded.requests[2],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetHitTest,
+            value: false,
+            ..
+        })
+    ));
+    assert!(matches!(
+        decoded.requests[3],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetPosition,
+            position: Some(position),
+            ..
+        }) if position.x == 320.0 && position.y == 180.0
     ));
 }
 

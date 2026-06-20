@@ -2,127 +2,24 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
-from .pipeline_report_schema_primitives import (
-    validate_bool_schema_diagnostics,
-    validate_integer_schema_diagnostics,
-    validate_object_array_schema_diagnostics,
-    validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
-    validate_string_schema_diagnostics,
+from .export_template import (
+    is_safe_relative_path,
+    is_sha256_hex,
+    normalize_relative_path,
 )
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS = (
-    "native_signing",
-    "native_notarization",
+from .pipeline_report_native_dynamic_operation_audit_schema import (
+    NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
+    native_dynamic_operation_audit_stage_schema_diagnostics,
+    platform_bundle_native_plugins_operation_audit_schema_diagnostics,
 )
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_FIELDS = (
-    "allowed_platforms",
-    "enabled",
-    "fatal",
-    "package_count",
-    "platform_allowed",
-    "profile",
-    "target_platform",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_FIELDS = (
-    "profile",
-    "target_platform",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_BOOL_FIELDS = (
-    "enabled",
-    "fatal",
-    "platform_allowed",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_BOOL_FIELDS = (
-    "enabled",
-    "fatal",
-    "platform_allowed",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_INTEGER_FIELDS = ("package_count",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_INTEGER_FIELDS = ("package_count",)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS = (
-    "allowed_platforms",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS = (
-    "allowed_platforms",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_FIELDS = (
-    *NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_FIELDS,
-    "diagnostics",
-    "packages",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_STRING_ARRAY_FIELDS = (
-    *NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
-    "diagnostics",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS = (
-    "diagnostics",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_OBJECT_ARRAY_FIELDS = (
-    "packages",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_FIELDS = (
-    "artifact_count",
-    "artifacts",
-    "package_id",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_STRING_FIELDS = ("package_id",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_STRING_FIELDS = ("package_id",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_INTEGER_FIELDS = ("artifact_count",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_INTEGER_FIELDS = (
-    "artifact_count",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_OBJECT_ARRAY_FIELDS = (
-    "artifacts",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_FIELDS = (
-    "after_sha256",
-    "artifact",
-    "before_sha256",
-    "command",
-    "exit_code",
-    "package_relative_artifact",
-    "stderr",
-    "stdout",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_STRING_FIELDS = (
-    "after_sha256",
-    "artifact",
-    "before_sha256",
-    "package_relative_artifact",
-    "stderr",
-    "stdout",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_FIELDS = (
-    "after_sha256",
-    "artifact",
-    "before_sha256",
-    "package_relative_artifact",
-    "stderr",
-    "stdout",
-)
-
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_INTEGER_FIELDS = ("exit_code",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_INTEGER_FIELDS = (
-    "exit_code",
-)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_STRING_ARRAY_FIELDS = ("command",)
-NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_ARRAY_FIELDS = (
-    "command",
+from .pipeline_report_schema_table import (
+    object_array_schema_diagnostics,
+    optional_fields,
+    table_integer_schema_diagnostics,
+    table_string_schema_diagnostics,
+    table_unknown_field_diagnostics,
 )
 
 NATIVE_DYNAMIC_PAYLOAD_FIELDS = (
@@ -146,12 +43,26 @@ NATIVE_DYNAMIC_PAYLOAD_STRING_FIELDS = (
     "stage_report",
 )
 
-NATIVE_DYNAMIC_PAYLOAD_REQUIRED_STRING_FIELDS = ("loader_manifest",)
+NATIVE_DYNAMIC_PAYLOAD_REQUIRED_STRING_FIELDS = (
+    "bundle_path",
+    "content_hash",
+    "loader_manifest",
+    "source",
+)
+NATIVE_DYNAMIC_PAYLOAD_CONTENT_HASH_FIELDS = ("content_hash",)
+NATIVE_DYNAMIC_PAYLOAD_NON_EMPTY_STRING_FIELDS = (
+    "bundle_path",
+    "content_hash",
+    "loader_manifest",
+    "source",
+    "stage_report",
+)
 
 NATIVE_DYNAMIC_PAYLOAD_INTEGER_FIELDS = (
     "file_count",
     "package_count",
 )
+NATIVE_DYNAMIC_PAYLOAD_REQUIRED_INTEGER_FIELDS = NATIVE_DYNAMIC_PAYLOAD_INTEGER_FIELDS
 
 NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_FIELDS = (
     "destination",
@@ -234,7 +145,29 @@ def platform_bundle_native_plugins_payload_schema_diagnostics(
         )
     )
     diagnostics.extend(
+        table_non_empty_string_schema_diagnostics(
+            label,
+            payload,
+            NATIVE_DYNAMIC_PAYLOAD_NON_EMPTY_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        table_sha256_hex_string_schema_diagnostics(
+            label,
+            payload,
+            NATIVE_DYNAMIC_PAYLOAD_CONTENT_HASH_FIELDS,
+        )
+    )
+    diagnostics.extend(
         table_integer_schema_diagnostics(
+            label,
+            payload,
+            NATIVE_DYNAMIC_PAYLOAD_REQUIRED_INTEGER_FIELDS,
+            require_present=True,
+        )
+    )
+    diagnostics.extend(
+        table_non_negative_integer_schema_diagnostics(
             label,
             payload,
             NATIVE_DYNAMIC_PAYLOAD_INTEGER_FIELDS,
@@ -293,7 +226,7 @@ def native_dynamic_file_manifest_schema_diagnostics(
     label: str,
     payload: dict[str, Any],
 ) -> list[str]:
-    return object_array_schema_diagnostics(
+    diagnostics = object_array_schema_diagnostics(
         label,
         payload,
         "file_manifest",
@@ -302,14 +235,57 @@ def native_dynamic_file_manifest_schema_diagnostics(
         integer_fields=NATIVE_DYNAMIC_FILE_MANIFEST_INTEGER_FIELDS,
         required_string_fields=NATIVE_DYNAMIC_FILE_MANIFEST_REQUIRED_STRING_FIELDS,
         required_integer_fields=NATIVE_DYNAMIC_FILE_MANIFEST_REQUIRED_INTEGER_FIELDS,
+        require_present=True,
     )
+    diagnostics.extend(
+        object_array_required_non_empty_string_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            NATIVE_DYNAMIC_FILE_MANIFEST_REQUIRED_STRING_FIELDS,
+        )
+    )
+    diagnostics.extend(
+        object_array_sha256_hex_string_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            ("sha256",),
+        )
+    )
+    diagnostics.extend(
+        object_array_safe_relative_path_string_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            ("path",),
+        )
+    )
+    diagnostics.extend(
+        object_array_unique_string_field_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            "path",
+            normalize_path=True,
+        )
+    )
+    diagnostics.extend(
+        object_array_non_negative_integer_schema_diagnostics(
+            label,
+            payload,
+            "file_manifest",
+            ("bytes",),
+        )
+    )
+    return diagnostics
 
 
 def native_dynamic_materialized_packages_schema_diagnostics(
     label: str,
     payload: dict[str, Any],
 ) -> list[str]:
-    return object_array_schema_diagnostics(
+    diagnostics = object_array_schema_diagnostics(
         label,
         payload,
         "materialized_packages",
@@ -326,568 +302,362 @@ def native_dynamic_materialized_packages_schema_diagnostics(
         required_string_array_fields=(
             NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_REQUIRED_STRING_ARRAY_FIELDS
         ),
-    )
-
-
-def platform_bundle_native_plugins_operation_audit_schema_diagnostics(
-    label: str,
-    audit: dict[str, Any],
-) -> list[str]:
-    diagnostics = table_unknown_field_diagnostics(
-        label,
-        audit,
-        NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_FIELDS,
+        require_present=True,
     )
     diagnostics.extend(
-        table_bool_schema_diagnostics(
+        object_array_required_non_empty_string_schema_diagnostics(
             label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_BOOL_FIELDS,
-            require_present=True,
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_FIELDS,
         )
     )
     diagnostics.extend(
-        table_integer_schema_diagnostics(
+        object_array_unique_string_field_schema_diagnostics(
             label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_INTEGER_FIELDS,
-            require_present=True,
+            payload,
+            "materialized_packages",
+            "package_id",
         )
     )
     diagnostics.extend(
-        table_string_array_schema_diagnostics(
+        object_array_non_negative_integer_schema_diagnostics(
             label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-            require_present=True,
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_INTEGER_FIELDS,
         )
     )
     diagnostics.extend(
-        table_string_schema_diagnostics(
+        object_array_string_array_no_blank_entries_schema_diagnostics(
             label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_FIELDS,
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
         )
     )
     diagnostics.extend(
-        table_bool_schema_diagnostics(
+        object_array_string_array_safe_relative_path_schema_diagnostics(
             label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_BOOL_FIELDS,
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_BOOL_FIELDS,
-            ),
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
         )
     )
     diagnostics.extend(
-        table_integer_schema_diagnostics(
+        object_array_string_array_unique_entries_schema_diagnostics(
             label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_INTEGER_FIELDS,
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_INTEGER_FIELDS,
-            ),
+            payload,
+            "materialized_packages",
+            NATIVE_DYNAMIC_MATERIALIZED_PACKAGE_STRING_ARRAY_FIELDS,
         )
     )
     diagnostics.extend(
-        table_string_array_schema_diagnostics(
+        object_array_integer_matches_string_array_length_schema_diagnostics(
             label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_ARRAY_FIELDS,
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-            ),
+            payload,
+            "materialized_packages",
+            "loadable_artifact_count",
+            "loadable_artifacts",
         )
     )
     return diagnostics
 
 
-def native_dynamic_operation_audit_stage_schema_diagnostics(
-    label: str,
-    audit: dict[str, Any],
-) -> list[str]:
-    diagnostics = table_unknown_field_diagnostics(
-        label,
-        audit,
-        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_FIELDS,
-    )
-    diagnostics.extend(
-        table_bool_schema_diagnostics(
-            label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_BOOL_FIELDS,
-            require_present=True,
-        )
-    )
-    diagnostics.extend(
-        table_integer_schema_diagnostics(
-            label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_INTEGER_FIELDS,
-            require_present=True,
-        )
-    )
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-            require_present=True,
-        )
-    )
-    diagnostics.extend(
-        table_string_schema_diagnostics(
-            label,
-            audit,
-            NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_STRING_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_bool_schema_diagnostics(
-            label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_BOOL_FIELDS,
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_BOOL_FIELDS,
-            ),
-        )
-    )
-    diagnostics.extend(
-        table_integer_schema_diagnostics(
-            label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_INTEGER_FIELDS,
-                NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_INTEGER_FIELDS,
-            ),
-        )
-    )
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            audit,
-            (
-                *NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-                *NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
-            ),
-            require_present=True,
-        )
-    )
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            audit,
-            optional_fields(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_STRING_ARRAY_FIELDS,
-                (
-                    *NATIVE_DYNAMIC_OPERATION_AUDIT_SUMMARY_REQUIRED_STRING_ARRAY_FIELDS,
-                    *NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_REQUIRED_STRING_ARRAY_FIELDS,
-                ),
-            ),
-        )
-    )
-    diagnostics.extend(
-        object_array_schema_diagnostics(
-            label,
-            audit,
-            "packages",
-            NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_FIELDS,
-            string_fields=NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_STRING_FIELDS,
-            integer_fields=NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_INTEGER_FIELDS,
-            required_string_fields=(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_STRING_FIELDS
-            ),
-            required_integer_fields=(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_INTEGER_FIELDS
-            ),
-            required_object_array_fields=(
-                NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_PACKAGE_REQUIRED_OBJECT_ARRAY_FIELDS
-            ),
-            require_present=True,
-        )
-    )
-    packages = audit.get("packages")
-    if isinstance(packages, list):
-        for index, package in enumerate(packages):
-            if not isinstance(package, dict):
-                continue
-            diagnostics.extend(
-                object_array_schema_diagnostics(
-                    f"{label} packages[{index}]",
-                    package,
-                    "artifacts",
-                    NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_FIELDS,
-                    string_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_STRING_FIELDS
-                    ),
-                    integer_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_INTEGER_FIELDS
-                    ),
-                    string_array_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_STRING_ARRAY_FIELDS
-                    ),
-                    required_string_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_FIELDS
-                    ),
-                    required_integer_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_INTEGER_FIELDS
-                    ),
-                    required_string_array_fields=(
-                        NATIVE_DYNAMIC_OPERATION_AUDIT_STAGE_ARTIFACT_REQUIRED_STRING_ARRAY_FIELDS
-                    ),
-                )
-            )
-    return diagnostics
-
-
-def object_array_schema_diagnostics(
+def object_array_required_non_empty_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
     field: str,
-    allowed_fields: tuple[str, ...],
-    *,
-    string_fields: tuple[str, ...] = (),
-    integer_fields: tuple[str, ...] = (),
-    string_array_fields: tuple[str, ...] = (),
-    required_string_fields: tuple[str, ...] = (),
-    required_integer_fields: tuple[str, ...] = (),
-    required_string_array_fields: tuple[str, ...] = (),
-    required_object_array_fields: tuple[str, ...] = (),
-    require_present: bool = False,
+    fields: tuple[str, ...],
 ) -> list[str]:
     value = table.get(field)
-    if value is None and not require_present:
-        return []
-    field_label = f"{label} {field}"
-    if not isinstance(value, list):
-        return [f"{field_label} must be an object array"]
-    diagnostics: list[str] = []
-    diagnostics.extend(validate_object_array_schema_diagnostics(field_label, value))
-    diagnostics.extend(
-        sequence_unknown_field_diagnostics(
-            field_label,
-            value,
-            allowed_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_required_string_schema_diagnostics(
-            field_label,
-            value,
-            required_string_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_required_integer_schema_diagnostics(
-            field_label,
-            value,
-            required_integer_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_required_string_array_schema_diagnostics(
-            field_label,
-            value,
-            required_string_array_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_required_object_array_schema_diagnostics(
-            field_label,
-            value,
-            required_object_array_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_string_schema_diagnostics(
-            field_label,
-            value,
-            optional_fields(string_fields, required_string_fields),
-        )
-    )
-    diagnostics.extend(
-        sequence_integer_schema_diagnostics(
-            field_label,
-            value,
-            optional_fields(integer_fields, required_integer_fields),
-        )
-    )
-    diagnostics.extend(
-        sequence_string_array_schema_diagnostics(
-            field_label,
-            value,
-            optional_fields(string_array_fields, required_string_array_fields),
-        )
-    )
-    return diagnostics
-
-
-def table_unknown_field_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    known_fields: tuple[str, ...],
-) -> list[str]:
-    known_field_set = set(known_fields)
-    return [
-        f"{label} unknown field {field}"
-        for field in sorted(table)
-        if field not in known_field_set
-    ]
-
-
-def sequence_unknown_field_diagnostics(
-    label: str,
-    value: object,
-    known_fields: tuple[str, ...],
-) -> list[str]:
     if not isinstance(value, list):
         return []
     diagnostics: list[str] = []
     for index, entry in enumerate(value):
         if not isinstance(entry, dict):
             continue
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                known_fields,
-            )
-        )
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if isinstance(item_value, str) and not item_value.strip():
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must be a non-empty string"
+                )
     return diagnostics
 
 
-def table_string_schema_diagnostics(
+def object_array_sha256_hex_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
+    field: str,
     fields: tuple[str, ...],
-    *,
-    require_present: bool = False,
 ) -> list[str]:
-    return table_field_schema_diagnostics(
-        label,
-        table,
-        fields,
-        validate_string_schema_diagnostics,
-        require_present=require_present,
-    )
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if (
+                isinstance(item_value, str)
+                and item_value.strip()
+                and not is_sha256_hex(item_value)
+            ):
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must be a SHA-256 hex digest"
+                )
+    return diagnostics
 
 
-def table_integer_schema_diagnostics(
+def object_array_safe_relative_path_string_schema_diagnostics(
     label: str,
     table: dict[str, Any],
+    field: str,
     fields: tuple[str, ...],
-    *,
-    require_present: bool = False,
 ) -> list[str]:
-    return table_field_schema_diagnostics(
-        label,
-        table,
-        fields,
-        validate_integer_schema_diagnostics,
-        require_present=require_present,
-    )
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if (
+                isinstance(item_value, str)
+                and item_value.strip()
+                and not is_safe_relative_path(normalize_relative_path(item_value))
+            ):
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must be a safe relative path"
+                )
+    return diagnostics
 
 
-def table_bool_schema_diagnostics(
+def object_array_non_negative_integer_schema_diagnostics(
     label: str,
     table: dict[str, Any],
+    field: str,
     fields: tuple[str, ...],
-    *,
-    require_present: bool = False,
 ) -> list[str]:
-    return table_field_schema_diagnostics(
-        label,
-        table,
-        fields,
-        validate_bool_schema_diagnostics,
-        require_present=require_present,
-    )
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if type(item_value) is int and item_value < 0:
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must be non-negative"
+                )
+    return diagnostics
 
 
-def table_object_schema_diagnostics(
+def table_non_negative_integer_schema_diagnostics(
     label: str,
     table: dict[str, Any],
     fields: tuple[str, ...],
-    *,
-    require_present: bool = False,
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label,
-        table,
-        fields,
-        validate_object_schema_diagnostics,
-        require_present=require_present,
-    )
-
-
-def table_string_array_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-    *,
-    require_present: bool = False,
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label,
-        table,
-        fields,
-        validate_string_array_schema_diagnostics,
-        require_present=require_present,
-    )
-
-
-def table_field_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-    validate_schema: Callable[[str, Any], list[str]],
-    *,
-    require_present: bool = False,
 ) -> list[str]:
     diagnostics: list[str] = []
     for field in fields:
         value = table.get(field)
-        if value is not None or require_present:
-            diagnostics.extend(validate_schema(typed_field_label(label, field), value))
+        if type(value) is int and value < 0:
+            diagnostics.append(f"{label}.{field} must be non-negative")
     return diagnostics
 
 
-def typed_field_label(label: str, field: str) -> str:
-    return f"{label}.{field}"
-
-
-def optional_fields(
-    fields: tuple[str, ...],
-    required_fields: tuple[str, ...],
-) -> tuple[str, ...]:
-    required_field_set = set(required_fields)
-    return tuple(field for field in fields if field not in required_field_set)
-
-
-def sequence_string_schema_diagnostics(
+def table_non_empty_string_schema_diagnostics(
     label: str,
-    value: list[object],
+    table: dict[str, Any],
     fields: tuple[str, ...],
 ) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if isinstance(value, str) and not value.strip():
+            diagnostics.append(f"{label}.{field} must be a non-empty string")
+    return diagnostics
+
+
+def table_sha256_hex_string_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    fields: tuple[str, ...],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in fields:
+        value = table.get(field)
+        if isinstance(value, str) and value.strip() and not is_sha256_hex(value):
+            diagnostics.append(f"{label}.{field} must be a SHA-256 hex digest")
+    return diagnostics
+
+
+def object_array_string_array_no_blank_entries_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
     diagnostics: list[str] = []
     for index, entry in enumerate(value):
         if not isinstance(entry, dict):
             continue
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                fields,
-            )
-        )
-    return diagnostics
-
-
-def sequence_required_string_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return sequence_required_field_schema_diagnostics(
-        label,
-        value,
-        fields,
-        validate_string_schema_diagnostics,
-    )
-
-
-def sequence_integer_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            continue
-        diagnostics.extend(
-            table_integer_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                fields,
-            )
-        )
-    return diagnostics
-
-
-def sequence_required_integer_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return sequence_required_field_schema_diagnostics(
-        label,
-        value,
-        fields,
-        validate_integer_schema_diagnostics,
-    )
-
-
-def sequence_required_string_array_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return sequence_required_field_schema_diagnostics(
-        label,
-        value,
-        fields,
-        validate_string_array_schema_diagnostics,
-    )
-
-
-def sequence_required_object_array_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return sequence_required_field_schema_diagnostics(
-        label,
-        value,
-        fields,
-        validate_object_array_schema_diagnostics,
-    )
-
-
-def sequence_required_field_schema_diagnostics(
-    label: str,
-    value: list[object],
-    fields: tuple[str, ...],
-    validate_schema: Callable[[str, Any], list[str]],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            continue
-        for field in fields:
-            diagnostics.extend(
-                validate_schema(
-                    typed_field_label(f"{label}[{index}]", field),
-                    entry.get(field),
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if (
+                isinstance(item_value, list)
+                and all(isinstance(item, str) for item in item_value)
+                and any(not item.strip() for item in item_value)
+            ):
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must not contain blank entries"
                 )
-            )
     return diagnostics
 
 
-def sequence_string_array_schema_diagnostics(
+def object_array_string_array_safe_relative_path_schema_diagnostics(
     label: str,
-    value: list[object],
+    table: dict[str, Any],
+    field: str,
     fields: tuple[str, ...],
 ) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
     diagnostics: list[str] = []
     for index, entry in enumerate(value):
         if not isinstance(entry, dict):
             continue
-        diagnostics.extend(
-            table_string_array_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                fields,
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if not (
+                isinstance(item_value, list)
+                and all(isinstance(item, str) for item in item_value)
+            ):
+                continue
+            for item_index, item in enumerate(item_value):
+                if (
+                    item.strip()
+                    and not is_safe_relative_path(normalize_relative_path(item))
+                ):
+                    diagnostics.append(
+                        f"{label} {field}[{index}].{item_field}[{item_index}] "
+                        "must be a safe relative path"
+                    )
+    return diagnostics
+
+
+def object_array_unique_string_field_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    item_field: str,
+    *,
+    normalize_path: bool = False,
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    seen: set[str] = set()
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        item_value = entry.get(item_field)
+        if not isinstance(item_value, str) or not item_value.strip():
+            continue
+        normalized = normalize_relative_path(item_value) if normalize_path else item_value.strip()
+        if normalize_path and not is_safe_relative_path(normalized):
+            continue
+        if normalized in seen:
+            diagnostics.append(
+                f"{label} {field}[{index}].{item_field} must be unique"
             )
-        )
+            continue
+        seen.add(normalized)
+    return diagnostics
+
+
+def object_array_string_array_unique_entries_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    fields: tuple[str, ...],
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        for item_field in fields:
+            item_value = entry.get(item_field)
+            if not (
+                isinstance(item_value, list)
+                and all(isinstance(item, str) for item in item_value)
+            ):
+                continue
+            seen: set[str] = set()
+            has_duplicate = False
+            for item in item_value:
+                if not item.strip():
+                    continue
+                normalized = normalize_relative_path(item)
+                if not is_safe_relative_path(normalized):
+                    continue
+                if normalized in seen:
+                    has_duplicate = True
+                    break
+                seen.add(normalized)
+            if has_duplicate:
+                diagnostics.append(
+                    f"{label} {field}[{index}].{item_field} "
+                    "must not contain duplicate entries"
+                )
+    return diagnostics
+
+
+def object_array_integer_matches_string_array_length_schema_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    field: str,
+    integer_field: str,
+    string_array_field: str,
+) -> list[str]:
+    value = table.get(field)
+    if not isinstance(value, list):
+        return []
+    diagnostics: list[str] = []
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            continue
+        integer_value = entry.get(integer_field)
+        array_value = entry.get(string_array_field)
+        if (
+            type(integer_value) is int
+            and integer_value >= 0
+            and isinstance(array_value, list)
+            and all(isinstance(item, str) for item in array_value)
+            and integer_value != len(array_value)
+        ):
+            diagnostics.append(
+                f"{label} {field}[{index}].{integer_field} "
+                f"must match {string_array_field} length"
+            )
     return diagnostics

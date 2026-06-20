@@ -24,60 +24,39 @@ from tools.zircon_export.tests.pack_test_support import (
 
 
 class PipelineReportPackDeltaSchemaTests(unittest.TestCase):
-    def test_report_stage_rejects_pack_delta_manifest_unknown_field(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            _write_library_embed_reports(out)
-            _update_pack_report(
-                out,
-                delta_manifest={**_delta_manifest(), "sidecar": "unexpected"},
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            _assert_pack_schema_diagnostic(
-                self,
-                report,
-                "pack report delta_manifest unknown field sidecar",
-            )
-
-    def test_report_stage_rejects_pack_delta_manifest_field_types(self) -> None:
+    def test_report_stage_rejects_pack_delta_manifest_asset_empty_path(self) -> None:
         cases = (
             (
-                "format_version",
-                {**_delta_manifest(), "format_version": "1"},
-                "pack report delta_manifest.format_version must be an integer",
+                "base.assets",
+                {
+                    **_delta_manifest(),
+                    "base": _manifest_override(
+                        {"assets": [{**_asset_entry(hash_value=1), "path": " "}]}
+                    ),
+                },
+                "pack report delta_manifest.base.assets[0].path "
+                "must be a non-empty string",
             ),
             (
-                "base",
-                {**_delta_manifest(), "base": "bad"},
-                "pack report delta_manifest.base must be an object",
-            ),
-            (
-                "target.pack.version",
+                "target.assets",
                 {
                     **_delta_manifest(),
                     "target": _manifest_override(
-                        {"pack": {**_pack_plan(hash_value=2), "version": "1"}},
+                        {"assets": [{**_asset_entry(hash_value=2), "path": " "}]},
                         hash_value=2,
                     ),
                 },
-                "pack report delta_manifest.target.pack.version must be an integer",
-            ),
-            (
-                "chunks",
-                {**_delta_manifest(), "chunks": ["bad"]},
-                "pack report delta_manifest.chunks[0] must be an object",
+                "pack report delta_manifest.target.assets[0].path "
+                "must be a non-empty string",
             ),
             (
                 "changed_assets",
-                {**_delta_manifest(), "changed_assets": ["bad"]},
-                "pack report delta_manifest.changed_assets[0] must be an object",
-            ),
-            (
-                "removed_assets",
-                {**_delta_manifest(), "removed_assets": ["old.scene", 42]},
-                "pack report delta_manifest.removed_assets must be a string array",
+                {
+                    **_delta_manifest(),
+                    "changed_assets": [{**_asset_entry(hash_value=2), "path": " "}],
+                },
+                "pack report delta_manifest.changed_assets[0].path "
+                "must be a non-empty string",
             ),
         )
         for label, delta_manifest, expected in cases:

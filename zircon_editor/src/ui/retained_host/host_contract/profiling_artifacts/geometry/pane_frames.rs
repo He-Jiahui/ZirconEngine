@@ -13,7 +13,7 @@ use super::frame_math::{
     translated_template_frame,
 };
 
-pub(super) fn collect_activity_rail_buttons(
+pub(in crate::ui::retained_host::host_contract) fn collect_activity_rail_buttons(
     surface: &str,
     dock: &HostSideDockSurfaceData,
     out: &mut Vec<UiProfileNamedFrame>,
@@ -48,7 +48,7 @@ pub(super) fn collect_activity_rail_buttons(
     }
 }
 
-pub(super) fn collect_pane_profile_frames(
+pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_frames(
     surface: &str,
     pane: &PaneData,
     content: &FrameRect,
@@ -123,7 +123,7 @@ fn collect_template_node_controls(
 }
 
 #[cfg(test)]
-pub(super) fn collect_surface_frame_controls(
+pub(in crate::ui::retained_host::host_contract) fn collect_surface_frame_controls(
     kind: &str,
     surface: &str,
     origin: &FrameRect,
@@ -228,7 +228,9 @@ fn is_dispatchable_template_node(node: &TemplatePaneNodeData) -> bool {
             || matches!(node.component_role.as_str(), "input-field" | "number-field"))
 }
 
-pub(super) fn side_dock_content_frame(dock: &HostSideDockSurfaceData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn side_dock_content_frame(
+    dock: &HostSideDockSurfaceData,
+) -> FrameRect {
     let panel_x = if dock.rail_before_panel {
         dock.region_frame.x + dock.rail_width_px
     } else {
@@ -237,7 +239,10 @@ pub(super) fn side_dock_content_frame(dock: &HostSideDockSurfaceData) -> FrameRe
     translated(&dock.content_frame, panel_x, dock.region_frame.y)
 }
 
-pub(super) fn floating_window_content_frame(frame: &FrameRect, header: &FrameRect) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn floating_window_content_frame(
+    frame: &FrameRect,
+    header: &FrameRect,
+) -> FrameRect {
     FrameRect {
         x: frame.x + 1.0,
         y: frame.y + header.height.max(0.0) + 1.0,

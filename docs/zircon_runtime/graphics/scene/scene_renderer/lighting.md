@@ -28,6 +28,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
@@ -59,6 +61,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
@@ -84,9 +88,11 @@ tests:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs::tests::clustered_lighting_declares_light_grid_build_outputs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_receives_light_grid_resources
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_receives_light_grid_resources
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::update_light_grid_stats_records_latest_grid_report
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs::tests::update_light_grid_stats_records_latest_grid_report
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs::tests::update_light_grid_stats_resets_when_no_report
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_light_grid_stats
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights
+  - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_many_point_lights_forward_deferred_capture_parity
 ---
 
 # Scene Renderer Lighting
@@ -157,20 +163,29 @@ fallback buffers so they can keep the shared layout without requiring a
 light-grid build pass.
 
 `LightGridStats` now flows through `RenderGraphLightGridReport`, the last
-render graph execution record, `SceneRenderer::last_light_grid_report()`, and
-`RenderStats`. Product diagnostics emit `render.light_grid.*` samples for
-reported state, light/tile/zbin counts, non-empty tile/zbin/cluster counts,
-peak lights per cluster, and average lights per cluster. LS-M3 still owns shadow
-atlas/CSM replacement.
+render graph execution record, `SceneRenderer::last_light_grid_report()`, and a
+submit-side `SharedViewportProductReports` snapshot before `RenderStats` is
+updated. That keeps light-grid diagnostics on the same named shared viewport
+product owner as `RenderStats`, graphics-debugger capture, and the last
+virtual-geometry debug snapshot inside Plan 09 camera-stack submits. Product
+diagnostics emit `render.light_grid.*` samples for reported state,
+light/tile/zbin counts, non-empty tile/zbin/cluster counts, peak lights per
+cluster, and average lights per cluster. LS-M3 still owns shadow atlas/CSM
+replacement.
 
 `render_product_many_point_lights` locks the current many-light product
 contract at the source and graph level. It builds a 64 point-light extract,
 asserts the packer preserves every point light, checks the light grid crosses
 into a second 32-bit mask word for zbin and tile data, and verifies default
 Forward+ mesh passes plus Deferred lighting all consume the graph-owned
-`LIGHT_GRID_PARAMS`, `LIGHT_ZBINS`, and `LIGHT_TILE_MASKS` buffers. This is not
-a captured pixel parity result; Plan 05 still needs real forward/deferred
-capture comparison for the many-point-light scene.
+`LIGHT_GRID_PARAMS`, `LIGHT_ZBINS`, and `LIGHT_TILE_MASKS` buffers.
+
+`render_product_many_point_lights_forward_deferred_capture_parity` closes the
+same contract at the real WGPU product-capture layer. The test registers a lit
+PBR material, renders the same cube scene through Forward+ and Deferred
+baseline/64-point-light paths, asserts `lighting.light-grid` execution and 64
+light-grid stats, then compares center-region luma so both pipelines prove a
+visible many-light contribution in the final captured image.
 
 Latest validation:
 - `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` passed with the repository warning set.
@@ -180,4 +195,6 @@ Latest validation:
   during Windows lib-test code generation, so no new focused test binary result
   is claimed for this slice.
 - `cargo fmt --all`, `cargo fmt --all -- --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin --message-format short --color never` passed after adding the 64 point-light product source contract; the check reported the repository's existing warning set. The matching lib-test target compiled with `cargo test -p zircon_runtime --lib render_product_many_point_lights --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-many-point-contracts-coremin --message-format short --color never --no-run`, and direct execution of `zircon_runtime-5d2828c2001649f6.exe render_product_many_point_lights --nocapture` passed 1 filtered test.
+- The 2026-06-21 many-point real capture parity slice passed `rustfmt --edition 2021 zircon_runtime\src\graphics\tests\render_product_shadows.rs` and `cargo test -p zircon_runtime --lib render_product_many_point_lights_forward_deferred_capture_parity --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --message-format short --color never -- --test-threads=1 --nocapture` with 1 filtered test. A cold target-dir Cargo wrapper timed out during shared lib-test compilation before producing a binary; the warmed target-dir run is the counted result. Direct exact runs from the same binary also passed `render_product_many_point_lights`, `render_product_csm_directional`, and `render_product_multi_spot_shadows`.
 - The LS-M4 PCF quality authoring-field update passed `cargo fmt --all -- --check`, scoped `git diff --check`, and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-ls-m4-pcf-coremin --message-format short --color never` with existing warnings. The matching `pcf_quality` lib-test no-run command timed out after 904 seconds during shared test-target compilation, so no filtered test result is claimed for this lighting-adjacent field update.
+- The 2026-06-20 Plan 09 shared light-grid product-report boundary passed scoped `rustfmt --edition 2021 --check` and `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-light-grid-shared-products-0620 --message-format short --color never` with the repository warning set. The follow-up direct lib-test binary filter `light_grid_stats --test-threads=1 --nocapture` passed 3 tests, covering stats update, reset, and product diagnostics rows.

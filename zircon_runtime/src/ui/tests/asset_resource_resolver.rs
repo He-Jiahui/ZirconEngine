@@ -1,6 +1,9 @@
-use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceManager};
+use crate::core::resource::{
+    ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceScheme,
+};
 use crate::ui::template::{
     UiResolvedUiResource, UiResourceResolveDiagnosticCode, UiResourceResolver,
+    UiResourceResolverSchemeMap,
 };
 use zircon_runtime_interface::ui::template::{
     UiResourceDependency, UiResourceDependencySource, UiResourceDiagnosticSeverity,
@@ -97,6 +100,90 @@ fn ui_resource_resolver_treats_ui_asset_scheme_as_missing_not_invalid() {
         resolver.diagnostics()[0].severity,
         UiResourceDiagnosticSeverity::Warning
     );
+}
+
+#[test]
+fn ui_resource_resolver_maps_asset_scheme_to_runtime_locator_when_configured() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://ui/icons/scene.svg");
+    let id = ResourceId::from_locator(&locator);
+    manager.register_record(crate::core::resource::ResourceRecord::new(
+        id,
+        ResourceKind::Texture,
+        locator.clone(),
+    ));
+    let mut resolver = UiResourceResolver::new(manager)
+        .with_scheme_map(UiResourceResolverSchemeMap::default().asset_to(ResourceScheme::Res));
+
+    let resolved = resolver.resolve(&resource_ref(
+        UiResourceKind::Image,
+        "asset://ui/icons/scene.svg".to_string(),
+    ));
+
+    assert_eq!(
+        resolved,
+        UiResolvedUiResource::Handle {
+            handle: crate::core::resource::UntypedResourceHandle::new(id, ResourceKind::Texture),
+            uri: "asset://ui/icons/scene.svg".to_string(),
+        }
+    );
+    assert!(resolver.diagnostics().is_empty());
+}
+
+#[test]
+fn ui_resource_resolver_maps_project_scheme_to_package_locator_when_configured() {
+    let manager = ResourceManager::new();
+    let locator = locator("package://demo/ui/icons/scene.svg");
+    let id = ResourceId::from_locator(&locator);
+    manager.register_record(crate::core::resource::ResourceRecord::new(
+        id,
+        ResourceKind::Texture,
+        locator,
+    ));
+    let mut resolver = UiResourceResolver::new(manager)
+        .with_scheme_map(UiResourceResolverSchemeMap::default().project_to_package("demo"));
+
+    let resolved = resolver.resolve(&resource_ref(
+        UiResourceKind::Image,
+        "project://ui/icons/scene.svg".to_string(),
+    ));
+
+    assert_eq!(
+        resolved,
+        UiResolvedUiResource::Handle {
+            handle: crate::core::resource::UntypedResourceHandle::new(id, ResourceKind::Texture),
+            uri: "project://ui/icons/scene.svg".to_string(),
+        }
+    );
+    assert!(resolver.diagnostics().is_empty());
+}
+
+#[test]
+fn ui_resource_resolver_preserves_ui_scheme_labels_when_mapping_to_runtime_locator() {
+    let manager = ResourceManager::new();
+    let locator = locator("res://ui/icons/sheet.svg#run");
+    let id = ResourceId::from_locator(&locator);
+    manager.register_record(crate::core::resource::ResourceRecord::new(
+        id,
+        ResourceKind::Texture,
+        locator,
+    ));
+    let mut resolver = UiResourceResolver::new(manager)
+        .with_scheme_map(UiResourceResolverSchemeMap::default().asset_to(ResourceScheme::Res));
+
+    let resolved = resolver.resolve(&resource_ref(
+        UiResourceKind::Image,
+        "asset://ui/icons/sheet.svg#run".to_string(),
+    ));
+
+    assert_eq!(
+        resolved,
+        UiResolvedUiResource::Handle {
+            handle: crate::core::resource::UntypedResourceHandle::new(id, ResourceKind::Texture),
+            uri: "asset://ui/icons/sheet.svg#run".to_string(),
+        }
+    );
+    assert!(resolver.diagnostics().is_empty());
 }
 
 #[test]
@@ -232,6 +319,55 @@ fn ui_resource_resolver_invalidates_cached_primary_and_fallback_uri_references()
 
     let report = resolver.invalidate_uris([primary_locator.to_string()]);
 
+    assert_eq!(report.references_removed, 1);
+    assert_eq!(resolver.cache_len(), 0);
+}
+
+#[test]
+fn ui_resource_resolver_invalidates_mapped_ui_scheme_primary_and_fallback_uris() {
+    let manager = ResourceManager::new();
+    let primary_locator = locator("res://textures/checker.png");
+    let primary_id = ResourceId::from_locator(&primary_locator);
+    let fallback_locator = locator("res://textures/fallback.png");
+    let fallback_id = ResourceId::from_locator(&fallback_locator);
+    manager.register_record(crate::core::resource::ResourceRecord::new(
+        primary_id,
+        ResourceKind::Texture,
+        primary_locator.clone(),
+    ));
+    manager.register_record(crate::core::resource::ResourceRecord::new(
+        fallback_id,
+        ResourceKind::Texture,
+        fallback_locator.clone(),
+    ));
+    let mut resolver = UiResourceResolver::new(manager)
+        .with_scheme_map(UiResourceResolverSchemeMap::default().asset_to(ResourceScheme::Res));
+    let primary = resource_ref(
+        UiResourceKind::Image,
+        "asset://textures/checker.png".to_string(),
+    );
+    let fallback = UiResourceRef {
+        kind: UiResourceKind::Image,
+        uri: "asset://textures/missing.png".to_string(),
+        fallback: UiResourceFallbackPolicy {
+            mode: UiResourceFallbackMode::Placeholder,
+            uri: Some("asset://textures/fallback.png".to_string()),
+        },
+    };
+
+    resolver.resolve(&primary);
+    resolver.resolve(&fallback);
+    assert_eq!(resolver.cache_len(), 2);
+
+    let report = resolver.invalidate_uris([fallback_locator.to_string()]);
+
+    assert_eq!(report.requested_uris, vec![fallback_locator.to_string()]);
+    assert_eq!(report.references_removed, 1);
+    assert_eq!(resolver.cache_len(), 1);
+
+    let report = resolver.invalidate_uris([primary_locator.to_string()]);
+
+    assert_eq!(report.requested_uris, vec![primary_locator.to_string()]);
     assert_eq!(report.references_removed, 1);
     assert_eq!(resolver.cache_len(), 0);
 }

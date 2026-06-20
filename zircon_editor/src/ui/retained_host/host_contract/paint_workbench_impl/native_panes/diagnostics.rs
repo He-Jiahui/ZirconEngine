@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, PaneData};
 use super::super::super::paint_debug_reflector_overlay::draw_debug_reflector_overlay;
 use super::super::super::paint_frame::HostRgbaFrame;
 
-pub(super) fn draw_pane_debug_overlay(
+pub(in crate::ui::retained_host::host_contract) fn draw_pane_debug_overlay(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

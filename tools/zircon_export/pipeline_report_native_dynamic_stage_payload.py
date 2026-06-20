@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -20,10 +21,14 @@ from .pipeline_report_native_dynamic_payload import (
     platform_bundle_native_plugins_package_report_content_diagnostics,
 )
 from .pipeline_report_native_dynamic_loader_manifest import (
+    native_dynamic_loader_manifest_abi_field_type_diagnostics,
     native_dynamic_loader_manifest_plugins_or_diagnostics,
 )
-from .pipeline_report_native_dynamic_payload_schema import (
+from .pipeline_report_native_dynamic_operation_audit_schema import (
     NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
+)
+from .pipeline_report_native_dynamic_package_export_schema import (
+    native_dynamic_package_export_schema_diagnostics,
 )
 
 
@@ -99,8 +104,9 @@ def native_dynamic_stage_payload_diagnostics(
     validate_package_export_rows = validate_native_dynamic_package_exports(
         validate_payload,
     )
-    report_package_export_rows = normalized_native_dynamic_package_exports(
-        report.get("package_exports")
+    report_package_export_rows = schema_clean_native_dynamic_package_exports(
+        report.get("package_exports"),
+        "native_dynamic report package_exports",
     )
     if (
         validate_package_exports is not None
@@ -152,6 +158,7 @@ def native_dynamic_stage_payload_diagnostics(
         native_dynamic_package_report_diagnostics(
             materialized_packages,
             plugins_dir,
+            report.get("native_plugin_root"),
         )
     )
     if isinstance(selected_packages, list) and all(
@@ -204,6 +211,20 @@ def native_dynamic_stage_payload_diagnostics(
             materialized_package_ids,
         )
     )
+    diagnostics.extend(
+        native_dynamic_build_execution_plan_diagnostics(
+            report.get("native_build_plan"),
+            report.get("native_build_execution"),
+        )
+    )
+    diagnostics.extend(
+        native_dynamic_build_execution_artifact_diagnostics(
+            report.get("native_build_execution"),
+            materialized_packages,
+            plugins_dir,
+            current_file_manifest,
+        )
+    )
     for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS:
         diagnostics.extend(
             native_dynamic_package_table_diagnostics(
@@ -247,20 +268,83 @@ def native_dynamic_stage_payload_diagnostics(
 def native_dynamic_package_report_diagnostics(
     materialized_packages: list[dict[str, object]],
     plugins_dir: Path,
+    native_plugin_root: object,
 ) -> list[str]:
     diagnostics: list[str] = []
     try:
         plugins_root = plugins_dir.expanduser().resolve()
     except OSError as error:
         return [f"native_dynamic report plugins_dir {plugins_dir} could not be resolved: {error}"]
+    native_plugin_root_path: Path | None = None
+    if isinstance(native_plugin_root, str) and native_plugin_root:
+        try:
+            native_plugin_root_path = Path(native_plugin_root).expanduser().resolve()
+        except OSError as error:
+            diagnostics.append(
+                "native_dynamic report native_plugin_root "
+                f"{native_plugin_root} could not be resolved: {error}"
+            )
 
     for index, package in enumerate(materialized_packages):
         package_id = str(package["package_id"])
         destination = Path(str(package["destination"])).expanduser()
+        source_label = (
+            "native_dynamic report "
+            f"materialized_packages[{index}] source"
+        )
         label = (
             "native_dynamic report "
             f"materialized_packages[{index}] package_report"
         )
+        if package.get("source") is None:
+            diagnostics.append(
+                f"{source_label} is required for NativeDynamic stage materialized packages"
+            )
+        source = package.get("source")
+        if isinstance(source, str) and not source:
+            diagnostics.append(
+                f"{source_label} must be a non-empty string for "
+                "NativeDynamic stage materialized packages"
+            )
+        if isinstance(source, str) and source:
+            try:
+                source_path = Path(source).expanduser().resolve()
+            except OSError as error:
+                diagnostics.append(f"{source_label} {source} could not be resolved: {error}")
+            else:
+                if native_plugin_root_path is not None:
+                    try:
+                        source_path.relative_to(native_plugin_root_path)
+                    except ValueError:
+                        diagnostics.append(
+                            f"{source_label} {source_path} is outside "
+                            f"native_plugin_root {native_plugin_root_path}"
+                        )
+                if not source_path.exists():
+                    diagnostics.append(f"{source_label} {source_path} does not exist")
+                elif not source_path.is_dir():
+                    diagnostics.append(f"{source_label} {source_path} is not a directory")
+                else:
+                    source_manifest = source_path / "plugin.toml"
+                    if not source_manifest.exists():
+                        diagnostics.append(
+                            f"{source_label} manifest {source_manifest} does not exist"
+                        )
+                    elif not source_manifest.is_file():
+                        diagnostics.append(
+                            f"{source_label} manifest {source_manifest} is not a file"
+                        )
+                    else:
+                        manifest_id = native_dynamic_source_manifest_id(
+                            source_manifest,
+                            source_label,
+                            diagnostics,
+                        )
+                        if manifest_id is not None and manifest_id != package_id:
+                            diagnostics.append(
+                                f"{source_label} manifest id {manifest_id} "
+                                f"does not match materialized package {package_id}"
+                            )
         try:
             package_dir = destination.resolve()
         except OSError as error:
@@ -282,21 +366,31 @@ def native_dynamic_package_report_diagnostics(
 
         declared_package_report = package.get("package_report")
         expected_package_report = package_dir / NATIVE_DYNAMIC_PACKAGE_REPORT_FILE
-        if declared_package_report is not None:
-            declared_path = Path(str(declared_package_report)).expanduser()
-            try:
-                declared_path = declared_path.resolve()
-            except OSError as error:
-                diagnostics.append(
-                    f"{label} {declared_package_report} could not be resolved: {error}"
-                )
-                continue
-            if declared_path != expected_package_report:
-                diagnostics.append(
-                    f"{label} {declared_path} does not match expected "
-                    f"{expected_package_report} for package {package_id}"
-                )
-                continue
+        if declared_package_report is None:
+            diagnostics.append(
+                f"{label} is required for NativeDynamic stage materialized packages"
+            )
+            continue
+        if isinstance(declared_package_report, str) and not declared_package_report:
+            diagnostics.append(
+                f"{label} must be a non-empty string for "
+                "NativeDynamic stage materialized packages"
+            )
+            continue
+        declared_path = Path(str(declared_package_report)).expanduser()
+        try:
+            declared_path = declared_path.resolve()
+        except OSError as error:
+            diagnostics.append(
+                f"{label} {declared_package_report} could not be resolved: {error}"
+            )
+            continue
+        if declared_path != expected_package_report:
+            diagnostics.append(
+                f"{label} {declared_path} does not match expected "
+                f"{expected_package_report} for package {package_id}"
+            )
+            continue
         package_report_path = expected_package_report
         if not package_report_path.exists():
             diagnostics.append(f"{label} {package_report_path} does not exist")
@@ -315,6 +409,31 @@ def native_dynamic_package_report_diagnostics(
             )
         )
     return diagnostics
+
+
+def native_dynamic_source_manifest_id(
+    source_manifest: Path,
+    source_label: str,
+    diagnostics: list[str],
+) -> str | None:
+    try:
+        with source_manifest.open("rb") as manifest_file:
+            manifest = tomllib.load(manifest_file)
+    except tomllib.TOMLDecodeError as error:
+        diagnostics.append(
+            f"{source_label} manifest {source_manifest} could not be parsed: {error}"
+        )
+        return None
+    except OSError as error:
+        diagnostics.append(
+            f"{source_label} manifest {source_manifest} could not be read: {error}"
+        )
+        return None
+    manifest_id = manifest.get("id")
+    if isinstance(manifest_id, str) and manifest_id:
+        return manifest_id
+    diagnostics.append(f"{source_label} manifest id must be a non-empty string")
+    return None
 
 
 def native_dynamic_loader_manifest_package_diagnostics(
@@ -367,6 +486,12 @@ def native_dynamic_loader_manifest_package_export_diagnostics(
         for field in ("path", "manifest", "package_report"):
             plugin_value = plugin.get(field)
             expected_value = expected_export.get(field)
+            if isinstance(expected_value, str) and field not in plugin:
+                diagnostics.append(
+                    "native_dynamic loader_manifest plugin "
+                    f"{package_id} {field} is required by {expected_label}"
+                )
+                continue
             if (
                 isinstance(plugin_value, str)
                 and isinstance(expected_value, str)
@@ -379,14 +504,35 @@ def native_dynamic_loader_manifest_package_export_diagnostics(
                 )
         plugin_abi = plugin.get("abi")
         expected_abi = expected_export.get("abi")
+        if isinstance(expected_abi, dict) and "abi" not in plugin:
+            diagnostics.append(
+                "native_dynamic loader_manifest plugin "
+                f"{package_id} abi is required by {expected_label}"
+            )
+            continue
         if not isinstance(plugin_abi, dict) or not isinstance(expected_abi, dict):
             continue
+        for field in plugin_abi:
+            if field not in expected_abi:
+                diagnostics.append(
+                    "native_dynamic loader_manifest plugin "
+                    f"{package_id} abi.{field} is not supported by "
+                    f"{expected_label}"
+                )
+        invalid_abi_fields = native_dynamic_loader_manifest_abi_field_type_diagnostics(
+            package_id,
+            plugin_abi,
+            expected_abi,
+            label="native_dynamic loader_manifest",
+        )
+        diagnostics.extend(invalid_abi_fields.values())
         for field in ("abi_version", *NATIVE_DYNAMIC_ABI_STRING_FIELDS):
             plugin_value = plugin_abi.get(field)
             expected_value = expected_abi.get(field)
             if (
                 field in plugin_abi
                 and field in expected_abi
+                and field not in invalid_abi_fields
                 and plugin_value != expected_value
             ):
                 diagnostics.append(
@@ -432,9 +578,27 @@ def validate_native_dynamic_package_exports(
     plan_summary = validate_payload.get("plan_summary")
     if not isinstance(plan_summary, dict):
         return None
-    return normalized_native_dynamic_package_exports(
-        plan_summary.get("native_dynamic_package_exports")
+    return schema_clean_native_dynamic_package_exports(
+        plan_summary.get("native_dynamic_package_exports"),
+        "validate report plan_summary.native_dynamic_package_exports",
     )
+
+
+def schema_clean_native_dynamic_package_exports(
+    package_exports: object,
+    label: str,
+) -> list[dict[str, Any]] | None:
+    normalized_package_exports = normalized_native_dynamic_package_exports(
+        package_exports
+    )
+    if normalized_package_exports is None:
+        return None
+    if native_dynamic_package_export_schema_diagnostics(
+        label,
+        normalized_package_exports,
+    ):
+        return None
+    return normalized_package_exports
 
 
 def normalized_native_dynamic_package_exports(
@@ -528,6 +692,255 @@ def materialized_package_relative_artifacts(
     return package_artifacts
 
 
+def materialized_package_loadable_artifact_paths(
+    materialized_packages: list[dict[str, object]],
+) -> dict[str, list[str]]:
+    package_artifacts: dict[str, list[str]] = {}
+    for package in materialized_packages:
+        package_id = str(package["package_id"])
+        loadable_artifacts = package.get("loadable_artifacts")
+        if not isinstance(loadable_artifacts, list):
+            continue
+        package_artifacts[package_id] = [
+            str(artifact)
+            for artifact in loadable_artifacts
+            if isinstance(artifact, str)
+        ]
+    return package_artifacts
+
+
+def materialized_package_native_dir_paths(
+    materialized_packages: list[dict[str, object]],
+    plugins_dir: Path,
+) -> dict[str, str]:
+    package_native_dirs: dict[str, str] = {}
+    for package in materialized_packages:
+        package_id = str(package["package_id"])
+        destination = Path(str(package["destination"])).expanduser()
+        try:
+            relative_destination = destination.resolve().relative_to(
+                plugins_dir.resolve(),
+            )
+        except (OSError, ValueError):
+            continue
+        package_native_dirs[
+            package_id
+        ] = f"plugins/{relative_destination.as_posix().rstrip('/')}/native/"
+    return package_native_dirs
+
+
+def native_dynamic_file_manifest_paths(
+    file_manifest: list[dict[str, object]],
+) -> set[str]:
+    return {
+        str(entry["path"])
+        for entry in file_manifest
+        if isinstance(entry.get("path"), str)
+    }
+
+
+def native_dynamic_file_manifest_contains_path_or_directory(
+    bundle_path: str,
+    file_manifest_paths: set[str],
+) -> bool:
+    normalized_path = bundle_path.rstrip("/")
+    return normalized_path in file_manifest_paths or any(
+        path.startswith(f"{normalized_path}/") for path in file_manifest_paths
+    )
+
+
+def native_dynamic_build_execution_plan_diagnostics(
+    build_plan: object,
+    build_execution: object,
+) -> list[str]:
+    if not isinstance(build_plan, dict) or not isinstance(build_execution, dict):
+        return []
+    plan_packages = native_dynamic_build_package_rows_by_id(
+        build_plan.get("packages")
+    )
+    execution_packages = build_execution.get("packages")
+    if not plan_packages or not isinstance(execution_packages, list):
+        return []
+
+    diagnostics: list[str] = []
+    for execution_package in execution_packages:
+        if not isinstance(execution_package, dict):
+            continue
+        package_id = execution_package.get("package_id")
+        if not isinstance(package_id, str) or not package_id.strip():
+            continue
+        plan_package = plan_packages.get(package_id)
+        if plan_package is None:
+            continue
+        diagnostics.extend(
+            native_dynamic_build_execution_plan_field_diagnostics(
+                package_id,
+                "crate_name",
+                plan_package,
+                execution_package,
+            )
+        )
+        diagnostics.extend(
+            native_dynamic_build_execution_plan_field_diagnostics(
+                package_id,
+                "command",
+                plan_package,
+                execution_package,
+            )
+        )
+        diagnostics.extend(
+            native_dynamic_build_execution_plan_field_diagnostics(
+                package_id,
+                "expected_loadable_artifact",
+                plan_package,
+                execution_package,
+            )
+        )
+    return diagnostics
+
+
+def native_dynamic_build_package_rows_by_id(
+    packages: object,
+) -> dict[str, dict[str, object]]:
+    if not isinstance(packages, list):
+        return {}
+    rows: dict[str, dict[str, object]] = {}
+    for package in packages:
+        if not isinstance(package, dict):
+            continue
+        package_id = package.get("package_id")
+        if isinstance(package_id, str) and package_id.strip():
+            rows[package_id] = package
+    return rows
+
+
+def native_dynamic_build_execution_plan_field_diagnostics(
+    package_id: str,
+    field: str,
+    plan_package: dict[str, object],
+    execution_package: dict[str, object],
+) -> list[str]:
+    plan_value = plan_package.get(field)
+    execution_value = execution_package.get(field)
+    if field == "command":
+        if not (
+            isinstance(plan_value, list)
+            and all(isinstance(part, str) for part in plan_value)
+            and isinstance(execution_value, list)
+            and all(isinstance(part, str) for part in execution_value)
+        ):
+            return []
+    elif not isinstance(plan_value, str) or not isinstance(execution_value, str):
+        return []
+    if execution_value == plan_value:
+        return []
+    return [
+        "native_dynamic report native_build_execution package "
+        f"{package_id} {field} {execution_value} does not match "
+        f"native_build_plan package {field} {plan_value}"
+    ]
+
+
+def native_dynamic_build_execution_artifact_diagnostics(
+    table: object,
+    materialized_packages: list[dict[str, object]],
+    plugins_dir: Path,
+    current_file_manifest: list[dict[str, object]],
+) -> list[str]:
+    if not isinstance(table, dict):
+        return []
+    packages = table.get("packages")
+    if not isinstance(packages, list):
+        return []
+
+    expected_artifacts = materialized_package_loadable_artifact_paths(
+        materialized_packages
+    )
+    expected_native_dirs = materialized_package_native_dir_paths(
+        materialized_packages,
+        plugins_dir,
+    )
+    current_file_paths = native_dynamic_file_manifest_paths(current_file_manifest)
+    diagnostics: list[str] = []
+    for package in packages:
+        if not isinstance(package, dict):
+            continue
+        package_id = package.get("package_id")
+        copied_artifact = package.get("copied_loadable_artifact")
+        if (
+            not isinstance(package_id, str)
+            or not package_id.strip()
+            or not isinstance(copied_artifact, str)
+            or not copied_artifact.strip()
+        ):
+            continue
+        package_expected_artifacts = expected_artifacts.get(package_id)
+        if package_expected_artifacts is None:
+            continue
+        copied_artifact_path = native_dynamic_copied_artifact_bundle_path(
+            copied_artifact,
+            plugins_dir,
+        )
+        if copied_artifact_path is None:
+            continue
+        if copied_artifact_path not in package_expected_artifacts:
+            diagnostics.append(
+                "native_dynamic report native_build_execution package "
+                f"{package_id} copied_loadable_artifact {copied_artifact_path} "
+                "does not match materialized loadable artifacts "
+                f"{package_expected_artifacts}"
+            )
+        copied_sidecars = package.get("copied_sidecars")
+        if not isinstance(copied_sidecars, list):
+            continue
+        package_native_dir = expected_native_dirs.get(package_id)
+        for sidecar_index, copied_sidecar in enumerate(copied_sidecars):
+            if not isinstance(copied_sidecar, str) or not copied_sidecar.strip():
+                continue
+            copied_sidecar_path = native_dynamic_copied_artifact_bundle_path(
+                copied_sidecar,
+                plugins_dir,
+            )
+            if copied_sidecar_path is None:
+                continue
+            if (
+                package_native_dir is not None
+                and not copied_sidecar_path.startswith(package_native_dir)
+            ):
+                diagnostics.append(
+                    "native_dynamic report native_build_execution package "
+                    f"{package_id} copied_sidecars[{sidecar_index}] "
+                    f"{copied_sidecar_path} is not inside materialized "
+                    f"native package directory {package_native_dir}"
+                )
+                continue
+            if not native_dynamic_file_manifest_contains_path_or_directory(
+                copied_sidecar_path,
+                current_file_paths,
+            ):
+                diagnostics.append(
+                    "native_dynamic report native_build_execution package "
+                    f"{package_id} copied_sidecars[{sidecar_index}] "
+                    f"{copied_sidecar_path} is not present in current "
+                    "NativeDynamic plugins file_manifest"
+                )
+    return diagnostics
+
+
+def native_dynamic_copied_artifact_bundle_path(
+    copied_artifact: str,
+    plugins_dir: Path,
+) -> str | None:
+    copied_path = Path(copied_artifact).expanduser()
+    if copied_path.is_absolute():
+        try:
+            relative_path = copied_path.resolve().relative_to(plugins_dir.resolve())
+        except (OSError, ValueError):
+            return copied_path.as_posix()
+        return f"plugins/{relative_path.as_posix()}"
+    return copied_path.as_posix()
+
+
 def native_dynamic_package_table_diagnostics(
     table: object,
     field: str,
@@ -586,6 +999,26 @@ def native_dynamic_operation_audit_artifact_diagnostics(
             for artifact in artifacts
         ):
             continue
+        for artifact_index, artifact in enumerate(artifacts):
+            artifact_path = artifact.get("artifact")
+            package_relative_artifact = artifact.get("package_relative_artifact")
+            if not (
+                isinstance(artifact_path, str)
+                and isinstance(package_relative_artifact, str)
+                and package_id.strip()
+                and package_relative_artifact.strip()
+            ):
+                continue
+            expected_artifact = (
+                f"plugins/{package_id}/{package_relative_artifact}"
+            )
+            if artifact_path != expected_artifact:
+                diagnostics.append(
+                    f"native_dynamic report {field} package {package_id} "
+                    f"artifacts[{artifact_index}].artifact {artifact_path} "
+                    "does not match package_relative_artifact "
+                    f"{expected_artifact}"
+                )
         package_relative_artifacts = [
             str(artifact["package_relative_artifact"]) for artifact in artifacts
         ]

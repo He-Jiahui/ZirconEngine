@@ -11,7 +11,7 @@ use super::super::super::paint_template_nodes::{draw_template_nodes, has_templat
 use super::super::{first_non_empty, native_panes, MUTED_TEXT, PANE_EMPTY, VIEWPORT_PANEL};
 use super::viewport_toolbar;
 
-pub(super) fn draw_pane(
+pub(in crate::ui::retained_host::host_contract) fn draw_pane(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     content: &FrameRect,

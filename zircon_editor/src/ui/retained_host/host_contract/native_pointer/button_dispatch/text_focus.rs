@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::surface_hit_test::TemplateNodePoint
 use crate::ui::retained_host::host_contract::template_input_semantics::text_input_edit_target_id;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 
-pub(super) fn focus_template_node_text_input(
+pub(in crate::ui::retained_host::host_contract) fn focus_template_node_text_input(
     ui: &UiHostWindow,
     hit: &TemplateNodePointerHit,
 ) -> bool {

@@ -9,6 +9,7 @@ use crate::graphics::RenderPipelineAsset;
 use super::super::super::capability_validation::validate_quality_profile_capabilities;
 use super::super::super::compile_options_for_profile::compile_options_for_profile;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
+use super::camera_history_key::camera_history_key_for_extract;
 use super::viewport_record_state::ViewportRecordState;
 
 pub(super) fn resolve_viewport_record_state(
@@ -17,6 +18,7 @@ pub(super) fn resolve_viewport_record_state(
     extract: &RenderFrameExtract,
 ) -> Result<ViewportRecordState, RenderFrameworkError> {
     let state = server.lock_state();
+    let camera_history_key = camera_history_key_for_extract(extract);
     let (
         size,
         pipeline_handle,
@@ -80,10 +82,16 @@ pub(super) fn resolve_viewport_record_state(
                 .map(|profile| profile.shader_quality)
                 .unwrap_or_default(),
             record.quality_profile().map(|profile| profile.taa_quality),
-            record.history().map(|history| history.visibility().clone()),
-            record.visibility_static_index().cloned(),
-            record.motion_vector_camera().cloned(),
-            record.particle_previous_sprites().to_vec(),
+            record
+                .history(&camera_history_key)
+                .map(|history| history.visibility().clone()),
+            record
+                .history(&camera_history_key)
+                .map(|history| history.static_index().clone()),
+            record.motion_vector_camera(&camera_history_key).cloned(),
+            record
+                .particle_previous_sprites(&camera_history_key)
+                .to_vec(),
             compile_options_for_profile(
                 record.quality_profile(),
                 &state.stats.capabilities,

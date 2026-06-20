@@ -159,6 +159,140 @@ fn runtime_session_archive_removes_slot_at_path_atomically() {
 }
 
 #[test]
+fn runtime_session_archive_previews_slot_mutations_without_mutating_archive() {
+    let source = World::empty();
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "manual", "manual", 10),
+        tagged_slot(&source, "autosave", "autosave", 20),
+    ])
+    .expect("archive should validate");
+
+    let rename = archive
+        .preview_rename_slot("manual", " manual-renamed ")
+        .expect("rename preview should validate");
+    assert_eq!(rename.source_slot_id, "manual");
+    assert_eq!(
+        rename.destination_slot_id.as_deref(),
+        Some("manual-renamed")
+    );
+    assert_eq!(rename.metadata.tags, vec!["manual"]);
+    assert_eq!(rename.metadata.updated_at_unix_millis, Some(10));
+    assert_eq!(rename.entity_count, 0);
+    assert_eq!(rename.resource_count, 0);
+
+    let metadata = archive
+        .preview_update_slot_metadata(
+            "manual",
+            RuntimeSessionMetadata::default()
+                .with_display_name("Updated Manual")
+                .with_tag(" updated ")
+                .with_tag("updated")
+                .with_updated_at_unix_millis(40),
+        )
+        .expect("metadata preview should validate");
+    assert_eq!(metadata.source_slot_id, "manual");
+    assert_eq!(metadata.destination_slot_id, None);
+    assert_eq!(
+        metadata.metadata.display_name.as_deref(),
+        Some("Updated Manual")
+    );
+    assert_eq!(metadata.metadata.tags, vec!["updated"]);
+    assert_eq!(metadata.metadata.updated_at_unix_millis, Some(40));
+
+    let touch = archive
+        .preview_touch_slot("manual", 90)
+        .expect("touch preview should validate");
+    assert_eq!(touch.source_slot_id, "manual");
+    assert_eq!(touch.destination_slot_id, None);
+    assert_eq!(touch.metadata.tags, vec!["manual"]);
+    assert_eq!(touch.metadata.updated_at_unix_millis, Some(90));
+
+    let remove = archive
+        .preview_remove_slot("autosave")
+        .expect("remove preview should validate");
+    assert_eq!(remove.source_slot_id, "autosave");
+    assert_eq!(remove.destination_slot_id, None);
+    assert_eq!(remove.metadata.tags, vec!["autosave"]);
+    assert_eq!(remove.metadata.updated_at_unix_millis, Some(20));
+
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave", "manual"]
+    );
+    let duplicate = archive.preview_rename_slot("manual", " autosave ");
+    assert!(matches!(
+        duplicate,
+        Err(crate::scene::RuntimeSessionArchiveError::DuplicateSlotId { .. })
+    ));
+}
+
+#[test]
+fn runtime_session_archive_previews_slot_mutations_from_path_without_mutating_archive() {
+    let source = World::empty();
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "manual", "manual", 10),
+        tagged_slot(&source, "autosave", "autosave", 20),
+    ])
+    .expect("archive should validate");
+    let root = unique_temp_root("runtime_session_path_mutation_preview");
+    let path = root.join("sessions").join("archive.zrsession.json");
+    archive
+        .save_to_path_atomically(&path)
+        .expect("archive should save before slot mutation previews");
+    let payload = fs::read_to_string(&path).expect("archive payload should be readable");
+
+    let rename =
+        RuntimeSessionArchive::preview_rename_slot_from_path(&path, "manual", " manual-renamed ")
+            .expect("path rename preview should validate");
+    assert_eq!(rename.source_slot_id, "manual");
+    assert_eq!(
+        rename.destination_slot_id.as_deref(),
+        Some("manual-renamed")
+    );
+
+    let metadata = RuntimeSessionArchive::preview_update_slot_metadata_from_path(
+        &path,
+        "manual",
+        RuntimeSessionMetadata::default()
+            .with_display_name("Updated Manual")
+            .with_tag(" updated ")
+            .with_updated_at_unix_millis(40),
+    )
+    .expect("path metadata preview should validate");
+    assert_eq!(metadata.source_slot_id, "manual");
+    assert_eq!(metadata.metadata.tags, vec!["updated"]);
+    assert_eq!(metadata.metadata.updated_at_unix_millis, Some(40));
+
+    let touch = RuntimeSessionArchive::preview_touch_slot_from_path(&path, "manual", 90)
+        .expect("path touch preview should validate");
+    assert_eq!(touch.source_slot_id, "manual");
+    assert_eq!(touch.metadata.updated_at_unix_millis, Some(90));
+
+    let remove = RuntimeSessionArchive::preview_remove_slot_from_path(&path, "autosave")
+        .expect("path remove preview should validate");
+    assert_eq!(remove.source_slot_id, "autosave");
+    assert_eq!(remove.metadata.tags, vec!["autosave"]);
+
+    assert_eq!(
+        fs::read_to_string(&path).expect("archive payload should remain readable after previews"),
+        payload
+    );
+    assert_eq!(
+        RuntimeSessionArchive::load_from_path(&path)
+            .expect("archive should reload after slot mutation previews")
+            .slot_ids()
+            .collect::<Vec<_>>(),
+        vec!["autosave", "manual"]
+    );
+    assert!(
+        temporary_archive_leftovers(path.parent().expect("session path should have parent"))
+            .is_empty()
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn runtime_session_archive_copies_slot_at_path_atomically() {
     let source = World::empty();
     let archive =
@@ -199,6 +333,87 @@ fn runtime_session_archive_copies_slot_at_path_atomically() {
             .slot_ids()
             .collect::<Vec<_>>(),
         vec!["manual", "manual-copy"]
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_session_archive_previews_slot_copy_without_mutating_archive() {
+    let source = World::empty();
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "manual", 10)])
+            .expect("archive should validate");
+
+    let report = archive
+        .preview_copy_slot_with_metadata(
+            "manual",
+            " manual-copy ",
+            RuntimeSessionMetadata::default()
+                .with_display_name("Manual Copy")
+                .with_tag(" copied ")
+                .with_tag("copied")
+                .with_updated_at_unix_millis(40),
+        )
+        .expect("slot copy preview should validate");
+
+    assert_eq!(report.source_slot_id, "manual");
+    assert_eq!(report.destination_slot_id, "manual-copy");
+    assert_eq!(report.metadata.display_name.as_deref(), Some("Manual Copy"));
+    assert_eq!(report.metadata.tags, vec!["copied"]);
+    assert_eq!(report.metadata.updated_at_unix_millis, Some(40));
+    assert_eq!(report.entity_count, 0);
+    assert_eq!(report.resource_count, 0);
+    assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["manual"]);
+
+    let duplicate = archive.preview_copy_slot("manual", " manual ");
+    assert!(matches!(
+        duplicate,
+        Err(crate::scene::RuntimeSessionArchiveError::DuplicateSlotId { .. })
+    ));
+}
+
+#[test]
+fn runtime_session_archive_previews_slot_copy_from_path_without_mutating_archive() {
+    let source = World::empty();
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "manual", 10)])
+            .expect("archive should validate");
+    let root = unique_temp_root("runtime_session_path_copy_preview");
+    let path = root.join("sessions").join("archive.zrsession.json");
+    archive
+        .save_to_path_atomically(&path)
+        .expect("archive should save before copy preview");
+    let payload = fs::read_to_string(&path).expect("archive payload should be readable");
+
+    let report = RuntimeSessionArchive::preview_copy_slot_with_metadata_from_path(
+        &path,
+        "manual",
+        " manual-copy ",
+        RuntimeSessionMetadata::default()
+            .with_display_name("Manual Copy")
+            .with_tag(" copied ")
+            .with_updated_at_unix_millis(40),
+    )
+    .expect("slot copy path preview should validate");
+
+    assert_eq!(report.source_slot_id, "manual");
+    assert_eq!(report.destination_slot_id, "manual-copy");
+    assert_eq!(report.metadata.tags, vec!["copied"]);
+    assert_eq!(
+        fs::read_to_string(&path).expect("archive payload should remain readable after preview"),
+        payload
+    );
+    assert_eq!(
+        RuntimeSessionArchive::load_from_path(&path)
+            .expect("archive should reload after copy preview")
+            .slot_ids()
+            .collect::<Vec<_>>(),
+        vec!["manual"]
+    );
+    assert!(
+        temporary_archive_leftovers(path.parent().expect("session path should have parent"))
+            .is_empty()
     );
 
     let _ = fs::remove_dir_all(root);
@@ -324,6 +539,117 @@ fn runtime_session_archive_imports_single_slot_from_path_at_path_atomically() {
         fs::read_to_string(&source_path)
             .expect("source archive payload should remain readable after import"),
         source_payload
+    );
+    assert!(temporary_archive_leftovers(
+        source_path
+            .parent()
+            .expect("source path should have parent")
+    )
+    .is_empty());
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_session_archive_previews_single_slot_import_without_mutating_archives() {
+    let source = World::empty();
+    let target =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "target", 10)])
+            .expect("target archive should validate");
+    let incoming =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "incoming", "import", 30)])
+            .expect("incoming archive should validate");
+
+    let report = target
+        .preview_import_slot_from_archive_with_metadata(
+            &incoming,
+            "incoming",
+            " imported-preview ",
+            RuntimeSessionMetadata::default()
+                .with_display_name("Imported Preview")
+                .with_tag(" preview ")
+                .with_tag("preview")
+                .with_updated_at_unix_millis(70),
+        )
+        .expect("single-slot import preview should validate");
+
+    assert_eq!(report.source_slot_id, "incoming");
+    assert_eq!(report.destination_slot_id, "imported-preview");
+    assert_eq!(
+        report.metadata.display_name.as_deref(),
+        Some("Imported Preview")
+    );
+    assert_eq!(report.metadata.tags, vec!["preview"]);
+    assert_eq!(report.metadata.updated_at_unix_millis, Some(70));
+    assert_eq!(report.entity_count, 0);
+    assert_eq!(report.resource_count, 0);
+    assert_eq!(target.slot_ids().collect::<Vec<_>>(), vec!["manual"]);
+    assert_eq!(incoming.slot_ids().collect::<Vec<_>>(), vec!["incoming"]);
+
+    let duplicate = target.preview_import_slot_from_archive(&incoming, "incoming", " manual ");
+    assert!(matches!(
+        duplicate,
+        Err(crate::scene::RuntimeSessionArchiveError::DuplicateSlotId { .. })
+    ));
+}
+
+#[test]
+fn runtime_session_archive_previews_single_slot_import_from_path_without_mutating_archives() {
+    let source = World::empty();
+    let incoming = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "incoming", "incoming", 30),
+        tagged_slot(&source, "other", "incoming", 40),
+    ])
+    .expect("incoming archive should validate");
+    let target =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "target", 10)])
+            .expect("target archive should validate");
+    let root = unique_temp_root("runtime_session_path_single_slot_import_preview");
+    let source_path = root.join("source").join("archive.zrsession.json");
+    let target_path = root.join("target").join("archive.zrsession.json");
+    incoming
+        .save_to_path_atomically(&source_path)
+        .expect("source archive should save before import preview");
+    target
+        .save_to_path_atomically(&target_path)
+        .expect("target archive should save before import preview");
+    let source_payload =
+        fs::read_to_string(&source_path).expect("source archive payload should be readable");
+    let target_payload =
+        fs::read_to_string(&target_path).expect("target archive payload should be readable");
+
+    let report =
+        RuntimeSessionArchive::preview_import_slot_from_archive_path_with_metadata_at_path(
+            &target_path,
+            &source_path,
+            "incoming",
+            " path-preview ",
+            RuntimeSessionMetadata::default()
+                .with_display_name("Path Preview")
+                .with_tag(" path-preview ")
+                .with_updated_at_unix_millis(90),
+        )
+        .expect("source path single-slot import preview should validate");
+
+    assert_eq!(report.source_slot_id, "incoming");
+    assert_eq!(report.destination_slot_id, "path-preview");
+    assert_eq!(report.metadata.tags, vec!["path-preview"]);
+    assert_eq!(report.metadata.updated_at_unix_millis, Some(90));
+    assert_eq!(
+        fs::read_to_string(&source_path)
+            .expect("source archive payload should remain readable after preview"),
+        source_payload
+    );
+    assert_eq!(
+        fs::read_to_string(&target_path)
+            .expect("target archive payload should remain readable after preview"),
+        target_payload
     );
     assert!(temporary_archive_leftovers(
         source_path

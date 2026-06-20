@@ -1,0 +1,49 @@
+use super::super::HostInvalidationMask;
+use super::HostInvalidationRoot;
+
+impl HostInvalidationRoot {
+    pub(in crate::ui::retained_host::app) fn with_initial_full_rebuild() -> Self {
+        let mut root = Self::default();
+        root.invalidate(
+            HostInvalidationMask::LAYOUT
+                .union(HostInvalidationMask::WINDOW_METRICS)
+                .union(HostInvalidationMask::PRESENTATION_DATA)
+                .union(HostInvalidationMask::HIT_TEST)
+                .union(HostInvalidationMask::RENDER),
+        );
+        root
+    }
+
+    pub(in crate::ui::retained_host::app) fn invalidate(&mut self, mask: HostInvalidationMask) {
+        if mask.is_empty() {
+            return;
+        }
+
+        self.total_requests += 1;
+        if mask.requires_layout() {
+            self.layout_requests += 1;
+        }
+        if mask.requires_presentation() {
+            self.presentation_requests += 1;
+        }
+        if mask.requires_render() {
+            self.render_requests += 1;
+        }
+        if mask.intersects(
+            HostInvalidationMask::PAINT_ONLY
+                .union(HostInvalidationMask::POINTER_HOVER)
+                .union(HostInvalidationMask::VIEWPORT_IMAGE),
+        ) {
+            self.paint_only_requests += 1;
+        }
+        if mask.requires_hit_test() {
+            self.hit_test_requests += 1;
+        }
+        if mask.requires_window_metrics() {
+            self.window_metrics_requests += 1;
+        }
+        if mask.requires_host_recompute() {
+            self.pending_recompute.insert(mask);
+        }
+    }
+}

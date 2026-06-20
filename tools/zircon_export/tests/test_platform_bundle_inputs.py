@@ -20,6 +20,7 @@ from tools.zircon_export.platform_bundle import (
     validate_report_uses_strategy,
 )
 from tools.zircon_export.tests.export_test_support import (
+    _compile_host_plan,
     _compile_host_link_plan,
     _write_validate_report_with_strategies,
 )
@@ -32,19 +33,31 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 class PlatformBundleInputTests(unittest.TestCase):
     def test_stage_rejects_empty_explicit_handoff_inputs(self) -> None:
         for field, diagnostic in PLATFORM_BUNDLE_EMPTY_ARGUMENTS.items():
-            with self.subTest(field=field):
-                self.assert_empty_argument_rejected(field, diagnostic, pipeline=False)
+            for value in ("", "   "):
+                with self.subTest(field=field, value=repr(value)):
+                    self.assert_empty_argument_rejected(
+                        field,
+                        value,
+                        diagnostic,
+                        pipeline=False,
+                    )
 
     def test_pipeline_preserves_empty_explicit_handoff_inputs(self) -> None:
         for field, diagnostic in PLATFORM_BUNDLE_EMPTY_ARGUMENTS.items():
-            with self.subTest(field=field):
-                self.assert_empty_argument_rejected(field, diagnostic, pipeline=True)
+            for value in ("", "   "):
+                with self.subTest(field=field, value=repr(value)):
+                    self.assert_empty_argument_rejected(
+                        field,
+                        value,
+                        diagnostic,
+                        pipeline=True,
+                    )
 
     def test_pipeline_explicit_pack_file_does_not_inherit_report_delta(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             explicit_pack = root / "manual" / "manual-assets.zrpack"
             report_pack = root / "pack-output" / "assets.zrpack"
             report_delta = root / "pack-output" / "assets.delta.zrpd"
@@ -100,6 +113,7 @@ class PlatformBundleInputTests(unittest.TestCase):
     def assert_empty_argument_rejected(
         self,
         field: str,
+        value: str,
         diagnostic: str,
         *,
         pipeline: bool,
@@ -107,7 +121,7 @@ class PlatformBundleInputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             pack = root / "pack-output" / "assets.zrpack"
             delta_pack = root / "pack-output" / "assets.delta.zrpd"
             host.parent.mkdir(parents=True)
@@ -124,7 +138,7 @@ class PlatformBundleInputTests(unittest.TestCase):
             _write_pack_report(out, pack, delta_pack)
             _write_native_dynamic_report(out, native_plugins)
             args = _export_args(out=out, stage="platform_bundle", dry_run=False)
-            setattr(args, field, "")
+            setattr(args, field, value)
             if field == "pack_file":
                 args.pack_file_explicit = True
             if field == "delta_pack":
@@ -138,7 +152,7 @@ class PlatformBundleInputTests(unittest.TestCase):
 
             report = _read_json(out / "stages" / "platform_bundle" / "report.json")
             self.assertEqual(exit_code, 2)
-            self.assertEqual(getattr(args, field), "")
+            self.assertEqual(getattr(args, field), value)
             self.assertTrue(report["fatal"], report["diagnostics"])
             self.assertIsNone(report["host_executable"])
             self.assertIsNone(report["pack"])
@@ -239,7 +253,7 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
                 "profile": "windows-release",
                 "fatal": False,
                 "diagnostics": [],
-                "command": ["cargo", "build"],
+                "command": list(_compile_host_plan()["command"]),
                 "exit_code": 0,
                 "host_executable": str(host_executable),
                 "link_plan": _compile_host_link_plan(),
@@ -255,6 +269,8 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
 def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
     report_dir = out / "stages" / "pack"
     report_dir.mkdir(parents=True, exist_ok=True)
+    previous_pack = delta_pack.with_name("previous.zrpack")
+    previous_pack.write_text("previous pack placeholder", encoding="utf-8")
     asset_manifest = out / "stages" / "cook_assets" / "assets.json"
     asset_manifest.parent.mkdir(parents=True, exist_ok=True)
     if not asset_manifest.exists():
@@ -291,6 +307,7 @@ def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
                 "chunk_count": 0,
                 "deduplicated_assets": [],
                 "deterministic_double_run": False,
+                "previous_pack": str(previous_pack),
                 "delta_pack": str(delta_pack),
                 "delta_manifest": empty_delta_manifest(),
                 "delta_asset_count": 0,

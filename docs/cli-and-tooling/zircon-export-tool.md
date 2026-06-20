@@ -25,16 +25,28 @@ related_code:
   - tools/zircon_export/pipeline_report_cook_assets_stage_schema.py
   - tools/zircon_export/pipeline_report_validate_stage_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_audit_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_audit_common.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_execution_schema.py
   - tools/zircon_export/pipeline_report_pack_stage_schema.py
   - tools/zircon_export/pipeline_report_pack_manifest_schema.py
   - tools/zircon_export/pipeline_report_pack_delta_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema.py
+  - tools/zircon_export/pipeline_report_schema_table.py
   - tools/zircon_export/pipeline_report_platform_bundle.py
   - tools/zircon_export/pipeline_report_platform_bundle_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_schema_helpers.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py
   - tools/zircon_export/pipeline_report_source_template.py
   - tools/zircon_export/pipeline_report_source_template_stage_schema.py
   - tools/zircon_export/pipeline_report_source_template_validate_schema.py
@@ -50,6 +62,7 @@ related_code:
   - tools/zircon_export/subprocess_output.py
   - tools/zircon_export/tests/native_dynamic_test_support.py
   - tools/zircon_export/tests/export_test_support.py
+  - tools/zircon_export/tests/platform_bundle_report_test_support.py
   - tools/zircon_export/tests/pack_schema_test_support.py
   - tools/zircon_export/tests/pack_test_support.py
   - tools/zircon_export/tests/test_command_plan.py
@@ -65,10 +78,15 @@ related_code:
   - tools/zircon_export/tests/test_native_dynamic_path_resolve_errors.py
   - tools/zircon_export/tests/test_native_dynamic_stage.py
   - tools/zircon_export/tests/test_pipeline_report_source_template.py
+  - tools/zircon_export/tests/test_pipeline_report_source_template_validate_build_plan.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py
+  - tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py
+  - tools/zircon_export/tests/native_dynamic_stage_report_test_support.py
+  - tools/zircon_export/tests/native_dynamic_stage_schema_test_support.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_materialized_packages.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_payload.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_package_report_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_schema.py
@@ -76,10 +94,20 @@ related_code:
   - tools/zircon_export/tests/test_pipeline_report_cook_assets_pack_handoff.py
   - tools/zircon_export/tests/test_pipeline_report_stage.py
   - tools/zircon_export/tests/test_pipeline_report_stage_location.py
+  - tools/zircon_export/tests/test_pipeline_report_stage_metadata_diagnostics_schema.py
   - tools/zircon_export/tests/test_pipeline_report_stage_metadata.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_command_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_execution_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_compile_host_command_semantics.py
   - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema.py
   - tools/zircon_export/tests/test_pipeline_report_pack_stage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_compile_host_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_compile_host_linkage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_diagnostics_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_plan_vector_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_native_dynamic_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_runtime_availability_schema.py
@@ -93,6 +121,13 @@ related_code:
   - tools/zircon_export/tests/test_platform_bundle_path_resolve_errors.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_file_reads.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_top_level_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_bundle_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_file_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_file_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_report_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle.py
   - tools/zircon_export/tests/test_report_write_errors.py
   - tools/zircon_export/tests/test_pipeline_resume_flow.py
@@ -151,12 +186,18 @@ implementation_files:
   - tools/zircon_export/pipeline_report_pack_manifest_schema.py
   - tools/zircon_export/pipeline_report_pack_delta_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle.py
   - tools/zircon_export/pipeline_report_platform_bundle_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_schema_helpers.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py
   - tools/zircon_export/pipeline_report_source_template.py
   - tools/zircon_export/pipeline_report_source_template_stage_schema.py
   - tools/zircon_export/pipeline_report_source_template_validate_schema.py
@@ -170,6 +211,7 @@ implementation_files:
   - tools/zircon_export/source_template.py
   - tools/zircon_export/tests/native_dynamic_test_support.py
   - tools/zircon_export/tests/export_test_support.py
+  - tools/zircon_export/tests/platform_bundle_report_test_support.py
   - tools/zircon_export/tests/pack_schema_test_support.py
   - tools/zircon_export/tests/pack_test_support.py
   - tools/zircon_export/tests/test_command_plan.py
@@ -190,21 +232,39 @@ implementation_files:
   - tools/zircon_export/tests/test_platform_bundle_path_resolve_errors.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_file_reads.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_manifest_top_level_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_bundle_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_file_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_file_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_report_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle.py
   - tools/zircon_export/tests/test_report_write_errors.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/tests/native_dynamic_stage_report_test_support.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_materialized_packages.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_payload.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_package_report_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_schema.py
   - tools/zircon_export/tests/test_pipeline_report_source_template.py
+  - tools/zircon_export/tests/test_pipeline_report_source_template_validate_build_plan.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py
+  - tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_schema.py
   - tools/zircon_export/tests/test_pipeline_report_stage.py
   - tools/zircon_export/tests/test_pipeline_report_stage_location.py
+  - tools/zircon_export/tests/test_pipeline_report_stage_metadata_diagnostics_schema.py
   - tools/zircon_export/tests/test_pipeline_report_stage_metadata.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_compile_host_command_semantics.py
   - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema.py
   - tools/zircon_export/tests/test_pipeline_report_pack_stage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_compile_host_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_compile_host_linkage_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_diagnostics_schema.py
+  - tools/zircon_export/tests/test_pipeline_report_validate_plan_vector_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_native_dynamic_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_runtime_availability_schema.py
@@ -239,6 +299,53 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
 tests:
+  - python -m py_compile tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_report_compile_host_stage_schema.py tools\zircon_export\tests\export_test_support.py tools\zircon_export\tests\test_pipeline_report_compile_host_command_semantics.py tools\zircon_export\tests\test_pipeline_report_compile_host_stage_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_command_target_dir_mismatch
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_host_executable_outside_output_root
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_host_executable_target_dir_mismatch
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_host_executable_binary_mismatch
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_missing_host_executable_file
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_with_non_cargo_command
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_metadata_mismatch
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_with_invalid_profile_release
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_missing_required_evidence_field
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_malformed_string_evidence_field
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_non_string_evidence_field
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_malformed_array_evidence_field
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema.CompileHostStageSchemaTests.test_report_stage_rejects_compile_host_nonfatal_nonzero_exit_code
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_feature_mismatch
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_target_broadening
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_target_broadening
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_target_triple_override
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_target_triple_override
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_package_broadening
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_package_broadening
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_profile_override
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_profile_override
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_wrapper_policy_override
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_command_wrapper_policy_override
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_forbidden_command_equals_form
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate.CompileHostOutputGateTests.test_compile_host_rejects_plan_forbidden_command_equals_form
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_profile_release_mismatch
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_missing_required_field
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_blank_string_field
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_unsafe_path_field
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema.PipelineReportValidateCompileHostSchemaTests.test_report_stage_rejects_validate_compile_host_command_non_cargo
+  - python -m py_compile tools\zircon_export\compile_host.py tools\zircon_export\pipeline_report_validate_compile_host_schema.py tools\zircon_export\tests\export_test_support.py tools\zircon_export\tests\test_compile_host_output_gate.py tools\zircon_export\tests\test_pipeline_report_validate_compile_host_schema.py
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_stage_metadata tools.zircon_export.tests.test_pipeline_report_stage_metadata_diagnostics_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_compile_host_stage_schema.py tools\zircon_export\tests\export_test_support.py tools\zircon_export\tests\test_pipeline_report_compile_host_stage_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_stage_metadata tools.zircon_export.tests.test_pipeline_report_stage_metadata_diagnostics_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_validate_compile_host_linkage_schema.py tools\zircon_export\tests\test_pipeline_report_validate_compile_host_linkage_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_compile_host_stage_schema.py tools\zircon_export\tests\test_pipeline_report_compile_host_stage_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_validate_compile_host_schema.py tools\zircon_export\tests\test_pipeline_report_validate_compile_host_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema
+  - python -m py_compile tools\zircon_export\tests\test_pipeline_report_source_template.py tools\zircon_export\tests\test_pipeline_report_source_template_validate_build_plan.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template tools.zircon_export.tests.test_pipeline_report_source_template_validate_build_plan
+  - python -m py_compile tools\zircon_export\tests\test_pipeline_report_validate_schema.py tools\zircon_export\tests\test_pipeline_report_validate_plan_vector_schema.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_plan_vector_schema
   - python -m py_compile tools/zircon_export/__init__.py tools/zircon_export/__main__.py tools/zircon_export/cli.py tools/zircon_export/compile_host.py tools/zircon_export/cook_assets.py tools/zircon_export/export_template.py tools/zircon_export/native_build.py tools/zircon_export/native_dynamic.py tools/zircon_export/native_dynamic_plan.py tools/zircon_export/native_signing.py tools/zircon_export/pipeline_report.py tools/zircon_export/pipeline_report_platform_bundle.py tools/zircon_export/pipeline_stages.py tools/zircon_export/platform_bundle.py tools/zircon_export/source_template.py zircon_export/__init__.py zircon_export/__main__.py tools/zircon_export/tests/export_test_support.py tools/zircon_export/tests/test_templates.py tools/zircon_export/tests/test_compile_host_source_template.py tools/zircon_export/tests/test_cook_assets_pack_stage.py tools/zircon_export/tests/test_native_dynamic_stage.py tools/zircon_export/tests/test_pipeline_report_stage.py tools/zircon_export/tests/test_pipeline_resume_flow.py tools/zircon_export/tests/test_native_dynamic.py tools/zircon_export/tests/test_platform_bundle_delta.py
   - python -m zircon_export --help
   - python -m unittest tools.zircon_export.tests.test_templates
@@ -277,9 +384,9 @@ tests:
   - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_loader_manifest.py tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\tests\test_platform_bundle_native_payload_loader_manifest.py
   - python -m unittest tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest
   - python -m unittest tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_platform_bundle_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle tools.zircon_export.tests.test_platform_bundle_native_dynamic
-  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_stage_location tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_platform_bundle_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle tools.zircon_export.tests.test_platform_bundle_native_dynamic
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_materialized_packages tools.zircon_export.tests.test_pipeline_report_stage_location tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_platform_bundle_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle tools.zircon_export.tests.test_platform_bundle_native_dynamic
   - python -m unittest discover tools.zircon_export.tests
-  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_materialized_packages
   - python -m py_compile tools\zircon_export\tests\test_pipeline_report_stage.py tools\zircon_export\tests\test_pipeline_report_stage_metadata.py tools\zircon_export\tests\test_pipeline_report_source_template.py
   - python -m py_compile tools\zircon_export\compile_host.py tools\zircon_export\source_template.py tools\zircon_export\tests\test_compile_host_source_template.py
   - python -m py_compile tools\zircon_export\cli.py tools\zircon_export\compile_host.py tools\zircon_export\tests\export_test_support.py tools\zircon_export\tests\test_compile_host_source_template.py tools\zircon_export\tests\test_compile_host_output_gate.py tools\zircon_export\tests\test_compile_host_path_resolve_errors.py tools\zircon_export\tests\test_stage_directory_errors.py tools\zircon_export\tests\test_subprocess_launch_errors.py
@@ -586,6 +693,16 @@ tests:
   - test_report_rejects_native_plugins_payload_loader_manifest_path_mismatch
   - test_report_rejects_native_plugins_payload_loader_manifest_manifest_mismatch
   - test_report_rejects_native_plugins_payload_loader_manifest_package_report_mismatch
+  - test_report_rejects_native_plugins_payload_loader_manifest_abi_mismatch
+  - test_report_rejects_native_plugins_payload_loader_manifest_bad_abi_table
+  - test_report_rejects_native_plugins_payload_loader_manifest_unknown_abi_field
+  - test_report_rejects_native_plugins_payload_loader_manifest_unknown_plugin_field
+  - test_report_rejects_native_plugins_payload_loader_manifest_string_field_type
+  - test_report_rejects_native_plugins_payload_loader_manifest_abi_field_types
+  - test_report_rejects_native_plugins_payload_loader_manifest_abi_missing_required_field
+  - test_report_rejects_native_plugins_payload_loader_manifest_unknown_top_level_field
+  - test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_row_field
+  - test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_abi_table
   - test_package_path_diagnostics_rejects_plugins_root_resolve_error
   - test_current_output_stage_report_path_reports_plugins_dir_resolve_error
   - test_package_path_diagnostics_rejects_destination_resolve_error
@@ -705,6 +822,14 @@ The M1 report contains:
   `CompileHost` plan when present, the SourceTemplate generated-project build plan when present, and
   runtime plugin availability categories.
 
+Runtime plugin availability primary buckets are mutually exclusive publish evidence. Final Report
+rejects a schema-clean plugin id if it appears more than once across `available`, `linked`,
+`native_dynamic`, `externalized_missing`, `stub`, `blocked_by_target`, or `blocked_by_maturity`, so
+downstream strategy selection cannot consume contradictory availability states for the same runtime
+plugin. `missing_required` is the Rust-side overlay summary for required unavailable plugins: it may
+repeat an entry from `externalized_missing`, `stub`, `blocked_by_target`, or `blocked_by_maturity`,
+but a standalone `missing_required` row is not publishable.
+
 Successful non-fatal Validate reports are now a required release-evidence shape:
 `project_manifest`, `stage_output`, `profile_found`, `fatal_diagnostics`, `profile_summary`, and
 `plan_summary` must be present before final Report trusts the stage as publishable. Historical
@@ -726,6 +851,24 @@ existing callers.
 The consumed plan must include non-empty `binary`, `cargo_profile`, and `command` fields before
 CompileHost launches Cargo, because those values derive the host executable handoff path and the
 Cargo process invocation.
+The stage also validates the command identity before rewriting the executable token: the trusted
+Validate plan must begin with `cargo build`, so a stale or polluted plan cannot be silently
+converted from another executable into a Cargo build.
+The planned command is then checked against the same Validate plan metadata before launch:
+package, binary, `--no-default-features`, feature list, manifest path, target directory, and
+release/debug flag must agree with the consumed `library_embed_compile_host` row.
+It applies the same execution-time profile contract as final Report: `cargo_profile` must be
+`debug` or `release`, `release` must be a boolean, and both fields must agree before any Cargo
+process starts.
+The execution gate also requires the complete CompileHost evidence row before deriving command,
+host path, or link-plan data: package, manifest path, target directory, feature arrays, expected
+runtime plugin ids, and linked runtime crates must all be present.
+Those string evidence fields must be strings first, then non-empty trimmed strings, and the
+plan-local manifest/target paths must stay safe and relative, matching the final Report
+release-evidence schema.
+Feature arrays, expected runtime plugin ids, and linked runtime crate rows are also validated before
+subprocess launch, so malformed arrays cannot collapse into an empty `link_plan` or bypass the
+linked-crate release-evidence schema.
 After Cargo returns success, CompileHost now requires the expected host output to be a regular file;
 a missing path or directory at that location makes the stage fatal before PlatformBundle can consume
 the handoff.
@@ -736,6 +879,28 @@ without a string `binary`, CompileHost writes a fatal report with no command and
 `host_executable`.
 `test_compile_host_rejects_plan_without_cargo_profile` applies the same gate to `cargo_profile`, so
 malformed Validate plans cannot silently fall back to the debug output directory.
+`test_compile_host_rejects_plan_command_metadata_mismatch` keeps standalone CompileHost execution
+aligned with the final Report command provenance rules: package/bin, feature list, manifest path,
+target directory, and release/debug flags must all match the validated plan before subprocess
+launch. The consumed plan command must include `--manifest-path`; the default success fixture now
+publishes `--manifest-path Cargo.toml` so host builds do not implicitly depend on the process
+working directory.
+The consumed plan command must not carry `--locked`, `--offline`, or `--frozen`; those Cargo
+lock/offline policy flags are owned by the CompileHost CLI wrapper through `--no-locked` and
+`--offline`, so stale Validate reports cannot override the executor policy.
+The consumed plan command must not carry Cargo `--target`; platform target selection belongs to the
+export target descriptor, so LibraryEmbed host builds cannot silently switch target triples inside
+the command vector.
+Forbidden CompileHost command flags are matched both as standalone tokens and as Cargo `--flag=value`
+tokens; `test_compile_host_rejects_plan_forbidden_command_equals_form` locks the execution boundary
+for target, profile, and wrapper-policy overrides in equals form.
+`test_compile_host_rejects_plan_non_string_evidence_field` rejects non-string package, manifest, and
+target-dir evidence before command/link-plan derivation can treat those malformed values as
+implicitly acceptable.
+`test_compile_host_rejects_plan_malformed_array_evidence_field` keeps the execution gate aligned
+with final Report link-plan rules: feature arrays must be string arrays without blank entries,
+expected runtime plugins must use project plugin ids, and linked runtime crate rows must pass the
+same object/schema checks before CompileHost can launch Cargo.
 `test_compile_host_rejects_plan_with_empty_command` requires the planned Cargo command to be a
 non-empty string array, so CompileHost never launches a command made only from appended flags such as
 `--locked` and `--target-dir`.
@@ -766,7 +931,10 @@ checks. Non-dry-run CompileHost execution captures Cargo stdout and stderr with
 CompileHost and SourceTemplate.
 Successful non-fatal CompileHost reports are now a required release-evidence shape: `link_plan`
 must be present as an object beside the Cargo command, host executable, exit code, and captured
-stdout/stderr arrays. Inside `link_plan`, `app_features`, `runtime_features`,
+stdout/stderr arrays. The stage schema also requires the successful `command` vector to be a
+non-empty string array with no empty or whitespace-only entries, so final Report cannot accept a
+hand-written CompileHost success report that claims a host build without an executable Cargo command.
+Inside `link_plan`, `app_features`, `runtime_features`,
 `expected_runtime_plugins`, and `linked_runtime_crates` are required fields, so an empty or partial
 link plan is not publishable. `test_report_stage_rejects_compile_host_missing_release_evidence_field`
 keeps missing `link_plan` fatal, and
@@ -777,7 +945,39 @@ schema gates pass, final Report compares the nested execution evidence against V
 field-level diagnostic such as
 `compile_host report link_plan.expected_runtime_plugins does not match validate report plan_summary.library_embed_compile_host.expected_runtime_plugins`.
 `test_report_stage_rejects_compile_host_link_plan_validate_mismatch` keeps this semantic gate
-separate from the missing-evidence gate.
+separate from the missing-evidence gate. `test_report_stage_rejects_compile_host_empty_command`
+and `test_report_stage_rejects_compile_host_blank_command_entry` lock the command-vector gate in a
+focused CompileHost schema module instead of expanding the already-large stage metadata test file.
+`test_report_stage_rejects_validate_compile_host_blank_string_array_entry` mirrors the blank-entry
+rule on the Validate-side `plan_summary.library_embed_compile_host` arrays, so stale plan-side
+`app_features`, `runtime_features`, or `command` rows fail before CompileHost link-plan matching.
+`test_report_stage_rejects_validate_compile_host_command_metadata_mismatch` also keeps the
+Validate-side Cargo command bound to the same plan row: package, binary, required manifest path,
+target directory, and release/debug flags must match the published CompileHost plan metadata before
+final Report accepts the plan as release evidence.
+`test_report_stage_rejects_validate_compile_host_command_feature_mismatch` extends that provenance
+gate to the feature cut: the command must retain `--no-default-features`, publish exactly one
+`--features` option, and match the plan's `app_features` list after Cargo feature-list parsing.
+`test_report_stage_rejects_validate_compile_host_command_wrapper_policy_override` keeps
+Validate-side plans from publishing wrapper-owned lock/offline flags (`--locked`, `--offline`,
+`--frozen`), matching the execution-time `test_compile_host_rejects_plan_command_wrapper_policy_override`.
+`test_report_stage_rejects_validate_compile_host_command_target_triple_override` keeps
+Validate-side plans from publishing Cargo `--target`, matching the execution-time
+`test_compile_host_rejects_plan_command_target_triple_override`.
+`test_report_stage_rejects_validate_compile_host_forbidden_command_equals_form` keeps the same
+forbidden-flag policy from being bypassed through Cargo `--flag=value` syntax.
+`test_report_stage_rejects_compile_host_command_missing_build_option` applies the same release
+evidence stance to the CompileHost execution report: a successful report command must still be an
+auditable `cargo build` invocation with package/bin, `--no-default-features`, `--features`, and
+`--target-dir` options, so a hand-written `["cargo", "build"]` success report cannot satisfy the
+final Report stage by shape alone.
+`test_report_stage_rejects_compile_host_command_validate_mismatch` then binds the execution command
+back to Validate plan semantics: package, binary, and Cargo feature list must match
+`plan_summary.library_embed_compile_host.package`, `.binary`, and `.app_features[]` before final
+Report treats the CompileHost evidence as publishable.
+`test_report_stage_rejects_compile_host_command_release_flag_mismatch` covers the build-mode half
+of the same binding: release plans require `--release` in the CompileHost execution command, while
+debug plans reject an unexpected `--release` flag.
 
 NativeDynamic-only profiles also receive the same minimal host plan through the existing
 `plan_summary.library_embed_compile_host` field. The plan provides a CompileHost boundary for the
@@ -988,7 +1188,14 @@ expected loadable artifact path for every matched package. The default target di
 plan, execution command, and expected loadable artifact path. Repeated
 `--native-dynamic-build-feature <feature>` values are normalized, deduplicated, recorded in
 `native_build_plan.build_features` and each package plan's `features`, and appended to the Cargo
-command as `--features <comma-separated features>`.
+command as `--features <comma-separated features>`. In final Report schema validation, both
+feature arrays may be empty, but any present entry must be non-blank after trimming and entries
+must be unique.
+For non-fatal NativeDynamic reports, the top-level string release-evidence fields must be non-empty:
+`content_hash`, `loader_manifest`, `native_plugin_root`, `plugins_dir`, `stage_output`,
+`target_platform`, and `validate_report`. `test_report_stage_rejects_native_dynamic_empty_required_string_release_evidence_field`
+keeps empty strings from bypassing stage location binding, source-root provenance, Validate
+handoff, target-platform audit, or the direct content-hash field contract.
 When PlatformBundle reuses a stage-backed NativeDynamic payload summary, the stage report
 `plugins_dir` and the caller's current `plugins_dir` are canonicalized separately, so
 `test_native_dynamic_payload_summary_rejects_reported_plugins_dir_resolve_error` and
@@ -1001,13 +1208,80 @@ PlatformBundle or Report trusts build commands, expected artifacts, stdout/stder
 or package counts. Wrong-typed entries produce diagnostics such as
 `native_dynamic report native_build_plan.packages[0].command must be a string array` and
 `native_dynamic report native_build_execution.packages[0].exit_code must be an integer`.
+Each `native_build_plan.packages[]` row must carry the complete Cargo package build evidence:
+`package_id`, `crate_name`, `manifest_path`, `workspace_manifest`, `target_dir`,
+`cargo_profile`, `expected_loadable_artifact`, `release`, `features`, and `command`. The string
+row fields must be non-empty before Report trusts the package id, crate, manifests, target dir,
+profile, or expected loadable artifact. The `command` row must be a non-empty string array and
+cannot contain blank entries. Its first two tokens must be `cargo` and `build`. It must include
+exactly one valued `--manifest-path` matching the same row's `workspace_manifest`, exactly one
+valued `-p`/`--package` matching the same row's `crate_name`, and exactly one valued `--target-dir`
+matching the same row's `target_dir`. It must include one bare `--release` when the same row's
+`release` is true and omit `--release` when `release` is false, so a hand-authored build plan cannot
+point Cargo at a different workspace manifest, package selection, target directory, or release/debug
+mode than the package evidence declares. `features` may be empty
+but cannot contain blank entries; when non-empty, `command` must include exactly one valued
+`--features` whose value is the comma-joined `features[]` list, and when empty it must omit
+`--features`.
+The package row `expected_loadable_artifact` is also derived from `target_dir`, `cargo_profile`,
+`crate_name`, and the enclosing report `target_platform`; final Report normalizes path separators
+and rejects a row whose expected artifact path does not match the platform dynamic-library name.
 For non-fatal stage reports, `native_build_plan` must also carry the complete plan header:
 `workspace_manifest`, `target_dir`, `cargo_profile`, `release`, `build_features`, `package_count`,
 `diagnostics`, `packages`, and `fatal`. Missing any of those header fields marks `NativeDynamic`
-fatal before the package command rows are trusted.
+fatal before the package command rows are trusted. The string header fields `workspace_manifest`,
+`target_dir`, and `cargo_profile` must also be non-empty; an empty Cargo workspace manifest,
+target dir, or profile is not accepted as build-plan release evidence. `diagnostics[]` entries must
+be meaningful strings when present. `build_features` may be empty but cannot contain blank or
+duplicate entries, matching the normalized CLI feature input contract.
+`test_report_stage_rejects_native_dynamic_build_plan_fatal_without_diagnostics` keeps fatal
+build-plan reports explainable: when `native_build_plan.fatal=true`, the nested diagnostics list
+must include at least one non-empty reason even if the enclosing NativeDynamic report is already
+fatal. Conversely, `native_build_plan.fatal=false` requires an empty diagnostics list, matching the
+generation path where plan diagnostics drive the plan fatal flag. Build-plan `package_count` must
+also equal the length of `packages[]`, even when the enclosing NativeDynamic stage is already fatal.
+Build-plan package ids are unique within `packages[]`, so a hand-authored audit cannot publish two
+Cargo build-plan rows for the same plugin package.
 `native_build_execution` follows the same release-evidence rule for its execution header:
-`enabled`, `fatal`, `diagnostics`, `package_count`, and `packages` must be present even when
-execution is disabled and the package table is empty.
+`enabled`, `fatal`, `skipped`, `diagnostics`, `package_count`, and `packages` must be present even
+when execution is disabled and the package table is empty. Its `diagnostics[]` entries also cannot
+be empty or whitespace-only. Optional `skip_reason` is accepted only for skipped execution, and it
+must be trimmed and non-empty, so a skipped execution state cannot publish a blank rationale while a
+non-skipped audit cannot carry a stale skip reason. Skipped and disabled execution tables must stay
+empty: `package_count` must be `0` and `packages` must be `[]`. A skipped execution remains an
+enabled, non-fatal audit state, matching the materialization-diagnostics branch where Cargo was
+requested but intentionally not launched. When execution package rows are present, each row must carry
+`package_id`, `crate_name`, `command`, `exit_code`, `stdout`, `stderr`,
+`expected_loadable_artifact`, `copied_loadable_artifact`, and `copied_sidecars`. The package id,
+crate name, expected loadable artifact, and copied loadable artifact strings must be trimmed and
+non-empty; `stdout` and `stderr` may be empty strings because successful commands often produce no
+output. Build-execution `package_count` must also equal the length of `packages[]`.
+Build-execution package ids are likewise unique within `packages[]`.
+`test_report_stage_rejects_native_dynamic_build_execution_package_blank_required_string_field`
+keeps whitespace-only execution row identity/artifact strings from reaching package-id closure or
+copy evidence checks. For non-fatal build execution reports, each execution row is also closed
+against the matching `native_build_plan.packages[]` row by `package_id`: `crate_name`, `command`, and
+`expected_loadable_artifact` must match exactly before Report trusts the execution as the result of
+the planned Cargo build. A non-fatal NativeDynamic stage report also cannot carry
+`native_build_execution.fatal=true`; the nested build execution status must agree with the enclosing
+stage success state. The same success-state binding rejects `native_build_execution.skipped=true`
+inside a non-fatal stage report. When the execution audit is enabled, the build-plan status must
+also agree with that successful stage state: `native_build_plan.fatal=true` is rejected while
+`native_build_execution.enabled=true` and the enclosing NativeDynamic report is non-fatal. This
+keeps a diagnostic failed Cargo build plan from being published beside concrete build/copy execution
+evidence as if the native plugin build had succeeded. Every package row `exit_code` must be
+`0`, so a failed native plugin Cargo build cannot be published as successful copied-artifact
+evidence. The `copied_loadable_artifact` field is also closed against the current
+`materialized_packages[].loadable_artifacts` for that package after normalizing staged absolute
+paths back to bundle-relative `plugins/...` paths; a build execution row cannot point at a copied
+DLL/shared object that is absent from the published NativeDynamic package. The `command` row must be
+a non-empty string array and cannot contain blank entries; `copied_sidecars` may be empty but cannot
+contain blank or duplicate entries. Final Report also normalizes every `copied_sidecars[]` entry to a
+bundle-relative `plugins/...` path, requires it to remain under that package's materialized `native/`
+directory, and requires it to be present in the current NativeDynamic plugins `file_manifest`; a
+directory sidecar such as `.dSYM` is accepted when the manifest contains files below that directory.
+`test_report_stage_rejects_native_dynamic_build_execution_package_duplicate_copied_sidecar_entry`
+keeps repeated sidecar copy evidence from publishing the same copied path twice.
 
 By default this plan is deliberately non-executing: missing workspace metadata is reported inside
 `native_build_plan.diagnostics`, while package materialization still consumes existing artifacts
@@ -1018,7 +1292,8 @@ execution gate. In that mode the stage may materialize package metadata/resource
 `.dSYM` sidecars when present, then writes `native_dynamic_package.toml` after the built artifact is
 part of the package payload. The stage report records this as `native_build_execution` with per
 package command output, exit code, expected artifact, copied artifact, copied sidecars, and fatal
-diagnostics.
+diagnostics. As with build plans, non-fatal execution audits must keep `diagnostics=[]`, while fatal
+execution audits must include at least one non-empty diagnostic.
 The build-plan TOML reader treats existing non-file paths for
 `<repo-root>/zircon_plugins/Cargo.toml`, member crate `Cargo.toml`, and package `plugin.toml` as
 diagnostics instead of filesystem exceptions. In the default non-executing mode those diagnostics
@@ -1080,11 +1355,27 @@ or `NativeDynamic report native_notarization.platform_allowed must be a boolean`
 `NativeDynamic report native_signing is malformed` fallback is reserved for schema-clean semantic
 inconsistency. Stable payload audit summaries also require `enabled`, `allowed_platforms`,
 `platform_allowed`, `fatal`, and `package_count`; missing fields report the same field-level
-boolean/string-array/integer diagnostics before normalization.
+boolean/string-array/integer diagnostics before normalization. `allowed_platforms` may be empty to
+allow every platform, but blank platform entries are rejected before platform-gate semantics are
+trusted.
+Operation audit count evidence is range-checked as well: stable summary `package_count` and full
+stage package `artifact_count` must be non-negative integers before final Report compares them
+against normalized package or artifact rows. Operation audit `target_platform` is also required to
+be a non-empty string; disabled operation `profile = null` remains valid, but the target platform
+evidence must still identify the stage target that platform gating was evaluated against.
+The `allowed_platforms[]` filter accepts an empty array to mean every platform, but non-empty
+filters must contain meaningful unique entries.
+For enabled signing/notarization audit summaries, final Report also recomputes `platform_allowed`
+from `target_platform` and `allowed_platforms[]` at the schema boundary for both the full
+NativeDynamic stage audit and the stable PlatformBundle payload summary; a hand-authored report
+cannot publish `platform_allowed = true` for an unsupported target/platform filter combination.
 For non-fatal NativeDynamic stage reports, the stage-only operation audit fields are release
 evidence: missing `native_signing.diagnostics`, `native_signing.packages`,
 `native_notarization.diagnostics`, or `native_notarization.packages` marks the NativeDynamic stage
 fatal before PlatformBundle can project the stable audit summary.
+When present, each operation audit `diagnostics[]` entry must be a meaningful string; empty or
+whitespace-only rows are rejected at the operation-audit schema boundary instead of being accepted
+as release evidence.
 For full NativeDynamic stage audit objects, each `packages[]` row must also carry string
 `package_id`, integer `artifact_count`, and object-array `artifacts` evidence before final Report
 accepts the operation audit shape. Each artifact row must carry the full execution evidence emitted
@@ -1093,6 +1384,30 @@ string `stdout`, string `stderr`, integer `exit_code`, string `before_sha256`, s
 `after_sha256`, and string-array `command`. Missing execution fields make the NativeDynamic stage
 fatal before PlatformBundle can project the stable summary, so a non-fatal operation audit cannot
 claim a signed or notarized artifact without the command result and before/after bytes evidence.
+For non-fatal operation audits, each artifact `exit_code` must also be `0`; a failed signer or
+notarizer command cannot be published as successful release evidence by hand-editing the stage
+report.
+The artifact `command` array must also be non-empty and contain no blank entries. Non-empty
+`package_relative_artifact` values must be safe relative paths scoped to the staged package; absolute
+or escaping paths are rejected before the materialized loadable artifact comparison runs. Artifact
+rows in the same package cannot repeat the same `package_relative_artifact`, so a signing or
+notarization audit cannot publish duplicate evidence for one staged loadable artifact. Package
+identity and artifact identity/byte evidence strings are also non-empty release evidence:
+`packages[].package_id`, `artifacts[].artifact`, `artifacts[].package_relative_artifact`,
+`artifacts[].before_sha256`, and `artifacts[].after_sha256` cannot be empty or whitespace-only.
+The before/after hash fields must also be SHA-256 hex digests, so successful signing or
+notarization audit rows cannot publish arbitrary non-empty placeholders as byte evidence.
+Captured `stdout` and `stderr` remain allowed to be empty strings.
+The operation-audit schema boundary now lives in
+`pipeline_report_native_dynamic_operation_audit_schema.py`; generic table/sequence schema row
+dispatch lives in `pipeline_report_schema_table.py`. The payload schema keeps the stable
+NativeDynamic payload/file/materialized-package contract and imports the audit entry points for
+compatibility, so new audit release-evidence checks should extend the operation-audit module instead
+of growing `pipeline_report_native_dynamic_payload_schema.py`.
+NativeDynamic stage schema also imports the shared string-array helpers from
+`pipeline_report_schema_table.py`, so top-level stage arrays, build plan/execution command arrays,
+copied sidecar arrays, and operation-audit command/platform arrays use the same blank-entry and
+non-empty command diagnostics.
 
 The downstream payload summary keeps the package audit and rejects malformed `materialized_packages`
 rows instead of silently dropping per-package loadable-library evidence. It also cross-checks every
@@ -1116,6 +1431,77 @@ payload file rows are also required-field evidence: missing top-level `native_pl
 file_manifest[]` fields and package-report `[[payload.files]]` fields now emit the same direct
 `path`/`sha256` string or `bytes` integer diagnostics before final Report attempts payload
 normalization.
+Top-level `native_plugins_payload.content_hash` is also schema-checked as direct release evidence:
+`test_report_rejects_native_plugins_payload_content_hash_blank` requires the field to be trim
+non-empty, and `test_report_rejects_native_plugins_payload_content_hash_malformed` requires a
+SHA-256 hex digest before final Report compares it to current bundle or NativeDynamic stage bytes.
+Top-level path/reference strings are trim-checked too:
+`test_report_rejects_native_plugins_payload_blank_top_level_path_strings` rejects whitespace-only
+`bundle_path`, `loader_manifest`, `source`, or `stage_report` before `Path.resolve()` can turn them
+into the current working directory and produce misleading path mismatch diagnostics.
+Top-level `native_plugins_payload.file_manifest[]` string identities are also trimmed non-empty
+evidence: `test_report_rejects_native_plugins_payload_file_manifest_blank_strings` now rejects
+whitespace-only `path` or `sha256` rows before they can degrade into broad file-manifest drift.
+`test_report_rejects_native_plugins_payload_file_manifest_malformed_sha256` applies the same
+digest-shape gate to the top-level payload file manifest: `file_manifest[].sha256` must be a
+SHA-256 hex digest before final Report compares it to current bundle or NativeDynamic stage bytes.
+`test_report_rejects_native_plugins_payload_file_manifest_unsafe_path` keeps
+`file_manifest[].path` on the same safe-relative path contract as package-report payload rows:
+no absolute path, empty segment, `.`, or `..` traversal is accepted before file-manifest comparison.
+`test_report_rejects_native_plugins_payload_file_manifest_negative_bytes` keeps file byte counts
+range-checked as release evidence too: `file_manifest[].bytes` must be non-negative before final
+Report compares the top-level payload file manifest to current bundle or NativeDynamic stage bytes.
+`test_report_rejects_native_plugins_payload_file_manifest_duplicate_path` also keeps
+`file_manifest[].path` unique after normalizing path separators and trimming whitespace, so a
+hash-updated payload summary cannot publish two rows for the same bundled native artifact.
+`test_report_rejects_native_plugins_payload_missing_top_level_object_arrays` keeps those top-level
+lists required as schema evidence too: `file_manifest` and `materialized_packages` must be present
+object arrays, so final Report no longer reports only broad malformed fallback diagnostics when
+either release-evidence list is omitted.
+`test_report_rejects_native_plugins_payload_missing_required_top_level_scalars` applies the same
+required-field rule to the scalar release evidence: `bundle_path`, `content_hash`, `loader_manifest`,
+and `source` must be strings, while `file_count` and `package_count` must be integers before
+path/hash/count semantic checks run.
+`test_report_rejects_native_plugins_payload_negative_top_level_counts` applies the same
+non-negative evidence rule to top-level `native_plugins_payload.file_count` and `package_count`, so
+negative summary counts fail schema validation before they degrade into bundle-directory or package
+count mismatch diagnostics.
+`test_report_rejects_native_plugins_payload_content_hash_blank` and
+`test_report_rejects_native_plugins_payload_content_hash_malformed` keep the top-level
+`native_plugins_payload.content_hash` field in that schema lane too: it must be a non-empty
+SHA-256 hex digest before final Report compares it with the current bundle plugins directory or
+NativeDynamic stage report.
+`test_report_rejects_native_plugins_payload_blank_top_level_path_strings` applies the same trimmed
+non-empty rule to the top-level payload path/provenance strings. `bundle_path`, `loader_manifest`,
+`source`, and `stage_report` must carry concrete string evidence before path resolution,
+loader-manifest, or stage-backed provenance checks consume them.
+The direct final-report helper also stops after those schema diagnostics:
+`test_payload_diagnostics_stop_after_blank_top_level_path_schema` keeps schema-invalid payload
+fields from producing secondary path mismatch, directory-read, or stage-backed audit noise.
+`test_report_rejects_native_plugins_payload_materialized_package_blank_strings` applies the same
+trimmed non-empty evidence rule to `materialized_packages[]` string fields: `package_id`,
+`destination`, `package_report`, and `source` cannot be whitespace-only before loader-manifest,
+stage-package, or package-report path checks consume the package row.
+`test_report_rejects_native_plugins_payload_materialized_package_duplicate_id` keeps
+`materialized_packages[].package_id` unique before loader-manifest or stage-package id comparison,
+so duplicate package evidence is rejected as a schema violation instead of only as cross-report
+drift.
+`test_report_rejects_native_plugins_payload_materialized_package_negative_loadable_artifact_count`
+keeps package artifact counts range-checked too: `loadable_artifact_count` must be non-negative
+before the package row can be normalized or compared against staged loadable artifacts.
+`test_report_rejects_native_plugins_payload_materialized_package_loadable_artifact_count_mismatch`
+also binds the summary count to the array evidence: `loadable_artifact_count` must equal the
+current `loadable_artifacts[]` length before materialized-package normalization can accept the row.
+`test_report_rejects_native_plugins_payload_materialized_package_duplicate_loadable_artifact`
+rejects duplicate `loadable_artifacts[]` entries within a package after safe-relative path
+normalization, keeping the package audit list one row per loadable artifact.
+`test_report_rejects_native_plugins_payload_materialized_package_blank_loadable_artifact` closes the
+artifact path array itself: `loadable_artifacts[]` may be empty for packages with no loadable native
+library, but it cannot contain empty or whitespace-only artifact paths.
+`test_report_rejects_native_plugins_payload_materialized_package_unsafe_loadable_artifact` also
+applies the safe-relative path gate to those artifact entries. A `loadable_artifacts[]` item cannot
+be absolute or escape through `.`/`..` before final Report compares it with the bundled plugin
+payload and NativeDynamic stage evidence.
 The final Report stage loader now applies the same ABI v3 package export schema to NativeDynamic
 stage report `package_exports[]` that Validate uses for
 `plan_summary.native_dynamic_package_exports[]`. Stage package export rows reject unknown sidecar
@@ -1312,9 +1698,11 @@ derives CookAssets' expected trim evidence from `roots`, transitive
 `dependencies`, optional `asset_filter`, and per-asset `labels`, then requires a non-fatal Pack
 report's `trim_report.included_assets`, `trim_report.trimmed_assets`, and
 `trim_report.missing_dependencies`, `trim_report.duplicate_assets`, and `trim_report.diagnostics`
-to match that closure. Every path in `trim_report.included_assets` must also map to a CookAssets
-manifest asset row with a non-empty `source`, matching the Rust packer's byte-input contract that
-included assets without sources fail before pack bytes are written. For those included assets,
+to match that closure. Each `trim_report.diagnostics[]` row must be meaningful when present, so a
+hand-authored trim report cannot publish empty or whitespace-only diagnostic evidence. Every path in
+`trim_report.included_assets` must also map to a CookAssets manifest asset row with a non-empty
+`source`, matching the Rust packer's byte-input contract that included assets without sources fail
+before pack bytes are written. For those included assets,
 `tools/zircon_export/pipeline_report_cook_assets_source_bytes.py` reuses the Rust writer's four-seed
 FNV1a content hash algorithm and compares Pack `manifest.assets[].size` plus `chunk_hash` against
 the actual CookAssets source file bytes, so a hand-authored Pack success report cannot claim stale
@@ -1390,6 +1778,9 @@ hint. A successful Pack report must include `asset_manifest`, `pack`, `stage_out
 missing any of those fields marks `Pack` fatal during final aggregation. Delta report fields remain
 optional/nullable for full-pack-only exports, with the existing `delta_pack` and
 `delta_apply_verified` gates still enforcing requested delta publication.
+The required Pack path fields `asset_manifest`, `pack`, and `stage_output` must also be non-empty
+strings, so a hand-authored successful report cannot satisfy the required-field gate with whitespace
+that later resolves to the current working directory or no usable artifact.
 For non-fatal Pack reports, `stage_output` must also resolve to the current Pack stage directory
 derived from the loaded `<out>/stages/pack/report.json` path. This prevents an external or stale Pack
 stage directory from being published as the current pipeline stage while the report body remains
@@ -1422,19 +1813,28 @@ Final Report derives the expected `deduplicated_assets` list from schema-clean
 `manifest.assets[].chunk_hash` rows by sorting assets the same way as `ZrPackWriter` and recording
 every later path that reuses an already-seen chunk hash. The reported `deduplicated_assets` list must
 match that derived set after sorting, so duplicate-content audit evidence cannot drift from the
-embedded pack manifest.
+embedded pack manifest. The list is also schema-gated for empty or whitespace-only entries before the
+manifest comparison runs; an empty list remains valid when no asset content was deduplicated, but a
+blank path is never publishable release evidence.
 Chunk tables are release evidence too. Schema-clean `manifest.pack.chunks`,
 `delta_manifest.base.pack.chunks`, `delta_manifest.target.pack.chunks`, and
 `delta_manifest.chunks` may not repeat the same 32-byte chunk hash and must already be sorted by
 chunk hash, so count-correct reports cannot publish duplicate or non-deterministic rows for the
-content-addressed pack or delta payload table.
+content-addressed pack or delta payload table. Pack documents must carry both required top-level
+tables, `pack` and `assets`; the `pack` table must carry `version`, `total_size`, and `chunks`;
+each chunk row must carry `hash`, `offset`, and `size`.
 Pack document asset rows are also tied to those chunk tables: every schema-clean
 `assets[].chunk_hash` in the outer manifest and in `delta_manifest.base` / `target` must reference a
 hash present in that same document's `pack.chunks`, and each asset's `size` must equal the size of
 the chunk it references. ZRPD `delta_manifest.changed_assets` rows follow the same size rule against
-`delta_manifest.chunks`.
+`delta_manifest.chunks`. Every `assets[].path` row in those pack documents and every
+`delta_manifest.changed_assets[].path` row must be a non-empty string, because the path is the asset
+identity used by trim, deduplication, and delta set comparison. Every asset row must carry `path`,
+`chunk_hash`, and `size`.
 For schema-clean pack documents, `pack.total_size` must equal the sum of `pack.chunks[].size`,
-matching `ZrPackWriter`'s unique-chunk byte accounting.
+matching `ZrPackWriter`'s unique-chunk byte accounting. `pack.total_size`,
+`pack.chunks[].offset`, `pack.chunks[].size`, and `assets[].size` must all be non-negative integers,
+so negative byte layout rows fail at the field schema layer before derived size or offset comparisons.
 Chunk offsets must also describe the writer's contiguous payload layout: full-pack document
 `pack.chunks` and ZRPD `delta_manifest.chunks` both start after the 24-byte pack/delta header,
 and each following chunk starts at the previous chunk's end.
@@ -1455,7 +1855,11 @@ asset entries whose `chunk_hash` is not present in the base pack chunks, and rep
 `delta_reused_assets` must be the target paths whose `chunk_hash` already exists in the base pack
 chunks. Report-level `delta_removed_assets` must also mirror `delta_manifest.removed_assets`, and
 `delta_manifest.chunks[].hash` must equal the unique chunk hashes referenced by those changed asset
-entries.
+entries. A publishable `delta_manifest` must carry `format_version`, `base`, `target`, `chunks`,
+`changed_assets`, and `removed_assets`; partial delta manifests fail at the schema layer before
+delta set derivation. The report-level `delta_removed_assets` and `delta_reused_assets` lists, plus embedded
+`delta_manifest.removed_assets`, are schema-gated for empty or whitespace-only path entries before
+those semantic set comparisons run.
 The full-pack manifest and delta target manifest are also tied together: when a non-fatal Pack
 report carries both schema-clean `manifest` and `delta_manifest.target` objects, final Report compares
 the pack version, chunk table, total size, and asset entries. The target manifest embedded in a
@@ -1465,7 +1869,14 @@ The delta publication evidence is paired: if a Pack report publishes `delta_pack
 the schema-clean `delta_manifest` that explains the delta contents; if it carries a `delta_manifest`,
 it must also publish the `delta_pack` path. This blocks hand-authored reports that claim delta bytes
 without the manifest evidence needed to audit them, or manifest evidence without a released delta
-artifact.
+artifact. `test_report_stage_rejects_pack_delta_blank_delta_pack` keeps that artifact path non-empty
+even when the field is present and typed as a string, and `test_optional_path_field_reports_blank_present_value`
+applies the same rule to stage handoff helpers before PlatformBundle can inherit a blank delta path.
+`test_report_stage_rejects_pack_delta_missing_previous_pack` also requires the paired `previous_pack`
+path whenever `delta_pack` is published, matching the packer CLI contract that delta generation always
+consumes an old full pack and writes the previous-pack path into `ExportPackReport`.
+`test_report_stage_rejects_pack_delta_blank_previous_pack` keeps that base-pack identity usable by
+rejecting empty or whitespace-only `previous_pack` values in the same delta publication branch.
 The Python stage preflights that both delta arguments are present and non-empty before invoking the
 packer, so a one-sided or empty delta request fails at Pack instead of silently becoming a full
 pack-only run.
@@ -1499,7 +1910,8 @@ missing/empty/non-string path field, PlatformBundle reports that typed handoff e
 falling back to stale default files.
 Explicit PlatformBundle handoff inputs are also typed release evidence. `--host-executable`,
 `--pack-file`, `--delta-pack`, and `--native-plugins-dir` must be non-empty strings when supplied;
-pipeline/resume defaulting preserves explicit empty values and lets PlatformBundle fail with a
+empty and whitespace-only strings are rejected at the same explicit-argument gate.
+Pipeline/resume defaulting preserves explicit empty values and lets PlatformBundle fail with a
 parameter diagnostic instead of replacing them with stage report defaults.
 Final Report aggregation now applies the same release-evidence rule to non-fatal PlatformBundle
 stage reports. A successful report must include `bundle`, `host_executable`, `host_source`,
@@ -1508,6 +1920,17 @@ stage reports. A successful report must include `bundle`, `host_executable`, `ho
 bundle manifest or payload hash checks run. Delta, NativeDynamic payload, template metadata, and
 template-root resolution fields remain optional/nullable unless their corresponding export path or
 strategy is active.
+The required PlatformBundle string fields `bundle`, `host_executable`, `host_source`,
+`host_source_origin`, `pack`, `pack_source`, `pack_source_origin`, and `bundle_manifest` must also
+be non-empty after trimming whitespace, so a hand-authored successful report cannot satisfy the
+schema with `" "` before path containment, manifest matching, or file hash diagnostics run.
+Optional-but-present PlatformBundle string evidence follows the same rule: `delta_pack`,
+`delta_pack_source`, `delta_pack_source_origin`, and `native_plugins` may be `null` when that output
+is not active, but cannot be whitespace-only once published in a non-fatal stage report.
+The NativeDynamic payload final-report entrypoint repeats the trimmed non-empty `native_plugins`
+guard before payload schema or path resolution, so
+`test_payload_diagnostics_rejects_blank_native_plugins_before_path_resolution` preserves the same
+field-level diagnostic even when that helper is exercised directly.
 When PlatformBundle copies a host executable, its stage report and final `bundle.json` also record
 `host_source` and `host_source_origin`. CompileHost handoff sources use
 `host_source_origin = "compile_host_report"` and must remain aligned with the CompileHost report;
@@ -1572,12 +1995,19 @@ the workspace manifest path must exist as a regular file; a directory or unreada
 `Cargo.toml` becomes a fatal PlatformBundle diagnostic before template-root selection or
 template-dir validation continues. Target platform is taken from
 `<out>/stages/validate/report.json` when available, or from `--target-platform`. The CLI also
-verifies `paths.host_executable` and each `[[files]].path` are safe relative paths: no absolute
-path, empty segment, `.`, or `..`. It then checks that the declared host path stays inside the
-template directory, is present in `[[files]]`, and matches its declared SHA-256 digest and
-aggregate `content_hash`. Every declared `[[files]].path` must resolve to a regular file before
-hashing or bundle copy; a directory at that path is reported as `is not a file` in the template or
-PlatformBundle diagnostics instead of surfacing as a filesystem exception.
+keeps the input `template.toml` contract closed: unknown top-level keys, unknown `[paths]` keys,
+unknown `[bundle]` keys, and unknown `[[files]]` row keys are fatal template diagnostics before
+PlatformBundle can trust or copy the package. `compatible_profiles` must be a string array and
+cannot contain empty, whitespace-only, or duplicate entries, so profile matching metadata cannot
+carry inert or repeated sidecar rows. It verifies `paths.host_executable` and each
+`[[files]].path` are safe relative paths: no absolute path, empty segment, `.`, or `..`. It then
+checks that the declared host path stays inside the template directory, is present in `[[files]]`,
+and matches its declared SHA-256 digest and aggregate `content_hash`. Every declared
+`[[files]].path` must resolve to a regular file before hashing or bundle copy; a directory at that
+path is reported as `is not a file` in the template or PlatformBundle diagnostics instead of
+surfacing as a filesystem exception. `test_template_rejects_unknown_manifest_fields` locks this
+input-side closed-schema gate, and `test_template_rejects_blank_compatible_profile_entries` plus
+`test_template_rejects_duplicate_compatible_profile_entries` lock the profile-list quality gate.
 
 M3-T2 extends the same contract with template-driven bundle layout. `[bundle]` can declare
 `root`, `host_path`, `pack_path`, and `manifest_path`, and each `[[files]]` entry can declare the
@@ -2198,6 +2628,25 @@ preview remains `command=<skipped>` with no partial delta arguments.
 `test_template_delta_pack_path_controls_bundle_location` verifies that platform templates can route
 the copied `.zrpd` through `[bundle].delta_pack_path`, matching the existing host/full-pack path
 customization contract.
+`test_template_rejects_blank_bundle_path_fields` keeps those `[bundle]` path controls explicit:
+`root`, `host_path`, `pack_path`, `delta_pack_path`, and `manifest_path` may be omitted to use their
+defaults, but if present they must be non-empty, whitespace-trimmed safe relative paths.
+`test_template_rejects_duplicate_bundle_path_entries` applies the same output-side uniqueness to
+source `template.toml` files: two distinct `[[files]]` rows cannot publish the same normalized
+`bundle_path`, even if the aggregate `content_hash` has been recomputed. This prevents template
+selection from accepting a package whose materialization would overwrite one declared template file
+with another before final Report aggregation ever runs.
+`test_template_rejects_invalid_file_purpose` keeps optional `[[files]].purpose` metadata typed:
+when present it must be a non-blank string. The validator no longer coerces non-string TOML values
+with `str(...)`, so template package metadata remains auditable instead of being silently rewritten
+before it reaches the embedded template report.
+`test_report_rejects_template_bundle_string_fields_blank` applies the same rule to hand-authored
+PlatformBundle template reports: generated reports may keep empty-string default markers for unset
+bundle overrides, but whitespace-only strings are rejected as malformed path evidence.
+`test_report_rejects_template_file_required_string_blank` and
+`test_report_rejects_template_copied_file_required_string_blank` keep template file evidence on the
+same contract: template `files[]` path/bundle path/hash fields and copied `template_files[]`
+source/destination paths must be non-empty strings before hash matching or path containment runs.
 `test_checked_in_windows_template_routes_delta_pack_path` keeps the checked-in Windows export
 template on that same contract, while the Linux and macOS fixtures now declare platform-specific
 delta package locations as part of their template bundle metadata.
@@ -2265,11 +2714,22 @@ That final loader manifest is parsed as TOML, `plugins` must be an array of plug
 non-empty string `id` fields, and the resulting `[[plugins]].id` sequence must match
 `native_plugins_payload.materialized_packages[].package_id`; malformed TOML or malformed plugin
 shape is fatal.
-If a final loader manifest row explicitly carries `path`, `manifest`, or `package_report`, final
-Report derives the expected `plugins/<package>` values from the final `bundle/plugins/` root and the
-projected `materialized_packages[].destination/package_report` fields. Any row-level field drift is
-fatal before the top-level payload is exposed, while minimal historical rows that only carry `id`
-remain accepted.
+For stage-backed payloads, final Report also requires every normalized
+`native_plugins_payload.materialized_packages[]` entry to carry `package_report` before package
+path diagnostics run. This keeps final PlatformBundle evidence from downgrading a current
+NativeDynamic stage package to a loadable-artifact-only summary that cannot prove its generated
+`native_dynamic_package.toml`. The same stage-backed path compares the final payload package id
+sequence to the current NativeDynamic report `materialized_packages[].package_id` sequence before
+loader or package TOML evidence can re-label the copied bundle packages. It also compares final
+`content_hash`, `file_count`, and `file_manifest` with the current NativeDynamic report after
+package-report content diagnostics have run, so precise package TOML errors are not hidden by a
+coarser stage-copy mismatch.
+If a final loader manifest row explicitly carries `path`, `manifest`, `package_report`, or
+`[plugins.abi]`, final Report derives the expected `plugins/<package>` values from the final
+`bundle/plugins/` root and the projected `materialized_packages[].destination/package_report`
+fields, then compares present ABI fields against the fixed ABI v3 contract. Any row-level field
+drift is fatal before the top-level payload is exposed, while minimal historical rows that only
+carry `id` remain accepted.
 When final Report is inspecting legacy Validate output that did not require the NativeDynamic stage
 directly, `test_current_output_stage_report_path_reports_plugins_dir_resolve_error` keeps the
 expected current-output report path derivation diagnostic if `native_plugins` cannot be
@@ -2300,8 +2760,8 @@ manifest matcher also accepts the final Report diagnostics list, so
 canonicalization failures before the broader `loadable_artifacts are not present` summary. It then recomputes the current `bundle/plugins` file manifest and
 content hash before exposing the top-level `native_plugins_payload`. A stale or missing plugin
 payload, malformed package summary, wrong stage-report path, wrong stage-backed source path, wrong
-bundle path, missing, malformed, shape-invalid, mismatched, package-id-drifted, or row-field-drifted loader manifest, spoofed operation audit, external package
-destination, external or missing package report, or `package_count` mismatch makes the pipeline report fatal and suppresses that top-level payload
+bundle path, stage-backed package-id drift, stage-backed file-manifest drift, missing, malformed, shape-invalid, mismatched, package-id-drifted, or row-field-drifted loader manifest, spoofed operation audit, external package
+destination, external package report, missing package report, stage-backed package-report omission, or `package_count` mismatch makes the pipeline report fatal and suppresses that top-level payload
 projection; the stage-level evidence remains under `stages[]` for diagnosis. The focused checks are `test_report_rejects_stale_native_plugins_payload_hash`,
 `test_report_rejects_missing_native_plugins_payload_directory`,
 `test_report_rejects_native_plugins_payload_package_count_mismatch`,
@@ -2318,9 +2778,13 @@ projection; the stage-level evidence remains under `stages[]` for diagnosis. The
 `test_report_rejects_native_plugins_payload_loader_manifest_path_mismatch`,
 `test_report_rejects_native_plugins_payload_loader_manifest_manifest_mismatch`,
 `test_report_rejects_native_plugins_payload_loader_manifest_package_report_mismatch`, and
+`test_report_rejects_native_plugins_payload_loader_manifest_abi_mismatch`, and
 `test_report_rejects_native_plugins_payload_package_destination_outside_plugins`,
 `test_report_rejects_native_plugins_payload_package_report_outside_package`,
 `test_report_rejects_missing_native_plugins_payload_package_report`,
+`test_report_rejects_stage_backed_native_plugins_payload_missing_package_report`,
+`test_report_rejects_stage_backed_native_plugins_payload_package_id_drift`,
+`test_report_rejects_stage_backed_native_plugins_payload_file_manifest_drift`,
 `test_package_path_diagnostics_rejects_plugins_root_resolve_error`,
 `test_package_path_diagnostics_rejects_destination_resolve_error`,
 `test_package_path_diagnostics_rejects_package_report_resolve_error`, and
@@ -2416,6 +2880,8 @@ Basic stage report metadata regressions now live in
 provenance checks.
 Validate report nested-schema regressions are split into
 `test_pipeline_report_validate_schema.py`,
+`test_pipeline_report_validate_diagnostics_schema.py`,
+`test_pipeline_report_validate_plan_vector_schema.py`,
 `test_pipeline_report_validate_native_dynamic_schema.py`, and
 `test_pipeline_report_validate_runtime_availability_schema.py`, keeping the base metadata module
 focused on stage wrapper contracts and non-Validate stage report schemas.
@@ -2474,6 +2940,12 @@ each SourceTemplate `generated_files[]` entry may only contain `path`, `purpose`
 `sha256`, so sidecar fields cannot be carried through the final Report after path/hash checks pass.
 `test_report_rejects_source_template_generated_file_missing_field` requires those four row fields
 as release evidence before path, file, size, and hash reconciliation can be accepted.
+`test_report_rejects_source_template_generated_file_blank_path` keeps SourceTemplate stage-report
+generated-file paths on a trimmed non-empty path diagnostic before file existence and hash checks
+run.
+`test_report_rejects_source_template_generated_file_blank_purpose` keeps stage-report
+generated-file purpose metadata trimmed non-empty, matching the row's required release-evidence
+contract.
 `test_report_rejects_source_template_generated_file_missing_from_plan` and
 `test_report_rejects_source_template_unplanned_generated_file` keep the final report aligned with
 the Validate-generated project plan. `test_report_rejects_invalid_source_template_validate_generated_files`,
@@ -2485,6 +2957,10 @@ plans from being treated as trusted release input.
 `contents` before it can drive final Report SourceTemplate generated-file reconciliation.
 `test_report_rejects_source_template_validate_generated_file_missing_field` requires all three
 Validate plan row fields before generated project reconciliation can trust the plan.
+`test_report_rejects_source_template_validate_generated_file_blank_path` keeps planned generated
+file paths on a trimmed non-empty path diagnostic before later path boundary checks run.
+`test_report_rejects_source_template_validate_generated_file_blank_purpose` applies the same
+trimmed non-empty rule to Validate generated-file purpose metadata before reconciliation.
 `test_report_rejects_absolute_source_template_validate_generated_file_path` and
 `test_report_rejects_escaped_source_template_validate_generated_file_path` keep unsafe Validate
 planned paths fatal.
@@ -2511,9 +2987,10 @@ bool/integer/string/object diagnostics; SourceTemplate-specific non-empty string
 sha256, `exit_code` nullable-integer, path, and command-shape rules remain local to the
 SourceTemplate helpers.
 The Validate-side schema helper owns both the object-level `plan_summary.source_template_build`
-gate and the list-level `plan_summary.generated_files` gate, plus the row-level generated-file
-allow-list, so the generic stage dispatcher only routes each SourceTemplate plan field when it is
-present.
+gate, its required internal build-plan field gates, and the list-level
+`plan_summary.generated_files` gate, plus the row-level generated-file allow-list.
+Both stage-report and Validate generated-file `path` fields are trimmed before the non-empty check,
+matching the SourceTemplate build-plan string evidence gate.
 Coverage lives in `tools/zircon_export/tests/test_pipeline_report_source_template_schema.py` so the
 already-large SourceTemplate behavior test file does not gain another responsibility.
 Final Report also validates SourceTemplate `build_validation`: the field must be an object with
@@ -2525,18 +3002,17 @@ accepted.
 It also cross-checks that `build_validation.command` matches the top-level SourceTemplate `command`,
 that `build_validation.executed` matches the legacy `build_executed` flag, and that a requested
 build is not reported as `skipped`.
-The top-level SourceTemplate `command` must be a non-empty string array and include
-`--manifest-path` pointing at the current generated `project/Cargo.toml`; a command that targets
-another manifest is not publishable evidence. Its `--manifest-path` value must also be present and
-must be an actual path value, not another command option.
-If the top-level command includes `--target-dir`, that option follows the same value-shape rule;
-it remains optional in historical reports but cannot be dangling, use another option as its value,
-or point outside the current SourceTemplate stage target directory.
+The top-level SourceTemplate `command` must be a non-empty string array, include `--manifest-path`
+pointing at the current generated `project/Cargo.toml`, and include `--target-dir` pointing at the
+current SourceTemplate stage `target` directory; a command that targets another manifest or target
+directory is not publishable evidence. Both controlled options must have actual path values, not
+another command option, and duplicate controlled options are rejected before path provenance checks.
 The nested build evidence must remain semantically publishable as well: its command must be a
-non-empty string array, any `--manifest-path` or `--target-dir` entries must pass the same direct
-option-value diagnostic as the top-level command, the working directory must resolve to the
-generated `project`, skipped builds keep `exit_code=null`, and executed builds must have been
-requested.
+non-empty string array, include the same controlled options, pass the same direct option-value
+diagnostics, and independently bind `--manifest-path` to the current generated `project/Cargo.toml`
+and `--target-dir` to the current SourceTemplate stage `target` directory. The working directory
+must resolve to the generated `project`, skipped builds keep `exit_code=null`, and executed builds
+must have been requested.
 `test_report_rejects_failed_source_template_build_validation` and
 `test_report_rejects_malformed_source_template_build_validation` cover the shape/status gates;
 `test_report_rejects_source_template_build_validation_command_mismatch`,
@@ -2563,16 +3039,26 @@ top-level `--target-dir` entries are rejected through the same shared command di
 `test_report_rejects_source_template_build_validation_command_dangling_manifest_path` keeps nested
 `build_validation.command --manifest-path` failures on the direct build-validation command
 diagnostic path instead of relying only on the broader command mismatch gate.
+`test_report_rejects_source_template_build_validation_command_missing_target_dir` keeps the nested
+build command on the same direct command-schema path when target-dir evidence is omitted.
+`test_report_rejects_source_template_build_validation_command_manifest_mismatch` and
+`test_report_rejects_source_template_build_validation_command_target_dir_mismatch` keep nested
+build command provenance tied directly to the generated project and stage target, even when the
+top-level command mismatch gate would also make the report fatal.
 `test_report_rejects_missing_source_template_validate_build_plan`,
 `test_report_rejects_malformed_source_template_validate_build_plan_command`,
 `test_report_rejects_blank_source_template_validate_build_plan_command_entry`,
+`test_report_rejects_source_template_validate_build_plan_missing_required_field`,
+`test_report_rejects_source_template_validate_build_plan_blank_required_string_field`,
 `test_report_rejects_source_template_validate_build_plan_option_value`,
 `test_report_rejects_malformed_source_template_validate_build_plan_manifest_path`, and
 `test_report_rejects_malformed_source_template_validate_build_plan_target_dir` cover the Validate
 build-plan provenance and shape gates.
 `test_report_rejects_source_template_validate_build_plan_unknown_field` closes the Validate
 `source_template_build` object schema as well: only `manifest_path`, `target_dir`,
-`cargo_profile`, `release`, and `command` are accepted as plan evidence.
+`cargo_profile`, `release`, and `command` are accepted as plan evidence, and all five fields are
+required on a non-fatal SourceTemplate Validate build plan. The three string fields must be
+trimmed non-empty strings, not whitespace placeholders.
 `test_report_rejects_absolute_source_template_validate_build_plan_manifest_path` and
 `test_report_rejects_escaped_source_template_validate_build_plan_manifest_path` cover the Validate
 build-plan manifest path boundary gate.
@@ -2581,6 +3067,10 @@ build-plan target directory provenance gate.
 `test_report_rejects_source_template_validate_build_plan_target_dir_resolve_error` keeps
 `target_dir` canonicalization failures on the same diagnostic path before the provenance mismatch
 comparison runs.
+The Validate build-plan final Report regressions now live in
+`tools/zircon_export/tests/test_pipeline_report_source_template_validate_build_plan.py`, keeping
+the broader SourceTemplate behavior module focused on generated files, project paths, and
+profile/stage selection.
 `test_report_rejects_empty_source_template_build_validation_command`,
 `test_report_rejects_blank_source_template_build_validation_command_entry`,
 `test_report_rejects_blank_source_template_report_command_entry`,
@@ -2594,17 +3084,37 @@ These SourceTemplate final Report regressions live in
 Validate-plan-schema attribution coverage lives in
 `tools/zircon_export/tests/test_pipeline_report_source_template_schema.py`; build-validation-only
 SourceTemplate final Report gates live in
-`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py`. The generic
-`test_pipeline_report_stage.py` keeps cross-stage aggregation, strategy fallback, malformed strategy,
-and NativeDynamic projection coverage; basic metadata gates are split into
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py`.
+`tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py` keeps focused
+top-level and nested SourceTemplate command schema/provenance regressions from growing the
+already-large behavior files.
+The generic `test_pipeline_report_stage.py` keeps cross-stage aggregation, strategy fallback,
+malformed strategy, and NativeDynamic projection coverage; basic metadata gates are split into
 `test_pipeline_report_stage_metadata.py`.
 Successful non-fatal SourceTemplate stage reports are now a required release-evidence shape:
-`project`, `validate_report`, `generated_files`, `command`, `build_executed`, and
-`build_validation` must be present before final Report follows generated-project evidence.
-The stage schema also accepts the real cleanup audit fields `project_cleaned` and
-nullable `cleanup_reason`, so reports emitted by `run_source_template(...)` are not rejected as
-unknown-field evidence. Missing any required success field marks `SourceTemplate` fatal during
-stage schema loading.
+`project`, `validate_report`, `generated_files`, `command`, `build_executed`,
+`build_validation`, `project_cleaned`, and nullable `cleanup_reason` must be present before
+final Report follows generated-project evidence. `cleanup_reason = null` is the successful
+no-cleanup path, while non-empty strings record fatal cleanup reasons emitted by
+`run_source_template(...)`. Missing any required success or cleanup audit field marks
+`SourceTemplate` fatal during stage schema loading.
+`test_report_stage_rejects_source_template_missing_release_evidence_field` now also covers missing
+`project_cleaned` and `cleanup_reason`, keeping hand-authored stage reports from dropping cleanup
+audit evidence before final Report accepts the generated-project output.
+`test_report_stage_rejects_source_template_blank_required_string_field` keeps `project` and
+`validate_report` on trimmed non-empty string diagnostics, so whitespace-only path evidence cannot
+fall through to later generated-project or Validate-report path checks.
+`test_report_stage_rejects_source_template_blank_cleanup_reason` keeps cleanup audit evidence
+explicit as either `null` or a trimmed non-empty string, rejecting whitespace-only cleanup reasons
+before final Report accepts the stage as successful.
+SourceTemplate build-validation audit evidence is also explicit: even skipped builds must publish
+`exit_code`, `stdout_lines`, and `stderr_lines` so final Report can distinguish "not run" from
+"field omitted." `test_report_rejects_source_template_build_validation_missing_audit_field` keeps
+those nested fields required without promoting the whole stage report to loader-level fatal before
+command, target-dir, and working-dir diagnostics can run.
+`test_report_rejects_source_template_build_validation_blank_required_string` keeps
+`build_validation.status` and `build_validation.working_dir` on trimmed non-empty string
+diagnostics before enum/status or path provenance checks run.
 `test_report_stage_ignores_profile_mismatch_validate_strategies` keeps a wrong-profile Validate
 report from selecting the current profile's required stages: the mismatched report remains fatal
 evidence in `stages[]`, but its stale `profile_summary.strategies` are not used to aggregate
@@ -2714,7 +3224,9 @@ found. `test_template_root_skips_invalid_matching_template_candidate` keeps temp
 from letting a corrupted template package shadow a valid package for the same profile/platform:
 matching candidates are fully validated before selection, invalid matches are recorded under
 `template_resolution.skipped_candidates`, and only valid candidates participate in the duplicate
-candidate check. `test_template_root_skips_malformed_template_manifest` applies the same audit path
+candidate check. `test_template_root_skips_matching_candidate_with_blank_profile_entry` locks that
+the same skipped-candidate audit also carries `compatible_profiles` blank-entry diagnostics for a
+candidate that otherwise matches profile/platform. `test_template_root_skips_malformed_template_manifest` applies the same audit path
 to a child template whose `template.toml` cannot be parsed; a malformed package is visible in
 `skipped_candidates` but does not block a separate valid template from being selected.
 `test_template_root_skips_manifest_directory_candidate` applies the same skipped-candidate audit to
@@ -2756,15 +3268,20 @@ keeping `source` and `stage_report` as upstream provenance.
 `test_platform_bundle_records_loader_manifest_in_native_plugins_payload` verifies the generated
 stage report and bundle manifest carry the final `bundle/plugins/native_plugins.toml` path. When a
 final Report later sees that bundle loader manifest with a missing `plugins` array, a bad plugin
-`id`, a different `[[plugins]].id` sequence, malformed TOML, or explicit `path`/`manifest`/
-`package_report` values that no longer match the final bundle package projection,
+`id`, a different `[[plugins]].id` sequence, malformed TOML, explicit `path`/`manifest`/
+`package_report` values that no longer match the final bundle package projection, or explicit
+`[plugins.abi]` values that no longer match ABI v3,
+`test_loader_manifest_helpers_reject_blank_path_before_resolution` first keeps direct helper calls
+from resolving whitespace-only `loader_manifest` values as the current working directory; both the
+path-binding helper and package-binding helper return the same field-level non-empty diagnostic.
 `test_report_rejects_native_plugins_payload_loader_manifest_missing_plugins_table`,
 `test_report_rejects_native_plugins_payload_loader_manifest_bad_plugin_id`,
 `test_report_rejects_native_plugins_payload_loader_manifest_package_mismatch`, and
 `test_report_rejects_native_plugins_payload_malformed_loader_manifest`,
 `test_report_rejects_native_plugins_payload_loader_manifest_path_mismatch`,
 `test_report_rejects_native_plugins_payload_loader_manifest_manifest_mismatch`, and
-`test_report_rejects_native_plugins_payload_loader_manifest_package_report_mismatch` keep the
+`test_report_rejects_native_plugins_payload_loader_manifest_package_report_mismatch`, and
+`test_report_rejects_native_plugins_payload_loader_manifest_abi_mismatch` keep the
 top-level payload projection suppressed.
 When a NativeDynamic payload is present, PlatformBundle recreates the final
 `bundle/plugins/` directory immediately before copying that payload, so template-provided files under
@@ -2868,16 +3385,19 @@ keep string path/id fields, integer loadable-artifact counts, and string-array l
 and signing/notarization summaries must keep their string/boolean/integer/string-array field types
 before final Report trusts the NativeDynamic payload. Stable audit summaries must also carry
 `enabled`, `allowed_platforms`, `platform_allowed`, `fatal`, and `package_count`; `profile` and
-`target_platform` remain nullable/optional metadata fields. These NativeDynamic payload schema rules live
-in `pipeline_report_native_dynamic_payload_schema.py`, while bundled `native_dynamic_package.toml`
-top-level, `[abi]`, `[payload]`, and package-local `[[payload.files]]` schema diagnostics live in
-`pipeline_report_native_dynamic_package_report_schema.py`. `pipeline_report_native_dynamic_payload.py`
-keeps the path containment, stage-report, hash, package-report, and operation-audit consistency
-checks and imports both schema modules.
-The payload schema imports the common bool/integer/string/string-array/object/object-array
-diagnostic primitives from `pipeline_report_schema_primitives.py`, while its local table and
-sequence helpers keep the NativeDynamic-specific field labels, object-array row dispatch, and
-unknown-field attribution.
+`target_platform` remain nullable/optional metadata fields. These NativeDynamic payload schema rules
+live in `pipeline_report_native_dynamic_payload_schema.py`; signing/notarization operation-audit
+schema rules live in `pipeline_report_native_dynamic_operation_audit_schema.py`; bundled
+`native_dynamic_package.toml` top-level, `[abi]`, `[payload]`, and package-local
+`[[payload.files]]` schema diagnostics live in
+`pipeline_report_native_dynamic_package_report_schema.py`.
+`pipeline_report_native_dynamic_payload_stage_report.py` owns current NativeDynamic stage-report
+comparisons used by final PlatformBundle payload diagnostics. `pipeline_report_native_dynamic_payload.py`
+keeps the path containment, hash, package-report, and bundle payload consistency checks and imports
+those focused schema/stage-report modules.
+Shared table/sequence row dispatch and unknown-field attribution live in
+`pipeline_report_schema_table.py`, which imports the common bool/integer/string/string-array/object
+and object-array diagnostic primitives from `pipeline_report_schema_primitives.py`.
 `test_report_rejects_native_plugins_payload_content_hash_non_string_without_semantic_fallback`
 locks the handoff between those layers: wrong-typed top-level payload fields stop at dotted schema
 diagnostics such as `native_plugins_payload.content_hash must be a string` and do not continue into
@@ -2896,7 +3416,8 @@ the same gate into operation artifact rows: missing `artifact`, `package_relativ
 `stdout`, `stderr`, or `command` is rejected while nullable hash/exit-code failure evidence remains
 allowed.
 The nested list evidence is also gated this way. `file_manifest[]` and `materialized_packages[]`
-schema helpers are reusable from `pipeline_report_native_dynamic_payload_schema.py`; bundled
+schema helpers stay in `pipeline_report_native_dynamic_payload_schema.py`, while their shared row
+dispatch lives in `pipeline_report_schema_table.py`; bundled
 package-report schema lives in `pipeline_report_native_dynamic_package_report_schema.py` and reuses
 the same file-manifest row contract for package-local payload files. Final Report only calls the
 normalized manifest/package fallback after the matching object-array schema has no shape or
@@ -2906,7 +3427,9 @@ that object-array and row-field type errors do not also emit `file_manifest is m
 or `bytes` fields so incomplete rows are not accepted as publishable NativeDynamic payload evidence.
 The materialized-package test mirrors that rule for the package audit itself: `package_id`,
 `destination`, `loadable_artifact_count`, and `loadable_artifacts` are required release evidence,
-while `source` and `package_report` remain optional typed fields.
+while `source` and `package_report` remain optional typed fields at the reusable payload-schema
+layer for legacy/manual directory payloads. The NativeDynamic stage payload gate tightens the current
+generated stage shape and requires both fields before a non-fatal stage report can be trusted.
 `test_report_rejects_native_plugins_package_report_unknown_top_level_field` applies the same
 closed-schema rule inside each bundled `native_dynamic_package.toml`: top-level TOML keys must be
 one of the package-report fields audited by final Report (`format_version`, identity/locator fields,
@@ -2921,11 +3444,19 @@ fall through as misleading unsupported-version diagnostics; the test also assert
 gate to the generated package-report header: missing `format_version`, `package_id`, `directory`,
 `path`, `manifest`, `[abi]`, or `[payload]` now emits a direct typed diagnostic instead of being
 accepted as legacy or discovered only through later payload drift.
+`test_report_rejects_native_plugins_package_report_top_level_blank_strings` tightens the same
+header for generated reports whose required locator strings are present but whitespace-only:
+`package_id`, `directory`, `path`, and `manifest` now report direct
+`package_report.<field> must be a non-empty string` diagnostics and no longer fall through to
+identity/path mismatch diagnostics.
 `test_report_rejects_native_plugins_package_report_abi_string_field_types` closes the typed shape
 of the generated package-report `[abi]` contract table. ABI v3 contract fields must be strings
 before final Report checks them against `NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS`, so numeric or
 boolean TOML values report direct `abi.<field> must be a string` schema diagnostics instead of
 being conflated with missing/empty-string contract failures.
+`test_report_rejects_native_plugins_package_report_abi_string_field_blank` applies the field-level
+non-empty gate to ABI v3 string contracts as well: whitespace-only ABI contract values report
+`abi.<field> must be a non-empty string` before constant-value comparison.
 `test_report_rejects_native_plugins_payload_package_report_abi_missing_required_field` applies the
 same required-field rule to `[abi]`: `abi_version` and every ABI v3 string contract field must be
 present before final Report compares the package report against the expected ABI v3 constants.
@@ -2940,6 +3471,15 @@ shape of the generated package-report `[payload]` table itself. `content_hash` m
 `file_count` must be an integer before final Report compares package-local payload bytes against the
 current package directory; wrong-typed hash values now report `payload.content_hash must be a string`
 instead of falling into the missing/empty string semantic check.
+`test_report_rejects_native_plugins_package_report_payload_content_hash_blank` covers the string
+case after typing: whitespace-only `payload.content_hash` now reports
+`payload.content_hash must be a non-empty string` before package payload hash comparison.
+`test_report_rejects_native_plugins_package_report_payload_content_hash_malformed` adds the hash
+shape boundary after that non-empty gate: generated package reports must publish a SHA-256 hex
+digest before final Report compares the digest against the current package payload bytes.
+`test_report_rejects_native_plugins_package_report_payload_file_count_negative` adds the matching
+integer range gate for generated package reports: `[payload].file_count` must be non-negative before
+final Report treats it as package-local payload count evidence.
 `test_report_rejects_native_plugins_payload_package_report_payload_missing_required_field` extends
 that typed gate to missing generated `[payload]` header fields: `file_count` and `content_hash` must
 both be present before package-local payload evidence can be compared.
@@ -2948,12 +3488,32 @@ closed-schema rule to generated `[[payload.files]]` entries: each file row may c
 `bytes`, and `sha256`, so file-level sidecar fields are reported as direct package-report
 diagnostics before the final bundle audit falls back to outer payload hash drift.
 `test_report_rejects_native_plugins_package_report_payload_files_non_object_array` and
+`test_report_rejects_native_plugins_package_report_payload_file_duplicate_path` keep
+`[[payload.files]]` itself trustworthy: file rows must be TOML object entries, and their `path`
+values must be unique before final Report compares the generated package report to current package
+bytes.
 `test_report_rejects_native_plugins_package_report_payload_file_field_types` close the typed shape
 of those generated payload file rows. `[payload].files` must be an object array, every row must be a
 TOML table, `path` and `sha256` must be strings, and `bytes` must be an integer before final Report
 uses package-report payload file evidence for content-hash and file-manifest comparison. The same
 tests now also assert that shape/type failures do not fall through to `payload files are malformed`;
 that fallback is reserved for schema-clean payload file evidence that still cannot normalize.
+`test_report_rejects_native_plugins_package_report_payload_file_blank_strings` applies the same
+field-level non-empty rule to `[[payload.files]]` identity/hash strings: whitespace-only `path` or
+`sha256` now reports `payload files[0].<field> must be a non-empty string` before package payload
+file-manifest comparison.
+`test_report_rejects_native_plugins_package_report_top_level_unsafe_relative_paths` and
+`test_report_rejects_native_plugins_package_report_payload_file_unsafe_path` apply the shared export
+safe-relative path contract to bundled package reports. Top-level locator fields `directory`,
+`path`, and `manifest`, plus each `[[payload.files]].path`, must be non-absolute relative paths
+without empty, `.`, or `..` segments before final Report compares them against materialized package
+locations or package-local file manifests.
+`test_report_rejects_native_plugins_package_report_payload_file_negative_bytes` applies the same
+range contract to package-local file rows: `[[payload.files]].bytes` must be non-negative before
+file-manifest evidence can participate in current package payload comparison.
+`test_report_rejects_native_plugins_package_report_payload_file_malformed_sha256` gives
+`[[payload.files]].sha256` the same SHA-256 hex shape gate before package payload file-manifest
+comparison.
 `test_report_rejects_native_plugins_payload_package_report_payload_file_missing_required_field`
 extends the same required-field gate to bundled `native_dynamic_package.toml` payload rows, so
 partial package-local payload file evidence cannot be treated as a hash-only package report.
@@ -2977,6 +3537,54 @@ matching the current NativeDynamic package report generator.
 `test_report_rejects_native_plugins_payload_package_report_abi_version_mismatch` applies the same
 final Report audit to a production `[abi]` table: when present, it must describe ABI v3 and all
 shared `NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS` string contracts.
+`test_report_rejects_native_plugins_payload_loader_manifest_bad_abi_table` applies the shared
+loader-manifest shape gate to the final bundle: if a loader row carries `abi`, it must be a TOML
+table before final Report compares nested ABI v3 fields.
+`test_report_rejects_native_plugins_payload_loader_manifest_unknown_abi_field` keeps that loader
+ABI table closed to the shared ABI v3 contract, so bundle-local sidecar keys are reported before
+the top-level `native_plugins_payload` is projected.
+`test_report_rejects_native_plugins_payload_loader_manifest_unknown_plugin_field` closes the
+loader row itself: final bundle `[[plugins]]` entries may only carry `id`, `path`, `manifest`,
+`package_report`, and `abi`.
+`test_report_rejects_native_plugins_payload_loader_manifest_string_field_type` keeps optional
+loader path fields typed: if `path`, `manifest`, or `package_report` appears, it must be a string
+before final Report compares the field to the materialized package projection.
+`test_report_rejects_native_plugins_payload_loader_manifest_blank_string_fields` applies the same
+trim-non-empty rule to `[[plugins]].id`, `path`, `manifest`, and `package_report`, so blank loader
+rows fail as field-level evidence instead of later package-id or row-field drift.
+`test_report_rejects_native_plugins_payload_loader_manifest_abi_field_types` applies the same typed
+gate inside `[plugins.abi]`: `abi_version` must be an integer and ABI v3 contract fields must be
+strings before final Report compares them to fixed NativeDynamic ABI constants.
+`test_report_rejects_native_plugins_payload_loader_manifest_abi_blank_strings` then keeps those ABI
+v3 string contracts trimmed and non-empty, so blank ABI evidence is reported before constant
+mismatch diagnostics.
+`test_report_rejects_native_plugins_payload_loader_manifest_abi_missing_required_field` also treats
+an explicit loader ABI table as complete-by-contract: every ABI v3 field must be present once the
+table exists.
+`test_report_rejects_native_plugins_payload_loader_manifest_unknown_top_level_field` closes the
+loader document root too: top-level TOML keys other than `plugins` are rejected before the final
+`native_plugins_payload` projection.
+`test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_row_field` and
+`test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_abi_table` tighten
+the stage-backed final bundle path: once `native_plugins_payload.stage_report` matches the current
+NativeDynamic report, the copied final `bundle/plugins/native_plugins.toml` row must still carry
+`path`, `manifest`, `package_report`, and the ABI v3 table instead of downgrading to an id-only
+loader row.
+`test_report_rejects_stage_backed_native_plugins_payload_missing_package_report` applies the same
+stage-backed rule one level earlier: a copied final payload backed by the current NativeDynamic
+stage must retain each materialized package `package_report`, so final Report can validate the
+package TOML before projecting the top-level `native_plugins_payload`.
+`test_report_rejects_stage_backed_native_plugins_payload_package_id_drift` keeps that copied final
+payload tied to the stage report package identity even if the final loader manifest, package TOML,
+file manifest, and content hash are all updated to agree with the forged final payload.
+`test_report_rejects_stage_backed_native_plugins_payload_file_manifest_drift` extends the same
+stage-backed evidence to copied plugin bytes: even if the final package report, file manifest, and
+content hash are self-consistent after a bundle-side artifact mutation, they must still match the
+current NativeDynamic stage report before final Report projects `native_plugins_payload`.
+`platform_bundle_report_test_support.py` owns the shared fixture that builds those final
+PlatformBundle reports, their stage-backed NativeDynamic reports, bundle manifests, payload file
+manifests, and package TOML files; `test_pipeline_report_platform_bundle.py` now stays focused on
+report behavior instead of exporting fixture helpers to adjacent tests.
 `test_native_dynamic_stage_requires_native_dynamic_strategy` keeps the NativeDynamic stage itself
 from consuming stale ABI v3 package export plan rows when the trusted Validate strategy list
 explicitly selects only LibraryEmbed. `test_native_dynamic_stage_rejects_invalid_strategy_metadata`
@@ -3052,6 +3660,12 @@ directory stage reports: required handoffs produce a stage diagnostic, optional 
 diagnostic path when `Path.resolve()` fails: the value helper returns no path, and the matching
 required or optional diagnostic helper reports `{Stage} report field ... could not be resolved`
 instead of surfacing `OSError`.
+Stage report top-level `diagnostics[]` entries must be meaningful strings on both final Report and
+standalone handoff paths. `test_report_stage_rejects_blank_stage_diagnostic_entry` and
+`test_handoff_rejects_blank_stage_diagnostic_entry` keep empty or whitespace-only diagnostic rows
+from acting as release evidence; those regressions live in
+`tools/zircon_export/tests/test_pipeline_report_stage_metadata_diagnostics_schema.py` instead of
+growing the already-large generic metadata suite.
 `test_report_stage_rejects_stage_report_directory` keeps a required stage `report.json` directory
 from surfacing as an OS read error during aggregation, and
 `test_report_rejects_legacy_native_plugins_payload_stage_report_directory` applies the same rule to
@@ -3068,6 +3682,10 @@ requirements.
 `profile_summary` object that drives strategy, platform, mode, plugin, feature, and asset-filter
 selection. Unknown keys make the Validate wrapper fatal before any downstream stage treats the
 profile summary as trusted strategy evidence.
+`test_report_stage_rejects_validate_profile_summary_missing_required_field` also keeps the Rust
+`ExportValidateProfileSummary` required field set complete: `name`, `target_mode`,
+`target_platform`, `build_mode`, `selected_plugins`, and `features` must be present with their
+typed schema shapes before final Report uses the profile summary as release-plan evidence.
 `test_report_stage_rejects_validate_profile_summary_string_fields_non_string`,
 `test_report_stage_rejects_validate_selected_plugins_non_string_array`, and
 `test_report_stage_rejects_validate_selected_plugin_ids_invalid` close the core typed
@@ -3104,6 +3722,10 @@ Validate wrapper fatal before final Report falls back to generic strategy requir
 individual strategy values. Unknown strategy names still use the shared `unsupported export
 strategy ...` diagnostic, but now mark `Validate` in `fatal_stages`; empty or padded strategy
 strings fail as non-empty trimmed export strategy schema before normalization aliases are applied.
+`test_report_stage_rejects_validate_profile_strategies_duplicate` keeps normalized strategy rows
+unique after alias normalization, so a report cannot publish both `library_embed` and
+`LibraryEmbed` as separate strategy evidence after Rust would have diagnosed and deduplicated the
+profile.
 `test_report_stage_rejects_validate_profile_features_non_object`,
 `test_report_stage_rejects_validate_profile_feature_list_non_string_array`, and
 `test_report_stage_rejects_validate_profile_feature_ids_not_trimmed` close the selected feature
@@ -3123,6 +3745,11 @@ stage-report top-level typed fields before any strategy or plan-summary derivati
 `profile_found` must be boolean, `project_manifest` and `stage_output` must be strings, and
 `fatal_diagnostics` must be a string array; wrong types now mark `Validate` in `fatal_stages`
 instead of passing through as harmless sidecar metadata.
+`test_report_stage_rejects_validate_blank_fatal_diagnostic_entry` keeps those fatal diagnostics
+meaningful too: empty or whitespace-only entries are rejected before plan-time fatal evidence can be
+accepted. That focused regression lives in
+`tools/zircon_export/tests/test_pipeline_report_validate_diagnostics_schema.py` instead of growing
+the broad Validate schema suite.
 `test_report_stage_rejects_validate_summary_objects_non_object` closes the two summary containers
 themselves. `profile_summary` and `plan_summary` must be objects before final Report derives the
 required stage set or inspects build-plan evidence; malformed containers now stop at `Validate`
@@ -3131,6 +3758,11 @@ instead of causing fallback stage requirements and unrelated missing-stage diagn
 object that carries linked crates, NativeDynamic package exports, SourceTemplate generated files,
 LibraryEmbed compile plans, and runtime plugin availability. Unknown plan-summary keys make Validate
 fatal before any stage consumes plan evidence.
+`test_report_stage_rejects_validate_plan_summary_missing_required_field` keeps the Rust
+`ExportValidatePlanSummary` required field set complete on non-fatal Validate reports:
+`enabled_runtime_plugins`, `linked_runtime_crates`, `native_dynamic_packages`, `generated_files`,
+and `runtime_plugin_availability` must be present with their typed schema shapes before final
+Report treats the Validate plan as release evidence.
 Validate wrapper schema and `plan_summary` dispatch now live in
 `tools/zircon_export/pipeline_report_validate_stage_schema.py`; the generic
 `pipeline_report_stage_schema.py` only registers the Validate stage fields and delegates the
@@ -3160,12 +3792,19 @@ crate, or NativeDynamic package evidence.
 `test_report_stage_rejects_validate_linked_runtime_crate_names_invalid` also validates
 `linked_runtime_crates[]` entries against the project runtime crate naming contract before final
 Report trusts linked crate evidence.
+`test_report_stage_rejects_validate_plan_vector_duplicate_entry` keeps all three top-level plan
+vectors unique after their entry identity schema passes, so a Validate report cannot publish the
+same selected runtime plugin, linked runtime crate, or NativeDynamic package twice as release
+evidence.
 The identifier helpers live in `pipeline_report_validate_identifier_schema.py`, keeping stage
 report orchestration separate from reusable id/token diagnostics.
 The top-level plan-vector dispatch for `enabled_runtime_plugins`, `linked_runtime_crates`, and
 `native_dynamic_packages` lives in
 `tools/zircon_export/pipeline_report_validate_plan_vector_schema.py`, so the final Report stage
 dispatcher only routes `plan_summary` rather than owning every vector's identity contract.
+Focused plan-vector regressions live in
+`tools/zircon_export/tests/test_pipeline_report_validate_plan_vector_schema.py`; the broad
+Validate schema test module no longer owns the vector type/id cases.
 `test_report_stage_rejects_validate_compile_host_plan_non_object` closes the
 `plan_summary.library_embed_compile_host` container before any host build-plan fields are trusted.
 The value must be an object; malformed containers now stop at `Validate` instead of falling back to
@@ -3187,6 +3826,10 @@ strings; `release` must be boolean; feature/plugin/command vectors must be strin
 `expected_runtime_plugins[]` entries must be valid project plugin package ids; and
 `linked_runtime_crates[]` must contain objects before final Report trusts the LibraryEmbed host
 build plan.
+`test_report_stage_rejects_validate_compile_host_blank_string_array_entry` keeps
+`app_features[]`, `runtime_features[]`, and `command[]` from accepting empty or whitespace-only
+entries after the string-array shape gate passes, so the published LibraryEmbed CompileHost plan
+cannot smuggle blank Cargo feature or command tokens into the final report.
 `test_report_stage_rejects_validate_compile_host_linked_crate_unknown_field` applies that same
 closed-schema rule to `library_embed_compile_host.linked_runtime_crates[]`. Each linked crate row
 may only carry crate name, path, registration kind, and provider package id, and
@@ -3197,6 +3840,10 @@ fields before final Report accepts it as compile-plan linkage evidence.
 `test_report_stage_rejects_validate_compile_host_linked_crate_provider_ids_invalid`, and
 `test_report_stage_rejects_validate_compile_host_linked_crate_registration_kind_invalid` also
 check those linked crate row values in the dedicated CompileHost linkage schema module.
+`test_report_stage_rejects_validate_compile_host_linked_crate_path_invalid` keeps each Validate
+`linked_runtime_crates[].path` as a non-empty, trimmed safe relative path, so the LibraryEmbed
+CompileHost plan cannot publish absolute paths or parent-directory escapes as runtime crate
+provenance.
 That module is
 `tools/zircon_export/pipeline_report_validate_compile_host_linkage_schema.py`; the final Report
 stage dispatcher only routes the nested linked-crate vector into it. Both CompileHost plan and
@@ -3232,6 +3879,11 @@ export plan. The shared package-export diagnostics live in
 `pipeline_report_native_dynamic_package_export_schema.py`, while `native_dynamic_contract.py`
 owns the common `native_dynamic_package_directory(...)` sanitization helper used by both the
 NativeDynamic stage and final Report schema checks.
+Those schema checks are intentionally ordered before contract checks: an ABI version must be an
+integer before it can be compared to `3`, and ABI string contracts must be trimmed and non-empty
+before they are compared to the fixed v3 constants. Stage payload reconciliation now ignores
+schema-invalid package export rows when comparing materialized packages or loader-manifest ABI
+handoff, so malformed release evidence fails on field-level diagnostics instead of follow-on drift.
 The same package-export schema module also owns the Validate plan table wrapper for
 `plan_summary.native_dynamic_package_exports`, including list-level and non-object-row diagnostics;
 `pipeline_report_stage_schema.py` only routes that plan field into the helper. The package
@@ -3247,7 +3899,8 @@ set, per-bucket list checks, and per-entry closed schema so the generic stage di
 `plan_summary.runtime_plugin_availability` into the helper when present.
 `plan_summary.runtime_plugin_availability`. The availability report may only carry the Rust
 runtime availability buckets, and each bucket entry may only carry plugin identity, runtime id,
-required flag, maturity, and reason.
+required flag, maturity, and reason. All five entry fields are required release evidence because
+they are serialized from Rust `RuntimePluginAvailabilityEntry`.
 The runtime availability schema helper lives in
 `tools/zircon_export/pipeline_report_validate_runtime_availability_schema.py`, keeping the final
 Report stage dispatcher focused on wrapper dispatch and generic stage-report field gates. It imports
@@ -3261,6 +3914,9 @@ maturity, reason trim, and required-entry semantics locally.
 the same availability report. The report itself must be an object, each bucket must be an array,
 each entry must be an object, `id`/`runtime_id`/`maturity`/`reason` must be strings, and `required`
 must be boolean before final Report trusts runtime plugin availability evidence.
+Missing any of those five entry fields produces the same typed field diagnostic as a wrong-shaped
+value, covered by
+`test_report_stage_rejects_validate_runtime_availability_entry_missing_required_field`.
 `test_report_stage_rejects_validate_runtime_availability_missing_bucket`,
 `test_report_stage_rejects_validate_runtime_availability_plugin_ids_invalid`,
 `test_report_stage_rejects_validate_runtime_availability_runtime_ids_invalid`,
@@ -3274,6 +3930,12 @@ trimmed, and `missing_required[]` entries must carry `required = true`.
 `test_report_stage_rejects_validate_runtime_availability_id_runtime_mismatch` also rejects entries
 whose project plugin `id` and serialized `runtime_id` are each valid but do not name the same
 runtime plugin.
+Runtime availability category semantics are likewise checked after per-entry identity validation:
+primary categories are exclusive, `missing_required` may only overlay a blocked required entry, and
+duplicate `missing_required` rows are rejected. The focused coverage is
+`test_report_stage_rejects_validate_runtime_availability_duplicate_plugin_bucket`,
+`test_report_stage_allows_validate_runtime_availability_missing_required_overlay`, and
+`test_report_stage_rejects_validate_runtime_availability_missing_required_without_blocked_entry`.
 `test_report_stage_rejects_compile_host_unknown_top_level_field` keeps final Report's trusted
 CompileHost handoff on a closed schema too. A non-fatal `compile_host` stage report may only carry
 `stage`, `profile`, `fatal`, `diagnostics`, `command`, `link_plan`, `host_executable`,
@@ -3293,9 +3955,16 @@ in the final Report schema. `link_plan` must be an object; app/runtime feature v
 present string arrays; expected runtime plugins must be a present string array of valid project
 plugin ids; linked runtime crates must be a present object array and reuse the same linked-crate
 schema as the Validate CompileHost plan with a CompileHost-report diagnostic label.
+`test_report_stage_rejects_compile_host_link_plan_blank_feature_entry` also requires the published
+`link_plan.app_features[]` and `link_plan.runtime_features[]` entries to be non-blank, matching the
+Validate CompileHost plan quality gate before final Report trusts CompileHost's feature/link
+evidence.
 That reused schema also requires every CompileHost `link_plan.linked_runtime_crates[]` row to carry
 `crate_name`, `path`, `provider_package_id`, and `registration_kind`;
 `test_report_stage_rejects_compile_host_linked_crate_missing_field` covers the CompileHost label.
+`test_report_stage_rejects_compile_host_linked_crate_path_invalid` applies the same safe-relative
+path rule to execution reports, so a hand-written CompileHost report cannot hide an unsafe crate
+path behind a broad link-plan mismatch diagnostic.
 `test_report_stage_rejects_compile_host_command_non_string_array`,
 `test_report_stage_rejects_compile_host_log_line_non_string_array`,
 `test_report_stage_rejects_compile_host_missing_log_line_array`,
@@ -3344,15 +4013,17 @@ artifact summaries, staged plugin payload evidence, build/signing/notarization a
 state; unknown sidecar fields make the wrapper stage fatal.
 `test_report_stage_rejects_native_dynamic_string_fields_non_string`,
 `test_report_stage_rejects_native_dynamic_string_array_fields_non_string_array`,
+`test_report_stage_rejects_native_dynamic_string_array_fields_blank_entry`,
 `test_report_stage_rejects_native_dynamic_count_fields_non_integer`,
+`test_report_stage_rejects_native_dynamic_negative_count_fields`,
 `test_report_stage_rejects_native_dynamic_bool_fields_non_bool`,
 `test_report_stage_rejects_native_dynamic_object_fields_non_object`, and
 `test_report_stage_rejects_native_dynamic_object_array_fields_non_object_array` close the typed
 shape of the same report. NativeDynamic path/provenance fields must be strings when present,
-selected package and artifact extension fields must be string arrays, `package_count` must be an
-integer, `payload_cleaned` must be boolean, build/signing/notarization audit summaries must be
-objects, and manifest/materialized/package-export evidence must be object arrays before final
-Report accepts NativeDynamic release evidence.
+selected package and artifact extension fields must be string arrays with no blank entries,
+`package_count` must be a non-negative integer, `payload_cleaned` must be boolean,
+build/signing/notarization audit summaries must be objects, and manifest/materialized/package-export
+evidence must be object arrays before final Report accepts NativeDynamic release evidence.
 `test_report_stage_rejects_native_dynamic_missing_release_evidence_field` keeps the same
 successful-stage contract closed: non-fatal NativeDynamic reports must include `plugins_dir`,
 `loader_manifest`, `content_hash`, `file_manifest`, `materialized_packages`, and `package_exports`,
@@ -3370,6 +4041,9 @@ live with the rest of the NativeDynamic stage report schema coverage in
 `test_pipeline_report_native_dynamic_stage_schema.py` and reuse the Validate package export schema
 through a label-aware helper, so the same ABI v3 publishing contract protects both Validate plan
 evidence and the later staged NativeDynamic handoff.
+`test_report_stage_rejects_native_dynamic_package_export_abi_shape_before_contract` keeps the
+ordering explicit: schema-invalid ABI values stop at integer or trimmed-string diagnostics and are
+not reused for ABI constant, materialized package, or loader-manifest drift checks.
 `test_report_stage_rejects_native_dynamic_package_export_missing_required_field` and
 `test_report_stage_rejects_validate_native_dynamic_export_missing_required_field` keep that shared
 schema from accepting partial package-export rows: `package_id`, `directory`, `path`, `manifest`,
@@ -3383,28 +4057,77 @@ required as a list before the pipeline can proceed to NativeDynamic publication.
 `test_report_stage_rejects_validate_native_dynamic_abi_missing_required_field` apply the same rule
 inside `abi`: every ABI v3 integer/string contract field must be present, so an empty or partial ABI
 table cannot satisfy package export publishing evidence.
-The same module owns `native_build_plan` / `native_build_execution` nested schema coverage:
+`test_pipeline_report_native_dynamic_stage_build_schema.py` owns the
+`native_build_plan` / `native_build_execution` nested schema coverage and reuses
+`native_dynamic_stage_schema_test_support.py` for the shared stage-report fixture/assertion path:
 `test_report_stage_rejects_native_dynamic_build_plan_unknown_field`,
 `test_report_stage_rejects_native_dynamic_build_plan_missing_release_evidence_field`,
+`test_report_stage_rejects_native_dynamic_build_plan_empty_required_string_release_evidence_field`,
 `test_report_stage_rejects_native_dynamic_build_plan_field_types`,
+`test_report_stage_rejects_native_dynamic_build_plan_negative_count_fields`,
+`test_report_stage_rejects_native_dynamic_build_plan_blank_build_feature_entry`,
+`test_report_stage_rejects_native_dynamic_build_plan_profile_release_contract`,
+`test_report_stage_rejects_native_dynamic_build_plan_expected_artifact_mismatch`,
+`test_report_stage_rejects_native_dynamic_build_plan_blank_diagnostic_entry`,
 `test_report_stage_rejects_native_dynamic_build_plan_package_unknown_field`,
+`test_report_stage_rejects_native_dynamic_build_plan_package_missing_required_field`,
+`test_report_stage_rejects_native_dynamic_build_plan_package_empty_required_string_field`,
+`test_report_stage_rejects_native_dynamic_build_plan_package_empty_command`,
+`test_report_stage_rejects_native_dynamic_build_plan_package_blank_feature_entry`,
 `test_report_stage_rejects_native_dynamic_build_plan_package_field_types`,
 `test_report_stage_rejects_native_dynamic_build_execution_unknown_field`,
 `test_report_stage_rejects_native_dynamic_build_execution_missing_release_evidence_field`,
 `test_report_stage_rejects_native_dynamic_build_execution_field_types`,
-`test_report_stage_rejects_native_dynamic_build_execution_package_unknown_field`, and
+`test_report_stage_rejects_native_dynamic_build_execution_negative_count_fields`,
+`test_report_stage_rejects_native_dynamic_build_execution_disabled_non_empty_table`,
+`test_report_stage_rejects_native_dynamic_build_execution_fatal_success_report_mismatch`,
+`test_report_stage_rejects_native_dynamic_build_execution_skipped_success_report_mismatch`,
+`test_report_stage_rejects_native_dynamic_build_execution_blank_diagnostic_entry`,
+`test_report_stage_rejects_native_dynamic_build_execution_package_unknown_field`,
+`test_report_stage_rejects_native_dynamic_build_execution_package_missing_required_field`,
+`test_report_stage_rejects_native_dynamic_build_execution_package_empty_required_string_field`,
+`test_report_stage_rejects_native_dynamic_build_execution_package_empty_command`,
+`test_report_stage_rejects_native_dynamic_build_execution_package_blank_copied_sidecar_entry`, and
 `test_report_stage_rejects_native_dynamic_build_execution_package_field_types` close the Cargo
 build plan and build execution evidence before final Report can trust it. The implementation lives
 in `pipeline_report_native_dynamic_stage_schema.py`, keeping the shared stage schema dispatcher
-focused on cross-stage wiring.
+focused on cross-stage wiring. Both nested `package_count` headers are non-negative integer evidence
+before the later package-list consistency checks compare them with their `packages[]` arrays.
 `test_report_stage_rejects_native_dynamic_operation_audit_missing_stage_evidence_field`
 locks the sibling operation-audit header gate: `native_signing` / `native_notarization` stage
 objects must carry `diagnostics` and `packages` even when the operation is disabled and the package
 table is empty.
+`test_report_stage_rejects_native_dynamic_operation_audit_blank_allowed_platform_entry` keeps
+operation audit platform filters aligned with CLI normalization: empty arrays still mean all
+platforms, but empty or whitespace-only entries are malformed release evidence.
+`test_report_stage_rejects_native_dynamic_operation_audit_artifact_empty_command` keeps signed or
+notarized artifact rows from publishing an empty or blank-entry command vector.
 `test_report_stage_rejects_native_dynamic_operation_audit_artifact_missing_execution_evidence_field`
 in `test_pipeline_report_native_dynamic_operation_audit_schema.py` locks the artifact execution
 gate: enabled operation audit artifact rows must carry `exit_code`, `before_sha256`, and
 `after_sha256`, not just the expanded command and captured streams.
+`test_report_stage_rejects_native_dynamic_operation_audit_unsafe_relative_artifact` keeps operation
+artifact `package_relative_artifact` evidence on the same safe-relative path contract as staged
+loadable artifacts, so `../` escapes fail at the field-level schema boundary before artifact-set
+comparison.
+`test_report_stage_rejects_native_dynamic_operation_audit_empty_required_identity_string` keeps
+operation package identity, artifact identity, and before/after hash evidence non-empty while
+leaving captured stdout/stderr on their existing empty-string semantics.
+`test_report_stage_rejects_native_dynamic_operation_audit_invalid_hash_string` keeps operation
+artifact `before_sha256` and `after_sha256` evidence on the same SHA-256 hex contract as other
+NativeDynamic content hashes.
+`test_report_stage_rejects_native_dynamic_operation_audit_blank_target_platform` keeps operation
+audit target platform evidence non-empty before platform_allowed recomputation or stable summary
+projection can trust it.
+`test_report_stage_rejects_native_dynamic_operation_audit_duplicate_allowed_platform` rejects
+duplicate `allowed_platforms[]` entries so platform-gate evidence remains a deterministic set.
+`test_report_stage_rejects_native_dynamic_operation_audit_negative_counts` keeps stage
+`package_count` and package-row `artifact_count` non-negative, and
+`test_report_rejects_native_plugins_payload_operation_audit_negative_package_count` applies the
+same stable summary rule to PlatformBundle `native_plugins_payload` operation audit summaries.
+`test_report_stage_rejects_native_dynamic_operation_audit_blank_diagnostic_entry` keeps the
+signing/notarization `diagnostics[]` evidence meaningful: empty or whitespace-only rows make the
+NativeDynamic stage fatal before a stable payload summary can be trusted.
 `test_report_stage_rejects_pack_unknown_top_level_field` closes the Pack handoff on the same shared
 loader path. A non-fatal `pack` report may only carry its stage metadata, asset/pack paths,
 trim/determinism summaries, manifest counts, and explicit delta audit fields; unknown sidecar fields
@@ -3434,6 +4157,10 @@ length before the report is accepted as publishable Pack evidence.
 `test_report_stage_rejects_pack_delta_manifest_count_mismatch` applies the same rule to delta
 reports by binding `delta_asset_count` to `delta_manifest.changed_assets[]` length and
 `delta_chunk_count` to `delta_manifest.chunks[]` length.
+`test_report_stage_rejects_pack_delta_missing_report_audit_field` makes those report-level delta
+audit fields explicit release evidence whenever a Pack report publishes a `delta_pack`: the report
+must include `delta_asset_count`, `delta_chunk_count`, `delta_removed_assets`, and
+`delta_reused_assets` alongside the paired `delta_manifest`.
 `test_report_stage_rejects_pack_manifest_duplicate_chunk_hash` and
 `test_report_stage_rejects_pack_delta_manifest_duplicate_chunk_hash` reject repeated chunk hashes in
 full-pack, delta base/target, and delta payload chunk tables before accepting content-addressed pack
@@ -3474,12 +4201,34 @@ reports from drifting away from the actual packed asset identities.
 `test_report_stage_rejects_pack_trim_report_unresolved_preflight` rejects non-fatal Pack reports
 that still carry `trim_report.duplicate_assets` or `trim_report.missing_dependencies`, matching the
 Rust preflight rule that those lists are fatal before pack bytes are written.
+`test_report_stage_rejects_pack_required_path_blank_string` keeps the required Pack path evidence
+usable by rejecting blank `asset_manifest`, `pack`, and `stage_output` strings before path-location
+or stage-handoff diagnostics run.
 `test_report_stage_rejects_pack_stage_output_outside_current_stage` rejects Pack reports whose
 `stage_output` resolves outside the current `<out>/stages/pack` directory derived from the loaded
 report path.
 `test_report_stage_rejects_pack_deduplicated_assets_manifest_mismatch` derives the expected
 `deduplicated_assets` set from repeated `manifest.assets[].chunk_hash` values, matching the writer's
 path-sorted first-owner rule before accepting duplicate-content audit evidence.
+`test_report_stage_rejects_pack_deduplicated_assets_blank_entry` keeps the field-level schema gate
+separate from that manifest comparison by rejecting blank `deduplicated_assets[]` entries directly.
+`test_report_stage_rejects_pack_delta_path_array_blank_entry` applies the same field-level path
+array gate to `delta_removed_assets`, `delta_reused_assets`, and
+`delta_manifest.removed_assets`, so blank delta audit rows cannot hide behind later set mismatch
+diagnostics.
+`test_report_stage_rejects_pack_manifest_asset_empty_path` and
+`test_report_stage_rejects_pack_delta_manifest_asset_empty_path` keep pack manifest asset identities
+non-empty across the outer `manifest.assets[]`, `delta_manifest.base.assets[]`,
+`delta_manifest.target.assets[]`, and `delta_manifest.changed_assets[]` rows.
+`test_report_stage_rejects_pack_manifest_negative_layout_numbers` keeps the same pack-document
+schema helper from accepting negative byte counts or offsets for `pack.total_size`,
+`pack.chunks[].offset`, `pack.chunks[].size`, and `assets[].size`.
+`test_report_stage_rejects_pack_manifest_missing_required_field` makes the nested Pack manifest
+release-evidence fields mandatory: `pack`, `assets`, `pack.version`, `pack.total_size`,
+`pack.chunks`, chunk `hash`/`offset`/`size`, and asset `path`/`chunk_hash`/`size`.
+`test_report_stage_rejects_pack_delta_manifest_missing_required_field` does the same for the
+top-level ZRPD manifest fields: `format_version`, `base`, `target`, `chunks`, `changed_assets`, and
+`removed_assets`.
 `test_report_stage_rejects_pack_trim_report_unknown_fields` and
 `test_report_stage_rejects_pack_trim_report_field_types` close `trim_report`, trimmed-asset rows,
 missing-dependency rows, duplicate/included asset arrays, and diagnostics arrays. These checks live
@@ -3491,8 +4240,12 @@ Common Pack manifest, chunk, asset, and delta-manifest fixtures now live in
 `tools/zircon_export/tests/pack_test_support.py`, while Pack schema report staging and assertion
 helpers live in `tools/zircon_export/tests/pack_schema_test_support.py`.
 `test_pipeline_report_pack_stage_schema.py` now owns outer Pack manifest and trim-report regressions;
-`test_pipeline_report_pack_delta_schema.py` owns delta manifest, delta asset-set, target-manifest, and
-publication-pairing regressions.
+`test_pipeline_report_pack_delta_top_level_schema.py` owns delta manifest top-level closed-schema,
+required-field, typed-field, and path-array blank-entry regressions; `test_pipeline_report_pack_delta_schema.py`
+owns embedded pack-document, delta asset-set, target-manifest, changed-chunk, and publication-pairing
+semantic regressions. `test_report_stage_rejects_pack_trim_report_blank_diagnostic_entry` keeps
+trim-report diagnostic evidence on the Pack schema path instead of letting blank rows fall through
+to later trim consistency diagnostics.
 `test_report_rejects_bundle_manifest_unknown_top_level_field` keeps loaded bundle manifests on the
 closed-schema path: an extra key such as `unsigned_sidecar` marks the final Report fatal before Hub
 or editor readers can treat unaudited manifest metadata as release evidence.
@@ -3503,6 +4256,10 @@ loaded manifest. The manifest `profile`, host/pack/native plugin path, and prove
 be strings when present, `template_resolution`, `template`, and `native_plugins_payload` must be
 objects when present, and `template_files` must be an object array before final Report compares the
 manifest to the PlatformBundle stage report or exposes it as release evidence.
+`test_report_rejects_bundle_manifest_required_path_blank_string` keeps the same top-level
+`bundle.json` string evidence from accepting empty or whitespace-only values: `profile`,
+host/pack path fields, and source-origin fields must be non-empty after trimming before final Report
+compares the manifest to the stage report.
 `test_report_rejects_bundle_manifest_native_plugins_payload_nested_schema`,
 `test_report_rejects_bundle_manifest_template_nested_schema`,
 `test_report_rejects_bundle_manifest_template_resolution_nested_schema`, and
@@ -3536,16 +4293,44 @@ report schema with the shared stage-report loader. A bad PlatformBundle report n
 `PlatformBundle` in `fatal_stages` at load time, matching the Pack, NativeDynamic, and SourceTemplate
 schema attribution paths instead of relying only on later PlatformBundle manifest or semantic
 diagnostics.
+`test_report_stage_rejects_platform_bundle_required_path_blank_string` keeps the same stage-loader
+schema attribution for blank required PlatformBundle report strings: `bundle`, host/pack
+source/provenance fields, and `bundle_manifest` are rejected as non-empty release evidence before
+final Report follows those paths or compares the loaded `bundle.json`.
+`test_report_stage_rejects_platform_bundle_optional_path_blank_string` extends that rule to
+optional report strings that become release evidence when present, including bundled delta paths,
+delta source provenance, and the NativeDynamic plugins directory.
 Those PlatformBundle stage-report and loaded `bundle.json` schema rules now live in
 `pipeline_report_platform_bundle_schema.py`; `pipeline_report_platform_bundle.py` keeps the final
 Report orchestration, manifest loading, path containment, hash, and NativeDynamic payload
 consistency checks. Its local primitive checks are imported from
 `pipeline_report_schema_primitives.py`, while nested template/payload schema ownership stays in the
 PlatformBundle-specific helper modules.
-`pipeline_report_platform_bundle_template.py` follows the same split: shared schema primitives own
-the basic bool/integer/string/string-array/object/object-array diagnostic text, while the template
-helper keeps resolution list wrappers, candidate/skipped-candidate row attribution, copied-template
-file matching, path resolution, and sha256 checks.
+`pipeline_report_platform_bundle_template.py` follows the same split: copied-template file matching,
+path resolution, and on-disk SHA-256 checks stay in the evidence helper, while
+`pipeline_report_platform_bundle_template_schema.py` owns the embedded template report schema,
+copied `template_files[]` row schema, and the field-level hash/format-version gates.
+`pipeline_report_platform_bundle_template_manifest_schema.py` owns the parsed `template.manifest`
+path, TOML, closed-schema, and manifest/report identity gates, so the main template schema module
+can keep delegating source-template manifest semantics instead of accumulating another long
+diagnostic block. The main template schema imports only
+`template_report_manifest_path_diagnostics(...)` from that module; manifest TOML reads, manifest
+bundle defaults, and manifest/report identity helpers stay out of the embedded template report
+schema file.
+`pipeline_report_platform_bundle_template_resolution_schema.py` owns the template-root resolution
+field shape, required/null rules, candidate/skipped-candidate row schemas, and the aggregate
+diagnostic entry point. `pipeline_report_platform_bundle_template_resolution_semantics.py` owns the
+selected-candidate, fatal/no-match/root-failure, candidate identity/profile/bundle-format, skipped
+diagnostic, and template-root containment semantics. Shared schema primitives still own the basic
+bool/integer/string/string-array/object/object-array diagnostic text.
+`pipeline_report_platform_bundle_template_schema_helpers.py` now carries the local field/table
+diagnostic helpers for that area: unknown-field scans, typed table/sequence checks, non-empty string
+checks, SHA-256 shape checks, safe-relative path checks, enum checks, and duplicate
+`template.files[].path` detection. The main template schema module stays focused on the report
+sections and template-specific semantic gates such as content-hash, identity, and profile
+membership. The helper ownership is singular: sequence object-shape diagnostics also live in the
+helper module, so the main schema module does not shadow field-level helper behavior after the
+split.
 `test_report_rejects_template_report_unknown_field`,
 `test_report_rejects_template_report_file_unknown_field`, and
 `test_report_rejects_template_file_unknown_field` apply the same closed-schema rule to
@@ -3565,12 +4350,365 @@ same template evidence. Template report metadata must use string/count/boolean/s
 as declared, `template.bundle` and `template.files` must have object shapes, and copied
 `template_files[]` source/destination rows must be strings before final Report performs template
 hash matching or bundle file checks.
+`test_report_rejects_template_report_string_field_blank` also keeps present template report string
+metadata from being empty or whitespace-only: `bundle_format`, content hashes, engine/profile/target
+identities, host/template paths, and strategy fields must be non-empty after trimming before final
+Report exposes the embedded template report as release evidence. Fields that are genuinely
+unproduced may still be omitted or set to `None`; a hand-authored `" "` value is rejected at the
+schema layer instead of relying on later hash or path diagnostics.
+`test_report_rejects_template_report_engine_version_mismatch` and
+`test_report_rejects_template_report_target_platform_mismatch` preserve the identity checks that
+`template.toml` validation already performed before embedding the template report. When both actual
+and expected fields are present, `engine_version` must match `expected_engine_version`, and
+`target_platform` must match `expected_target_platform` after the same platform alias normalization
+used by template validation. This keeps hand-authored final reports from swapping expected release
+identity while leaving genuinely unproduced fields as schema-optional evidence.
+`test_report_rejects_template_report_manifest_path_mismatch` ties the embedded `manifest` evidence
+back to its `template_dir`: when both strings are present, final Report resolves them and requires
+`manifest` to point at `template_dir/template.toml`. A report can no longer point template metadata
+at an arbitrary neighboring TOML file while keeping the rest of the template evidence self-consistent.
+`test_report_rejects_template_report_manifest_missing_file` also keeps that canonical manifest path
+bound to current disk state. Once a report publishes `template.manifest`, final Report requires the
+resolved `template_dir/template.toml` to exist as a file, matching the source template validator's
+manifest existence gate.
+`test_report_rejects_template_report_manifest_invalid_toml` adds the matching parse gate. The
+canonical manifest file is opened and parsed as TOML before the embedded template report is trusted,
+so a stale or hand-authored report cannot point at an unreadable or syntactically invalid
+`template.toml` and still publish release evidence.
+`test_report_rejects_template_report_manifest_unknown_fields` keeps that parsed manifest on the
+same closed schema accepted by source template validation. After final Report parses
+`template.manifest`, unknown top-level keys, `[paths]` keys, `[bundle]` keys, or `[[files]]` row
+keys are fatal, so a hand-authored report cannot point at sidecar template metadata that
+`validate_export_template(...)` would have rejected.
+`test_report_rejects_template_report_manifest_shape_mismatch` applies the same source-template
+table and array shape boundaries to parsed manifest evidence: malformed `[paths]`, `[bundle]`, or
+`[[files]]` structures are fatal before final Report uses manifest identity, host path, bundle
+layout, or file-row bindings.
+`test_report_rejects_template_report_manifest_scalar_field_schema` closes the remaining source
+template scalar gate in final Report: parsed manifests must publish non-empty `template_id`,
+engine/target identity, host/resource/plugin/bundle strategy fields, and a SHA-256 `content_hash`;
+strategy fields also stay inside the source validator's allowed-value sets before manifest/report
+identity comparisons are trusted.
+`test_report_rejects_template_report_manifest_compatible_profiles_schema` keeps the parsed
+`compatible_profiles` value aligned with source validation as an optional string array with no blank
+entries and no duplicate profile entries, before final Report compares it against embedded
+`template.compatible_profiles`.
+Manifest identity regression fixtures now build schema-clean parsed manifests with both `[paths]`
+and `[[files]]` sections before changing only the target identity field, so stricter
+source-template gates do not mask the specific manifest/report drift under test.
+`test_report_rejects_template_report_manifest_paths_host_schema` keeps parsed `[paths]` evidence on
+the source-template host path contract: `[paths]` must exist, `host_executable` must be a non-empty
+string, and the path must remain safely relative before final Report resolves it under
+`template_dir`.
+`test_report_rejects_template_report_manifest_bundle_field_schema` applies the same optional
+`[bundle]` path-field contract after the parsed manifest passes scalar and path checks: any present
+bundle path field must be a string, cannot be blank, and must remain safe relative before final
+Report compares it with embedded `template.bundle`.
+`test_report_rejects_template_report_manifest_file_row_schema` brings parsed `[[files]]` row
+shape into the same final Report boundary. Each manifest row must publish a non-empty safe relative
+`path`, a SHA-256 `sha256`, an optional non-blank safe relative `bundle_path`, and an optional
+string `purpose` before final Report performs row count, bundle path, hash, or purpose identity
+checks against embedded `template.files[]`.
+`test_report_rejects_template_report_manifest_missing_file_rows` keeps parsed template manifests
+from publishing no file rows. Missing `files` and explicit root-level `files = []` now fail as
+`template.manifest must declare at least one [[files]] entry`, matching
+`validate_export_template(...)` before any manifest/report row-count identity comparison can mask
+the source-template error.
+`test_report_rejects_template_report_manifest_file_row_duplicates` applies the source-template
+uniqueness rule to parsed manifest rows before row-count identity gates run. Final Report now
+normalizes manifest `[[files]].path` and defaulted `bundle_path` values, then rejects duplicate
+template source files or duplicate bundle output destinations with the same diagnostics used by
+`validate_export_template(...)`.
+`test_report_rejects_template_report_manifest_format_version_mismatch` keeps that parsed manifest
+on the supported template schema version: `format_version` must be an integer and must equal the
+current `EXPORT_TEMPLATE_FORMAT_VERSION`. This prevents a report from embedding current-looking
+template evidence while the referenced `template.toml` belongs to another template schema version.
+`test_report_rejects_template_report_manifest_template_id_mismatch` then binds parsed manifest
+identity back to the embedded report: when both `template.toml` and the embedded `template` report
+publish non-empty `template_id` values, they must match. This prevents a final Report from pointing
+at a different template package while preserving self-consistent embedded fields.
+`test_report_rejects_template_report_manifest_engine_version_mismatch` applies the same binding to
+`engine_version`, so a report cannot point at a manifest for a different engine build while the
+embedded template report continues to publish another engine identity.
+`test_report_rejects_template_report_manifest_target_platform_mismatch` then applies the platform
+side of the same manifest/report identity binding with `normalize_target_platform(...)`, so alias
+forms such as `windows` remain equivalent to `windows-x86_64`, but a report cannot point at a
+Linux template manifest while publishing a Windows embedded template target.
+`test_report_rejects_template_report_manifest_strategy_field_mismatch` extends the same
+manifest/report binding to the template strategy fields that drive bundle materialization:
+`host_kind`, `resource_strategy`, `plugin_strategy`, and `bundle_format`. Those fields already pass
+the embedded report allowed-value gate, but final Report now also rejects a report that points at a
+manifest with different host, resource, plugin, or bundle packaging semantics.
+`test_report_rejects_template_report_manifest_content_hash_mismatch` also binds the parsed
+`template.toml` `content_hash` to the embedded report's `template.content_hash` when both are
+published. This complements the existing computed hash check over embedded `template.files[]`: a
+hand-authored report cannot keep its embedded file rows and computed hash self-consistent while
+pointing at a manifest that declares a different template content hash.
+`test_report_rejects_template_report_manifest_compatible_profiles_mismatch` performs the same
+binding for `compatible_profiles[]` once both manifest and embedded report publish valid string
+arrays. The source validator copies this list from `template.toml` into the template report, so
+final Report rejects profile-list drift even when both lists independently contain the current
+profile.
+`test_report_rejects_template_report_manifest_host_executable_mismatch` completes that
+manifest/report binding for `[paths].host_executable`. Final Report normalizes the manifest's
+relative host path against `template_dir` and compares it with the embedded
+`template.host_executable`, so a report cannot point at one manifest host slot while publishing a
+different embedded host, even when both files exist and both are listed in `template.files[]`.
+`test_report_rejects_template_report_manifest_bundle_field_mismatch` applies the same final Report
+binding to template bundle layout fields. Final Report default-fills the parsed manifest `[bundle]`
+table with the same `root`, `host_path`, `pack_path`, `delta_pack_path`, and `manifest_path`
+defaults used by `validate_export_template(...)`, then compares the clean string values with
+embedded `template.bundle`. A hand-authored report can no longer point at a manifest that routes the
+host, pack, delta, manifest, or bundle root differently while keeping embedded bundle evidence
+self-consistent.
+`test_report_rejects_template_report_manifest_file_bundle_path_mismatch` then binds parsed
+manifest `[[files]]` rows back to embedded `template.files[]`. Final Report compares schema-clean
+file rows by index after applying the same path and bundle-path normalization used by
+`validate_export_template(...)`, including the default `bundle_path = path` behavior and optional
+`purpose` default. This prevents a hand-authored report from keeping embedded file rows, hashes, and
+content hash self-consistent while pointing at a manifest whose template file would materialize to a
+different bundle destination.
+`test_report_rejects_template_report_host_executable_not_declared_file` preserves the generated
+template rule that `paths.host_executable` must also appear in `[[files]]`. Final Report resolves
+the embedded `host_executable` relative to `template_dir` and requires that relative path to be one
+of `template.files[].path`, so an unlisted executable cannot be published as template host evidence.
+`test_report_rejects_template_report_missing_success_evidence_field` keeps successful embedded
+template reports complete before any semantic checks trust them. When `template.fatal` is false,
+the final Report requires the full generated evidence shape: template identity, format and expected
+format versions, engine and expected engine, target and expected target platform, profile,
+host/resource/plugin/bundle strategy fields, manifest and host executable paths, compatible
+profiles, both content hashes, diagnostics, bundle table, and `files[]`. Missing fields and
+explicit `null` values produce field-level `PlatformBundle report template.<field> must be ...`
+diagnostics; fatal template-validation reports still use their diagnostic-bearing failure shape.
+`test_report_rejects_template_report_host_executable_missing_file` also keeps that embedded host
+path tied to the current template directory contents. A hand-authored report cannot publish a
+declared `template.host_executable` whose file has disappeared from disk, matching the source
+`validate_export_template(...)` rule that rejects missing template host files.
+`test_report_rejects_template_report_enum_field_unknown_value` keeps the embedded report on the
+same allowed-value sets as `template.toml`: `host_kind`, `resource_strategy`, `plugin_strategy`, and
+`bundle_format` must be one of the current export-template enum values after passing the string and
+non-empty gates. A final Report can no longer publish an unknown host kind or packaging strategy as
+opaque text.
+`test_report_rejects_template_report_missing_profile_membership` keeps non-empty
+`compatible_profiles[]` tied to the embedded `profile` field. Empty profile lists still mean the
+template is unrestricted, but once the list is present and non-empty it must contain the report
+profile, matching the `template.toml` validation rule used during template selection.
+`test_report_rejects_template_report_duplicate_compatible_profile_entry` keeps the embedded
+template report profile list unique before profile membership or manifest/report identity checks
+consume it, so duplicated profile evidence is rejected as a field-level schema issue.
+`test_report_rejects_template_report_hash_field_malformed` narrows the two top-level template hash
+fields after that non-empty string gate: `content_hash` and `computed_content_hash` must be SHA-256
+hex strings whenever they are present. This mirrors `template.toml` validation and prevents a
+hand-authored PlatformBundle report from publishing arbitrary text as template content hash
+evidence.
+`test_report_rejects_template_report_content_hash_mismatch` then recomputes the template content
+hash from the embedded `template.files[]` rows and rejects both `content_hash` and
+`computed_content_hash` when either valid digest does not match that derived value. The recompute
+waits for the file rows to be object-shaped and to carry valid `path`, `bundle_path`, and `sha256`
+strings, so malformed file-row diagnostics remain the primary error when the lower-level evidence is
+already broken.
+`test_report_rejects_template_file_malformed_sha256` gives the same field-level hash-shape rule to
+each `template.files[].sha256` row. A malformed per-file digest now fails as
+`PlatformBundle report template.files[0].sha256 must be a SHA-256 hex digest` before copied-file
+hash comparison can turn it into a broader destination mismatch.
+`test_report_rejects_template_file_source_hash_mismatch` then re-reads each declared
+`template.files[].path` under `template.template_dir` and compares the current bytes to the embedded
+`sha256`. This mirrors source `template.toml` validation after the report is handoff material: a
+hand-authored final Report cannot keep a self-consistent `content_hash` while the actual template
+source file has been changed or removed.
+`test_report_rejects_template_file_unsafe_relative_path` also keeps `template.files[].path` and
+`template.files[].bundle_path` on the same safe-relative path contract as `template.toml`: absolute
+paths, empty segments, `.` segments, or `..` escapes are rejected at schema time before template file
+lookup, content-hash recompute, or bundle copy verification can reinterpret them.
+`test_report_rejects_template_file_duplicate_path` preserves the same one-row-per-template-source
+contract after the template has been embedded in the PlatformBundle report. The final Report schema
+normalizes `template.files[].path` before comparing rows and rejects duplicates even when a
+hand-authored report also recalculates `content_hash`, so duplicated source-file evidence cannot be
+hidden behind an otherwise self-consistent template hash.
+`test_report_rejects_template_file_duplicate_bundle_path` applies the same uniqueness rule to
+`template.files[].bundle_path`, the final bundle output location. This closes the hand-authored
+report case where two different template sources publish one bundle-relative destination and then
+hide the overwrite behind a recalculated `content_hash`.
+`test_report_rejects_template_file_purpose_blank_when_present` mirrors the source `template.toml`
+metadata rule after embedding: `template.files[].purpose` is optional, but when a final Report
+publishes it, the value must not be whitespace-only. This keeps hand-authored reports from
+reintroducing template file metadata that the template validator would have rejected.
+`test_report_rejects_copied_template_file_destination_mismatch` binds copied template-file evidence
+back to the declared bundle layout. When `template_files[].source` matches a `template.files[]` row,
+the copied `destination` must equal the current PlatformBundle `bundle` plus optional
+`template.bundle.root` plus that row's `bundle_path`. This keeps a report from moving a valid
+template source file to a different bundle-relative path while preserving the expected SHA-256.
+`test_report_rejects_duplicate_copied_template_file_entry` keeps copied template-file rows unique.
+The generated PlatformBundle stage appends at most one `template_files[]` row per copied
+source/destination pair, so final Report now rejects duplicate copied rows before treating repeated
+evidence as additional release output.
+`test_report_rejects_template_bundle_unsafe_relative_path` applies the same path-traversal gate to
+embedded `template.bundle` output override fields. `root = "."` and generated empty-string default
+markers remain valid because they are the current template report representation for default bundle
+layout, but non-empty absolute paths, empty segments, or `..` escapes now fail as direct
+`template.bundle.<field> must be a safe relative path` diagnostics before final Report accepts the
+bundle layout evidence.
+`test_report_rejects_template_report_format_version_mismatch` keeps the same top-level template
+report from publishing an unsupported template schema version after it has left `template.toml`
+validation. Both `expected_format_version` and `format_version` must equal the current
+`EXPORT_TEMPLATE_FORMAT_VERSION`, so a hand-authored embedded template report cannot advertise
+`999` as accepted release evidence merely because the field is an integer.
+`test_report_rejects_template_report_non_fatal_with_diagnostics` keeps optional embedded template
+state fields coherent when they are present. If a report publishes `template.fatal = false`, its
+`template.diagnostics[]` evidence must be empty; generated warnings or failures belong either in a
+fatal template validation report or in the surrounding stage diagnostics, not in a non-fatal embedded
+template report.
+`test_report_rejects_template_report_fatal_without_diagnostics` applies the inverse optional-state
+rule: if a report publishes `template.fatal = true`, its `template.diagnostics[]` evidence must
+exist and include at least one non-empty diagnostic string. This mirrors
+`validate_export_template(...)`, where fatal template validation paths set `fatal` only after
+appending concrete failure evidence.
 `test_report_rejects_template_bundle_unknown_field` keeps the same gate on the embedded
 `template.bundle` object; only `root`, `manifest_path`, `host_path`, `pack_path`, and
 `delta_pack_path` are accepted.
 `test_report_rejects_template_resolution_unknown_field` closes the template-root selection report
 as well: `template_resolution`, `candidates[]`, and `skipped_candidates[]` each reject unknown
 fields before final Report accepts them from matching `bundle.json` and stage-report evidence.
+`test_report_rejects_template_resolution_selected_candidate_mismatch` keeps successful
+template-root resolution tied to the selected candidate row. When `template_resolution.fatal` is
+false, the top-level `template_dir` must match exactly one `candidates[].template_dir`; otherwise a
+hand-authored report could point the selected template at a directory that was never part of the
+candidate list.
+`test_report_rejects_template_resolution_template_dir_mismatch` and
+`test_report_rejects_bundle_manifest_template_resolution_template_dir_mismatch` bind that selected
+template directory to the embedded template evidence as well. For non-fatal template resolution,
+final Report resolves `template_resolution.template_dir` and `template.template_dir` in both the
+stage report and `bundle.json`, and rejects any mismatch before accepting the release package as
+publishable.
+`test_report_rejects_template_resolution_duplicate_candidate_template_dir`,
+`test_report_rejects_template_resolution_duplicate_skipped_candidate_template_dir`, and
+`test_report_rejects_template_resolution_candidate_also_skipped` keep that directory evidence
+unique across the full resolution audit. Final Report resolves and normalizes every non-empty
+`candidates[].template_dir` and `skipped_candidates[].template_dir`, rejects duplicate candidate
+rows, duplicate skipped rows, and any template directory that appears both as accepted and skipped
+evidence. This prevents hand-authored resolution reports from double-counting one template package
+or publishing contradictory accepted/skipped status for the same directory.
+`test_report_rejects_template_resolution_non_fatal_multiple_candidates` also preserves the
+selection cardinality rule from template-root resolution: a non-fatal resolution report must contain
+exactly one candidate. Multiple matching candidates are fatal at generation time and cannot be
+retrofit into a successful final Report by choosing one top-level `template_dir`.
+`test_report_rejects_template_resolution_fatal_selected_template_dir` keeps the inverse state
+coherent as well: a fatal template-root resolution cannot publish a non-empty top-level
+`template_dir`, because generation only fills the selected template when exactly one valid
+candidate was accepted.
+`test_report_rejects_template_resolution_fatal_single_candidate` keeps the candidate count coherent
+for fatal reports too: a resolution with exactly one valid candidate is successful at generation
+time, so final Report rejects `fatal=true` evidence that still publishes one candidate while
+clearing selected `template_dir`.
+`test_report_rejects_template_resolution_fatal_multiple_candidates_without_multiple_match_diagnostic`
+keeps the multi-candidate fatal branch explainable: when fatal resolution publishes multiple valid
+candidate rows, top-level diagnostics must include the generated
+`multiple export templates matched profile=...` message instead of an unrelated generic failure.
+`test_report_rejects_template_resolution_fatal_multiple_candidates_wrong_profile_diagnostic`
+also binds that generated message to the current `template_resolution.profile`, so a multi-match
+diagnostic copied from another profile cannot explain this profile's fatal candidate set.
+`test_report_rejects_template_resolution_fatal_multiple_candidates_incomplete_candidate_diagnostic`
+keeps the same diagnostic tied to the actual candidate set: the generated multi-match line must list
+every object-shaped `candidates[].template_dir` value published in the fatal resolution report.
+`test_report_rejects_template_resolution_fatal_multiple_candidates_with_no_match_diagnostic`
+keeps that fatal branch mutually exclusive with zero-candidate failures: a report with multiple valid
+candidate rows cannot also publish generated root-failure or no-match diagnostics.
+`test_report_rejects_template_resolution_fatal_no_candidates_without_failure_diagnostic` keeps the
+zero-candidate fatal branch on the same path: root failures must still describe `export template root
+...`, and no-match failures must still describe `no export template under ... matched ...`.
+`test_report_rejects_template_resolution_fatal_no_candidates_with_multiple_match_diagnostic` applies
+the inverse rule: a report with no object-shaped candidate rows cannot also publish the generated
+multi-match diagnostic.
+`test_report_rejects_template_resolution_fatal_no_candidates_with_root_failure_and_no_match` keeps
+the two zero-candidate failure families mutually exclusive too: generation returns immediately for
+template-root failures, while no-match diagnostics only appear after a readable template root was
+scanned.
+`test_report_rejects_template_resolution_fatal_no_candidates_wrong_profile_no_match_diagnostic`
+also binds the no-match line to the current `template_resolution.profile`, so a missing-template
+diagnostic copied from another profile cannot explain this profile's zero-candidate fatal state.
+`test_report_rejects_template_resolution_fatal_no_candidates_wrong_identity_no_match_diagnostic`
+does the same for expected target platform and engine identity when those fields are known:
+`target_platform=<expected_target_platform>` and `engine_version=<expected_engine_version>` must be
+present in the generated no-match line.
+`test_report_rejects_template_resolution_fatal_no_candidates_wrong_unresolved_identity_marker`
+covers the generated marker values when those expected identities are absent: no-match diagnostics
+must use `target_platform=<any>` and `engine_version=<unresolved>` instead of silently borrowing a
+concrete target or engine from another report.
+`test_report_rejects_template_resolution_fatal_no_candidates_wrong_root_no_match_diagnostic`
+binds that no-match line to the current `template_resolution.template_root`, so an otherwise valid
+zero-candidate diagnostic from another template repository cannot be reused.
+`test_report_rejects_template_resolution_root_failure_with_skipped_candidates` keeps root failures
+from publishing scan evidence that could not have been generated: if the root path itself failed
+before discovery, `candidates[]` and `skipped_candidates[]` must both stay empty.
+`test_report_rejects_template_resolution_root_failure_wrong_root_diagnostic` binds root-failure
+diagnostics to the current `template_resolution.template_root`, matching the generated
+`export template root <root> ...` failure text.
+`test_report_rejects_template_resolution_fatal_without_diagnostics` also keeps fatal resolution
+evidence explainable: when `fatal` is true, the top-level `diagnostics[]` must contain at least one
+non-empty diagnostic string, matching the generation path where root errors, missing matches, and
+duplicate matches all write a reason.
+`test_report_rejects_template_resolution_non_fatal_with_diagnostics` keeps the successful state
+clean: when `fatal` is false, top-level diagnostics must be empty, and per-template rejection
+reasons stay in `skipped_candidates[].diagnostics[]`.
+`test_report_rejects_template_resolution_non_fatal_null_expected_identity` keeps successful
+template-root resolution tied to the current export identity as well. When `fatal` is false,
+`expected_engine_version` and `expected_target_platform` must be non-empty strings, so a
+hand-authored report cannot null out the expected identity fields and bypass candidate
+engine-version or target-platform matching.
+`test_report_rejects_bundle_manifest_template_resolution_null_expected_identity` confirms the same
+shared schema gate runs for `bundle.json.template_resolution`, producing the bundle-manifest label
+before whole-field stage-report comparison can hide the exact missing expected identity.
+`test_report_rejects_template_resolution_non_fatal_without_template_dir` keeps the successful
+state selected: non-fatal template-root resolution must publish a non-empty top-level
+`template_dir` before final Report checks that it matches exactly one candidate row.
+`test_report_rejects_template_resolution_profile_mismatch` binds the resolution profile back to
+the enclosing PlatformBundle stage report profile before candidate membership checks are trusted.
+This prevents a hand-authored `template_resolution` from changing `profile` and
+`candidates[].compatible_profiles` together while the surrounding release bundle still belongs to
+the requested profile.
+`test_report_rejects_bundle_manifest_template_resolution_profile_mismatch` applies the same
+profile binding inside `bundle.json` before final Report falls back to whole-field stage-report
+comparison, so bundle manifests get a direct field-level diagnostic when nested
+`template_resolution.profile` drifts from their own top-level `profile`.
+`test_report_rejects_template_resolution_candidate_missing_profile_membership` keeps each
+candidate's non-empty `compatible_profiles[]` tied to the resolution `profile`, mirroring the
+template-root matcher before a candidate can be considered selectable.
+`test_report_rejects_template_resolution_candidate_identity_mismatch` applies the same matcher
+identity checks to candidate rows: candidate `engine_version` must equal
+`expected_engine_version`, and candidate `target_platform` must match `expected_target_platform`
+after platform alias normalization.
+`test_report_rejects_template_resolution_candidate_bundle_format_unknown` keeps candidate
+`bundle_format` values on the same export-template allowed set as embedded template reports.
+`test_report_rejects_template_resolution_candidate_missing_required_field` and
+`test_report_rejects_template_resolution_skipped_candidate_missing_required_field` keep candidate
+rows complete: accepted candidates must publish template directory/id, engine, target platform,
+compatible-profile list, and bundle format, while skipped candidates must publish both their
+directory and diagnostic list. Missing fields and explicit `null` values both fail the same
+required-field gate, so a report cannot satisfy candidate-row completeness with placeholders.
+`test_report_rejects_template_resolution_missing_required_field` keeps the top-level
+template-root selection report complete as generated evidence. Reports must carry
+`template_root`, `profile`, expected engine/target platform, `fatal`, `diagnostics`, candidate and
+skipped-candidate lists, and the selected `template_dir` key; fatal reports may still set
+`template_dir` to null, but cannot omit the field.
+`test_report_rejects_template_resolution_required_field_null` keeps generated non-null top-level
+evidence from being replaced with placeholders: `template_root`, `profile`, `fatal`,
+`diagnostics`, `candidates`, and `skipped_candidates` must be real values. The expected engine and
+target fields may remain null when generation could not derive those identities, and fatal reports
+may still publish `template_dir = null`.
+`test_report_rejects_template_resolution_candidate_dir_outside_root` and
+`test_report_rejects_template_resolution_skipped_candidate_dir_outside_root` keep candidate
+directory evidence under the reported `template_root`. The generation path only discovers
+candidate and skipped template packages from that root, so final Report now rejects a hand-authored
+selection report whose candidate or skipped-candidate `template_dir` resolves outside the template
+root.
+`test_report_rejects_template_resolution_candidate_dir_not_direct_child_of_root` and
+`test_report_rejects_template_resolution_skipped_candidate_dir_not_direct_child_of_root` tighten the
+same rule to the exact template-root discovery shape: generated resolution only scans direct child
+packages via `*/template.toml`, so final Report rejects nested candidate or skipped-candidate
+directories even when they still resolve inside the template root.
+`test_report_rejects_template_resolution_skipped_candidate_without_diagnostics` keeps skipped rows
+actionable: every skipped candidate must include at least one non-empty diagnostic string explaining
+why that template package was not selectable.
 `test_report_rejects_template_resolution_string_fields_non_string`,
 `test_report_rejects_template_resolution_bool_fields_non_bool`,
 `test_report_rejects_template_resolution_string_array_fields_non_string_array`,
@@ -3582,6 +4720,15 @@ shape of that selection report. Top-level resolution fields must be strings, boo
 string arrays as declared; `candidates[]` and `skipped_candidates[]` must contain objects; and
 candidate/skipped-candidate rows must keep their string and string-array fields typed before
 final Report trusts template-root evidence from a PlatformBundle report or `bundle.json`.
+`test_report_rejects_template_resolution_candidate_blank_profile_entry` and
+`test_report_rejects_template_resolution_candidate_duplicate_profile_entry` keep
+`candidates[].compatible_profiles` free of empty, whitespace-only, or duplicate entries, matching
+the input-side `template.toml` profile-list gate.
+`test_report_rejects_template_resolution_string_field_blank`,
+`test_report_rejects_template_resolution_candidate_string_field_blank`, and
+`test_report_rejects_template_resolution_skipped_candidate_string_field_blank` apply the same
+non-empty string rule to top-level resolution identities, candidate rows, and skipped-candidate
+`template_dir` evidence before report consumers trust template-root selection output.
 `test_source_template_stage_rejects_generated_file_read_error` keeps SourceTemplate stage
 materialization on the diagnostic path when a generated file passes existence/type checks but fails
 during stage size/hash calculation; the stage reports `SourceTemplate generated file ... could not
@@ -3684,6 +4831,16 @@ SourceTemplate records the failed build validation attempt with
 process never launched. The same SourceTemplate report keeps `stdout_lines` and `stderr_lines`
 empty in this no-process case, while successful or failed launched builds record the captured Cargo
 streams for final Report and editor-side audit views.
+`test_report_rejects_source_template_report_command_missing_target_dir` and
+`test_report_rejects_source_template_build_validation_command_missing_target_dir` keep SourceTemplate
+final Report build evidence bound to the generated stage target directory. Non-fatal SourceTemplate
+reports now require both the top-level `command` and nested `build_validation.command` to carry
+`--target-dir`; report-command diagnostics accumulate with manifest-path diagnostics instead of
+short-circuiting, so hand-authored reports cannot omit the isolated target while hiding manifest
+drift.
+`test_report_command_reports_manifest_and_target_option_errors` keeps that aggregation behavior
+explicit when `--manifest-path` and `--target-dir` are both malformed in the same top-level
+SourceTemplate report command.
 `test_report_rejects_source_template_generated_file_read_error` keeps SourceTemplate final Report
 aggregation on the same diagnostic path when a generated file passes existence/type checks but
 fails during content hashing; final Report reports `SourceTemplate generated file ... could not be read`
@@ -3807,26 +4964,101 @@ Successful non-fatal NativeDynamic stage reports are now a required release-evid
 `native_build_execution`, `native_signing`, and `native_notarization` must all be present before
 final Report trusts the stage as publishable. Missing any of those fields marks `NativeDynamic` fatal
 during stage schema loading, before PlatformBundle projects a `native_plugins_payload`.
+`test_report_stage_rejects_native_dynamic_blank_required_string_release_evidence_field` also keeps
+those required string fields trimmed and non-empty, so whitespace-only `content_hash`, path/location
+fields, `target_platform`, or `validate_report` fail as field-level evidence instead of being
+resolved as filesystem paths, compared as hashes, or silently accepted.
 `stage_output` is also bound to the loaded report's current stage directory, `validate_report`
 records the Validate report that drove stage materialization, `target_platform` and
 `artifact_extensions[]` record the platform strategy and loadable-artifact suffix set used for staged
 artifacts and operation audits, `native_plugin_root` records the source package root used during
 materialization, and the `native_dynamic_packages[]` table is the stage's own selected-package
 evidence and is later reconciled with Validate handoff and materialized package ids; `package_count`
-is likewise required and then compared with the current `materialized_packages[]` length. The
+is likewise required and then compared with the current `materialized_packages[]` length.
+`artifact_extensions[]` and `native_dynamic_packages[]` may be empty only when the surrounding stage
+evidence makes that meaningful, but neither array may contain blank entries. The
 build/sign/notarization audit objects may still report `enabled = false` with
 `package_count = 0`; the release gate requires the audit boundary itself to be present, while
 package-id closure is enforced only for enabled/non-empty audit package tables.
+The NativeDynamic build audit schema is split by responsibility: the stage schema keeps only the
+Report-stage dispatch, `pipeline_report_native_dynamic_build_audit_schema.py` re-exports the build
+audit surface, `pipeline_report_native_dynamic_build_audit_common.py` owns shared count,
+diagnostics, uniqueness, and primitive-table helpers, and the build-plan/build-execution modules own
+their package-row contracts. The legacy build-schema test module remains a compatibility entry point;
+the actual coverage is split into build-plan and build-execution test modules with shared report
+fixtures in `native_dynamic_stage_schema_test_support.py`.
 Inside the required `native_build_plan` object, successful reports must include the plan header
 fields `workspace_manifest`, `target_dir`, `cargo_profile`, `release`, `build_features`,
 `package_count`, `diagnostics`, `packages`, and `fatal`; a half-written plan object is fatal even
 when its package rows are otherwise well typed.
+`cargo_profile` is limited to `debug` or `release`, and `release` must agree with that profile
+before final Report treats the build-plan header as Cargo mode evidence.
+The same plan header is bound back to every package row: `workspace_manifest`, `target_dir`,
+`cargo_profile`, and `release` must match the row fields with the same names, and
+`build_features[]` must match the row `features[]`.
+Each package row's `expected_loadable_artifact` must also resolve to the dynamic library path
+derived from `target_dir`, `cargo_profile`, `crate_name`, and the enclosing `target_platform`,
+with slash direction normalized before comparison.
+`test_report_stage_rejects_native_dynamic_build_plan_blank_required_string_release_evidence_field`
+keeps the three string header fields trimmed and non-empty before Report trusts the recorded Cargo
+workspace, target directory, or profile evidence. Each `packages[]` row must also carry its full
+command evidence row, including package id, crate, manifests, target dir, profile, expected loadable
+artifact, release flag, feature list, and Cargo command array.
+`test_report_stage_rejects_native_dynamic_build_plan_package_blank_required_string_field` applies
+the same trimmed non-empty rule to package-row identity, path, profile, and expected-artifact strings
+before package-id closure or command evidence is trusted. The string entries in that row must be
+trimmed and non-empty, feature arrays may be empty but cannot contain blank or duplicate entries,
+diagnostics rows cannot be blank, and the command array must be non-empty with no blank entries.
 Inside the required `native_build_execution` object, successful reports must include `enabled`,
-`fatal`, `diagnostics`, `package_count`, and `packages`; disabled execution is represented by an
-explicit empty audit table, not by omitting the audit header.
+`fatal`, `skipped`, `diagnostics`, `package_count`, and `packages`; disabled execution is
+represented by an explicit empty audit table, not by omitting the audit header or the skipped-state
+flag. The NativeDynamic generator writes `skipped=false` for the default non-executing audit, for
+fatal build-plan diagnostics, and for completed build execution reports; it only flips the flag to
+`true` for an explicitly skipped build-execution branch such as prior materialization diagnostics.
+`test_report_stage_rejects_native_dynamic_build_execution_missing_release_evidence_field` keeps all
+six header fields required, while `test_native_dynamic_stage_reports_native_cdylib_build_plan` and
+`test_native_dynamic_build_executes_plan_and_stages_cdylib` cover the generated non-executing and
+executing success reports. The optional `skip_reason` is tied to the same explicit state:
+`test_report_stage_rejects_native_dynamic_build_execution_skip_reason_non_skipped_mismatch` rejects
+a reason when `skipped=false`, and
+`test_report_stage_rejects_native_dynamic_build_execution_skipped_without_reason` requires a
+trimmed reason when `skipped=true`. If `enabled=false`, `package_count` must be `0` and `packages`
+must be empty before final Report accepts the skipped Cargo-build audit boundary. Non-empty
+execution package rows must also carry package id, crate, command, exit code, stdout/stderr capture,
+expected loadable artifact,
+copied loadable artifact, and copied sidecar evidence. The identity and artifact path strings in
+those rows must be trimmed and non-empty, while stdout/stderr capture strings may be empty.
+`exit_code` is always a non-negative integer; successful execution evidence additionally requires
+`exit_code=0`, while fatal execution may report a positive Cargo process failure code.
+`test_report_stage_rejects_native_dynamic_build_execution_fatal_success_report_mismatch` keeps
+successful stage reports from carrying `native_build_execution.fatal=true`; failed Cargo build
+evidence must make the enclosing NativeDynamic report fatal too.
+`test_report_stage_rejects_native_dynamic_build_execution_fatal_without_diagnostics` applies the
+same explainability rule to build execution: a fatal execution audit must include at least one
+non-empty diagnostic instead of relying only on the outer stage fatal status.
+`test_report_stage_rejects_native_dynamic_build_execution_skipped_success_report_mismatch` applies
+the same rule to `skipped=true`, so skipped Cargo-build evidence cannot be published inside a
+successful NativeDynamic report.
+`test_report_stage_rejects_native_dynamic_build_execution_package_blank_required_string_field` keeps
+that execution-row rule on package identity, crate, expected artifact, and copied artifact evidence
+before package-id closure or copy evidence can be trusted. The command array must be non-empty with
+no blank entries, and copied sidecar arrays may be empty but cannot contain blank or duplicate
+entries. Copied loadable-artifact and copied-sidecar paths are also schema-checked as safe relative
+bundle paths before the later materialized-artifact/file-manifest closure runs, so absolute paths,
+`.`/`..` segments, or Windows drive prefixes cannot be published as build execution copy evidence.
+After the path is safe-relative, it must also stay inside the package's own
+`plugins/<package_id>/` directory; cross-package copied loadables or sidecars are rejected at the
+build-execution schema boundary before the later materialized-artifact comparison reports a broader
+payload mismatch.
+Execution diagnostics rows cannot be blank. If `skip_reason` is present, it must also be trimmed and
+non-empty; `test_report_stage_rejects_native_dynamic_build_execution_blank_skip_reason` prevents a
+hand-authored report from publishing a whitespace-only execution skip reason.
 Inside the required `native_signing` and `native_notarization` objects, successful reports must
 also include `diagnostics` and `packages`; disabled operation audits may use an empty package table,
-but the stage evidence boundary itself must stay explicit.
+but the stage evidence boundary itself must stay explicit. `allowed_platforms` may be empty, but its
+entries cannot be blank. Operation diagnostic rows cannot be blank. Optional `profile` is accepted
+only when it is trimmed and non-empty, while `target_platform` remains required. Artifact command
+arrays must be non-empty and cannot contain blank entries.
 When a NativeDynamic report carries `stage_output`, it must resolve to the same
 `<out>/stages/native_dynamic` directory as the loaded `report.json` parent; external or stale stage
 directories mark `NativeDynamic` fatal before any bundle payload is projected.
@@ -3842,28 +5074,81 @@ load manifest.
 Final Report also parses the current loader manifest before trusting a non-fatal NativeDynamic
 stage. `test_report_stage_rejects_native_dynamic_loader_manifest_missing_plugins_table` and
 `test_report_stage_rejects_native_dynamic_loader_manifest_bad_plugin_id` require `plugins` to be an
-array of plugin tables with non-empty string `id` fields;
+array of plugin tables with non-empty string `id` fields, while
+`test_report_stage_rejects_native_dynamic_loader_manifest_bad_abi_table` requires any optional
+loader-row `abi` value to be a TOML table, and
+`test_report_stage_rejects_native_dynamic_loader_manifest_unknown_abi_field` keeps that table
+closed to the accepted ABI v3 contract; `test_report_stage_rejects_native_dynamic_loader_manifest_unknown_plugin_field`
+also rejects sidecar keys on the loader row itself before package id comparison; and
+`test_report_stage_rejects_native_dynamic_loader_manifest_string_field_type` rejects non-string
+`path`, `manifest`, or `package_report` values before row-field drift checks; and
+`test_report_stage_rejects_native_dynamic_loader_manifest_abi_field_types` applies integer/string
+type diagnostics to loader-row ABI fields before ABI contract mismatch checks. The shared loader
+manifest ABI parser also rejects whitespace-only ABI v3 string contracts before those mismatch
+checks; and
+`test_report_stage_rejects_native_dynamic_loader_manifest_abi_missing_required_field` requires the
+same table to carry every ABI v3 contract field once it is present; and
+`test_report_stage_rejects_native_dynamic_loader_manifest_unknown_top_level_field` rejects
+document-level sidecar tables such as `[metadata]` before package evidence is trusted; and
+`test_report_stage_rejects_native_dynamic_loader_manifest_missing_row_field` plus
+`test_report_stage_rejects_native_dynamic_loader_manifest_missing_abi_table` require current
+NativeDynamic stage loader rows to carry the generated `path`, `manifest`, `package_report`, and
+ABI v3 table whenever the stage report publishes `package_exports[]`;
 `test_report_stage_rejects_native_dynamic_loader_manifest_package_mismatch` then requires the
 resulting `[[plugins]].id` sequence to match the package ids in `materialized_packages[]`, and
 `test_report_stage_rejects_native_dynamic_malformed_loader_manifest` marks the NativeDynamic stage
 fatal when `native_plugins.toml` is no longer valid TOML. This keeps a hash-updated but semantically
 stale load manifest from telling runtime loaders to open a different package set than the payload
 summary publishes.
-When loader manifest rows carry the full runtime load-entry fields, final Report also compares the
-current TOML row against the accepted package export row. The preferred source is the NativeDynamic
-stage report's required `package_exports[]`; the Validate
+Final Report also compares the current TOML row against the accepted package export row. The
+preferred source is the NativeDynamic stage report's required `package_exports[]`; the Validate
 `plan_summary.native_dynamic_package_exports[]` table remains the plan handoff used for cross-stage
-drift diagnostics. The comparison covers `path`,
+drift diagnostics. For NativeDynamic stage evidence this is a required generated load-entry shape;
+stage-backed PlatformBundle final payloads use the same required shape once
+`native_plugins_payload.stage_report` matches the current NativeDynamic report. Non-stage-backed
+PlatformBundle final payloads keep the historical compatibility rule where final bundle loader rows
+are compared when those fields are explicitly present. The comparison covers `path`,
 `manifest`, `package_report`, `abi.abi_version`, and each ABI v3 string contract field that appears
 in both places. `test_report_stage_rejects_native_dynamic_loader_manifest_path_mismatch` and
 `test_report_stage_rejects_native_dynamic_loader_manifest_abi_mismatch` keep a hash-updated
 `native_plugins.toml` from redirecting runtime load paths or ABI descriptor contracts while the
-stage report and Validate handoff still publish the expected package export table.
+stage report and Validate handoff still publish the expected package export table. The ABI
+comparison only runs after the shared parser has proven the optional `abi` value is a table, and
+extra ABI keys are reported as unsupported instead of being ignored.
 NativeDynamic stage final Report also opens each current materialized package's
-`native_dynamic_package.toml` before the payload is considered releasable. The stage gate requires
-the package report path to be the package-local generated file, then reuses the shared package-report
-content diagnostics for `format_version`, `package_id`, `directory`, `path`, `manifest`, `[abi]`, and
-`[payload]` so stage-local evidence is rejected before PlatformBundle copies it. The focused
+`native_dynamic_package.toml` before the payload is considered releasable. Each
+`materialized_packages[]` row must explicitly declare the source package directory as non-empty
+string `source` and the generated package report as non-empty string `package_report`; the stage gate
+then requires the declared source path to resolve to an existing directory under `native_plugin_root`, requires that source
+directory to contain parseable `plugin.toml` with a non-empty string `id` matching the current
+materialized package id, requires the declared report path to be the package-local generated file,
+and reuses the shared package-report content diagnostics for `format_version`, `package_id`,
+`directory`, `path`, `manifest`, `[abi]`, and `[payload]` so stage-local evidence is rejected before
+PlatformBundle copies it.
+`test_report_stage_rejects_native_dynamic_missing_materialized_package_source` keeps a hash-current
+stage report from dropping original plugin-package provenance while retaining staged bytes and
+package-report evidence. `test_report_stage_rejects_native_dynamic_package_source_outside_plugin_root`
+then prevents a report from claiming a source directory that exists but is not owned by the
+reported `native_plugin_root`. `test_report_stage_rejects_native_dynamic_package_source_missing_manifest`
+aligns final Report with the production source discovery rule by rejecting source directories that
+no longer contain `plugin.toml`. `test_report_stage_rejects_native_dynamic_package_source_manifest_id_mismatch`,
+`test_report_stage_rejects_native_dynamic_package_source_manifest_parse_error`, and
+`test_report_stage_rejects_native_dynamic_package_source_manifest_missing_id` extend the same source
+provenance gate into TOML parsing and package identity, so a hash-current stage report cannot claim
+that `materialized_packages[0].package_id = "animation"` was sourced from a manifest whose `id`
+belongs to another package or is not valid release evidence.
+The focused NativeDynamic stage report tests are split by responsibility: loader manifest row/schema
+coverage stays in `test_pipeline_report_native_dynamic_stage_payload.py`, while source,
+package-report, loadable-artifact, and package-export materialized package coverage lives in
+`test_pipeline_report_native_dynamic_stage_materialized_packages.py`. Shared stage report and TOML
+fixture helpers live in `native_dynamic_stage_report_test_support.py`, keeping future evidence gates
+from growing the loader-focused module again.
+`test_report_stage_rejects_native_dynamic_missing_materialized_package_report` keeps a hash-current
+stage report from silently falling back to an implicit default package report path, while
+`test_report_stage_rejects_native_dynamic_empty_materialized_package_source` and
+`test_report_stage_rejects_native_dynamic_empty_materialized_package_report` keep empty string fields
+from satisfying the current generated-stage shape or resolving the package report to the process
+working directory.
 `test_report_stage_rejects_native_dynamic_package_report_id_mismatch` and
 `test_report_stage_rejects_native_dynamic_package_report_payload_hash_mismatch` cover reports whose
 outer `file_manifest` and `content_hash` were recomputed after the package TOML drifted, preventing a
@@ -3904,9 +5189,45 @@ accepted a different one.
 `test_report_stage_rejects_native_dynamic_build_plan_package_mismatch` extends that package-id
 closure to `native_build_plan.packages[]`, so the Cargo build plan recorded in a successful
 NativeDynamic report cannot describe a different package set from the staged payload.
+`test_report_stage_rejects_native_dynamic_build_plan_package_header_mismatch` also requires the
+build-plan header and package rows to describe the same Cargo workspace, target directory, profile,
+release mode, and feature set, so package command evidence cannot stay self-consistent while drifting
+away from the plan header.
+`test_report_stage_rejects_native_dynamic_build_plan_expected_artifact_mismatch` closes the planned
+loadable artifact path to the same target directory, Cargo profile, crate name, and target platform,
+so a forged library filename cannot ride along with otherwise valid Cargo command evidence.
+The same final Report build-plan command gate rejects feature overrides (`--all-features`,
+`--no-default-features`), target broadening (`--all-targets`, `--bins`, `--examples`, `--tests`,
+`--benches`, `--lib`), package broadening (`--workspace`, `--all`, `--exclude`), and profile
+override (`--profile`) flags. The
+`native_build_plan.packages[].features`, `crate_name`, and `cargo_profile`/`release` fields own those
+choices, so a command row cannot widen the planned NativeDynamic Cargo build while still matching the
+rest of the package audit. Wrapper policy flags such as `--locked` and `--offline` remain owned by
+the NativeDynamic command generator and are not rejected by this final Report gate.
+`test_report_stage_rejects_native_dynamic_build_plan_command_feature_broadening`,
+`test_report_stage_rejects_native_dynamic_build_plan_command_no_default_features_override`,
+`test_report_stage_rejects_native_dynamic_build_plan_command_target_broadening`,
+`test_report_stage_rejects_native_dynamic_build_plan_command_package_broadening`, and
+`test_report_stage_rejects_native_dynamic_build_plan_command_profile_override` cover those four
+command-boundary classes.
 `test_report_stage_rejects_native_dynamic_build_execution_package_mismatch` applies the same
 package-id closure to `native_build_execution.packages[]`; executed build/copy evidence must describe
 the packages that were actually materialized.
+`test_report_stage_rejects_native_dynamic_build_execution_command_plan_mismatch` locks the existing
+execution-command handoff: each executed package command must still match the corresponding
+`native_build_plan.packages[]` command after package-id lookup, so a resume or hand-written report
+cannot swap the Cargo invocation while keeping package metadata stable.
+`test_report_stage_rejects_native_dynamic_build_execution_disabled_non_empty_table` keeps disabled
+execution as a pure empty audit boundary, rejecting package counts or package rows when
+`enabled=false`.
+`test_report_stage_rejects_native_dynamic_build_execution_fatal_success_report_mismatch` binds the
+nested build-execution fatal flag back to the enclosing NativeDynamic report success state.
+`test_report_stage_rejects_native_dynamic_build_execution_skipped_success_report_mismatch` closes the
+same status boundary for skipped build execution evidence.
+`test_report_stage_rejects_native_dynamic_build_plan_fatal_enabled_execution_mismatch` closes the
+cross-table state boundary: when `native_build_execution.enabled=true` and the enclosing
+NativeDynamic report is successful, `native_build_plan.fatal` must be `false`; disabled or
+diagnostic-only build plans keep their existing failure reporting semantics.
 `test_report_stage_rejects_native_dynamic_signing_package_mismatch` and
 `test_report_stage_rejects_native_dynamic_notarization_package_mismatch` apply the same package-id
 closure to operation audits. Signing and notarization reports cannot name a different package set
@@ -3915,6 +5236,15 @@ The operation-audit closure also validates package-level artifact evidence: sign
 `packages[].artifacts[].package_relative_artifact` must match the staged package's current
 `materialized_packages[].loadable_artifacts` after stripping that package's `plugins/<package>/`
 prefix, and each audit `artifact_count` must match its `artifacts[]` length.
+`test_report_stage_rejects_native_dynamic_operation_audit_duplicate_package_relative_artifact`
+keeps each package audit's `package_relative_artifact` rows unique before final Report trusts the
+artifact closure.
+`test_report_stage_rejects_native_dynamic_operation_audit_blank_profile` keeps optional
+signing/notarization `profile` evidence trimmed and non-empty before final Report publishes an audit
+profile alongside platform allowance evidence.
+`test_report_stage_rejects_native_dynamic_operation_audit_artifact_path_mismatch` also requires each
+audit artifact path to equal `plugins/<package_id>/<package_relative_artifact>`, so an audit row
+cannot point at one bundle file while satisfying the staged loadable-artifact closure with another.
 `test_report_stage_rejects_native_dynamic_signing_artifact_mismatch`,
 `test_report_stage_rejects_native_dynamic_notarization_artifact_mismatch`, and
 `test_report_stage_rejects_native_dynamic_signing_artifact_count_mismatch` keep final Report from
@@ -3945,7 +5275,55 @@ summaries from falling back to the default LibraryEmbed stage closure.
 For LibraryEmbed host builds, final Report also requires CompileHost's `link_plan` and cross-checks
 it against the same Validate plan summary before it treats the stage set as publishable, so a stale
 or incomplete CompileHost report cannot claim a different runtime plugin link matrix under a
-successful shape.
+successful shape. The same final Report pass binds CompileHost report `command` evidence back to
+Validate `plan_summary.library_embed_compile_host`: package, binary, feature list, release/debug
+flag, and target directory must match the validated host plan. The command must not include
+`--all-features`; `app_features` is the explicit LibraryEmbed feature-selection vector, so an
+all-feature Cargo build is treated as feature broadening rather than a publishable host plan. The target-directory comparison
+accepts either the Validate relative `target_dir` token or the resolved absolute path under the
+current output root, matching CompileHost's execution-time `--target-dir` rewrite. Successful
+CompileHost reports must also keep `host_executable` inside the current output root; final Report
+rejects external host paths before publishing the LibraryEmbed bundle evidence. When the command
+uses the production absolute `--target-dir`, `host_executable` must live under that target
+directory's Validate `cargo_profile` subdirectory and its filename must match the validated binary
+name, with the Windows `.exe` suffix accepted. The path must already exist and be a file before
+the final report can publish the CompileHost stage as release evidence. Non-fatal CompileHost
+reports also require `exit_code = 0`; a non-zero Cargo result must remain fatal and cannot be
+published as successful host-build evidence.
+Validate's `library_embed_compile_host.cargo_profile` is limited to `debug` or `release`, and its
+`release` boolean must agree with that profile before the final Report trusts the host build plan.
+The same plan object must explicitly carry the full CompileHost field set; missing package,
+command, release, linkage, feature, or target fields are final Report schema failures instead of
+implicit opt-outs from later consistency checks.
+Its string fields must also be non-empty trimmed strings before later command and link-plan
+provenance checks run, so blank or padded package, binary, manifest, target directory, and profile
+values fail at the Validate plan schema boundary.
+The Validate plan's `manifest_path` and `target_dir` fields must also be safe relative paths:
+absolute paths, empty path segments, `.`, and `..` escapes are rejected before final Report compares
+the command row or publishes the host-build plan as release evidence.
+The command identity gate also checks both leading tokens: `command[0]` must be `cargo` and
+`command[1]` must be `build`, so a non-Cargo executable cannot publish a shape-compatible
+`build` command as CompileHost plan evidence.
+`test_report_stage_rejects_validate_compile_host_command_feature_mismatch` covers both ordinary
+`--features` drift and the `--all-features` broadening flag at final Report time, while
+`test_compile_host_rejects_plan_command_metadata_mismatch` covers the same `--all-features`
+rejection before the standalone CompileHost stage can launch Cargo from a polluted Validate report.
+The same command provenance path rejects Cargo target broadening flags such as `--all-targets`,
+`--bins`, `--examples`, `--tests`, `--benches`, and `--lib`, because the CompileHost plan's
+`binary` field owns the single host target. `test_report_stage_rejects_validate_compile_host_command_target_broadening`
+and `test_compile_host_rejects_plan_command_target_broadening` cover that final Report and
+execution-time boundary.
+It also rejects package-selection broadening flags such as `--workspace`, `--all`, and `--exclude`.
+The CompileHost plan's `package` field owns the single package selection, so workspace-level or
+exclude-list Cargo builds cannot be published as evidence for the planned LibraryEmbed host.
+`test_report_stage_rejects_validate_compile_host_command_package_broadening` and
+`test_compile_host_rejects_plan_command_package_broadening` keep that rule aligned across final
+Report aggregation and standalone CompileHost execution.
+`--profile` is forbidden for the same reason: the plan's `cargo_profile` and `release` fields own
+profile selection, and the command may only express that choice through the debug/release flag
+contract. `test_report_stage_rejects_validate_compile_host_command_profile_override` and
+`test_compile_host_rejects_plan_command_profile_override` cover a custom profile override before it
+can be reported or executed as LibraryEmbed host-build evidence.
 Editor-side stdout consumers treat final Report JSON object/key/string lines as summary payload and
 only promote values inside a `diagnostics` array to stage diagnostics, so plan fields such as
 `export_plan.unsupported_strategies` cannot be mistaken for terminal errors.

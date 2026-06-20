@@ -23,6 +23,7 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resource-descriptors-0617 --message-format short --color never
 doc_type: module-detail
 ---
@@ -48,7 +49,7 @@ This module is intentionally crate-internal to the render pipeline asset compile
 `texture_desc_for(...)` handles special render graph texture shapes:
 
 - Color LUT resources become 3D `Rgba16Float` textures with storage, copy source, and copy destination usage.
-- Upscale outputs use the final view size; most other transient render textures use the effective render size.
+- Upscale outputs and terminal AA inputs after output transfer (`FINAL_COMPOSITED`) use the final view size; most other transient render textures use the effective render size.
 - HZB and SSR pyramid resources derive half-resolution extents and full mip-chain counts where needed.
 - Depth or shadow names use depth format when no post-process format override is present.
 - HDR scene-color-like resources use the configured intermediate HDR format; final composited and tonemapped resources use SDR formats.
@@ -74,6 +75,7 @@ The module does not own external resource typing or required/report-only binding
 - HZB and SSR reflection pyramid tests assert half-resolution sizes, mip counts, and high-quality HDR formats.
 - Color LUT tests assert 3D texture dimensions, format, storage usage, and fixed compute dispatch metadata.
 - HZB compile tests assert the half-power-of-two HZB extent and mip-chain shape used by the runtime HZB executor.
+- The dynamic-resolution terminal-AA regression asserts that `FINAL_COMPOSITED` remains at viewport/presentation size while scene/postprocess internals use the scaled render size.
 
 The 2026-06-17 resource-descriptor extraction is behavior-preserving. Focused lib-tests remain deferred to the milestone testing stage; the scoped `zircon_runtime --features core-min` check listed in the header is the intended lightweight validation gate for this implementation slice.
 

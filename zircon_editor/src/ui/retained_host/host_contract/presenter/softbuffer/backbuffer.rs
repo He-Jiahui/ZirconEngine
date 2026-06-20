@@ -6,20 +6,22 @@ use super::surface_io::damage_pixel_count;
 use super::SoftbufferHostPresenter;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct RepaintOutcome {
-    pub(super) damage: Option<FrameRect>,
-    pub(super) painted_pixels: u64,
-    pub(super) full_paint: bool,
-    pub(super) region_paint: bool,
+pub(in crate::ui::retained_host::host_contract) struct RepaintOutcome {
+    pub(in crate::ui::retained_host::host_contract) damage: Option<FrameRect>,
+    pub(in crate::ui::retained_host::host_contract) painted_pixels: u64,
+    pub(in crate::ui::retained_host::host_contract) full_paint: bool,
+    pub(in crate::ui::retained_host::host_contract) region_paint: bool,
 }
 
-pub(super) fn can_region_repaint(presenter: &SoftbufferHostPresenter) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn can_region_repaint(
+    presenter: &SoftbufferHostPresenter,
+) -> bool {
     presenter.backbuffer.as_ref().is_some_and(|frame| {
         frame.width() == presenter.size.0 && frame.height() == presenter.size.1
     })
 }
 
-pub(super) fn repaint_backbuffer(
+pub(in crate::ui::retained_host::host_contract) fn repaint_backbuffer(
     presenter: &mut SoftbufferHostPresenter,
     stream: &ChromeCommandStream,
     size: (u32, u32),

@@ -10,14 +10,14 @@ use super::surface_io::{damage_pixel_count, pixel_bounds};
 #[cfg(feature = "profiling")]
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-pub(super) struct PlannedPresent {
-    pub(super) presentation: HostWindowPresentationData,
-    pub(super) damage: Option<FrameRect>,
-    pub(super) diagnostics: HostRefreshDiagnostics,
-    pub(super) overlay_text: String,
+pub(in crate::ui::retained_host::host_contract) struct PlannedPresent {
+    pub(in crate::ui::retained_host::host_contract) presentation: HostWindowPresentationData,
+    pub(in crate::ui::retained_host::host_contract) damage: Option<FrameRect>,
+    pub(in crate::ui::retained_host::host_contract) diagnostics: HostRefreshDiagnostics,
+    pub(in crate::ui::retained_host::host_contract) overlay_text: String,
 }
 
-pub(super) fn plan_present_for_diagnostics(
+pub(in crate::ui::retained_host::host_contract) fn plan_present_for_diagnostics(
     current: &HostRefreshDiagnostics,
     can_region_repaint: bool,
     last_debug_overlay_text: Option<&str>,
@@ -96,7 +96,9 @@ pub(super) fn plan_present_for_diagnostics(
     }
 }
 
-pub(super) fn record_chrome_command_stream_counters(stream: &ChromeCommandStream) {
+pub(in crate::ui::retained_host::host_contract) fn record_chrome_command_stream_counters(
+    stream: &ChromeCommandStream,
+) {
     #[cfg(feature = "profiling")]
     {
         let counter = if stream.is_full_rebuild() {
@@ -130,7 +132,7 @@ fn repaint_outcome_for_damage(damage: Option<FrameRect>, size: (u32, u32)) -> Re
     }
 }
 
-pub(super) fn damage_with_debug_overlay(
+pub(in crate::ui::retained_host::host_contract) fn damage_with_debug_overlay(
     damage: Option<FrameRect>,
     last_debug_overlay_text: Option<&str>,
     debug_overlay_text: &str,
@@ -148,7 +150,9 @@ pub(super) fn damage_with_debug_overlay(
     Some(union_diagnostic_frames(&damage, &overlay))
 }
 
-pub(super) fn presentation_summary(presentation: &HostWindowPresentationData) -> String {
+pub(in crate::ui::retained_host::host_contract) fn presentation_summary(
+    presentation: &HostWindowPresentationData,
+) -> String {
     let layout = &presentation.host_layout;
     let scene = &presentation.host_scene_data;
     format!(
@@ -176,7 +180,7 @@ pub(super) fn presentation_summary(presentation: &HostWindowPresentationData) ->
     )
 }
 
-pub(super) fn frame_summary(frame: &FrameRect) -> String {
+pub(in crate::ui::retained_host::host_contract) fn frame_summary(frame: &FrameRect) -> String {
     format!(
         "{:.1},{:.1},{:.1},{:.1}",
         frame.x, frame.y, frame.width, frame.height

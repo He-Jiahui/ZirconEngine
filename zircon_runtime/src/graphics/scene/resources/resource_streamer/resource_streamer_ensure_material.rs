@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 
 use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy,
-    RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialLightingModel,
-    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValueState,
-    RenderMaterialPropertyValueSummary, RenderMaterialTextureSlotState,
-    RenderMaterialTextureSlotSummary, RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
+    RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
+    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
+    RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload,
+    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
+    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
+    RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
@@ -329,6 +330,7 @@ impl ResourceStreamer {
             cast_shadows: descriptor.cast_shadows,
             receive_shadows: descriptor.receive_shadows,
             render_queue: descriptor.render_queue,
+            render_queue_value: descriptor.render_queue_value,
             material_queue: descriptor.material_queue,
             depth_bias: descriptor.depth_bias,
             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
@@ -401,7 +403,7 @@ impl ResourceStreamer {
                 .iter()
                 .filter_map(|(_slot, texture)| texture.id()),
         ) {
-            self.ensure_texture(device, queue, texture_layout, texture_id)?;
+            self.ensure_material_texture(device, queue, texture_layout, texture_id)?;
         }
         self.materials.insert(
             id,
@@ -413,6 +415,32 @@ impl ResourceStreamer {
             },
         );
         Ok(())
+    }
+
+    fn ensure_material_texture(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        texture_id: ResourceId,
+    ) -> Result<(), GraphicsError> {
+        if self.material_texture_uses_output_target_binding(texture_id) {
+            self.ensure_output_target_texture_resource(device, texture_id)
+        } else {
+            self.ensure_texture(device, queue, texture_layout, texture_id)
+        }
+    }
+
+    fn material_texture_uses_output_target_binding(&self, texture_id: ResourceId) -> bool {
+        self.asset_manager
+            .load_texture_asset(texture_id)
+            .ok()
+            .map(|texture| {
+                let descriptor = texture.render_image_descriptor();
+                descriptor.usage.contains(&RenderImageUsage::RenderTarget)
+                    && descriptor.usage.contains(&RenderImageUsage::Sampled)
+            })
+            .unwrap_or(false)
     }
 
     fn load_shader_contract(&self, reference: AssetReference) -> Option<ShaderAsset> {

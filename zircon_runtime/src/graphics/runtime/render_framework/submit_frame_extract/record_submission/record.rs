@@ -2,7 +2,7 @@ use crate::core::framework::render::FrameHistoryHandle;
 
 use crate::graphics::ViewportFrame;
 
-use super::super::super::viewport_record::ViewportRecord;
+use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::runtime_feedback_batch::RuntimeFeedbackBatch;
@@ -30,10 +30,12 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     let (previous_handle, history_handle, history_status) =
         record_history(record, context, frame.generation, allocated_history);
     record_capture(record, context, frame);
-    let hybrid_gi_stats = update_hybrid_gi_runtime(record, hybrid_gi_feedback);
+    let hybrid_gi_stats =
+        update_hybrid_gi_runtime(record, context.camera_history_key(), hybrid_gi_feedback);
     let particle_stats = particle_feedback_stat_snapshot(particle_feedback);
     let virtual_geometry_stats = update_virtual_geometry_runtime(
         record,
+        context.camera_history_key(),
         virtual_geometry_feedback,
         virtual_geometry_indirect_segment_count,
     );
@@ -73,11 +75,12 @@ pub(super) fn particle_feedback_stat_snapshot(
         .unwrap_or_default()
 }
 
-pub(super) fn update_hybrid_gi_runtime(
+pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn update_hybrid_gi_runtime(
     record: &mut ViewportRecord,
+    camera_history_key: &ViewportCameraHistoryKey,
     feedback: crate::graphics::HybridGiRuntimeFeedback,
 ) -> HybridGiStatSnapshot {
-    let Some(runtime) = record.hybrid_gi_runtime_mut() else {
+    let Some(runtime) = record.hybrid_gi_runtime_mut(camera_history_key) else {
         return HybridGiStatSnapshot::default();
     };
     let update = runtime.update_after_render(feedback);
@@ -101,12 +104,13 @@ pub(super) fn update_hybrid_gi_runtime(
     )
 }
 
-pub(super) fn update_virtual_geometry_runtime(
+pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn update_virtual_geometry_runtime(
     record: &mut ViewportRecord,
+    camera_history_key: &ViewportCameraHistoryKey,
     feedback: crate::graphics::VirtualGeometryRuntimeFeedback,
     indirect_segment_count: usize,
 ) -> VirtualGeometryStatSnapshot {
-    let Some(runtime) = record.virtual_geometry_runtime_mut() else {
+    let Some(runtime) = record.virtual_geometry_runtime_mut(camera_history_key) else {
         return VirtualGeometryStatSnapshot::default();
     };
     let update = runtime.update_after_render(feedback);

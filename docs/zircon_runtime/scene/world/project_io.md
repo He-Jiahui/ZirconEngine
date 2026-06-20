@@ -20,12 +20,21 @@ implementation_files:
 plan_sources:
   - user: 2026-06-14 implement zircon_runtime runtime architecture plan code
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
+  - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md
   - docs/plans/zircon_runtime/runtime/index.md
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/project_io/camera.rs zircon_runtime/src/scene/world/project_io/physics.rs zircon_runtime/src/scene/world/project_io/post_process.rs zircon_runtime/src/scene/world/project_io/references.rs zircon_runtime/src/scene/world/project_io/script.rs zircon_runtime/src/scene/world/project_io/transform.rs
+  - rustfmt --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/render.rs zircon_runtime/src/scene/tests/asset_scene.rs zircon_runtime/src/scene/tests/dynamic_scene_session/capture.rs zircon_runtime/src/scene/tests/dynamic_scene_session/load.rs
+  - scene::tests::asset_scene::scene_assets_keep_script_only_entities_as_empty_nodes
+  - scene::tests::asset_scene::scene_asset_load_uses_asset_preserving_normalizer_source_guard
+  - scene::tests::dynamic_scene_session::capture::runtime_session_archive_capture_level_slot_to_existing_path_upserts_and_preserves_other_slots
+  - scene::tests::dynamic_scene_session::capture::runtime_session_archive_previews_capture_to_path_without_writing_archive
+  - scene::tests::dynamic_scene_session::load::runtime_session_archive_applies_slot_from_path_to_live_world_and_level
   - runtime_07_project_io_folder_split_keeps_entry_and_converter_owners
   - performance_hotpath_boundary_audit reports large_file_hotspot_count = 40 and runtime-other = 15 after the render product diagnostics owner split removed one runtime hotspot
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked attempted 2026-06-14; timed out while unrelated active editor/render lanes were compiling
+  - cargo test -p zircon_runtime --lib scene_asset --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-closeout-0619 --message-format short --color never -- --test-threads=1 --nocapture attempted 2026-06-20; timed out after 10 minutes with no pass/fail result
+  - cargo test -p zircon_runtime --lib scene::tests::asset_scene::scene_asset_load_uses_asset_preserving_normalizer_source_guard --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-closeout-0619 --message-format short --color never -- --exact --test-threads=1 --nocapture attempted 2026-06-20; timed out after 15 minutes with no pass/fail result and residual cargo/rustc processes were stopped
 doc_type: module-detail
 ---
 
@@ -54,6 +63,8 @@ The child modules each own one conversion family:
 
 Loading starts from either a `ResourceLocator` or a `SceneAsset`. The project manager resolves imported scene artifacts and asset references; builtin locators remain builtin handles, while missing model or material references fall back to explicit missing-resource handles. Component DTOs are translated into runtime scene components before the node record is inserted.
 
+`World::from_scene_asset` uses the asset-preserving post-load path: it rebuilds schedules, registries, typed component presence, derived state, and default per-entity maps without injecting a fallback camera or directional light. This keeps sparse assets such as script-only entities and transform-only hierarchies stable across `SceneAsset -> World -> SceneAsset` roundtrips. Project-document loading still uses the default-repair path so older serialized `World` files with no camera or light can regain runtime defaults.
+
 Saving walks runtime node records and component maps, converts runtime components back into scene asset DTOs, serializes script bindings from the dynamic component map, and returns structured `SceneProjectError::SceneAsset` errors when a persistent resource locator is missing. No editor-only authoring state is serialized here.
 
 ## Design and Rationale
@@ -64,7 +75,7 @@ The split follows the current scene/world owner shape rather than introducing a 
 
 ## Control Flow
 
-The entry file decides when a scene is loaded, saved, serialized, or rehydrated. It delegates value conversion to child modules at the point where a component field crosses the asset/runtime boundary. The post-load rehydration step stays in the entry file because it mutates multiple `World` maps and rebuilds runtime registries, schedules, derived state, and active camera/light defaults.
+The entry file decides when a scene is loaded, saved, serialized, or rehydrated. It delegates value conversion to child modules at the point where a component field crosses the asset/runtime boundary. The post-load rehydration step stays in the entry file because it mutates multiple `World` maps and rebuilds runtime registries, schedules, derived state, and active camera/light defaults. The shared `normalize_loaded_state` helper takes an explicit default-node policy so project-document recovery can add runtime defaults while scene-asset import preserves the authored entity set exactly.
 
 ## Edge Cases and Constraints
 
@@ -77,6 +88,12 @@ Script bindings remain JSON-decoded from the dynamic component store under `scri
 ## Test Coverage
 
 `runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` locks the project_io folder split. It verifies the entry file declares the six child modules, keeps the `World` project I/O entry points, does not reclaim converter helper definitions, and requires each child module to retain its narrow `pub(super)` conversion owner.
+
+Runtime 05 scene-asset closeout now pins the asset-preserving normalizer through `scene_assets_keep_script_only_entities_as_empty_nodes`: script-only entities remain `NodeKind::Empty`, keep `script.bindings`, and no longer gain default camera/light records during `SceneAsset` roundtrip. The same test also calls `World::to_render_extract()` so sparse asset worlds keep a safe render-extract path without persisting fallback camera/light nodes. Dynamic session single-entity fixtures use explicit `World::empty()` levels when they are testing remap collisions rather than default-level bootstrap contents.
+
+`scene_asset_load_uses_asset_preserving_normalizer_source_guard` adds source-level coverage for the same contract: `World::from_scene_asset` must call `normalize_scene_asset_after_load`, scene-asset normalization must pass `ensure_default_nodes = false`, project-document normalization must pass `true`, and default camera/light spawning must stay gated behind `ensure_default_nodes`.
+
+The 2026-06-20 Runtime 05 Cargo verification window did not produce a usable result: the broader `scene_asset` filter timed out after 10 minutes, then the exact source-guard test timed out after 15 minutes and its residual cargo/rustc processes were stopped. No Cargo pass or failure is claimed from those attempts.
 
 The Runtime 07 owner-budget evidence now reports `large_file_hotspot_count = 40` and `runtime-other = 15` after the render product diagnostics owner split removed one runtime hotspot and added the corresponding Runtime 07 guard. `performance_hotpath_boundary` now has `hotspot_guard_anchor_count = 25` after adding the render product diagnostics owner split guard. Package-level Cargo validation remains pending because the shared Windows workspace had active editor/render compile lanes during this slice.
 

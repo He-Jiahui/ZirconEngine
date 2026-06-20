@@ -120,8 +120,11 @@ fn interface_and_editor_dependency_boundaries_stay_documented_and_guarded() {
 
 #[test]
 fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
+    let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
     let manifests = all_manifest_sources();
+    let zip_dependency_line =
+        "zip = { version = \"9.0.0-pre2\", default-features = false, features = [\"deflate-flate2\"] }";
 
     for removed in ["cosmic-text", "kira", "rfd", "arboard"] {
         assert!(
@@ -134,11 +137,21 @@ fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
         );
     }
 
+    let zip_dependency_count = manifests
+        .iter()
+        .filter(|source| manifest_declares_dependency(source, "zip"))
+        .count();
+    assert_eq!(
+        zip_dependency_count, 1,
+        "zip should only appear in zircon_runtime for export archive materialization"
+    );
     assert!(
-        manifests
-            .iter()
-            .all(|source| !manifest_declares_dependency(source, "zip")),
-        "zip should not appear as a manifest dependency until archive materialization is implemented"
+        runtime_manifest.contains(zip_dependency_line),
+        "zip should stay pinned with minimal deflate-only features for the archive materializer"
+    );
+    assert!(
+        tech_stack.contains("zip 9.0.0-pre2") && tech_stack.contains("export archive materializer"),
+        "runtime tech-stack doc should record the single admitted zip dependency owner"
     );
     assert!(
         manifests
@@ -147,16 +160,19 @@ fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
         "tar should not appear as a manifest dependency until a server/CI artifact policy is implemented"
     );
     assert!(
-        tech_stack.contains("`zip` / `tar`"),
-        "runtime tech-stack doc should record that zip/tar are not current runtime dependencies"
+        tech_stack.contains("`tar`"),
+        "runtime tech-stack doc should record that tar is still not a current runtime dependency"
     );
 }
 
 #[test]
-fn export_archive_policy_is_documented_without_manifest_container_dependency() {
+fn export_archive_policy_allows_zip_only_for_archive_materializer() {
     let export_profile = read_repo_file("zircon_runtime/src/plugin/export_profile.rs");
+    let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
     let manifests = all_manifest_sources();
+    let zip_dependency_line =
+        "zip = { version = \"9.0.0-pre2\", default-features = false, features = [\"deflate-flate2\"] }";
 
     assert!(
         export_profile.contains("pub enum ExportPackagingStrategy")
@@ -167,15 +183,23 @@ fn export_archive_policy_is_documented_without_manifest_container_dependency() {
     );
     assert!(
         tech_stack.contains("## Export Archive Decision")
-            && tech_stack.contains("ZIP as the future desktop/editor archive container")
-            && tech_stack.contains("directory-first"),
-        "runtime tech-stack doc should record the ZIP archive decision without changing current export behavior"
+            && tech_stack.contains("ZIP archive materialization is implemented")
+            && tech_stack.contains("directory-first")
+            && tech_stack.contains("materialize_zip_archive")
+            && tech_stack.contains("preview_zip_archive"),
+        "runtime tech-stack doc should record the implemented ZIP archive materialization API"
+    );
+    let zip_dependency_count = manifests
+        .iter()
+        .filter(|source| manifest_declares_dependency(source, "zip"))
+        .count();
+    assert_eq!(
+        zip_dependency_count, 1,
+        "zip should only be declared by the runtime archive materializer"
     );
     assert!(
-        manifests
-            .iter()
-            .all(|source| !manifest_declares_dependency(source, "zip")),
-        "zip should stay out of manifests until export archive materialization lands"
+        runtime_manifest.contains(zip_dependency_line),
+        "zip dependency should remain pinned with no default features"
     );
     assert!(
         manifests
@@ -286,8 +310,15 @@ fn editor_only_dependency_candidates_have_editor_backlog_owner() {
 fn fontdue_editor_retained_host_dependency_has_migration_owner() {
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let editor_manifest = read_repo_file("zircon_editor/Cargo.toml");
-    let retained_text =
-        read_repo_file("zircon_editor/src/ui/retained_host/host_contract/painter/text.rs");
+    let retained_text = [
+        "zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs",
+        "zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs",
+        "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs",
+    ]
+    .into_iter()
+    .map(read_repo_file)
+    .collect::<Vec<_>>()
+    .join("\n");
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
     let backlog =
         read_repo_file("docs/editor-and-tooling/runtime-editor-only-dependency-backlog.md");

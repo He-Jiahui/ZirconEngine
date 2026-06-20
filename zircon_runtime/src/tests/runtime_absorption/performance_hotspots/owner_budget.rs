@@ -14,15 +14,15 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
         include_str!("../../../../../docs/engine-architecture/runtime-interface-convergence.md");
 
     for required_large_file_doc_anchor in [
-        "`hotspot_count = 36`",
+        "`hotspot_count = 30`",
         "`classification_count = 5`",
         "`decision_group_count = 5`",
         "`large_file_migration_debt_count = 5`",
         "`unclassified_hotspot_count = 0`",
-        "`editor-retained-host = 10`",
+        "`editor-retained-host = 3`",
         "`editor-ui = 8`",
         "`runtime-framework-render = 3`",
-        "`runtime-other = 12`",
+        "`runtime-other = 13`",
         "`support-hub = 3`",
         "zircon_runtime/src/asset/assets/scene/{mod,animation,asset,camera,defaults,entity,extensions,lighting,management,mesh,physics,post_process,transform}.rs",
         "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/{camera,visibility,hzb,light_grid,effect_stack,material,light,mesh_queue,gpu_scene,sprite,ui}.rs",
@@ -32,8 +32,8 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
         "zircon_runtime/src/core/framework/render/post_process/stack.rs",
         "zircon_runtime/src/core/framework/render/post_process/volume_component.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs",
-        "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs",
         "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs",
+        "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph.rs",
         "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs",
         "zircon_hub/src/tauri_app/runtime_state/project_actions.rs",
         "zircon_hub/src/tauri_app/view_model.rs",
@@ -55,7 +55,9 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
         "`hotspot_count = 39`",
         "`hotspot_count = 38`",
         "`hotspot_count = 37`",
+        "`hotspot_count = 36`",
         "`editor-retained-host = 11`",
+        "`editor-retained-host = 10`",
         "`runtime-framework-render = 1`",
         "`runtime-framework-render = 2`",
         "`runtime-framework-render = 4`",
@@ -66,8 +68,9 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
         "`runtime-other = 16`",
         "`runtime-other = 15`",
         "`runtime-other = 14`",
-        "`runtime-other = 13`",
+        "`runtime-other = 12`",
         "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs",
+        "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs",
         "zircon_runtime/src/asset/assets/scene.rs",
         "zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs`: 1495 lines",
     ] {
@@ -81,7 +84,7 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
         "Runtime 07 owner-budgeted optimization gate",
         "large_file_ownership_gate",
         "migration-debt-present",
-        "hotspots 36",
+        "hotspots 30",
         "debt groups 5",
         "owner classes 5",
         "unclassified 0",
@@ -97,10 +100,10 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     }
 
     for required_mirror_anchor in [
-        "hotspots 36, debt groups 5, owner classes 5, unclassified hotspots 0",
-        "36 hotspots, 5 migration-debt owner groups, and zero unclassified hotspots",
-        "`editor-retained-host=10`, `editor-ui=8`, `runtime-framework-render=3`, `runtime-other=12`, and `support-hub=3`",
-        "threshold 1000 lines, 36 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots",
+        "hotspots 30, debt groups 5, owner classes 5, unclassified hotspots 0",
+        "30 hotspots, 5 migration-debt owner groups, and zero unclassified hotspots",
+        "`editor-retained-host=3`, `editor-ui=8`, `runtime-framework-render=3`, `runtime-other=13`, and `support-hub=3`",
+        "threshold 1000 lines, 30 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots",
     ] {
         assert!(
             runtime_07_plan.contains(required_mirror_anchor)
@@ -114,21 +117,21 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
 
     assert!(
         hotspot_doc.contains(
-            "threshold 1000 lines, 36 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots"
+            "threshold 1000 lines, 30 hotspots, 5 owner debt groups, 5 owner classes, and 0 unclassified hotspots"
         ),
-        "hotspot inventory should carry the current 36-hotspot owner-budget gate, not only historical drift rows"
+        "hotspot inventory should carry the current 30-hotspot owner-budget gate, not only historical drift rows"
     );
     assert!(
         architecture_review.contains(
-            "reports M1 gate status `migration-debt-present`, 36 hotspots, 5 migration-debt owner groups, and zero unclassified hotspots"
+            "reports M1 gate status `migration-debt-present`, 30 hotspots, 5 migration-debt owner groups, and zero unclassified hotspots"
         ),
-        "architecture review should carry the current 36-hotspot large-file audit summary"
+        "architecture review should carry the current 30-hotspot large-file audit summary"
     );
     assert!(
         interface_doc.contains(
-            "current audit output reports 36 hotspots above 1000 lines, M1 gate status `migration-debt-present`, 5 migration-debt owner groups, and zero unclassified hotspots"
+            "current audit output reports 30 hotspots above 1000 lines, M1 gate status `migration-debt-present`, 5 migration-debt owner groups, and zero unclassified hotspots"
         ),
-        "interface convergence doc should carry the current 36-hotspot large-file audit summary"
+        "interface convergence doc should carry the current 30-hotspot large-file audit summary"
     );
 }
 
@@ -175,7 +178,7 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
     }
 
     for audit_anchor in [
-        "EXPECTED_SOURCE_FILE_COUNT = 45",
+        "EXPECTED_SOURCE_FILE_COUNT = 46",
         "EXPECTED_TEST_FILE_COUNT = 6",
         "ANIMATION_SCENE_ANCHORS",
         "MIRROR_DOCS_GUARD",
@@ -201,7 +204,7 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for expected_anchor in [
             "performance_hotpath_boundary",
-            "expected_source_file_count = 45",
+            "expected_source_file_count = 46",
             "expected_test_file_count = 6",
             "frame_span_anchor_count = 9",
             "query_counter_anchor_count = 32",
@@ -209,13 +212,14 @@ fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts() {
             "extract_counter_anchor_count = 21",
             "asset_worker_anchor_count = 13",
             "animation_scene_anchor_count = 19",
-            "hotspot_guard_anchor_count = 29",
-            "test_anchor_count = 26",
-            "doc_anchor_count = 33",
+            "profile_counter_hotspot_anchor_count = 8",
+            "hotspot_guard_anchor_count = 32",
+            "test_anchor_count = 29",
+            "doc_anchor_count = 35",
             "cargo_gate_anchor_count = 5",
             "stale_hotspot_placeholder_present = false",
             "large_file_m1_gate_status = migration-debt-present",
-            "large_file_hotspot_count = 36",
+            "large_file_hotspot_count = 30",
             "large_file_migration_debt_count = 5",
             "large_file_owner_class_count = 5",
             "large_file_unclassified_hotspot_count = 0",

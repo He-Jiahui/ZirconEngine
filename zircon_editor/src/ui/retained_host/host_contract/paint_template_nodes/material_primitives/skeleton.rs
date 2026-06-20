@@ -10,7 +10,7 @@ use style::{
 mod geometry;
 mod style;
 
-pub(super) fn push_skeleton_primitive_commands(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_skeleton_primitive_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

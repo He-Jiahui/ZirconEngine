@@ -1,12 +1,61 @@
 use crate::core::framework::render::{
     CameraRenderDescriptor, CameraRenderType, PostProcessGraphResourceNames, RenderCameraClear,
 };
+use crate::core::math::Vec4;
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ViewportCameraStackAttachmentPolicy {
-    scene_color_load: RenderGraphAttachmentLoadOp,
-    scene_depth_load: RenderGraphAttachmentLoadOp,
+    scene_clear_plan: ViewportSceneClearPlan,
+}
+
+/// Camera clear intent is kept separate from graph attachment load ops because WGPU load clears
+/// affect the whole texture view; split-view cameras need a later region-scoped draw clear.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct ViewportSceneClearPlan {
+    scene_color: Option<ViewportSceneColorClear>,
+    scene_depth: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum ViewportSceneColorClear {
+    Preview,
+    Color(Vec4),
+    Transparent,
+}
+
+impl ViewportSceneClearPlan {
+    pub(crate) const fn new(
+        scene_color: Option<ViewportSceneColorClear>,
+        scene_depth: bool,
+    ) -> Self {
+        Self {
+            scene_color,
+            scene_depth,
+        }
+    }
+
+    pub(crate) fn scene_color(self) -> Option<ViewportSceneColorClear> {
+        self.scene_color
+    }
+
+    pub(crate) fn scene_depth(self) -> bool {
+        self.scene_depth
+    }
+
+    pub(crate) fn has_clear(self) -> bool {
+        self.scene_color.is_some() || self.scene_depth
+    }
+}
+
+impl ViewportSceneColorClear {
+    pub(crate) fn resolve(self, preview_clear_color: Vec4) -> Vec4 {
+        match self {
+            Self::Preview => preview_clear_color,
+            Self::Color(color) => color,
+            Self::Transparent => Vec4::ZERO,
+        }
+    }
 }
 
 impl ViewportCameraStackAttachmentPolicy {
@@ -19,12 +68,22 @@ impl ViewportCameraStackAttachmentPolicy {
 
     #[cfg(test)]
     fn scene_color_ops(self) -> RenderGraphAttachmentOps {
-        Self::ops_with_load(self.scene_color_load)
+        self.apply_to_first_attachment_write(
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            RenderGraphAttachmentOps::clear_store(),
+        )
     }
 
     #[cfg(test)]
     fn scene_depth_ops(self) -> RenderGraphAttachmentOps {
-        Self::ops_with_load(self.scene_depth_load)
+        self.apply_to_first_attachment_write(
+            PostProcessGraphResourceNames::SCENE_DEPTH,
+            RenderGraphAttachmentOps::clear_store(),
+        )
+    }
+
+    pub(crate) fn scene_clear_plan(self) -> ViewportSceneClearPlan {
+        self.scene_clear_plan
     }
 
     pub(crate) fn apply_to_first_attachment_write(
@@ -37,11 +96,11 @@ impl ViewportCameraStackAttachmentPolicy {
         }
         match resource_name {
             PostProcessGraphResourceNames::SCENE_COLOR => RenderGraphAttachmentOps {
-                load: self.scene_color_load,
+                load: RenderGraphAttachmentLoadOp::Load,
                 store: graph_ops.store,
             },
             PostProcessGraphResourceNames::SCENE_DEPTH => RenderGraphAttachmentOps {
-                load: self.scene_depth_load,
+                load: RenderGraphAttachmentLoadOp::Load,
                 store: graph_ops.store,
             },
             _ => graph_ops,
@@ -49,45 +108,29 @@ impl ViewportCameraStackAttachmentPolicy {
     }
 
     const fn from_base_camera(camera: &CameraRenderDescriptor) -> Self {
-        let scene_color_load = match camera.clear {
-            RenderCameraClear::Skybox | RenderCameraClear::Color(_) => {
-                RenderGraphAttachmentLoadOp::Clear
-            }
-            RenderCameraClear::DepthOnly => RenderGraphAttachmentLoadOp::Load,
+        let scene_color = match camera.clear {
+            RenderCameraClear::Skybox => Some(ViewportSceneColorClear::Preview),
+            RenderCameraClear::Color(color) => Some(ViewportSceneColorClear::Color(color)),
+            RenderCameraClear::DepthOnly => None,
             RenderCameraClear::None if camera.camera.msaa_samples > 1 => {
-                RenderGraphAttachmentLoadOp::Clear
+                Some(ViewportSceneColorClear::Transparent)
             }
-            RenderCameraClear::None => RenderGraphAttachmentLoadOp::Load,
+            RenderCameraClear::None => None,
         };
-        let scene_depth_load = match camera.clear {
+        let scene_depth = match camera.clear {
             RenderCameraClear::Skybox
             | RenderCameraClear::Color(_)
-            | RenderCameraClear::DepthOnly => RenderGraphAttachmentLoadOp::Clear,
-            RenderCameraClear::None => RenderGraphAttachmentLoadOp::Load,
+            | RenderCameraClear::DepthOnly => true,
+            RenderCameraClear::None => false,
         };
         Self {
-            scene_color_load,
-            scene_depth_load,
+            scene_clear_plan: ViewportSceneClearPlan::new(scene_color, scene_depth),
         }
     }
 
     const fn from_overlay_camera(camera: &CameraRenderDescriptor) -> Self {
-        let scene_depth_load = if camera.clear_depth {
-            RenderGraphAttachmentLoadOp::Clear
-        } else {
-            RenderGraphAttachmentLoadOp::Load
-        };
         Self {
-            scene_color_load: RenderGraphAttachmentLoadOp::Load,
-            scene_depth_load,
-        }
-    }
-
-    #[cfg(test)]
-    const fn ops_with_load(load: RenderGraphAttachmentLoadOp) -> RenderGraphAttachmentOps {
-        RenderGraphAttachmentOps {
-            load,
-            store: crate::render_graph::RenderGraphAttachmentStoreOp::Store,
+            scene_clear_plan: ViewportSceneClearPlan::new(None, camera.clear_depth),
         }
     }
 }
@@ -118,17 +161,47 @@ mod tests {
 
     #[test]
     fn base_camera_clear_modes_translate_to_scene_load_ops() {
+        let preview_clear = Vec4::new(0.125, 0.25, 0.5, 1.0);
+        let skybox = ViewportCameraStackAttachmentPolicy::from_camera(&camera(
+            CameraRenderType::Base,
+            RenderCameraClear::Skybox,
+        ));
+        assert_eq!(
+            skybox.scene_clear_plan(),
+            ViewportSceneClearPlan::new(Some(ViewportSceneColorClear::Preview), true)
+        );
+        assert_eq!(
+            skybox
+                .scene_clear_plan()
+                .scene_color()
+                .unwrap()
+                .resolve(preview_clear),
+            preview_clear
+        );
+        assert_eq!(
+            skybox.scene_color_ops(),
+            RenderGraphAttachmentOps::load_store()
+        );
+        assert_eq!(
+            skybox.scene_depth_ops(),
+            RenderGraphAttachmentOps::load_store()
+        );
+
         let color = ViewportCameraStackAttachmentPolicy::from_camera(&camera(
             CameraRenderType::Base,
             RenderCameraClear::Color(Vec4::ONE),
         ));
         assert_eq!(
+            color.scene_clear_plan(),
+            ViewportSceneClearPlan::new(Some(ViewportSceneColorClear::Color(Vec4::ONE)), true)
+        );
+        assert_eq!(
             color.scene_color_ops(),
-            RenderGraphAttachmentOps::clear_store()
+            RenderGraphAttachmentOps::load_store()
         );
         assert_eq!(
             color.scene_depth_ops(),
-            RenderGraphAttachmentOps::clear_store()
+            RenderGraphAttachmentOps::load_store()
         );
 
         let depth_only = ViewportCameraStackAttachmentPolicy::from_camera(&camera(
@@ -136,18 +209,26 @@ mod tests {
             RenderCameraClear::DepthOnly,
         ));
         assert_eq!(
+            depth_only.scene_clear_plan(),
+            ViewportSceneClearPlan::new(None, true)
+        );
+        assert_eq!(
             depth_only.scene_color_ops(),
             RenderGraphAttachmentOps::load_store()
         );
         assert_eq!(
             depth_only.scene_depth_ops(),
-            RenderGraphAttachmentOps::clear_store()
+            RenderGraphAttachmentOps::load_store()
         );
 
         let no_clear = ViewportCameraStackAttachmentPolicy::from_camera(&camera(
             CameraRenderType::Base,
             RenderCameraClear::None,
         ));
+        assert_eq!(
+            no_clear.scene_clear_plan(),
+            ViewportSceneClearPlan::default()
+        );
         assert_eq!(
             no_clear.scene_color_ops(),
             RenderGraphAttachmentOps::load_store()
@@ -166,8 +247,12 @@ mod tests {
         let policy = ViewportCameraStackAttachmentPolicy::from_camera(&descriptor);
 
         assert_eq!(
+            policy.scene_clear_plan(),
+            ViewportSceneClearPlan::new(Some(ViewportSceneColorClear::Transparent), false)
+        );
+        assert_eq!(
             policy.scene_color_ops(),
-            RenderGraphAttachmentOps::clear_store()
+            RenderGraphAttachmentOps::load_store()
         );
         assert_eq!(
             policy.scene_depth_ops(),
@@ -185,16 +270,24 @@ mod tests {
 
         let clear_depth = ViewportCameraStackAttachmentPolicy::from_camera(&descriptor);
         assert_eq!(
+            clear_depth.scene_clear_plan(),
+            ViewportSceneClearPlan::new(None, true)
+        );
+        assert_eq!(
             clear_depth.scene_color_ops(),
             RenderGraphAttachmentOps::load_store()
         );
         assert_eq!(
             clear_depth.scene_depth_ops(),
-            RenderGraphAttachmentOps::clear_store()
+            RenderGraphAttachmentOps::load_store()
         );
 
         descriptor.clear_depth = false;
         let load_depth = ViewportCameraStackAttachmentPolicy::from_camera(&descriptor);
+        assert_eq!(
+            load_depth.scene_clear_plan(),
+            ViewportSceneClearPlan::default()
+        );
         assert_eq!(
             load_depth.scene_color_ops(),
             RenderGraphAttachmentOps::load_store()
@@ -229,7 +322,7 @@ mod tests {
                 clear_discard,
             ),
             RenderGraphAttachmentOps {
-                load: RenderGraphAttachmentLoadOp::Clear,
+                load: RenderGraphAttachmentLoadOp::Load,
                 store: RenderGraphAttachmentStoreOp::Discard,
             }
         );

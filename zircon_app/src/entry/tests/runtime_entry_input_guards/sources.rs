@@ -69,11 +69,17 @@ pub(super) fn runtime_host_requests_ime_root_source() -> &'static str {
     include_str!("../../runtime_entry_app/host_requests/ime/mod.rs")
 }
 
+pub(super) fn runtime_host_requests_cursor_root_source() -> &'static str {
+    include_str!("../../runtime_entry_app/host_requests/cursor/mod.rs")
+}
+
 pub(super) fn runtime_host_requests_source() -> String {
     [
         runtime_host_requests_root_source(),
         include_str!("../../runtime_entry_app/host_requests/drain.rs"),
         include_str!("../../runtime_entry_app/host_requests/routing.rs"),
+        runtime_host_requests_cursor_root_source(),
+        include_str!("../../runtime_entry_app/host_requests/cursor/request.rs"),
         runtime_host_requests_ime_root_source(),
         include_str!("../../runtime_entry_app/host_requests/ime/enable.rs"),
         include_str!("../../runtime_entry_app/host_requests/ime/geometry.rs"),

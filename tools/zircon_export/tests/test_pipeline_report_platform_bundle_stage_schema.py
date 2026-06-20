@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _read_stage_report,
     _write_bundle_manifest_from_platform_report,
     _write_platform_bundle_fixture,
@@ -112,6 +112,86 @@ class PlatformBundleStageSchemaTests(unittest.TestCase):
                     self.assertTrue(
                         any(
                             expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_platform_bundle_required_path_blank_string(
+        self,
+    ) -> None:
+        cases = (
+            "bundle",
+            "host_executable",
+            "host_source",
+            "host_source_origin",
+            "pack",
+            "pack_source",
+            "pack_source_origin",
+            "bundle_manifest",
+        )
+        for field in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(out)
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    platform_report[field] = " "
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    if field != "bundle_manifest":
+                        _write_bundle_manifest_from_platform_report(
+                            fixture["bundle_manifest"],
+                            platform_report,
+                        )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertIn("PlatformBundle", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"PlatformBundle report {field} must be a non-empty string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_platform_bundle_optional_path_blank_string(
+        self,
+    ) -> None:
+        cases = (
+            ("delta_pack", True),
+            ("delta_pack_source", True),
+            ("delta_pack_source_origin", True),
+            ("native_plugins", False),
+        )
+        for field, with_delta in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_delta=with_delta,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    platform_report[field] = " "
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertIn("PlatformBundle", report["fatal_stages"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            f"PlatformBundle report {field} must be a non-empty string"
+                            in diagnostic
                             for diagnostic in report["diagnostics"]
                         ),
                         report["diagnostics"],

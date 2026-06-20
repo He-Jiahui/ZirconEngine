@@ -5,70 +5,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.zircon_export.native_dynamic_contract import (
+    NATIVE_DYNAMIC_ABI_STRING_FIELDS,
+    NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
+)
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.tests.export_test_support import (
-    _write_compile_host_report,
-    _write_native_dynamic_report,
-    _write_native_dynamic_stage_plugins,
-    _write_pack_report,
-    _write_stage_report,
-    _write_validate_report_with_native_dynamic_exports,
+from tools.zircon_export.tests.native_dynamic_stage_schema_test_support import (
+    NativeDynamicStageSchemaReportAssertions,
 )
 
 
-class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
-    def _write_native_dynamic_reports(self, out: Path) -> Path:
-        _write_validate_report_with_native_dynamic_exports(out)
-        native_plugins = _write_native_dynamic_stage_plugins(
-            out / "stages" / "native_dynamic"
-        )
-        _write_native_dynamic_report(out, native_plugins)
-        _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
-        _write_stage_report(out, "cook_assets", fatal=False)
-        _write_pack_report(out, out / "pack-output" / "assets.zrpack")
-        _write_stage_report(out, "platform_bundle", fatal=False)
-        return out / "stages" / "native_dynamic" / "report.json"
-
-    def _assert_native_dynamic_report_field_diagnostic(
-        self,
-        field: str,
-        value: object,
-        expected_diagnostic: str,
-        unexpected_diagnostic: str | None = None,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            native_report_path = self._write_native_dynamic_reports(out)
-            native_report = json.loads(
-                native_report_path.read_text(encoding="utf-8")
-            )
-            native_report[field] = value
-            native_report_path.write_text(
-                json.dumps(native_report, indent=2),
-                encoding="utf-8",
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            self.assertTrue(report["fatal"])
-            self.assertEqual(report["missing_stages"], [])
-            self.assertIn("NativeDynamic", report["fatal_stages"])
-            self.assertTrue(
-                any(
-                    expected_diagnostic in diagnostic
-                    for diagnostic in report["diagnostics"]
-                ),
-                report["diagnostics"],
-            )
-            if unexpected_diagnostic is not None:
-                self.assertFalse(
-                    any(
-                        unexpected_diagnostic in diagnostic
-                        for diagnostic in report["diagnostics"]
-                    ),
-                    report["diagnostics"],
-                )
-
+class PipelineReportNativeDynamicStageSchemaTests(
+    NativeDynamicStageSchemaReportAssertions,
+    unittest.TestCase,
+):
     def test_report_stage_rejects_native_dynamic_unknown_top_level_field(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"
@@ -127,6 +77,34 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                     f"native_dynamic report {field} must be a string array",
                 )
 
+    def test_report_stage_rejects_native_dynamic_string_array_fields_blank_entry(
+        self,
+    ) -> None:
+        cases = (
+            ("artifact_extensions", [""], "artifact_extensions"),
+            ("artifact_extensions", ["   "], "artifact_extensions"),
+            (
+                "artifact_extensions",
+                [".dll", ""],
+                "artifact_extensions",
+            ),
+            ("native_dynamic_packages", [""], "native_dynamic_packages"),
+            ("native_dynamic_packages", ["   "], "native_dynamic_packages"),
+            (
+                "native_dynamic_packages",
+                ["animation", ""],
+                "native_dynamic_packages",
+            ),
+        )
+        for field, value, expected_field in cases:
+            with self.subTest(field=field, value=value):
+                self._assert_native_dynamic_report_field_diagnostic(
+                    field,
+                    value,
+                    f"native_dynamic report {expected_field} "
+                    "must not contain blank entries",
+                )
+
     def test_report_stage_rejects_native_dynamic_count_fields_non_integer(
         self,
     ) -> None:
@@ -134,6 +112,15 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
             "package_count",
             "1",
             "native_dynamic report package_count must be an integer",
+        )
+
+    def test_report_stage_rejects_native_dynamic_negative_count_fields(
+        self,
+    ) -> None:
+        self._assert_native_dynamic_report_field_diagnostic(
+            "package_count",
+            -1,
+            "native_dynamic report package_count must be non-negative",
         )
 
     def test_report_stage_rejects_native_dynamic_bool_fields_non_bool(self) -> None:
@@ -247,237 +234,42 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
-    def test_report_stage_rejects_native_dynamic_build_plan_unknown_field(
+    def test_report_stage_rejects_native_dynamic_empty_required_string_release_evidence_field(
         self,
     ) -> None:
-        self._assert_native_dynamic_report_field_diagnostic(
-            "native_build_plan",
-            _native_build_plan(unsigned_sidecar="target/sidecar.bin"),
-            "native_dynamic report native_build_plan unknown field unsigned_sidecar",
-        )
-
-    def test_report_stage_rejects_native_dynamic_build_plan_missing_release_evidence_field(
-        self,
-    ) -> None:
-        cases = (
-            (
-                "workspace_manifest",
-                "native_dynamic report native_build_plan.workspace_manifest must be a string",
-            ),
-            (
-                "target_dir",
-                "native_dynamic report native_build_plan.target_dir must be a string",
-            ),
-            (
-                "cargo_profile",
-                "native_dynamic report native_build_plan.cargo_profile must be a string",
-            ),
-            (
-                "release",
-                "native_dynamic report native_build_plan.release must be a boolean",
-            ),
-            (
-                "build_features",
-                "native_dynamic report native_build_plan.build_features must be a string array",
-            ),
-            (
-                "package_count",
-                "native_dynamic report native_build_plan.package_count must be an integer",
-            ),
-            (
-                "diagnostics",
-                "native_dynamic report native_build_plan.diagnostics must be a string array",
-            ),
-            (
-                "packages",
-                "native_dynamic report native_build_plan.packages must be an object array",
-            ),
-            (
-                "fatal",
-                "native_dynamic report native_build_plan.fatal must be a boolean",
-            ),
-        )
-        for field, expected_diagnostic in cases:
+        for field in (
+            "content_hash",
+            "loader_manifest",
+            "native_plugin_root",
+            "plugins_dir",
+            "stage_output",
+            "target_platform",
+            "validate_report",
+        ):
             with self.subTest(field=field):
                 self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_plan",
-                    _native_build_plan_without(field),
-                    expected_diagnostic,
+                    field,
+                    "",
+                    f"native_dynamic report {field} must be a non-empty string",
                 )
 
-    def test_report_stage_rejects_native_dynamic_build_plan_field_types(
+    def test_report_stage_rejects_native_dynamic_blank_required_string_release_evidence_field(
         self,
     ) -> None:
-        cases = (
-            ("fatal", "false", "must be a boolean"),
-            ("diagnostics", [42], "must be a string array"),
-            ("workspace_manifest", 42, "must be a string"),
-            ("target_dir", 42, "must be a string"),
-            ("cargo_profile", 42, "must be a string"),
-            ("release", "true", "must be a boolean"),
-            ("build_features", [42], "must be a string array"),
-            ("package_count", "1", "must be an integer"),
-            ("packages", "not-an-array", "must be an object array"),
-            ("packages[0]", [42], "must be an object"),
-        )
-        for expected_field, value, expected_type in cases:
-            field = expected_field.split("[", maxsplit=1)[0]
-            with self.subTest(field=expected_field, value=value):
-                self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_plan",
-                    _native_build_plan(**{field: value}),
-                    "native_dynamic report "
-                    f"native_build_plan.{expected_field} {expected_type}",
-                )
-
-    def test_report_stage_rejects_native_dynamic_build_plan_package_unknown_field(
-        self,
-    ) -> None:
-        self._assert_native_dynamic_report_field_diagnostic(
-            "native_build_plan",
-            _native_build_plan(
-                packages=[
-                    _native_build_plan_package(
-                        unsigned_sidecar="target/sidecar.bin"
-                    )
-                ]
-            ),
-            "native_dynamic report native_build_plan.packages[0] "
-            "unknown field unsigned_sidecar",
-        )
-
-    def test_report_stage_rejects_native_dynamic_build_plan_package_field_types(
-        self,
-    ) -> None:
-        cases = (
-            ("package_id", 42, "must be a string"),
-            ("crate_name", 42, "must be a string"),
-            ("manifest_path", 42, "must be a string"),
-            ("workspace_manifest", 42, "must be a string"),
-            ("target_dir", 42, "must be a string"),
-            ("cargo_profile", 42, "must be a string"),
-            ("expected_loadable_artifact", 42, "must be a string"),
-            ("release", "true", "must be a boolean"),
-            ("features", [42], "must be a string array"),
-            ("command", [42], "must be a string array"),
-        )
-        for field, value, expected_type in cases:
-            with self.subTest(field=field, value=value):
-                self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_plan",
-                    _native_build_plan(
-                        packages=[_native_build_plan_package(**{field: value})]
-                    ),
-                    "native_dynamic report native_build_plan."
-                    f"packages[0].{field} {expected_type}",
-                )
-
-    def test_report_stage_rejects_native_dynamic_build_execution_unknown_field(
-        self,
-    ) -> None:
-        self._assert_native_dynamic_report_field_diagnostic(
-            "native_build_execution",
-            _native_build_execution(unsigned_sidecar="target/sidecar.bin"),
-            "native_dynamic report native_build_execution unknown field unsigned_sidecar",
-        )
-
-    def test_report_stage_rejects_native_dynamic_build_execution_missing_release_evidence_field(
-        self,
-    ) -> None:
-        cases = (
-            (
-                "enabled",
-                "native_dynamic report native_build_execution.enabled must be a boolean",
-            ),
-            (
-                "fatal",
-                "native_dynamic report native_build_execution.fatal must be a boolean",
-            ),
-            (
-                "diagnostics",
-                "native_dynamic report native_build_execution.diagnostics must be a string array",
-            ),
-            (
-                "package_count",
-                "native_dynamic report native_build_execution.package_count must be an integer",
-            ),
-            (
-                "packages",
-                "native_dynamic report native_build_execution.packages must be an object array",
-            ),
-        )
-        for field, expected_diagnostic in cases:
+        for field in (
+            "content_hash",
+            "loader_manifest",
+            "native_plugin_root",
+            "plugins_dir",
+            "stage_output",
+            "target_platform",
+            "validate_report",
+        ):
             with self.subTest(field=field):
                 self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_execution",
-                    _native_build_execution_without(field),
-                    expected_diagnostic,
-                )
-
-    def test_report_stage_rejects_native_dynamic_build_execution_field_types(
-        self,
-    ) -> None:
-        cases = (
-            ("enabled", "true", "must be a boolean"),
-            ("fatal", "false", "must be a boolean"),
-            ("skipped", "true", "must be a boolean"),
-            ("skip_reason", 42, "must be a string"),
-            ("diagnostics", [42], "must be a string array"),
-            ("package_count", "1", "must be an integer"),
-            ("packages", "not-an-array", "must be an object array"),
-            ("packages[0]", [42], "must be an object"),
-        )
-        for expected_field, value, expected_type in cases:
-            field = expected_field.split("[", maxsplit=1)[0]
-            with self.subTest(field=expected_field, value=value):
-                self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_execution",
-                    _native_build_execution(**{field: value}),
-                    "native_dynamic report "
-                    f"native_build_execution.{expected_field} {expected_type}",
-                )
-
-    def test_report_stage_rejects_native_dynamic_build_execution_package_unknown_field(
-        self,
-    ) -> None:
-        self._assert_native_dynamic_report_field_diagnostic(
-            "native_build_execution",
-            _native_build_execution(
-                packages=[
-                    _native_build_execution_package(
-                        unsigned_sidecar="target/sidecar.bin"
-                    )
-                ]
-            ),
-            "native_dynamic report native_build_execution.packages[0] "
-            "unknown field unsigned_sidecar",
-        )
-
-    def test_report_stage_rejects_native_dynamic_build_execution_package_field_types(
-        self,
-    ) -> None:
-        cases = (
-            ("package_id", 42, "must be a string"),
-            ("crate_name", 42, "must be a string"),
-            ("command", [42], "must be a string array"),
-            ("exit_code", "0", "must be an integer"),
-            ("stdout", 42, "must be a string"),
-            ("stderr", 42, "must be a string"),
-            ("expected_loadable_artifact", 42, "must be a string"),
-            ("copied_loadable_artifact", 42, "must be a string"),
-            ("copied_sidecars", [42], "must be a string array"),
-        )
-        for field, value, expected_type in cases:
-            with self.subTest(field=field, value=value):
-                self._assert_native_dynamic_report_field_diagnostic(
-                    "native_build_execution",
-                    _native_build_execution(
-                        packages=[
-                            _native_build_execution_package(**{field: value})
-                        ]
-                    ),
-                    "native_dynamic report native_build_execution."
-                    f"packages[0].{field} {expected_type}",
+                    field,
+                    "   ",
+                    f"native_dynamic report {field} must be a non-empty string",
                 )
 
     def test_report_stage_rejects_native_dynamic_operation_audit_unknown_field(
@@ -552,6 +344,21 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                     "NativeDynamic report native_signing is malformed",
                 )
 
+    def test_report_stage_rejects_native_dynamic_operation_audit_blank_allowed_platform_entry(
+        self,
+    ) -> None:
+        for allowed_platforms in ([""], ["   "], ["windows", ""]):
+            with self.subTest(allowed_platforms=allowed_platforms):
+                self._assert_native_dynamic_report_field_diagnostic(
+                    "native_signing",
+                    _native_operation_audit(
+                        allowed_platforms=allowed_platforms
+                    ),
+                    "native_dynamic report native_signing.allowed_platforms "
+                    "must not contain blank entries",
+                    "NativeDynamic report native_signing is malformed",
+                )
+
     def test_report_stage_rejects_native_dynamic_operation_audit_package_missing_required_field(
         self,
     ) -> None:
@@ -594,6 +401,24 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                     audit,
                     "native_dynamic report native_signing packages[0] "
                     f"artifacts[0].{field} {expected_type}",
+                    "NativeDynamic report native_signing is malformed",
+                )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_artifact_empty_command(
+        self,
+    ) -> None:
+        for command in ([], ["signtool", ""], ["signtool", "   "]):
+            with self.subTest(command=command):
+                artifact = _native_operation_audit_artifact(command=command)
+                package = _native_operation_audit_package(
+                    artifacts=[artifact]
+                )
+                audit = _native_operation_audit(packages=[package])
+                self._assert_native_dynamic_report_field_diagnostic(
+                    "native_signing",
+                    audit,
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts[0].command must be a non-empty string array",
                     "NativeDynamic report native_signing is malformed",
                 )
 
@@ -719,6 +544,89 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                     f"package_exports[0].abi.{field} {expected_type}",
                 )
 
+    def test_report_stage_rejects_native_dynamic_package_export_abi_shape_before_contract(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "abi_version",
+                "3",
+                "native_dynamic report package_exports[0].abi.abi_version "
+                "must be an integer",
+                (
+                    "native_dynamic report package_exports[0].abi.abi_version "
+                    "must be 3",
+                    "native_dynamic loader_manifest plugin animation "
+                    "abi.abi_version must be a string",
+                ),
+            ),
+            *(
+                (
+                    field,
+                    "   ",
+                    f"native_dynamic report package_exports[0].abi.{field} "
+                    "must be a non-empty trimmed string",
+                    (
+                        f"native_dynamic report package_exports[0].abi.{field} "
+                        f"must be {NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS[field]}",
+                        "native_dynamic loader_manifest plugin animation "
+                        f"abi.{field}",
+                    ),
+                )
+                for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS
+            ),
+        )
+        for field, value, expected_diagnostic, unexpected_diagnostics in cases:
+            with self.subTest(field=field):
+                abi = {
+                    "abi_version": 3,
+                    **NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
+                    field: value,
+                }
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report["package_exports"] = [
+                        {
+                            "package_id": "animation",
+                            "directory": "animation",
+                            "path": "plugins/animation",
+                            "manifest": "plugins/animation/plugin.toml",
+                            "package_report": (
+                                "plugins/animation/native_dynamic_package.toml"
+                            ),
+                            "abi": abi,
+                        }
+                    ]
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    for unexpected_diagnostic in unexpected_diagnostics:
+                        self.assertFalse(
+                            any(
+                                unexpected_diagnostic in diagnostic
+                                for diagnostic in report["diagnostics"]
+                            ),
+                            report["diagnostics"],
+                        )
+
     def test_report_stage_rejects_native_dynamic_package_export_abi_missing_required_field(
         self,
     ) -> None:
@@ -843,53 +751,6 @@ class PipelineReportNativeDynamicStageSchemaTests(unittest.TestCase):
                     "native_dynamic report "
                     f"materialized_packages[0].{field} {expected_type}",
                 )
-
-def _native_build_plan(**overrides: object) -> dict[str, object]:
-    plan = {
-        "fatal": False,
-        "diagnostics": [],
-        "workspace_manifest": "zircon_plugins/Cargo.toml",
-        "target_dir": "target/native_dynamic",
-        "cargo_profile": "release",
-        "release": True,
-        "build_features": ["v3_fixture_diagnostics"],
-        "package_count": 1,
-        "packages": [_native_build_plan_package()],
-    }
-    plan.update(overrides)
-    return plan
-
-
-def _native_build_plan_without(field: str) -> dict[str, object]:
-    plan = _native_build_plan()
-    plan.pop(field, None)
-    return plan
-
-
-def _native_build_plan_package(**overrides: object) -> dict[str, object]:
-    package = {
-        "package_id": "animation",
-        "crate_name": "zircon_plugin_animation_native",
-        "manifest_path": "zircon_plugins/animation/native/Cargo.toml",
-        "workspace_manifest": "zircon_plugins/Cargo.toml",
-        "target_dir": "target/native_dynamic",
-        "cargo_profile": "release",
-        "release": True,
-        "features": ["v3_fixture_diagnostics"],
-        "command": [
-            "cargo",
-            "build",
-            "--manifest-path",
-            "zircon_plugins/Cargo.toml",
-        ],
-        "expected_loadable_artifact": (
-            "target/native_dynamic/release/zircon_plugin_animation_native.dll"
-        ),
-    }
-    package.update(overrides)
-    return package
-
-
 def _native_operation_audit(**overrides: object) -> dict[str, object]:
     audit = {
         "enabled": True,
@@ -942,8 +803,8 @@ def _native_operation_audit_artifact(**overrides: object) -> dict[str, object]:
         "exit_code": 0,
         "stdout": "",
         "stderr": "",
-        "before_sha256": "before-hash",
-        "after_sha256": "after-hash",
+        "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
     }
     artifact.update(overrides)
     return artifact
@@ -951,44 +812,3 @@ def _native_operation_audit_artifact(**overrides: object) -> dict[str, object]:
 
 if __name__ == "__main__":
     unittest.main()
-
-
-def _native_build_execution(**overrides: object) -> dict[str, object]:
-    execution = {
-        "enabled": True,
-        "fatal": False,
-        "diagnostics": [],
-        "package_count": 1,
-        "packages": [_native_build_execution_package()],
-    }
-    execution.update(overrides)
-    return execution
-
-
-def _native_build_execution_without(field: str) -> dict[str, object]:
-    execution = _native_build_execution()
-    execution.pop(field, None)
-    return execution
-
-
-def _native_build_execution_package(**overrides: object) -> dict[str, object]:
-    package = {
-        "package_id": "animation",
-        "crate_name": "zircon_plugin_animation_native",
-        "command": [
-            "cargo",
-            "build",
-            "--manifest-path",
-            "zircon_plugins/Cargo.toml",
-        ],
-        "exit_code": 0,
-        "stdout": "",
-        "stderr": "",
-        "expected_loadable_artifact": (
-            "target/native_dynamic/release/zircon_plugin_animation_native.dll"
-        ),
-        "copied_loadable_artifact": "plugins/animation/native/plugin.dll",
-        "copied_sidecars": ["plugins/animation/native/plugin.pdb"],
-    }
-    package.update(overrides)
-    return package

@@ -357,6 +357,7 @@ def native_dynamic_build_execution_report(
     return {
         "enabled": True,
         "fatal": bool(diagnostics),
+        "skipped": False,
         "diagnostics": list(diagnostics),
         "package_count": len(packages),
         "packages": packages,

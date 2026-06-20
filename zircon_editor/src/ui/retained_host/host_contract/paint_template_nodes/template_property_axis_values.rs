@@ -1,10 +1,12 @@
 #[derive(Debug, PartialEq, Eq)]
-pub(super) struct PropertyAxisValue {
-    pub(super) axis: String,
-    pub(super) value: String,
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct PropertyAxisValue {
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) axis: String,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) value: String,
 }
 
-pub(super) fn property_axis_values(value: &str) -> Vec<PropertyAxisValue> {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn property_axis_values(
+    value: &str,
+) -> Vec<PropertyAxisValue> {
     let mut values = Vec::new();
     let mut current_axis: Option<String> = None;
     let mut current_value = Vec::new();

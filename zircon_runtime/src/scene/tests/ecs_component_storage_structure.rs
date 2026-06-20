@@ -12,21 +12,25 @@ fn method_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
 
 #[test]
 fn component_storage_public_hot_paths_use_direct_storage_branches() {
-    let source = include_str!("../ecs/storage/component_storage.rs");
-    let insert_at_tick = method_between(source, "pub fn insert_at_tick<T>", "pub fn get<T>");
-    let get = method_between(source, "pub fn get<T>", "pub fn get_mut<T>");
-    let get_mut = method_between(source, "pub fn get_mut<T>", "pub fn get_mut_at_tick<T>");
-    let remove = method_between(source, "pub fn remove<T>", "pub fn contains");
-    let contains = method_between(source, "pub fn contains", "pub fn ticks");
-    let ticks = method_between(source, "pub fn ticks", "pub fn location");
-    let location = method_between(source, "pub fn location", "pub fn get_table_row<T>");
+    let store_source = include_str!("../ecs/storage/component_storage/store.rs");
+    let insert_at_tick = method_between(store_source, "pub fn insert_at_tick<T>", "pub fn get<T>");
+    let get = method_between(store_source, "pub fn get<T>", "pub fn get_mut<T>");
+    let get_mut = method_between(
+        store_source,
+        "pub fn get_mut<T>",
+        "pub fn get_mut_at_tick<T>",
+    );
+    let remove = method_between(store_source, "pub fn remove<T>", "pub fn contains");
+    let contains = method_between(store_source, "pub fn contains", "pub fn ticks");
+    let ticks = method_between(store_source, "pub fn ticks", "pub fn location");
+    let location = method_between(store_source, "pub fn location", "pub fn get_table_row<T>");
     let get_table_row = method_between(
-        source,
+        store_source,
         "pub fn get_table_row<T>",
         "pub fn get_with_ticks_at_location<T>",
     );
     let get_with_ticks_at_location = method_between(
-        source,
+        store_source,
         "pub fn get_with_ticks_at_location<T>",
         "pub fn mark_changed",
     );
@@ -89,13 +93,9 @@ fn component_storage_public_hot_paths_use_direct_storage_branches() {
 
 #[test]
 fn sparse_component_storage_entry_access_uses_direct_branches() {
-    let source = include_str!("../ecs/storage/component_storage.rs");
-    let sparse_storage = section_between(
-        source,
-        "impl SparseComponentStorage {",
-        "struct RawRemoveResult",
-    );
-    let downcast_component = section_between(source, "fn downcast_component<T>", "}");
+    let sparse_source = include_str!("../ecs/storage/component_storage/sparse.rs");
+    let utils_source = include_str!("../ecs/storage/component_storage/utils.rs");
+    let sparse_storage = sparse_source;
 
     assert!(
         sparse_storage.contains("let entry = self.entries.get(&entity)?;")
@@ -108,14 +108,15 @@ fn sparse_component_storage_entry_access_uses_direct_branches() {
         "sparse component storage must avoid Option adapter closures on entry access"
     );
     assert!(
-        downcast_component.contains("match value.downcast::<T>()"),
+        utils_source.contains("fn downcast_component<T>")
+            && utils_source.contains("match value.downcast::<T>()"),
         "component downcast must use a direct result branch"
     );
 }
 
 #[test]
 fn component_storage_debug_storage_types_copy_is_pre_sized() {
-    let source = include_str!("../ecs/storage/component_storage.rs");
+    let source = include_str!("../ecs/storage/component_storage/store.rs");
     let debug_impl = section_between(
         source,
         "impl fmt::Debug for ComponentStorage {",

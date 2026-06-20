@@ -9,7 +9,10 @@ from tools.zircon_export.native_dynamic_payload import (
     native_dynamic_package_payload_file_manifest,
 )
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
+    _native_dynamic_package_report_toml,
+    _native_plugin_package_payload_file_manifest,
+    _native_plugins_file_manifest,
     _read_stage_report,
     _write_bundle_manifest_from_platform_report,
     _write_platform_bundle_fixture,
@@ -56,8 +59,8 @@ def _native_dynamic_operation_audit_package(
                 "exit_code": 0,
                 "stdout": "",
                 "stderr": "",
-                "before_sha256": "before-hash",
-                "after_sha256": "after-hash",
+                "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
             }
         ],
     }
@@ -466,8 +469,9 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
             self.assertEqual(report["missing_stages"], [])
             self.assertTrue(
                 any(
-                    "NativeDynamic report native_signing platform_allowed "
-                    "does not match target platform" in diagnostic
+                    "native_dynamic report native_signing.platform_allowed "
+                    "does not match target_platform and allowed_platforms"
+                    in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
@@ -595,6 +599,146 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
             )
             self.assertNotIn("native_plugins_payload", report)
 
+    def test_report_rejects_stage_backed_native_plugins_payload_missing_package_report(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            packages = payload["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            package.pop("package_report")
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload materialized_packages[0] "
+                    "package_report is required for stage-backed payloads"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_stage_backed_native_plugins_payload_package_id_drift(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            packages = payload["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            package["package_id"] = "physics"
+            native_plugins = fixture["native_plugins"]
+            loader_manifest = native_plugins / "native_plugins.toml"
+            loader_manifest.write_text(
+                loader_manifest.read_text(encoding="utf-8").replace(
+                    'id = "animation"',
+                    'id = "physics"',
+                ),
+                encoding="utf-8",
+            )
+            package_report = Path(str(package["package_report"]))
+            package_report.write_text(
+                package_report.read_text(encoding="utf-8").replace(
+                    'package_id = "animation"',
+                    'package_id = "physics"',
+                ),
+                encoding="utf-8",
+            )
+            file_manifest = _native_plugins_file_manifest(native_plugins)
+            payload["file_manifest"] = file_manifest
+            payload["content_hash"] = native_dynamic_content_hash(file_manifest)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload materialized package ids ['physics'] "
+                    "do not match NativeDynamic report materialized package ids "
+                    "['animation']"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_stage_backed_native_plugins_payload_file_manifest_drift(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            payload = platform_report["native_plugins_payload"]
+            self.assertIsInstance(payload, dict)
+            packages = payload["materialized_packages"]
+            self.assertIsInstance(packages, list)
+            package = packages[0]
+            self.assertIsInstance(package, dict)
+            native_plugins = fixture["native_plugins"]
+            package_dir = native_plugins / "animation"
+            artifact = package_dir / "native" / "zircon_plugin_animation.dll"
+            artifact.write_text("forged plugin dll", encoding="utf-8")
+            package_report = Path(str(package["package_report"]))
+            package_report.write_text(
+                _native_dynamic_package_report_toml(
+                    _native_plugin_package_payload_file_manifest(package_dir)
+                ),
+                encoding="utf-8",
+            )
+            file_manifest = _native_plugins_file_manifest(native_plugins)
+            payload["file_manifest"] = file_manifest
+            payload["file_count"] = len(file_manifest)
+            payload["content_hash"] = native_dynamic_content_hash(file_manifest)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "native_plugins_payload file_manifest does not match "
+                    "NativeDynamic report"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
     def test_report_rejects_native_plugins_payload_package_report_payload_count_mismatch(
         self,
     ) -> None:
@@ -616,7 +760,7 @@ class NativeDynamicPayloadReportValidationTests(unittest.TestCase):
                         "",
                         "[payload]",
                         "file_count = 2",
-                        'content_hash = "stale-package-hash"',
+                        f'content_hash = "{"0" * 64}"',
                     ]
                 )
                 + "\n",

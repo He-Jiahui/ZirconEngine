@@ -91,6 +91,29 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
                         f"linked_runtime_crates[0].{field} must be a string",
                     )
 
+    def test_report_stage_rejects_validate_compile_host_linked_crate_path_invalid(
+        self,
+    ) -> None:
+        cases = ("", "   ", "../rendering/runtime", "/zircon_plugins/rendering")
+        for path in cases:
+            with self.subTest(path=path):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    linked_crate = self._linked_crate()
+                    linked_crate["path"] = path
+                    self._write_validate_report_with_linked_crates(
+                        out,
+                        [linked_crate],
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self._assert_diagnostic_contains(
+                        report,
+                        "validate report plan_summary.library_embed_compile_host."
+                        "linked_runtime_crates[0].path must be a safe relative path",
+                    )
+
     def test_report_stage_rejects_validate_compile_host_linked_crate_missing_field(
         self,
     ) -> None:
@@ -153,6 +176,33 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
                         report,
                         "compile_host report link_plan.linked_runtime_crates[0]."
                         f"{field} must be a string",
+                    )
+
+    def test_report_stage_rejects_compile_host_linked_crate_path_invalid(
+        self,
+    ) -> None:
+        cases = ("", "   ", "../rendering/runtime", "/zircon_plugins/rendering")
+        for path in cases:
+            with self.subTest(path=path):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    self._write_validate_report_with_linked_crates(
+                        out,
+                        [self._linked_crate()],
+                    )
+                    linked_crate = self._linked_crate()
+                    linked_crate["path"] = path
+                    self._write_compile_host_report_with_linked_crates(
+                        out,
+                        [linked_crate],
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self._assert_diagnostic_contains(
+                        report,
+                        "compile_host report link_plan.linked_runtime_crates[0]."
+                        "path must be a safe relative path",
                     )
 
     def test_report_stage_rejects_validate_compile_host_linked_crate_names_invalid(
@@ -281,6 +331,56 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
                     self._assert_validate_fatal(report)
                     self._assert_diagnostic_contains(report, expected_diagnostic)
 
+    def test_report_stage_rejects_validate_compile_host_duplicate_linked_crate_name(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            first_linked_crate = self._linked_crate()
+            duplicate_linked_crate = self._linked_crate()
+            duplicate_linked_crate["path"] = "zircon_plugins/rendering/runtime_copy"
+            self._write_validate_report_with_linked_crates(
+                out,
+                [first_linked_crate, duplicate_linked_crate],
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self._assert_validate_fatal(report)
+            self._assert_diagnostic_contains(
+                report,
+                "validate report plan_summary.library_embed_compile_host."
+                "linked_runtime_crates[1].crate_name duplicates entry 0",
+            )
+
+    def test_report_stage_rejects_compile_host_duplicate_linked_crate_name(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            first_linked_crate = self._linked_crate()
+            duplicate_linked_crate = self._linked_crate()
+            duplicate_linked_crate["path"] = "zircon_plugins/rendering/runtime_copy"
+            self._write_validate_report_with_linked_crates(
+                out,
+                [first_linked_crate],
+            )
+            self._write_compile_host_report_with_linked_crates(
+                out,
+                [first_linked_crate, duplicate_linked_crate],
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("CompileHost", report["fatal_stages"])
+            self._assert_diagnostic_contains(
+                report,
+                "compile_host report link_plan.linked_runtime_crates[1]."
+                "crate_name duplicates entry 0",
+            )
+
     def test_report_stage_rejects_validate_compile_host_linked_crate_registration_kind_invalid(
         self,
     ) -> None:
@@ -325,9 +425,9 @@ class PipelineReportValidateCompileHostLinkageSchemaTests(unittest.TestCase):
         validate_report = json.loads(validate_report_path.read_text(encoding="utf-8"))
         compile_host_plan = _compile_host_plan()
         compile_host_plan["linked_runtime_crates"] = linked_runtime_crates
-        validate_report["plan_summary"] = {
-            "library_embed_compile_host": compile_host_plan
-        }
+        validate_report["plan_summary"][
+            "library_embed_compile_host"
+        ] = compile_host_plan
         validate_report_path.write_text(
             json.dumps(validate_report, indent=2),
             encoding="utf-8",

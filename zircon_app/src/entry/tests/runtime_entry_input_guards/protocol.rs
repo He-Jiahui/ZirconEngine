@@ -2,9 +2,10 @@ use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_converter_root_source,
     runtime_entry_app_path, runtime_event_translation_source, runtime_file_drag_drop_root_source,
     runtime_frame_loop_source, runtime_gamepad_root_source, runtime_gamepad_source,
-    runtime_host_requests_ime_root_source, runtime_host_requests_root_source,
-    runtime_ime_input_root_source, runtime_keyboard_input_root_source,
-    runtime_pointer_input_root_source, runtime_window_lifecycle_root_source,
+    runtime_host_requests_cursor_root_source, runtime_host_requests_ime_root_source,
+    runtime_host_requests_root_source, runtime_ime_input_root_source,
+    runtime_keyboard_input_root_source, runtime_pointer_input_root_source,
+    runtime_window_lifecycle_root_source,
 };
 
 #[test]
@@ -15,6 +16,7 @@ fn runtime_input_protocol_crosses_through_runtime_interface_events() {
     let runtime_file_drag_drop_root_source = runtime_file_drag_drop_root_source();
     let runtime_frame_loop_source = runtime_frame_loop_source();
     let runtime_host_requests_root_source = runtime_host_requests_root_source();
+    let runtime_host_requests_cursor_root_source = runtime_host_requests_cursor_root_source();
     let runtime_host_requests_ime_root_source = runtime_host_requests_ime_root_source();
     let runtime_ime_input_root_source = runtime_ime_input_root_source();
     let runtime_keyboard_input_root_source = runtime_keyboard_input_root_source();
@@ -134,10 +136,34 @@ fn runtime_input_protocol_crosses_through_runtime_interface_events() {
         runtime_app_source.contains("mod host_requests;"),
         "runtime entry app should keep runtime host-request application in a child module"
     );
-    for required in ["mod drain;", "mod ime;", "mod routing;"] {
+    for required in ["mod cursor;", "mod drain;", "mod ime;", "mod routing;"] {
         assert!(
             runtime_host_requests_root_source.contains(required),
             "runtime host-request root should preserve structural wiring `{required}`"
+        );
+    }
+    for required in [
+        "SetVisible",
+        "SetGrabMode",
+        "SetHitTest",
+        "SetPosition",
+        "set_cursor_visible",
+        "set_cursor_grab",
+        "set_cursor_hittest",
+        "set_cursor_position",
+    ] {
+        assert!(
+            runtime_event_translation_source.contains(required),
+            "runtime host-request routing should preserve cursor option marker `{required}`"
+        );
+    }
+    for required in [
+        "mod request;",
+        "pub(super) use request::apply_runtime_cursor_host_request;",
+    ] {
+        assert!(
+            runtime_host_requests_cursor_root_source.contains(required),
+            "runtime cursor host-request root should preserve structural wiring `{required}`"
         );
     }
     for required in ["GamepadRumble", "apply_runtime_gamepad_rumble_request"] {

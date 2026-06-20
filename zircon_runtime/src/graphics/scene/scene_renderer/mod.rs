@@ -12,9 +12,11 @@ mod particle;
 mod post_process;
 mod prepass;
 mod primitives;
+mod scene_clear;
 mod shadow;
 mod sprite;
 mod temporal;
+mod transparent;
 mod ui;
 
 pub use core::SceneRenderer;

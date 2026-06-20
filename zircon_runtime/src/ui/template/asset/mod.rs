@@ -51,7 +51,7 @@ pub use resource_ref::{
     collect_document_resource_dependencies, validate_resource_dependency_files,
     UiResolvedResourceDependency, UiResolvedUiResource, UiResourcePathResolver,
     UiResourceResolutionReport, UiResourceResolveDiagnostic, UiResourceResolveDiagnosticCode,
-    UiResourceResolver, UiResourceResolverCacheInvalidationReport,
+    UiResourceResolver, UiResourceResolverCacheInvalidationReport, UiResourceResolverSchemeMap,
 };
 pub use schema::UiAssetSchemaMigrator;
 pub use surface_index::{

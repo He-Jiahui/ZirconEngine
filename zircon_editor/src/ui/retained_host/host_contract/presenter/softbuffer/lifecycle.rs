@@ -7,7 +7,7 @@ use super::super::super::diagnostics::HostRefreshDiagnostics;
 use super::surface_io::{clamp_size, current_window_size, resize_surface};
 use super::SoftbufferHostPresenter;
 
-pub(super) fn new_presenter(
+pub(in crate::ui::retained_host::host_contract) fn new_presenter(
     window: Arc<dyn Window>,
 ) -> Result<SoftbufferHostPresenter, softbuffer::SoftBufferError> {
     let context = Context::new(window.clone())?;
@@ -26,7 +26,7 @@ pub(super) fn new_presenter(
     })
 }
 
-pub(super) fn resize_presenter(
+pub(in crate::ui::retained_host::host_contract) fn resize_presenter(
     presenter: &mut SoftbufferHostPresenter,
     size: (u32, u32),
 ) -> Result<(), softbuffer::SoftBufferError> {

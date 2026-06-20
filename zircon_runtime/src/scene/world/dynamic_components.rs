@@ -376,8 +376,12 @@ fn vector_to_json<const N: usize>(values: [f32; N]) -> Option<Value> {
 }
 
 fn finite_json_number(value: f32) -> Option<Number> {
-    value
-        .is_finite()
-        .then(|| Number::from_f64(value as f64))
-        .flatten()
+    if !value.is_finite() {
+        return None;
+    }
+    let text = value.to_string();
+    let Ok(value) = text.parse::<f64>() else {
+        return None;
+    };
+    Number::from_f64(value)
 }

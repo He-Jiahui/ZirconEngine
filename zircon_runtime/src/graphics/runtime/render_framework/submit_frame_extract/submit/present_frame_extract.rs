@@ -16,10 +16,14 @@ use super::super::build_frame_submission_context::{
 };
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_present_submission;
-use super::super::update_stats::update_stats;
+use super::super::update_stats::{update_stats, SharedViewportProductReports};
 use super::super::viewport_generation_guard::validate_viewport_generation;
 use super::build_runtime_frame::build_runtime_frame;
+use super::camera_loop::{
+    submit_camera_loop, viewport_terminal_camera_target, CameraLoopOutputPolicy,
+};
 use super::collect_runtime_feedback::collect_runtime_feedback;
+use super::record_camera_history::record_non_viewport_camera_state_after_success;
 use super::release_previous_history::release_previous_history;
 use super::resolve_history_handle::resolve_history_handle;
 use super::update_particle_previous_state::update_particle_previous_state_after_success;
@@ -41,6 +45,43 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "present_frame_extract");
     let _operation_guard = framework.lock_operation();
+    let terminal_target = match viewport_terminal_camera_target(&extract) {
+        Ok(target) => target,
+        Err(error) => {
+            fail_pending_capture_after_preflight_error(framework, viewport, &error);
+            return Err(error);
+        }
+    };
+    if let Err(error) = validate_camera_surface_present_target(&terminal_target) {
+        fail_pending_capture_after_preflight_error(framework, viewport, &error);
+        return Err(error);
+    }
+    {
+        let mut state = framework.lock_state();
+        if let Err(error) = preflight_bound_surface(&mut state, viewport) {
+            fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
+            return Err(error);
+        }
+    }
+    submit_camera_loop(
+        framework,
+        viewport,
+        extract,
+        ui,
+        present_selected_camera_frame,
+    )
+}
+
+fn present_selected_camera_frame(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    extract: RenderFrameExtract,
+    ui: Option<UiRenderExtract>,
+    output_policy: CameraLoopOutputPolicy,
+) -> Result<(), RenderFrameworkError> {
+    let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
+    let owns_viewport_submission = output_policy.owns_viewport_submission();
+    let owns_shared_viewport_products = output_policy.owns_shared_viewport_products();
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context(framework, viewport, &extract, ui.as_ref()) {
@@ -51,18 +92,9 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
             }
         }
     };
-    if let Err(error) =
-        validate_camera_surface_present_target(extract.view.selected_camera_target())
-    {
-        fail_pending_capture_after_preflight_error(framework, viewport, &error);
-        return Err(error);
-    }
     let mut state = framework.lock_state();
-    if let Err(error) = preflight_bound_surface(&mut state, viewport) {
-        fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
-        return Err(error);
-    }
-    let active_capture = begin_graphics_debugger_capture(&mut state, viewport);
+    let active_capture =
+        owns_shared_viewport_products && begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
         crate::profile_scope!("runtime", "render_framework", "prepare_runtime_submission");
         match prepare_runtime_submission(&mut state, viewport, &context) {
@@ -80,17 +112,13 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = build_runtime_frame(
-        extract,
-        ui,
-        &context,
-        &prepared,
-        ViewportCameraStackOutputPolicy::default(),
-    );
-    state.last_virtual_geometry_debug_snapshot =
-        runtime_frame.virtual_geometry_debug_snapshot.clone();
+    let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared, output_policy);
+    if owns_shared_viewport_products {
+        state.last_virtual_geometry_debug_snapshot =
+            runtime_frame.virtual_geometry_debug_snapshot.clone();
+    }
 
-    let present_result: Result<_, RenderFrameworkError> = {
+    let render_result: Result<_, RenderFrameworkError> = if owns_viewport_submission {
         let RenderFrameworkState {
             renderer,
             viewports,
@@ -100,6 +128,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
             return finish_capture_and_return_error(
                 framework,
                 state,
+                viewport,
                 active_capture,
                 RenderFrameworkError::UnknownViewport {
                     viewport: viewport.raw(),
@@ -110,6 +139,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
             return finish_capture_and_return_error(
                 framework,
                 state,
+                viewport,
                 active_capture,
                 unsupported_viewport_surface_present(),
             );
@@ -127,11 +157,30 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         };
         surface_lease.restore();
         present_result.map_err(render_framework_backend_error)
+    } else {
+        crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
+        state
+            .renderer
+            .render_frame_with_pipeline(
+                &runtime_frame,
+                context.compiled_pipeline(),
+                context.capabilities(),
+                resolved_history.current_history_handle(),
+                resolved_history.previous_history_available(),
+            )
+            .map(|frame| frame.generation)
+            .map_err(render_framework_backend_error)
     };
-    let frame_generation = match present_result {
+    let frame_generation = match render_result {
         Ok(generation) => generation,
         Err(error) => {
-            return finish_capture_and_return_error(framework, state, active_capture, error);
+            return finish_capture_and_return_error(
+                framework,
+                state,
+                viewport,
+                active_capture,
+                error,
+            );
         }
     };
 
@@ -146,11 +195,36 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
         collect_runtime_feedback(&mut state.renderer, &context, &prepared)
     };
-    validate_viewport_generation(&state, viewport, &context)?;
+    let camera_light_grid_report = state.renderer.last_light_grid_report();
+    if let Err(error) = validate_viewport_generation(&state, viewport, &context) {
+        if !owns_shared_viewport_products {
+            fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
+        }
+        return Err(error);
+    }
+    if !owns_viewport_submission {
+        record_non_viewport_camera_state_after_success(
+            &mut state,
+            viewport,
+            &context,
+            &runtime_frame,
+            camera_light_grid_report,
+            prepared,
+            runtime_feedback,
+            frame_generation,
+            resolved_history.allocated_history(),
+        )?;
+        return Ok(());
+    }
     let record = state
         .viewports
         .get_mut(&viewport)
         .expect("viewport generation checked above");
+    record.record_camera_product_reports(
+        context.camera_history_key(),
+        camera_light_grid_report,
+        runtime_frame.virtual_geometry_debug_snapshot.as_ref(),
+    );
     let record_update = record_present_submission(
         record,
         &context,
@@ -159,10 +233,28 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract_with
         frame_generation,
         runtime_feedback,
     );
-    update_temporal_camera_history_after_success(record, &runtime_frame);
-    update_particle_previous_state_after_success(record, &runtime_frame);
+    update_temporal_camera_history_after_success(
+        record,
+        &runtime_frame,
+        context.camera_history_key(),
+        true,
+    );
+    update_particle_previous_state_after_success(
+        record,
+        &runtime_frame,
+        context.camera_history_key(),
+    );
     release_previous_history(&mut state.renderer, &record_update);
-    update_stats(&mut state, &context, &record_update, frame_generation);
+    if owns_shared_viewport_products {
+        let shared_product_reports = SharedViewportProductReports::new(camera_light_grid_report);
+        update_stats(
+            &mut state,
+            &context,
+            &record_update,
+            frame_generation,
+            shared_product_reports,
+        );
+    }
     crate::profile_counter!(
         "runtime",
         "render_framework.last_present_generation",
@@ -195,10 +287,15 @@ fn unsupported_viewport_surface_present() -> RenderFrameworkError {
 
 fn finish_capture_and_return_error(
     framework: &WgpuRenderFramework,
-    state: std::sync::MutexGuard<'_, RenderFrameworkState>,
+    mut state: std::sync::MutexGuard<'_, RenderFrameworkState>,
+    viewport: RenderViewportHandle,
     active_capture: bool,
     error: RenderFrameworkError,
 ) -> Result<(), RenderFrameworkError> {
+    if !active_capture {
+        fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
+        return Err(error);
+    }
     drop(finish_active_capture_and_relock(
         framework,
         state,

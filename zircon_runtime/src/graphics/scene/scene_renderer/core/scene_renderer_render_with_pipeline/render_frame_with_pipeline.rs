@@ -2,7 +2,11 @@ use crate::core::framework::render::{
     FrameHistoryHandle, PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus,
     RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource, ShaderVariantMissReport,
 };
+#[cfg(test)]
+use crate::core::{math::UVec2, resource::ResourceId};
 
+#[cfg(test)]
+use crate::graphics::backend::read_texture_rgba;
 use crate::graphics::backend::ViewportSurface;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
@@ -22,6 +26,24 @@ use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewpo
 use super::super::target_extent::viewport_size;
 
 impl SceneRenderer {
+    #[cfg(test)]
+    pub(crate) fn read_output_target_texture_rgba_for_tests(
+        &self,
+        texture_id: &ResourceId,
+    ) -> Result<Option<(UVec2, Vec<u8>)>, GraphicsError> {
+        let Some(output_target) = self.streamer.output_target_texture_resource(texture_id) else {
+            return Ok(None);
+        };
+        let size = output_target.size();
+        let rgba = read_texture_rgba(
+            &self.backend.device,
+            &self.backend.queue,
+            output_target.texture(),
+            size,
+        )?;
+        Ok(Some((size, rgba)))
+    }
+
     pub(crate) fn render_frame_with_pipeline(
         &mut self,
         frame: &ViewportRenderFrame,
@@ -154,7 +176,10 @@ impl SceneRenderer {
             .is_some_and(|report| {
                 report.status == RenderCameraTargetGraphImportStatus::DirectImported
             });
-        if !frame.camera_stack_output_policy().writes_output_target() {
+        if !frame
+            .camera_stack_output_policy()
+            .owns_final_target_output()
+        {
             self.streamer.suppress_output_target_writeback(frame);
         } else if direct_imported {
             self.streamer
@@ -183,7 +208,10 @@ fn output_target_capture_resource(
     std::sync::Arc<crate::graphics::scene::resources::OutputTargetTextureResource>,
     RenderCaptureReport,
 )> {
-    if !frame.camera_stack_output_policy().writes_output_target() {
+    if !frame
+        .camera_stack_output_policy()
+        .owns_final_target_output()
+    {
         return None;
     }
     let graph_import_report = streamer.last_output_target_graph_import_report();

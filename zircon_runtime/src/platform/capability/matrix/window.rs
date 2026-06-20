@@ -274,9 +274,7 @@ impl PlatformCapabilityMatrix {
 
         match self.window_backend(target, target_mode) {
             CapabilityStatus::Supported(WindowBackend::Winit) if target.is_desktop() => {
-                CapabilityStatus::Unavailable {
-                    reason: "desktop cursor options host-request backend is not implemented yet",
-                }
+                CapabilityStatus::Supported(CursorOptionsBackend::WinitWindowOptions)
             }
             CapabilityStatus::Supported(WindowBackend::Winit) => CapabilityStatus::Unavailable {
                 reason: "mobile cursor options host-request backend is not implemented yet",

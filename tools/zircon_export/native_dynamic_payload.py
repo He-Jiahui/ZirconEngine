@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from .native_signing import native_dynamic_signing_platform_allowed
+from .pipeline_report_native_dynamic_operation_audit_schema import (
+    native_dynamic_operation_audit_stage_schema_diagnostics,
+)
 from .pipeline_report_native_dynamic_payload_schema import (
     native_dynamic_file_manifest_schema_diagnostics,
     native_dynamic_materialized_packages_schema_diagnostics,
-    native_dynamic_operation_audit_stage_schema_diagnostics,
 )
 
 from .native_dynamic_contract import (

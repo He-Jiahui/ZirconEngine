@@ -6,6 +6,13 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask/requirements.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask/summary.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/reasons.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/requests.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/tests.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
@@ -21,6 +28,13 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask/requirements.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/mask/summary.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/reasons.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/requests.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation/root/tests.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
   - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
@@ -48,8 +62,11 @@ tests:
   - 2026-06-18 editor-ui-architecture-validation: cargo fmt -p zircon_editor (passed)
   - 2026-06-18 editor-ui-architecture-validation: cargo fmt -p zircon_editor --check (passed)
   - 2026-06-18 editor-ui-architecture-validation: app invalidation mask ownership scan (passed)
+  - 2026-06-19 editor-ui-architecture-validation: app invalidation mask requirement/summary ownership scan (passed)
   - 2026-06-18 editor-ui-architecture-validation: scoped git diff --check (passed with CRLF warnings only)
   - 2026-06-18 editor-ui-architecture-validation: cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (passed with existing warnings)
+  - 2026-06-19 editor-ui-architecture-validation: app invalidation root/tests ownership scan (passed)
+  - 2026-06-19 editor-ui-architecture-validation: app invalidation root requests/reasons/diagnostics ownership scan (passed)
 doc_type: module-detail
 ---
 
@@ -61,9 +78,13 @@ The legacy booleans still exist as a short-term bridge for the current retained 
 
 ## Mask Ownership
 
-`app/invalidation/mask.rs` owns `HostInvalidationMask`, the dirty-domain bit definitions, bitwise union/intersection mutation helpers, dirty-flag conversion, recompute requirement predicates, and human-readable summaries. This keeps the domain vocabulary independent from root scheduling counters.
+`app/invalidation/mask.rs` is the structural dirty-domain mask entry. It owns `HostInvalidationMask`, the dirty-domain bit definitions, bitwise union/intersection mutation helpers, and dirty-flag conversion. `mask/requirements.rs` owns recompute requirement predicates. `mask/summary.rs` owns human-readable summaries. This keeps the domain vocabulary independent from root scheduling counters while separating scheduling predicates from diagnostic formatting.
 
-`app/invalidation.rs` owns `HostInvalidationRoot`, pending recompute reasons, request counters, slow/render path rebuild counters, and diagnostics snapshots. The root should consume the mask API but should not redefine dirty-domain constants or presentation/layout/render predicate logic.
+`app/invalidation.rs` is the structural entry for retained-host invalidation. It re-exports `HostInvalidationMask` and the app-internal `HostInvalidationRoot` while keeping mask vocabulary, root scheduling state, and tests in separate children.
+
+`app/invalidation/root.rs` owns the `HostInvalidationRoot` state shape and child module boundary. `root/requests.rs` owns initial full-rebuild invalidation and request counters, `root/reasons.rs` owns recompute reason draining plus slow/render rebuild counters, and `root/diagnostics.rs` owns stats summaries and diagnostics snapshots. The root subtree consumes the mask API but does not redefine dirty-domain constants or presentation/layout/render predicate logic.
+
+`app/invalidation/root/tests.rs` owns the root scheduling regressions. Keeping those tests under the root child lets them inspect root-private counters while the public module entry remains structural.
 
 ## Event Effects
 
@@ -94,3 +115,15 @@ This matters for the v2 UI cutover because component events can produce small pr
 The 2026-06-18 mask split reduced `invalidation.rs` from 287 lines to 174 lines. `invalidation/mask.rs` is 115 lines and owns dirty-domain constants, bit operations, dirty-flag conversion, recompute predicates, and summary formatting.
 
 Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app invalidation mask ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-19 root/tests split reduced `invalidation.rs` from 174 lines to 4 lines. `invalidation/root.rs` is 103 lines and owns invalidation scheduling state, counters, recompute reason consumption, rebuild counters, summary formatting, and diagnostics snapshots. `invalidation/root/tests.rs` is 67 lines and owns the root scheduling regressions.
+
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app invalidation root/tests ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 142 warnings, `zircon_editor` 63 warnings). The first cargo check exposed app-sibling visibility after the root moved; the root type and methods were kept app-internal with `pub(in crate::ui::retained_host::app)`. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-19 mask requirement/summary split reduced `invalidation/mask.rs` from 132 lines to a 68-line structural dirty-domain entry. `mask/requirements.rs` is 34 lines and owns layout/presentation/render/window-metrics/hit-test/host-recompute predicates. `mask/summary.rs` is 39 lines and owns dirty-domain summary labels.
+
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app invalidation mask requirement/summary ownership scan, and scoped `git diff --check`; scoped diff check only reported the existing CRLF working-tree conversion warning. Focused `cargo check` was not rerun for this slice because an independent `zircon_runtime` Cargo test process was active; full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-19 root requests/reasons/diagnostics split reduced `invalidation/root.rs` from 103 lines to a 22-line retained state entry. `root/requests.rs` is 49 lines and owns invalidation request accounting, `root/reasons.rs` is 31 lines and owns recompute reason consumption plus rebuild counters, and `root/diagnostics.rs` is 30 lines and owns stats summary/diagnostic snapshot construction.
+
+Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, an app invalidation root requests/reasons/diagnostics ownership scan, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-ui-owner-split-0619 --message-format short --color never`, which passed with existing warning noise only (`zircon_runtime` 141 warnings, `zircon_editor` 65 warnings). Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.

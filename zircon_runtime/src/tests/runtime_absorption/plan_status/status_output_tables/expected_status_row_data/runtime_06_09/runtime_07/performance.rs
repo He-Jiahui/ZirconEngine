@@ -1,0 +1,112 @@
+use super::ExpectedStatusOutputSlice;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
+    (
+        "Runtime 07 Performance hotpath 镜像文档守卫",
+        [
+            "runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
+            "performance_hotpath_boundary",
+            "expected_source_file_count = 26",
+            "extract/ecs_query/performance profiling/FPS Cargo gates pending",
+        ],
+    ),
+    (
+        "Runtime 07 ECS frame diagnostics aggregation",
+        [
+            "EcsFramePerformanceDiagnostics",
+            "ecs_frame_performance_diagnostics_record_query_and_change_counts",
+            "expected_source_file_count = 24",
+            "ecs_query` gate",
+        ],
+    ),
+    (
+        "Runtime 07 extract rebuild cache",
+        [
+            "RuntimeFrameExtractCache",
+            "extract.rebuild_clones = 0",
+            "frame_extract_rebuilds_after_scene_change",
+            "extract_counter_anchor_count = 17",
+        ],
+    ),
+    (
+        "Runtime 07 animation scene frame diagnostics",
+        [
+            "AnimationSceneFrameDiagnostics",
+            "animation.scene.scanned_entities",
+            "animation.scene.output_poses",
+            "animation_scene_anchor_count = 19",
+        ],
+    ),
+    (
+        "Runtime 07 profile counter hotspot export",
+        [
+            "CounterHotspotReport",
+            "counter_hotspots.json",
+            "analyze_counter_hotspots",
+            "ProfileControlResponse.counter_hotspot_report",
+        ],
+    ),
+    (
+        "Runtime 07 QueryState cache owner performance audit sync",
+        [
+            "query_state/cache.rs",
+            "expected_source_file_count = 45",
+            "missing_query_counter_anchors = []",
+            "runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
+        ],
+    ),
+    (
+        "Runtime 07 extract cache hit/miss diagnostics",
+        [
+            "EXTRACT_CACHE_HITS_DIAGNOSTIC",
+            "extract.cache_hits",
+            "extract.cache_misses",
+            "extract_counter_anchor_count = 21",
+        ],
+    ),
+    (
+        "Runtime 07 QueryState frame auto-collection",
+        [
+            "QueryState::take_unreported_cache_stats()",
+            "SystemParam::record_performance_diagnostics",
+            "World::record_ecs_query_cache_stats",
+            "system_state_records_query_cache_stats_into_world_frame_diagnostics",
+        ],
+    ),
+    (
+        "Runtime 07 ChangeDetection frame auto-collection",
+        [
+            "matches_component_locations_with_stats",
+            "take_unreported_change_detection_stats",
+            "World::record_ecs_change_detection_stats",
+            "system_state_records_change_detection_stats_into_world_frame_diagnostics",
+        ],
+    ),
+    (
+        "Runtime 07 QueryState iterator lifetime guard",
+        [
+            "NonNull<QueryState<D, F>>",
+            "read-only, non-cached iterators",
+            "QueryState::single",
+            "query_counter_anchor_count = 32",
+        ],
+    ),
+    (
+        "Runtime 07 FPS gate support unblock",
+        [
+            "ZR_VM_RUST_BINDING_LIB_DIR",
+            "zircon_runtime_interface::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION",
+            "RenderBloomSettings",
+            "904s timeout no result",
+        ],
+    ),
+    (
+        "Runtime 07 profiling build tooling",
+        [
+            "--mode profiling",
+            "--runtime-features target-client,profiling,profiling-tracy",
+            "-CargoProfile profiling",
+            "profiling_build_tooling_static_passed_cargo_deferred_active_lanes",
+        ],
+    ),
+];

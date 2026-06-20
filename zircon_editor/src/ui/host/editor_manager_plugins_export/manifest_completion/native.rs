@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::super::super::editor_manager::EditorManager;
@@ -13,8 +13,16 @@ impl EditorManager {
         project_root: impl AsRef<Path>,
         manifest: &ProjectManifest,
     ) -> ProjectManifest {
-        let mut completed = self.complete_project_plugin_manifest(manifest);
         let native_report = NativePluginLoader.discover(self.plugin_directory(project_root));
+        self.complete_project_plugin_manifest_with_native_report(manifest, &native_report)
+    }
+
+    pub(in crate::ui::host::editor_manager_plugins_export) fn complete_project_plugin_manifest_with_native_report(
+        &self,
+        manifest: &ProjectManifest,
+        native_report: &NativePluginLoadReport,
+    ) -> ProjectManifest {
+        let mut completed = self.complete_project_plugin_manifest(manifest);
         for package in native_report.package_manifests() {
             let native_selection = native_project_selection(&package);
             if !completed

@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::surface::UiPointerButton;
 use super::super::super::routing::PanePointerRoute;
 use super::super::super::NativePointerButtonState;
 
-pub(super) fn dispatch_asset_tree_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_asset_tree_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     mode: SharedString,
@@ -23,7 +23,7 @@ pub(super) fn dispatch_asset_tree_button(
     }
 }
 
-pub(super) fn dispatch_asset_content_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_asset_content_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     mode: SharedString,
@@ -52,7 +52,7 @@ pub(super) fn dispatch_asset_content_button(
     }
 }
 
-pub(super) fn dispatch_asset_reference_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_asset_reference_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     mode: SharedString,

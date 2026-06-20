@@ -3,6 +3,7 @@ mod boundary;
 mod m4_behavior_layers;
 mod m5_flagship_slots;
 mod pipeline_compile;
+mod pipeline_overlay_order;
 mod plugin_feature_compile;
 mod plugin_render_feature_fixtures;
 mod project_render;

@@ -56,6 +56,11 @@ fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2() {
     let build_tool_doc = include_str!("../../../../docs/cli-and-tooling/zircon-build-tool.md");
     let profiling_doc =
         include_str!("../../../../docs/zircon_runtime/core/diagnostics/profiling.md");
+    let interface_profiling = include_str!("../../../../zircon_runtime_interface/src/profiling.rs");
+    let profiling_counter_hotspot =
+        include_str!("../../core/runtime/diagnostics/profiling/counter_hotspot.rs");
+    let profiling_export = include_str!("../../core/runtime/diagnostics/profiling/export.rs");
+    let profiling_mod = include_str!("../../core/runtime/diagnostics/profiling/mod.rs");
     for required_plan_anchor in [
         "M1 | 1.3 热点清单",
         "hotspot_inventory.md",
@@ -92,12 +97,35 @@ fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2() {
         "animation.scene.scanned_entities",
         "animation.scene.output_poses",
         "animation_scene_frame_diagnostics_static_passed_cargo_deferred",
+        "CounterHotspotReport",
+        "counter_hotspots.json",
     ] {
         assert!(
             hotspot_doc.contains(required_doc_anchor)
                 || animation_doc.contains(required_doc_anchor)
                 || diagnostics_doc.contains(required_doc_anchor),
             "Runtime 07 docs should keep evidence gate anchor `{required_doc_anchor}`"
+        );
+    }
+
+    for required_counter_hotspot_anchor in [
+        "PROFILE_COUNTER_HOTSPOTS_FILE",
+        "pub struct CounterHotspotReport",
+        "pub struct CounterHotspotEntry",
+        "pub fn analyze_counter_hotspots",
+        "counter_hotspots.json",
+        "ProfileControlResponse.counter_hotspot_report",
+        "summary.push_str(\"\\n## Counter Hotspots\\n\");",
+        "response.counter_hotspot_report = Some(report.counter_hotspots);",
+    ] {
+        assert!(
+            interface_profiling.contains(required_counter_hotspot_anchor)
+                || profiling_counter_hotspot.contains(required_counter_hotspot_anchor)
+                || profiling_export.contains(required_counter_hotspot_anchor)
+                || profiling_mod.contains(required_counter_hotspot_anchor)
+                || hotspot_doc.contains(required_counter_hotspot_anchor)
+                || profiling_doc.contains(required_counter_hotspot_anchor),
+            "Runtime 07 generic profiling counter hotspot export should retain `{required_counter_hotspot_anchor}`"
         );
     }
 

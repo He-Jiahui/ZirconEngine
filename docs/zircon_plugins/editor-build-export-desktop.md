@@ -232,7 +232,12 @@ export authoring surface. It does not take ownership of export plan generation:
 `EditorManager::{generate_export_plan, generate_native_aware_export_plan,
 execute_export_build, execute_native_aware_export_build}` remain the host-owned
 authority. The plugin contributes the editor surface that calls into that host
-path.
+path. The host-owned native-aware export path now exits before native package
+preparation when the resolved plan has fatal diagnostics, so blocked exports can
+write diagnostics without staging NativeDynamic packages or invoking Cargo. When
+the host does execute a native-aware build, it reuses the same native package
+discovery report for plan completion and package preparation instead of scanning
+the plugin directory twice.
 
 ## Contributions
 
@@ -1106,3 +1111,28 @@ Focused
 timed out after 908 seconds without target output; matching target-dir
 cargo/rustc/rustdoc process audit was clean, so no focused cancellation test pass
 is claimed.
+
+2026-06-20 host native-aware fatal export validation:
+`export_build/manager.rs` now checks `plan.has_fatal_diagnostics()` immediately
+after native-aware plan generation and before the `prepare-native-packages`
+stage. Fatal plans reuse the runtime no-write materialization report, write
+export diagnostics, and return without generated files, copied packages, native
+Cargo invocations, or SourceTemplate Cargo invocation. Validation covered
+`rustfmt --edition 2021 --check` for the export manager, source scans proving
+the fatal check appears before native package preparation, conflict-marker scan,
+trailing-whitespace scan, and path-scoped `git diff --check` with only LF/CRLF
+warnings. Cargo and focused behavior tests are deferred under the current
+implementation-first direction.
+
+2026-06-20 host native-aware discovery reuse validation:
+`manifest_completion/native.rs` now exposes a host-internal completion helper
+that accepts an existing `NativePluginLoadReport`, and `export_build/manager.rs`
+uses it after the execution path's initial native package discovery. Public plan
+generation still discovers packages through `complete_native_aware_project_plugin_manifest(...)`,
+while the executing build path avoids a second plugin-directory scan and keeps
+plan completion and package preparation on the same report snapshot. Validation
+covered `rustfmt --edition 2021 --check` for the manager/completion files,
+source scans for the helper and discovery call sites, conflict-marker scan,
+trailing-whitespace scan, and path-scoped `git diff --check` with only LF/CRLF
+warnings. Cargo and focused behavior tests remain deferred under the current
+implementation-first direction.

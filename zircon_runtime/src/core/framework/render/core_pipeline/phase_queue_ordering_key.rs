@@ -20,7 +20,7 @@ impl RenderPhaseQueueOrderingKey {
         }
     }
 
-    pub const fn raw_sort_key(self) -> i128 {
+    pub const fn raw_sort_key(self) -> u64 {
         self.sort_key.raw()
     }
 }

@@ -206,6 +206,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
             "missing_doc_anchors = []",
             "missing_cargo_gate_anchors = []",
             "retired_worker_new_references = []",
+            "retired_worker_request_sender_references = []",
             "old_watch_debounce_references = []",
             "mirror_docs_guard_present = true",
             "risks = []",
@@ -221,5 +222,10 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
     assert!(
         !workspace_root.join("zircon_asset/src/lib.rs").exists(),
         "Runtime 04 mirror guard assumes the standalone zircon_asset crate stays absorbed"
+    );
+
+    assert!(
+        !include_str!("../../asset/pipeline/worker_pool.rs").contains("pub fn request_sender"),
+        "Runtime 04 hard-cutover requires AssetWorkerPool::request(...) to remain the only public request entry"
     );
 }

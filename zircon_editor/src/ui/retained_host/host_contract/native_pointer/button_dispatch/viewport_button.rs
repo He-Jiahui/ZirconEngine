@@ -5,7 +5,9 @@ use super::super::{
     VIEWPORT_POINTER_BUTTON_SECONDARY,
 };
 
-pub(super) fn viewport_button_id(button: UiPointerButton) -> Option<i32> {
+pub(in crate::ui::retained_host::host_contract) fn viewport_button_id(
+    button: UiPointerButton,
+) -> Option<i32> {
     match button {
         UiPointerButton::Primary => Some(VIEWPORT_POINTER_BUTTON_PRIMARY),
         UiPointerButton::Secondary => Some(VIEWPORT_POINTER_BUTTON_SECONDARY),

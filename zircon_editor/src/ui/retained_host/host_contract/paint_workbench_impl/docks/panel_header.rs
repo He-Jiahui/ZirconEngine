@@ -7,7 +7,7 @@ use super::super::super::paint_primitives::{draw_rect, draw_separator_line};
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::{SEPARATOR, TOP_BAR};
 
-pub(super) fn draw_panel_header(
+pub(in crate::ui::retained_host::host_contract) fn draw_panel_header(
     frame: &mut HostRgbaFrame,
     nodes: &ModelRc<TemplatePaneNodeData>,
     origin: &FrameRect,

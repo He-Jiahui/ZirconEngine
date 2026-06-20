@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _read_stage_report,
     _write_platform_bundle_fixture,
     _write_bundle_manifest_from_platform_report,
@@ -512,6 +512,157 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
             with_template_file=True,
         )
 
+    def test_report_rejects_bundle_manifest_template_resolution_template_dir_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out, with_template_file=True)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            platform_report["template_resolution"] = _template_resolution(out)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+            manifest = json.loads(
+                fixture["bundle_manifest"].read_text(encoding="utf-8")
+            )
+            alternate_template_dir = out / "alternate-template"
+            alternate_template_dir.mkdir(parents=True)
+            (alternate_template_dir / "Info.plist").write_text(
+                "<plist>zircon</plist>",
+                encoding="utf-8",
+            )
+            template = manifest["template"]
+            self.assertIsInstance(template, dict)
+            template["template_dir"] = str(alternate_template_dir)
+            fixture["bundle_manifest"].write_text(
+                json.dumps(manifest, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle bundle_manifest template_resolution.template_dir "
+                    "must match template.template_dir" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle bundle_manifest template does not match stage report"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_bundle_manifest_template_resolution_profile_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out, with_template_file=True)
+            platform_report = _read_stage_report(out, "platform_bundle")
+            platform_report["template_resolution"] = _template_resolution(out)
+            _write_stage_report(out, "platform_bundle", platform_report)
+            _write_bundle_manifest_from_platform_report(
+                fixture["bundle_manifest"],
+                platform_report,
+            )
+            manifest = json.loads(
+                fixture["bundle_manifest"].read_text(encoding="utf-8")
+            )
+            resolution = manifest["template_resolution"]
+            self.assertIsInstance(resolution, dict)
+            resolution["profile"] = "other-profile"
+            candidate = resolution["candidates"][0]
+            self.assertIsInstance(candidate, dict)
+            candidate["compatible_profiles"] = ["other-profile"]
+            fixture["bundle_manifest"].write_text(
+                json.dumps(manifest, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle bundle_manifest template_resolution.profile "
+                    "must match PlatformBundle bundle_manifest profile windows-release"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertFalse(
+                any(
+                    "PlatformBundle bundle_manifest template_resolution "
+                    "does not match stage report" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_bundle_manifest_template_resolution_null_expected_identity(
+        self,
+    ) -> None:
+        for field in ("expected_engine_version", "expected_target_platform"):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(
+                        out,
+                        with_template_file=True,
+                    )
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    platform_report["template_resolution"] = _template_resolution(out)
+                    _write_stage_report(out, "platform_bundle", platform_report)
+                    _write_bundle_manifest_from_platform_report(
+                        fixture["bundle_manifest"],
+                        platform_report,
+                    )
+                    manifest = json.loads(
+                        fixture["bundle_manifest"].read_text(encoding="utf-8")
+                    )
+                    resolution = manifest["template_resolution"]
+                    self.assertIsInstance(resolution, dict)
+                    resolution[field] = None
+                    fixture["bundle_manifest"].write_text(
+                        json.dumps(manifest, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            "PlatformBundle bundle_manifest template_resolution "
+                            f"non-fatal resolution must include {field}"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            "PlatformBundle bundle_manifest template_resolution "
+                            "does not match stage report" in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_rejects_bundle_manifest_template_files_nested_schema(
         self,
     ) -> None:
@@ -666,6 +817,21 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
                     field,
                     42,
                     f"PlatformBundle report template.bundle.{field} must be a string",
+                )
+
+    def test_report_rejects_template_bundle_string_fields_blank(self) -> None:
+        for field in (
+            "delta_pack_path",
+            "host_path",
+            "manifest_path",
+            "pack_path",
+            "root",
+        ):
+            with self.subTest(field=field):
+                self._assert_template_bundle_field_diagnostic(
+                    field,
+                    " ",
+                    f"PlatformBundle report template.bundle.{field} must be a non-empty string",
                 )
 
     def test_report_rejects_template_file_string_fields_non_string(self) -> None:
@@ -952,6 +1118,7 @@ class PlatformBundleManifestSchemaTests(unittest.TestCase):
 
 
 def _template_resolution(out: Path) -> dict[str, object]:
+    template_root = out
     template_dir = out / "template"
     candidate = {
         "template_dir": str(template_dir),
@@ -962,7 +1129,7 @@ def _template_resolution(out: Path) -> dict[str, object]:
         "bundle_format": "directory",
     }
     return {
-        "template_root": str(out / "templates"),
+        "template_root": str(template_root),
         "profile": "windows-release",
         "expected_engine_version": "0.1.0",
         "expected_target_platform": "windows-x86_64",
@@ -971,7 +1138,7 @@ def _template_resolution(out: Path) -> dict[str, object]:
         "candidates": [deepcopy(candidate)],
         "skipped_candidates": [
             {
-                "template_dir": str(out / "templates" / "broken-template"),
+                "template_dir": str(out / "broken-template"),
                 "diagnostics": ["template format_version 999 is not supported"],
             }
         ],

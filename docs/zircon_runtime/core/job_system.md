@@ -51,7 +51,7 @@ tests:
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture
   - runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass
   - runtime_11_job_system_mirror_docs_match_structure_audit_counts
-  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 10, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
+  - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 12, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
   - runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending static checks passed 2026-06-16
 doc_type: module-detail
 ---
@@ -64,7 +64,7 @@ Runtime 11 extends the existing Bevy-style task pools into a small JobSystem lay
 
 This document records the M0 model decision before the M1 code surface: `JobHandle`, dependency scheduling, explicit synchronization points, a `parallel_for` primitive, and the first scheduler diagnostics surface. It also records which candidate primitives are intentionally not implemented yet.
 
-The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 10`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
+The structural mirror is `job_system_boundary` under `runtime_structure_audits/`. Current targeted evidence reports `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 11, the runtime index, the M0 review, and runtime-interface convergence synchronized with those counts.
 
 ## Consumer Matrix
 
@@ -101,13 +101,15 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 
 `JobScheduler::spawn` remains fire-and-forget. `JobScheduler::schedule` returns a `JobHandle`. `JobScheduler::schedule_after` returns a handle for the dependent task without blocking a worker while dependencies are outstanding. `JobHandle::combine` creates a synchronization handle that completes when all child handles complete. `JobScheduler::wait_all(...)` is the scheduler-owned multi-handle synchronization point; it combines the provided handles and records the explicit wait against the scheduler diagnostics state.
 
+Handle-backed scheduled tasks are panic-safe at the synchronization boundary. If a scheduled task panics, its `JobHandle` still reaches a terminal state, wakes waiters, and `wait()` reports the task panic on the caller thread. `schedule_after` and `JobHandle::combine` propagate dependency panic state to their returned handles without running dependent task bodies, so a failed prerequisite cannot leave a synchronization point waiting forever.
+
 `parallel_for` is blocking and uses an explicit chunk size. A chunk size of zero is normalized to one item per chunk. Callers use it when they need stable completion before continuing the current frame; longer lived work should be scheduled with handles instead.
 
 `ScheduleParallelExecutor` is the first runtime consumer of dependency scheduling. It chains every `ScheduleParallelBatch` from the previous batch handle, records the report counts up front, waits on the final batch handle, and then replays each batch result in source order to keep deterministic error reporting.
 
 ## Observability
 
-`JobScheduler` owns a shared diagnostics state across clones. `spawn`, `schedule`, and `schedule_after` increment `tasks.scheduled`; task closures increment `tasks.completed` when they finish. Dependent jobs record `tasks.dependency_wait_ms` from `schedule_after` submission until dependency release launches the task. `JobHandle::wait()` and `JobScheduler::wait_all(...)` record explicit synchronization cost in `tasks.main_thread_wait_ms`.
+`JobScheduler` owns a shared diagnostics state across clones. `spawn`, `schedule`, and `schedule_after` increment `tasks.scheduled`; `spawn` increments `tasks.completed` when its fire-and-forget closure returns, while handle-backed jobs increment `tasks.completed` when their returned handle reaches its first terminal state, including panic and dependency-failure terminal states. Dependent jobs record `tasks.dependency_wait_ms` from `schedule_after` submission until dependency release either launches the task or fails it because a prerequisite panicked. `JobHandle::wait()` and `JobScheduler::wait_all(...)` record explicit synchronization cost in `tasks.main_thread_wait_ms`.
 
 `JobScheduler::diagnostic_report()` exposes an in-memory `JobSchedulerReport`; `JobScheduler::record_diagnostics(store, frame)` publishes the same values into `DiagnosticStore` with `tasks` and `job_scheduler` tags.
 
@@ -115,10 +117,12 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 
 ## Test Coverage
 
-`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors. `job_system_boundary` now keeps `behavior_test_anchor_count = 10` with `missing_behavior_test_anchors = []` so those names cannot silently drift while Cargo validation is pending. `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
+`zircon_runtime/src/tests/tasks.rs` owns the first M1/M3 behavior anchors. `job_system_boundary` now keeps `behavior_test_anchor_count = 12` with `missing_behavior_test_anchors = []` so those names cannot silently drift while Cargo validation is pending. `asset/tests/pipeline/worker_pool.rs` owns the M2.4 budget-accounting anchors:
 
 - `job_handle_wait_blocks_until_task_completes`
+- `job_handle_wait_reports_task_panic_without_leaking_completion`
 - `schedule_after_runs_task_only_after_all_dependencies`
+- `schedule_after_propagates_dependency_panic_without_running_dependent_task`
 - `combined_handle_completes_when_all_children_complete`
 - `schedule_after_does_not_consume_worker_while_waiting_on_dependencies`
 - `job_diagnostics_track_schedule_complete_and_wait_times`
@@ -136,6 +140,10 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 - `project_asset_manager_default_workers_use_runtime_io_budget_source`
 - `runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass`
 
-Cargo execution reached package compilation but did not reach the task tests on 2026-06-13: `cargo test -p zircon_runtime --lib tasks --locked -- --nocapture` first hit a plugin native-loader test import error for `PluginInterfaceManifest`. The missing import has been fixed; the task-test rerun is pending the next clear cargo/rustc window. The required milestone commands are recorded in Runtime 11.
+Cargo execution reached package compilation but did not reach the task tests on 2026-06-13: `cargo test -p zircon_runtime --lib tasks --locked -- --nocapture` first hit a plugin native-loader test import error for `PluginInterfaceManifest`. The missing import has been fixed. A 2026-06-20 clean-window rerun of `cargo test -p zircon_runtime --lib tasks --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-11-validation-0620 --message-format short --color never -- --test-threads=1 --nocapture` stayed in `zircon_runtime` lib-test compilation for the 1200s tool window plus an additional 650s wait and produced no test binary or test result; the residual Cargo/rustc processes from that run were stopped. A narrower 2026-06-20 core-min rerun, `cargo test -p zircon_runtime --lib tasks --no-default-features --features core-min --locked --jobs 1 --target-dir E:\Git\ZirconEngine\target\codex-runtime11-coremin-0620 --message-format short --color never -- --test-threads=1 --nocapture`, also timed out after 1200s during `zircon_runtime` lib-test compilation, produced no `zircon_runtime*.exe` test binary in that target directory, and had matching residual Cargo/rustc command lines stopped. The required milestone commands remain recorded in Runtime 11, and these timeout records do not count as Cargo passes.
+
+The 2026-06-20 lightweight guard pass confirms the static boundary while Cargo remains pending: standalone `job_system.rs` passed 1/1, standalone `rayon_boundary.rs` passed 3/3, standalone `asset_worker_policy.rs` passed 1/1, and `asset_worker_policy.rs` passed rustfmt. The asset worker guard was tightened to inspect the `impl AssetWorkerPool` block for the retired `AssetWorkerPool::new(worker_count)` signature while still requiring `AssetWorkerPoolOptions` to own worker-count configuration, so the guard no longer mistakes the valid `AssetWorkerPoolOptions::new(worker_count)` constructor for the retired pool API.
+
+The core-min window added another lightweight evidence pass before status sync: `job_system_boundary.py` compiled, direct `job_system_boundary_audit` reported `expected_module_count = 9`, `direct_rayon_paths = 2`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, and `risks = []`, and standalone `job_system.rs` 1/1 plus standalone `rayon_boundary.rs` 3/3 passed.
 
 `runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass` keeps the `tasks/ecs_schedule/worker_pool/rayon` validation lane visible across Runtime 11, the runtime index, Runtime 05 closeout, this module doc, and the M0 review. The render-owned `parallel_frustum.rs` direct-Rayon cutover is complete at static/source level, but Runtime 11 remains `in_progress` until the declared package filters have real Cargo evidence.

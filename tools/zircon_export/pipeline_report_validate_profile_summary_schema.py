@@ -57,6 +57,16 @@ VALIDATE_PROFILE_SUMMARY_TARGET_PLATFORMS = (
 )
 VALIDATE_PROFILE_SUMMARY_STRING_ARRAY_FIELDS = ("strategies",)
 VALIDATE_PROFILE_SUMMARY_PROJECT_PLUGIN_ID_ARRAY_FIELDS = ("selected_plugins",)
+VALIDATE_PROFILE_SUMMARY_REQUIRED_STRING_FIELDS = (
+    "build_mode",
+    "name",
+    "target_mode",
+    "target_platform",
+)
+VALIDATE_PROFILE_SUMMARY_REQUIRED_PROJECT_PLUGIN_ID_ARRAY_FIELDS = (
+    "selected_plugins",
+)
+VALIDATE_PROFILE_SUMMARY_REQUIRED_OBJECT_FIELDS = ("features",)
 
 
 def validate_profile_summary_schema_diagnostics(
@@ -69,6 +79,29 @@ def validate_profile_summary_schema_diagnostics(
         for field in sorted(profile_summary)
         if field not in known_profile_fields
     )
+    for field in VALIDATE_PROFILE_SUMMARY_REQUIRED_STRING_FIELDS:
+        if field not in profile_summary:
+            diagnostics.extend(
+                validate_string_schema_diagnostics(
+                    f"validate report profile_summary.{field}",
+                    profile_summary.get(field),
+                )
+            )
+    for field in VALIDATE_PROFILE_SUMMARY_REQUIRED_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
+        if field not in profile_summary:
+            diagnostics.extend(
+                validate_project_plugin_package_id_array_schema_diagnostics(
+                    f"validate report profile_summary.{field}",
+                    profile_summary.get(field),
+                )
+            )
+    for field in VALIDATE_PROFILE_SUMMARY_REQUIRED_OBJECT_FIELDS:
+        if field not in profile_summary:
+            diagnostics.extend(
+                validate_profile_features_schema_diagnostics(
+                    profile_summary.get(field)
+                )
+            )
     for field in VALIDATE_PROFILE_SUMMARY_STRING_FIELDS:
         if field in profile_summary:
             diagnostics.extend(
@@ -147,6 +180,9 @@ def validate_profile_summary_schema_diagnostics(
         and not any(not isinstance(strategy, str) for strategy in strategies)
     ):
         diagnostics.extend(validate_export_strategy_schema_diagnostics(strategies))
+        diagnostics.extend(
+            validate_unique_export_strategy_schema_diagnostics(strategies)
+        )
     for field in VALIDATE_PROFILE_SUMMARY_PROJECT_PLUGIN_ID_ARRAY_FIELDS:
         if field in profile_summary:
             diagnostics.extend(
@@ -191,7 +227,29 @@ def validate_export_strategy_schema_diagnostics(strategies: list[str]) -> list[s
             )
             continue
         if normalize_export_strategy(strategy) is None:
-            diagnostics.append(f"unsupported export strategy {strategy}")
+                diagnostics.append(f"unsupported export strategy {strategy}")
+    return diagnostics
+
+
+def validate_unique_export_strategy_schema_diagnostics(
+    strategies: list[str],
+) -> list[str]:
+    diagnostics: list[str] = []
+    seen: dict[str, int] = {}
+    for index, strategy in enumerate(strategies):
+        if not strategy or strategy.strip() != strategy:
+            continue
+        normalized = normalize_export_strategy(strategy)
+        if normalized is None:
+            continue
+        previous_index = seen.get(normalized)
+        if previous_index is None:
+            seen[normalized] = index
+            continue
+        diagnostics.append(
+            "validate report profile_summary.strategies"
+            f"[{index}] duplicates entry {previous_index}"
+        )
     return diagnostics
 
 

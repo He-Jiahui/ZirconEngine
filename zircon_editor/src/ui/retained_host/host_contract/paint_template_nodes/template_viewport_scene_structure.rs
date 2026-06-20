@@ -4,7 +4,7 @@ use super::template_style::{
     border_color, surface_color, template_border_width, template_corner_radius,
 };
 
-pub(super) fn push_base_surface(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_base_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

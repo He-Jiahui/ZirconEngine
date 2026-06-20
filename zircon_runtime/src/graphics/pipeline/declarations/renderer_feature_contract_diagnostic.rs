@@ -186,6 +186,7 @@ fn material_validation_error_source(
             Some(RenderMaterialDiagnosticSource::DependencyResolution)
         }
         RenderMaterialValidationError::UnknownPropertyOverride { source, .. }
+        | RenderMaterialValidationError::RenderQueueAlphaModeConflict { source, .. }
         | RenderMaterialValidationError::PropertyOverrideTypeMismatch { source, .. }
         | RenderMaterialValidationError::MissingRequiredProperty { source, .. }
         | RenderMaterialValidationError::MissingRequiredTextureSlot { source, .. }

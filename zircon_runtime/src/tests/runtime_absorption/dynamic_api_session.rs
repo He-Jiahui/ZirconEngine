@@ -6,6 +6,8 @@ mod ffi_panic_boundary;
 mod headless_profiles;
 #[path = "dynamic_api_session/mirror_docs.rs"]
 mod mirror_docs;
+#[path = "dynamic_api_session/runtime_diagnostics.rs"]
+mod runtime_diagnostics;
 #[path = "dynamic_api_session/shared.rs"]
 mod shared;
 #[path = "dynamic_api_session/test_owner_split.rs"]

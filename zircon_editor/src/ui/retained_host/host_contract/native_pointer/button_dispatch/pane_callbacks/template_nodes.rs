@@ -11,7 +11,7 @@ use zircon_runtime_interface::ui::surface::UiPointerButton;
 use super::super::super::NativePointerButtonState;
 use super::super::text_focus::focus_template_node_text_input;
 
-pub(super) fn dispatch_template_node_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_button(
     ui: &UiHostWindow,
     pane_host: &PaneSurfaceHostContext<'_>,
     hit: TemplateNodePointerHit,

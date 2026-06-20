@@ -9,7 +9,7 @@ use super::super::data::{
 };
 use super::super::paint_frame::HostRgbaFrame;
 
-pub(super) fn draw_pane_debug_overlay(
+pub(in crate::ui::retained_host::host_contract) fn draw_pane_debug_overlay(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,
@@ -18,7 +18,7 @@ pub(super) fn draw_pane_debug_overlay(
     diagnostics::draw_pane_debug_overlay(frame, pane, body, clip)
 }
 
-pub(super) fn draw_viewport_image(
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,
@@ -28,7 +28,7 @@ pub(super) fn draw_viewport_image(
     viewport::draw_viewport_image(frame, pane, body, clip, viewport_image)
 }
 
-pub(super) fn draw_native_pane_content(
+pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

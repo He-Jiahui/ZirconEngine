@@ -412,6 +412,8 @@ cargo test -p zircon_runtime --lib scene::tests::ecs_typed_api --locked --messag
 
 The focused `ecs_reflect` filter now reports 32 passing tests, including six resource reflection tests in `resources.rs`. The typed ECS filter reports 4 passing tests. The Cargo test commands emitted two unrelated dead-code warnings in graphics/plugin test helpers. Workspace-wide validation was not run or claimed for M8.6.
 
+Runtime 05 later extended `ReflectResource` with an optional `ensure` hook. The hook is called by dynamic-scene apply when a captured reflected resource is absent from the target world; adapters that can create or initialize their resource return `Ok(true)`/`Ok(false)` and then receive ordinary reflected field writes. Adapters that leave `ensure = None` retain the previous contract: applying a scene with that missing resource returns `ReflectError::MissingResource` instead of silently inventing state.
+
 ## M8.7 Inspector And Remote DTO Reuse Proof
 
 M8.7 adds runtime-side acceptance coverage for the editor-inspector and remote/devtools seams without changing editor production code or adding transport endpoints. The tests live in `zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs` so the existing `ecs_reflect` test root remains structural.

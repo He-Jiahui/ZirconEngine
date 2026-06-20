@@ -4,8 +4,9 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
@@ -15,8 +16,9 @@ implementation_files:
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/lib.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
@@ -63,6 +65,8 @@ The interface crate does not own recorder state, file I/O, Tracy subscribers, ed
 
 `HotspotReport` groups recorded spans by `stream/category/name/path` and carries totals, averages, p95, max, count, frame count, over-budget count, and conservative optimization hints.
 
+`CounterHotspotReport` groups finite positive `ProfileCounterSnapshot` values by `stream/name/path` and carries `CounterHotspotEntry` rows with total, average, p95, max, latest, sample count, and frame count. It is serialized to `counter_hotspots.json` by the runtime exporter and returned through `ProfileControlResponse.counter_hotspot_report` when `export_report` succeeds. The DTO stays generic: Runtime 07 can rank extract/ECS/asset/animation/time/task counters as evidence without moving counter ownership into the interface crate.
+
 `UiHotspotReport` groups retained-host UI counters by scenario. The GPU UI counters distinguish actual batch submissions from input work: `gpu_draw_calls` is the number of planned WGPU batch draws, `gpu_visible_commands` is the command-stream visibility count, `gpu_visible_draw_items` is the clipped geometry/text item count after border expansion, and `gpu_batch_layers` / `gpu_batch_dependencies` describe the partial-order depth plan. This keeps profile summaries honest when renderer efficiency changes: a capture can show that the presenter stayed on GPU and also whether independent UI items were actually batched.
 
 ## Optional Runtime ABI Hook
@@ -89,4 +93,4 @@ Dynamic runtime responses use `ZrOwnedByteBuffer` with a runtime-owned free call
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`; the same table-size test now also confirms that `tick_frame` follows `profile_control` as a separate optional extension. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. `zircon_runtime` UI hotspot tests verify the retained-host GPU counters aggregate actual batch draws, visible commands/items, layer counts, dependency counts, no-draw failures, upload failures, and batch degeneration alerts. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.
+`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`; the same table-size test now also confirms that `tick_frame` follows `profile_control` as a separate optional extension. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. `zircon_runtime` counter hotspot tests verify `CounterHotspotReport` grouping, ordering, and `counter_hotspots.json` export wiring, while UI hotspot tests verify the retained-host GPU counters aggregate actual batch draws, visible commands/items, layer counts, dependency counts, no-draw failures, upload failures, and batch degeneration alerts. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.

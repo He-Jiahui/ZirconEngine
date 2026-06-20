@@ -14,11 +14,15 @@ pub(in crate::ui::retained_host::host_contract) enum HostPresenterError {
 }
 
 impl HostPresenterError {
-    pub(super) fn softbuffer(error: softbuffer::SoftBufferError) -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn softbuffer(
+        error: softbuffer::SoftBufferError,
+    ) -> Self {
         Self::Softbuffer(error.to_string())
     }
 
-    pub(super) fn gpu_unavailable(reason: impl Into<String>) -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn gpu_unavailable(
+        reason: impl Into<String>,
+    ) -> Self {
         Self::GpuUnavailable(reason.into())
     }
 }

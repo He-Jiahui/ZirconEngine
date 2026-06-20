@@ -17,7 +17,7 @@ mod surface_io;
 #[cfg(test)]
 mod tests;
 
-pub(super) struct SoftbufferHostPresenter {
+pub(in crate::ui::retained_host::host_contract) struct SoftbufferHostPresenter {
     #[allow(dead_code)]
     context: Context<Arc<dyn Window>>,
     surface: Surface<Arc<dyn Window>, Arc<dyn Window>>,
@@ -30,15 +30,20 @@ pub(super) struct SoftbufferHostPresenter {
 }
 
 impl SoftbufferHostPresenter {
-    pub(super) fn new(window: Arc<dyn Window>) -> Result<Self, softbuffer::SoftBufferError> {
+    pub(in crate::ui::retained_host::host_contract) fn new(
+        window: Arc<dyn Window>,
+    ) -> Result<Self, softbuffer::SoftBufferError> {
         lifecycle::new_presenter(window)
     }
 
-    pub(super) fn resize(&mut self, size: (u32, u32)) -> Result<(), softbuffer::SoftBufferError> {
+    pub(in crate::ui::retained_host::host_contract) fn resize(
+        &mut self,
+        size: (u32, u32),
+    ) -> Result<(), softbuffer::SoftBufferError> {
         lifecycle::resize_presenter(self, size)
     }
 
-    pub(super) fn present(
+    pub(in crate::ui::retained_host::host_contract) fn present(
         &mut self,
         presentation: &HostWindowPresentationData,
         damage: Option<FrameRect>,
@@ -47,7 +52,9 @@ impl SoftbufferHostPresenter {
         present::present(self, presentation, damage, invalidation)
     }
 
-    pub(super) fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
+    pub(in crate::ui::retained_host::host_contract) fn diagnostics_snapshot(
+        &self,
+    ) -> HostRefreshDiagnostics {
         self.diagnostics.clone()
     }
 }

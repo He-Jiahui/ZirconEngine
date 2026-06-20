@@ -6,7 +6,7 @@ use super::super::data::{
     HostPaneInteractionStateData, HostWindowPresentationData, PaneData, TemplatePaneNodeData,
 };
 
-pub(super) fn apply_template_hover_to_presentation(
+pub(in crate::ui::retained_host::host_contract) fn apply_template_hover_to_presentation(
     presentation: &mut HostWindowPresentationData,
     interaction: &HostPaneInteractionStateData,
 ) {

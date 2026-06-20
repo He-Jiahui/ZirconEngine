@@ -8,15 +8,27 @@ related_code:
   - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/messages.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/system/system_state.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
-  - zircon_runtime/src/scene/ecs/commands/commands.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/mod.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/entity_commands.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/facade.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/param.rs
   - zircon_runtime/src/scene/ecs/system/res.rs
   - zircon_runtime/src/scene/ecs/system/messages.rs
   - zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs
-  - zircon_runtime/src/scene/ecs/observer.rs
-  - zircon_runtime/src/scene/ecs/messages.rs
+  - zircon_runtime/src/scene/ecs/observer/mod.rs
+  - zircon_runtime/src/scene/ecs/observer/callbacks.rs
+  - zircon_runtime/src/scene/ecs/observer/entry.rs
+  - zircon_runtime/src/scene/ecs/observer/id.rs
+  - zircon_runtime/src/scene/ecs/observer/store.rs
+  - zircon_runtime/src/scene/ecs/observer/utils.rs
+  - zircon_runtime/src/scene/ecs/messages/mod.rs
+  - zircon_runtime/src/scene/ecs/messages/cursor.rs
+  - zircon_runtime/src/scene/ecs/messages/id.rs
+  - zircon_runtime/src/scene/ecs/messages/queue.rs
+  - zircon_runtime/src/scene/ecs/messages/store.rs
   - zircon_runtime/src/scene/dynamic_scene/scene.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - dev/bevy/crates/bevy_ecs/src/world/mod.rs
@@ -36,15 +48,27 @@ implementation_files:
   - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/messages.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/system/system_state.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
-  - zircon_runtime/src/scene/ecs/commands/commands.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/mod.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/entity_commands.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/facade.rs
+  - zircon_runtime/src/scene/ecs/commands/commands/param.rs
   - zircon_runtime/src/scene/ecs/system/res.rs
   - zircon_runtime/src/scene/ecs/system/messages.rs
   - zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs
-  - zircon_runtime/src/scene/ecs/observer.rs
-  - zircon_runtime/src/scene/ecs/messages.rs
+  - zircon_runtime/src/scene/ecs/observer/mod.rs
+  - zircon_runtime/src/scene/ecs/observer/callbacks.rs
+  - zircon_runtime/src/scene/ecs/observer/entry.rs
+  - zircon_runtime/src/scene/ecs/observer/id.rs
+  - zircon_runtime/src/scene/ecs/observer/store.rs
+  - zircon_runtime/src/scene/ecs/observer/utils.rs
+  - zircon_runtime/src/scene/ecs/messages/mod.rs
+  - zircon_runtime/src/scene/ecs/messages/cursor.rs
+  - zircon_runtime/src/scene/ecs/messages/id.rs
+  - zircon_runtime/src/scene/ecs/messages/queue.rs
+  - zircon_runtime/src/scene/ecs/messages/store.rs
   - zircon_runtime/src/scene/dynamic_scene/scene.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
 plan_sources:

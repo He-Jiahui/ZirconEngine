@@ -1,3 +1,6 @@
+use super::super::super::data::TemplatePaneNodeData;
+use super::super::super::paint_theme::PALETTE;
+use super::state::button_interaction_state;
 use super::*;
 use zircon_runtime_interface::ui::style::{
     ButtonInteractionState, ResolvedButtonStyle, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,

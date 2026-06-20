@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .export_template import is_safe_relative_path, normalize_relative_path
 from .pipeline_report_schema_primitives import validate_string_schema_diagnostics
 from .pipeline_report_validate_identifier_schema import (
     validate_project_plugin_package_id_schema_diagnostics,
@@ -22,6 +23,7 @@ VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_STRING_FIELDS = (
     "provider_package_id",
     "registration_kind",
 )
+VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_RELATIVE_PATH_FIELDS = ("path",)
 VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_NAME_FIELDS = ("crate_name",)
 VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_PROVIDER_ID_FIELDS = (
     "provider_package_id",
@@ -38,6 +40,7 @@ def validate_linked_runtime_crate_schema_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     known_linked_crate_fields = set(VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_FIELDS)
+    seen_crate_names: dict[str, int] = {}
     for index, crate in enumerate(linked_runtime_crates):
         if not isinstance(crate, dict):
             continue
@@ -53,14 +56,30 @@ def validate_linked_runtime_crate_schema_diagnostics(
                     crate.get(field),
                 )
             )
+        for field in VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_RELATIVE_PATH_FIELDS:
+            value = crate.get(field)
+            if isinstance(value, str) and not linked_crate_path_is_safe(value):
+                diagnostics.append(
+                    f"{label}[{index}].{field} must be a safe relative path"
+                )
         for field in VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_NAME_FIELDS:
             value = crate.get(field)
             if isinstance(value, str):
-                diagnostics.extend(
+                crate_name_diagnostics = (
                     validate_project_runtime_crate_name_schema_diagnostics(
                         f"{label}[{index}].{field}",
                         value,
                     )
+                )
+                diagnostics.extend(crate_name_diagnostics)
+                if crate_name_diagnostics:
+                    continue
+                previous_index = seen_crate_names.get(value)
+                if previous_index is None:
+                    seen_crate_names[value] = index
+                    continue
+                diagnostics.append(
+                    f"{label}[{index}].{field} duplicates entry {previous_index}"
                 )
         for field in VALIDATE_LIBRARY_EMBED_LINKED_RUNTIME_CRATE_PROVIDER_ID_FIELDS:
             value = crate.get(field)
@@ -81,3 +100,11 @@ def validate_linked_runtime_crate_schema_diagnostics(
                 f"{label}[{index}].registration_kind must be runtime_plugin"
             )
     return diagnostics
+
+
+def linked_crate_path_is_safe(value: str) -> bool:
+    return (
+        bool(value.strip())
+        and value.strip() == value
+        and is_safe_relative_path(normalize_relative_path(value))
+    )

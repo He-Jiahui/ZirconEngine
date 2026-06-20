@@ -16,7 +16,7 @@ mod input;
 mod lifecycle;
 mod redraw;
 
-pub(super) struct UiHostWindowEventLoop {
+pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     host: UiHostWindow,
     window: Option<Arc<dyn Window>>,
     presenter: Option<Box<dyn HostChromePresenter>>,
@@ -29,7 +29,7 @@ pub(super) struct UiHostWindowEventLoop {
 }
 
 impl UiHostWindowEventLoop {
-    pub(super) fn new(host: UiHostWindow) -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn new(host: UiHostWindow) -> Self {
         Self {
             host,
             window: None,

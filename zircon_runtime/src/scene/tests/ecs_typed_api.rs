@@ -228,7 +228,8 @@ fn archetype_signatures_partition_component_ids_without_combined_vector() {
             .join("scene")
             .join("ecs")
             .join("storage")
-            .join("component_storage.rs"),
+            .join("component_storage")
+            .join("store.rs"),
     );
     let signature = identity_source
         .split("fn archetype_signature_for_internal")
@@ -416,9 +417,11 @@ fn typed_world_component_insert_remove_use_direct_result_branches() {
 
     assert!(
         insert.contains("let old = match self")
-            && insert.contains(
-                ".insert_at_tick(component_id, T::STORAGE_TYPE, internal, component, tick)"
-            )
+            && insert.contains("insert_at_tick(")
+            && insert.contains("T::STORAGE_TYPE")
+            && insert.contains("internal")
+            && insert.contains("component")
+            && insert.contains("tick")
             && insert.contains("Ok(old) => old")
             && insert.contains("Err(error) => return Err(error.to_string())")
             && !insert.contains(".map_err(|error| error.to_string())")

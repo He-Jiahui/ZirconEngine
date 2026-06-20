@@ -1,3 +1,4 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,
@@ -342,6 +343,40 @@ fn scheduler_wait_all_waits_for_all_handles_and_records_sync_time() {
         scheduler.diagnostic_report().main_thread_wait_ms > 0.0,
         "wait_all should record explicit scheduler synchronization time"
     );
+}
+
+#[test]
+fn job_handle_wait_reports_task_panic_without_leaking_completion() {
+    let scheduler = single_worker_scheduler();
+
+    let handle = scheduler.schedule(|| panic!("scheduled failure"));
+
+    let wait_result = catch_unwind(AssertUnwindSafe(|| handle.wait()));
+
+    assert!(wait_result.is_err());
+    assert!(handle.is_complete());
+    assert_eq!(scheduler.diagnostic_report().scheduled, 1);
+    assert_eq!(scheduler.diagnostic_report().completed, 1);
+}
+
+#[test]
+fn schedule_after_propagates_dependency_panic_without_running_dependent_task() {
+    let scheduler = single_worker_scheduler();
+    let dependent_ran = Arc::new(AtomicUsize::new(0));
+
+    let dependency = scheduler.schedule(|| panic!("dependency failure"));
+    let dependent_ran_for_task = Arc::clone(&dependent_ran);
+    let dependent = scheduler.schedule_after(&[dependency], move || {
+        dependent_ran_for_task.fetch_add(1, Ordering::SeqCst);
+    });
+
+    let wait_result = catch_unwind(AssertUnwindSafe(|| dependent.wait()));
+
+    assert!(wait_result.is_err());
+    assert!(dependent.is_complete());
+    assert_eq!(dependent_ran.load(Ordering::SeqCst), 0);
+    assert_eq!(scheduler.diagnostic_report().scheduled, 2);
+    assert_eq!(scheduler.diagnostic_report().completed, 2);
 }
 
 #[test]

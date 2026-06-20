@@ -13,21 +13,29 @@ use crate::ui::retained_host::primitives::{
     Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, VecModel,
 };
 
-pub(super) const ROOT_OVERLAY_IMAGE_CONTROL_ID: &str = "TestRootOverlayImage";
-pub(super) const ROOT_OVERLAY_IMAGE_PATH: &str = "ui/test/root-overlay.png";
-pub(super) const ROOT_OVERLAY_IMAGE_WIDTH: u32 = 2;
-pub(super) const ROOT_OVERLAY_IMAGE_HEIGHT: u32 = 2;
-pub(super) const ROOT_OVERLAY_UPLOAD_BYTES: u64 =
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_IMAGE_CONTROL_ID: &str =
+    "TestRootOverlayImage";
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_IMAGE_PATH: &str =
+    "ui/test/root-overlay.png";
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_IMAGE_WIDTH: u32 = 2;
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_IMAGE_HEIGHT: u32 = 2;
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_UPLOAD_BYTES: u64 =
     (ROOT_OVERLAY_IMAGE_WIDTH as u64) * (ROOT_OVERLAY_IMAGE_HEIGHT as u64) * 4;
-pub(super) const ROOT_OVERLAY_FRAME_WIDTH: f32 = 48.0;
-pub(super) const ROOT_OVERLAY_FRAME_HEIGHT: f32 = 32.0;
-pub(super) const ROOT_OVERLAY_FRAME_SIZE: (u32, u32) = (96, 72);
-pub(super) const ROOT_OVERLAY_COLOR: [u8; 4] = [28, 199, 215, 255];
-pub(super) const LEGACY_CENTER_BAND: [u8; 4] = [23, 27, 34, 255];
-pub(super) const LEGACY_DOCUMENT_PANEL: [u8; 4] = [13, 16, 22, 255];
-pub(super) const LEGACY_VIEWPORT_PANEL: [u8; 4] = [7, 10, 15, 255];
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_FRAME_WIDTH: f32 = 48.0;
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_FRAME_HEIGHT: f32 = 32.0;
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_FRAME_SIZE: (u32, u32) =
+    (96, 72);
+pub(in crate::ui::retained_host::host_contract) const ROOT_OVERLAY_COLOR: [u8; 4] =
+    [28, 199, 215, 255];
+pub(in crate::ui::retained_host::host_contract) const LEGACY_CENTER_BAND: [u8; 4] =
+    [23, 27, 34, 255];
+pub(in crate::ui::retained_host::host_contract) const LEGACY_DOCUMENT_PANEL: [u8; 4] =
+    [13, 16, 22, 255];
+pub(in crate::ui::retained_host::host_contract) const LEGACY_VIEWPORT_PANEL: [u8; 4] =
+    [7, 10, 15, 255];
 
-pub(super) fn presentation_with_viewport_image() -> HostWindowPresentationData {
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_image(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.host_layout = test_layout();
     presentation.host_scene_data.layout = test_layout();
@@ -71,14 +79,15 @@ pub(super) fn presentation_with_viewport_image() -> HostWindowPresentationData {
     presentation
 }
 
-pub(super) fn presentation_with_root_overlay_image() -> HostWindowPresentationData {
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_root_overlay_image(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.root_template_nodes = model_rc(vec![root_overlay_image_node()]);
     presentation
 }
 
-pub(super) fn presentation_with_componentized_workbench_frame_owner() -> HostWindowPresentationData
-{
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_componentized_workbench_frame_owner(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.host_layout = test_layout();
     presentation.host_scene_data.layout = test_layout();
@@ -201,11 +210,14 @@ fn solid_image(color: [u8; 4]) -> Image {
     ))
 }
 
-pub(super) fn solid_rgba(color: [u8; 4]) -> Vec<u8> {
+pub(in crate::ui::retained_host::host_contract) fn solid_rgba(color: [u8; 4]) -> Vec<u8> {
     [color, color, color, color].concat()
 }
 
-pub(super) fn stream_has_quad_color(stream: &ChromeCommandStream, color: [u8; 4]) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn stream_has_quad_color(
+    stream: &ChromeCommandStream,
+    color: [u8; 4],
+) -> bool {
     stream.commands().iter().any(|command| {
         matches!(
             &command.kind,
@@ -217,7 +229,7 @@ pub(super) fn stream_has_quad_color(stream: &ChromeCommandStream, color: [u8; 4]
     })
 }
 
-pub(super) fn root_overlay_image_command<'a>(
+pub(in crate::ui::retained_host::host_contract) fn root_overlay_image_command<'a>(
     stream: &'a ChromeCommandStream,
     overlay_rgba: &[u8],
 ) -> Option<&'a ChromeImagePayload> {
@@ -237,7 +249,7 @@ pub(super) fn root_overlay_image_command<'a>(
         })
 }
 
-pub(super) fn first_pixel_difference(
+pub(in crate::ui::retained_host::host_contract) fn first_pixel_difference(
     left: &[u8],
     right: &[u8],
     width: u32,
@@ -259,7 +271,7 @@ pub(super) fn first_pixel_difference(
         })
 }
 
-pub(super) fn push_recorded_for_test(
+pub(in crate::ui::retained_host::host_contract) fn push_recorded_for_test(
     stream: &mut ChromeCommandStream,
     command: HostRecordedPaintCommand,
     full_rebuild: bool,
@@ -269,7 +281,12 @@ pub(super) fn push_recorded_for_test(
     }
 }
 
-pub(super) fn pixel(bytes: &[u8], width: u32, x: u32, y: u32) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract) fn pixel(
+    bytes: &[u8],
+    width: u32,
+    x: u32,
+    y: u32,
+) -> [u8; 4] {
     let offset = ((y as usize * width as usize) + x as usize) * 4;
     [
         bytes[offset],

@@ -1,6 +1,7 @@
 use crate::core::framework::channel::ChannelReceiver;
 
 mod button_input_state;
+mod cursor;
 mod file_drag_drop;
 mod gamepad;
 mod ime;
@@ -20,6 +21,7 @@ mod touch;
 mod window_status;
 
 pub use button_input_state::ButtonInputState;
+pub use cursor::{CursorGrabMode, CursorHostRequest, CursorPosition};
 pub use file_drag_drop::FileDragDropEvent;
 pub use gamepad::{
     GamepadAxis, GamepadAxisInput, GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition,
@@ -73,6 +75,9 @@ pub trait InputManager: Send + Sync {
         Vec::new()
     }
     fn drain_gamepad_rumble_requests(&self) -> Vec<GamepadRumbleRequest> {
+        Vec::new()
+    }
+    fn drain_cursor_host_requests(&self) -> Vec<CursorHostRequest> {
         Vec::new()
     }
     fn drain_events(&self) -> Vec<InputEvent>;

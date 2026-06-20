@@ -3,9 +3,10 @@ use super::render_commands::HostPaintCommand;
 
 const ICON_GRID: f32 = 16.0;
 
-pub(super) type IconButtonGlyphSegment = (f32, f32, f32, f32);
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) type IconButtonGlyphSegment =
+    (f32, f32, f32, f32);
 
-pub(super) fn push_icon_button_glyph_segments(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_icon_button_glyph_segments(
     commands: &mut Vec<HostPaintCommand>,
     origin: &FrameRect,
     clip: &FrameRect,

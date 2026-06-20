@@ -11,6 +11,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/viewport_button.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/resize_capture.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/tab_drag.rs
@@ -31,6 +32,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -87,6 +89,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/viewport_button.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/resize_capture.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/tab_drag.rs
@@ -107,6 +110,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
@@ -202,12 +206,13 @@ tests:
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer routing subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer routing subtree split: passed with existing warning noise only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer menu geometry subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer menu geometry subtree split: passed with existing warning noise only)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; native pointer drag/resize capture subtree ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after native pointer drag/resize capture subtree split: passed with existing warning noise only)
+  - cargo fmt -p zircon_editor --check; native pointer constants/state ownership scan; scoped trailing-whitespace scan; scoped git diff --check (2026-06-20 after constants/state split: passed; full tests deferred)
 doc_type: module-detail
 ---
 
 # Native Pointer Host Contract
 
-The native retained host contract is the editor-side boundary that translates root window pointer and keyboard input into editor shell callbacks. `native_pointer.rs` owns only the native pointer subtree assembly, shared pointer constants, and `NativePointerButtonState`. `native_pointer/button_dispatch.rs` owns the root pointer button event ordering and delegates pane callback fanout, chrome callback fanout, text-focus activation, close-prompt hit resolution, and viewport button id conversion to its folder-backed children. `native_pointer/move_dispatch.rs` owns the root pointer-move flow. `native_pointer/scroll_dispatch.rs` owns root pointer scroll dispatch. `native_pointer/drag_resize.rs` owns transient resize capture and tab-drag state progression. `native_pointer/routing.rs` owns route payload types and delegates hit routing for top-level chrome, pane surfaces, workbench template nodes, viewport toolbar targets, floating-window content, and shell resize splitters to its folder-backed children. `window.rs` owns keyboard/text dispatch after the native pointer subtree has established a focused text-input target.
+The native retained host contract is the editor-side boundary that translates root window pointer and keyboard input into editor shell callbacks. `native_pointer.rs` now owns only native pointer subtree assembly and re-exports. `native_pointer/constants.rs` owns shared host/viewport pointer event ids and viewport button ids, while `native_pointer/state.rs` owns `NativePointerButtonState`. `native_pointer/button_dispatch.rs` owns the root pointer button event ordering and delegates pane callback fanout, chrome callback fanout, text-focus activation, close-prompt hit resolution, and viewport button id conversion to its folder-backed children. `native_pointer/move_dispatch.rs` owns the root pointer-move flow. `native_pointer/scroll_dispatch.rs` owns root pointer scroll dispatch. `native_pointer/drag_resize.rs` owns transient resize capture and tab-drag state progression. `native_pointer/routing.rs` owns route payload types and delegates hit routing for top-level chrome, pane surfaces, workbench template nodes, viewport toolbar targets, floating-window content, and shell resize splitters to its folder-backed children. `window.rs` owns keyboard/text dispatch after the native pointer subtree has established a focused text-input target.
 
 ## Routing Ownership
 
@@ -351,6 +356,8 @@ The 2026-06-18 routing subtree split reduced `native_pointer/routing.rs` to 88 l
 The 2026-06-18 menu geometry subtree split reduced `native_pointer/menu_geometry.rs` to 8 lines. The new `menu_geometry/bar.rs`, `menu_geometry/popup.rs`, `menu_geometry/damage.rs`, and `menu_geometry/frames.rs` keep menu-bar containment, popup containment, damage calculation, and shared popup frame math separated while preserving the original menu dispatch entry points.
 
 The 2026-06-18 drag/resize capture subtree split reduced `native_pointer/drag_resize.rs` to 9 lines. The new `drag_resize/resize_capture.rs` and `drag_resize/tab_drag.rs` keep splitter resize capture and document/drawer/floating tab-drag capture in separate state-machine owners while preserving the original dispatch-facing function names.
+
+The 2026-06-20 constants/state split reduced `native_pointer.rs` from 33 lines to a 25-line structural entry. `native_pointer/constants.rs` is 11 lines and owns host/viewport pointer event ids plus viewport button ids; `native_pointer/state.rs` is 5 lines and owns `NativePointerButtonState`. The 2026-06-20 owner visibility sweep kept drag/resize, routing, menu geometry, constants, and state re-exports inside the `host_contract` owner boundary. Validation used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming raw constants and enum definition no longer live in `native_pointer.rs`, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passes with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
 ## Focused Regression Coverage
 

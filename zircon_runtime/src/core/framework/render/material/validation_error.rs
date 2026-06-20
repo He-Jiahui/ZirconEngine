@@ -30,6 +30,13 @@ pub enum RenderMaterialValidationError {
         path: String,
         value: String,
     },
+    RenderQueueAlphaModeConflict {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        alpha_mode: String,
+        render_queue: u16,
+        expected: String,
+    },
     UnregisteredShadingModel {
         path: String,
         token: String,

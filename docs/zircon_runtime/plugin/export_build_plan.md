@@ -10,7 +10,14 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/native.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/package_lookup.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/report.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
@@ -29,7 +36,14 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/native.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/package_lookup.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/report.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
@@ -52,6 +66,8 @@ tests:
   - validate_report_exposes_native_dynamic_abi_v3_package_exports
   - loader_manifest_deserializes_abi_v3_contract_fields
   - native_dynamic_materialization_copies_runtime_package_without_source_crates
+  - native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads
+  - native_dynamic_zip_archive_preview_reports_archive_without_writes
   - export_wizard_compile_host_path_feeds_platform_bundle_host_input
   - export_wizard_compile_host_path_respects_target_dir_override_and_build_mode
   - export_wizard_default_host_executable_points_to_compile_host_output
@@ -188,6 +204,53 @@ contract while tooling can audit it.
 copied native package. The materializer also falls back to deriving this report from the old
 `native_dynamic_packages` string list, which keeps deserialized older build plans usable.
 
+## Materialization Owner
+
+`materialize/mod.rs` owns the public `ExportBuildPlan::write_generated_files(...)`,
+`materialize(...)`, `materialize_with_native_packages(...)`, `preview_materialize(...)`,
+`preview_materialize_with_native_packages(...)`, `materialize_zip_archive(...)`, and
+`preview_zip_archive(...)` entry points. The implementation is folder-backed:
+`archive.rs` writes or previews a ZIP archive, `generated.rs` writes or previews generated files,
+`paths.rs` validates materialized relative paths,
+`native.rs` orchestrates NativeDynamic package copying and preview, `package_lookup.rs` discovers
+package sources under the configured plugin root, `copy.rs` filters copied package payloads and
+provides no-write package diagnostics, and `report.rs` writes the per-package ABI report.
+
+Generated export file paths are treated as portable export-relative paths, not host filesystem
+paths. The resolver rejects empty paths, absolute/root/prefix paths, `.` or `..` components,
+trailing separators, and backslash separators before creating parent directories or writing file
+contents. This keeps the directory-first materializer aligned with archive-container path traversal
+requirements and is reused for ZIP entry names.
+
+NativeDynamic source discovery and payload copy also use a non-following filesystem boundary.
+`package_lookup.rs` only traverses real directories and only reads real `plugin.toml` files, so
+symlinked package roots or manifest files cannot stand in for a package under the configured plugin
+root. `copy.rs` skips symlinked top-level package entries, resource children, and native artifact
+children; top-level skipped payloads are reported as materialization diagnostics instead of being
+published into the runtime distribution.
+
+The preview entry points return the same `ExportMaterializeReport` shape without creating
+directories, writing generated files, copying package payloads, or writing package reports. In
+preview mode, `generated_files` and `copied_packages` are planned output paths, while diagnostics
+come from the same generated-path resolver, NativeDynamic source lookup, duplicate output-directory
+check, native artifact scan, and symlink boundary used by the mutating materializer.
+
+Mutating materialization now preflights `ExportBuildPlan::effective_fatal_diagnostics()` before
+performing filesystem writes. `materialize(...)` returns an empty generated/copy set plus a blocking
+diagnostic when fatal diagnostics are present, `materialize_with_native_packages(...)` skips
+NativeDynamic package copy in that state, and direct `write_generated_files(...)` calls no-op rather
+than bypassing the gate. Preview entry points intentionally still list planned paths for editor
+preflight and validation UI.
+
+ZIP archive materialization is explicit and separate from directory materialization.
+`materialize_zip_archive(plugin_root, archive_path)` writes generated files, copied NativeDynamic
+payload files, and each `native_dynamic_package.toml` report into a single archive. Generated file
+entries are path-sorted, NativeDynamic payload entries use the same copy eligibility rules as
+directory materialization, source crates stay excluded, and `ExportMaterializeReport.archive_file`
+records the produced archive path. `preview_zip_archive(...)` returns planned generated/copied rows
+and diagnostics without creating the archive or parent directory. Fatal plans return a blocked
+archive report and do not create the ZIP.
+
 ## Current Coverage
 
 The M1 export profile slice adds four focused regressions:
@@ -214,6 +277,11 @@ The M1 export profile slice adds four focused regressions:
   loader manifest ABI contract.
 - `native_dynamic_materialization_copies_runtime_package_without_source_crates` covers copied native
   package layout plus the generated per-package `native_dynamic_package.toml`.
+- `native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads` covers
+  ZIP archive generation, native loader manifest entries, copied native payloads, package report
+  entries, and source-crate exclusion.
+- `native_dynamic_zip_archive_preview_reports_archive_without_writes` covers no-write ZIP archive
+  preview reporting.
 - `export_pipeline_stage_parser_accepts_cli_and_report_stage_names` in the desktop export editor
   plugin covers the public seven-stage enum from the editor-facing stream parser.
 - `export_wizard_compile_host_path_feeds_platform_bundle_host_input`,
@@ -227,6 +295,46 @@ check only reported LF/CRLF notices. `cargo check -p zircon_runtime --lib --no-d
 --features core-min --offline --jobs 1` and focused `cargo test` attempts timed out during current
 runtime compilation pressure before returning Rust diagnostics, so no Cargo pass is claimed for
 this slice yet.
+
+2026-06-20 materialization owner split update: `materialize.rs` was hard-cut to
+`materialize/{mod,generated,paths,native,package_lookup,copy,report}.rs`. The public
+`ExportBuildPlan` materialization methods and report shape remain unchanged, but generated-file
+targets now pass through a shared export-relative path resolver before disk writes. Validation for
+this slice covered rustfmt check, old flat-file absence, conflict-marker scan, stale old-path scan,
+trailing-whitespace scan, and path-scoped `git diff --check`; Cargo and focused behavior tests are
+deferred under the implementation-first direction.
+
+2026-06-20 NativeDynamic materialization symlink boundary update: package discovery now avoids
+symlinked directories and symlinked `plugin.toml` files, and payload copy skips symlinked package,
+resource, and native artifact entries. Top-level skipped payloads are surfaced as diagnostics so
+export reports can explain omitted files while still avoiding symlink traversal. Validation covered
+rustfmt check, static scans for the new non-following helpers, conflict-marker scan,
+trailing-whitespace scan, and path-scoped `git diff --check`; Cargo and focused behavior tests remain
+deferred under the implementation-first direction.
+
+2026-06-20 materialization preview update: `ExportBuildPlan::preview_materialize(...)` and
+`preview_materialize_with_native_packages(...)` now expose a dry-run report that lists planned
+generated file paths and planned copied package directories while reusing the same path resolver,
+package lookup, duplicate-output, native-artifact, and symlink diagnostics as the mutating
+materializer. Validation covered rustfmt check plus static scans proving preview helpers are present
+and that filesystem writes/copies remain in the mutating materializer leaves; Cargo and focused
+behavior tests remain deferred under the implementation-first direction.
+
+2026-06-20 materialization fatal gate update: mutating materialization now blocks before generated
+file writes or NativeDynamic package copies when the effective fatal diagnostic list is non-empty.
+The report preserves fatal diagnostics, adds an explicit materialization-blocked diagnostic, and
+returns no generated or copied paths; preview remains available as a no-write planning surface.
+Validation covered rustfmt check plus static scans for the fatal gate, write/copy call sites,
+conflict markers, trailing whitespace, and path-scoped diff checks; Cargo and focused behavior tests
+remain deferred under the implementation-first direction.
+
+2026-06-20 ZIP archive materialization update: `materialize/archive.rs` now owns
+`ExportBuildPlan::materialize_zip_archive(...)` and `preview_zip_archive(...)`. The runtime manifest
+admits only `zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }`
+for this materializer; `tar` remains absent. `ExportMaterializeReport` now carries `archive_file`,
+and directory materialization leaves it as `None`. Validation for this implementation slice covered
+rustfmt check, direct tech-stack boundary audit, and static path/guard scans; Cargo and focused
+behavior tests remain deferred under the implementation-first direction.
 
 2026-06-14 M1-T3 update: the Validate CLI/report slice adds Python smoke coverage (`py_compile`,
 `python -m zircon_export --help`, and dry-run Validate command rendering) plus Rust formatting/static

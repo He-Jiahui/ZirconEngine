@@ -23,7 +23,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-06-15
+last_refined: 2026-06-20
 ---
 
 # 03 调度与帧循环对齐
@@ -207,6 +207,7 @@ last_refined: 2026-06-15
 | 横切 | Schedule/frame-loop module-doc 镜像元数据 | mirror_docs_static_passed_cargo_pending | 2026-06-14 | `schedule_frame_loop_boundary` 新增 `mirror_docs_guard_present = true` 与 frame schedule module-doc anchors 3/3，`runtime_absorption::schedule_frame_loop::runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 现在同时锁定 `docs/zircon_runtime/core/frame_schedule.md` 的 guard/test files 8/8、Runtime 03 guard anchors 14/14 与 `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts`；本切片未改调度/帧循环生产代码，`ecs_schedule/time/session/schedule_parallel` Cargo gates 仍 pending。 |
 | 横切 | Schedule/frame-loop 行为测试锚审计同步 | mirror_docs_static_passed_cargo_pending | 2026-06-15 | `schedule_frame_loop_boundary` 现在把 Runtime 03 M1/M2/M3 的 13 个调度/帧循环行为测试锚从 14 项 guard/test 总锚点中拆出单独计数，当前 `behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、Runtime 03 guard anchors 14/14 与 `doc_anchors = 10/10`；`runtime_absorption::schedule_frame_loop::runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` 要求本计划、runtime index、`docs/zircon_runtime/core/frame_schedule.md`、M0 review 与 runtime-interface convergence 都记录同一组行为锚事实。验证：rustfmt check、Python py_compile、direct `schedule_frame_loop_boundary_audit`、aggregate Runtime 03 + plan-status assertions、standalone schedule_frame_loop 1/1、standalone status-output 2/2；ecs_schedule/time/session/schedule_parallel Cargo gates 仍 pending。 |
 | 横切 | Schedule/frame-loop world bootstrap fixed-loop stage guard sync | guard_sync_static_passed_cargo_pending | 2026-06-15 | `world_bootstraps_with_renderable_defaults` 的 stage 断言已同步为 `SystemStage::First`、`SystemStage::PreUpdate`、`SystemStage::FixedFirst`、`SystemStage::FixedUpdate`、`SystemStage::FixedPostUpdate`、`SystemStage::Update`、`SystemStage::PostUpdate`、`SystemStage::Last`、`SystemStage::RenderExtract`，匹配 `SystemStage::ORDER` 与 Runtime 03 九阶段权威表；这是 full `scene::` closeout 31 失败中的 world_basics stale guard 修复，生产调度代码未改。验证：rustfmt check、Python py_compile、direct `runtime_plan_status_boundary_audit` support 27/27 risks=[]、wrapped standalone plan-status 30/30、conflict/trailing scans 与 scoped diff check 通过（仅 LF/CRLF warnings）；Cargo 包级复验因 active editor/export lanes 暂缓。 |
+| 横切 | Schedule/frame-loop current audit recheck | schedule_frame_loop_current_audit_static_passed_cargo_pending | 2026-06-20 | 本轮只复核 Runtime 03 当前调度/帧循环结构事实，生产代码未改：`schedule_frame_loop_boundary_audit` 报告 source files 18/18、guard/test files 8/8、`SystemStage` count and variants 9/9、fixed-loop stages 3/3、dynamic-session `.tick_time(...)` calls 1/1、Runtime 03 guard anchors 14/14、`behavior_test_anchor_count = 13`、`missing_behavior_test_anchors = []`、`doc_anchors = 10/10`、frame schedule module-doc anchors 3/3、`mirror_docs_guard_present = true`、no `WorldDriver` second `advance_time_by(...)` references、no dynamic-session raw-delta level tick references、`risks = []`。验证通过：Python py_compile、direct `schedule_frame_loop_boundary_audit` risks=[]、standalone `schedule_frame_loop.rs` 1/1、standalone `plan_status.rs` 32/32；`ecs_schedule/time/session/schedule_parallel` Cargo gates 仍 pending。 |
 
 Cargo validation note（2026-06-12）：
 

@@ -5,13 +5,13 @@ use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::{HostPaintAtlasImage, HostRgbaFrame};
 
 #[derive(Clone, Copy)]
-pub(super) enum ImageRecordingMetadata<'a> {
+pub(in crate::ui::retained_host::host_contract) enum ImageRecordingMetadata<'a> {
     ResourceKey(Option<&'a str>),
     Atlas(&'a HostPaintAtlasImage),
 }
 
 impl ImageRecordingMetadata<'_> {
-    pub(super) fn is_valid(self) -> bool {
+    pub(in crate::ui::retained_host::host_contract) fn is_valid(self) -> bool {
         match self {
             Self::ResourceKey(_) => true,
             Self::Atlas(atlas) => {
@@ -24,7 +24,7 @@ impl ImageRecordingMetadata<'_> {
         }
     }
 
-    pub(super) fn record(
+    pub(in crate::ui::retained_host::host_contract) fn record(
         self,
         frame: &mut HostRgbaFrame,
         rect: FrameRect,

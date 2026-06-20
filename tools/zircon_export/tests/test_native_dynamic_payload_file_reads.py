@@ -17,7 +17,7 @@ from tools.zircon_export.tests.export_test_support import (
     _write_validate_report_with_native_dynamic_exports,
     json_loads,
 )
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _write_platform_bundle_fixture,
 )
 

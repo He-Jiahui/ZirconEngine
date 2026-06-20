@@ -103,8 +103,17 @@ impl EditorManager {
             12,
             format!("Resolving desktop export plan {profile_name}"),
         );
-        let plan =
-            self.generate_native_aware_export_plan(project_root.as_ref(), manifest, profile_name)?;
+        let plan = ExportBuildPlan::from_project_manifest(
+            &self.complete_project_plugin_manifest_with_native_report(manifest, &native_report),
+            profile_name,
+        )?;
+        if plan.has_fatal_diagnostics() {
+            return blocked_native_aware_export_build_report(
+                output_root.as_ref(),
+                plan,
+                &mut progress,
+            );
+        }
         emit_export_progress(
             &mut progress,
             "prepare-native-packages",
@@ -290,6 +299,49 @@ fn exported_native_load_report_for_profile(
             NativePluginLoader.load_editor_from_load_manifest(output_root)
         }
     }
+}
+
+fn blocked_native_aware_export_build_report(
+    output_root: &Path,
+    plan: ExportBuildPlan,
+    progress: &mut impl FnMut(EditorExportBuildProgress),
+) -> Result<EditorExportBuildReport, String> {
+    emit_export_progress(
+        progress,
+        "materialize-export",
+        45,
+        "Skipping export materialization because the export plan has fatal diagnostics",
+    );
+    let materialized = plan
+        .materialize(output_root)
+        .map_err(|error| error.to_string())?;
+    let mut diagnostics = materialized.diagnostics;
+    let fatal_diagnostics = materialized.fatal_diagnostics;
+    diagnostics.push(skipped_export_cargo_build_diagnostic(&plan));
+    emit_export_progress(
+        progress,
+        "write-export-diagnostics",
+        96,
+        "Writing export diagnostics report",
+    );
+    finalize_export_diagnostics(output_root, &mut diagnostics);
+    emit_export_progress(
+        progress,
+        "complete",
+        100,
+        "Desktop export build finished with fatal diagnostics",
+    );
+
+    Ok(EditorExportBuildReport {
+        plan,
+        invoked_cargo: false,
+        cargo_invocation: None,
+        native_cargo_invocations: Vec::new(),
+        generated_files: materialized.generated_files,
+        copied_packages: materialized.copied_packages,
+        diagnostics,
+        fatal_diagnostics,
+    })
 }
 
 fn export_cancellation_requested(cancel_requested: Option<&AtomicBool>) -> bool {

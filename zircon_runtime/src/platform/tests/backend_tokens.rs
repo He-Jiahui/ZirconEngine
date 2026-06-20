@@ -178,8 +178,9 @@ fn diagnostic_status_prefixes_stay_stable() {
     assert!(lines
         .iter()
         .any(|line| line == "platform.gesture_events=feature_disabled:input-gestures"));
-    assert!(lines.iter().any(|line| line
-        == "platform.cursor_options=unavailable:desktop cursor options host-request backend is not implemented yet"));
+    assert!(lines
+        .iter()
+        .any(|line| line == "platform.cursor_options=supported:winit_window_options"));
     assert!(!lines.iter().any(|line| line.contains("Supported(")));
     assert!(!lines.iter().any(|line| line.contains("FeatureDisabled")));
     assert!(!lines.iter().any(|line| line.contains("Unavailable")));

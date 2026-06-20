@@ -7,7 +7,7 @@ use super::frames::{
     menu_popup_row_frame, popup_blocking_frame, scrolled_menu_frame,
 };
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn menu_popup_handles_point(
+pub(in crate::ui::retained_host::host_contract) fn menu_popup_handles_point(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,

@@ -18,7 +18,7 @@ const ASSET_TREE_ROW_HOVERED: [u8; 4] = [
 const ACTIVITY_ASSET_TREE_ROW_CONTROL: &str = "AssetsActivityTreeRowPanel";
 const BROWSER_ASSET_TREE_ROW_CONTROL: &str = "AssetBrowserSourcesRowPanel";
 
-pub(super) fn draw_activity_asset_tree_hover_overlay(
+pub(in crate::ui::retained_host::host_contract) fn draw_activity_asset_tree_hover_overlay(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,
@@ -36,7 +36,7 @@ pub(super) fn draw_activity_asset_tree_hover_overlay(
     )
 }
 
-pub(super) fn draw_browser_asset_tree_hover_overlay(
+pub(in crate::ui::retained_host::host_contract) fn draw_browser_asset_tree_hover_overlay(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

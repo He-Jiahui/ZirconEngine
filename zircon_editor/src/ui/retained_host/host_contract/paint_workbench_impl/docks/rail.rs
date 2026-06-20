@@ -4,7 +4,7 @@ use super::super::super::paint_geometry::translated;
 use super::super::super::paint_primitives::draw_border_clipped;
 use super::super::ACCENT;
 
-pub(super) fn draw_active_rail_marker(
+pub(in crate::ui::retained_host::host_contract) fn draw_active_rail_marker(
     frame: &mut HostRgbaFrame,
     dock: &HostSideDockSurfaceData,
     rail_origin: &FrameRect,

@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
@@ -8,6 +9,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/handle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
@@ -19,6 +22,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
@@ -26,6 +30,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/handle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
@@ -44,13 +50,24 @@ tests:
   - window module-local test ownership scan
   - window text-input/test-support ownership scan
   - window handle/snapshot ownership scan
+  - window lifecycle/constants/metadata ownership scan
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
 
 # Host Contract Window
 
-`window.rs` is the retained editor host's native-window boundary. It owns `UiHostWindow`, shared native host state construction, show/hide/run lifecycle entry points, handle construction, close-request response, host globals, exit requests, native input metadata, and platform error conversion. It should stay as the orchestration surface for host state and callback-facing APIs, not as the long-term home for platform event-loop mechanics, cloned-presentation mutation algorithms, refresh diagnostics, redraw queue coalescing, text-editing semantics, or test-only native input helpers.
+`window.rs` is the retained editor host's native-window boundary. It now owns only `UiHostWindow`, the shared host state field, child module wiring, and handle re-exports. Lifecycle construction, native metadata, presentation mutation, refresh diagnostics, redraw queueing, event-loop mechanics, text-editing semantics, and test-only native input helpers live under explicit child owners.
+
+## Lifecycle Ownership
+
+`window/lifecycle.rs` owns `UiHostWindow` construction, clone/show/hide/run entry points, handle construction, close-request response, host globals, and exit requests. The module keeps the shared state constructor and platform run path close to the `UiHostWindow` type while preventing lifecycle methods from growing back into the root module.
+
+`window/constants.rs` owns the default native editor canvas size and the stable native host window id used by runtime input metadata and deterministic test metadata.
+
+## Native Metadata Ownership
+
+`window/metadata.rs` owns native input timestamp/sequence/window-id construction and platform error conversion. Event-loop input sequencing calls this module directly, and test support uses the shared host window id from `window/constants.rs` for deterministic keyboard metadata.
 
 ## Presentation Ownership
 
@@ -107,7 +124,10 @@ The module walks Workbench window nodes, dock panes, and floating-window active 
 
 ## Boundary Rules
 
-- Keep `window.rs` focused on host state construction, show/hide/run lifecycle entry points, host globals, close-request response, exit requests, native input metadata for the event loop, and platform error conversion.
+- Keep `window.rs` focused on the `UiHostWindow` state field, child module wiring, and handle re-exports.
+- Keep default native window constants in `window/constants.rs`.
+- Keep host construction, show/hide/run lifecycle entry points, host globals, close-request response, and exit requests in `window/lifecycle.rs`.
+- Keep native input metadata for the event loop and platform error conversion in `window/metadata.rs`.
 - Keep host presentation mutation, presentation snapshot aggregation, close-prompt redraw damage, transient template hover state, and bootstrap geometry in `window/presentation.rs`.
 - Keep refresh invalidation diagnostics and refresh overlay text mutation in `window/diagnostics.rs`.
 - Keep frame-update requests, redraw-region requests, external redraw queue coalescing, and external redraw drain accounting in `window/redraw.rs`.
@@ -132,3 +152,5 @@ The 2026-06-18 handle/snapshot split reduced `window.rs` to 322 lines. `window/h
 The 2026-06-18 event-loop subtree split reduced `window/event_loop.rs` from 381 lines to 67 by moving native window lifecycle/presenter creation into `event_loop/lifecycle.rs`, winit event matching into `events.rs`, native input conversion into `input.rs`, and redraw/present orchestration into `redraw.rs`. Current line counts are `lifecycle.rs` 115, `events.rs` 117, `redraw.rs` 89, and `input.rs` 54. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a window event-loop root ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
 The 2026-06-18 window presentation/diagnostics/redraw split reduced `window.rs` to 117 lines. `window/presentation.rs` is 171 lines and owns host presentation mutation, presentation clone aggregation, close-prompt damage, template hover state writes, and bootstrap geometry; `window/diagnostics.rs` is 26 lines and owns refresh diagnostics state/overlay mutation; `window/redraw.rs` is 66 lines and owns frame-update requests plus external redraw queue coalescing/drain accounting. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a window root presentation/diagnostics/redraw ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-06-20 lifecycle/constants/metadata split reduced `window.rs` to a 22-line structural entry. `window/constants.rs` is 5 lines and owns default size/window-id constants; `window/lifecycle.rs` is 62 lines and owns host construction, lifecycle methods, close-request response, globals, handle construction, and exit requests; `window/metadata.rs` is 21 lines and owns input metadata and platform error conversion. Validation used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming lifecycle/metadata behavior no longer lives in `window.rs`, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction, and package-level Cargo check is still waiting on unrelated `zircon_runtime` render-history compile errors.

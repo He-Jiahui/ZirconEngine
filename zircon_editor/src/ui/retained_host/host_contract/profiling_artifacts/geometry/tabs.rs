@@ -7,7 +7,9 @@ use super::super::super::data::{
 use super::super::UiProfileTabFrame;
 use super::frame_math::{is_visible_frame, translated};
 
-pub(super) fn collect_document_tabs(dock: &HostDocumentDockSurfaceData) -> Vec<UiProfileTabFrame> {
+pub(in crate::ui::retained_host::host_contract) fn collect_document_tabs(
+    dock: &HostDocumentDockSurfaceData,
+) -> Vec<UiProfileTabFrame> {
     let header = translated(&dock.header_frame, dock.region_frame.x, dock.region_frame.y);
     collect_tabs(
         "document_tab",
@@ -17,7 +19,7 @@ pub(super) fn collect_document_tabs(dock: &HostDocumentDockSurfaceData) -> Vec<U
     )
 }
 
-pub(super) fn collect_side_dock_tabs(
+pub(in crate::ui::retained_host::host_contract) fn collect_side_dock_tabs(
     surface: &str,
     dock: &HostSideDockSurfaceData,
     out: &mut Vec<UiProfileTabFrame>,
@@ -31,7 +33,7 @@ pub(super) fn collect_side_dock_tabs(
     ));
 }
 
-pub(super) fn collect_bottom_dock_tabs(
+pub(in crate::ui::retained_host::host_contract) fn collect_bottom_dock_tabs(
     surface: &str,
     dock: &HostBottomDockSurfaceData,
     out: &mut Vec<UiProfileTabFrame>,
@@ -45,7 +47,7 @@ pub(super) fn collect_bottom_dock_tabs(
     ));
 }
 
-pub(super) fn collect_floating_window_tabs(
+pub(in crate::ui::retained_host::host_contract) fn collect_floating_window_tabs(
     window: &FloatingWindowData,
     out: &mut Vec<UiProfileTabFrame>,
 ) {
@@ -58,7 +60,9 @@ pub(super) fn collect_floating_window_tabs(
     ));
 }
 
-pub(super) fn collect_host_page_tabs(tabs: &ModelRc<HostChromeTabData>) -> Vec<UiProfileTabFrame> {
+pub(in crate::ui::retained_host::host_contract) fn collect_host_page_tabs(
+    tabs: &ModelRc<HostChromeTabData>,
+) -> Vec<UiProfileTabFrame> {
     collect_tabs("host_page_tab", "host_page", tabs, &FrameRect::default())
 }
 

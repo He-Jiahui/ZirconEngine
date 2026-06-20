@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplateNodeFrameData};
 use super::super::{UiProfileFrame, UiProfileNamedFrame, UiProfilePoint};
 
-pub(super) fn push_named_frame(
+pub(in crate::ui::retained_host::host_contract) fn push_named_frame(
     out: &mut Vec<UiProfileNamedFrame>,
     id: &str,
     kind: &str,
@@ -15,7 +15,7 @@ pub(super) fn push_named_frame(
     push_named_profile_frame(out, id, kind, surface, frame.into(), clip.map(Into::into));
 }
 
-pub(super) fn push_named_profile_frame(
+pub(in crate::ui::retained_host::host_contract) fn push_named_profile_frame(
     out: &mut Vec<UiProfileNamedFrame>,
     id: &str,
     kind: &str,
@@ -35,11 +35,13 @@ pub(super) fn push_named_profile_frame(
     });
 }
 
-pub(super) fn visible_profile_frame(frame: &FrameRect) -> Option<UiProfileFrame> {
+pub(in crate::ui::retained_host::host_contract) fn visible_profile_frame(
+    frame: &FrameRect,
+) -> Option<UiProfileFrame> {
     is_visible_frame(frame).then(|| frame.into())
 }
 
-pub(super) fn is_visible_frame(frame: &FrameRect) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn is_visible_frame(frame: &FrameRect) -> bool {
     frame.x.is_finite()
         && frame.y.is_finite()
         && frame.width.is_finite()
@@ -48,7 +50,9 @@ pub(super) fn is_visible_frame(frame: &FrameRect) -> bool {
         && frame.height > 0.0
 }
 
-pub(super) fn is_visible_profile_frame(frame: &UiProfileFrame) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn is_visible_profile_frame(
+    frame: &UiProfileFrame,
+) -> bool {
     frame.x.is_finite()
         && frame.y.is_finite()
         && frame.width.is_finite()
@@ -57,7 +61,7 @@ pub(super) fn is_visible_profile_frame(frame: &UiProfileFrame) -> bool {
         && frame.height > 0.0
 }
 
-pub(super) fn intersect_profile_frame(
+pub(in crate::ui::retained_host::host_contract) fn intersect_profile_frame(
     left: &FrameRect,
     right: &UiProfileFrame,
 ) -> Option<UiProfileFrame> {
@@ -73,7 +77,10 @@ pub(super) fn intersect_profile_frame(
     })
 }
 
-pub(super) fn intersect_frames(left: &FrameRect, right: &FrameRect) -> Option<FrameRect> {
+pub(in crate::ui::retained_host::host_contract) fn intersect_frames(
+    left: &FrameRect,
+    right: &FrameRect,
+) -> Option<FrameRect> {
     let x0 = left.x.max(right.x);
     let y0 = left.y.max(right.y);
     let x1 = (left.x + left.width).min(right.x + right.width);
@@ -86,21 +93,29 @@ pub(super) fn intersect_frames(left: &FrameRect, right: &FrameRect) -> Option<Fr
     })
 }
 
-pub(super) fn profile_frame_center(frame: &UiProfileFrame) -> UiProfilePoint {
+pub(in crate::ui::retained_host::host_contract) fn profile_frame_center(
+    frame: &UiProfileFrame,
+) -> UiProfilePoint {
     UiProfilePoint {
         x: frame.x + frame.width * 0.5,
         y: frame.y + frame.height * 0.5,
     }
 }
 
-pub(super) fn frame_rect_center_point(frame: &FrameRect) -> UiProfilePoint {
+pub(in crate::ui::retained_host::host_contract) fn frame_rect_center_point(
+    frame: &FrameRect,
+) -> UiProfilePoint {
     UiProfilePoint {
         x: frame.x + frame.width * 0.5,
         y: frame.y + frame.height * 0.5,
     }
 }
 
-pub(super) fn translated(frame: &FrameRect, origin_x: f32, origin_y: f32) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn translated(
+    frame: &FrameRect,
+    origin_x: f32,
+    origin_y: f32,
+) -> FrameRect {
     FrameRect {
         x: frame.x + origin_x,
         y: frame.y + origin_y,
@@ -109,7 +124,7 @@ pub(super) fn translated(frame: &FrameRect, origin_x: f32, origin_y: f32) -> Fra
     }
 }
 
-pub(super) fn translated_template_frame(
+pub(in crate::ui::retained_host::host_contract) fn translated_template_frame(
     frame: &TemplateNodeFrameData,
     origin_x: f32,
     origin_y: f32,

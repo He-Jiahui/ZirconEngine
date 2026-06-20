@@ -26,6 +26,7 @@ impl ZrRuntimeHostRequestBatchV1 {
 pub enum ZrRuntimeHostRequestV1 {
     Ime(ZrRuntimeImeHostRequestV1),
     GamepadRumble(ZrRuntimeGamepadRumbleRequestV1),
+    Cursor(ZrRuntimeCursorHostRequestV1),
 }
 
 impl ZrRuntimeHostRequestV1 {
@@ -35,6 +36,83 @@ impl ZrRuntimeHostRequestV1 {
 
     pub fn gamepad_rumble(request: ZrRuntimeGamepadRumbleRequestV1) -> Self {
         Self::GamepadRumble(request)
+    }
+
+    pub fn cursor(request: ZrRuntimeCursorHostRequestV1) -> Self {
+        Self::Cursor(request)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeCursorHostRequestV1 {
+    pub kind: ZrRuntimeCursorHostRequestKindV1,
+    pub grab_mode: Option<ZrRuntimeCursorGrabModeV1>,
+    pub position: Option<ZrRuntimeCursorPositionV1>,
+    pub value: bool,
+}
+
+impl ZrRuntimeCursorHostRequestV1 {
+    pub const fn set_visible(visible: bool) -> Self {
+        Self {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetVisible,
+            grab_mode: None,
+            position: None,
+            value: visible,
+        }
+    }
+
+    pub const fn set_grab_mode(grab_mode: ZrRuntimeCursorGrabModeV1) -> Self {
+        Self {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetGrabMode,
+            grab_mode: Some(grab_mode),
+            position: None,
+            value: false,
+        }
+    }
+
+    pub const fn set_hit_test(hit_test: bool) -> Self {
+        Self {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetHitTest,
+            grab_mode: None,
+            position: None,
+            value: hit_test,
+        }
+    }
+
+    pub const fn set_position(position: ZrRuntimeCursorPositionV1) -> Self {
+        Self {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetPosition,
+            grab_mode: None,
+            position: Some(position),
+            value: false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeCursorHostRequestKindV1 {
+    SetVisible,
+    SetGrabMode,
+    SetHitTest,
+    SetPosition,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeCursorGrabModeV1 {
+    None,
+    Confined,
+    Locked,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeCursorPositionV1 {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl ZrRuntimeCursorPositionV1 {
+    pub const fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
     }
 }
 

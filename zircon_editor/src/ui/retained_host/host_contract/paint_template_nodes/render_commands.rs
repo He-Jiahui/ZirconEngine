@@ -7,10 +7,10 @@ use super::render_command_conversion::runtime_render_commands_to_host;
 mod command;
 mod draw;
 
-pub(super) use command::HostPaintCommand;
-pub(super) use draw::draw_host_paint_commands;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::HostPaintCommand;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use draw::draw_host_paint_commands;
 
-pub(super) fn draw_runtime_render_commands(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_runtime_render_commands(
     frame: &mut HostRgbaFrame,
     commands: &[UiRenderCommand],
     clip_frame: Option<&FrameRect>,

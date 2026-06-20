@@ -7,7 +7,7 @@ use winit::window::Window;
 use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::HostRgbaFrame;
 
-pub(super) fn copy_rgba_to_softbuffer(
+pub(in crate::ui::retained_host::host_contract) fn copy_rgba_to_softbuffer(
     frame: &HostRgbaFrame,
     buffer: &mut [u32],
     damage: Option<&FrameRect>,
@@ -35,7 +35,10 @@ pub(super) fn copy_rgba_to_softbuffer(
     }
 }
 
-pub(super) fn softbuffer_damage_rect(frame: Option<&FrameRect>, size: (u32, u32)) -> Option<Rect> {
+pub(in crate::ui::retained_host::host_contract) fn softbuffer_damage_rect(
+    frame: Option<&FrameRect>,
+    size: (u32, u32),
+) -> Option<Rect> {
     let frame = frame?;
     let (x0, y0, x1, y1) = pixel_bounds(frame, size)?;
     Some(Rect {
@@ -46,7 +49,10 @@ pub(super) fn softbuffer_damage_rect(frame: Option<&FrameRect>, size: (u32, u32)
     })
 }
 
-pub(super) fn pixel_bounds(frame: &FrameRect, size: (u32, u32)) -> Option<(u32, u32, u32, u32)> {
+pub(in crate::ui::retained_host::host_contract) fn pixel_bounds(
+    frame: &FrameRect,
+    size: (u32, u32),
+) -> Option<(u32, u32, u32, u32)> {
     let x0 = frame.x.floor().max(0.0).min(size.0 as f32) as u32;
     let y0 = frame.y.floor().max(0.0).min(size.1 as f32) as u32;
     let x1 = (frame.x + frame.width).ceil().max(0.0).min(size.0 as f32) as u32;
@@ -54,25 +60,30 @@ pub(super) fn pixel_bounds(frame: &FrameRect, size: (u32, u32)) -> Option<(u32, 
     (x0 < x1 && y0 < y1).then_some((x0, y0, x1, y1))
 }
 
-pub(super) fn damage_pixel_count(frame: &FrameRect, size: (u32, u32)) -> u64 {
+pub(in crate::ui::retained_host::host_contract) fn damage_pixel_count(
+    frame: &FrameRect,
+    size: (u32, u32),
+) -> u64 {
     pixel_bounds(frame, size)
         .map(|(x0, y0, x1, y1)| x1.saturating_sub(x0) as u64 * y1.saturating_sub(y0) as u64)
         .unwrap_or(0)
 }
 
-pub(super) fn current_window_size(window: &dyn Window) -> (u32, u32) {
+pub(in crate::ui::retained_host::host_contract) fn current_window_size(
+    window: &dyn Window,
+) -> (u32, u32) {
     let size = window.surface_size();
     clamp_size((size.width, size.height))
 }
 
-pub(super) fn resize_surface(
+pub(in crate::ui::retained_host::host_contract) fn resize_surface(
     surface: &mut Surface<Arc<dyn Window>, Arc<dyn Window>>,
     size: (u32, u32),
 ) -> Result<(), softbuffer::SoftBufferError> {
     surface.resize(non_zero(size.0), non_zero(size.1))
 }
 
-pub(super) fn clamp_size(size: (u32, u32)) -> (u32, u32) {
+pub(in crate::ui::retained_host::host_contract) fn clamp_size(size: (u32, u32)) -> (u32, u32) {
     (size.0.max(1), size.1.max(1))
 }
 

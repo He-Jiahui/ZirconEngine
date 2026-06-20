@@ -4,8 +4,9 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CorePipelineKind, GeometryExtract, ProjectionMode, RenderFrameExtract, RenderFramework,
     RenderMaterialAlphaMode, RenderParticleSpriteSnapshot, RenderPhase, RenderPhaseMeshSource,
-    RenderPipelineHandle, RenderQualityProfile, RenderSpriteAnchor, RenderSpriteImageMode,
-    RenderSpriteSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle, SpriteExtract,
+    RenderPipelineHandle, RenderQualityProfile, RenderQueueValue, RenderSpriteAnchor,
+    RenderSpriteImageMode, RenderSpriteSnapshot, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, SpriteExtract,
 };
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, TextureMarker};
@@ -73,28 +74,28 @@ fn render_product_sprite_phase_queue_uses_core2d_phase_order_and_transparent_dep
             crate::core::framework::render::SpritePhaseInput::new(
                 30,
                 0,
-                RenderMaterialAlphaMode::Blend,
+                RenderQueueValue::TRANSPARENT,
                 2,
                 2.0,
             ),
             crate::core::framework::render::SpritePhaseInput::new(
                 10,
                 1,
-                RenderMaterialAlphaMode::Opaque,
+                RenderQueueValue::GEOMETRY,
                 0,
                 1.0,
             ),
             crate::core::framework::render::SpritePhaseInput::new(
                 20,
                 2,
-                RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
+                RenderQueueValue::ALPHA_TEST,
                 1,
                 3.0,
             ),
             crate::core::framework::render::SpritePhaseInput::new(
                 40,
                 3,
-                RenderMaterialAlphaMode::Blend,
+                RenderQueueValue::TRANSPARENT,
                 1,
                 4.0,
             ),
@@ -130,39 +131,31 @@ fn render_product_sprite_phase_queue_uses_core2d_phase_order_and_transparent_dep
 }
 
 #[test]
-fn render_product_sprite_phase_queue_honors_material_queue_and_ui_z_index() {
+fn render_product_sprite_phase_queue_honors_queue_and_order_in_layer() {
     let queue = crate::core::framework::render::build_sprite_phase_queue(
         CorePipelineKind::Core2d,
         [
             crate::core::framework::render::SpritePhaseInput::new(
                 30,
                 0,
-                RenderMaterialAlphaMode::Opaque,
+                RenderQueueValue::GEOMETRY.with_material_offset_i32(10),
                 0,
                 1.0,
-            )
-            .with_render_queue(2_000)
-            .with_material_queue(10),
+            ),
             crate::core::framework::render::SpritePhaseInput::new(
                 10,
                 1,
-                RenderMaterialAlphaMode::Opaque,
-                0,
+                RenderQueueValue::GEOMETRY,
+                5,
                 1.0,
-            )
-            .with_render_queue(2_000)
-            .with_material_queue(0)
-            .with_ui_z_index(5),
+            ),
             crate::core::framework::render::SpritePhaseInput::new(
                 20,
                 2,
-                RenderMaterialAlphaMode::Opaque,
-                0,
+                RenderQueueValue::GEOMETRY,
+                2,
                 1.0,
-            )
-            .with_render_queue(2_000)
-            .with_material_queue(0)
-            .with_ui_z_index(2),
+            ),
         ],
     );
 

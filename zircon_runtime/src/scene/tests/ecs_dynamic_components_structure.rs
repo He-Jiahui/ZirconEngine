@@ -152,6 +152,25 @@ fn dynamic_component_property_writes_split_and_insert_only_at_map_boundaries() {
 }
 
 #[test]
+fn dynamic_component_json_numbers_use_f32_short_decimal_projection() {
+    let source = dynamic_components_source();
+    let number_helper = source
+        .split("fn finite_json_number")
+        .nth(1)
+        .expect("read dynamic component JSON number helper");
+
+    assert!(
+        number_helper.contains("if !value.is_finite()")
+            && number_helper.contains("let text = value.to_string();")
+            && number_helper.contains("text.parse::<f64>()")
+            && number_helper.contains("Number::from_f64(value)")
+            && !number_helper.contains("value as f64")
+            && !number_helper.contains(".then(||"),
+        "dynamic component JSON number writes must project f32 values through their shortest decimal form instead of expanding binary precision"
+    );
+}
+
+#[test]
 fn dynamic_component_plugin_match_and_property_descriptor_scan_use_direct_branches() {
     let source = dynamic_components_source();
     let plugin_matcher = section_between(
@@ -364,6 +383,10 @@ fn dynamic_component_json_scalar_writes_use_finite_number_helper() {
         "ScenePropertyValue::Scalar(value)",
         "ScenePropertyValue::String",
     );
+    let number_helper = source
+        .split("fn finite_json_number")
+        .nth(1)
+        .expect("read dynamic component JSON number helper");
 
     assert!(
         scalar_write.contains("=> match finite_json_number(value)")
@@ -371,9 +394,14 @@ fn dynamic_component_json_scalar_writes_use_finite_number_helper() {
             && scalar_write.contains("None => None")
             && source.contains("fn finite_json_number(value: f32) -> Option<Number>")
             && !scalar_write.contains(".map(Value::Number)")
-            && !scalar_write.contains(".to_string()")
-            && !scalar_write.contains(".parse::<serde_json::Number>()"),
-        "dynamic component scalar JSON writes must use the finite-number helper through a direct branch instead of closure adapters or stringifying numeric values"
+            && !scalar_write.contains(".to_string()"),
+        "dynamic component scalar JSON writes must use the finite-number helper through a direct branch instead of closure adapters"
+    );
+    assert!(
+        number_helper.contains("let text = value.to_string();")
+            && number_helper.contains("text.parse::<f64>()")
+            && !number_helper.contains("value as f64"),
+        "dynamic component finite-number helper must keep f32 JSON values on their shortest decimal projection"
     );
 }
 

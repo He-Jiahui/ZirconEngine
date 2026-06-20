@@ -1,0 +1,13 @@
+pub(super) const PICKER_FIELD_HEIGHT_FRACTION: f32 = 0.35;
+pub(super) const PICKER_FIELD_MIN_HEIGHT: f32 = 12.0;
+pub(super) const PICKER_FIELD_RADIUS: f32 = 4.0;
+pub(super) const PICKER_ICON_INSET: f32 = 3.0;
+pub(super) const PICKER_INSET: f32 = 4.0;
+pub(super) const PICKER_POPUP_CELL_COLUMNS: f32 = 7.0;
+pub(super) const PICKER_POPUP_CELL_MIN_SIZE: f32 = 4.0;
+pub(super) const PICKER_POPUP_CELL_RESERVED_HEIGHT: f32 = 8.0;
+pub(super) const PICKER_POPUP_CELL_Y_FACTOR: f32 = 0.58;
+pub(super) const PICKER_POPUP_HEADER_HEIGHT: f32 = 5.0;
+pub(super) const PICKER_POPUP_MIN_HEIGHT: f32 = 8.0;
+pub(super) const PICKER_ROOT_BORDER_WIDTH: f32 = 1.0;
+pub(super) const PICKER_SECONDARY: [u8; 4] = [156, 39, 176, 255];

@@ -39,9 +39,9 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::AlphaMask3d,
             RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
-            RenderPassStage::Ui,
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
+            RenderPassStage::Ui,
         ]
     );
     assert_eq!(
@@ -67,15 +67,22 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "depth-of-field",
+            "motion-blur",
+            "exposure-histogram",
+            "exposure-resolve",
             "screen-space-reflection-reflection-pyramid",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "uber",
+            "scene-composite",
+            "blur",
             "bloom-extract",
+            "uber",
+            "output-transfer",
             "fxaa",
-            "runtime-ui",
             "overlay-gizmo",
+            "runtime-ui",
         ]
     );
     pass_resource_access(
@@ -414,9 +421,9 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Lighting,
             RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
-            RenderPassStage::Ui,
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
+            RenderPassStage::Ui,
         ]
     );
     assert_eq!(
@@ -442,15 +449,22 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "motion-vector-tile-max-coarse",
             "motion-vector-neighbor-max",
             "depth-of-field-prepare",
+            "depth-of-field",
+            "motion-blur",
+            "exposure-histogram",
+            "exposure-resolve",
             "screen-space-reflection-reflection-pyramid",
             "screen-space-reflection-reflection-pyramid-coarse",
             "screen-space-reflection-specular-occlusion",
             "screen-space-reflection-resolve",
-            "uber",
+            "scene-composite",
+            "blur",
             "bloom-extract",
+            "uber",
+            "output-transfer",
             "fxaa",
-            "runtime-ui",
             "overlay-gizmo",
+            "runtime-ui",
         ]
     );
     pass_resource_access(
@@ -747,6 +761,41 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
 }
 
 #[test]
+fn dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size() {
+    let mut extract = test_extract();
+    extract.view.camera.dynamic_resolution = RenderDynamicResolutionSettings::fixed_scale(0.5);
+    extract.apply_viewport_size(UVec2::new(320, 240));
+
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        &extract.post_process.bloom,
+        &extract.post_process.color_grading,
+        extract.post_process.exposure,
+        &extract.post_process.effect_stack,
+        false,
+        false,
+        &AntiAliasSettings::fxaa(),
+        true,
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    let final_composited =
+        graph_resource_lifetime(&compiled, PostProcessGraphResourceNames::FINAL_COMPOSITED);
+    assert!(matches!(
+        &final_composited.desc,
+        RenderGraphResourceDesc::Texture(desc)
+            if final_composited.kind == RenderGraphResourceKind::TransientTexture
+                && desc.width == 320
+                && desc.height == 240
+                && desc.format == TextureFormat::Rgba8UnormSrgb
+    ));
+}
+
+#[test]
 fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
     let pipeline = RenderPipelineAsset::default_core2d();
     let compiled = pipeline.compile(&orthographic_extract()).unwrap();
@@ -864,8 +913,8 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "screen-space-reflection-resolve",
             "uber",
             "fxaa",
-            "runtime-ui",
             "overlay-gizmo",
+            "runtime-ui",
         ]
     );
     assert_eq!(
@@ -916,8 +965,8 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "screen-space-reflection-resolve",
             "uber",
             "fxaa",
-            "runtime-ui",
             "overlay-gizmo",
+            "runtime-ui",
         ]
     );
 }
@@ -1261,7 +1310,7 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
             load: RenderGraphAttachmentLoadOp::Load,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "external outputs default to load/store because ownership is imported"
+        "runtime UI must load the overlay/postprocess output before the frame tail write"
     );
 
     let overlay_output = pass_resource_access(
@@ -1276,7 +1325,7 @@ fn pipeline_compile_assigns_attachment_ops_from_resource_write_order() {
             load: RenderGraphAttachmentLoadOp::Load,
             store: RenderGraphAttachmentStoreOp::Store,
         }),
-        "overlay must load the UI/postprocess output before adding debug draws"
+        "overlay must load the postprocess output before adding debug draws"
     );
 
     let deferred_compiled = RenderPipelineAsset::default_deferred()
@@ -2060,7 +2109,7 @@ fn rendering_post_process_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC)
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
-            .write_external(PostProcessGraphResourceNames::FINAL_COMPOSITED)
+            .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED)
             .write_external(PostProcessGraphResourceNames::FINAL_COLOR)
             .write_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
         ],

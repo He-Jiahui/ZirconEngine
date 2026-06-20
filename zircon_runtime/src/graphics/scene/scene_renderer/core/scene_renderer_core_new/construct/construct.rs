@@ -14,6 +14,7 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::super::scene_clear::SceneRegionClearResources;
 use super::super::super::super::shadow::atlas::{
     ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
     SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
@@ -65,6 +66,7 @@ impl SceneRendererCore {
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
         );
+        let scene_clear = SceneRegionClearResources::new(device, target_format, DEPTH_FORMAT);
         let shadow_map_renderer = ShadowMapRenderer::new(
             device,
             &scene_bind_group_bundle.layout,
@@ -134,6 +136,7 @@ impl SceneRendererCore {
             gpu_scene,
             hzb_occlusion_culler,
             normal_prepass,
+            scene_clear,
             shadow_map_renderer,
             shadow_atlas_allocator,
             shadow_atlas_resources,

@@ -15,6 +15,9 @@ from .pipeline_report_pack_manifest_schema import (
     pack_chunk_offset_diagnostics,
     pack_document_manifest_schema_diagnostics,
 )
+from .pipeline_report_schema_table import (
+    string_array_no_blank_entries_schema_diagnostics,
+)
 
 PACK_DELTA_MANIFEST_FIELDS = (
     "base",
@@ -25,9 +28,14 @@ PACK_DELTA_MANIFEST_FIELDS = (
     "target",
 )
 PACK_DELTA_MANIFEST_INTEGER_FIELDS = ("format_version",)
+PACK_DELTA_MANIFEST_REQUIRED_INTEGER_FIELDS = ("format_version",)
 PACK_DELTA_MANIFEST_OBJECT_FIELDS = ("base", "target")
+PACK_DELTA_MANIFEST_REQUIRED_OBJECT_FIELDS = ("base", "target")
 PACK_DELTA_MANIFEST_OBJECT_ARRAY_FIELDS = ("changed_assets", "chunks")
+PACK_DELTA_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS = ("changed_assets", "chunks")
 PACK_DELTA_MANIFEST_STRING_ARRAY_FIELDS = ("removed_assets",)
+PACK_DELTA_MANIFEST_REQUIRED_STRING_ARRAY_FIELDS = ("removed_assets",)
+PACK_DELTA_MANIFEST_NO_BLANK_STRING_ARRAY_FIELDS = ("removed_assets",)
 
 SchemaDiagnostic = Callable[[str, Any], list[str]]
 PackChunkFingerprint = tuple[tuple[int, ...], int, int]
@@ -371,7 +379,7 @@ def pack_delta_manifest_schema_diagnostics(
         if field not in PACK_DELTA_MANIFEST_FIELDS
     )
     for field in PACK_DELTA_MANIFEST_INTEGER_FIELDS:
-        if field in delta_manifest:
+        if field in delta_manifest or field in PACK_DELTA_MANIFEST_REQUIRED_INTEGER_FIELDS:
             diagnostics.extend(
                 validate_integer_schema_diagnostics(
                     f"{label}.{field}",
@@ -381,7 +389,7 @@ def pack_delta_manifest_schema_diagnostics(
     diagnostics.extend(pack_delta_format_version_diagnostics(label, delta_manifest))
     for field in PACK_DELTA_MANIFEST_OBJECT_FIELDS:
         value = delta_manifest.get(field)
-        if field in delta_manifest:
+        if field in delta_manifest or field in PACK_DELTA_MANIFEST_REQUIRED_OBJECT_FIELDS:
             diagnostics.extend(validate_object_schema_diagnostics(f"{label}.{field}", value))
         if isinstance(value, dict):
             diagnostics.extend(
@@ -403,7 +411,7 @@ def pack_delta_manifest_schema_diagnostics(
                 )
             )
     chunks = delta_manifest.get("chunks")
-    if "chunks" in delta_manifest:
+    if "chunks" in delta_manifest or "chunks" in PACK_DELTA_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS:
         diagnostics.extend(
             validate_object_array_schema_diagnostics(f"{label}.chunks", chunks)
         )
@@ -423,7 +431,10 @@ def pack_delta_manifest_schema_diagnostics(
         diagnostics.extend(pack_chunk_hash_order_diagnostics(f"{label}.chunks", chunks))
         diagnostics.extend(pack_chunk_offset_diagnostics(f"{label}.chunks", chunks))
     changed_assets = delta_manifest.get("changed_assets")
-    if "changed_assets" in delta_manifest:
+    if (
+        "changed_assets" in delta_manifest
+        or "changed_assets" in PACK_DELTA_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS
+    ):
         diagnostics.extend(
             validate_object_array_schema_diagnostics(
                 f"{label}.changed_assets",
@@ -451,13 +462,21 @@ def pack_delta_manifest_schema_diagnostics(
                 )
             )
     for field in PACK_DELTA_MANIFEST_STRING_ARRAY_FIELDS:
-        if field in delta_manifest:
+        if field in delta_manifest or field in PACK_DELTA_MANIFEST_REQUIRED_STRING_ARRAY_FIELDS:
+            field_label = f"{label}.{field}"
             diagnostics.extend(
                 validate_string_array_schema_diagnostics(
-                    f"{label}.{field}",
+                    field_label,
                     delta_manifest.get(field),
                 )
             )
+            if field in PACK_DELTA_MANIFEST_NO_BLANK_STRING_ARRAY_FIELDS:
+                diagnostics.extend(
+                    string_array_no_blank_entries_schema_diagnostics(
+                        field_label,
+                        delta_manifest.get(field),
+                    )
+                )
     return diagnostics
 
 

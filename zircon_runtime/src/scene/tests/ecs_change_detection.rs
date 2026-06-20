@@ -20,6 +20,16 @@ fn diagnostic_current(snapshot: &DiagnosticStoreSnapshot, path: &str) -> Option<
         .and_then(|series| series.current)
 }
 
+fn resource_store_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/resource_store/mod.rs"),
+        "\n",
+        include_str!("../ecs/resource_store/stored_resource.rs"),
+        "\n",
+        include_str!("../ecs/resource_store/store.rs"),
+    )
+}
+
 #[test]
 fn changed_filter_includes_newly_added_components() {
     let mut world = World::empty();
@@ -206,7 +216,7 @@ fn removed_component_reader_sizes_unread_entity_results() {
 
 #[test]
 fn resource_store_hot_paths_use_direct_branches() {
-    let resource_store_source = include_str!("../ecs/resource_store.rs");
+    let resource_store_source = resource_store_source();
     let insert_source = resource_store_source
         .split("pub fn insert_at_tick")
         .nth(1)

@@ -2,7 +2,9 @@ use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::{first_non_empty, resolved_style_color};
 
-pub(super) fn divider_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_color(
+    node: &TemplatePaneNodeData,
+) -> [u8; 4] {
     if node.disabled || node.validation_level.as_str() == "disabled" {
         return PALETTE.border_disabled;
     }
@@ -11,7 +13,9 @@ pub(super) fn divider_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         .unwrap_or(PALETTE.border)
 }
 
-pub(super) fn divider_text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_text_color(
+    node: &TemplatePaneNodeData,
+) -> [u8; 4] {
     if node.disabled || node.validation_level.as_str() == "disabled" {
         return PALETTE.text_disabled;
     }

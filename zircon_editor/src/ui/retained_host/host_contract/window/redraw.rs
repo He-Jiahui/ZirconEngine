@@ -14,7 +14,9 @@ impl UiHostWindow {
         self.state.borrow_mut().completed_frame_update_scenario = Some(scenario);
     }
 
-    pub(super) fn take_completed_frame_update_scenario(&self) -> Option<UiPerfScenario> {
+    pub(in crate::ui::retained_host::host_contract) fn take_completed_frame_update_scenario(
+        &self,
+    ) -> Option<UiPerfScenario> {
         self.state
             .borrow_mut()
             .completed_frame_update_scenario
@@ -34,7 +36,10 @@ impl UiHostWindow {
         }
     }
 
-    pub(super) fn queue_external_redraw(&self, redraw: HostRedrawRequest) {
+    pub(in crate::ui::retained_host::host_contract) fn queue_external_redraw(
+        &self,
+        redraw: HostRedrawRequest,
+    ) {
         if !redraw.request_redraw() {
             return;
         }
@@ -51,7 +56,9 @@ impl UiHostWindow {
         state.external_redraw_queued_count = state.external_redraw_queued_count.saturating_add(1);
     }
 
-    pub(super) fn take_external_redraw(&self) -> HostRedrawRequest {
+    pub(in crate::ui::retained_host::host_contract) fn take_external_redraw(
+        &self,
+    ) -> HostRedrawRequest {
         let mut state = self.state.borrow_mut();
         let redraw = std::mem::replace(
             &mut state.external_redraw_request,

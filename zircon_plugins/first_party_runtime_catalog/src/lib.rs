@@ -6,8 +6,8 @@
 
 use std::collections::HashSet;
 
-use zircon_runtime::plugin::{ProjectPluginManifest, RuntimePluginRegistrationReport};
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime::plugin::{ProjectPluginManifest, RuntimePluginRegistrationReport};
 
 pub fn first_party_runtime_plugin_registrations_for_manifest(
     target_mode: RuntimeTargetMode,

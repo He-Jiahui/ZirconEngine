@@ -11,7 +11,9 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_state.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
-  - zircon_runtime/src/scene/ecs/storage/component_storage.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/table.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/dynamic_scene/document.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -54,7 +56,9 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state.rs
   - zircon_runtime/src/scene/ecs/schedule.rs
   - zircon_runtime/src/scene/ecs/system_stage.rs
-  - zircon_runtime/src/scene/ecs/storage/component_storage.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/table.rs
+  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/dynamic_scene/document.rs
   - zircon_runtime/src/core/framework/render/camera.rs

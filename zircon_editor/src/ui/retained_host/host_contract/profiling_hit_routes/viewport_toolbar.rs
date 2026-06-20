@@ -4,7 +4,7 @@ use super::geometry::{
     contains, floating_window_content_frame, side_dock_content_frame, translated,
 };
 
-pub(super) fn viewport_toolbar_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn viewport_toolbar_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     x: f32,

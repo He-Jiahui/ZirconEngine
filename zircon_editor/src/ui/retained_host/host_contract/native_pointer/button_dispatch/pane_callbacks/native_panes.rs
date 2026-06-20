@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::surface::UiPointerButton;
 use super::super::super::routing::PanePointerRoute;
 use super::super::super::NativePointerButtonState;
 
-pub(super) fn dispatch_hierarchy_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_hierarchy_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     state: NativePointerButtonState,
@@ -30,7 +30,7 @@ pub(super) fn dispatch_hierarchy_button(
     }
 }
 
-pub(super) fn dispatch_welcome_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_welcome_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     state: NativePointerButtonState,

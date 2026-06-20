@@ -8,7 +8,7 @@ use super::{
     ChromePointerRoute,
 };
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn route_top_level_chrome(
+pub(in crate::ui::retained_host::host_contract) fn route_top_level_chrome(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,

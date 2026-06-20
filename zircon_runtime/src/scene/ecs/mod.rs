@@ -1,21 +1,13 @@
 //! Local scene ECS scheduling, resource, and event primitives.
 
-mod archetype_id;
-mod archetype_index;
-mod archetype_signature;
+mod archetype;
 mod bundle;
 mod change_detection;
 mod commands;
 mod component;
-mod component_id;
-mod component_registry;
-mod despawned_entity;
-mod entity_location;
-mod entity_registry;
-mod entity_registry_error;
+mod entity;
 mod events;
 mod frame_performance_diagnostics;
-mod internal_entity;
 mod internal_scene_system;
 mod lifecycle;
 mod messages;
@@ -23,8 +15,6 @@ mod observer;
 mod query;
 mod removal;
 mod resource;
-mod resource_id;
-mod resource_registry;
 mod resource_store;
 mod scene_system_descriptor;
 mod scene_system_registry;
@@ -34,16 +24,15 @@ mod schedule_error;
 mod schedule_parallel_executor;
 mod schedule_runner;
 mod schedule_stage_plan;
-mod stable_entity_location;
 mod storage;
 mod storage_type;
 mod system;
 mod system_set;
 mod system_stage;
 
-pub use archetype_id::ArchetypeId;
-pub use archetype_index::{ArchetypeIndex, ArchetypeMove, ArchetypeRecord};
-pub use archetype_signature::ArchetypeSignature;
+pub use archetype::{
+    ArchetypeId, ArchetypeIndex, ArchetypeMove, ArchetypeRecord, ArchetypeSignature,
+};
 pub use bundle::Bundle;
 pub use change_detection::{
     ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref,
@@ -54,20 +43,19 @@ pub use commands::{
     Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
     DeferredCommandReport, EntityCommands, FnCommand,
 };
-pub use component::Component;
-pub use component_id::ComponentId;
-pub use component_registry::{ComponentDescriptor, ComponentDescriptorSource, ComponentRegistry};
-pub use despawned_entity::DespawnedEntity;
-pub use entity_location::EntityLocation;
-pub use entity_registry::EntityRegistry;
-pub use entity_registry_error::EntityRegistryError;
+pub use component::{
+    Component, ComponentDescriptor, ComponentDescriptorSource, ComponentId, ComponentRegistry,
+};
+pub use entity::{
+    DespawnedEntity, EntityLocation, EntityRegistry, EntityRegistryError, InternalEntity,
+    StableEntityLocation,
+};
 pub use events::{
     Event, EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage,
     EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
     EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
 pub use frame_performance_diagnostics::EcsFramePerformanceDiagnostics;
-pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
 pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageStore, Messages};
@@ -83,9 +71,7 @@ pub use query::{
     ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
-pub use resource::Resource;
-pub use resource_id::ResourceId;
-pub use resource_registry::{ResourceDescriptor, ResourceRegistry};
+pub use resource::{Resource, ResourceDescriptor, ResourceId, ResourceRegistry};
 pub use resource_store::ResourceStore;
 pub use scene_system_descriptor::{SceneSystemDescriptor, SystemOrderingConstraint, SystemRef};
 pub use scene_system_registry::SceneSystemRegistry;
@@ -100,7 +86,6 @@ pub use schedule_parallel_executor::{
     ScheduleParallelTaskRegistry, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
     SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
 };
-pub use stable_entity_location::StableEntityLocation;
 pub use storage::{
     ComponentRemoveResult, ComponentStorage, ComponentStorageLocation, StorageError,
 };

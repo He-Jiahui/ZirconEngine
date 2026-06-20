@@ -6,7 +6,12 @@ use super::geometry::{
     contains, floating_window_content_frame, side_dock_content_frame, translated,
 };
 
-pub(super) fn template_route_hit(scene: &HostWindowSceneData, id: &str, x: f32, y: f32) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn template_route_hit(
+    scene: &HostWindowSceneData,
+    id: &str,
+    x: f32,
+    y: f32,
+) -> bool {
     pane_route_hits_template(
         id,
         x,

@@ -4,9 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{
-    GamepadAxisSettings, GamepadAxisTransition, GamepadButtonAxisSettings, GamepadButtonSettings,
-    ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventRecord, InputFrameSnapshot,
-    InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
+    CursorHostRequest, GamepadAxisSettings, GamepadAxisTransition, GamepadButtonAxisSettings,
+    GamepadButtonSettings, ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventRecord,
+    InputFrameSnapshot, InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
 
 use super::InputState;
@@ -25,6 +25,7 @@ impl InputManagerFacade for DefaultInputManager {
         state.mouse_wheel_unit = MouseScrollUnit::Line;
         state.mouse_wheel_events.clear();
         state.mouse_motion_accumulator = [0.0, 0.0];
+        state.cursor_host_requests.clear();
         state.ime_commits.clear();
         state.ime_delete_surrounding.clear();
         state.ime_host_requests.clear();
@@ -123,6 +124,9 @@ impl InputManagerFacade for DefaultInputManager {
             },
             InputEvent::ImeHostRequest(request) => {
                 state.ime_host_requests.push(request.clone());
+            }
+            InputEvent::CursorHostRequest(request) => {
+                state.cursor_host_requests.push(*request);
             }
             InputEvent::WindowStatus(event) => {
                 state.window_status_events.push(event.clone());
@@ -268,6 +272,7 @@ impl InputManagerFacade for DefaultInputManager {
         InputFrameSnapshot {
             cursor_position: state.cursor_position,
             cursor_inside_window: state.cursor_inside_window,
+            cursor_host_requests: state.cursor_host_requests.clone(),
             buttons: state.buttons.clone(),
             wheel_accumulator: state.wheel_accumulator,
             mouse_wheel_accumulator: state.mouse_wheel_accumulator,
@@ -298,6 +303,11 @@ impl InputManagerFacade for DefaultInputManager {
     fn drain_gamepad_rumble_requests(&self) -> Vec<crate::input::GamepadRumbleRequest> {
         let mut state = self.state.lock().unwrap();
         std::mem::take(&mut state.gamepad_rumble_requests)
+    }
+
+    fn drain_cursor_host_requests(&self) -> Vec<CursorHostRequest> {
+        let mut state = self.state.lock().unwrap();
+        std::mem::take(&mut state.cursor_host_requests)
     }
 
     fn drain_events(&self) -> Vec<InputEvent> {

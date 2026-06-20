@@ -23,6 +23,8 @@ use crate::graphics::{
     VisibilityVirtualGeometryPageUploadPlan,
 };
 
+use super::super::viewport_record::ViewportCameraHistoryKey;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct UiSubmissionStats {
     command_count: usize,
@@ -44,6 +46,7 @@ pub(super) struct FrameSubmissionContext {
     capabilities: RenderCapabilitySummary,
     visibility_context: VisibilityContext,
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+    camera_history_key: ViewportCameraHistoryKey,
     history_validation_key: FrameHistoryValidationKey,
     history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
     output_target: ViewportRenderOutputTarget,
@@ -99,6 +102,7 @@ impl FrameSubmissionContext {
         capabilities: RenderCapabilitySummary,
         visibility_context: VisibilityContext,
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
+        camera_history_key: ViewportCameraHistoryKey,
         history_validation_key: FrameHistoryValidationKey,
         history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
         output_target: ViewportRenderOutputTarget,
@@ -189,6 +193,7 @@ impl FrameSubmissionContext {
             capabilities,
             visibility_context,
             previous_motion_vector_camera,
+            camera_history_key,
             history_validation_key,
             history_invalidation_reason,
             output_target,
@@ -276,6 +281,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn previous_motion_vector_camera(&self) -> Option<&ViewportCameraSnapshot> {
         self.previous_motion_vector_camera.as_ref()
+    }
+
+    pub(super) fn camera_history_key(&self) -> &ViewportCameraHistoryKey {
+        &self.camera_history_key
     }
 
     pub(super) fn history_validation_key(&self) -> &FrameHistoryValidationKey {
@@ -739,6 +748,12 @@ mod tests {
             RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             None,
+            ViewportCameraHistoryKey::from_camera(
+                extract
+                    .view
+                    .selected_camera_descriptor()
+                    .expect("test extract has selected camera descriptor"),
+            ),
             Default::default(),
             None,
             ViewportRenderOutputTarget::PrimarySurface,

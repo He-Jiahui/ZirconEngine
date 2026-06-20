@@ -1,5 +1,8 @@
 use super::authoring_boundary::{assert_text_excludes_authoring_tokens, SOURCE_AUTHORING_TOKENS};
 
+#[path = "component_structure/runtime_08_owner_tree.rs"]
+mod runtime_08_owner_tree;
+
 #[test]
 fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutover() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -18,21 +21,59 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
     let scene_root = root.parent().expect("scene directory exists");
     for relative in [
         "ecs/mod.rs",
-        "ecs/archetype_id.rs",
+        "ecs/archetype/mod.rs",
+        "ecs/archetype/id.rs",
+        "ecs/archetype/index.rs",
+        "ecs/archetype/move_result.rs",
+        "ecs/archetype/record.rs",
+        "ecs/archetype/signature.rs",
         "ecs/bundle.rs",
-        "ecs/component.rs",
-        "ecs/component_id.rs",
-        "ecs/component_registry.rs",
-        "ecs/entity_location.rs",
-        "ecs/entity_registry.rs",
-        "ecs/internal_entity.rs",
-        "ecs/resource.rs",
-        "ecs/resource_id.rs",
-        "ecs/resource_registry.rs",
+        "ecs/commands/mod.rs",
+        "ecs/commands/command.rs",
+        "ecs/commands/command_queue.rs",
+        "ecs/commands/commands/mod.rs",
+        "ecs/commands/commands/entity_commands.rs",
+        "ecs/commands/commands/facade.rs",
+        "ecs/commands/commands/param.rs",
+        "ecs/change_detection/mod.rs",
+        "ecs/change_detection/change_tick.rs",
+        "ecs/change_detection/change_tick_window.rs",
+        "ecs/change_detection/component_ticks.rs",
+        "ecs/change_detection/stats.rs",
+        "ecs/change_detection/wrappers.rs",
+        "ecs/component/mod.rs",
+        "ecs/component/id.rs",
+        "ecs/component/marker.rs",
+        "ecs/component/registry.rs",
+        "ecs/entity/mod.rs",
+        "ecs/entity/despawned.rs",
+        "ecs/entity/error.rs",
+        "ecs/entity/internal.rs",
+        "ecs/entity/location.rs",
+        "ecs/entity/registry.rs",
+        "ecs/entity/slot.rs",
+        "ecs/entity/stable_location.rs",
+        "ecs/resource/mod.rs",
+        "ecs/resource/id.rs",
+        "ecs/resource/marker.rs",
+        "ecs/resource/registry.rs",
+        "ecs/observer/mod.rs",
+        "ecs/observer/callbacks.rs",
+        "ecs/observer/entry.rs",
+        "ecs/observer/id.rs",
+        "ecs/observer/store.rs",
+        "ecs/observer/utils.rs",
         "ecs/schedule.rs",
         "ecs/scene_system_descriptor.rs",
         "ecs/scene_system_registry.rs",
         "ecs/storage/mod.rs",
+        "ecs/storage/component_storage/mod.rs",
+        "ecs/storage/component_storage/entry.rs",
+        "ecs/storage/component_storage/location.rs",
+        "ecs/storage/component_storage/sparse.rs",
+        "ecs/storage/component_storage/store.rs",
+        "ecs/storage/component_storage/table.rs",
+        "ecs/storage/component_storage/utils.rs",
         "ecs/storage_type.rs",
         "ecs/system_stage.rs",
     ] {
@@ -88,7 +129,7 @@ fn world_property_access_moves_into_folder_backed_subtree() {
 fn component_registry_rust_type_reverse_lookup_uses_descriptor_source() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let registry_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component_registry.rs")).unwrap();
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component/registry.rs")).unwrap();
     let component_id_body = registry_source
         .split("pub fn component_id<T>")
         .nth(1)
@@ -118,7 +159,7 @@ fn component_registry_rust_type_reverse_lookup_uses_descriptor_source() {
 fn component_registry_dynamic_lookup_uses_borrowed_type_id_map() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let registry_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component_registry.rs")).unwrap();
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/component/registry.rs")).unwrap();
     let dynamic_id_body = registry_source
         .split("pub fn dynamic_component_id")
         .nth(1)
@@ -169,6 +210,7 @@ fn runtime_scene_exposes_neutral_world_inspection_surface() {
         scene_root.join("inspection").join("mod.rs").exists(),
         "runtime scene should expose neutral world inspection under src/scene/inspection"
     );
+    // Keep the retired editor-projection module name only as a resurrection guard.
     assert!(
         !scene_root.join("editor_projection").exists(),
         "runtime scene must not keep editor_projection as a production module"
@@ -202,10 +244,21 @@ fn scene_project_serialization_sources_do_not_store_editor_authoring_state() {
         "src/scene/world/project_io/references.rs",
         "src/scene/world/project_io/script.rs",
         "src/scene/world/project_io/transform.rs",
-        "src/scene/dynamic_scene/document.rs",
-        "src/scene/dynamic_scene/entity.rs",
-        "src/scene/dynamic_scene/scene.rs",
-        "src/scene/dynamic_scene/value.rs",
+        "src/scene/dynamic_scene/document/legacy.rs",
+        "src/scene/dynamic_scene/document/mod.rs",
+        "src/scene/dynamic_scene/document/read.rs",
+        "src/scene/dynamic_scene/document/write.rs",
+        "src/scene/dynamic_scene/entity/dynamic_component.rs",
+        "src/scene/dynamic_scene/entity/dynamic_entity.rs",
+        "src/scene/dynamic_scene/entity/dynamic_resource.rs",
+        "src/scene/dynamic_scene/entity/mod.rs",
+        "src/scene/dynamic_scene/scene/capture.rs",
+        "src/scene/dynamic_scene/scene/mod.rs",
+        "src/scene/dynamic_scene/scene/spawn.rs",
+        "src/scene/dynamic_scene/scene/validation.rs",
+        "src/scene/dynamic_scene/value/json.rs",
+        "src/scene/dynamic_scene/value/mod.rs",
+        "src/scene/dynamic_scene/value/remap.rs",
         "src/asset/assets/scene/mod.rs",
     ] {
         let path = manifest_root.join(relative);
@@ -215,6 +268,194 @@ fn scene_project_serialization_sources_do_not_store_editor_authoring_state() {
             &format!("runtime scene project serialization source {relative}"),
             &source,
             SOURCE_AUTHORING_TOKENS,
+        );
+    }
+}
+
+#[test]
+fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let dynamic_scene_root = manifest_root.join("src/scene/dynamic_scene");
+    let root_owner_children: &[(&str, &[&str])] = &[
+        ("document", &["legacy.rs", "read.rs", "write.rs"]),
+        (
+            "entity",
+            &[
+                "dynamic_component.rs",
+                "dynamic_entity.rs",
+                "dynamic_resource.rs",
+            ],
+        ),
+        ("scene", &["capture.rs", "spawn.rs", "validation.rs"]),
+        (
+            "scene_asset",
+            &["dynamic_scene.rs", "error.rs", "prepared_spawn.rs"],
+        ),
+        ("spawn_task", &["loader.rs", "prepared.rs", "task.rs"]),
+        ("value", &["json.rs", "remap.rs"]),
+    ];
+
+    let root_mod_source = std::fs::read_to_string(dynamic_scene_root.join("mod.rs")).unwrap();
+    for forbidden in ["fn ", "impl ", "struct ", "enum ", "trait ", "macro_rules!"] {
+        assert!(
+            !root_mod_source.contains(forbidden),
+            "dynamic_scene/mod.rs should remain a structural module/export owner, but found `{forbidden}`"
+        );
+    }
+
+    for &(owner, children) in root_owner_children {
+        let owner_root = dynamic_scene_root.join(owner);
+        assert!(
+            owner_root.join("mod.rs").exists(),
+            "Runtime 05 dynamic_scene owner `{owner}` should stay folder-backed"
+        );
+        assert!(
+            !dynamic_scene_root.join(format!("{owner}.rs")).exists(),
+            "retired flat dynamic_scene/{owner}.rs should not be restored"
+        );
+        assert!(
+            root_mod_source.contains(&format!("mod {owner};")),
+            "dynamic_scene/mod.rs should continue declaring owner module `{owner}`"
+        );
+
+        for &child in children {
+            assert!(
+                owner_root.join(child).exists(),
+                "Runtime 05 dynamic_scene owner `{owner}` should keep child `{child}`"
+            );
+        }
+    }
+
+    for owner in ["document", "entity", "scene_asset", "spawn_task", "value"] {
+        let mod_source =
+            std::fs::read_to_string(dynamic_scene_root.join(owner).join("mod.rs")).unwrap();
+        for forbidden in ["fn ", "impl ", "struct ", "enum ", "trait ", "macro_rules!"] {
+            assert!(
+                !mod_source.contains(forbidden),
+                "dynamic_scene/{owner}/mod.rs should remain a structural module/export owner, but found `{forbidden}`"
+            );
+        }
+    }
+
+    let scene_mod_source =
+        std::fs::read_to_string(dynamic_scene_root.join("scene").join("mod.rs")).unwrap();
+    for required in [
+        "pub const DYNAMIC_SCENE_FORMAT_VERSION",
+        "pub struct DynamicScene",
+        "pub fn empty()",
+        "pub fn from_world(",
+        "pub fn spawn_into(",
+        "pub fn ensure_supported(",
+    ] {
+        assert!(
+            scene_mod_source.contains(required),
+            "dynamic_scene/scene/mod.rs should keep DynamicScene facade anchor `{required}`"
+        );
+    }
+}
+
+#[test]
+fn dynamic_scene_session_owner_tree_stays_folder_backed_after_runtime_05_cutover() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let dynamic_scene_root = manifest_root.join("src/scene/dynamic_scene");
+    let session_root = dynamic_scene_root.join("session");
+
+    assert!(
+        session_root.join("mod.rs").exists(),
+        "runtime session archive should stay folder-backed under src/scene/dynamic_scene/session"
+    );
+    assert!(
+        !dynamic_scene_root.join("session.rs").exists(),
+        "retired flat dynamic_scene/session.rs should not be restored"
+    );
+
+    let session_mod_source = std::fs::read_to_string(session_root.join("mod.rs")).unwrap();
+    for forbidden in ["fn ", "impl ", "struct ", "enum ", "trait ", "macro_rules!"] {
+        assert!(
+            !session_mod_source.contains(forbidden),
+            "session/mod.rs should remain a structural module/export owner, but found `{forbidden}`"
+        );
+    }
+
+    for relative in [
+        "capture_retention",
+        "construction",
+        "facade",
+        "io",
+        "manifest",
+        "merge",
+        "metadata",
+        "path_api",
+        "path_capture",
+        "path_export",
+        "path_merge",
+        "path_mutation",
+        "path_query",
+        "path_restore",
+        "path_retention",
+        "path_transfer",
+        "query",
+        "reports",
+        "restore",
+        "retention",
+        "selected_capture",
+        "selected_mutation",
+        "selected_retention",
+        "slot",
+        "slot_capture",
+        "slot_copy",
+        "slot_export",
+        "slot_import",
+        "slot_mutation",
+        "slot_selector",
+        "slot_store",
+        "target_path",
+        "validation",
+    ] {
+        assert!(
+            session_root.join(relative).join("mod.rs").exists(),
+            "expected Runtime 05 session owner subtree `{relative}` to stay folder-backed"
+        );
+    }
+
+    for retired_flat_owner in [
+        "capture_retention.rs",
+        "construction.rs",
+        "facade.rs",
+        "io.rs",
+        "manifest.rs",
+        "merge.rs",
+        "metadata.rs",
+        "path_api.rs",
+        "path_capture.rs",
+        "path_export.rs",
+        "path_merge.rs",
+        "path_mutation.rs",
+        "path_query.rs",
+        "path_restore.rs",
+        "path_retention.rs",
+        "path_transfer.rs",
+        "query.rs",
+        "reports.rs",
+        "restore.rs",
+        "retention.rs",
+        "selected_capture.rs",
+        "selected_mutation.rs",
+        "selected_retention.rs",
+        "slot.rs",
+        "slot_capture.rs",
+        "slot_copy.rs",
+        "slot_export.rs",
+        "slot_import.rs",
+        "slot_mutation.rs",
+        "slot_selector.rs",
+        "slot_store.rs",
+        "target_path.rs",
+        "validation.rs",
+    ] {
+        assert!(
+            !session_root.join(retired_flat_owner).exists(),
+            "retired flat Runtime 05 session owner `{retired_flat_owner}` should not be restored"
         );
     }
 }
@@ -231,18 +472,23 @@ fn scene_ecs_does_not_reintroduce_late_update_stage_or_compatibility_path() {
 #[test]
 fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
-    let get_with_ticks_at_location_start = storage_source
+    let store_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
+    )
+    .unwrap();
+    let sparse_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/sparse.rs"),
+    )
+    .unwrap();
+    let get_with_ticks_at_location_start = store_source
         .find("pub fn get_with_ticks_at_location<T>")
         .expect("component storage get_with_ticks_at_location body should exist");
-    let get_with_ticks_at_location_end = storage_source[get_with_ticks_at_location_start..]
+    let get_with_ticks_at_location_end = store_source[get_with_ticks_at_location_start..]
         .find("\n    pub fn mark_changed(")
         .map(|offset| get_with_ticks_at_location_start + offset)
         .expect("component storage get_with_ticks_at_location body should end before mark_changed");
     let get_with_ticks_at_location_body =
-        &storage_source[get_with_ticks_at_location_start..get_with_ticks_at_location_end];
+        &store_source[get_with_ticks_at_location_start..get_with_ticks_at_location_end];
 
     assert!(get_with_ticks_at_location_body.contains("self.sparse_components"));
     assert!(get_with_ticks_at_location_body.contains(".get(&location.component_id)?"));
@@ -252,20 +498,20 @@ fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
     assert!(!get_with_ticks_at_location_body
         .contains("let ticks = self.ticks(location.component_id, location.entity)?;"));
 
-    let sparse_get_with_ticks_start = storage_source
+    let sparse_get_with_ticks_start = sparse_source
         .find("impl SparseComponentStorage")
         .and_then(|start| {
-            storage_source[start..]
+            sparse_source[start..]
                 .find("fn get_with_ticks<T>")
                 .map(|offset| start + offset)
         })
         .expect("sparse component get_with_ticks body should exist");
-    let sparse_get_with_ticks_end = storage_source[sparse_get_with_ticks_start..]
-        .find("\n    fn get_mut<T>")
+    let sparse_get_with_ticks_end = sparse_source[sparse_get_with_ticks_start..]
+        .find("fn get_mut<T>")
         .map(|offset| sparse_get_with_ticks_start + offset)
         .expect("sparse component get_with_ticks body should end before get_mut");
     let sparse_get_with_ticks_body =
-        &storage_source[sparse_get_with_ticks_start..sparse_get_with_ticks_end];
+        &sparse_source[sparse_get_with_ticks_start..sparse_get_with_ticks_end];
 
     assert!(sparse_get_with_ticks_body.contains("let entry = self.entries.get(&entity)?;"));
     assert!(sparse_get_with_ticks_body.contains("let value = entry.value.downcast_ref::<T>()?;"));
@@ -275,17 +521,26 @@ fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
 #[test]
 fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
-    let get_mut_at_tick_start = storage_source
+    let store_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
+    )
+    .unwrap();
+    let table_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
+    let sparse_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/sparse.rs"),
+    )
+    .unwrap();
+    let get_mut_at_tick_start = store_source
         .find("pub fn get_mut_at_tick<T>")
         .expect("component storage get_mut_at_tick body should exist");
-    let get_mut_at_tick_end = storage_source[get_mut_at_tick_start..]
+    let get_mut_at_tick_end = store_source[get_mut_at_tick_start..]
         .find("\n    pub fn remove<T>")
         .map(|offset| get_mut_at_tick_start + offset)
         .expect("component storage get_mut_at_tick body should end before remove");
-    let get_mut_at_tick_body = &storage_source[get_mut_at_tick_start..get_mut_at_tick_end];
+    let get_mut_at_tick_body = &store_source[get_mut_at_tick_start..get_mut_at_tick_end];
 
     assert!(get_mut_at_tick_body.contains("match self.storage_types.get(&component_id).copied()?"));
     assert!(get_mut_at_tick_body
@@ -296,40 +551,40 @@ fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
     assert!(!get_mut_at_tick_body.contains("self.mark_changed(component_id, entity, tick);"));
     assert!(!get_mut_at_tick_body.contains("self.get_mut(component_id, entity)"));
 
-    let table_get_mut_at_tick_start = storage_source
+    let table_get_mut_at_tick_start = table_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
-            storage_source[start..]
+            table_source[start..]
                 .find("fn get_mut_at_tick<T>")
                 .map(|offset| start + offset)
         })
         .expect("table component get_mut_at_tick body should exist");
-    let table_get_mut_at_tick_end = storage_source[table_get_mut_at_tick_start..]
-        .find("\n    fn remove(")
+    let table_get_mut_at_tick_end = table_source[table_get_mut_at_tick_start..]
+        .find("fn remove(")
         .map(|offset| table_get_mut_at_tick_start + offset)
         .expect("table component get_mut_at_tick body should end before remove");
     let table_get_mut_at_tick_body =
-        &storage_source[table_get_mut_at_tick_start..table_get_mut_at_tick_end];
+        &table_source[table_get_mut_at_tick_start..table_get_mut_at_tick_end];
 
     assert!(table_get_mut_at_tick_body.contains("let row = self.rows.get(&entity).copied()?;"));
     assert!(table_get_mut_at_tick_body.contains("let entry = &mut self.entries[row];"));
     assert!(table_get_mut_at_tick_body.contains("entry.ticks.set_changed(tick);"));
     assert!(table_get_mut_at_tick_body.contains("entry.value.downcast_mut::<T>()"));
 
-    let sparse_get_mut_at_tick_start = storage_source
+    let sparse_get_mut_at_tick_start = sparse_source
         .find("impl SparseComponentStorage")
         .and_then(|start| {
-            storage_source[start..]
+            sparse_source[start..]
                 .find("fn get_mut_at_tick<T>")
                 .map(|offset| start + offset)
         })
         .expect("sparse component get_mut_at_tick body should exist");
-    let sparse_get_mut_at_tick_end = storage_source[sparse_get_mut_at_tick_start..]
-        .find("\n    fn remove(")
+    let sparse_get_mut_at_tick_end = sparse_source[sparse_get_mut_at_tick_start..]
+        .find("fn remove(")
         .map(|offset| sparse_get_mut_at_tick_start + offset)
         .expect("sparse component get_mut_at_tick body should end before remove");
     let sparse_get_mut_at_tick_body =
-        &storage_source[sparse_get_mut_at_tick_start..sparse_get_mut_at_tick_end];
+        &sparse_source[sparse_get_mut_at_tick_start..sparse_get_mut_at_tick_end];
 
     assert!(sparse_get_mut_at_tick_body.contains("let entry = self.entries.get_mut(&entity)?;"));
     assert!(sparse_get_mut_at_tick_body.contains("entry.ticks.set_changed(tick);"));
@@ -339,41 +594,48 @@ fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
 #[test]
 fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
-    let remove_entity_start = storage_source
+    let store_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
+    )
+    .unwrap();
+    let utils_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/utils.rs"),
+    )
+    .unwrap();
+    let remove_entity_start = store_source
         .find("pub fn remove_entity")
         .expect("component storage remove_entity body should exist");
-    let remove_entity_end = storage_source[remove_entity_start..]
+    let remove_entity_end = store_source[remove_entity_start..]
         .find("\n    pub(crate) fn component_ids_for_entity")
         .map(|offset| remove_entity_start + offset)
         .expect("component storage remove_entity body should end before component_ids_for_entity");
-    let remove_entity_body = &storage_source[remove_entity_start..remove_entity_end];
+    let remove_entity_body = &store_source[remove_entity_start..remove_entity_end];
 
-    let component_ids_start = storage_source
+    let component_ids_start = store_source
         .find("pub(crate) fn component_ids_for_entity")
         .expect("component storage component_ids_for_entity body should exist");
-    let component_ids_end = storage_source[component_ids_start..]
+    let component_ids_end = store_source[component_ids_start..]
         .find("\n    fn component_storage_count")
         .map(|offset| component_ids_start + offset)
         .expect("component storage component_ids_for_entity body should end before helper methods");
-    let component_ids_body = &storage_source[component_ids_start..component_ids_end];
+    let component_ids_body = &store_source[component_ids_start..component_ids_end];
 
-    assert!(storage_source.contains("fn component_storage_count(&self) -> usize"));
-    assert!(storage_source.contains("self.table_components.len() + self.sparse_components.len()"));
+    assert!(store_source.contains("fn component_storage_count(&self) -> usize"));
+    assert!(store_source.contains("self.table_components.len() + self.sparse_components.len()"));
     assert!(remove_entity_body
         .contains("let mut removed = Vec::with_capacity(self.component_storage_count());"));
     assert!(component_ids_body
         .contains("let mut component_ids = Vec::with_capacity(self.component_storage_count());"));
     assert!(remove_entity_body.contains("sort_component_ids_if_needed(&mut removed);"));
     assert!(component_ids_body.contains("sort_component_ids_if_needed(&mut component_ids);"));
-    assert!(storage_source
-        .contains("fn sort_component_ids_if_needed(component_ids: &mut [ComponentId])"));
-    assert!(storage_source.contains("if component_ids.len() > 1"));
-    assert!(storage_source.contains("component_ids.sort_unstable();"));
-    assert!(!storage_source.contains("let mut removed = Vec::new();"));
-    assert!(!storage_source.contains("let mut component_ids = Vec::new();"));
+    assert!(
+        utils_source.contains("fn sort_component_ids_if_needed(")
+            && utils_source.contains("component_ids: &mut [ComponentId]")
+    );
+    assert!(utils_source.contains("if component_ids.len() > 1"));
+    assert!(utils_source.contains("component_ids.sort_unstable();"));
+    assert!(!store_source.contains("let mut removed = Vec::new();"));
+    assert!(!store_source.contains("let mut component_ids = Vec::new();"));
     assert!(!remove_entity_body.contains("removed.sort_unstable();"));
     assert!(!component_ids_body.contains("component_ids.sort_unstable();"));
 }
@@ -381,9 +643,10 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
 #[test]
 fn component_storage_type_guards_use_entry_lookup() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
+    )
+    .unwrap();
 
     assert!(storage_source.contains("use std::collections::hash_map::Entry;"));
     assert!(storage_source.contains("match self.storage_types.entry(component_id)"));
@@ -399,9 +662,10 @@ fn component_storage_type_guards_use_entry_lookup() {
 #[test]
 fn table_component_insert_uses_entry_lookup_for_row_index() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
     let insert_body_start = storage_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
@@ -411,7 +675,7 @@ fn table_component_insert_uses_entry_lookup_for_row_index() {
         })
         .expect("table component insert body should exist");
     let insert_body_end = storage_source[insert_body_start..]
-        .find("\n    fn get<T>")
+        .find("fn get<T>")
         .map(|offset| insert_body_start + offset)
         .expect("table component insert body should end before get<T>");
     let insert_body = &storage_source[insert_body_start..insert_body_end];
@@ -426,9 +690,10 @@ fn table_component_insert_uses_entry_lookup_for_row_index() {
 #[test]
 fn table_component_get_uses_row_index_directly() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
     let get_start = storage_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
@@ -438,7 +703,7 @@ fn table_component_get_uses_row_index_directly() {
         })
         .expect("table component get body should exist");
     let get_end = storage_source[get_start..]
-        .find("\n    fn get_mut<T>")
+        .find("fn get_mut<T>")
         .map(|offset| get_start + offset)
         .expect("table component get body should end before get_mut");
     let get_body = &storage_source[get_start..get_end];
@@ -451,9 +716,10 @@ fn table_component_get_uses_row_index_directly() {
 #[test]
 fn sparse_component_insert_uses_entry_lookup_for_replacement() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/sparse.rs"),
+    )
+    .unwrap();
     let insert_body_start = storage_source
         .find("impl SparseComponentStorage")
         .and_then(|start| {
@@ -463,7 +729,7 @@ fn sparse_component_insert_uses_entry_lookup_for_replacement() {
         })
         .expect("sparse component insert body should exist");
     let insert_body_end = storage_source[insert_body_start..]
-        .find("\n    fn get<T>")
+        .find("fn get<T>")
         .map(|offset| insert_body_start + offset)
         .expect("sparse component insert body should end before get<T>");
     let insert_body = &storage_source[insert_body_start..insert_body_end];
@@ -479,9 +745,10 @@ fn sparse_component_insert_uses_entry_lookup_for_replacement() {
 #[test]
 fn table_component_ticks_uses_row_index_directly() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
     let ticks_start = storage_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
@@ -491,7 +758,7 @@ fn table_component_ticks_uses_row_index_directly() {
         })
         .expect("table component ticks body should exist");
     let ticks_end = storage_source[ticks_start..]
-        .find("\n    fn mark_changed(")
+        .find("fn mark_changed(")
         .map(|offset| ticks_start + offset)
         .expect("table component ticks body should end before mark_changed");
     let ticks_body = &storage_source[ticks_start..ticks_end];
@@ -504,9 +771,10 @@ fn table_component_ticks_uses_row_index_directly() {
 #[test]
 fn table_component_mark_changed_uses_row_index_directly() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
     let mark_changed_start = storage_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
@@ -516,7 +784,7 @@ fn table_component_mark_changed_uses_row_index_directly() {
         })
         .expect("table component mark_changed body should exist");
     let mark_changed_end = storage_source[mark_changed_start..]
-        .find("\n    fn len(")
+        .find("fn len(")
         .map(|offset| mark_changed_start + offset)
         .expect("table component mark_changed body should end before len");
     let mark_changed_body = &storage_source[mark_changed_start..mark_changed_end];
@@ -529,9 +797,10 @@ fn table_component_mark_changed_uses_row_index_directly() {
 #[test]
 fn table_component_get_mut_uses_row_index_directly() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let storage_source =
-        std::fs::read_to_string(manifest_root.join("src/scene/ecs/storage/component_storage.rs"))
-            .unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/table.rs"),
+    )
+    .unwrap();
     let get_mut_start = storage_source
         .find("impl TableComponentStorage")
         .and_then(|start| {
@@ -541,7 +810,7 @@ fn table_component_get_mut_uses_row_index_directly() {
         })
         .expect("table component get_mut body should exist");
     let get_mut_end = storage_source[get_mut_start..]
-        .find("\n    fn remove(")
+        .find("fn remove(")
         .map(|offset| get_mut_start + offset)
         .expect("table component get_mut body should end before remove");
     let get_mut_body = &storage_source[get_mut_start..get_mut_end];

@@ -310,9 +310,48 @@ fn scene_assets_keep_script_only_entities_as_empty_nodes() {
 
     assert!(matches!(player.kind, NodeKind::Empty));
     assert!(world.dynamic_component(90, "script.bindings").is_some());
+    let extract = world.to_render_extract();
+    assert!(extract.scene.meshes.is_empty());
+    assert!(extract.scene.directional_lights.is_empty());
     assert_eq!(world.to_scene_asset(&project).unwrap(), scene);
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
+    let source = project_io_source();
+    let from_scene_asset =
+        project_io_section(source, "pub fn from_scene_asset", "pub fn to_scene_asset");
+    assert!(from_scene_asset.contains("world.normalize_scene_asset_after_load();"));
+    assert!(!from_scene_asset.contains("world.normalize_after_load();"));
+
+    let scene_asset_normalizer = project_io_section(
+        source,
+        "fn normalize_scene_asset_after_load",
+        "fn normalize_after_load",
+    );
+    assert!(scene_asset_normalizer.contains("self.normalize_loaded_state(false);"));
+
+    let project_normalizer = project_io_section(
+        source,
+        "fn normalize_after_load",
+        "fn normalize_loaded_state",
+    );
+    assert!(project_normalizer.contains("self.normalize_loaded_state(true);"));
+
+    let normalize_loaded_state = project_io_section(
+        source,
+        "fn normalize_loaded_state",
+        "self.flush_scene_systems_now();",
+    );
+    assert!(normalize_loaded_state.contains("if ensure_default_nodes && self.cameras.is_empty()"));
+    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::Camera);"));
+    assert!(normalize_loaded_state
+        .contains("if ensure_default_nodes && self.directional_lights.is_empty()"));
+    assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::DirectionalLight);"));
+    assert!(!normalize_loaded_state.contains("if self.cameras.is_empty()"));
+    assert!(!normalize_loaded_state.contains("if self.directional_lights.is_empty()"));
 }
 
 #[test]
@@ -687,6 +726,23 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
 
 fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+fn project_io_source() -> &'static str {
+    include_str!("../world/project_io.rs")
+}
+
+fn project_io_section<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
+    let after_start = source
+        .split_once(start)
+        .unwrap_or_else(|| panic!("project_io source should contain {start}"))
+        .1;
+    after_start
+        .split_once(end)
+        .unwrap_or_else(|| {
+            panic!("project_io source section starting at {start} should contain {end}")
+        })
+        .0
 }
 
 fn assert_scene_asset_excludes_authoring_tokens(label: &str, scene: &SceneAsset) {

@@ -106,6 +106,12 @@ impl MeshDrawCommandReplayer {
         true
     }
 
+    pub(crate) fn invalidate_state_after_external_pipeline(&mut self) {
+        self.last_pipeline = None;
+        self.last_bind_ids = [None; TRACKED_BIND_GROUP_COUNT];
+        self.last_geometry = None;
+    }
+
     pub(crate) fn bind_gpu_scene_if_needed<'pass>(
         &mut self,
         pass: &mut wgpu::RenderPass<'pass>,
@@ -291,6 +297,25 @@ impl MeshDrawCommandReplayer {
 
 #[cfg(test)]
 mod tests {
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+        MeshPassPipelineKind, MeshPipelineVariantId,
+    };
+
+    use super::MeshDrawCommandReplayer;
+
+    #[test]
+    fn mesh_draw_command_replayer_rebinds_after_external_pipeline() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+        let variant = MeshPipelineVariantId::new(1);
+
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, variant));
+        assert!(!replayer.should_set_pipeline(MeshPassPipelineKind::Base, variant));
+
+        replayer.invalidate_state_after_external_pipeline();
+
+        assert!(replayer.should_set_pipeline(MeshPassPipelineKind::Base, variant));
+    }
+
     #[test]
     fn mesh_draw_command_replayer_records_multi_draw_indexed_indirect_batches() {
         let source = include_str!("replay.rs");

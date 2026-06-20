@@ -31,7 +31,9 @@ pub(super) fn texture_desc_for(
         .with_depth(COLOR_LUT_SIZE_DEFAULT);
     }
 
-    let view_size = if name == PostProcessGraphResourceNames::UPSCALED {
+    let view_size = if name == PostProcessGraphResourceNames::UPSCALED
+        || name == PostProcessGraphResourceNames::FINAL_COMPOSITED
+    {
         extract.view.effective_view_size()
     } else {
         extract.view.effective_render_size()

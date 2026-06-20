@@ -29,6 +29,7 @@ fn default_desktop_report_support_predicate_tracks_implemented_host_paths() {
     assert!(report.ime.is_supported());
     assert!(report.keyboard_events.is_supported());
     assert!(report.cursor_boundary.is_supported());
+    assert!(report.cursor_options.is_supported());
     assert!(report.mouse_buttons.is_supported());
     assert!(report.mouse_wheel.is_supported());
     assert!(report.touch_events.is_supported());
@@ -41,7 +42,6 @@ fn default_desktop_report_support_predicate_tracks_implemented_host_paths() {
     assert!(report.gamepad_events.is_supported());
     assert!(report.file_drag_drop.is_supported());
 
-    assert!(!report.cursor_options.is_supported());
     assert!(!report.gesture_events.is_supported());
     assert!(!report.gesture_input.is_supported());
     assert!(report.gamepad_rumble.is_supported());

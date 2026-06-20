@@ -267,6 +267,16 @@ fn compare_step_refs(
 ) -> Ordering {
     left.order()
         .cmp(&right.order())
+        .then(left.before_hook_rank().cmp(&right.before_hook_rank()))
         .then(left.id().cmp(right.id()))
         .then(left.step_rank().cmp(&right.step_rank()))
+}
+
+impl<'a> ScheduledSceneStepRef<'a> {
+    fn before_hook_rank(&self) -> u8 {
+        match self {
+            Self::Hook(_) => 1,
+            _ => 0,
+        }
+    }
 }

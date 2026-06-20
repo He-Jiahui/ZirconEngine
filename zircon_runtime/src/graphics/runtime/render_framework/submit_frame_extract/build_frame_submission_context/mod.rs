@@ -1,4 +1,5 @@
 mod build;
+mod camera_history_key;
 mod compile_pipeline;
 mod resolve_enabled_features;
 mod resolve_viewport_record_state;

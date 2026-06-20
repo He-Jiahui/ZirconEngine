@@ -15,6 +15,7 @@ use crate::graphics::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
+use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::{
     compile_submission_pipeline, compile_submission_pipeline_with_options,
 };
@@ -43,6 +44,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     sized_extract.apply_viewport_size(submission_size);
     apply_renderer_owned_particle_previous_state(&mut sized_extract, &viewport_state);
     let extract = &sized_extract;
+    let camera_history_key = camera_history_key_for_extract(extract);
     let effective_view_size = extract.view.effective_view_size();
     let render_size = extract.view.effective_render_size();
     let camera_target_resolution = RenderCameraTargetResolutionReport::new(
@@ -157,6 +159,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         render_size,
         viewport_state.pipeline_handle(),
         &compiled_pipeline,
+        &camera_history_key,
         &history_validation_key,
     );
     let history_available = temporal_history_enabled && history_invalidation_reason.is_none();
@@ -234,6 +237,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.capabilities().clone(),
         visibility_context,
         viewport_state.previous_motion_vector_camera().cloned(),
+        camera_history_key,
         history_validation_key,
         history_invalidation_reason,
         output_target,
@@ -314,13 +318,14 @@ fn frame_history_invalidation_reason(
     render_size: crate::core::math::UVec2,
     pipeline_handle: crate::core::framework::render::RenderPipelineHandle,
     compiled_pipeline: &crate::graphics::CompiledRenderPipeline,
+    camera_history_key: &super::super::super::viewport_record::ViewportCameraHistoryKey,
     history_validation_key: &FrameHistoryValidationKey,
 ) -> Option<FrameHistoryInvalidationReason> {
     let state = server.lock_state();
     let Some(history) = state
         .viewports
         .get(&viewport)
-        .and_then(|record| record.history())
+        .and_then(|record| record.history(camera_history_key))
     else {
         return Some(FrameHistoryInvalidationReason::NoPreviousFrame);
     };

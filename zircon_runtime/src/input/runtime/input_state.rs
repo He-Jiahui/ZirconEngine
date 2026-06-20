@@ -1,16 +1,17 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::input::{
-    ButtonInputState, FileDragDropEvent, GamepadAxis, GamepadAxisState, GamepadAxisTransition,
-    GamepadButton, GamepadButtonValueState, GamepadId, GamepadRumbleRequest, ImeDeleteSurrounding,
-    ImeHostRequest, ImePreedit, InputButton, InputEvent, InputEventRecord, MouseScrollUnit,
-    MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ButtonInputState, CursorHostRequest, FileDragDropEvent, GamepadAxis, GamepadAxisState,
+    GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId, GamepadRumbleRequest,
+    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, InputEvent, InputEventRecord,
+    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 #[derive(Debug)]
 pub(crate) struct InputState {
     pub(crate) cursor_position: [f32; 2],
     pub(crate) cursor_inside_window: bool,
+    pub(crate) cursor_host_requests: Vec<CursorHostRequest>,
     pub(crate) buttons: ButtonInputState<InputButton>,
     pub(crate) wheel_accumulator: f32,
     pub(crate) mouse_wheel_accumulator: [f32; 2],
@@ -40,6 +41,7 @@ impl Default for InputState {
         Self {
             cursor_position: [0.0, 0.0],
             cursor_inside_window: false,
+            cursor_host_requests: Vec::new(),
             buttons: ButtonInputState::default(),
             wheel_accumulator: 0.0,
             mouse_wheel_accumulator: [0.0, 0.0],

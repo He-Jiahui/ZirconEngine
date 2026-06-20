@@ -18,11 +18,15 @@ from .pipeline_report_schema_primitives import (
     validate_string_array_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
+from .pipeline_report_schema_table import (
+    string_array_no_blank_entries_schema_diagnostics,
+)
 from .pipeline_report_validate_compile_host_schema import (
     validate_library_embed_compile_host_schema_diagnostics,
 )
 from .pipeline_report_validate_plan_vector_schema import (
     validate_plan_summary_vector_schema_diagnostics,
+    validate_required_plan_summary_vector_schema_diagnostics,
 )
 from .pipeline_report_validate_profile_summary_schema import (
     validate_profile_summary_schema_diagnostics,
@@ -93,6 +97,12 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
                     report.get(field),
                 )
             )
+            diagnostics.extend(
+                string_array_no_blank_entries_schema_diagnostics(
+                    f"validate report {field}",
+                    report.get(field),
+                )
+            )
     for field in VALIDATE_REPORT_BOOL_FIELDS:
         if field in report:
             diagnostics.extend(
@@ -153,6 +163,7 @@ def validate_report_schema_diagnostics(report: dict[str, Any]) -> list[str]:
             validate_plan_summary_schema_diagnostics(
                 plan_summary,
                 profile_summary=profile_summary,
+                require_release_evidence=report.get("fatal") is False,
             )
         )
     return diagnostics
@@ -162,6 +173,7 @@ def validate_plan_summary_schema_diagnostics(
     plan_summary: dict[str, Any],
     *,
     profile_summary: dict[str, Any] | None = None,
+    require_release_evidence: bool = False,
 ) -> list[str]:
     known_plan_summary_fields = set(VALIDATE_PLAN_SUMMARY_FIELDS)
     diagnostics = [
@@ -169,6 +181,12 @@ def validate_plan_summary_schema_diagnostics(
         for field in sorted(plan_summary)
         if field not in known_plan_summary_fields
     ]
+    if require_release_evidence:
+        diagnostics.extend(
+            validate_required_plan_summary_release_evidence_schema_diagnostics(
+                plan_summary
+            )
+        )
     diagnostics.extend(validate_plan_summary_vector_schema_diagnostics(plan_summary))
     library_embed_compile_host = plan_summary.get("library_embed_compile_host")
     if "library_embed_compile_host" in plan_summary:
@@ -217,6 +235,27 @@ def validate_plan_summary_schema_diagnostics(
         diagnostics.extend(
             validate_runtime_plugin_availability_schema_diagnostics(
                 runtime_plugin_availability,
+            )
+        )
+    return diagnostics
+
+
+def validate_required_plan_summary_release_evidence_schema_diagnostics(
+    plan_summary: dict[str, Any],
+) -> list[str]:
+    diagnostics = validate_required_plan_summary_vector_schema_diagnostics(
+        plan_summary
+    )
+    if "generated_files" not in plan_summary:
+        diagnostics.extend(
+            source_template_validate_generated_files_schema_diagnostics(
+                plan_summary.get("generated_files")
+            )
+        )
+    if "runtime_plugin_availability" not in plan_summary:
+        diagnostics.extend(
+            validate_runtime_plugin_availability_schema_diagnostics(
+                plan_summary.get("runtime_plugin_availability"),
             )
         )
     return diagnostics

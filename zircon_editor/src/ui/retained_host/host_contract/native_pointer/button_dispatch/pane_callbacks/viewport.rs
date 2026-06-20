@@ -8,7 +8,7 @@ use super::super::super::routing::PanePointerRoute;
 use super::super::super::viewport_toolbar_damage::viewport_toolbar_press_damage_frame;
 use super::super::super::NativePointerButtonState;
 
-pub(super) fn dispatch_viewport_toolbar_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_viewport_toolbar_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     presentation: &HostWindowPresentationData,
     pointer: &PanePointerRoute,
@@ -42,7 +42,7 @@ pub(super) fn dispatch_viewport_toolbar_button(
     }
 }
 
-pub(super) fn dispatch_viewport_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_viewport_button(
     pane_host: &PaneSurfaceHostContext<'_>,
     pointer: &PanePointerRoute,
     kind: i32,

@@ -4,7 +4,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.zircon_export.native_dynamic_contract import (
+    NATIVE_DYNAMIC_ABI_STRING_FIELDS,
+    NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
+)
 from tools.zircon_export.pipeline_report import build_pipeline_report
+from tools.zircon_export.pipeline_report_native_dynamic_payload import (
+    platform_bundle_native_plugins_loader_manifest_diagnostics,
+    platform_bundle_native_plugins_loader_manifest_package_diagnostics,
+)
 from tools.zircon_export.tests.export_test_support import (
     _platform_bundle_args,
     _run_platform_bundle_quiet,
@@ -12,7 +20,7 @@ from tools.zircon_export.tests.export_test_support import (
     _write_validate_report_with_strategies,
     json_loads,
 )
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _native_plugins_content_hash,
     _native_plugins_file_manifest,
     _read_stage_report,
@@ -23,6 +31,32 @@ from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
 
 
 class PlatformBundleNativePayloadLoaderManifestTests(unittest.TestCase):
+    def test_loader_manifest_helpers_reject_blank_path_before_resolution(
+        self,
+    ) -> None:
+        expected = [
+            "PlatformBundle report native_plugins_payload loader_manifest "
+            "must be a non-empty string"
+        ]
+        payload = {"loader_manifest": "   "}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plugins_dir = Path(temp_dir) / "plugins"
+
+            self.assertEqual(
+                expected,
+                platform_bundle_native_plugins_loader_manifest_diagnostics(
+                    payload,
+                    plugins_dir,
+                ),
+            )
+            self.assertEqual(
+                expected,
+                platform_bundle_native_plugins_loader_manifest_package_diagnostics(
+                    payload,
+                    [],
+                ),
+            )
+
     def test_platform_bundle_records_loader_manifest_in_native_plugins_payload(
         self,
     ) -> None:
@@ -175,7 +209,7 @@ class PlatformBundleNativePayloadLoaderManifestTests(unittest.TestCase):
                 fixture["native_plugins"] / "native_plugins.toml"
             )
             loader_manifest.write_text(
-                '[metadata]\nname = "animation"\n',
+                'plugins = "animation"\n',
                 encoding="utf-8",
             )
             _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
@@ -218,6 +252,79 @@ class PlatformBundleNativePayloadLoaderManifestTests(unittest.TestCase):
                 any(
                     "PlatformBundle report native_plugins_payload "
                     "loader_manifest plugins[0].id must be a non-empty string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_row_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                loader_manifest.read_text(encoding="utf-8").replace(
+                    'path = "plugins/animation"\n',
+                    "",
+                ),
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation path is required by "
+                    "materialized package"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_stage_backed_native_plugins_payload_loader_manifest_missing_abi_table(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'path = "plugins/animation"',
+                        'manifest = "plugins/animation/plugin.toml"',
+                        (
+                            'package_report = "plugins/animation/'
+                            'native_dynamic_package.toml"'
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation abi is required by "
+                    "materialized package"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
@@ -386,6 +493,418 @@ class PlatformBundleNativePayloadLoaderManifestTests(unittest.TestCase):
                     "zircon_native_plugin_descriptor_legacy does not match "
                     "materialized package abi.descriptor_symbol "
                     "zircon_native_plugin_descriptor_v3"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_bad_abi_table(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'path = "plugins/animation"',
+                        'manifest = "plugins/animation/plugin.toml"',
+                        (
+                            'package_report = "plugins/animation/'
+                            'native_dynamic_package.toml"'
+                        ),
+                        'abi = "legacy"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugins[0].abi must be a table"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_unknown_abi_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'path = "plugins/animation"',
+                        'manifest = "plugins/animation/plugin.toml"',
+                        (
+                            'package_report = "plugins/animation/'
+                            'native_dynamic_package.toml"'
+                        ),
+                        "",
+                        "[plugins.abi]",
+                        'future_contract = "ignored"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation abi.future_contract "
+                    "is not supported by materialized package"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_abi_field_types(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'path = "plugins/animation"',
+                        'manifest = "plugins/animation/plugin.toml"',
+                        (
+                            'package_report = "plugins/animation/'
+                            'native_dynamic_package.toml"'
+                        ),
+                        "",
+                        "[plugins.abi]",
+                        'abi_version = "3"',
+                        "descriptor_symbol = 42",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation "
+                    "abi.abi_version must be an integer"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation "
+                    "abi.descriptor_symbol must be a string"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_abi_blank_strings(
+        self,
+    ) -> None:
+        for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(out)
+                    loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+                    loader_manifest.write_text(
+                        (
+                            "\n".join(
+                                [
+                                    "[[plugins]]",
+                                    'id = "animation"',
+                                    'path = "plugins/animation"',
+                                    'manifest = "plugins/animation/plugin.toml"',
+                                    (
+                                        'package_report = "plugins/animation/'
+                                        'native_dynamic_package.toml"'
+                                    ),
+                                ]
+                            )
+                            + "\n\n[plugins.abi]\n"
+                            + "abi_version = 3\n"
+                            + "\n".join(
+                                (
+                                    f'{abi_field} = "   "'
+                                    if abi_field == field
+                                    else f'{abi_field} = "{abi_value}"'
+                                )
+                                for abi_field, abi_value in (
+                                    NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS.items()
+                                )
+                            )
+                            + "\n"
+                        ),
+                        encoding="utf-8",
+                    )
+                    _refresh_platform_native_plugins_payload(
+                        out,
+                        fixture["native_plugins"],
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            "PlatformBundle report native_plugins_payload "
+                            "loader_manifest plugin animation "
+                            f"abi.{field} must be a non-empty string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_abi_missing_required_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'path = "plugins/animation"',
+                        'manifest = "plugins/animation/plugin.toml"',
+                        (
+                            'package_report = "plugins/animation/'
+                            'native_dynamic_package.toml"'
+                        ),
+                        "",
+                        "[plugins.abi]",
+                        "abi_version = 3",
+                        'descriptor_symbol = "zircon_native_plugin_descriptor_v3"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugin animation "
+                    "abi.descriptor_contract is required when abi is present"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_unknown_plugin_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        'future_field = "ignored"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugins[0].future_field is not supported"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_unknown_top_level_field(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        "",
+                        "[metadata]",
+                        'source = "sidecar"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest metadata is not supported"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+            self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_blank_string_fields(
+        self,
+    ) -> None:
+        cases = (
+            ("id", "plugins[0].id must be a non-empty string"),
+            ("path", "plugins[0].path must be a non-empty string"),
+            ("manifest", "plugins[0].manifest must be a non-empty string"),
+            (
+                "package_report",
+                "plugins[0].package_report must be a non-empty string",
+            ),
+        )
+        for field, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    fixture = _write_platform_bundle_fixture(out)
+                    loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+                    values = {
+                        "id": "animation",
+                        "path": "plugins/animation",
+                        "manifest": "plugins/animation/plugin.toml",
+                        "package_report": (
+                            "plugins/animation/native_dynamic_package.toml"
+                        ),
+                    }
+                    values[field] = "   "
+                    loader_manifest.write_text(
+                        "\n".join(
+                            [
+                                "[[plugins]]",
+                                f'id = "{values["id"]}"',
+                                f'path = "{values["path"]}"',
+                                f'manifest = "{values["manifest"]}"',
+                                f'package_report = "{values["package_report"]}"',
+                            ]
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                    )
+                    _refresh_platform_native_plugins_payload(
+                        out,
+                        fixture["native_plugins"],
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            "PlatformBundle report native_plugins_payload "
+                            f"loader_manifest {expected_diagnostic}"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertNotIn("native_plugins_payload", report)
+
+    def test_report_rejects_native_plugins_payload_loader_manifest_string_field_type(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            fixture = _write_platform_bundle_fixture(out)
+            loader_manifest = fixture["native_plugins"] / "native_plugins.toml"
+            loader_manifest.write_text(
+                "\n".join(
+                    [
+                        "[[plugins]]",
+                        'id = "animation"',
+                        "path = 42",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            _refresh_platform_native_plugins_payload(out, fixture["native_plugins"])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertTrue(
+                any(
+                    "PlatformBundle report native_plugins_payload "
+                    "loader_manifest plugins[0].path must be a string"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),

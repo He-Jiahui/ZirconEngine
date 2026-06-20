@@ -23,13 +23,14 @@ use super::{
         RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode,
         RenderMaterialLightingModel, RenderMeshSnapshot, RenderOverlayExtract, RenderPhase,
         RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortComponents,
-        RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPipelineHandle,
-        RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderProductFeature,
-        RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
-        RenderQualityProfile, RenderRectLightSnapshot, RenderSceneGeometryExtract,
-        RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
-        RenderViewportHandle, RenderViewportRect, RenderingBackendInfo, ViewportCameraSnapshot,
-        DEFAULT_RENDER_LAYER_MASK,
+        RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPhaseSortKeyBreakdown,
+        RenderPipelineHandle, RenderPointLightSnapshot, RenderPostProcessEffectStackSettings,
+        RenderProductFeature, RenderProductProfile, RenderProfileBundle,
+        RenderProfileValidationError, RenderQualityProfile, RenderQueueValue,
+        RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+        RenderViewportRect, RenderingBackendInfo, SpriteExtract, SpritePhaseExtractInput,
+        ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
     tasks::{
@@ -152,6 +153,58 @@ fn render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d
 }
 
 #[test]
+fn render_queue_values_select_phase_before_sort_key_order() {
+    let geometry = GeometryExtract::from_meshes_and_phase_inputs(
+        CorePipelineKind::Core3d,
+        Vec::new(),
+        vec![
+            GeometryPhaseInput::new(10, 0, RenderMaterialAlphaMode::Opaque, 0.0)
+                .with_render_queue(2_900),
+            GeometryPhaseInput::new(20, 1, RenderMaterialAlphaMode::Blend, 0.0)
+                .with_render_queue(2_000),
+            GeometryPhaseInput::new(30, 2, RenderMaterialAlphaMode::Blend, 0.0)
+                .with_render_queue(-10),
+        ],
+    );
+    let phase_for_mesh = |mesh_index| {
+        geometry
+            .phase_queue
+            .items
+            .iter()
+            .find(|item| item.mesh_source == RenderPhaseMeshSource::MeshIndex(mesh_index))
+            .map(|item| item.phase)
+            .unwrap()
+    };
+
+    assert_eq!(phase_for_mesh(0), RenderPhase::Transparent3d);
+    assert_eq!(phase_for_mesh(1), RenderPhase::Opaque3d);
+    assert_eq!(phase_for_mesh(2), RenderPhase::Transparent3d);
+
+    let sprites = SpriteExtract::from_sprites_and_phase_inputs(
+        CorePipelineKind::Core2d,
+        Vec::new(),
+        vec![
+            SpritePhaseExtractInput::new(40, 0, RenderMaterialAlphaMode::Opaque, 0, 0.0)
+                .with_render_queue(2_900),
+            SpritePhaseExtractInput::new(50, 1, RenderMaterialAlphaMode::Blend, 0, 0.0)
+                .with_render_queue(2_000),
+        ],
+    );
+    let phase_for_sprite = |sprite_index| {
+        sprites
+            .phase_queue
+            .items
+            .iter()
+            .find(|item| item.mesh_source == RenderPhaseMeshSource::SpriteIndex(sprite_index))
+            .map(|item| item.phase)
+            .unwrap()
+    };
+
+    assert_eq!(phase_for_sprite(0), RenderPhase::Transparent2d);
+    assert_eq!(phase_for_sprite(1), RenderPhase::Opaque2d);
+}
+
+#[test]
 fn render_phase_queue_order_exposes_submission_phase_precedence() {
     assert_eq!(RenderPhase::Prepass.queue_order(), 0);
     assert_eq!(RenderPhase::Shadow.queue_order(), 1);
@@ -241,22 +294,14 @@ fn render_phase_item_ordering_key_matches_queue_sort_tuple() {
 
 #[test]
 fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
-    let base = RenderPhaseSortComponents::new(10.0, 1)
-        .with_render_queue(2_000)
-        .with_material_queue(0);
-    let later_render_queue = RenderPhaseSortComponents::new(-100.0, 2)
-        .with_render_queue(2_500)
-        .with_material_queue(0);
+    let base = RenderPhaseSortComponents::new(10.0, 1).with_queue(RenderQueueValue::GEOMETRY);
+    let later_render_queue =
+        RenderPhaseSortComponents::new(-100.0, 2).with_queue(RenderQueueValue::GEOMETRY_LAST);
     let later_material_queue = RenderPhaseSortComponents::new(-100.0, 3)
-        .with_render_queue(2_000)
-        .with_material_queue(10);
-    let later_layer = RenderPhaseSortComponents::new(-100.0, 4)
-        .with_render_queue(2_000)
-        .with_material_queue(0)
-        .with_order_in_layer(5);
+        .with_queue(RenderQueueValue::GEOMETRY.with_material_offset_i32(10));
+    let later_layer = RenderPhaseSortComponents::new(-100.0, 4).with_order_in_layer(5);
     let later_ui_z = RenderPhaseSortComponents::new(-100.0, 5)
-        .with_render_queue(2_000)
-        .with_material_queue(0)
+        .with_queue(RenderQueueValue::OVERLAY)
         .with_ui_z_index(6);
 
     assert!(
@@ -268,18 +313,21 @@ fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
             < RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, later_material_queue)
     );
     assert!(
-        RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, base)
-            < RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, later_layer)
+        RenderPhaseSortKey::for_components(RenderPhase::Opaque2d, base)
+            < RenderPhaseSortKey::for_components(RenderPhase::Opaque2d, later_layer)
     );
     assert!(
-        RenderPhaseSortKey::for_components(RenderPhase::Ui, base)
-            < RenderPhaseSortKey::for_components(RenderPhase::Ui, later_ui_z)
+        RenderPhaseSortKey::for_components(
+            RenderPhase::Ui,
+            base.with_queue(RenderQueueValue::OVERLAY)
+        ) < RenderPhaseSortKey::for_components(RenderPhase::Ui, later_ui_z)
     );
 
     let transparent_far = RenderPhaseSortComponents::new(100.0, 6)
-        .with_render_queue(3_000)
+        .with_queue(RenderQueueValue::TRANSPARENT)
         .with_depth_bias(0.5);
-    let transparent_near = RenderPhaseSortComponents::new(1.0, 7).with_render_queue(3_000);
+    let transparent_near =
+        RenderPhaseSortComponents::new(1.0, 7).with_queue(RenderQueueValue::TRANSPARENT);
     assert!(
         RenderPhaseSortKey::for_components(RenderPhase::Transparent3d, transparent_far)
             < RenderPhaseSortKey::for_components(RenderPhase::Transparent3d, transparent_near)
@@ -289,8 +337,8 @@ fn render_phase_sort_key_uses_unified_queue_layer_depth_order() {
 #[test]
 fn render_phase_sort_key_breakdown_explains_depth_and_queue_order() {
     let components = RenderPhaseSortComponents::new(10.25, 42)
-        .with_render_queue(2_500)
-        .with_material_queue(-25)
+        .with_queue(RenderQueueValue::GEOMETRY_LAST)
+        .with_queue_offset(-25)
         .with_depth_bias(0.5)
         .with_order_in_layer(7)
         .with_ui_z_index(11);
@@ -302,39 +350,47 @@ fn render_phase_sort_key_breakdown_explains_depth_and_queue_order() {
     );
 
     assert_eq!(opaque.phase, RenderPhase::Opaque3d);
-    assert_eq!(opaque.render_queue, 2_500);
-    assert_eq!(opaque.render_queue_sort_key, 18_884);
-    assert_eq!(opaque.material_queue, -25);
-    assert_eq!(opaque.material_queue_sort_key, 16_359);
+    assert_eq!(opaque.camera_order, 0);
+    assert_eq!(opaque.camera_order_key, 128);
+    assert_eq!(opaque.queue, RenderQueueValue::new(2_475));
+    assert_eq!(opaque.queue_key, 2_475);
+    assert_eq!(opaque.sorting_layer, 0);
+    assert_eq!(opaque.sorting_layer_key, 128);
     assert_eq!(opaque.order_in_layer, 7);
-    assert_eq!(opaque.order_in_layer_sort_key, 4_194_311);
+    assert_eq!(opaque.order_in_layer_key, 16_391);
+    assert_eq!(opaque.y_sort, None);
+    assert_eq!(opaque.y_sort_key, 512);
     assert_eq!(opaque.ui_z_index, 11);
-    assert_eq!(opaque.ui_z_index_sort_key, 4_194_315);
+    assert_eq!(opaque.ui_z_index_key, 4_194_315);
     assert_eq!(opaque.entity_tie_breaker, 42);
     assert_eq!(opaque.phase_order, 2);
-    assert_eq!(opaque.entity_tie_breaker_key, 42);
-    assert_eq!(opaque.entity_tie_breaker_sort_key, 42);
+    assert_eq!(opaque.tie_breaker_key, 42);
     assert_eq!(opaque.effective_depth, 10.75);
     assert_eq!(opaque.depth_key, 10_750);
     assert_eq!(opaque.ordered_depth_key, 10_750);
-    assert_eq!(opaque.ordered_depth_sort_key, 17_179_879_934);
-    assert!(!opaque.transparent_back_to_front);
+    assert_eq!(opaque.opaque_depth_key, 86);
+    assert_eq!(opaque.transparent_depth_key, 8_377_857);
+    assert_eq!(opaque.pipeline_cluster_key, 0);
+    assert_eq!(opaque.material_cluster_key, 0);
+    assert_eq!(opaque.domain_key, 86);
     assert_eq!(
         opaque.raw_sort_key,
         RenderPhaseSortKey::for_components(RenderPhase::Opaque3d, components).raw()
     );
 
-    assert!(transparent.transparent_back_to_front);
     assert_eq!(transparent.depth_key, 10_750);
     assert_eq!(transparent.ordered_depth_key, -10_750);
-    assert_eq!(transparent.ordered_depth_sort_key, 17_179_858_434);
+    assert_eq!(
+        transparent.domain_key,
+        u64::from(transparent.transparent_depth_key) << 10
+    );
     assert!(
         transparent.raw_sort_key
             < RenderPhaseSortKey::for_components(
                 RenderPhase::Transparent3d,
                 RenderPhaseSortComponents::new(1.0, 99)
-                    .with_render_queue(2_500)
-                    .with_material_queue(-25)
+                    .with_queue(RenderQueueValue::GEOMETRY_LAST)
+                    .with_queue_offset(-25)
                     .with_order_in_layer(7)
                     .with_ui_z_index(11),
             )
@@ -344,18 +400,17 @@ fn render_phase_sort_key_breakdown_explains_depth_and_queue_order() {
     assert!(!non_finite.effective_depth.is_finite());
     assert_eq!(non_finite.depth_key, 0);
     assert_eq!(non_finite.ordered_depth_key, 0);
-    assert_eq!(non_finite.ordered_depth_sort_key, 17_179_869_184);
+    assert_eq!(non_finite.opaque_depth_key, 0);
 }
 
 #[test]
 fn render_phase_sort_key_breakdown_reports_first_ordering_difference() {
-    let base_components = RenderPhaseSortComponents::new(5.0, 10)
-        .with_render_queue(2_000)
-        .with_material_queue(0);
+    let base_components =
+        RenderPhaseSortComponents::new(5.0, 10).with_queue(RenderQueueValue::GEOMETRY);
     let phase_decision = RenderPhaseSortKey::breakdown(RenderPhase::Prepass, base_components)
         .first_difference(RenderPhaseSortKey::breakdown(
             RenderPhase::Shadow,
-            base_components.with_render_queue(-2_000),
+            base_components.with_queue(RenderQueueValue::BACKGROUND),
         ))
         .unwrap();
     assert_eq!(
@@ -366,67 +421,51 @@ fn render_phase_sort_key_breakdown_reports_first_ordering_difference() {
     assert_eq!(phase_decision.left_value, 0);
     assert_eq!(phase_decision.right_value, 1);
 
-    let material_decision = RenderPhaseSortKey::breakdown(RenderPhase::Opaque3d, base_components)
+    let queue_decision = RenderPhaseSortKey::breakdown(RenderPhase::Opaque3d, base_components)
         .first_difference(RenderPhaseSortKey::breakdown(
             RenderPhase::Opaque3d,
-            base_components
-                .with_material_queue(10)
-                .with_depth_bias(-10.0),
+            base_components.with_queue_offset(10).with_depth_bias(-10.0),
         ))
         .unwrap();
-    assert_eq!(
-        material_decision.field,
-        RenderPhaseSortDecisionField::MaterialQueue
-    );
-    assert!(material_decision.left_before_right);
-    assert_eq!(material_decision.left_value, 0);
-    assert_eq!(material_decision.right_value, 10);
+    assert_eq!(queue_decision.field, RenderPhaseSortDecisionField::Queue);
+    assert!(queue_decision.left_before_right);
+    assert_eq!(queue_decision.left_value, 2_000);
+    assert_eq!(queue_decision.right_value, 2_010);
 
-    let saturated_queue_left = RenderPhaseSortKey::breakdown(
+    let domain_left = RenderPhaseSortKeyBreakdown::from_components_with_clusters(
         RenderPhase::Opaque3d,
-        RenderPhaseSortComponents::new(0.0, 1)
-            .with_render_queue(20_000)
-            .with_material_queue(0),
+        base_components,
+        1,
+        0,
     );
-    let saturated_queue_right = RenderPhaseSortKey::breakdown(
+    let domain_right = RenderPhaseSortKeyBreakdown::from_components_with_clusters(
         RenderPhase::Opaque3d,
-        RenderPhaseSortComponents::new(0.0, 1)
-            .with_render_queue(16_383)
-            .with_material_queue(5),
+        base_components,
+        2,
+        0,
     );
-    assert_eq!(saturated_queue_left.render_queue, 20_000);
-    assert_eq!(saturated_queue_right.render_queue, 16_383);
-    assert_eq!(
-        saturated_queue_left.render_queue_sort_key,
-        saturated_queue_right.render_queue_sort_key
-    );
-    let saturated_queue_decision = saturated_queue_left
-        .first_difference(saturated_queue_right)
-        .unwrap();
-    assert_eq!(
-        saturated_queue_decision.field,
-        RenderPhaseSortDecisionField::MaterialQueue
-    );
-    assert!(saturated_queue_decision.left_before_right);
-    assert_eq!(saturated_queue_decision.left_value, 0);
-    assert_eq!(saturated_queue_decision.right_value, 5);
+    let domain_decision = domain_left.first_difference(domain_right).unwrap();
+    assert_eq!(domain_decision.field, RenderPhaseSortDecisionField::Domain);
+    assert!(domain_decision.left_before_right);
+    assert_eq!(domain_decision.left_value, domain_left.domain_key as i64);
+    assert_eq!(domain_decision.right_value, domain_right.domain_key as i64);
 
     let transparent_far = RenderPhaseSortKey::breakdown(
         RenderPhase::Transparent3d,
-        RenderPhaseSortComponents::new(100.0, 1).with_render_queue(3_000),
+        RenderPhaseSortComponents::new(100.0, 1).with_queue(RenderQueueValue::TRANSPARENT),
     );
     let transparent_near = RenderPhaseSortKey::breakdown(
         RenderPhase::Transparent3d,
-        RenderPhaseSortComponents::new(1.0, 2).with_render_queue(3_000),
+        RenderPhaseSortComponents::new(1.0, 2).with_queue(RenderQueueValue::TRANSPARENT),
     );
     let depth_decision = transparent_far.first_difference(transparent_near).unwrap();
-    assert_eq!(
-        depth_decision.field,
-        RenderPhaseSortDecisionField::OrderedDepthKey
-    );
+    assert_eq!(depth_decision.field, RenderPhaseSortDecisionField::Domain);
     assert!(depth_decision.left_before_right);
-    assert_eq!(depth_decision.left_value, -100_000);
-    assert_eq!(depth_decision.right_value, -1_000);
+    assert_eq!(depth_decision.left_value, transparent_far.domain_key as i64);
+    assert_eq!(
+        depth_decision.right_value,
+        transparent_near.domain_key as i64
+    );
 
     let entity_key_decision = RenderPhaseSortKey::breakdown(
         RenderPhase::Opaque3d,
@@ -439,7 +478,7 @@ fn render_phase_sort_key_breakdown_reports_first_ordering_difference() {
     .unwrap();
     assert_eq!(
         entity_key_decision.field,
-        RenderPhaseSortDecisionField::EntityTieBreakerKey
+        RenderPhaseSortDecisionField::TieBreakerKey
     );
     assert!(!entity_key_decision.left_before_right);
     assert_eq!(entity_key_decision.left_value, 2);

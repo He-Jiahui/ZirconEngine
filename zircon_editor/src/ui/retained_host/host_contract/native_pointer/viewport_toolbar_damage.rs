@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 
-pub(super) fn viewport_toolbar_press_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn viewport_toolbar_press_damage_frame(
     presentation: &HostWindowPresentationData,
     control_id: &str,
     toolbar_frame: &FrameRect,

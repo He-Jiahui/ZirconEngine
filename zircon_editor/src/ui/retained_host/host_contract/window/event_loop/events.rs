@@ -12,7 +12,7 @@ use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
 impl UiHostWindowEventLoop {
-    pub(super) fn window_event_impl(
+    pub(in crate::ui::retained_host::host_contract) fn window_event_impl(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
         event: WindowEvent,

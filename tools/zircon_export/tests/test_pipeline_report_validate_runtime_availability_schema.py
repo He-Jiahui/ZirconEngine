@@ -251,6 +251,30 @@ class PipelineReportValidateRuntimeAvailabilitySchemaTests(unittest.TestCase):
             "validate report plan_summary.runtime_plugin_availability.available[0].required must be a boolean",
         )
 
+    def test_report_stage_rejects_validate_runtime_availability_entry_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            ("id", "must be a string"),
+            ("runtime_id", "must be a string"),
+            ("maturity", "must be a string"),
+            ("reason", "must be a string"),
+            ("required", "must be a boolean"),
+        )
+        for field, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                entry = self._valid_availability_entry()
+                entry.pop(field)
+                report = self._build_report_for_availability(
+                    self._valid_availability(entry=entry)
+                )
+
+                self._assert_validate_runtime_availability_diagnostic(
+                    report,
+                    "validate report plan_summary.runtime_plugin_availability."
+                    f"available[0].{field} {expected_diagnostic}",
+                )
+
     def test_report_stage_rejects_validate_runtime_availability_missing_bucket(
         self,
     ) -> None:
@@ -398,6 +422,59 @@ class PipelineReportValidateRuntimeAvailabilitySchemaTests(unittest.TestCase):
             report,
             "validate report plan_summary.runtime_plugin_availability."
             "missing_required[0].required must be true",
+        )
+
+    def test_report_stage_rejects_validate_runtime_availability_duplicate_plugin_bucket(
+        self,
+    ) -> None:
+        availability = self._valid_availability(category="available")
+        availability["blocked_by_target"] = [
+            self._valid_availability_entry(reason="target platform does not support plugin")
+        ]
+
+        report = self._build_report_for_availability(availability)
+
+        self._assert_validate_runtime_availability_diagnostic(
+            report,
+            "validate report plan_summary.runtime_plugin_availability."
+            "blocked_by_target[0].id duplicates available[0]",
+        )
+
+    def test_report_stage_allows_validate_runtime_availability_missing_required_overlay(
+        self,
+    ) -> None:
+        blocked_entry = self._valid_availability_entry(
+            required=True,
+            reason="target platform does not support plugin",
+        )
+        availability = self._valid_availability(category="blocked_by_target")
+        availability["blocked_by_target"] = [blocked_entry]
+        availability["missing_required"] = [dict(blocked_entry)]
+
+        report = self._build_report_for_availability(availability)
+
+        self.assertFalse(
+            any("duplicates" in diagnostic for diagnostic in report["diagnostics"]),
+            report["diagnostics"],
+        )
+
+    def test_report_stage_rejects_validate_runtime_availability_missing_required_without_blocked_entry(
+        self,
+    ) -> None:
+        report = self._build_report_for_availability(
+            self._valid_availability(
+                category="missing_required",
+                entry=self._valid_availability_entry(
+                    required=True,
+                    reason="required plugin is unavailable",
+                ),
+            )
+        )
+
+        self._assert_validate_runtime_availability_diagnostic(
+            report,
+            "validate report plan_summary.runtime_plugin_availability."
+            "missing_required[0].id must match a blocked availability entry",
         )
 
 

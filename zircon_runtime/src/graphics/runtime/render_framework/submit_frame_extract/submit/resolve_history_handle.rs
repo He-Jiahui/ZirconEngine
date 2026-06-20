@@ -23,10 +23,6 @@ impl ResolvedHistoryHandle {
         }
     }
 
-    pub(super) fn inactive() -> Self {
-        Self::new(None, None, false)
-    }
-
     pub(super) fn allocated_history(&self) -> Option<FrameHistoryHandle> {
         self.allocated_history
     }
@@ -48,7 +44,7 @@ pub(super) fn resolve_history_handle(
     let allocated_history =
         should_rotate_history(state, viewport, context).then(|| allocate_history_handle(state));
     let current_history_handle =
-        allocated_history.or_else(|| current_history_handle(state, viewport));
+        allocated_history.or_else(|| current_history_handle(state, viewport, context));
     let previous_history_available = current_history_handle.is_some()
         && allocated_history.is_none()
         && context.history_invalidation_reason().is_none();
@@ -68,7 +64,7 @@ fn should_rotate_history(
     state
         .viewports
         .get(&viewport)
-        .and_then(|record| record.history())
+        .and_then(|record| record.history(context.camera_history_key()))
         .is_none_or(|history| {
             !history.is_compatible(
                 context.size(),
@@ -89,23 +85,11 @@ fn allocate_history_handle(state: &mut RenderFrameworkState) -> FrameHistoryHand
 fn current_history_handle(
     state: &RenderFrameworkState,
     viewport: RenderViewportHandle,
+    context: &FrameSubmissionContext,
 ) -> Option<FrameHistoryHandle> {
-    state
-        .viewports
-        .get(&viewport)
-        .and_then(|record| record.history().map(|history| history.handle()))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ResolvedHistoryHandle;
-
-    #[test]
-    fn inactive_history_handle_disables_current_previous_and_allocation() {
-        let resolved = ResolvedHistoryHandle::inactive();
-
-        assert_eq!(resolved.allocated_history(), None);
-        assert_eq!(resolved.current_history_handle(), None);
-        assert!(!resolved.previous_history_available());
-    }
+    state.viewports.get(&viewport).and_then(|record| {
+        record
+            .history(context.camera_history_key())
+            .map(|history| history.handle())
+    })
 }

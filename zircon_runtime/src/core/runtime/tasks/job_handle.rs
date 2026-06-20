@@ -19,6 +19,7 @@ struct JobState {
 
 struct JobStateInner {
     is_complete: bool,
+    panic_message: Option<Arc<str>>,
     remaining_dependencies: usize,
     dependents: Vec<JobContinuation>,
 }
@@ -43,6 +44,7 @@ impl JobHandle {
             state: Arc::new(JobState {
                 inner: Mutex::new(JobStateInner {
                     is_complete: false,
+                    panic_message: None,
                     remaining_dependencies,
                     dependents: Vec::new(),
                 }),
@@ -84,14 +86,23 @@ impl JobHandle {
 
         let combined = Self::pending_with_wait_diagnostics(handles.len(), wait_diagnostics);
         for handle in handles {
+            let handle_for_callback = handle.clone();
             let combined_for_callback = combined.clone();
             let callback = Box::new(move || {
+                if let Some(panic_message) = handle_for_callback.panic_message() {
+                    combined_for_callback.mark_panicked(panic_message);
+                    return;
+                }
                 if combined_for_callback.dependency_completed() {
                     combined_for_callback.mark_complete();
                 }
             });
-            if !handle.add_dependent(callback) && combined.dependency_completed() {
-                combined.mark_complete();
+            if !handle.add_dependent(callback) {
+                if let Some(panic_message) = handle.panic_message() {
+                    combined.mark_panicked(panic_message);
+                } else if combined.dependency_completed() {
+                    combined.mark_complete();
+                }
             }
         }
         combined
@@ -115,18 +126,41 @@ impl JobHandle {
                 .wait(inner)
                 .expect("job state lock poisoned while waiting");
         }
+        let panic_message = inner.panic_message.clone();
+        drop(inner);
         if let Some(diagnostics) = &self.wait_diagnostics {
             diagnostics.record_main_thread_wait(started_at.elapsed());
+        }
+        if let Some(panic_message) = panic_message {
+            panic!("job task panicked: {}", panic_message.as_ref());
         }
     }
 
     pub(super) fn mark_complete(&self) {
+        self.mark_terminal(None);
+    }
+
+    pub(super) fn mark_panicked(&self, panic_message: impl Into<Arc<str>>) {
+        self.mark_terminal(Some(panic_message.into()));
+    }
+
+    pub(super) fn panic_message(&self) -> Option<Arc<str>> {
+        self.state
+            .inner
+            .lock()
+            .expect("job state lock poisoned")
+            .panic_message
+            .clone()
+    }
+
+    fn mark_terminal(&self, panic_message: Option<Arc<str>>) {
         let dependents = {
             let mut inner = self.state.inner.lock().expect("job state lock poisoned");
             if inner.is_complete {
                 return;
             }
             inner.is_complete = true;
+            inner.panic_message = panic_message;
             std::mem::take(&mut inner.dependents)
         };
 
@@ -148,7 +182,7 @@ impl JobHandle {
 
     pub(super) fn dependency_completed(&self) -> bool {
         let mut inner = self.state.inner.lock().expect("job state lock poisoned");
-        if inner.remaining_dependencies == 0 {
+        if inner.is_complete || inner.remaining_dependencies == 0 {
             return false;
         }
 

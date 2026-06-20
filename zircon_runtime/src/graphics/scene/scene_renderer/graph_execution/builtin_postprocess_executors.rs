@@ -278,7 +278,7 @@ fn product_postprocess_executor(
     context: &mut RenderPassExecutionContext<'_>,
     kind: PostProcessEffectKind,
 ) -> Result<(), String> {
-    let required_resources = {
+    let (required_inputs, produced_outputs) = {
         let gpu = context.require_gpu()?;
         let frame_extract = gpu.frame_extract();
         let Some(node) = frame_extract
@@ -290,15 +290,14 @@ fn product_postprocess_executor(
         else {
             return Ok(());
         };
-        node.required_inputs
-            .iter()
-            .chain(&node.produced_outputs)
-            .cloned()
-            .collect::<Vec<_>>()
+        (node.required_inputs.clone(), node.produced_outputs.clone())
     };
 
-    for resource in required_resources {
+    for resource in required_inputs {
         context.require_texture_view_by_name(&resource, RenderGraphResourceAccessKind::Read)?;
+    }
+    for resource in produced_outputs {
+        context.require_texture_view_by_name(&resource, RenderGraphResourceAccessKind::Write)?;
     }
 
     Ok(())

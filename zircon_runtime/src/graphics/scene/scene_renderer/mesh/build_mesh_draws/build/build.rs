@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::core::framework::render::{
     build_mesh_phase_queue, render_mesh_stable_instance_key, GeometryPhaseInput, MeshPhaseInput,
     PrimitiveRelevance, RenderMeshSnapshot, RenderPhaseMeshSource, RenderPhaseQueue,
+    RenderQueueValue,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::math::RenderVec4;
@@ -664,9 +665,16 @@ fn command_sort_input_for_mesh_index(
     Some(MeshCommandSortInput {
         depth: input.depth,
         depth_bias: input.depth_bias + offsets.depth_bias,
-        render_queue: input.render_queue.saturating_add(offsets.render_queue),
-        material_queue: input.material_queue.saturating_add(offsets.material_queue),
+        queue: material_adjusted_queue(
+            &input.material_alpha_mode,
+            input.render_queue,
+            input.material_queue,
+            offsets,
+        ),
+        camera_order: 0,
+        sorting_layer: 0,
         order_in_layer: input.order_in_layer,
+        y_sort: None,
         ui_z_index: input.ui_z_index,
         tie_breaker: input.entity,
     })
@@ -674,6 +682,7 @@ fn command_sort_input_for_mesh_index(
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct MaterialPhaseSortOffsets {
+    queue: Option<RenderQueueValue>,
     render_queue: i32,
     material_queue: i32,
     depth_bias: f32,
@@ -686,6 +695,7 @@ fn material_sort_offsets(
     streamer
         .material(&mesh.material.id())
         .map(|material| MaterialPhaseSortOffsets {
+            queue: material.render_queue_value,
             render_queue: material.render_queue,
             material_queue: material.material_queue,
             depth_bias: material.depth_bias,
@@ -713,21 +723,44 @@ fn material_adjusted_phase_queue(
     })
 }
 
-fn mesh_phase_input_with_material_offsets<'a>(
-    input: &'a GeometryPhaseInput,
+fn mesh_phase_input_with_material_offsets(
+    input: &GeometryPhaseInput,
     offsets: MaterialPhaseSortOffsets,
-) -> MeshPhaseInput<'a> {
+) -> MeshPhaseInput {
     MeshPhaseInput {
         entity: input.entity,
         mesh_index: input.mesh_index,
-        material_alpha_mode: &input.material_alpha_mode,
+        queue: material_adjusted_queue(
+            &input.material_alpha_mode,
+            input.render_queue,
+            input.material_queue,
+            offsets,
+        ),
         depth: input.depth,
         depth_bias: input.depth_bias + offsets.depth_bias,
-        render_queue: input.render_queue.saturating_add(offsets.render_queue),
-        material_queue: input.material_queue.saturating_add(offsets.material_queue),
+        camera_order: 0,
+        sorting_layer: 0,
         order_in_layer: input.order_in_layer,
+        y_sort: None,
         ui_z_index: input.ui_z_index,
     }
+}
+
+fn material_adjusted_queue(
+    alpha_mode: &crate::core::framework::render::RenderMaterialAlphaMode,
+    input_render_queue: i32,
+    input_material_queue: i32,
+    offsets: MaterialPhaseSortOffsets,
+) -> RenderQueueValue {
+    let queue = if let Some(queue) = offsets.queue {
+        queue.with_material_offset_i32(input_render_queue)
+    } else {
+        RenderQueueValue::from_authored_queue(
+            alpha_mode,
+            input_render_queue.saturating_add(offsets.render_queue),
+        )
+    };
+    queue.with_material_offset_i32(input_material_queue.saturating_add(offsets.material_queue))
 }
 
 fn submission_detail_from_draw_ref(
@@ -876,11 +909,13 @@ mod tests {
         assert_eq!(
             phase_ordered_meshes_with_material_offsets(&frame, |mesh| match mesh.node_id {
                 20 => MaterialPhaseSortOffsets {
+                    queue: None,
                     render_queue: -5,
                     material_queue: 0,
                     depth_bias: 0.0,
                 },
                 30 => MaterialPhaseSortOffsets {
+                    queue: None,
                     render_queue: 0,
                     material_queue: -3,
                     depth_bias: -2.5,

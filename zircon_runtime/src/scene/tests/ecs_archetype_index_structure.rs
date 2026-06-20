@@ -1,6 +1,7 @@
 #[test]
 fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
-    let source = include_str!("../ecs/archetype_index.rs");
+    let source = include_str!("../ecs/archetype/index.rs");
+    let record_source = include_str!("../ecs/archetype/record.rs");
     let signature_lookup = source
         .split("pub fn signature(&self, id: ArchetypeId) -> Option<&ArchetypeSignature>")
         .nth(1)
@@ -19,7 +20,7 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
     let matching_archetypes = source
         .split("pub fn matching_archetypes(")
         .nth(1)
-        .and_then(|text| text.split("fn shortest_required_component").next())
+        .and_then(|text| text.split("fn shortest_required_archetype_ids").next())
         .expect("read ArchetypeIndex::matching_archetypes body");
     let shortest_required = source
         .split("fn shortest_required_archetype_ids(&self, required: &[ComponentId])")
@@ -41,10 +42,15 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
         .nth(1)
         .and_then(|text| text.split("fn index_signature_components").next())
         .expect("read ArchetypeIndex::remove_entity_from body");
+    let swap_remove_entity = record_source
+        .split("pub(super) fn swap_remove_entity(")
+        .nth(1)
+        .and_then(|text| text.split("\n    }\n}").next())
+        .expect("read ArchetypeRecord::swap_remove_entity body");
     let entity_row = source
         .split("fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize>")
         .nth(1)
-        .and_then(|text| text.split("fn all_archetype_ids").next())
+        .and_then(|text| text.split("impl Default for ArchetypeIndex").next())
         .expect("read entity_row helper");
 
     assert!(signature_lookup.contains("let record = self.records.get(id.index())?;"));
@@ -98,11 +104,15 @@ fn archetype_index_hot_paths_use_direct_branches_without_adapter_chains() {
     assert!(match_helper.contains("for component_id in without"));
     assert!(!match_helper.contains(".all(|component_id|"));
 
-    assert!(add_entity.contains("entity_row(&record.entities, entity)"));
-    assert!(remove_entity.contains("entity_row(&record.entities, entity)?"));
-    assert!(remove_entity.contains("if row != last_row"));
+    assert!(add_entity.contains("entity_row(record.entities(), entity)"));
+    assert!(remove_entity.contains("entity_row(record.entities(), entity)?"));
+    assert!(remove_entity.contains("record.swap_remove_entity(row, entity)"));
     assert!(!remove_entity.contains(".position("));
     assert!(!remove_entity.contains(".then(||"));
+    assert!(swap_remove_entity.contains("let last_row = self.entities.len() - 1;"));
+    assert!(swap_remove_entity.contains("debug_assert_eq!(removed, entity);"));
+    assert!(swap_remove_entity.contains("if row != last_row"));
+    assert!(swap_remove_entity.contains("Some((self.entities[row], row))"));
     assert!(entity_row.contains("while row < entities.len()"));
     assert!(entity_row.contains("if entities[row] == entity"));
     assert!(!entity_row.contains(".iter().position("));

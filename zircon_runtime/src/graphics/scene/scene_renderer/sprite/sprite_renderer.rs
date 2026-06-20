@@ -175,15 +175,32 @@ impl SpriteRenderer {
                 timestamp_writes: None,
                 multiview_mask: None,
             });
-            if !render_region.apply_to_render_pass(&mut pass) {
+            if !render_region.apply_physical_to_render_pass(&mut pass) {
                 return;
             }
-            pass.set_pipeline(&self.pipeline);
-            pass.set_bind_group(0, scene_bind_group, &[]);
-            pass.set_bind_group(1, &texture.bind_group, &[]);
-            pass.set_vertex_buffer(0, buffer.slice(..));
-            pass.draw(0..batch.vertices().len() as u32, 0..1);
+            self.record_vertices_in_pass(
+                &mut pass,
+                scene_bind_group,
+                &texture.bind_group,
+                &buffer,
+                batch.vertices().len() as u32,
+            );
         }
+    }
+
+    pub(crate) fn record_vertices_in_pass<'pass>(
+        &'pass self,
+        pass: &mut wgpu::RenderPass<'pass>,
+        scene_bind_group: &'pass wgpu::BindGroup,
+        texture_bind_group: &'pass wgpu::BindGroup,
+        vertex_buffer: &'pass wgpu::Buffer,
+        vertex_count: u32,
+    ) {
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, scene_bind_group, &[]);
+        pass.set_bind_group(1, texture_bind_group, &[]);
+        pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        pass.draw(0..vertex_count, 0..1);
     }
 }
 

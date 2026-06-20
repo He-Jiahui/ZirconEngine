@@ -1,7 +1,8 @@
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::post_process::resources::render_region::{
-    apply_render_region_to_pass, create_terminal_region_params_buffer,
+    apply_physical_render_region_to_pass, create_local_terminal_region_params_buffer,
+    create_physical_terminal_region_params_buffer,
 };
 use crate::graphics::scene::scene_renderer::post_process::SMAA_STAGE_FORMAT;
 use crate::graphics::types::ViewportRenderRegion;
@@ -36,6 +37,7 @@ impl ScenePostProcessResources {
             terminal_input_view,
             terminal_input_view,
             ViewportRenderRegion::default(),
+            TerminalRegionSpace::Local,
         );
         self.record_smaa_stage(
             encoder,
@@ -53,6 +55,7 @@ impl ScenePostProcessResources {
             terminal_input_view,
             &edge_view,
             ViewportRenderRegion::default(),
+            TerminalRegionSpace::Local,
         );
         self.record_smaa_stage(
             encoder,
@@ -70,6 +73,7 @@ impl ScenePostProcessResources {
             terminal_input_view,
             &blend_view,
             render_region,
+            TerminalRegionSpace::Physical,
         );
         self.record_smaa_stage(
             encoder,
@@ -78,7 +82,7 @@ impl ScenePostProcessResources {
             &resolve_bind_group,
             final_color_view,
             attachment_ops,
-            Some(render_region),
+            Some((render_region, TerminalRegionSpace::Physical)),
         );
     }
 
@@ -89,12 +93,20 @@ impl ScenePostProcessResources {
         terminal_input_view: &wgpu::TextureView,
         stage_input_view: &wgpu::TextureView,
         render_region: ViewportRenderRegion,
+        region_space: TerminalRegionSpace,
     ) -> wgpu::BindGroup {
-        let terminal_region_params_buffer = create_terminal_region_params_buffer(
-            device,
-            "zircon-smaa-terminal-region-params",
-            render_region,
-        );
+        let terminal_region_params_buffer = match region_space {
+            TerminalRegionSpace::Local => create_local_terminal_region_params_buffer(
+                device,
+                "zircon-smaa-terminal-region-params",
+                render_region,
+            ),
+            TerminalRegionSpace::Physical => create_physical_terminal_region_params_buffer(
+                device,
+                "zircon-smaa-terminal-region-params",
+                render_region,
+            ),
+        };
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some(label),
             layout: &self.smaa_bind_group_layout,
@@ -123,7 +135,7 @@ impl ScenePostProcessResources {
         bind_group: &wgpu::BindGroup,
         output_view: &wgpu::TextureView,
         attachment_ops: RenderGraphAttachmentOps,
-        render_region: Option<ViewportRenderRegion>,
+        render_region: Option<(ViewportRenderRegion, TerminalRegionSpace)>,
     ) {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some(label),
@@ -138,8 +150,14 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if let Some(render_region) = render_region {
-            if !apply_render_region_to_pass(&mut pass, render_region) {
+        if let Some((render_region, region_space)) = render_region {
+            let region_applied = match region_space {
+                TerminalRegionSpace::Local => render_region.apply_local_to_render_pass(&mut pass),
+                TerminalRegionSpace::Physical => {
+                    apply_physical_render_region_to_pass(&mut pass, render_region)
+                }
+            };
+            if !region_applied {
                 return;
             }
         }
@@ -147,6 +165,12 @@ impl ScenePostProcessResources {
         pass.set_bind_group(0, bind_group, &[]);
         pass.draw(0..3, 0..1);
     }
+}
+
+#[derive(Clone, Copy)]
+enum TerminalRegionSpace {
+    Local,
+    Physical,
 }
 
 fn create_smaa_stage_texture(

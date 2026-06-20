@@ -8,7 +8,10 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
   - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
-  - zircon_runtime/src/plugin/export_build_plan/materialize.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/native.rs
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
@@ -171,6 +174,7 @@ The target export shape is:
 - Generated platform host files become thin ABI adapters.
 - Generated `main` scaffolds call one stable handwritten export entry, not direct runtime/plugin assembly internals.
 - Native plugin loading is isolated behind the app export bootstrap facade and does not appear as generated application behavior.
+- Export build-plan fatal diagnostics block mutating generated-file materialization before generated files or NativeDynamic packages are written; preview may still list planned generated paths because it is a no-write validation surface.
 
 ## Verification
 

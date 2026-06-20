@@ -13,7 +13,7 @@ pub(super) use execution_summary::DesktopExportExecutionState;
 pub(super) use execution_summary::{apply_summary_to_target, DesktopExportExecutionSummary};
 pub(super) use job_queue::{
     apply_job_snapshot_to_target, desktop_export_status_task_from_queue, DesktopExportCancellation,
-    DesktopExportJobQueue,
+    DesktopExportJobQueue, DesktopExportJobSnapshot,
 };
 pub(super) use profiles::{
     default_desktop_export_output_root, desktop_export_profile, desktop_export_profiles,

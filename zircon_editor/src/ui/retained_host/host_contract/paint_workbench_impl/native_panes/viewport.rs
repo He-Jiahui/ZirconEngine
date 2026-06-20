@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, HostViewportImageData, PaneData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_primitives::draw_rgba_image_clipped_with_resource_key;
 
-pub(super) fn draw_viewport_image(
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

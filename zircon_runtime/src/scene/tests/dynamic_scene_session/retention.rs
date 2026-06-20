@@ -1,6 +1,11 @@
-use crate::scene::{RuntimeSessionArchive, RuntimeSessionArchiveRetentionPolicy, World};
+use std::fs;
 
-use super::tagged_slot;
+use crate::scene::{
+    NodeKind, RuntimeSessionArchive, RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata,
+    RuntimeSessionSlotSelector, World,
+};
+
+use super::{tagged_slot, temporary_archive_leftovers, unique_temp_root};
 
 #[test]
 fn runtime_session_archive_prunes_only_matching_tag_bucket() {
@@ -92,4 +97,205 @@ fn runtime_session_archive_previews_global_retention_without_mutation() {
 
     assert_eq!(report, preview);
     assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["slot-new"]);
+}
+
+#[test]
+fn runtime_session_archive_preview_capture_retention_prunes_clone_without_mutating_archive() {
+    let empty = World::empty();
+    let mut captured_world = World::empty();
+    captured_world.spawn_node(NodeKind::Mesh);
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&empty, "autosave-old", "autosave", 50),
+        tagged_slot(&empty, "manual-new", "manual", 40),
+        tagged_slot(&empty, "manual-old", "manual", 10),
+    ])
+    .expect("archive should accept capture-retention preview slots");
+
+    let preview = archive
+        .preview_capture_world_slot_with_tag_retention(
+            " autosave ",
+            " autosave-new ",
+            &captured_world,
+            RuntimeSessionMetadata::default()
+                .with_tag(" autosave ")
+                .with_updated_at_unix_millis(1),
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+        )
+        .expect("capture-retention preview should prune cloned archive only");
+
+    assert_eq!(preview.capture.slot_id, "autosave-new");
+    assert_eq!(preview.capture.entity_count, 1);
+    assert_eq!(preview.prune.removed_slot_ids, vec!["autosave-old"]);
+    assert_eq!(
+        preview.manifest.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave-new", "manual-new", "manual-old"]
+    );
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave-old", "manual-new", "manual-old"]
+    );
+    assert!(!archive.contains_slot("autosave-new"));
+}
+
+#[test]
+fn runtime_session_archive_capture_retention_protects_captured_slot_before_pruning() {
+    let empty = World::empty();
+    let mut captured_world = World::empty();
+    captured_world.spawn_node(NodeKind::Camera);
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&empty, "slot-new", "manual", 50),
+        tagged_slot(&empty, "slot-old", "manual", 10),
+    ])
+    .expect("archive should accept capture-retention commit slots");
+
+    let report = archive
+        .capture_world_slot_with_retention(
+            " quicksave ",
+            &captured_world,
+            RuntimeSessionMetadata::default()
+                .with_tag(" quicksave ")
+                .with_updated_at_unix_millis(1),
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(0),
+        )
+        .expect("capture-retention commit should protect the captured slot");
+
+    assert_eq!(report.capture.slot_id, "quicksave");
+    assert_eq!(report.capture.entity_count, 1);
+    assert_eq!(report.prune.removed_slot_ids, vec!["slot-new", "slot-old"]);
+    assert_eq!(
+        report.manifest.slot_ids().collect::<Vec<_>>(),
+        vec!["quicksave"]
+    );
+    assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["quicksave"]);
+    assert_eq!(
+        archive
+            .slot("quicksave")
+            .expect("captured slot should survive retention")
+            .metadata
+            .tags,
+        vec!["quicksave"]
+    );
+}
+
+#[test]
+fn runtime_session_archive_selected_retention_protects_latest_tagged_slot() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "autosave-new", "autosave", 60),
+        tagged_slot(&source, "manual-new", "manual", 40),
+        tagged_slot(&source, "manual-old", "manual", 10),
+    ])
+    .expect("archive should accept selected-retention slots");
+
+    let preview = archive
+        .preview_prune_slots_with_selected_protection(
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+            RuntimeSessionSlotSelector::latest_updated_with_tag(" manual "),
+        )
+        .expect("selected retention preview should protect latest tagged slot");
+
+    assert_eq!(preview.removed_slot_ids, vec!["autosave-new", "manual-old"]);
+    assert_eq!(preview.retained_slot_ids, vec!["manual-new"]);
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave-new", "manual-new", "manual-old"]
+    );
+
+    let report = archive
+        .prune_slots_with_selected_protection(
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+            RuntimeSessionSlotSelector::latest_updated_with_tag(" manual "),
+        )
+        .expect("selected retention commit should protect latest tagged slot");
+
+    assert_eq!(report, preview);
+    assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["manual-new"]);
+}
+
+#[test]
+fn runtime_session_archive_tag_selected_retention_ignores_protection_outside_bucket() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "autosave-new", "autosave", 50),
+        tagged_slot(&source, "autosave-old", "autosave", 10),
+        tagged_slot(&source, "manual-protected", "manual", 1),
+    ])
+    .expect("archive should accept tag selected-retention slots");
+
+    let preview = archive
+        .preview_prune_slots_with_tag_and_selected_protection(
+            " autosave ",
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+            RuntimeSessionSlotSelector::slot_id(" manual-protected "),
+        )
+        .expect("tag selected retention preview should ignore protection outside bucket");
+
+    assert_eq!(preview.removed_slot_ids, vec!["autosave-old"]);
+    assert_eq!(
+        preview.retained_slot_ids,
+        vec!["autosave-new", "manual-protected"]
+    );
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave-new", "autosave-old", "manual-protected"]
+    );
+
+    let report = archive
+        .prune_slots_with_tag_and_selected_protection(
+            " autosave ",
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+            RuntimeSessionSlotSelector::slot_id(" manual-protected "),
+        )
+        .expect("tag selected retention commit should preserve tag scope");
+
+    assert_eq!(report, preview);
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["autosave-new", "manual-protected"]
+    );
+}
+
+#[test]
+fn runtime_session_archive_path_selected_retention_preview_does_not_write_archive() {
+    let source = World::empty();
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "autosave-new", "autosave", 60),
+        tagged_slot(&source, "manual-new", "manual", 40),
+        tagged_slot(&source, "manual-old", "manual", 10),
+    ])
+    .expect("archive should accept path selected-retention slots");
+    let root = unique_temp_root("runtime_session_path_selected_retention_preview");
+    let path = root.join("sessions").join("archive.zrsession.json");
+    archive
+        .save_to_path_atomically(&path)
+        .expect("archive should save before path selected retention preview");
+    let original_payload =
+        fs::read_to_string(&path).expect("archive payload should be readable before preview");
+
+    let preview = RuntimeSessionArchive::preview_prune_slots_with_selected_protection_from_path(
+        &path,
+        RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
+        RuntimeSessionSlotSelector::oldest_updated_with_tag(" manual "),
+    )
+    .expect("selected retention should preview directly from archive path");
+
+    assert_eq!(preview.removed_slot_ids, vec!["autosave-new", "manual-new"]);
+    assert_eq!(preview.retained_slot_ids, vec!["manual-old"]);
+    assert_eq!(
+        fs::read_to_string(&path).expect("archive payload should remain readable after preview"),
+        original_payload
+    );
+    assert_eq!(
+        RuntimeSessionArchive::load_from_path(&path)
+            .expect("previewed archive should reload without mutation")
+            .slot_ids()
+            .collect::<Vec<_>>(),
+        vec!["autosave-new", "manual-new", "manual-old"]
+    );
+    assert!(
+        temporary_archive_leftovers(path.parent().expect("session path should have parent"))
+            .is_empty()
+    );
+
+    let _ = fs::remove_dir_all(root);
 }

@@ -11,7 +11,7 @@ use super::{
     VIEWPORT_PANEL,
 };
 
-pub(super) fn draw_root_skeleton(
+pub(in crate::ui::retained_host::host_contract) fn draw_root_skeleton(
     frame: &mut HostRgbaFrame,
     root: &RootFrames,
     presentation: &HostWindowPresentationData,

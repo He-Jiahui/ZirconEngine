@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::render::RenderQueueValue;
 use crate::core::resource::AssetReference;
 
 use super::{
@@ -51,6 +52,8 @@ pub struct StandardMaterialDescriptor {
     pub receive_shadows: bool,
     #[serde(default)]
     pub render_queue: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub render_queue_value: Option<RenderQueueValue>,
     #[serde(default)]
     pub material_queue: i32,
     #[serde(default)]
@@ -58,6 +61,14 @@ pub struct StandardMaterialDescriptor {
     #[serde(default)]
     pub taa_reactive_mask_strength: f32,
     pub fallback_policy: RenderMaterialFallbackPolicy,
+}
+
+impl StandardMaterialDescriptor {
+    pub fn resolved_render_queue_value(&self) -> RenderQueueValue {
+        self.render_queue_value.unwrap_or_else(|| {
+            RenderQueueValue::from_authored_queue(&self.alpha_mode, self.render_queue)
+        })
+    }
 }
 
 fn default_cast_shadows() -> bool {

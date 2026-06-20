@@ -8,5 +8,5 @@ pub use resolution_report::{UiResolvedResourceDependency, UiResourceResolutionRe
 pub use resolve::{validate_resource_dependency_files, UiResourcePathResolver};
 pub use resolver::{
     UiResolvedUiResource, UiResourceResolveDiagnostic, UiResourceResolveDiagnosticCode,
-    UiResourceResolver, UiResourceResolverCacheInvalidationReport,
+    UiResourceResolver, UiResourceResolverCacheInvalidationReport, UiResourceResolverSchemeMap,
 };

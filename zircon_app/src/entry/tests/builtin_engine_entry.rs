@@ -2,13 +2,13 @@ use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode, EntryRunner,
 };
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
+use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowResolution};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginAvailabilityCategory,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport, RuntimeProfileId,
 };
-use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
 

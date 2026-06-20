@@ -118,6 +118,65 @@ fn host_request_batch_encodes_gamepad_rumble_requests() {
 }
 
 #[test]
+fn host_request_batch_encodes_cursor_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
+                CursorHostRequest::set_visible(false),
+            )),
+            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
+                CursorHostRequest::set_grab_mode(CursorGrabMode::Locked),
+            )),
+            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
+                CursorHostRequest::set_hit_test(false),
+            )),
+            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
+                CursorHostRequest::set_position(320.0, 180.0),
+            )),
+        ],
+    );
+
+    let output = encode_host_request_batch(&batch).unwrap();
+    let batch = host_request_batch_from_output(output);
+
+    assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(batch.requests.len(), 4);
+    assert!(matches!(
+        batch.requests[0],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetVisible,
+            value: false,
+            ..
+        })
+    ));
+    assert!(matches!(
+        batch.requests[1],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetGrabMode,
+            grab_mode: Some(ZrRuntimeCursorGrabModeV1::Locked),
+            ..
+        })
+    ));
+    assert!(matches!(
+        batch.requests[2],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetHitTest,
+            value: false,
+            ..
+        })
+    ));
+    assert!(matches!(
+        batch.requests[3],
+        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
+            kind: ZrRuntimeCursorHostRequestKindV1::SetPosition,
+            position: Some(position),
+            ..
+        }) if position.x == 320.0 && position.y == 180.0
+    ));
+}
+
+#[test]
 fn host_request_free_rejects_wrong_owner_token() {
     let mut bytes = vec![1_u8, 2, 3];
     let buffer = ZrOwnedByteBuffer {

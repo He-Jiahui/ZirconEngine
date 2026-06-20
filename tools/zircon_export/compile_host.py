@@ -11,7 +11,34 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .command_plan import command_option_value_diagnostic, command_with_option
+from .export_template import is_safe_relative_path, normalize_relative_path
 from .path_resolve import resolve_stage_optional_path
+from .pipeline_report_schema_primitives import (
+    validate_object_array_schema_diagnostics,
+    validate_string_array_schema_diagnostics,
+)
+from .pipeline_report_schema_table import string_array_no_blank_entries_schema_diagnostics
+from .pipeline_report_validate_compile_host_linkage_schema import (
+    validate_linked_runtime_crate_schema_diagnostics,
+)
+from .pipeline_report_validate_compile_host_schema import (
+    command_alias_value_match_diagnostics,
+    command_features_match_diagnostics,
+    command_forbidden_flag_diagnostics,
+    command_flag_diagnostics,
+    command_option_path_value_match_diagnostics,
+    command_option_value_match_diagnostics,
+    compile_host_command_forbidden_package_diagnostics,
+    compile_host_command_forbidden_profile_diagnostics,
+    compile_host_command_forbidden_target_diagnostics,
+    compile_host_command_forbidden_target_triple_diagnostics,
+    compile_host_command_forbidden_wrapper_policy_diagnostics,
+    compile_host_release_flag_schema_diagnostics,
+    compile_host_target_selector_schema_diagnostics,
+)
+from .pipeline_report_validate_identifier_schema import (
+    validate_project_plugin_package_id_array_schema_diagnostics,
+)
 from .report_io import write_report_targets
 from .stage_handoff import (
     export_strategies_from_validate_report,
@@ -22,6 +49,30 @@ from .stage_handoff import (
 from .subprocess_output import split_subprocess_output
 
 REPORT_FILE_NAME = "report.json"
+COMPILE_HOST_REQUIRED_EVIDENCE_FIELDS = (
+    "app_features",
+    "expected_runtime_plugins",
+    "linked_runtime_crates",
+    "manifest_path",
+    "package",
+    "runtime_features",
+    "target_dir",
+)
+COMPILE_HOST_STRING_EVIDENCE_FIELDS = (
+    "binary",
+    "cargo_profile",
+    "manifest_path",
+    "package",
+    "target_dir",
+)
+COMPILE_HOST_PATH_EVIDENCE_FIELDS = (
+    "manifest_path",
+    "target_dir",
+)
+COMPILE_HOST_STRING_ARRAY_EVIDENCE_FIELDS = (
+    "app_features",
+    "runtime_features",
+)
 
 
 def run_compile_host(args: argparse.Namespace) -> int:
@@ -226,6 +277,44 @@ def load_compile_host_plan(
     if not isinstance(cargo_profile, str) or not cargo_profile.strip():
         diagnostics.append("CompileHost plan cargo_profile must be a non-empty string")
         return None
+    string_evidence_diagnostics = compile_host_plan_string_evidence_diagnostics(
+        compile_plan
+    )
+    if string_evidence_diagnostics:
+        diagnostics.extend(string_evidence_diagnostics)
+        return None
+    target_selector_diagnostics = compile_host_target_selector_schema_diagnostics(
+        compile_plan,
+        package_label="CompileHost plan package",
+        binary_label="CompileHost plan binary",
+    )
+    if target_selector_diagnostics:
+        diagnostics.extend(target_selector_diagnostics)
+        return None
+    if cargo_profile not in {"debug", "release"}:
+        diagnostics.append("CompileHost plan cargo_profile must be debug or release")
+        return None
+    release = compile_plan.get("release")
+    if not isinstance(release, bool):
+        diagnostics.append("CompileHost plan release must be a boolean")
+        return None
+    if release != (cargo_profile == "release"):
+        diagnostics.append("CompileHost plan release must match cargo_profile")
+        return None
+    missing_fields = [
+        field for field in COMPILE_HOST_REQUIRED_EVIDENCE_FIELDS if field not in compile_plan
+    ]
+    if missing_fields:
+        diagnostics.extend(
+            f"CompileHost plan {field} is required" for field in missing_fields
+        )
+        return None
+    array_evidence_diagnostics = compile_host_plan_array_evidence_diagnostics(
+        compile_plan
+    )
+    if array_evidence_diagnostics:
+        diagnostics.extend(array_evidence_diagnostics)
+        return None
     command = compile_plan.get("command")
     if (
         not isinstance(command, list)
@@ -233,6 +322,9 @@ def load_compile_host_plan(
         or any(not isinstance(value, str) or not value.strip() for value in command)
     ):
         diagnostics.append("CompileHost plan command must be a non-empty string array")
+        return None
+    if len(command) < 2 or command[0] != "cargo" or command[1] != "build":
+        diagnostics.append("CompileHost plan command must run cargo build")
         return None
     target_dir_diagnostic = command_option_value_diagnostic(
         command,
@@ -242,7 +334,201 @@ def load_compile_host_plan(
     if target_dir_diagnostic:
         diagnostics.append(target_dir_diagnostic)
         return None
+    command_semantic_diagnostics = compile_host_plan_command_semantic_diagnostics(
+        compile_plan
+    )
+    if command_semantic_diagnostics:
+        diagnostics.extend(command_semantic_diagnostics)
+        return None
     return compile_plan
+
+
+def compile_host_plan_string_evidence_diagnostics(
+    compile_plan: dict[str, Any],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in COMPILE_HOST_STRING_EVIDENCE_FIELDS:
+        if field not in compile_plan:
+            continue
+        value = compile_plan.get(field)
+        if not isinstance(value, str):
+            diagnostics.append(f"CompileHost plan {field} must be a string")
+            continue
+        if not value.strip() or value != value.strip():
+            diagnostics.append(
+                f"CompileHost plan {field} must be a non-empty trimmed string"
+            )
+            continue
+        if (
+            field in COMPILE_HOST_PATH_EVIDENCE_FIELDS
+            and value.strip()
+            and value == value.strip()
+            and not is_safe_relative_path(normalize_relative_path(value))
+        ):
+            diagnostics.append(
+                f"CompileHost plan {field} must be a safe relative path"
+            )
+    return diagnostics
+
+
+def compile_host_plan_array_evidence_diagnostics(
+    compile_plan: dict[str, Any],
+) -> list[str]:
+    diagnostics: list[str] = []
+    for field in COMPILE_HOST_STRING_ARRAY_EVIDENCE_FIELDS:
+        value = compile_plan.get(field)
+        label = f"CompileHost plan {field}"
+        string_array_diagnostics = validate_string_array_schema_diagnostics(
+            label,
+            value,
+        )
+        if string_array_diagnostics:
+            diagnostics.extend(string_array_diagnostics)
+            continue
+        diagnostics.extend(
+            string_array_no_blank_entries_schema_diagnostics(
+                label,
+                value,
+            )
+        )
+
+    diagnostics.extend(
+        validate_project_plugin_package_id_array_schema_diagnostics(
+            "CompileHost plan expected_runtime_plugins",
+            compile_plan.get("expected_runtime_plugins"),
+        )
+    )
+
+    linked_runtime_crates = compile_plan.get("linked_runtime_crates")
+    linked_crate_label = "CompileHost plan linked_runtime_crates"
+    linked_crate_shape_diagnostics = validate_object_array_schema_diagnostics(
+        linked_crate_label,
+        linked_runtime_crates,
+    )
+    diagnostics.extend(linked_crate_shape_diagnostics)
+    if not linked_crate_shape_diagnostics and isinstance(linked_runtime_crates, list):
+        diagnostics.extend(
+            validate_linked_runtime_crate_schema_diagnostics(
+                linked_runtime_crates,
+                label=linked_crate_label,
+            )
+        )
+    return diagnostics
+
+
+def compile_host_plan_command_semantic_diagnostics(
+    compile_plan: dict[str, Any],
+) -> list[str]:
+    command = compile_plan.get("command")
+    if (
+        not isinstance(command, list)
+        or any(not isinstance(entry, str) for entry in command)
+    ):
+        return []
+
+    label = "CompileHost plan"
+    command_label = f"{label} command"
+    diagnostics: list[str] = []
+    diagnostics.extend(
+        command_flag_diagnostics(
+            command,
+            "--no-default-features",
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        command_forbidden_flag_diagnostics(
+            command,
+            "--all-features",
+            label=command_label,
+            reason=(
+                "because CompileHost plan app_features owns feature selection"
+            ),
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_target_diagnostics(
+            command,
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_target_triple_diagnostics(
+            command,
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_package_diagnostics(
+            command,
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_profile_diagnostics(
+            command,
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_wrapper_policy_diagnostics(
+            command,
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        command_alias_value_match_diagnostics(
+            command,
+            ("-p", "--package"),
+            compile_plan.get("package"),
+            f"{label} package",
+            label=command_label,
+            option_label="-p/--package",
+        )
+    )
+    diagnostics.extend(
+        command_option_value_match_diagnostics(
+            command,
+            "--bin",
+            compile_plan.get("binary"),
+            f"{label} binary",
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        command_features_match_diagnostics(
+            command,
+            compile_plan.get("app_features"),
+            f"{label} app_features",
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        command_option_path_value_match_diagnostics(
+            command,
+            "--target-dir",
+            compile_plan.get("target_dir"),
+            f"{label} target_dir",
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        command_option_path_value_match_diagnostics(
+            command,
+            "--manifest-path",
+            compile_plan.get("manifest_path"),
+            f"{label} manifest_path",
+            label=command_label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_release_flag_schema_diagnostics(
+            command,
+            compile_plan,
+            label=command_label,
+        )
+    )
+    return diagnostics
 
 
 def validate_report_requires_compile_host_strategy(report: dict[str, Any]) -> bool:

@@ -43,8 +43,8 @@ def _native_dynamic_stage_operation_audit(**overrides: object) -> dict[str, obje
                         "exit_code": 0,
                         "stdout": "",
                         "stderr": "",
-                        "before_sha256": "before-hash",
-                        "after_sha256": "after-hash",
+                        "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
                     }
                 ],
             }
@@ -411,7 +411,7 @@ class PipelineReportStageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            compile_host = root / "compile" / "zircon_runtime.exe"
+            compile_host = out / "compile" / "zircon_runtime.exe"
             manual_host = root / "manual" / "zircon_runtime.exe"
             platform_host = out / "bundle" / "windows-release" / "zircon_runtime.exe"
             pack = root / "pack-output" / "assets.zrpack"

@@ -14,7 +14,7 @@ use super::tab_drag_damage::tab_drag_release_damage_frame;
 use super::template_hover_damage::template_hover_damage;
 use crate::ui::retained_host::host_contract::surface_hit_test::TemplateNodePointerHit;
 
-pub(super) fn pointer_move_redraw(
+pub(in crate::ui::retained_host::host_contract) fn pointer_move_redraw(
     pointer: &PanePointerRoute,
     before: &HostPaneInteractionStateData,
     after: &HostPaneInteractionStateData,
@@ -70,7 +70,7 @@ pub(super) fn pointer_move_redraw(
     NativePointerDispatchResult::region(pointer.frame.clone())
 }
 
-pub(super) fn workbench_template_node_move_redraw(
+pub(in crate::ui::retained_host::host_contract) fn workbench_template_node_move_redraw(
     hit: &TemplateNodePointerHit,
     before: &HostPaneInteractionStateData,
     after: &HostPaneInteractionStateData,
@@ -84,7 +84,7 @@ pub(super) fn workbench_template_node_move_redraw(
         .unwrap_or_else(|| NativePointerDispatchResult::region(hit.frame.clone()))
 }
 
-pub(super) fn resize_pointer_redraw(
+pub(in crate::ui::retained_host::host_contract) fn resize_pointer_redraw(
     presentation: &HostWindowPresentationData,
     extra_damage: Option<FrameRect>,
 ) -> NativePointerDispatchResult {
@@ -94,7 +94,7 @@ pub(super) fn resize_pointer_redraw(
     }
 }
 
-pub(super) fn chrome_press_redraw(
+pub(in crate::ui::retained_host::host_contract) fn chrome_press_redraw(
     presentation: &HostWindowPresentationData,
     route: &ChromePointerRoute,
     extra_damage: Option<FrameRect>,
@@ -109,7 +109,7 @@ pub(super) fn chrome_press_redraw(
     NativePointerDispatchResult::region_with_frame_update(damage)
 }
 
-pub(super) fn tab_drag_release_redraw(
+pub(in crate::ui::retained_host::host_contract) fn tab_drag_release_redraw(
     presentation: &HostWindowPresentationData,
     drag_state: &HostDragStateData,
 ) -> NativePointerDispatchResult {

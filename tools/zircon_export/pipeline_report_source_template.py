@@ -82,7 +82,7 @@ def source_template_project_path(
     expected_project_dir: Path | None,
 ) -> Path | None:
     project = report.get("project")
-    if not isinstance(project, str) or not project:
+    if not isinstance(project, str) or not project.strip():
         diagnostics.append("SourceTemplate report project must be a non-empty string")
         return None
     project_dir = resolve_source_template_path_or_diagnostic(
@@ -139,7 +139,7 @@ def source_template_validate_report_path_diagnostics(
 ) -> list[str]:
     diagnostics: list[str] = []
     validate_report = report.get("validate_report")
-    if not isinstance(validate_report, str) or not validate_report:
+    if not isinstance(validate_report, str) or not validate_report.strip():
         return ["SourceTemplate report validate_report must be a non-empty string"]
     if expected_path is None:
         return []
@@ -197,7 +197,7 @@ def source_template_validate_build_plan_diagnostics(
             if option_diagnostic:
                 diagnostics.append(option_diagnostic)
     manifest_path = source_template_build.get("manifest_path")
-    if not isinstance(manifest_path, str) or not manifest_path:
+    if not isinstance(manifest_path, str) or not manifest_path.strip():
         diagnostics.append(
             "SourceTemplate Validate source_template_build manifest_path must be a non-empty string"
         )
@@ -209,7 +209,7 @@ def source_template_validate_build_plan_diagnostics(
             kind="SourceTemplate Validate source_template_build manifest_path",
         )
     target_dir = source_template_build.get("target_dir")
-    if not isinstance(target_dir, str) or not target_dir:
+    if not isinstance(target_dir, str) or not target_dir.strip():
         diagnostics.append(
             "SourceTemplate Validate source_template_build target_dir must be a non-empty string"
         )
@@ -275,7 +275,7 @@ def source_template_generated_file_diagnostics(
             continue
         diagnostics.extend(source_template_generated_file_schema_diagnostics(file, index))
         path = file.get("path")
-        if not isinstance(path, str) or not path:
+        if not isinstance(path, str) or not path.strip():
             diagnostics.append("SourceTemplate generated file path must be a non-empty string")
             continue
         if path in report_paths:
@@ -379,7 +379,7 @@ def source_template_validate_generated_file_paths(
             source_template_validate_generated_file_schema_diagnostics(file, index)
         )
         path = file.get("path")
-        if not isinstance(path, str) or not path:
+        if not isinstance(path, str) or not path.strip():
             diagnostics.append(
                 "SourceTemplate Validate generated file path must be a non-empty string"
             )
@@ -433,15 +433,14 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
             "SourceTemplate build_validation command must be a non-empty string array"
         )
     else:
-        for option in ("--manifest-path", "--target-dir"):
-            option_diagnostic = command_option_value_diagnostic(
+        diagnostics.extend(
+            source_template_command_manifest_path_diagnostics(
+                report,
                 command,
-                option,
-                "SourceTemplate build_validation command",
+                label="SourceTemplate build_validation command",
             )
-            if option_diagnostic:
-                diagnostics.append(option_diagnostic)
-    if not isinstance(working_dir, str) or not working_dir:
+        )
+    if not isinstance(working_dir, str) or not working_dir.strip():
         diagnostics.append("SourceTemplate build_validation working_dir must be a non-empty string")
     else:
         working_path = resolve_source_template_path_or_diagnostic(
@@ -463,8 +462,20 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
                 "SourceTemplate build_validation working_dir must match "
                 "SourceTemplate report project"
             )
-    if exit_code is not None and not isinstance(exit_code, int):
+    if "exit_code" not in validation:
+        diagnostics.append(
+            "SourceTemplate build_validation exit_code must be an integer or null"
+        )
+    elif exit_code is not None and not isinstance(exit_code, int):
         diagnostics.append("SourceTemplate build_validation exit_code must be an integer or null")
+    for field, value in (
+        ("stdout_lines", stdout_lines),
+        ("stderr_lines", stderr_lines),
+    ):
+        if field not in validation:
+            diagnostics.append(
+                f"SourceTemplate build_validation {field} must be a string array"
+            )
     if executed is True:
         for field, value in (
             ("stdout_lines", stdout_lines),
@@ -526,22 +537,35 @@ def source_template_build_validation_diagnostics(report: dict[str, Any]) -> list
 def source_template_command_manifest_path_diagnostics(
     report: dict[str, Any],
     command: list[str],
+    *,
+    label: str = "SourceTemplate report command",
 ) -> list[str]:
     diagnostics: list[str] = []
     project = report.get("project")
     if not isinstance(project, str) or not project:
         return []
+    option_diagnostics: dict[str, str] = {}
     for option in ("--manifest-path", "--target-dir"):
         option_diagnostic = command_option_value_diagnostic(
             command,
             option,
-            "SourceTemplate report command",
+            label,
         )
         if option_diagnostic:
-            return [option_diagnostic]
+            option_diagnostics[option] = option_diagnostic
+            diagnostics.append(option_diagnostic)
     manifest_path = source_template_command_option_value(command, "--manifest-path")
-    if not isinstance(manifest_path, str) or not manifest_path:
-        return ["SourceTemplate report command must include --manifest-path"]
+    if (
+        "--manifest-path" not in option_diagnostics
+        and (not isinstance(manifest_path, str) or not manifest_path)
+    ):
+        diagnostics.append(f"{label} must include --manifest-path")
+    target_dir = source_template_command_option_value(command, "--target-dir")
+    if (
+        "--target-dir" not in option_diagnostics
+        and (not isinstance(target_dir, str) or not target_dir)
+    ):
+        diagnostics.append(f"{label} must include --target-dir")
     expected_project = resolve_source_template_path_or_diagnostic(
         project,
         diagnostics,
@@ -549,24 +573,34 @@ def source_template_command_manifest_path_diagnostics(
     )
     if expected_project is None:
         return diagnostics
-    actual = resolve_source_template_path_or_diagnostic(
-        manifest_path,
-        diagnostics,
-        "SourceTemplate report command manifest-path",
-    )
-    if actual is None:
-        return diagnostics
-    expected = expected_project / "Cargo.toml"
-    if actual != expected:
-        return [
-            "SourceTemplate report command manifest-path must target current project Cargo.toml"
-        ]
-    diagnostics.extend(
-        source_template_command_target_dir_diagnostics(
-            command,
-            expected_project,
+    if (
+        "--manifest-path" not in option_diagnostics
+        and isinstance(manifest_path, str)
+        and manifest_path
+    ):
+        actual = resolve_source_template_path_or_diagnostic(
+            manifest_path,
+            diagnostics,
+            "SourceTemplate report command manifest-path",
         )
-    )
+        if actual is not None:
+            expected = expected_project / "Cargo.toml"
+            if actual != expected:
+                diagnostics.append(
+                    f"{label} manifest-path must target current project Cargo.toml"
+                )
+    if (
+        "--target-dir" not in option_diagnostics
+        and isinstance(target_dir, str)
+        and target_dir
+    ):
+        diagnostics.extend(
+            source_template_report_target_dir_diagnostics(
+                target_dir,
+                expected_project,
+                label=label,
+            )
+        )
     return diagnostics
 
 
@@ -583,25 +617,27 @@ def source_template_command_target_dir_diagnostics(
 def source_template_report_target_dir_diagnostics(
     target_dir: str,
     project_dir: Path,
+    *,
+    label: str = "SourceTemplate report command",
 ) -> list[str]:
     diagnostics: list[str] = []
     expected = resolve_source_template_path_or_diagnostic(
         project_dir.parent / "target",
         diagnostics,
-        "SourceTemplate report command expected target-dir",
+        f"{label} expected target-dir",
     )
     if expected is None:
         return diagnostics
     actual = resolve_source_template_path_or_diagnostic(
         target_dir,
         diagnostics,
-        "SourceTemplate report command target-dir",
+        f"{label} target-dir",
     )
     if actual is None:
         return diagnostics
     if actual != expected:
         diagnostics.append(
-            "SourceTemplate report command target-dir must match current SourceTemplate stage target"
+            f"{label} target-dir must match current SourceTemplate stage target"
         )
     return diagnostics
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -12,16 +11,15 @@ from .native_dynamic_payload import (
     native_dynamic_content_hash,
     native_dynamic_package_payload_file_manifest,
     native_dynamic_plugins_bundle_file_manifest,
-    native_dynamic_operation_audit_is_consistent,
     normalized_file_manifest,
     normalized_materialized_packages,
-    normalized_native_dynamic_operation_audit,
 )
 from .native_dynamic_contract import (
     NATIVE_DYNAMIC_ABI_STRING_FIELDS,
     NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
     NATIVE_DYNAMIC_LOADER_MANIFEST,
 )
+from .export_template import is_safe_relative_path, normalize_relative_path
 from .pipeline_report_native_dynamic_package_report_schema import (
     platform_bundle_native_plugins_package_report_abi_schema_diagnostics,
     platform_bundle_native_plugins_package_report_payload_files_schema_diagnostics,
@@ -33,14 +31,15 @@ from .pipeline_report_native_dynamic_loader_manifest import (
     native_dynamic_loader_manifest_row_field_diagnostics,
 )
 from .pipeline_report_native_dynamic_payload_schema import (
-    NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
-    native_dynamic_operation_audit_stage_schema_diagnostics,
-    platform_bundle_native_plugins_operation_audit_schema_diagnostics,
     platform_bundle_native_plugins_payload_file_manifest_schema_diagnostics,
     platform_bundle_native_plugins_payload_materialized_packages_schema_diagnostics,
     platform_bundle_native_plugins_payload_schema_diagnostics,
 )
-from .stage_handoff import stage_report_metadata_diagnostic
+from .pipeline_report_native_dynamic_payload_stage_report import (
+    platform_bundle_native_plugins_operation_audit_diagnostics,
+    platform_bundle_native_plugins_stage_package_diagnostics,
+    platform_bundle_native_plugins_stage_payload_diagnostics,
+)
 
 
 def resolve_user_path(path: str | Path) -> Path:
@@ -59,6 +58,10 @@ def resolve_user_path_or_diagnostic(
         return None
 
 
+def is_non_empty_safe_relative_path(value: str) -> bool:
+    return bool(value.strip()) and is_safe_relative_path(normalize_relative_path(value))
+
+
 def platform_bundle_native_plugins_payload_diagnostics(
     report: dict[str, Any],
     native_dynamic_report_path: Path | None,
@@ -72,7 +75,7 @@ def platform_bundle_native_plugins_payload_diagnostics(
             "PlatformBundle report native_plugins_payload is present but native_plugins is missing"
         ]
     diagnostics: list[str] = []
-    if not isinstance(native_plugins, str) or not native_plugins:
+    if not isinstance(native_plugins, str) or not native_plugins.strip():
         return ["PlatformBundle report native_plugins must be a non-empty string"]
     if not isinstance(payload, dict):
         return [
@@ -89,7 +92,10 @@ def platform_bundle_native_plugins_payload_diagnostics(
         return [f"PlatformBundle report native_plugins {plugins_dir} does not exist"]
     if not plugins_dir.is_dir():
         return [f"PlatformBundle report native_plugins {plugins_dir} is not a directory"]
-    diagnostics.extend(platform_bundle_native_plugins_payload_schema_diagnostics(payload))
+    payload_schema_diagnostics = platform_bundle_native_plugins_payload_schema_diagnostics(payload)
+    diagnostics.extend(payload_schema_diagnostics)
+    if payload_schema_diagnostics:
+        return diagnostics
 
     payload_stage_report_matches = False
     effective_native_dynamic_report_path = native_dynamic_report_path
@@ -279,9 +285,18 @@ def platform_bundle_native_plugins_payload_diagnostics(
         )
     if payload_packages is not None:
         diagnostics.extend(
+            platform_bundle_native_plugins_stage_package_diagnostics(
+                payload_packages,
+                effective_native_dynamic_report_path,
+                profile=report.get("profile"),
+                stage_backed_payload=payload_stage_report_matches,
+            )
+        )
+        diagnostics.extend(
             platform_bundle_native_plugins_loader_manifest_package_diagnostics(
                 payload,
                 payload_packages,
+                stage_backed_payload=payload_stage_report_matches,
             )
         )
     diagnostics.extend(
@@ -330,6 +345,15 @@ def platform_bundle_native_plugins_payload_diagnostics(
         platform_bundle_native_plugins_package_path_diagnostics(
             payload_packages,
             plugins_dir,
+            stage_backed_payload=payload_stage_report_matches,
+        )
+    )
+    diagnostics.extend(
+        platform_bundle_native_plugins_stage_payload_diagnostics(
+            payload,
+            effective_native_dynamic_report_path,
+            profile=report.get("profile"),
+            stage_backed_payload=payload_stage_report_matches,
         )
     )
     if not materialized_package_loadable_artifacts_match_manifest(
@@ -352,7 +376,7 @@ def platform_bundle_native_plugins_loader_manifest_diagnostics(
     if not isinstance(loader_manifest, str):
         return []
     diagnostics: list[str] = []
-    if not loader_manifest:
+    if not loader_manifest.strip():
         return [
             "PlatformBundle report native_plugins_payload loader_manifest "
             "must be a non-empty string"
@@ -392,10 +416,17 @@ def platform_bundle_native_plugins_loader_manifest_diagnostics(
 def platform_bundle_native_plugins_loader_manifest_package_diagnostics(
     payload: dict[str, Any],
     packages: list[dict[str, object]],
+    *,
+    stage_backed_payload: bool = False,
 ) -> list[str]:
     loader_manifest = payload.get("loader_manifest")
-    if not isinstance(loader_manifest, str) or not loader_manifest:
+    if not isinstance(loader_manifest, str):
         return []
+    if not loader_manifest.strip():
+        return [
+            "PlatformBundle report native_plugins_payload loader_manifest "
+            "must be a non-empty string"
+        ]
     diagnostics: list[str] = []
     loader_manifest_path = resolve_user_path_or_diagnostic(
         loader_manifest,
@@ -427,6 +458,7 @@ def platform_bundle_native_plugins_loader_manifest_package_diagnostics(
         ),
         label="PlatformBundle report native_plugins_payload loader_manifest",
         expected_label="materialized package",
+        require_fields=stage_backed_payload,
     )
 
 
@@ -489,159 +521,6 @@ def current_output_native_dynamic_report_path(
             )
         return None
 
-
-def platform_bundle_native_plugins_operation_audit_diagnostics(
-    payload: dict[str, Any],
-    native_dynamic_report_path: Path | None,
-    *,
-    profile: object,
-    payload_packages: list[dict[str, object]] | None,
-    stage_backed_payload: bool,
-) -> list[str]:
-    diagnostics: list[str] = []
-    payload_audits = {
-        field: normalized_native_dynamic_operation_audit(payload.get(field))
-        for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS
-        if payload.get(field) is not None
-    }
-    for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS:
-        value = payload.get(field)
-        if value is None or not isinstance(value, dict):
-            continue
-        audit_schema_diagnostics = (
-            platform_bundle_native_plugins_operation_audit_schema_diagnostics(
-                f"PlatformBundle report native_plugins_payload {field}",
-                value,
-            )
-        )
-        if audit_schema_diagnostics:
-            continue
-        if payload_audits.get(field) is None:
-            diagnostics.append(
-                f"PlatformBundle report native_plugins_payload {field} is malformed"
-            )
-    if not stage_backed_payload and not payload_audits and all(
-        payload.get(field) is None for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS
-    ):
-        return diagnostics
-    if diagnostics:
-        return diagnostics
-    if not stage_backed_payload:
-        for field in sorted(payload_audits):
-            diagnostics.append(
-                "PlatformBundle report native_plugins_payload "
-                f"{field} is present but payload is not backed by the current "
-                "NativeDynamic report"
-            )
-        return diagnostics
-    if native_dynamic_report_path is None:
-        for field in sorted(payload_audits):
-            diagnostics.append(
-                "PlatformBundle report native_plugins_payload "
-                f"{field} is present but NativeDynamic report is missing"
-            )
-        return diagnostics
-    native_dynamic_report = load_native_dynamic_report(
-        native_dynamic_report_path,
-        diagnostics,
-        profile=profile,
-    )
-    if native_dynamic_report is None:
-        return diagnostics
-    for field in NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS:
-        payload_audit = (
-            payload_audits.get(field)
-            if payload.get(field) is not None
-            else None
-        )
-        report_audit_value = native_dynamic_report.get(field)
-        if report_audit_value is not None:
-            if not isinstance(report_audit_value, dict):
-                continue
-            report_audit_schema_diagnostics = (
-                native_dynamic_operation_audit_stage_schema_diagnostics(
-                    f"NativeDynamic report {field}",
-                    report_audit_value,
-                )
-            )
-            if report_audit_schema_diagnostics:
-                continue
-        report_audit = normalized_native_dynamic_operation_audit(
-            report_audit_value
-        )
-        if report_audit_value is not None and report_audit is None:
-            diagnostics.append(f"NativeDynamic report {field} is malformed")
-            continue
-        if report_audit is not None:
-            if not native_dynamic_operation_audit_is_consistent(
-                report_audit,
-                report_is_fatal=bool(native_dynamic_report.get("fatal")),
-                field=field,
-                diagnostics=diagnostics,
-            ):
-                continue
-            report_package_count = report_audit["package_count"]
-            if (
-                report_audit["enabled"] is True
-                and payload_packages is not None
-                and report_package_count != len(payload_packages)
-            ):
-                diagnostics.append(
-                    f"NativeDynamic report {field} package_count "
-                    f"{report_package_count} does not match "
-                    "native_plugins_payload materialized_packages "
-                    f"{len(payload_packages)}"
-                )
-                continue
-        if payload_audit is None and report_audit is None:
-            continue
-        if payload_audit != report_audit:
-            diagnostics.append(
-                "PlatformBundle report native_plugins_payload "
-                f"{field} does not match NativeDynamic report"
-            )
-    return diagnostics
-
-
-def load_native_dynamic_report(
-    report_path: Path,
-    diagnostics: list[str],
-    *,
-    profile: object,
-) -> dict[str, Any] | None:
-    if not report_path.exists():
-        diagnostics.append(f"NativeDynamic report {report_path} does not exist")
-        return None
-    if not report_path.is_file():
-        diagnostics.append(f"NativeDynamic report {report_path} is not a file")
-        return None
-    try:
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-    except OSError as error:
-        diagnostics.append(
-            f"NativeDynamic report {report_path} could not be read: {error}"
-        )
-        return None
-    except json.JSONDecodeError as error:
-        diagnostics.append(
-            f"NativeDynamic report {report_path} is not valid JSON: {error}"
-        )
-        return None
-    if not isinstance(report, dict):
-        diagnostics.append(f"NativeDynamic report {report_path} must be a JSON object")
-        return None
-    expected_profile = profile if isinstance(profile, str) else ""
-    metadata_diagnostic = stage_report_metadata_diagnostic(
-        report,
-        "native_dynamic",
-        expected_profile,
-    )
-    if metadata_diagnostic:
-        diagnostics.append(metadata_diagnostic)
-        return None
-    return report
-
-
 def native_dynamic_stage_report_path(
     stage_reports: list[dict[str, Any]],
     diagnostics: list[str] | None = None,
@@ -667,6 +546,8 @@ def native_dynamic_stage_report_path(
 def platform_bundle_native_plugins_package_path_diagnostics(
     packages: list[dict[str, object]],
     plugins_dir: Path,
+    *,
+    stage_backed_payload: bool = False,
 ) -> list[str]:
     diagnostics: list[str] = []
     plugins_root = resolve_user_path_or_diagnostic(
@@ -697,6 +578,12 @@ def platform_bundle_native_plugins_package_path_diagnostics(
             continue
         package_report = package.get("package_report")
         if package_report is None:
+            if stage_backed_payload:
+                diagnostics.append(
+                    "PlatformBundle report native_plugins_payload "
+                    f"materialized_packages[{index}] package_report "
+                    "is required for stage-backed payloads"
+                )
             continue
         package_report_path = resolve_user_path_or_diagnostic(
             str(package_report),
@@ -771,8 +658,10 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
         )
     )
     package_report_id = package_report.get("package_id")
-    if package_report_id is None or package_report_id == "":
+    if package_report_id is None:
         diagnostics.append(f"{label} package_id must be a non-empty string")
+        return diagnostics
+    if isinstance(package_report_id, str) and not package_report_id.strip():
         return diagnostics
     if not isinstance(package_report_id, str):
         return diagnostics
@@ -790,8 +679,12 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
     directory = package_report.get("directory")
     expected_directory = package_dir.relative_to(plugins_root).as_posix()
     if directory is not None:
-        if directory == "":
-            diagnostics.append(f"{label} directory must be a non-empty string")
+        if isinstance(directory, str) and not directory.strip():
+            pass
+        elif isinstance(directory, str) and not is_non_empty_safe_relative_path(
+            directory
+        ):
+            pass
         elif isinstance(directory, str) and directory != expected_directory:
             diagnostics.append(
                 f"{label} directory {directory} "
@@ -806,9 +699,11 @@ def platform_bundle_native_plugins_package_report_content_diagnostics(
         value = package_report.get(field)
         if value is None:
             continue
-        if value == "":
-            diagnostics.append(f"{label} {field} must be a non-empty string")
-        elif isinstance(value, str) and value != expected_value:
+        if isinstance(value, str) and not value.strip():
+            continue
+        if isinstance(value, str) and not is_non_empty_safe_relative_path(value):
+            continue
+        if isinstance(value, str) and value != expected_value:
             diagnostics.append(
                 f"{label} {field} {value} does not match {expected_value}"
             )
@@ -852,8 +747,10 @@ def platform_bundle_native_plugins_package_report_abi_diagnostics(
         diagnostics.append(f"{label} abi.abi_version must be 3")
     for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS:
         value = abi.get(field)
-        if value is None or value == "":
+        if value is None:
             diagnostics.append(f"{label} abi.{field} must be a non-empty string")
+            continue
+        if isinstance(value, str) and not value.strip():
             continue
         if not isinstance(value, str):
             continue
@@ -887,8 +784,10 @@ def platform_bundle_native_plugins_package_report_payload_diagnostics(
     )
     if file_count is None:
         diagnostics.append(f"{label} payload file_count must be an integer")
-    if content_hash is None or content_hash == "":
+    if content_hash is None:
         diagnostics.append(f"{label} payload content_hash must be a non-empty string")
+    elif isinstance(content_hash, str) and not content_hash.strip():
+        pass
     if payload_files is not None and not payload_files_schema_diagnostics:
         if normalized_file_manifest(payload_files) is None:
             diagnostics.append(f"{label} payload files are malformed")

@@ -2,7 +2,7 @@ use super::super::super::data::HostWindowPresentationData;
 use super::super::routing::contains;
 use super::frames::{menu_chrome_frame, scrolled_menu_frame, top_bar_fallback_frame};
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn menu_handles_point(
+pub(in crate::ui::retained_host::host_contract) fn menu_handles_point(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,

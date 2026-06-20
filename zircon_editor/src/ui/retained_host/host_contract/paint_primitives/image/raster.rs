@@ -2,7 +2,7 @@ use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
 
-pub(super) fn draw_scaled_rgba_image_pixels(
+pub(in crate::ui::retained_host::host_contract) fn draw_scaled_rgba_image_pixels(
     frame: &mut HostRgbaFrame,
     rect: &FrameRect,
     target: &PixelRect,
@@ -34,7 +34,7 @@ pub(super) fn draw_scaled_rgba_image_pixels(
     }
 }
 
-pub(super) fn try_copy_opaque_identity_image_rows(
+pub(in crate::ui::retained_host::host_contract) fn try_copy_opaque_identity_image_rows(
     frame: &mut HostRgbaFrame,
     rect: &FrameRect,
     target: &PixelRect,

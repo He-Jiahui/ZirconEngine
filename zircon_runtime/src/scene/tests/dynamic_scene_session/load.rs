@@ -1,6 +1,8 @@
 use std::fs;
 
-use crate::scene::{RuntimeSessionArchive, RuntimeSessionMetadata, RuntimeSessionSlot, World};
+use crate::scene::{
+    LevelMetadata, RuntimeSessionArchive, RuntimeSessionMetadata, RuntimeSessionSlot, World,
+};
 
 use super::{tagged_slot, unique_temp_root};
 
@@ -132,7 +134,7 @@ fn runtime_session_archive_applies_slot_from_path_to_live_world_and_level() {
     );
 
     let manager = crate::scene::DefaultLevelManager::default();
-    let level = manager.create_default_level();
+    let level = manager.create_level(World::empty(), LevelMetadata::default());
     let existing_level_entity =
         level.with_world_mut(|world| world.spawn_node(crate::scene::NodeKind::Camera));
     assert_eq!(existing_level_entity, source_entity);

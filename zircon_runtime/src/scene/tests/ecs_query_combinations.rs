@@ -12,6 +12,10 @@ struct Marker;
 
 impl Component for Marker {}
 
+fn compact_source(source: &str) -> String {
+    source.split_whitespace().collect::<Vec<_>>().join("")
+}
+
 #[test]
 fn query_state_iter_combinations_returns_unique_read_only_groups() {
     let mut world = World::empty();
@@ -236,9 +240,9 @@ fn cached_combination_candidate_indices_use_direct_index_scans() {
     assert!(read_only_cached_body.contains("let entity = entities[index];"));
     assert!(read_only_cached_body.contains("stable_locations.get(index).is_some()"));
     assert!(read_only_cached_body.contains("cached_query_component_locations("));
-    assert!(read_only_cached_body.contains(
-        "F::matches_component_locations(world, entity, entity_component_locations, ticks)"
-    ));
+    let read_only_cached_compact = compact_source(read_only_cached_body);
+    assert!(read_only_cached_compact
+        .contains("F::matches_component_locations(world,entity,entity_component_locations,ticks"));
     assert!(read_only_cached_body.contains("cache_indices.push(index);"));
     assert!(read_only_cached_body.contains("index += 1;"));
     assert!(!read_only_cached_body.contains("entities.iter().copied().enumerate()"));
@@ -247,8 +251,9 @@ fn cached_combination_candidate_indices_use_direct_index_scans() {
     assert!(mutable_cached_body.contains("while index < entities.len()"));
     assert!(mutable_cached_body.contains("let entity = entities[index];"));
     assert!(mutable_cached_body.contains("cached_query_component_locations("));
-    assert!(mutable_cached_body
-        .contains("F::matches_component_locations(world, entity, component_locations, ticks)"));
+    let mutable_cached_compact = compact_source(mutable_cached_body);
+    assert!(mutable_cached_compact
+        .contains("F::matches_component_locations(world,entity,component_locations,ticks"));
     assert!(mutable_cached_body.contains("cache_indices.push(index);"));
     assert!(mutable_cached_body.contains("index += 1;"));
     assert!(!mutable_cached_body.contains("entities.iter().copied().enumerate()"));

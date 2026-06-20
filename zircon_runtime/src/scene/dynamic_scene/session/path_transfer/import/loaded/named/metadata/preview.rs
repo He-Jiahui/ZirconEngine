@@ -1,0 +1,21 @@
+use std::path::Path;
+
+use super::super::super::super::super::super::{
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionMetadata,
+    RuntimeSessionSlotImportPreviewReport,
+};
+
+pub(in crate::scene::dynamic_scene::session) fn preview_import_slot_from_archive_with_metadata_at_path(
+    path: impl AsRef<Path>,
+    incoming: &RuntimeSessionArchive,
+    source_slot_id: &str,
+    new_slot_id: impl Into<String>,
+    metadata: RuntimeSessionMetadata,
+) -> Result<RuntimeSessionSlotImportPreviewReport, RuntimeSessionArchiveError> {
+    io::load_from_path(path)?.preview_import_slot_from_archive_with_metadata(
+        incoming,
+        source_slot_id,
+        new_slot_id,
+        metadata,
+    )
+}

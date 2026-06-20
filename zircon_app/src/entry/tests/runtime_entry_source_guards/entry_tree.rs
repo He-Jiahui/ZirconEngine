@@ -35,6 +35,8 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "runtime_entry_app/gamepad/polling.rs",
         "runtime_entry_app/gamepad/rumble.rs",
         "runtime_entry_app/host_requests/mod.rs",
+        "runtime_entry_app/host_requests/cursor/mod.rs",
+        "runtime_entry_app/host_requests/cursor/request.rs",
         "runtime_entry_app/host_requests/drain.rs",
         "runtime_entry_app/host_requests/routing.rs",
         "runtime_entry_app/host_requests/ime/mod.rs",

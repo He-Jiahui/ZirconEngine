@@ -183,8 +183,9 @@ class PlatformBundleNativeDynamicOperationAuditTests(unittest.TestCase):
             self.assertTrue(report["fatal"], report["diagnostics"])
             self.assertTrue(
                 any(
-                    "NativeDynamic report native_signing platform_allowed "
-                    "does not match target platform" in diagnostic
+                    "NativeDynamic report native_signing.platform_allowed "
+                    "does not match target_platform and allowed_platforms"
+                    in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],
@@ -230,7 +231,7 @@ class PlatformBundleNativeDynamicOperationAuditTests(unittest.TestCase):
 
 def _write_pipeline_handoff_fixture(root: Path) -> tuple[Path, Path]:
     out = root / "out"
-    host = root / "compile" / "zircon_runtime.exe"
+    host = out / "stages" / "compile_host" / "zircon_runtime.exe"
     host.parent.mkdir(parents=True)
     host.write_text("host placeholder", encoding="utf-8")
     pack = root / "pack-output" / "assets.zrpack"
@@ -285,8 +286,8 @@ def _native_dynamic_operation_audit_package(
                 "exit_code": 0,
                 "stdout": "",
                 "stderr": "",
-                "before_sha256": "before-hash",
-                "after_sha256": "after-hash",
+                "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
             }
         ],
     }

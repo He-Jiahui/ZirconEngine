@@ -10,6 +10,7 @@ pub type ZrRuntimeProfileControlFnV1 =
 pub const PROFILE_TIMELINE_NATIVE_FILE: &str = "timeline.zrtrace.json";
 pub const PROFILE_TIMELINE_PERFETTO_FILE: &str = "timeline.perfetto.json";
 pub const PROFILE_HOTSPOTS_FILE: &str = "hotspots.json";
+pub const PROFILE_COUNTER_HOTSPOTS_FILE: &str = "counter_hotspots.json";
 pub const PROFILE_UI_HOTSPOTS_FILE: &str = "ui_hotspots.json";
 pub const PROFILE_SUMMARY_FILE: &str = "summary.md";
 pub const PROFILE_DEFAULT_OUTPUT_ROOT: &str = "target/zircon-profiles";
@@ -168,6 +169,42 @@ pub struct HotspotEntry {
     pub over_budget_count: u64,
 }
 
+/// Generic counter aggregation used to rank measured runtime evidence streams.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct CounterHotspotReport {
+    pub session_id: String,
+    pub frame_budget_ms: f64,
+    pub generated_from_counter_count: usize,
+    pub counters: Vec<CounterHotspotEntry>,
+    pub hints: Vec<String>,
+}
+
+impl Default for CounterHotspotReport {
+    fn default() -> Self {
+        Self {
+            session_id: PROFILE_DEFAULT_SESSION_ID.to_string(),
+            frame_budget_ms: PROFILE_DEFAULT_FRAME_BUDGET_MS,
+            generated_from_counter_count: 0,
+            counters: Vec::new(),
+            hints: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct CounterHotspotEntry {
+    pub stream: String,
+    pub name: String,
+    pub path: String,
+    pub total: f64,
+    pub avg: f64,
+    pub p95: f64,
+    pub max: f64,
+    pub latest: f64,
+    pub count: u64,
+    pub frame_count: u64,
+}
+
 /// UI-specific counter aggregation used to detect retained-host slow paths.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct UiHotspotReport {
@@ -269,6 +306,7 @@ pub enum ProfileControlCommand {
     StartCapture,
     StopCapture,
     Snapshot,
+    RuntimeDiagnosticsSnapshot,
     ExportReport,
     Reset,
 }
@@ -287,7 +325,11 @@ pub struct ProfileControlResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snapshot: Option<ProfileSnapshot>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime_diagnostics: Option<RuntimeDiagnosticsSnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hotspot_report: Option<HotspotReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counter_hotspot_report: Option<CounterHotspotReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ui_hotspot_report: Option<UiHotspotReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -302,7 +344,9 @@ impl ProfileControlResponse {
             status: "ok".to_string(),
             message: message.into(),
             snapshot: None,
+            runtime_diagnostics: None,
             hotspot_report: None,
+            counter_hotspot_report: None,
             ui_hotspot_report: None,
             export_dir: None,
             files: Vec::new(),
@@ -314,10 +358,70 @@ impl ProfileControlResponse {
             status: "error".to_string(),
             message: message.into(),
             snapshot: None,
+            runtime_diagnostics: None,
             hotspot_report: None,
+            counter_hotspot_report: None,
             ui_hotspot_report: None,
             export_dir: None,
             files: Vec::new(),
         }
     }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct RuntimeDiagnosticsSnapshot {
+    pub frame_index: u64,
+    pub diagnostic_series: Vec<RuntimeDiagnosticSeriesSnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scene_asset_reload: Option<RuntimeSceneAssetReloadDiagnostics>,
+    pub profile: ProfileSnapshot,
+}
+
+impl RuntimeDiagnosticsSnapshot {
+    pub fn series(&self, path: &str) -> Option<&RuntimeDiagnosticSeriesSnapshot> {
+        self.diagnostic_series
+            .iter()
+            .find(|series| series.path == path)
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct RuntimeDiagnosticSeriesSnapshot {
+    pub path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    pub subsystem_tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoothed: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+    pub history: Vec<RuntimeDiagnosticMeasurement>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct RuntimeDiagnosticMeasurement {
+    pub frame_index: u64,
+    pub value: f64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RuntimeSceneAssetReloadDiagnostics {
+    pub enabled: bool,
+    pub events_drained: usize,
+    pub scheduled: usize,
+    pub skipped: usize,
+    pub skipped_removed: usize,
+    pub skipped_reload_failed: usize,
+    pub skipped_missing_locator: usize,
+    pub skipped_stale_revision: usize,
+    pub superseded_pending: usize,
+    pub applied: usize,
+    pub failed: usize,
+    pub stale: usize,
+    pub pending: usize,
+    pub receiver_disconnected: bool,
 }

@@ -15,7 +15,7 @@ use super::super::paint_primitives::{draw_border, draw_rect};
 use super::super::paint_template_nodes::draw_template_nodes;
 use super::{DOCUMENT_PANEL, SEPARATOR, SIDE_PANEL, TOP_BAR};
 
-pub(super) fn draw_side_dock(
+pub(in crate::ui::retained_host::host_contract) fn draw_side_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostSideDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
@@ -92,7 +92,7 @@ pub(super) fn draw_side_dock(
     }
 }
 
-pub(super) fn draw_document_dock(
+pub(in crate::ui::retained_host::host_contract) fn draw_document_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostDocumentDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
@@ -134,7 +134,7 @@ pub(super) fn draw_document_dock(
     }
 }
 
-pub(super) fn draw_bottom_dock(
+pub(in crate::ui::retained_host::host_contract) fn draw_bottom_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostBottomDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
@@ -176,7 +176,7 @@ pub(super) fn draw_bottom_dock(
     }
 }
 
-pub(super) fn draw_floating_layer(
+pub(in crate::ui::retained_host::host_contract) fn draw_floating_layer(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
     interaction: &HostPaneInteractionStateData,

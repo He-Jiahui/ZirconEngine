@@ -59,7 +59,7 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
             "complex_text_backends_can_only_enter_through_ui_text_shaper",
             "fontdue_editor_retained_host_dependency_has_migration_owner",
             "physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned",
-            "export_archive_policy_is_documented_without_manifest_container_dependency",
+            "export_archive_policy_allows_zip_only_for_archive_materializer",
             "editor_only_dependency_candidates_have_editor_backlog_owner",
         ],
     );
@@ -97,7 +97,7 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
             "runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index",
             "runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate",
             "zr_vm_path_dependency_gate_is_documented_with_version_pairing",
-            "export_archive_policy_is_documented_without_manifest_container_dependency",
+            "export_archive_policy_allows_zip_only_for_archive_materializer",
             "editor_only_dependency_candidates_have_editor_backlog_owner",
         ],
     );

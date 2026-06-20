@@ -344,6 +344,13 @@ fn record_camera_target_graph_import_status(
     );
     record_bool(
         store,
+        "render.camera.target.graph_import.suppressed_by_camera_stack",
+        frame_index,
+        status == RenderCameraTargetGraphImportStatus::SuppressedByCameraStack,
+        &["render", "camera", "target", "graph_import", "camera_stack"],
+    );
+    record_bool(
+        store,
         "render.camera.target.graph_import.blocked_format_mismatch",
         frame_index,
         status == RenderCameraTargetGraphImportStatus::BlockedFormatMismatch,
@@ -383,6 +390,13 @@ fn record_camera_target_writeback_status(
         frame_index,
         status == RenderCameraTargetWritebackStatus::ReadyForConversion,
         &["render", "camera", "target", "writeback", "ready"],
+    );
+    record_bool(
+        store,
+        "render.camera.target.writeback.suppressed_by_camera_stack",
+        frame_index,
+        status == RenderCameraTargetWritebackStatus::SuppressedByCameraStack,
+        &["render", "camera", "target", "writeback", "camera_stack"],
     );
     record_bool(
         store,

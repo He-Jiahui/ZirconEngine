@@ -58,7 +58,7 @@ pub(crate) struct MeshDraw {
 
 impl MeshDraw {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub(in crate::graphics::scene) fn new(
         mesh: Arc<GpuMeshResource>,
         geometry_source: MeshDrawGeometrySource,
         mobility: Mobility,

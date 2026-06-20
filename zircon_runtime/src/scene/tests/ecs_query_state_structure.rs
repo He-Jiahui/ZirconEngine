@@ -1,20 +1,46 @@
+fn source_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
+    source
+        .split(start)
+        .nth(1)
+        .and_then(|text| text.split(end).next())
+        .expect("read source section")
+}
+
 #[test]
 fn query_state_item_fetch_errors_use_direct_branches() {
     let cached_direct = include_str!("../ecs/query/query_state/cached_direct.rs");
     let read_only_cached = include_str!("../ecs/query/query_state/read_only_cached.rs");
     let read_only = include_str!("../ecs/query/query_state/read_only.rs");
     let mutable = include_str!("../ecs/query/query_state/mutable.rs");
+    let cached_direct_get = source_between(
+        cached_direct,
+        "pub(crate) fn get_cached_direct_with_ticks",
+        "pub(crate) fn get_many_cached_direct_with_ticks",
+    );
+    let cached_direct_get_after_update = source_between(
+        cached_direct,
+        "fn get_cached_direct_after_update_with_ticks",
+        "\n    }\n}",
+    );
 
     assert!(
-        cached_direct.matches("let Some(item) =").count() == 2
-            && cached_direct.matches("D::fetch_cached(").count() == 2
-            && cached_direct.contains("return Err(QueryEntityError::QueryDoesNotMatch(entity));")
-            && cached_direct.contains("Ok(item)")
-            && !cached_direct.contains(".ok_or("),
+        cached_direct_get.contains("let Some(item)")
+            && cached_direct_get.contains("D::fetch_cached(")
+            && cached_direct_get
+                .contains("return Err(QueryEntityError::QueryDoesNotMatch(entity));")
+            && cached_direct_get.contains("Ok(item)")
+            && !cached_direct_get.contains(".ok_or(")
+            && cached_direct_get_after_update.contains("let Some(item)")
+            && cached_direct_get_after_update.contains("D::fetch_cached(")
+            && cached_direct_get_after_update
+                .contains("return Err(QueryEntityError::QueryDoesNotMatch(entity));")
+            && cached_direct_get_after_update.contains("Ok(item)")
+            && !cached_direct_get_after_update.contains(".ok_or("),
         "cached direct query fetches must project missing data through direct branches"
     );
     assert!(
-        read_only_cached.contains("let Some(item) = D::fetch_with_component_locations(")
+        read_only_cached.contains("let Some(item)")
+            && read_only_cached.contains("D::fetch_with_component_locations(")
             && read_only_cached
                 .contains("return Err(QueryEntityError::QueryDoesNotMatch(entity));")
             && read_only_cached.contains("Ok(item)")

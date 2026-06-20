@@ -1,0 +1,9 @@
+pub(super) const MUI_BADGE_DEFAULT_BG: [u8; 4] = [117, 117, 117, 255];
+pub(super) const MUI_ERROR_MAIN: [u8; 4] = [211, 47, 47, 255];
+pub(super) const MUI_INFO_MAIN: [u8; 4] = [2, 136, 209, 255];
+pub(super) const MUI_ON_DARK: [u8; 4] = [255, 255, 255, 255];
+pub(super) const MUI_ON_WARNING: [u8; 4] = [0, 0, 0, 222];
+pub(super) const MUI_PRIMARY_MAIN: [u8; 4] = [25, 118, 210, 255];
+pub(super) const MUI_SECONDARY_MAIN: [u8; 4] = [156, 39, 176, 255];
+pub(super) const MUI_SUCCESS_MAIN: [u8; 4] = [46, 125, 50, 255];
+pub(super) const MUI_WARNING_MAIN: [u8; 4] = [237, 108, 2, 255];

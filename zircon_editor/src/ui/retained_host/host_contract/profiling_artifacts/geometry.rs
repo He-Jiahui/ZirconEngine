@@ -4,7 +4,7 @@ mod pane_frames;
 mod tabs;
 
 #[cfg(test)]
-pub(super) use pane_frames::collect_surface_frame_controls;
+pub(in crate::ui::retained_host::host_contract) use pane_frames::collect_surface_frame_controls;
 
 use super::super::data::HostWindowPresentationData;
 use super::super::presenter::HostPresenterBackend;
@@ -22,7 +22,7 @@ use tabs::{
 };
 
 impl UiProfileGeometry {
-    pub(super) fn from_presentation(
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation(
         presentation: &HostWindowPresentationData,
         size: &PhysicalSize,
         backend: HostPresenterBackend,

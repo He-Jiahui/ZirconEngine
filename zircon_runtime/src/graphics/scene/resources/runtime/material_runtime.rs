@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
-    RenderMaterialReadinessReport, RenderMaterialTextureTransform, ShadingModelId,
+    RenderMaterialReadinessReport, RenderMaterialTextureTransform, RenderQueueValue,
+    ShadingModelId,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -58,6 +59,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
     pub(crate) render_queue: i32,
+    pub(crate) render_queue_value: Option<RenderQueueValue>,
     pub(crate) material_queue: i32,
     pub(crate) depth_bias: f32,
     pub(crate) taa_reactive_mask_strength: f32,

@@ -4,7 +4,7 @@ use crate::core::math::{RenderVec2, RenderVec3, RenderVec4, Vec2, Vec3, Vec4};
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-pub(in crate::graphics::scene::scene_renderer::sprite) struct SpriteVertex {
+pub(crate) struct SpriteVertex {
     position: [f32; 3],
     uv: [f32; 2],
     color: [f32; 4],
@@ -23,8 +23,7 @@ impl SpriteVertex {
         }
     }
 
-    pub(in crate::graphics::scene::scene_renderer::sprite) fn layout(
-    ) -> wgpu::VertexBufferLayout<'static> {
+    pub(crate) fn layout() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
             step_mode: wgpu::VertexStepMode::Vertex,

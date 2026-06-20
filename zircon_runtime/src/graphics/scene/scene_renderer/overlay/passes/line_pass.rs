@@ -31,6 +31,6 @@ pub(crate) fn begin_line_pass_for_region<'a>(
         multiview_mask: None,
     });
     render_region
-        .apply_to_render_pass(&mut pass)
+        .apply_physical_to_render_pass(&mut pass)
         .then_some(pass)
 }

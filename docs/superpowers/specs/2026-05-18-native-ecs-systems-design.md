@@ -19,7 +19,7 @@ Current ECS source already includes:
 - `zircon_runtime/src/scene/ecs/system/system_state.rs`: cached `SystemState<P>` with per-system `last_run` windows.
 - `zircon_runtime/src/scene/ecs/system/system_param.rs`: tuple `SystemParam` support up to eight params.
 - `zircon_runtime/src/scene/ecs/system/system_param_access.rs`: resource/component/event/message/deferred access descriptors.
-- `zircon_runtime/src/scene/ecs/commands/commands.rs`: deferred commands and `CommandsParam`.
+- `zircon_runtime/src/scene/ecs/commands/commands/{mod,facade,entity_commands,param}.rs`: deferred commands and `CommandsParam`.
 - `zircon_runtime/src/scene/ecs/scene_system_descriptor.rs`: stage/order/id descriptor, currently tied to `InternalSceneSystem`.
 - `zircon_runtime/src/scene/ecs/scene_system_registry.rs`: deterministic built-in registry.
 - `zircon_runtime/src/scene/ecs/schedule_runner.rs`: serial runner that merges built-ins and plugin hooks.

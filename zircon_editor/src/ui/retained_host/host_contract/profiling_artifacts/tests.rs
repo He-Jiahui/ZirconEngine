@@ -1,7 +1,14 @@
-use super::*;
-use crate::ui::retained_host::primitives::VecModel;
 use std::rc::Rc;
-use zircon_runtime::ui::surface::UiSurface;
+
+use super::super::data::{
+    FrameRect, HostChromeTabData, HostWindowPresentationData, TemplateNodeFrameData,
+    TemplatePaneNodeData,
+};
+use super::super::presenter::HostPresenterBackend;
+use super::geometry::collect_surface_frame_controls;
+use super::UiProfileGeometry;
+use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
+use zircon_runtime::ui::surface::{UiSurface, UiSurfaceFrame};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
@@ -85,14 +92,14 @@ fn profile_geometry_omits_template_controls_disjoint_from_clip() {
         .nodes = ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
         control_id: "OffClipAction".into(),
         action_id: "workbench.project.off_clip_action".into(),
-        frame: super::super::data::TemplateNodeFrameData {
+        frame: TemplateNodeFrameData {
             x: 120.0,
             y: 120.0,
             width: 80.0,
             height: 24.0,
         },
         has_clip_frame: true,
-        clip_frame: super::super::data::TemplateNodeFrameData {
+        clip_frame: TemplateNodeFrameData {
             x: 0.0,
             y: 0.0,
             width: 80.0,

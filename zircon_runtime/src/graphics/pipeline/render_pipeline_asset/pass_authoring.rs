@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::core::framework::render::RenderFrameExtract;
 use crate::graphics::feature::{
-    RenderFeatureDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
-    RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
+    RenderFeatureResourceDescriptor, RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
     CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
@@ -106,7 +106,7 @@ fn author_graph_passes(
     let mut produced_texture_resources = BTreeSet::<String>::new();
 
     for stage in stages {
-        for pass_descriptor in stage_pass_descriptors(*stage, descriptors) {
+        for pass_descriptor in ordered_stage_pass_descriptors(*stage, descriptors) {
             pass_stages.push(CompiledRenderPipelinePassStage::new(
                 pass_descriptor.pass_name.clone(),
                 *stage,
@@ -145,6 +145,42 @@ fn author_graph_passes(
     }
 
     Ok(pass_stages)
+}
+
+fn ordered_stage_pass_descriptors(
+    stage: RenderPassStage,
+    descriptors: &[RenderFeatureDescriptor],
+) -> Vec<RenderFeaturePassDescriptor> {
+    let mut passes = stage_pass_descriptors(stage, descriptors);
+    if stage == RenderPassStage::PostProcess {
+        order_post_process_bloom_before_uber(&mut passes);
+    }
+    passes
+}
+
+fn order_post_process_bloom_before_uber(passes: &mut Vec<RenderFeaturePassDescriptor>) {
+    let Some(bloom_index) = passes
+        .iter()
+        .position(|pass| pass.executor_id.as_str() == "post.bloom-extract")
+    else {
+        return;
+    };
+    let Some(uber_index) = passes
+        .iter()
+        .position(|pass| pass.executor_id.as_str() == "post.uber")
+    else {
+        return;
+    };
+    if bloom_index < uber_index {
+        return;
+    }
+
+    let bloom = passes.remove(bloom_index);
+    let uber_index = passes
+        .iter()
+        .position(|pass| pass.executor_id.as_str() == "post.uber")
+        .expect("post.uber pass position should survive removing bloom-extract");
+    passes.insert(uber_index, bloom);
 }
 
 fn author_pass_resource_access(

@@ -2,6 +2,12 @@
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown.rs
@@ -14,9 +20,36 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
@@ -43,6 +76,12 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown.rs
@@ -55,9 +94,36 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tooltip/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/colors.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields.rs
@@ -220,7 +286,7 @@ The selector-local regression `selection_controls_loading_state_uses_unavailable
 - pressed, focused, dragging, and drop-hover states produce the shared focus-ring border through `UiPainterResolvedState` instead of duplicating state branches in `template_list_rows.rs`;
 - declared row background, text, and icon colors still win where the template author provided them, preserving the component-drawer list samples.
 
-`workbench_tree_row.rs` and `workbench_table_row.rs` use the same collection-row policy for SceneTree and asset-table rows. Tree rows mute selected text, disclosure, object icon, secondary text, and action colors during disabled/loading; table rows use disabled surface/text/action colors and suppress focus-ring borders during disabled/loading before selected row or declared background colors can apply.
+`workbench_tree_row.rs` is now a structural export entry for SceneTree row style selection. `workbench_tree_row/model.rs` owns the row style DTO; `palette.rs` owns row text/icon/action tokens; `state.rs` owns hot/focus/unavailable helpers; `surface.rs` owns background, border, and border-width rules; `colors.rs` owns primary/icon/secondary/action color selection; `selection.rs` owns style assembly; and `tests.rs` owns the loading-state regression. `workbench_table_row.rs` uses the same collection-row policy for asset-table rows. Tree rows mute selected text, disclosure, object icon, secondary text, and action colors during disabled/loading; table rows use disabled surface/text/action colors and suppress focus-ring borders during disabled/loading before selected row or declared background colors can apply.
 
 `template_list_rows.rs` now keeps row recognition, label geometry, adornment geometry, and the check/chevron/disabled mark paint commands, including resolving the disabled-diamond mark from selector state so loading selected rows do not keep the active check shape. `template_tree_rows.rs` keeps tree indentation, disclosure, object-icon geometry, action glyphs, and command order, while routing the special PlayerStart icon color through the selector when the row is unavailable. The focused regressions `list_row_style_uses_shared_state_priority`, `list_row_loading_state_uses_unavailable_visuals`, `tree_row_loading_state_uses_unavailable_visuals`, `table_row_loading_state_uses_unavailable_visuals`, and `loading_player_start_tree_row_mutes_special_icon_color` cover disabled/loading precedence over active collection-row visuals, while `verify-native-component-contract.mjs` checks that the native ListRow selector exists and handles pressed/disabled states.
 
@@ -273,7 +339,7 @@ The selector-local regression `status_signal_unavailable_states_mute_icon_text_a
 
 ## Text Fields
 
-`workbench_text_field.rs` owns Workbench text-field visual resolution:
+`workbench_text_field.rs` is now a structural export entry for Workbench text-field visual resolution. `workbench_text_field/model.rs` owns the field style DTO; `palette.rs` owns text-field tokens; `state.rs` owns focused-sample and painter-state resolution; `surface.rs` owns surface and border rules; `text.rs` owns text/placeholder/stepper colors; `colors.rs` owns declared style-color conversion; and `tests.rs` owns the loading-state regression:
 
 - field surface, border, text, placeholder, and stepper glyph colors resolve from `UiPainterFamily::TextField` through the shared interactive state priority;
 - disabled and loading state win over pressed/focused/hovered and mute field surface, border, text, placeholder, and stepper glyph colors;
@@ -284,20 +350,20 @@ The focused regression `workbench_field_selector_uses_shared_text_field_state_pr
 
 ## Feedback Controls
 
-`workbench_alert.rs` owns Workbench inline alert visual resolution:
+`workbench_alert.rs` is now a structural export entry for Workbench inline alert visual resolution. `workbench_alert/model.rs` owns alert tone/style DTOs; `palette.rs` owns info/success/warning/error tokens; `state.rs` owns shared painter-state to alert-style selection; `colors.rs` owns declared style-color overrides; `selection.rs` owns style assembly; and `tests.rs` owns the loading-state regression:
 
 - alert surface, border, mark, and text colors resolve from `UiPainterFamily::Alert` through the shared interactive state priority;
 - disabled and loading alerts use unavailable surface, border, mark, and text colors before tone, focus, pressed, hover, icon, label, or declared style colors can apply;
 - `template_alerts.rs` still owns inline alert tone detection, glyph geometry, title/message/action placement, and paint-command ordering.
 
-`workbench_tooltip.rs` owns Workbench tooltip visual resolution:
+`workbench_tooltip.rs` is now a structural export entry for Workbench tooltip visual resolution. `workbench_tooltip/model.rs` owns tooltip style DTOs; `palette.rs` owns surface/border/title/body/icon/shadow tokens and normal style construction; `state.rs` owns shared painter-state style selection; `colors.rs` owns declared style-color overrides; `selection.rs` owns style assembly; and `tests.rs` owns the loading-state regression:
 
 - tooltip surface, border, title, body, arrow, icon, and shadow colors resolve from `UiPainterFamily::Tooltip` through the shared interactive state priority;
 - disabled and loading tooltip state mutes all text/icon/arrow output and lowers shadow strength, while pressed/focused state routes border and icon color through the focus-ring semantics used by the other retained controls only when the resolved state remains available;
 - author-declared `.zui` style colors still override surface, border, title, body, icon, and arrow colors for available states, but unavailable state suppresses those declarations before paint commands are emitted;
 - `template_tooltips.rs` now keeps tooltip detection, bubble placement, arrow geometry, text layout, info-icon drawing, and paint-command ordering.
 
-`workbench_toast.rs` owns Workbench toast visual resolution:
+`workbench_toast.rs` is now a structural export entry for Workbench toast visual resolution. `workbench_toast/model.rs` owns toast style DTOs; `palette.rs` owns toast tokens and normal style construction; `state.rs` owns shared painter-state style selection; `colors.rs` owns declared style-color overrides; `selection.rs` owns style assembly; and `tests.rs` owns the loading-state regression:
 
 - toast surface, border, text, status mark, action text, and close mark resolve from `UiPainterFamily::Toast`, so disabled, pressed, focused, hovered, dragging, drop-hover, open, and loading state use the same priority model as the rest of the retained-host painter;
 - pressed and focused toasts use focus-ring border/action styling, hovered and drag/drop states use a hotter toast surface, and disabled/loading state suppresses declared surface, border, text, action, and mark colors in favor of disabled surface/border/text colors;

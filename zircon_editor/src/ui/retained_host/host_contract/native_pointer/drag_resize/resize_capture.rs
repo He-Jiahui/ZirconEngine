@@ -9,7 +9,7 @@ use super::super::super::window::UiHostWindow;
 use super::super::redraw_result::resize_pointer_redraw;
 use super::super::{HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP};
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn arm_native_resize(
+pub(in crate::ui::retained_host::host_contract) fn arm_native_resize(
     ui: &UiHostWindow,
     x: f32,
     y: f32,
@@ -24,7 +24,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer) fn arm_native_re
     host.invoke_host_resize_pointer_event(HOST_POINTER_DOWN, x, y);
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn dispatch_native_resize_move(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_native_resize_move(
     ui: &UiHostWindow,
     x: f32,
     y: f32,
@@ -45,7 +45,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer) fn dispatch_nati
     Some(resize_pointer_redraw(&presentation, None))
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn finish_native_resize(
+pub(in crate::ui::retained_host::host_contract) fn finish_native_resize(
     ui: &UiHostWindow,
     x: f32,
     y: f32,

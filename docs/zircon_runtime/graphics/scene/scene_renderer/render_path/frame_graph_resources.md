@@ -6,6 +6,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
+  - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
   - zircon_runtime/src/render_graph/graph.rs
@@ -14,6 +16,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
+  - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
@@ -34,7 +38,7 @@ doc_type: module-detail
 
 The binder receives the compiled graph and imports only resources that have a live `CompiledRenderGraph::resource_lifetime_by_name(...)` row. This replaces the old unconditional frame-target import behavior with graph-lifetime-aware actual binding while preserving the renderer-owned backing model for fixed frame targets.
 
-Plan 09 Base/Overlay camera submits rely on this fixed backing model. Each selected-camera child re-enters graph execution with the same sized `OffscreenTarget`, and live `SCENE_COLOR` / `SCENE_DEPTH` rows bind to the fixed target views instead of graph-owned transient textures. `ViewportCameraStackAttachmentPolicy` then controls whether the first scene attachment write clears or loads those fixed views, so Overlay children can preserve the Base result while still executing as separate selected-camera graph submits. `ViewportRenderRegion` is the matching raster state policy: it does not allocate or bind resources, but it keeps graph-raster draws clipped to the selected camera's physical viewport/scissor region on that shared target.
+Plan 09 Base/Overlay camera submits rely on this fixed backing model. Each selected-camera child re-enters graph execution with the same sized `OffscreenTarget`, and live `SCENE_COLOR` / `SCENE_DEPTH` rows bind to the fixed target views instead of graph-owned transient textures. `ViewportCameraStackAttachmentPolicy` stores the selected camera clear plan and converts graph-declared first scene attachment clears to loads; `SceneRegionClearResources` then applies the requested color/depth clear as a pre-graph draw clipped by the selected `ViewportRenderRegion`. That keeps Overlay and split-screen children from clearing the whole shared scene target while still executing as separate selected-camera graph submits. `ViewportRenderRegion` is the matching raster state policy: it does not allocate or bind resources, but it keeps graph-raster draws clipped to the selected camera's physical viewport/scissor region on that shared target.
 
 ## Bound Resources
 
@@ -53,7 +57,7 @@ When a direct imported final target is supplied, every live final alias binds to
 
 This module does not allocate graph transients and does not pre-bind advanced post-process products such as scene velocity, motion-vector tiles, DoF intermediates, color LUT, HZB furthest, or SSR pyramid resources. Those remain graph-owned and are backed by transient materialization when their compiled lifetimes are live.
 
-The module also does not bind plugin-owned external buffers. First-party plugin buffers are handled by `bind_plugin_graph_resources.rs`, which currently records graph-lifetime-aware fallback backings until real plugin WGPU buffer owners are exposed to the scene renderer. Fullscreen post-process and final composite viewport policy remain outside this frame-resource binder and are still Plan 09 follow-up work.
+The module also does not bind plugin-owned external buffers. First-party plugin buffers are handled by `bind_plugin_graph_resources.rs`, which currently records graph-lifetime-aware fallback backings until real plugin WGPU buffer owners are exposed to the scene renderer. Region-scoped scene clear and fullscreen post-process viewport policy remain outside this frame-resource binder; final composite viewport policy is still Plan 09 follow-up work.
 
 ## Validation State
 

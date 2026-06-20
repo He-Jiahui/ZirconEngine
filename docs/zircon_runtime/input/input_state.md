@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/input/mod.rs
   - zircon_runtime/src/core/framework/input/button_input_state.rs
+  - zircon_runtime/src/core/framework/input/cursor.rs
   - zircon_runtime/src/core/framework/input/input_button.rs
   - zircon_runtime/src/core/framework/input/input_action.rs
   - zircon_runtime/src/core/framework/input/input_action_context.rs
@@ -28,9 +29,12 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
+  - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
@@ -46,10 +50,17 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
   - zircon_runtime/src/prelude.rs
 implementation_files:
   - zircon_runtime/src/core/framework/input/button_input_state.rs
+  - zircon_runtime/src/core/framework/input/cursor.rs
   - zircon_runtime/src/core/framework/input/input_button.rs
   - zircon_runtime/src/core/framework/input/input_action.rs
   - zircon_runtime/src/core/framework/input/input_action_context.rs
@@ -74,9 +85,12 @@ implementation_files:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
+  - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
@@ -92,7 +106,10 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
 plan_sources:
   - user: 2026-05-16 Bevy-style platform/window/winit/gilrs/input parity plan
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
@@ -122,7 +139,7 @@ tests:
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_mirror_docs_match_structure_audit_counts
-  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-17 Runtime 12 input_stack_boundary targeted evidence: expected_runtime_module_count = 12, expected_framework_module_count = 19, expected_test_module_count = 7, public_surface_anchors = 23/23, runtime_12_guard_anchors = 5/5, behavior_test_anchor_count = 14, missing_doc_anchors = [], missing_test_anchors = [], missing_behavior_test_anchors = [], missing_cargo_gate_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = [])
+  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-20 Runtime 12 input_stack_boundary targeted evidence: expected_runtime_module_count = 12, expected_framework_module_count = 20, expected_test_module_count = 7, public_surface_anchors = 26/26, runtime_12_guard_anchors = 5/5, behavior_test_anchor_count = 15, missing_doc_anchors = [], missing_test_anchors = [], missing_behavior_test_anchors = [], missing_cargo_gate_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = [])
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py direct import (2026-06-15 Runtime 12 gamepad event-owner drift sync: missing_gamepad_abi_anchors = [], risks = [])
   - cargo test -p zircon_runtime --lib input_snapshot_just_pressed_is_true_for_exactly_one_frame --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
   - cargo test -p zircon_runtime --lib frame_input_clears_after_level_tick_not_before --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M0.1 named anchor: pending after active HZB Cargo lane clears; source/rustfmt static checks passed)
@@ -134,12 +151,17 @@ tests:
   - cargo test -p zircon_runtime --lib input_action_manager_resolves_from_runtime_module_descriptor --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-12-input-action-manager-0617 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-17 Runtime 12 M1.6 action-manager registration: implementation-first slice; focused Cargo deferred by request; rustfmt check, direct `input_stack_boundary_audit`, standalone input_stack 4/4, standalone plan_status 32/32, and direct runtime_plan_status boundary risks=[] passed)
   - cargo test -p zircon_runtime --lib gamepad_disconnect_clears_held_state_without_panic --locked --jobs 1 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-13 Runtime 12 M2 gamepad named anchor: pending after active Cargo lane clears; source/rustfmt static checks passed)
   - cargo test -p zircon_runtime --lib gamepad_host_bridge_uses_runtime_gamepad_abi_constructors --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-12-input-0617 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-17 Runtime 12 M2 gamepad source guard: source updated to include split event owner `session/events.rs`; rustfmt, direct `input_stack_boundary_audit`, and standalone input_stack 4/4 passed; focused Cargo timed out after 605s with no result and no residual cargo/rustc/rustdoc processes, broader gates pending)
+  - cargo test -p zircon_runtime --lib cursor_host_requests_are_frame_local_and_drainable --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-12-cursor-host-0620 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-20 Runtime 12 cursor host requests: source/static guards updated; package Cargo gate remains deferred with broader input/action_map/gamepad/app gates)
   - zircon_runtime/src/input/tests/boundary.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
+  - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/tests/prelude.rs
   - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
+  - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
   - zircon_app/src/entry/tests/mod.rs
 doc_type: module-detail
 ---
@@ -153,15 +175,17 @@ doc_type: module-detail
 The design follows Bevy's input split:
 
 - `ButtonInputState<T>` mirrors Bevy `ButtonInput<T>` semantics with durable `pressed` state plus per-frame `just_pressed` and `just_released` transitions.
-- `InputEvent` remains the append-only neutral event stream, now covering cursor position, cursor enter/leave, file drag/drop, window status, mouse motion, Bevy-style wheel x/y/unit events, keyboard, IME composition/delete requests, outgoing IME host requests, focus loss, touch, gamepad connection, gamepad button, and gamepad axis events.
-- `InputFrameSnapshot` is the new full-frame state view for systems that need transitions, cursor-in-window state, current-frame file drag/drop and window status events, active touches, connected gamepads, processed gamepad axes, current-frame gamepad axis transitions, processed analog button values, current-frame gamepad rumble requests, IME preedit/commit/delete-surrounding/host-request state, precise wheel events, and motion accumulators.
+- `InputEvent` remains the append-only neutral event stream, now covering cursor position, cursor enter/leave, cursor host requests, file drag/drop, window status, mouse motion, Bevy-style wheel x/y/unit events, keyboard, IME composition/delete requests, outgoing IME host requests, focus loss, touch, gamepad connection, gamepad button, and gamepad axis events.
+- `InputFrameSnapshot` is the new full-frame state view for systems that need transitions, cursor-in-window state, current-frame cursor host requests, file drag/drop and window status events, active touches, connected gamepads, processed gamepad axes, current-frame gamepad axis transitions, processed analog button values, current-frame gamepad rumble requests, IME preedit/commit/delete-surrounding/host-request state, precise wheel events, and motion accumulators.
 - `InputSnapshot` remains the compatibility view: cursor, pressed buttons, and scalar wheel accumulator.
 
 ## Runtime Manager Behavior
 
-`DefaultInputManager::begin_frame()` clears transient button transitions plus wheel and mouse-motion accumulators. It does not release currently pressed buttons. Callers that do not use `begin_frame()` keep the previous behavior where wheel accumulates until inspected.
+`DefaultInputManager::begin_frame()` clears transient button transitions plus wheel and mouse-motion accumulators, and clears current-frame host request queues. It does not release currently pressed buttons. Callers that do not use `begin_frame()` keep the previous behavior where wheel accumulates until inspected.
 
 Cursor events keep `cursor_position` and `cursor_inside_window` separate. `CursorMoved` updates position, while `CursorEntered` and `CursorLeft` only update whether the host cursor is inside the window. This mirrors Bevy's split between `CursorMoved`, `CursorEntered`, and `CursorLeft` messages in `dev/bevy/crates/bevy_window/src/event.rs`.
+
+Cursor host requests are runtime-to-host messages. Runtime systems submit `InputEvent::CursorHostRequest` carrying `CursorHostRequest::SetVisible`, `SetGrabMode`, `SetHitTest`, or `SetPosition`; `InputFrameSnapshot::cursor_host_requests` exposes the current-frame view, and `InputManager::drain_cursor_host_requests()` is the one-shot handoff path used by the dynamic runtime host-request ABI. The queue is frame-local: draining clears only cursor host requests, while `begin_frame()` drops any undrained requests before the next frame. This lane is lower transport only; UI pointer capture, popup routing, focus, and hit testing authority still belong to Runtime 09.
 
 File drag/drop events are current-frame messages. `FileDragDropEvent::Hovered` and `Dropped` carry a UTF-8 path string, and `Cancelled` records that the host drag operation left or was cancelled. `begin_frame()` clears `InputFrameSnapshot::file_drag_drop_events`; it does not store a durable hovered-file set because the asset/UI layer owns any longer-lived import workflow.
 
@@ -191,7 +215,7 @@ Runtime 12 M2 adds named anchors for the gamepad bridge that already exists in t
 
 Runtime 12 M0.1 makes the frame-input lifecycle explicit. Platform and app host events enter through ABI constructors or direct runtime event submission, then `DefaultInputManager::submit_event(...)` reduces them into durable button state, frame-local transitions, accumulators, and current-frame event lists. Gameplay and UI-facing consumers should read `InputFrameSnapshot` when they need `just_pressed`, `just_released`, mouse motion, wheel deltas, touch, IME, file-drag, window-status, or gamepad state. `InputSnapshot` remains the compact compatibility view for cursor, pressed buttons, and scalar wheel data.
 
-`DefaultInputManager::begin_frame()` is the transition-clear boundary for the next frame. It clears `just_pressed`, `just_released`, wheel/motion accumulators, and current-frame message lists, but it does not release durable pressed buttons or persistent IME/gamepad state. This follows the same state split as Bevy `ButtonInput<T>`, where `just_pressed` and `just_released` are one-frame facts layered on top of a longer-lived pressed set.
+`DefaultInputManager::begin_frame()` is the transition-clear boundary for the next frame. It clears `just_pressed`, `just_released`, wheel/motion accumulators, current-frame message lists, and outgoing host request queues, but it does not release durable pressed buttons or persistent IME/gamepad state. This follows the same state split as Bevy `ButtonInput<T>`, where `just_pressed` and `just_released` are one-frame facts layered on top of a longer-lived pressed set.
 
 The dynamic runtime session has one important ordering rule: `RuntimeDynamicSession::tick_frame()` runs the loaded level before it calls `input_manager.begin_frame()`. Guard anchor: RuntimeDynamicSession::tick_frame() runs the loaded level before it calls `input_manager.begin_frame()`. Events submitted since the previous clear therefore remain visible to level systems for exactly one update, and are cleared only after that update has consumed the frame. `frame_input_clears_after_level_tick_not_before` is the source-order guard for that rule; `input_snapshot_just_pressed_is_true_for_exactly_one_frame` is the behavior anchor for the one-frame transition state.
 
@@ -199,7 +223,7 @@ Runtime 12 M0.2 settles the first arbitration boundary above this lower input st
 
 `runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` guards this contract at the plan/doc/source boundary. It keeps the frame contract anchors, `DefaultInputManager` / `InputFrameSnapshot` public surface, and named M0.1 test anchors synchronized while the Cargo input filter remains pending.
 
-`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 19`, `expected_test_module_count = 7`, `public_surface_anchors = 23/23`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 14`, `missing_gamepad_abi_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+`input_stack_boundary` now mirrors Runtime 12 through the Python structural audit. Current evidence reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 15`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
 
 ## Action Mapping
 
@@ -296,6 +320,10 @@ Zircon mirrors that in the runtime input contract with `MouseScrollUnit` and `Mo
 ## Cursor Boundary
 
 M8 adds the Bevy-style cursor boundary path. Bevy registers `CursorEntered` and `CursorLeft` messages in `dev/bevy/crates/bevy_window/src/lib.rs`, defines the event payloads in `dev/bevy/crates/bevy_window/src/event.rs`, and Zircon forwards current winit `WindowEvent::PointerEntered` / `PointerLeft` into the same cursor-boundary ABI concepts. Zircon mirrors that as a neutral bool in `InputFrameSnapshot::cursor_inside_window` plus two ABI constructors, `ZrRuntimeEventV1::cursor_entered` and `ZrRuntimeEventV1::cursor_left`.
+
+## Cursor Host Requests
+
+Runtime 12 adds the cursor-control request family with `CursorGrabMode`, `CursorPosition`, and `CursorHostRequest`. This mirrors the direction of the IME and gamepad rumble host-request lanes: runtime code records intent as current-frame data, `RuntimeDynamicSession::drain_host_requests()` serializes it as `ZrRuntimeHostRequestV1::Cursor`, and the native runtime-preview host applies it to the winit window. The host maps visible requests to `set_cursor_visible`, grab requests to `set_cursor_grab` with confined/locked fallback, hit-test requests to `set_cursor_hittest`, and finite position requests to `set_cursor_position`; missing or non-finite cursor payloads are logged and ignored. The behavior anchor is `cursor_host_requests_are_frame_local_and_drainable`, and the current status anchor is `cursor_host_request_static_passed_cargo_deferred`.
 
 ## File Drag And Drop
 

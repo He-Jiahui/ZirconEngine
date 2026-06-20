@@ -13,6 +13,7 @@ from pathlib import Path
 
 from tools.zircon_export.cli import run_pipeline
 from tools.zircon_export.tests.export_test_support import (
+    _compile_host_plan,
     _compile_host_link_plan,
     _write_validate_report_with_strategies,
 )
@@ -28,7 +29,7 @@ class PlatformBundleDeltaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -84,7 +85,7 @@ class PlatformBundleDeltaTests(unittest.TestCase):
             pack.write_text("custom pack placeholder", encoding="utf-8")
             delta_pack = root / "pack-output" / "custom-assets.delta.zrpd"
             delta_pack.write_text("delta pack placeholder", encoding="utf-8")
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             _write_stage_report(out, "validate", fatal=False)
@@ -120,7 +121,7 @@ class PlatformBundleDeltaTests(unittest.TestCase):
             pack.write_text("custom pack placeholder", encoding="utf-8")
             delta_pack = root / "pack-output" / "custom-assets.delta.zrpd"
             delta_pack.write_text("delta pack placeholder", encoding="utf-8")
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             _write_stage_report(out, "validate", fatal=False)
@@ -227,7 +228,7 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
                 "profile": "windows-release",
                 "fatal": False,
                 "diagnostics": [],
-                "command": ["cargo", "build"],
+                "command": list(_compile_host_plan()["command"]),
                 "exit_code": 0,
                 "host_executable": str(host_executable),
                 "link_plan": _compile_host_link_plan(),
@@ -243,6 +244,8 @@ def _write_compile_host_report(out: Path, host_executable: Path) -> None:
 def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
     report_dir = out / "stages" / "pack"
     report_dir.mkdir(parents=True, exist_ok=True)
+    previous_pack = delta_pack.with_name("previous.zrpack")
+    previous_pack.write_text("previous pack placeholder", encoding="utf-8")
     asset_manifest = out / "stages" / "cook_assets" / "assets.json"
     asset_manifest.parent.mkdir(parents=True, exist_ok=True)
     if not asset_manifest.exists():
@@ -279,6 +282,7 @@ def _write_pack_report(out: Path, pack: Path, delta_pack: Path) -> None:
                 "chunk_count": 0,
                 "deduplicated_assets": [],
                 "deterministic_double_run": False,
+                "previous_pack": str(previous_pack),
                 "delta_pack": str(delta_pack),
                 "delta_manifest": empty_delta_manifest(),
                 "delta_asset_count": 0,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 import tempfile
 import unittest
@@ -22,6 +23,285 @@ from tools.zircon_export.tests.export_test_support import (
 
 
 class ExportTemplateValidationTests(unittest.TestCase):
+    def test_template_rejects_unknown_manifest_fields(self) -> None:
+        cases = (
+            (
+                lambda text: text.replace(
+                    "\n[paths]\n",
+                    '\nunsigned_sidecar = "sidecar.bin"\n\n[paths]\n',
+                ),
+                "template.toml unknown field unsigned_sidecar",
+            ),
+            (
+                lambda text: text.replace(
+                    'host_executable = "bin/zircon_runtime.host-placeholder"\n',
+                    'host_executable = "bin/zircon_runtime.host-placeholder"\n'
+                    'future_path = "sidecar.bin"\n',
+                ),
+                "template.toml paths unknown field future_path",
+            ),
+            (
+                lambda text: text.replace(
+                    'delta_pack_path = "patches/assets.delta.zrpd"\n',
+                    'delta_pack_path = "patches/assets.delta.zrpd"\n'
+                    'future_path = "sidecar.bin"\n',
+                ),
+                "template.toml bundle unknown field future_path",
+            ),
+            (
+                lambda text: text.replace(
+                    'sha256 = "63a26218c731a8b79da125da1e59a6a4e67ac2212ce6a2ee3f3016dde237dd97"\n',
+                    'sha256 = "63a26218c731a8b79da125da1e59a6a4e67ac2212ce6a2ee3f3016dde237dd97"\n'
+                    'future_field = "sidecar.bin"\n',
+                ),
+                "template.toml [[files]] entry 0 unknown field future_field",
+            ),
+        )
+        for mutate_manifest, expected_diagnostic in cases:
+            with self.subTest(expected_diagnostic=expected_diagnostic):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    template_dir = Path(temp_dir) / "template"
+                    shutil.copytree(VALID_TEMPLATE, template_dir)
+                    manifest = template_dir / "template.toml"
+                    manifest.write_text(
+                        mutate_manifest(manifest.read_text(encoding="utf-8")),
+                        encoding="utf-8",
+                    )
+
+                    report = validate_export_template(
+                        template_dir=template_dir,
+                        expected_engine_version="0.1.0",
+                        profile="windows-release",
+                        expected_target_platform="windows-x86_64",
+                    )
+
+                self.assertTrue(report["fatal"], report["diagnostics"])
+                self.assertTrue(
+                    any(
+                        expected_diagnostic in diagnostic
+                        for diagnostic in report["diagnostics"]
+                    ),
+                    report["diagnostics"],
+                )
+
+    def test_template_rejects_blank_compatible_profile_entries(self) -> None:
+        cases = (
+            'compatible_profiles = ["windows-release", ""]',
+            'compatible_profiles = ["windows-release", "   "]',
+        )
+        for compatible_profiles in cases:
+            with self.subTest(compatible_profiles=compatible_profiles):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    template_dir = Path(temp_dir) / "template"
+                    shutil.copytree(VALID_TEMPLATE, template_dir)
+                    manifest = template_dir / "template.toml"
+                    manifest.write_text(
+                        manifest.read_text(encoding="utf-8").replace(
+                            'compatible_profiles = ["windows-release"]',
+                            compatible_profiles,
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    report = validate_export_template(
+                        template_dir=template_dir,
+                        expected_engine_version="0.1.0",
+                        profile="windows-release",
+                        expected_target_platform="windows-x86_64",
+                    )
+
+                self.assertTrue(report["fatal"], report["diagnostics"])
+                self.assertTrue(
+                    any(
+                        "template.toml field compatible_profiles must not contain blank entries"
+                        in diagnostic
+                        for diagnostic in report["diagnostics"]
+                    ),
+                    report["diagnostics"],
+                )
+
+    def test_template_rejects_duplicate_compatible_profile_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            template_dir = Path(temp_dir) / "template"
+            shutil.copytree(VALID_TEMPLATE, template_dir)
+            manifest = template_dir / "template.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8").replace(
+                    'compatible_profiles = ["windows-release"]',
+                    'compatible_profiles = ["windows-release", "windows-release"]',
+                ),
+                encoding="utf-8",
+            )
+
+            report = validate_export_template(
+                template_dir=template_dir,
+                expected_engine_version="0.1.0",
+                profile="windows-release",
+                expected_target_platform="windows-x86_64",
+            )
+
+        self.assertTrue(report["fatal"], report["diagnostics"])
+        self.assertTrue(
+            any(
+                "template.toml field compatible_profiles duplicate entry "
+                "windows-release"
+                in diagnostic
+                for diagnostic in report["diagnostics"]
+            ),
+            report["diagnostics"],
+        )
+
+    def test_template_rejects_blank_bundle_path_fields(self) -> None:
+        for field in (
+            "root",
+            "host_path",
+            "pack_path",
+            "delta_pack_path",
+            "manifest_path",
+        ):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    template_dir = Path(temp_dir) / "template"
+                    shutil.copytree(VALID_TEMPLATE, template_dir)
+                    manifest = template_dir / "template.toml"
+                    original_lines = manifest.read_text(encoding="utf-8").splitlines()
+                    field_exists = any(
+                        line.startswith(f"{field} = ") for line in original_lines
+                    )
+                    lines = []
+                    replaced = False
+                    for line in original_lines:
+                        if line.startswith(f"{field} = "):
+                            lines.append(f'{field} = "   "')
+                            replaced = True
+                        else:
+                            lines.append(line)
+                        if line == "[bundle]" and not field_exists and not replaced:
+                            lines.append(f'{field} = "   "')
+                            replaced = True
+                    manifest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+                    report = validate_export_template(
+                        template_dir=template_dir,
+                        expected_engine_version="0.1.0",
+                        profile="windows-release",
+                        expected_target_platform="windows-x86_64",
+                    )
+
+                self.assertTrue(report["fatal"], report["diagnostics"])
+                self.assertTrue(
+                    any(
+                        f"template.toml field bundle.{field} must be a non-empty string"
+                        in diagnostic
+                        for diagnostic in report["diagnostics"]
+                    ),
+                    report["diagnostics"],
+                )
+
+    def test_template_rejects_duplicate_bundle_path_entries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            template_dir = Path(temp_dir) / "template"
+            shutil.copytree(VALID_TEMPLATE, template_dir)
+            extra_file = template_dir / "bin" / "alternate-host-placeholder"
+            extra_file.write_text("alternate host", encoding="utf-8")
+            host_hash = _file_sha256(
+                template_dir / "bin" / "zircon_runtime.host-placeholder"
+            )
+            extra_hash = _file_sha256(extra_file)
+            bundle_path = "bin/zircon_runtime.host-placeholder"
+            hasher = hashlib.sha256()
+            for path, declared_bundle_path, sha256 in (
+                (
+                    "bin/alternate-host-placeholder",
+                    bundle_path,
+                    extra_hash,
+                ),
+                (
+                    "bin/zircon_runtime.host-placeholder",
+                    bundle_path,
+                    host_hash,
+                ),
+            ):
+                hasher.update(path.encode("utf-8"))
+                hasher.update(b"\0")
+                hasher.update(declared_bundle_path.encode("utf-8"))
+                hasher.update(b"\0")
+                hasher.update(sha256.lower().encode("ascii"))
+                hasher.update(b"\n")
+            manifest = template_dir / "template.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8")
+                .replace(
+                    'content_hash = "e5acc99c1ccc705e08793501ff1226adcc8e181c6d1d9ffbff7cef2270a99304"',
+                    f'content_hash = "{hasher.hexdigest()}"',
+                )
+                .replace(
+                    'path = "bin/zircon_runtime.host-placeholder"\n'
+                    'purpose = "M3-T1 placeholder host path for template contract validation"\n',
+                    'path = "bin/zircon_runtime.host-placeholder"\n'
+                    f'bundle_path = "{bundle_path}"\n'
+                    'purpose = "M3-T1 placeholder host path for template contract validation"\n',
+                )
+                + "\n[[files]]\n"
+                'path = "bin/alternate-host-placeholder"\n'
+                f'bundle_path = "{bundle_path}"\n'
+                'purpose = "duplicate output path test"\n'
+                f'sha256 = "{extra_hash}"\n',
+                encoding="utf-8",
+            )
+
+            report = validate_export_template(
+                template_dir=template_dir,
+                expected_engine_version="0.1.0",
+                profile="windows-release",
+                expected_target_platform="windows-x86_64",
+            )
+
+        self.assertTrue(report["fatal"], report["diagnostics"])
+        self.assertTrue(
+            any(
+                f"template bundle path {bundle_path} is declared more than once"
+                in diagnostic
+                for diagnostic in report["diagnostics"]
+            ),
+            report["diagnostics"],
+        )
+
+    def test_template_rejects_invalid_file_purpose(self) -> None:
+        cases = (
+            ("purpose = 123", "template file bin/zircon_runtime.host-placeholder purpose must be a string"),
+            ('purpose = "   "', "template file bin/zircon_runtime.host-placeholder purpose must be non-empty when present"),
+        )
+        for replacement, expected_diagnostic in cases:
+            with self.subTest(replacement=replacement):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    template_dir = Path(temp_dir) / "template"
+                    shutil.copytree(VALID_TEMPLATE, template_dir)
+                    manifest = template_dir / "template.toml"
+                    manifest.write_text(
+                        manifest.read_text(encoding="utf-8").replace(
+                            'purpose = "M3-T1 placeholder host path for template contract validation"',
+                            replacement,
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    report = validate_export_template(
+                        template_dir=template_dir,
+                        expected_engine_version="0.1.0",
+                        profile="windows-release",
+                        expected_target_platform="windows-x86_64",
+                    )
+
+                self.assertTrue(report["fatal"], report["diagnostics"])
+                self.assertTrue(
+                    any(
+                        expected_diagnostic in diagnostic
+                        for diagnostic in report["diagnostics"]
+                    ),
+                    report["diagnostics"],
+                )
+
     def test_template_version_mismatch_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             template_dir = Path(temp_dir) / "template"
@@ -716,6 +996,55 @@ class ExportTemplateValidationTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     "content_hash" in diagnostic
+                    for diagnostic in skipped_candidates[0]["diagnostics"]
+                ),
+                skipped_candidates[0]["diagnostics"],
+            )
+
+    def test_template_root_skips_matching_candidate_with_blank_profile_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            template_root = root / "templates"
+            valid_template = template_root / "linux-valid"
+            invalid_template = template_root / "linux-invalid"
+            shutil.copytree(LINUX_TEMPLATE, valid_template)
+            shutil.copytree(LINUX_TEMPLATE, invalid_template)
+            manifest = invalid_template / "template.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8").replace(
+                    'compatible_profiles = ["linux-release"]',
+                    'compatible_profiles = ["linux-release", ""]',
+                ),
+                encoding="utf-8",
+            )
+            pack = root / "assets.zrpack"
+            pack.write_text("pack placeholder", encoding="utf-8")
+
+            exit_code = _run_platform_bundle_quiet(
+                _platform_bundle_args(
+                    out=root / "out",
+                    profile="linux-release",
+                    template_dir=None,
+                    template_root=template_root,
+                    pack_file=pack,
+                    target_platform="linux-x86_64",
+                )
+            )
+
+            report = json_loads(
+                (root / "out" / "stages" / "platform_bundle" / "report.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(exit_code, 0, report["diagnostics"])
+            self.assertFalse(report["fatal"], report["diagnostics"])
+            self.assertEqual(Path(report["template_resolution"]["template_dir"]), valid_template)
+            skipped_candidates = report["template_resolution"]["skipped_candidates"]
+            self.assertEqual(len(skipped_candidates), 1)
+            self.assertEqual(Path(skipped_candidates[0]["template_dir"]), invalid_template)
+            self.assertTrue(
+                any(
+                    "compatible_profiles must not contain blank entries" in diagnostic
                     for diagnostic in skipped_candidates[0]["diagnostics"]
                 ),
                 skipped_candidates[0]["diagnostics"],

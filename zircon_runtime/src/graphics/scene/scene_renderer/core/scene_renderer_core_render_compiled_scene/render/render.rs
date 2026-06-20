@@ -1,8 +1,8 @@
 #[cfg(test)]
 use crate::asset::{TextureAsset, TexturePayload};
 use crate::core::framework::render::{
-    AntiAliasMode, PostProcessGraphResourceNames, RenderCameraTargetGraphImportReport,
-    RenderCapabilitySummary, RenderPluginRendererOutputs,
+    AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
+    RenderPluginRendererOutputs,
 };
 #[cfg(test)]
 use crate::core::framework::render::{
@@ -17,7 +17,7 @@ use crate::graphics::debug_markers::{
     RENDERDOC_MARKER_HISTORY_COPY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_PREPASS,
 };
 use crate::graphics::pipeline::RenderPassStage;
-use crate::graphics::scene::resources::{OutputTargetTextureResource, ResourceStreamer};
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderGraphImportedFinalTarget,
     RenderPassExecutorRegistry, RenderPassPostProcessStackContext,
@@ -30,9 +30,7 @@ use crate::graphics::scene::scene_renderer::mesh::{
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
-use crate::graphics::types::{
-    GraphicsError, ViewportRenderFrame, ViewportTextureGraphImportStatus,
-};
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
@@ -40,7 +38,6 @@ use crate::graphics::CompiledRenderPipeline;
 use crate::render_graph::RenderGraphResourceAccessKind;
 #[cfg(test)]
 use crate::rhi::TextureFormat;
-use std::sync::Arc;
 
 use super::super::super::scene_renderer_core::{
     merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
@@ -55,6 +52,7 @@ use super::bind_history_graph_resources::{
 use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
+use super::final_target_output::select_final_target_output;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
 
 const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
@@ -249,13 +247,12 @@ impl SceneRendererCore {
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
         self.transient_resource_pool.begin_frame();
-        let direct_imported_final_target = direct_imported_final_target(streamer, frame);
-        let imported_final_target =
-            direct_imported_final_target
-                .as_ref()
-                .map(|resource| RenderGraphImportedFinalTarget {
-                    view: resource.view(),
-                });
+        let final_target_output = select_final_target_output(streamer, frame);
+        let imported_final_target = final_target_output.imported_resource().map(|resource| {
+            RenderGraphImportedFinalTarget {
+                view: resource.view(),
+            }
+        });
         bind_frame_graph_resources(
             &pipeline.graph,
             &mut graph_resources,
@@ -263,9 +260,6 @@ impl SceneRendererCore {
             imported_final_target,
             Some(&self.shadow_atlas_resources),
         );
-        let direct_import_report = direct_imported_final_target
-            .as_ref()
-            .map(|resource| RenderCameraTargetGraphImportReport::direct_imported(resource.size()));
         bind_history_graph_resources(
             &pipeline.graph,
             &mut graph_resources,
@@ -312,6 +306,13 @@ impl SceneRendererCore {
             &mut graph_resources,
             &mut graph_execution_record,
             &mut graph_plugin_outputs,
+        );
+        self.scene_clear.record_frame_clear(
+            queue,
+            &mut encoder,
+            &target.scene_color_view,
+            &target.depth_view,
+            frame,
         );
         let early_post_process_stack = RenderPassPostProcessStackContext::new(
             &self.post_process,
@@ -494,8 +495,8 @@ impl SceneRendererCore {
         graph_execution
             .record
             .set_history_copy_report(history_copy_report);
-        for stage in LATE_GRAPH_STAGES {
-            let overlay_stage = matches!(*stage, RenderPassStage::Overlay | RenderPassStage::Debug);
+        for stage in active_late_graph_stages(pipeline) {
+            let overlay_stage = matches!(stage, RenderPassStage::Overlay | RenderPassStage::Debug);
             let overlay_renderer = if overlay_stage {
                 Some(&mut self.overlay_renderer)
             } else {
@@ -505,7 +506,7 @@ impl SceneRendererCore {
             execute_graph_stage(
                 pipeline,
                 render_pass_executors,
-                *stage,
+                stage,
                 device,
                 queue,
                 &mut encoder,
@@ -591,7 +592,7 @@ impl SceneRendererCore {
             self.gpu_scene.roll_prev_skinned_palettes_after_success();
         let _prev_skinned_source_roll_report =
             self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
-        Ok(match direct_import_report {
+        Ok(match final_target_output.graph_import_report {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,
         })
@@ -949,26 +950,20 @@ fn collect_hzb_occlusion_indirect_args_readback_summary(
     Some(summary)
 }
 
-fn direct_imported_final_target(
-    streamer: &ResourceStreamer,
-    frame: &ViewportRenderFrame,
-) -> Option<Arc<OutputTargetTextureResource>> {
-    if !frame.camera_stack_output_policy().writes_output_target() {
-        return None;
-    }
-    let texture = frame.output_target().texture_handle()?;
-    let prepared = streamer.output_target_texture_resource(&texture.id())?;
-    let plan = frame
-        .output_target()
-        .graph_import_plan(Some(prepared.descriptor().format.as_str()));
-    (plan.status() == ViewportTextureGraphImportStatus::ReadyForDirectImport).then_some(prepared)
-}
-
 fn active_sprite_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
     SPRITE_GRAPH_STAGES
         .iter()
         .copied()
         .filter(|stage| pipeline_has_active_sprite_stage(pipeline, *stage))
+        .collect()
+}
+
+fn active_late_graph_stages(pipeline: &CompiledRenderPipeline) -> Vec<RenderPassStage> {
+    pipeline
+        .stages
+        .iter()
+        .copied()
+        .filter(|stage| LATE_GRAPH_STAGES.contains(stage))
         .collect()
 }
 
@@ -1008,7 +1003,8 @@ fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &s
 #[cfg(test)]
 mod tests {
     use super::{
-        active_sprite_graph_stages, EARLY_GRAPH_STAGES, LATE_GRAPH_STAGES, SPRITE_GRAPH_STAGES,
+        active_late_graph_stages, active_sprite_graph_stages, EARLY_GRAPH_STAGES,
+        LATE_GRAPH_STAGES, SPRITE_GRAPH_STAGES,
     };
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
@@ -1023,12 +1019,42 @@ mod tests {
         assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Deferred));
         assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::Lighting));
         assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
+        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Ui));
+        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Overlay));
+        assert!(LATE_GRAPH_STAGES.contains(&RenderPassStage::Debug));
+    }
+
+    #[test]
+    fn active_late_graph_stages_follow_compiled_pipeline_order() {
+        let default_3d = compiled_pipeline_with_stages(vec![
+            RenderPassStage::DepthPrepass,
+            RenderPassStage::PostProcess,
+            RenderPassStage::Overlay,
+            RenderPassStage::Debug,
+            RenderPassStage::Ui,
+        ]);
         assert_eq!(
-            LATE_GRAPH_STAGES,
-            &[
-                RenderPassStage::Ui,
+            active_late_graph_stages(&default_3d),
+            vec![
                 RenderPassStage::Overlay,
                 RenderPassStage::Debug,
+                RenderPassStage::Ui
+            ]
+        );
+
+        let core2d = compiled_pipeline_with_stages(vec![
+            RenderPassStage::Opaque2d,
+            RenderPassStage::PostProcess,
+            RenderPassStage::Ui,
+            RenderPassStage::Overlay,
+            RenderPassStage::Debug,
+        ]);
+        assert_eq!(
+            active_late_graph_stages(&core2d),
+            vec![
+                RenderPassStage::Ui,
+                RenderPassStage::Overlay,
+                RenderPassStage::Debug
             ]
         );
     }
@@ -1072,6 +1098,23 @@ mod tests {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             graph: graph.compile().expect("sprite stage test graph"),
+        }
+    }
+
+    fn compiled_pipeline_with_stages(stages: Vec<RenderPassStage>) -> CompiledRenderPipeline {
+        CompiledRenderPipeline {
+            handle: RenderPipelineHandle::new(100),
+            name: "stage-order-test".to_string(),
+            renderer_name: "stage-order-test".to_string(),
+            stages,
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            graph: RenderGraphBuilder::new("stage-order-test")
+                .compile()
+                .expect("stage order test graph"),
         }
     }
 }

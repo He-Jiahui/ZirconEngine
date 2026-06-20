@@ -49,14 +49,14 @@ fn prepare_hybrid_gi_runtime(
 ) -> Option<crate::graphics::HybridGiRuntimePrepareOutput> {
     if !context.hybrid_gi_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
-            record.clear_hybrid_gi_runtime();
+            record.clear_hybrid_gi_runtimes();
         }
         return None;
     }
 
     let Some(registration) = state.hybrid_gi_runtime_provider.clone() else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
-            record.clear_hybrid_gi_runtime();
+            record.clear_hybrid_gi_runtimes();
         }
         return None;
     };
@@ -75,7 +75,7 @@ fn prepare_hybrid_gi_runtime(
     );
     Some(
         record
-            .ensure_hybrid_gi_runtime(registration.provider())
+            .ensure_hybrid_gi_runtime(context.camera_history_key(), registration.provider())
             .prepare_frame(input),
     )
 }
@@ -87,14 +87,14 @@ fn prepare_virtual_geometry_runtime(
 ) -> Option<crate::graphics::VirtualGeometryRuntimePrepareOutput> {
     if !context.virtual_geometry_enabled() {
         if let Some(record) = state.viewports.get_mut(&viewport) {
-            record.clear_virtual_geometry_runtime();
+            record.clear_virtual_geometry_runtimes();
         }
         return None;
     }
 
     let Some(registration) = state.virtual_geometry_runtime_provider.clone() else {
         if let Some(record) = state.viewports.get_mut(&viewport) {
-            record.clear_virtual_geometry_runtime();
+            record.clear_virtual_geometry_runtimes();
         }
         return None;
     };
@@ -112,7 +112,7 @@ fn prepare_virtual_geometry_runtime(
     );
     Some(
         record
-            .ensure_virtual_geometry_runtime(registration.provider())
+            .ensure_virtual_geometry_runtime(context.camera_history_key(), registration.provider())
             .prepare_frame(input),
     )
 }

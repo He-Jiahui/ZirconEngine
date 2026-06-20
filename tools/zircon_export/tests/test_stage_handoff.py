@@ -169,6 +169,29 @@ class StageHandoffTests(unittest.TestCase):
                 "Pack report field delta_pack must be a non-empty string",
             )
 
+    def test_optional_path_field_reports_blank_present_value(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir)
+            write_stage_report(
+                out,
+                "pack",
+                {
+                    "pack": str(out / "assets.zrpack"),
+                    "delta_pack": " ",
+                },
+            )
+
+            self.assertIsNone(pack_report_delta_pack_file(out, "windows-release"))
+            self.assertEqual(
+                stage_report_optional_path_handoff_diagnostic(
+                    out,
+                    "pack",
+                    "windows-release",
+                    "delta_pack",
+                ),
+                "Pack report field delta_pack must be a non-empty string",
+            )
+
     def test_optional_path_field_reports_path_resolve_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir)

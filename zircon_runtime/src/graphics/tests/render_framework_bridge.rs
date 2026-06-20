@@ -598,7 +598,7 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
     assert_eq!(stats.last_ui_target_size, Some(UVec2::new(320, 240)));
     assert_eq!(
         stats.last_ui_graph_pass_order.as_deref(),
-        Some("postprocess-ui-overlay")
+        Some("postprocess-overlay-ui")
     );
 }
 

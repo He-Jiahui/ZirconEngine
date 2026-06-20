@@ -62,6 +62,88 @@ fn first_stage_updates_all_registered_event_channels() {
 }
 
 #[test]
+fn event_store_send_by_id_uses_registered_channel_guard_source() {
+    let source = event_store_source();
+    let send_by_id = event_store_section(source, "pub fn send_by_id", "pub fn send_batch");
+    assert!(send_by_id.contains("if self.channel(event_type_id).is_none()"));
+    assert!(send_by_id.contains("return false;"));
+    assert!(send_by_id.contains("self.events_mut_by_id::<T>(event_type_id).send(event);"));
+    assert!(!send_by_id.contains("is_active"));
+    assert!(!send_by_id.contains("reader_count"));
+
+    let send_batch_by_id =
+        event_store_section(source, "pub fn send_batch_by_id", "pub fn update<T: Event>");
+    assert!(send_batch_by_id.contains("if self.channel(event_type_id).is_none()"));
+    assert!(send_batch_by_id.contains("return 0;"));
+    assert!(
+        send_batch_by_id.contains("self.events_mut_by_id::<T>(event_type_id).send_batch(events)")
+    );
+    assert!(!send_batch_by_id.contains("is_active"));
+    assert!(!send_batch_by_id.contains("reader_count"));
+}
+
+#[test]
+fn first_stage_event_update_all_uses_builtin_source_path() {
+    let registry_source = scene_system_registry_source();
+    let builtin_systems =
+        event_store_section(registry_source, "fn builtin_scene_systems", "impl Default");
+    assert!(builtin_systems.contains("\"zircon.scene.events_update_all\""));
+    assert!(builtin_systems.contains("SystemStage::First"));
+    assert!(builtin_systems.contains("InternalSceneSystem::UpdateEvents"));
+    assert!(builtin_systems.contains(".with_order(-10_000)"));
+
+    let derived_state_source = world_derived_state_source();
+    let run_internal = event_store_section(
+        derived_state_source,
+        "pub(crate) fn run_internal_scene_system",
+        "pub(crate) fn run_internal_scene_systems_for_stage",
+    );
+    assert!(run_internal.contains("if system == InternalSceneSystem::UpdateEvents"));
+    assert!(run_internal.contains("self.update_all_events();"));
+    assert!(run_internal.contains("return;"));
+
+    let world_events_source = world_events_source();
+    let update_all_events = event_store_section(
+        world_events_source,
+        "pub fn update_all_events",
+        "pub fn clear_events",
+    );
+    assert!(update_all_events.contains("self.events.update_all();"));
+}
+
+#[test]
+fn event_subscription_source_keeps_dormant_reader_boundaries() {
+    let source = event_store_section(
+        event_store_source(),
+        "pub struct EventSubscription<T>",
+        "pub struct EventReadIter",
+    );
+    let new_dormant = event_store_section(source, "pub fn new_dormant", "pub fn event_type_id");
+    assert!(new_dormant.contains("event_type_id: store.register::<T>()"));
+    assert!(new_dormant.contains("status: EventSubscriptionStatus::Dormant"));
+    assert!(!new_dormant.contains("register_reader"));
+    assert!(!new_dormant.contains("connect_reader"));
+
+    let connect = event_store_section(source, "pub fn connect", "pub fn disconnect");
+    assert!(connect.contains("self.is_connected() || !store.connect_reader(self.event_type_id)"));
+    assert!(connect.contains(".clear(store.events_by_id::<T>(self.event_type_id))"));
+    assert!(connect.contains("self.status = EventSubscriptionStatus::Connected"));
+
+    let disconnect = event_store_section(source, "pub fn disconnect", "pub fn read<'events>");
+    assert!(
+        disconnect.contains("!self.is_connected() || !store.disconnect_reader(self.event_type_id)")
+    );
+    assert!(disconnect.contains("self.cursor.clear(None);"));
+    assert!(disconnect.contains("self.status = EventSubscriptionStatus::Dormant"));
+
+    let read = event_store_section(source, "pub fn read<'events>", "pub fn unread_count");
+    assert!(read.contains("if !self.is_connected()"));
+    assert!(read.contains("self.cursor.clear(None);"));
+    assert!(read.contains("return EventReadIter::empty();"));
+    assert!(read.contains(".read(store.events_by_id::<T>(self.event_type_id))"));
+}
+
+#[test]
 fn clear_events_prunes_current_and_next_event_queues() {
     let mut world = World::empty();
     let mut writer = SystemState::<EventWriterParam<FrameEvent>>::new(&mut world).unwrap();
@@ -169,4 +251,47 @@ fn event_and_message_clear_boundaries_do_not_cross_channels() {
             .map(|messages| messages.len()),
         Some(0)
     );
+}
+
+fn event_store_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/events/mod.rs"),
+        "\n",
+        include_str!("../ecs/events/cursor.rs"),
+        "\n",
+        include_str!("../ecs/events/id.rs"),
+        "\n",
+        include_str!("../ecs/events/metrics.rs"),
+        "\n",
+        include_str!("../ecs/events/queue.rs"),
+        "\n",
+        include_str!("../ecs/events/store.rs"),
+        "\n",
+        include_str!("../ecs/events/subscription.rs"),
+    )
+}
+
+fn scene_system_registry_source() -> &'static str {
+    include_str!("../ecs/scene_system_registry.rs")
+}
+
+fn world_derived_state_source() -> &'static str {
+    include_str!("../world/derived_state.rs")
+}
+
+fn world_events_source() -> &'static str {
+    include_str!("../world/events.rs")
+}
+
+fn event_store_section<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
+    let after_start = source
+        .split_once(start)
+        .unwrap_or_else(|| panic!("event store source should contain {start}"))
+        .1;
+    after_start
+        .split_once(end)
+        .unwrap_or_else(|| {
+            panic!("event store source section starting at {start} should contain {end}")
+        })
+        .0
 }

@@ -3,278 +3,21 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .pipeline_report_schema_primitives import (
-    validate_bool_schema_diagnostics,
-    validate_integer_schema_diagnostics,
-    validate_object_array_schema_diagnostics,
-    validate_object_schema_diagnostics,
-    validate_string_array_schema_diagnostics,
-    validate_string_schema_diagnostics,
+from .export_template import is_safe_relative_path, normalize_relative_path
+from .pipeline_report_platform_bundle_template_schema import (
+    PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS,
+    PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
+    platform_bundle_template_report_schema_diagnostics,
+    table_required_non_empty_string_diagnostics,
+    table_string_schema_diagnostics,
+    table_unknown_field_diagnostics,
 )
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_FIELDS = (
-    "bundle",
-    "bundle_format",
-    "compatible_profiles",
-    "computed_content_hash",
-    "content_hash",
-    "diagnostics",
-    "engine_version",
-    "expected_engine_version",
-    "expected_format_version",
-    "expected_target_platform",
-    "fatal",
-    "files",
-    "format_version",
-    "host_executable",
-    "host_kind",
-    "manifest",
-    "plugin_strategy",
-    "profile",
-    "resource_strategy",
-    "target_platform",
-    "template_dir",
-    "template_id",
+from .pipeline_report_platform_bundle_template_resolution_schema import (
+    platform_bundle_template_resolution_diagnostics,
 )
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_FIELDS = (
-    "bundle_format",
-    "computed_content_hash",
-    "content_hash",
-    "engine_version",
-    "expected_engine_version",
-    "expected_target_platform",
-    "host_executable",
-    "host_kind",
-    "manifest",
-    "plugin_strategy",
-    "profile",
-    "resource_strategy",
-    "target_platform",
-    "template_dir",
-    "template_id",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_INTEGER_FIELDS = (
-    "expected_format_version",
-    "format_version",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_BOOL_FIELDS = ("fatal",)
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS = (
-    "compatible_profiles",
-    "diagnostics",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_FIELDS = ("bundle",)
-
-PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_ARRAY_FIELDS = ("files",)
-
-PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS = (
-    "delta_pack_path",
-    "host_path",
-    "manifest_path",
-    "pack_path",
-    "root",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS = PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS
-
-PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS = (
-    "bundle_path",
-    "path",
-    "purpose",
-    "sha256",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_FILE_STRING_FIELDS = PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS
-
-PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS = ("destination", "source")
-
-PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS = (
-    PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_FIELDS = (
-    "candidates",
-    "diagnostics",
-    "expected_engine_version",
-    "expected_target_platform",
-    "fatal",
-    "profile",
-    "skipped_candidates",
-    "template_dir",
-    "template_root",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_FIELDS = (
-    "expected_engine_version",
-    "expected_target_platform",
-    "profile",
-    "template_dir",
-    "template_root",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_BOOL_FIELDS = ("fatal",)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_ARRAY_FIELDS = ("diagnostics",)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_FIELDS = (
-    "bundle_format",
-    "compatible_profiles",
-    "engine_version",
-    "target_platform",
-    "template_dir",
-    "template_id",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_FIELDS = (
-    "bundle_format",
-    "engine_version",
-    "target_platform",
-    "template_dir",
-    "template_id",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_ARRAY_FIELDS = (
-    "compatible_profiles",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_FIELDS = (
-    "diagnostics",
-    "template_dir",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_FIELDS = (
-    "template_dir",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_ARRAY_FIELDS = (
-    "diagnostics",
-)
-
-
-def platform_bundle_template_resolution_diagnostics(
-    report: dict[str, Any],
-) -> list[str]:
-    resolution = report.get("template_resolution")
-    return platform_bundle_template_resolution_schema_diagnostics(resolution)
-
-
-def platform_bundle_template_resolution_schema_diagnostics(
-    resolution: object,
-    label: str = "PlatformBundle report template_resolution",
-) -> list[str]:
-    if resolution is None:
-        return []
-    if not isinstance(resolution, dict):
-        return [f"{label} must be an object"]
-    diagnostics = table_unknown_field_diagnostics(
-        label,
-        resolution,
-        PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_FIELDS,
-    )
-    diagnostics.extend(
-        table_string_schema_diagnostics(
-            label,
-            resolution,
-            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_bool_schema_diagnostics(
-            label,
-            resolution,
-            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_BOOL_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            resolution,
-            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        template_resolution_sequence_schema_diagnostics(
-            resolution,
-            "candidates",
-            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_FIELDS,
-            string_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_FIELDS,
-            string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_CANDIDATE_STRING_ARRAY_FIELDS,
-            label=label,
-        )
-    )
-    diagnostics.extend(
-        template_resolution_sequence_schema_diagnostics(
-            resolution,
-            "skipped_candidates",
-            PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_FIELDS,
-            string_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_FIELDS,
-            string_array_fields=PLATFORM_BUNDLE_TEMPLATE_RESOLUTION_SKIPPED_CANDIDATE_STRING_ARRAY_FIELDS,
-            label=label,
-        )
-    )
-    return diagnostics
-
-
-def template_resolution_sequence_schema_diagnostics(
-    resolution: dict[str, Any],
-    field: str,
-    allowed_fields: tuple[str, ...],
-    *,
-    string_fields: tuple[str, ...],
-    string_array_fields: tuple[str, ...] = (),
-    label: str = "PlatformBundle report template_resolution",
-) -> list[str]:
-    value = resolution.get(field)
-    if value is None:
-        return []
-    if not isinstance(value, list):
-        return [f"{label} {field} must be a list"]
-    field_label = f"{label} {field}"
-    diagnostics = sequence_object_schema_diagnostics(
-        field_label,
-        value,
-    )
-    diagnostics.extend(
-        sequence_unknown_field_diagnostics(
-            field_label,
-            value,
-            allowed_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_string_schema_diagnostics(
-            field_label,
-            value,
-            string_fields,
-        )
-    )
-    diagnostics.extend(
-        sequence_string_array_schema_diagnostics(
-            field_label,
-            value,
-            string_array_fields,
-        )
-    )
-    return diagnostics
-
-
-def sequence_object_schema_diagnostics(
-    label: str,
-    value: object,
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            diagnostics.append(f"{label}[{index}] must be an object")
-    return diagnostics
 
 
 def platform_bundle_template_files_diagnostics(
@@ -306,6 +49,11 @@ def platform_bundle_template_files_diagnostics(
         else None
     )
     expected_hashes = platform_bundle_template_file_hashes(template, diagnostics)
+    expected_destinations = platform_bundle_template_file_expected_destinations(
+        report,
+        template,
+        diagnostics,
+    )
 
     for index, entry in enumerate(template_files):
         if not isinstance(entry, dict):
@@ -362,6 +110,15 @@ def platform_bundle_template_files_diagnostics(
                 f"PlatformBundle report template_files entry {index} cannot be matched to template file sha256"
             )
             continue
+        destination_diagnostic = platform_bundle_template_file_destination_diagnostic(
+            index,
+            entry,
+            destination_path,
+            expected_destinations,
+        )
+        if destination_diagnostic:
+            diagnostics.append(destination_diagnostic)
+            continue
         actual_sha256 = platform_bundle_file_sha256(
             destination_path,
             diagnostics,
@@ -378,116 +135,113 @@ def platform_bundle_template_files_diagnostics(
     return diagnostics
 
 
-def platform_bundle_template_copied_files_schema_diagnostics(
-    template_files: list[object],
-    label: str = "PlatformBundle report template_files",
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(template_files):
-        if not isinstance(entry, dict):
-            diagnostics.append(f"{label}[{index}] must be an object")
-            continue
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
-            )
-        )
-    return diagnostics
-
-
-def platform_bundle_template_report_schema_diagnostics(
+def platform_bundle_template_file_expected_destinations(
+    report: dict[str, Any],
     template: dict[str, Any],
-    label: str = "PlatformBundle report template",
-) -> list[str]:
-    diagnostics = table_unknown_field_diagnostics(
-        label,
-        template,
-        PLATFORM_BUNDLE_TEMPLATE_REPORT_FIELDS,
-    )
-    diagnostics.extend(
-        table_string_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_integer_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_INTEGER_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_bool_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_BOOL_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_string_array_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_object_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_FIELDS,
-        )
-    )
-    diagnostics.extend(
-        table_object_array_schema_diagnostics(
-            label,
-            template,
-            PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_ARRAY_FIELDS,
-        )
-    )
-    bundle = template.get("bundle")
-    if isinstance(bundle, dict):
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
-            )
-        )
+    diagnostics: list[str],
+) -> dict[str, tuple[Path, int]]:
+    bundle_root = platform_bundle_template_bundle_root(report, template, diagnostics)
+    if bundle_root is None:
+        return {}
+    template_dir = template.get("template_dir")
     files = template.get("files")
-    if isinstance(files, list):
-        diagnostics.extend(
-            sequence_unknown_field_diagnostics(
-                f"{label}.files",
-                files,
-                PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS,
-            )
+    if not isinstance(template_dir, str) or not template_dir:
+        return {}
+    if not isinstance(files, list):
+        return {}
+    template_root = resolve_user_path_or_diagnostic(
+        template_dir,
+        diagnostics,
+        "PlatformBundle report template.template_dir",
+    )
+    if template_root is None:
+        return {}
+    expected: dict[str, tuple[Path, int]] = {}
+    for index, entry in enumerate(files):
+        if not isinstance(entry, dict):
+            continue
+        relative_path = entry.get("path")
+        if not isinstance(relative_path, str) or not relative_path.strip():
+            continue
+        source_path = resolve_user_path_or_diagnostic(
+            template_root / relative_path,
+            diagnostics,
+            f"PlatformBundle report template.files entry {index} path",
         )
-        diagnostics.extend(
-            sequence_string_schema_diagnostics(
-                f"{label}.files",
-                files,
-                PLATFORM_BUNDLE_TEMPLATE_FILE_STRING_FIELDS,
-            )
+        if source_path is None:
+            continue
+        bundle_path = entry.get("bundle_path", relative_path)
+        if not isinstance(bundle_path, str) or not bundle_path.strip():
+            continue
+        normalized_bundle_path = normalize_relative_path(bundle_path)
+        if not is_safe_relative_path(normalized_bundle_path):
+            continue
+        expected_destination = resolve_user_path_or_diagnostic(
+            bundle_root / normalized_bundle_path,
+            diagnostics,
+            f"PlatformBundle report template.files[{index}].bundle_path",
         )
-    return diagnostics
+        if expected_destination is None:
+            continue
+        expected[str(source_path)] = (expected_destination, index)
+    return expected
+
+
+def platform_bundle_template_bundle_root(
+    report: dict[str, Any],
+    template: dict[str, Any],
+    diagnostics: list[str],
+) -> Path | None:
+    bundle = report.get("bundle")
+    if not isinstance(bundle, str) or not bundle:
+        return None
+    bundle_root = resolve_user_path_or_diagnostic(
+        bundle,
+        diagnostics,
+        "PlatformBundle report bundle",
+    )
+    if bundle_root is None:
+        return None
+    template_bundle = template.get("bundle")
+    if not isinstance(template_bundle, dict):
+        return bundle_root
+    root = template_bundle.get("root")
+    if not isinstance(root, str) or not root or root == ".":
+        return bundle_root
+    normalized_root = normalize_relative_path(root)
+    if not is_safe_relative_path(normalized_root):
+        return bundle_root
+    return resolve_user_path_or_diagnostic(
+        bundle_root / normalized_root,
+        diagnostics,
+        "PlatformBundle report template.bundle.root",
+    )
+
+
+def platform_bundle_template_file_destination_diagnostic(
+    index: int,
+    entry: dict[str, Any],
+    destination_path: Path,
+    expected_destinations: dict[str, tuple[Path, int]],
+) -> str | None:
+    source = entry.get("source")
+    if not isinstance(source, str) or not source:
+        return None
+    try:
+        source_path = resolve_user_path(source)
+    except OSError:
+        return None
+    expected = expected_destinations.get(str(source_path))
+    if expected is None:
+        return None
+    expected_destination, template_index = expected
+    if destination_path == expected_destination:
+        return None
+    return (
+        f"PlatformBundle report template_files[{index}].destination "
+        f"does not match template.files[{template_index}].bundle_path "
+        f"{expected_destination}"
+    )
 
 
 def platform_bundle_template_file_hashes(
@@ -560,149 +314,6 @@ def platform_bundle_template_file_expected_hash(
     if source_path is None:
         return None
     return expected_hashes.get(str(source_path))
-
-
-def table_unknown_field_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    known_fields: tuple[str, ...],
-) -> list[str]:
-    known_field_set = set(known_fields)
-    return [
-        f"{label} unknown field {field}"
-        for field in sorted(table)
-        if field not in known_field_set
-    ]
-
-
-def sequence_unknown_field_diagnostics(
-    label: str,
-    value: object,
-    known_fields: tuple[str, ...],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            continue
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                known_fields,
-            )
-        )
-    return diagnostics
-
-
-def table_string_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_string_schema_diagnostics
-    )
-
-
-def table_integer_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_integer_schema_diagnostics
-    )
-
-
-def table_bool_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_bool_schema_diagnostics
-    )
-
-
-def table_string_array_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_string_array_schema_diagnostics
-    )
-
-
-def table_object_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_object_schema_diagnostics
-    )
-
-
-def table_object_array_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-) -> list[str]:
-    return table_field_schema_diagnostics(
-        label, table, fields, validate_object_array_schema_diagnostics
-    )
-
-
-def table_field_schema_diagnostics(
-    label: str,
-    table: dict[str, Any],
-    fields: tuple[str, ...],
-    validate_schema: Callable[[str, Any], list[str]],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for field in fields:
-        if field in table and table.get(field) is not None:
-            diagnostics.extend(validate_schema(f"{label}.{field}", table.get(field)))
-    return diagnostics
-
-
-def sequence_string_schema_diagnostics(
-    label: str,
-    value: object,
-    fields: tuple[str, ...],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            continue
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                fields,
-            )
-        )
-    return diagnostics
-
-
-def sequence_string_array_schema_diagnostics(
-    label: str,
-    value: object,
-    fields: tuple[str, ...],
-) -> list[str]:
-    diagnostics: list[str] = []
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            continue
-        diagnostics.extend(
-            table_string_array_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                fields,
-            )
-        )
-    return diagnostics
 
 
 def resolve_user_path(path: str | Path) -> Path:

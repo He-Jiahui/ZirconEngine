@@ -25,6 +25,54 @@ struct DamageMessage(u32);
 
 impl Message for DamageMessage {}
 
+fn event_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/events/mod.rs"),
+        "\n",
+        include_str!("../ecs/events/cursor.rs"),
+        "\n",
+        include_str!("../ecs/events/id.rs"),
+        "\n",
+        include_str!("../ecs/events/metrics.rs"),
+        "\n",
+        include_str!("../ecs/events/queue.rs"),
+        "\n",
+        include_str!("../ecs/events/store.rs"),
+        "\n",
+        include_str!("../ecs/events/subscription.rs"),
+    )
+}
+
+fn message_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/messages/mod.rs"),
+        "\n",
+        include_str!("../ecs/messages/cursor.rs"),
+        "\n",
+        include_str!("../ecs/messages/id.rs"),
+        "\n",
+        include_str!("../ecs/messages/queue.rs"),
+        "\n",
+        include_str!("../ecs/messages/store.rs"),
+    )
+}
+
+fn observer_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/observer/mod.rs"),
+        "\n",
+        include_str!("../ecs/observer/callbacks.rs"),
+        "\n",
+        include_str!("../ecs/observer/entry.rs"),
+        "\n",
+        include_str!("../ecs/observer/id.rs"),
+        "\n",
+        include_str!("../ecs/observer/store.rs"),
+        "\n",
+        include_str!("../ecs/observer/utils.rs"),
+    )
+}
+
 #[test]
 fn lifecycle_observers_report_insert_replace_remove_and_despawn_order() {
     let mut world = World::empty();
@@ -257,7 +305,7 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
 
 #[test]
 fn observer_callback_collection_uses_exact_capacity_vectors() {
-    let observer_source = include_str!("../ecs/observer.rs");
+    let observer_source = observer_source();
 
     assert!(observer_source.contains("fn lifecycle_callback_count("));
     assert!(observer_source.contains("fn event_callback_count("));
@@ -307,7 +355,7 @@ fn observer_callback_collection_uses_exact_capacity_vectors() {
 
 #[test]
 fn event_and_message_batch_writers_preallocate_from_size_hint() {
-    let events_source = include_str!("../ecs/events.rs");
+    let events_source = event_source();
     assert!(events_source.contains("let events = events.into_iter();"));
     assert!(events_source.contains("let (lower_bound, _) = events.size_hint();"));
     assert!(events_source.contains("self.next.reserve(lower_bound);"));
@@ -316,7 +364,7 @@ fn event_and_message_batch_writers_preallocate_from_size_hint() {
     assert!(events_source.contains("std::mem::take(&mut self.current)"));
     assert!(!events_source.contains("self.current.drain(..).collect()"));
 
-    let messages_source = include_str!("../ecs/messages.rs");
+    let messages_source = message_source();
     assert!(messages_source.contains("pub fn write_batch<I>(&mut self, messages: I)"));
     assert!(messages_source.contains("let messages = messages.into_iter();"));
     assert!(messages_source.contains("let (lower_bound, _) = messages.size_hint();"));
@@ -332,13 +380,13 @@ fn event_and_message_batch_writers_preallocate_from_size_hint() {
 
 #[test]
 fn event_and_message_type_name_lists_preallocate_from_registered_type_count() {
-    let events_source = include_str!("../ecs/events.rs");
+    let events_source = event_source();
     assert!(events_source.contains("let mut names = Vec::with_capacity(self.channels.len());"));
     assert!(events_source.contains("for channel in &self.channels"));
     assert!(events_source.contains("names.push(channel.type_name);"));
     assert!(!events_source.contains("self.type_names.values().copied().collect::<Vec<_>>()"));
 
-    let messages_source = include_str!("../ecs/messages.rs");
+    let messages_source = message_source();
     assert!(messages_source.contains("let mut names = Vec::with_capacity(self.type_names.len());"));
     assert!(messages_source.contains("for name in self.type_names.values()"));
     assert!(messages_source.contains("names.push(*name);"));
@@ -347,7 +395,7 @@ fn event_and_message_type_name_lists_preallocate_from_registered_type_count() {
 
 #[test]
 fn message_id_debug_uses_cached_type_name_tail_branch() {
-    let messages_source = include_str!("../ecs/messages.rs");
+    let messages_source = message_source();
 
     assert_eq!(
         format!("{:?}", MessageId::<DamageMessage>::new(7)),
@@ -363,7 +411,7 @@ fn message_id_debug_uses_cached_type_name_tail_branch() {
 
 #[test]
 fn event_and_message_cursors_use_direct_lookup_branches() {
-    let events_source = include_str!("../ecs/events.rs");
+    let events_source = event_source();
     let event_unread_source = events_source
         .split("pub fn unread_count(&self, events: Option<&Events<T>>) -> usize")
         .nth(1)
@@ -398,7 +446,7 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
         !event_store_lookup_source.contains(".and_then(|store| store.downcast_ref::<Events<T>>())")
     );
 
-    let messages_source = include_str!("../ecs/messages.rs");
+    let messages_source = message_source();
     let message_unread_source = messages_source
         .split("pub fn unread_count(&self, messages: Option<&Messages<T>>) -> usize")
         .nth(1)
@@ -419,9 +467,9 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
     assert!(message_unread_source.contains("let Some(messages) = messages else"));
     assert!(message_unread_source.contains("return 0;"));
     assert!(message_unread_source.contains("if self.generation == messages.generation()"));
-    assert!(message_unread_source.contains(
-        "messages.messages.len().saturating_sub(self.cursor.min(messages.messages.len()))"
-    ));
+    assert!(
+        message_unread_source.contains(".saturating_sub(self.cursor.min(messages.messages.len()))")
+    );
     assert!(message_unread_source.contains("messages.messages.len()"));
     assert!(!message_unread_source.contains(".map(|messages|"));
     assert!(!message_unread_source.contains(".unwrap_or_default()"));

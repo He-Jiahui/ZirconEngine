@@ -3,7 +3,7 @@ use crate::ui::retained_host::primitives::SharedString;
 
 use super::super::routing::contains;
 
-pub(super) fn close_prompt_action_at(
+pub(in crate::ui::retained_host::host_contract) fn close_prompt_action_at(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,

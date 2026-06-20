@@ -5,11 +5,14 @@ use super::super::render_commands::HostPaintCommand;
 const MUI_X_HEADER_HEIGHT_FRACTION: f32 = 0.32;
 const MUI_X_ROW_HEIGHT_FRACTION: f32 = 0.22;
 
-pub(super) fn is_data_grid(component_role: &str, role: &str) -> bool {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_data_grid(
+    component_role: &str,
+    role: &str,
+) -> bool {
     super::matches_any_role(component_role, role, &["mui-x-data-grid", "DataGrid"])
 }
 
-pub(super) fn push_data_grid(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_data_grid(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

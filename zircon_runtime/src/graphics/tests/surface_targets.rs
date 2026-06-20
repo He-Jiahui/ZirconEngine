@@ -5,14 +5,15 @@ use crate::asset::{
     AssetUri, TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
-    CapturedFrame, FallbackSkyboxKind, GraphicsDebuggerStatus, PreviewEnvironmentExtract,
-    RenderCameraTarget, RenderCameraTargetGraphImportStatus, RenderCameraTargetKind,
-    RenderCameraTargetWritebackStatus, RenderCaptureSource, RenderFrameExtract, RenderFramework,
-    RenderFrameworkError, RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage,
-    RenderNativeSurfaceTarget, RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
+    CameraRenderDescriptor, CameraRenderType, CapturedFrame, FallbackSkyboxKind,
+    GraphicsDebuggerStatus, PreviewEnvironmentExtract, RenderCameraClear, RenderCameraTarget,
+    RenderCameraTargetGraphImportStatus, RenderCameraTargetKind, RenderCameraTargetWritebackStatus,
+    RenderCaptureSource, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage, RenderNativeSurfaceTarget,
+    RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
-    RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportHandle, RenderViewportRect, RenderViewportSurfaceDescriptor,
+    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{
@@ -475,6 +476,219 @@ fn graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target(
 }
 
 #[test]
+fn graphics_camera_target_texture_overlay_stack_preserves_base_composite() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let texture_uri =
+        AssetUri::parse("res://tests/camera-target/overlay-stack-composite.texture").unwrap();
+    let texture_id = ResourceId::from_locator(&texture_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(texture_id, ResourceKind::Texture, texture_uri.clone()),
+            srgb_render_target_texture_asset(texture_uri, 64, 48),
+        )
+        .expect("texture insert");
+    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
+        .unwrap();
+
+    framework
+        .submit_frame_extract(
+            viewport,
+            empty_extract_with_cameras(vec![
+                texture_base_camera(texture_id, Vec4::new(1.0, 0.0, 0.0, 1.0)).with_stack([2]),
+                texture_overlay_camera(texture_id),
+            ]),
+        )
+        .unwrap();
+    let frame = framework.capture_frame(viewport).unwrap().unwrap();
+    let stats = framework.query_stats().unwrap();
+
+    assert_eq!(
+        frame.capture_report.source,
+        RenderCaptureSource::TextureDirectGraphImport
+    );
+    assert_eq!(
+        frame.capture_report.graph_import_status,
+        RenderCameraTargetGraphImportStatus::DirectImported
+    );
+    assert_eq!(
+        frame.capture_report.writeback_status,
+        RenderCameraTargetWritebackStatus::SkippedDirectImport
+    );
+    assert_eq!(
+        stats.last_camera_target_graph_import.status,
+        RenderCameraTargetGraphImportStatus::DirectImported
+    );
+    assert_eq!(
+        stats.last_camera_target_writeback.status,
+        RenderCameraTargetWritebackStatus::SkippedDirectImport
+    );
+    assert!(
+        dominant_red_pixels(&frame.rgba) > ((frame.width * frame.height) as usize * 9 / 10),
+        "base camera clear must survive overlay stack load into the texture final target"
+    );
+}
+
+#[test]
+fn graphics_camera_target_texture_base_stacks_write_independent_texture_targets() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let red_texture_uri =
+        AssetUri::parse("res://tests/camera-target/multi-target-red.texture").unwrap();
+    let green_texture_uri =
+        AssetUri::parse("res://tests/camera-target/multi-target-green.texture").unwrap();
+    let red_texture_id = ResourceId::from_locator(&red_texture_uri);
+    let green_texture_id = ResourceId::from_locator(&green_texture_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(
+                red_texture_id,
+                ResourceKind::Texture,
+                red_texture_uri.clone(),
+            ),
+            srgb_render_target_texture_asset(red_texture_uri, 64, 48),
+        )
+        .expect("red texture insert");
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(
+                green_texture_id,
+                ResourceKind::Texture,
+                green_texture_uri.clone(),
+            ),
+            srgb_render_target_texture_asset(green_texture_uri, 64, 48),
+        )
+        .expect("green texture insert");
+    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
+        .unwrap();
+
+    framework
+        .submit_frame_extract(
+            viewport,
+            empty_extract_with_cameras(vec![
+                texture_base_camera_with_entity(
+                    1,
+                    0,
+                    red_texture_id,
+                    Vec4::new(1.0, 0.0, 0.0, 1.0),
+                ),
+                texture_base_camera_with_entity(
+                    2,
+                    1,
+                    green_texture_id,
+                    Vec4::new(0.0, 1.0, 0.0, 1.0),
+                ),
+            ]),
+        )
+        .unwrap();
+
+    let (red_size, red_rgba) = framework
+        .read_output_target_texture_rgba_for_tests(red_texture_id)
+        .unwrap()
+        .expect("red target should stay prepared after submit");
+    let (green_size, green_rgba) = framework
+        .read_output_target_texture_rgba_for_tests(green_texture_id)
+        .unwrap()
+        .expect("green target should stay prepared after submit");
+    let frame = framework.capture_frame(viewport).unwrap().unwrap();
+
+    assert_eq!(red_size, UVec2::new(64, 48));
+    assert_eq!(green_size, UVec2::new(64, 48));
+    let target_pixels = (64 * 48) as usize;
+    let red_target_red = dominant_red_pixels(&red_rgba);
+    let red_target_green = dominant_green_pixels(&red_rgba);
+    let green_target_red = dominant_red_pixels(&green_rgba);
+    let green_target_green = dominant_green_pixels(&green_rgba);
+
+    assert!(
+        red_target_red > target_pixels * 9 / 10,
+        "first texture Base stack should write red pixels into its own final target; red={red_target_red}, green={red_target_green}, total={target_pixels}"
+    );
+    assert!(
+        red_target_green < target_pixels / 20,
+        "second texture Base stack should not overwrite the first texture target; green={red_target_green}, total={target_pixels}"
+    );
+    assert!(
+        green_target_green > target_pixels * 9 / 10,
+        "second texture Base stack should write green pixels into its own final target; green={green_target_green}, red={green_target_red}, total={target_pixels}"
+    );
+    assert!(
+        green_target_red < target_pixels / 20,
+        "first texture Base stack should not leak into the second texture target; red={green_target_red}, total={target_pixels}"
+    );
+    assert!(
+        dominant_green_pixels(&frame.rgba) > target_pixels * 9 / 10,
+        "viewport capture remains owned by the last texture Base stack"
+    );
+    assert_eq!(
+        frame.capture_report.source,
+        RenderCaptureSource::TextureDirectGraphImport
+    );
+}
+
+#[test]
+fn graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions() {
+    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let viewport_size = UVec2::new(64, 48);
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    let left_half = RenderViewportRect::new(UVec2::ZERO, UVec2::new(32, 48));
+    let right_half = RenderViewportRect::new(UVec2::new(32, 0), UVec2::new(32, 48));
+
+    framework
+        .submit_frame_extract(
+            viewport,
+            empty_extract_with_cameras(vec![
+                primary_base_camera(1, 0, left_half, Vec4::new(1.0, 0.0, 0.0, 1.0)),
+                primary_base_camera(2, 1, right_half, Vec4::new(0.0, 1.0, 0.0, 1.0)),
+            ]),
+        )
+        .unwrap();
+    let frame = framework.capture_frame(viewport).unwrap().unwrap();
+
+    assert_eq!(frame.width, viewport_size.x);
+    assert_eq!(frame.height, viewport_size.y);
+    assert_eq!(
+        frame.capture_report.target_kind,
+        RenderCameraTargetKind::PrimarySurface
+    );
+
+    let left_inset_origin = UVec2::new(4, 4);
+    let right_inset_origin = UVec2::new(36, 4);
+    let inset_size = UVec2::new(24, 40);
+    let inset_pixels = (inset_size.x * inset_size.y) as usize;
+    let left_red = dominant_red_pixels_in_region(&frame, left_inset_origin, inset_size);
+    let left_green = dominant_green_pixels_in_region(&frame, left_inset_origin, inset_size);
+    let right_red = dominant_red_pixels_in_region(&frame, right_inset_origin, inset_size);
+    let right_green = dominant_green_pixels_in_region(&frame, right_inset_origin, inset_size);
+    let left_center = pixel_at(&frame, UVec2::new(16, 24));
+    let right_center = pixel_at(&frame, UVec2::new(48, 24));
+
+    assert!(
+        left_red > inset_pixels * 9 / 10,
+        "left Base camera should clear only the left viewport red; left_red={left_red}, left_green={left_green}, right_red={right_red}, right_green={right_green}, left_center={left_center:?}, right_center={right_center:?}, total={inset_pixels}"
+    );
+    assert!(
+        left_green < inset_pixels / 20,
+        "right Base camera green clear should not leak into the left viewport; green={left_green}, total={inset_pixels}"
+    );
+    assert!(
+        right_green > inset_pixels * 9 / 10,
+        "right Base camera should clear only the right viewport green; green={right_green}, total={inset_pixels}"
+    );
+    assert!(
+        right_red < inset_pixels / 20,
+        "left Base camera red clear should not leak into the right viewport; red={right_red}, total={inset_pixels}"
+    );
+}
+
+#[test]
 fn graphics_camera_target_texture_present_reports_unsupported_surface_fallback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let texture_uri = AssetUri::parse("res://tests/camera-target/present-target.texture").unwrap();
@@ -592,6 +806,12 @@ fn empty_extract_with_target(target: RenderCameraTarget) -> RenderFrameExtract {
     extract
 }
 
+fn empty_extract_with_cameras(cameras: Vec<CameraRenderDescriptor>) -> RenderFrameExtract {
+    let mut extract = empty_extract();
+    extract.view = extract.view.with_cameras(cameras);
+    extract
+}
+
 fn empty_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
@@ -647,6 +867,130 @@ fn srgb_render_target_texture_descriptor() -> TextureAssetDescriptor {
         format: RGBA8_UNORM_SRGB_FORMAT.to_string(),
         color_space: RenderImageColorSpace::Srgb,
         ..render_target_texture_descriptor()
+    }
+}
+
+fn texture_base_camera(texture_id: ResourceId, clear_color: Vec4) -> CameraRenderDescriptor {
+    texture_base_camera_with_entity(1, 0, texture_id, clear_color)
+}
+
+fn texture_base_camera_with_entity(
+    entity: u64,
+    render_order: i32,
+    texture_id: ResourceId,
+    clear_color: Vec4,
+) -> CameraRenderDescriptor {
+    CameraRenderDescriptor {
+        entity: Some(entity),
+        render_order,
+        target: RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(texture_id)),
+        clear: RenderCameraClear::Color(clear_color),
+        ..CameraRenderDescriptor::from_camera_payload(
+            Some(entity),
+            ViewportCameraSnapshot::default(),
+        )
+    }
+}
+
+fn texture_overlay_camera(texture_id: ResourceId) -> CameraRenderDescriptor {
+    CameraRenderDescriptor {
+        entity: Some(2),
+        render_type: CameraRenderType::Overlay,
+        target: RenderCameraTarget::Texture(ResourceHandle::<TextureMarker>::new(texture_id)),
+        clear: RenderCameraClear::None,
+        clear_depth: false,
+        ..CameraRenderDescriptor::from_camera_payload(Some(2), ViewportCameraSnapshot::default())
+    }
+}
+
+fn primary_base_camera(
+    entity: u64,
+    render_order: i32,
+    viewport_rect: RenderViewportRect,
+    clear_color: Vec4,
+) -> CameraRenderDescriptor {
+    CameraRenderDescriptor {
+        entity: Some(entity),
+        render_order,
+        target: RenderCameraTarget::PrimarySurface,
+        viewport_rect: Some(viewport_rect),
+        clear: RenderCameraClear::Color(clear_color),
+        ..CameraRenderDescriptor::from_camera_payload(
+            Some(entity),
+            ViewportCameraSnapshot::default(),
+        )
+    }
+}
+
+fn dominant_red_pixels(rgba: &[u8]) -> usize {
+    rgba.chunks_exact(4)
+        .filter(|pixel| is_dominant_red(pixel))
+        .count()
+}
+
+fn dominant_green_pixels(rgba: &[u8]) -> usize {
+    rgba.chunks_exact(4)
+        .filter(|pixel| is_dominant_green(pixel))
+        .count()
+}
+
+fn dominant_red_pixels_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> usize {
+    dominant_pixels_in_region(frame, origin, size, is_dominant_red)
+}
+
+fn dominant_green_pixels_in_region(frame: &CapturedFrame, origin: UVec2, size: UVec2) -> usize {
+    dominant_pixels_in_region(frame, origin, size, is_dominant_green)
+}
+
+fn pixel_at(frame: &CapturedFrame, position: UVec2) -> [u8; 4] {
+    let x = position.x.min(frame.width.saturating_sub(1)) as usize;
+    let y = position.y.min(frame.height.saturating_sub(1)) as usize;
+    let index = (y * frame.width as usize + x) * 4;
+    [
+        frame.rgba[index],
+        frame.rgba[index + 1],
+        frame.rgba[index + 2],
+        frame.rgba[index + 3],
+    ]
+}
+
+fn dominant_pixels_in_region(
+    frame: &CapturedFrame,
+    origin: UVec2,
+    size: UVec2,
+    predicate: impl Fn(&[u8]) -> bool,
+) -> usize {
+    let x_end = (origin.x + size.x).min(frame.width) as usize;
+    let y_end = (origin.y + size.y).min(frame.height) as usize;
+    let width = frame.width as usize;
+    let mut count = 0;
+    for y in origin.y as usize..y_end {
+        for x in origin.x as usize..x_end {
+            let index = (y * width + x) * 4;
+            if predicate(&frame.rgba[index..index + 4]) {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn is_dominant_red(pixel: &[u8]) -> bool {
+    pixel[3] == 255 && pixel[0] > 80 && pixel[0] > pixel[1] + 40 && pixel[0] > pixel[2] + 40
+}
+
+fn is_dominant_green(pixel: &[u8]) -> bool {
+    pixel[3] == 255 && pixel[1] > 80 && pixel[1] > pixel[0] + 40 && pixel[1] > pixel[2] + 40
+}
+
+trait CameraDescriptorTestExt {
+    fn with_stack(self, stack: impl IntoIterator<Item = u64>) -> Self;
+}
+
+impl CameraDescriptorTestExt for CameraRenderDescriptor {
+    fn with_stack(mut self, stack: impl IntoIterator<Item = u64>) -> Self {
+        self.stack = stack.into_iter().collect();
+        self
     }
 }
 

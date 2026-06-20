@@ -187,6 +187,7 @@ pub enum RenderCameraTargetWritebackStatus {
     PendingTargetDescriptor,
     ReadyForCopy,
     ReadyForConversion,
+    SuppressedByCameraStack,
     SkippedDirectImport,
     Copied,
     Converted,
@@ -200,6 +201,7 @@ impl RenderCameraTargetWritebackStatus {
             Self::PendingTargetDescriptor => "pending_target_descriptor",
             Self::ReadyForCopy => "ready_for_copy",
             Self::ReadyForConversion => "ready_for_conversion",
+            Self::SuppressedByCameraStack => "suppressed_by_camera_stack",
             Self::SkippedDirectImport => "skipped_direct_import",
             Self::Copied => "copied",
             Self::Converted => "converted",
@@ -288,6 +290,18 @@ impl RenderCameraTargetWritebackReport {
         )
     }
 
+    pub const fn suppressed_by_camera_stack(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetWritebackStatus::SuppressedByCameraStack,
+            false,
+            false,
+            target_size,
+            0,
+            0,
+        )
+    }
+
     pub const fn skipped_direct_import(target_size: UVec2) -> Self {
         Self::new(
             RenderCameraTargetKind::Texture,
@@ -345,6 +359,7 @@ pub enum RenderCameraTargetGraphImportStatus {
     ReadyForDirectImport,
     DirectImported,
     RequiresConversionWriteback,
+    SuppressedByCameraStack,
     BlockedFormatMismatch,
 }
 
@@ -356,6 +371,7 @@ impl RenderCameraTargetGraphImportStatus {
             Self::ReadyForDirectImport => "ready_for_direct_import",
             Self::DirectImported => "direct_imported",
             Self::RequiresConversionWriteback => "requires_conversion_writeback",
+            Self::SuppressedByCameraStack => "suppressed_by_camera_stack",
             Self::BlockedFormatMismatch => "blocked_format_mismatch",
         }
     }
@@ -441,6 +457,17 @@ impl RenderCameraTargetGraphImportReport {
             target_size,
             0,
             1,
+            0,
+        )
+    }
+
+    pub const fn suppressed_by_camera_stack(target_size: UVec2) -> Self {
+        Self::new(
+            RenderCameraTargetKind::Texture,
+            RenderCameraTargetGraphImportStatus::SuppressedByCameraStack,
+            target_size,
+            0,
+            0,
             0,
         )
     }

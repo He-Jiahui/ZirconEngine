@@ -19,6 +19,7 @@ const EXPECTED_INPUT_RUNTIME_MODULES: &[&str] = &[
 ];
 const EXPECTED_FRAMEWORK_INPUT_MODULES: &[&str] = &[
     "button_input_state.rs",
+    "cursor.rs",
     "file_drag_drop.rs",
     "gamepad.rs",
     "ime.rs",
@@ -62,14 +63,15 @@ const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "gamepad_host_bridge_uses_runtime_gamepad_abi_constructors",
     "input_recording_captures_drainable_event_records_by_frame",
     "input_replay_restores_frame_snapshots_in_recorded_order",
+    "cursor_host_requests_are_frame_local_and_drainable",
 ];
 
 #[test]
 fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 12);
-    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 19);
+    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 20);
     assert_eq!(EXPECTED_INPUT_TEST_MODULES.len(), 7);
-    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 14);
+    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 15);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_owner_files(
@@ -99,6 +101,9 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     let framework_input_mod = include_str!("../../core/framework/input/mod.rs");
     let prelude = include_str!("../../prelude.rs");
     for public_anchor in [
+        "CursorGrabMode",
+        "CursorHostRequest",
+        "CursorPosition",
         "DefaultInputManager",
         "DefaultInputActionManager",
         "InputActionEvaluator",
@@ -162,6 +167,42 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
         );
     }
 
+    let cursor_host_request_sources = [
+        include_str!("../../core/framework/input/mod.rs"),
+        include_str!("../../core/framework/input/input_event.rs"),
+        include_str!("../../input/runtime/default_input_manager.rs"),
+        include_str!("../../dynamic_api/session.rs"),
+        include_str!("../../dynamic_api/session/host_requests.rs"),
+        include_str!("../../../../zircon_runtime_interface/src/runtime_api/host_requests.rs"),
+        include_str!("../../../../zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs"),
+        include_str!(
+            "../../../../zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs"
+        ),
+        include_str!("../../platform/tests/backend_tokens.rs"),
+        include_str!("../../platform/tests/diagnostics.rs"),
+    ];
+    for required_cursor_anchor in [
+        "CursorHostRequest",
+        "InputEvent::CursorHostRequest",
+        "drain_cursor_host_requests",
+        "runtime_cursor_host_request",
+        "ZrRuntimeCursorHostRequestV1",
+        "ZrRuntimeHostRequestV1::Cursor",
+        "apply_runtime_cursor_host_request",
+        "set_cursor_visible",
+        "set_cursor_grab",
+        "set_cursor_hittest",
+        "set_cursor_position",
+        "platform.cursor_options=supported:winit_window_options",
+    ] {
+        assert!(
+            cursor_host_request_sources
+                .iter()
+                .any(|source| source.contains(required_cursor_anchor)),
+            "Runtime 12 cursor host-request source path should retain `{required_cursor_anchor}`"
+        );
+    }
+
     let mirror_docs = [
         (
             "Runtime input module doc",
@@ -191,14 +232,15 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
         for required_anchor in [
             "input_stack_boundary",
             "expected_runtime_module_count = 12",
-            "expected_framework_module_count = 19",
+            "expected_framework_module_count = 20",
             "expected_test_module_count = 7",
-            "public_surface_anchors = 23/23",
+            "public_surface_anchors = 26/26",
             "runtime_12_guard_anchors = 5/5",
             "missing_gamepad_abi_anchors = []",
+            "missing_cursor_host_request_anchors = []",
             "missing_doc_anchors = []",
             "missing_test_anchors = []",
-            "behavior_test_anchor_count = 14",
+            "behavior_test_anchor_count = 15",
             "missing_behavior_test_anchors = []",
             "missing_cargo_gate_anchors = []",
             "oversized_modules = []",
@@ -244,6 +286,9 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
     }
 
     for required_export in [
+        "CursorGrabMode",
+        "CursorHostRequest",
+        "CursorPosition",
         "InputAction",
         "InputActionContext",
         "InputBinding",

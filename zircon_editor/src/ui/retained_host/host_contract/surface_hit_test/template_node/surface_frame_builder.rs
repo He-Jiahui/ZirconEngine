@@ -12,7 +12,7 @@ use super::super::super::template_component_family::{
     template_component_family, TemplateComponentFamily,
 };
 
-pub(super) fn build_template_surface_frame(
+pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
 ) -> Option<UiSurfaceFrame> {
@@ -22,7 +22,7 @@ pub(super) fn build_template_surface_frame(
     has_dispatchable.then(|| template_nodes_surface_frame(nodes, surface_size))
 }
 
-pub(super) fn template_nodes_surface_frame(
+pub(in crate::ui::retained_host::host_contract) fn template_nodes_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
 ) -> UiSurfaceFrame {

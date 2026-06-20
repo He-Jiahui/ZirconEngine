@@ -15,6 +15,71 @@ from tools.zircon_export.tests.export_test_support import (
 
 
 class PipelineReportValidateProfileSummarySchemaTests(unittest.TestCase):
+    def test_report_stage_rejects_validate_profile_summary_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "build_mode",
+                "validate report profile_summary.build_mode must be a string",
+            ),
+            (
+                "features",
+                "validate report profile_summary.features must be an object",
+            ),
+            (
+                "name",
+                "validate report profile_summary.name must be a string",
+            ),
+            (
+                "selected_plugins",
+                "validate report profile_summary.selected_plugins must be a string array",
+            ),
+            (
+                "target_mode",
+                "validate report profile_summary.target_mode must be a string",
+            ),
+            (
+                "target_platform",
+                "validate report profile_summary.target_platform must be a string",
+            ),
+        )
+        for field, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["library_embed"])
+                    _write_compile_host_report(
+                        out, out / "compile" / "zircon_runtime.exe"
+                    )
+                    _write_stage_report(out, "cook_assets", fatal=False)
+                    _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+                    _write_stage_report(out, "platform_bundle", fatal=False)
+                    validate_report_path = (
+                        out / "stages" / "validate" / "report.json"
+                    )
+                    validate_report = json.loads(
+                        validate_report_path.read_text(encoding="utf-8")
+                    )
+                    validate_report["profile_summary"].pop(field)
+                    validate_report_path.write_text(
+                        json.dumps(validate_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertEqual(report["fatal_stages"], ["Validate"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_stage_rejects_validate_profile_summary_name_not_trimmed(
         self,
     ) -> None:
@@ -239,6 +304,44 @@ class PipelineReportValidateProfileSummarySchemaTests(unittest.TestCase):
                 ),
                 report["diagnostics"],
             )
+
+    def test_report_stage_rejects_validate_profile_strategies_duplicate(
+        self,
+    ) -> None:
+        cases = (
+            (
+                ["library_embed", "library_embed"],
+                "validate report profile_summary.strategies[1] duplicates entry 0",
+            ),
+            (
+                ["library_embed", "LibraryEmbed"],
+                "validate report profile_summary.strategies[1] duplicates entry 0",
+            ),
+        )
+        for strategies, expected_diagnostic in cases:
+            with self.subTest(strategies=strategies):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, strategies)
+                    _write_compile_host_report(
+                        out, out / "compile" / "zircon_runtime.exe"
+                    )
+                    _write_stage_report(out, "cook_assets", fatal=False)
+                    _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+                    _write_stage_report(out, "platform_bundle", fatal=False)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertEqual(report["fatal_stages"], ["Validate"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
 
 
 if __name__ == "__main__":

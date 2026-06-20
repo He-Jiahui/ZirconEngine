@@ -7,7 +7,7 @@ use super::super::paint_template_nodes::{draw_template_nodes, has_template_nodes
 use super::root_frames::{zero_origin, RootFrames};
 use super::{docks, menus};
 
-pub(super) fn draw_host_scene(
+pub(in crate::ui::retained_host::host_contract) fn draw_host_scene(
     frame: &mut HostRgbaFrame,
     root: &RootFrames,
     presentation: &HostWindowPresentationData,

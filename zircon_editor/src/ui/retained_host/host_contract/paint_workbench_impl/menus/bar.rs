@@ -4,7 +4,7 @@ use super::super::super::paint_primitives::{draw_border_clipped, draw_text_bars_
 use super::super::{ACCENT, MUTED_TEXT, SEPARATOR};
 use super::geometry::scrolled_menu_frame;
 
-pub(super) fn draw_menu_bar_labels(
+pub(in crate::ui::retained_host::host_contract) fn draw_menu_bar_labels(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {

@@ -1,6 +1,8 @@
 use super::super::super::data::{FrameRect, HostWindowPresentationData, HostWindowSceneData};
 
-pub(super) fn menu_chrome_frame(scene: &HostWindowSceneData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn menu_chrome_frame(
+    scene: &HostWindowSceneData,
+) -> FrameRect {
     let width = scene
         .layout
         .status_bar_frame
@@ -15,7 +17,9 @@ pub(super) fn menu_chrome_frame(scene: &HostWindowSceneData) -> FrameRect {
     }
 }
 
-pub(super) fn top_bar_fallback_frame(presentation: &HostWindowPresentationData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn top_bar_fallback_frame(
+    presentation: &HostWindowPresentationData,
+) -> FrameRect {
     FrameRect {
         x: 0.0,
         y: 0.0,
@@ -28,7 +32,9 @@ pub(super) fn top_bar_fallback_frame(presentation: &HostWindowPresentationData) 
     }
 }
 
-pub(super) fn popup_blocking_frame(presentation: &HostWindowPresentationData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn popup_blocking_frame(
+    presentation: &HostWindowPresentationData,
+) -> FrameRect {
     FrameRect {
         x: 0.0,
         y: presentation
@@ -51,7 +57,9 @@ pub(super) fn popup_blocking_frame(presentation: &HostWindowPresentationData) ->
     }
 }
 
-pub(super) fn shell_content_width(presentation: &HostWindowPresentationData) -> f32 {
+pub(in crate::ui::retained_host::host_contract) fn shell_content_width(
+    presentation: &HostWindowPresentationData,
+) -> f32 {
     presentation
         .host_layout
         .status_bar_frame
@@ -61,7 +69,9 @@ pub(super) fn shell_content_width(presentation: &HostWindowPresentationData) -> 
         .max(1.0)
 }
 
-pub(super) fn shell_content_height(presentation: &HostWindowPresentationData) -> f32 {
+pub(in crate::ui::retained_host::host_contract) fn shell_content_height(
+    presentation: &HostWindowPresentationData,
+) -> f32 {
     presentation
         .host_layout
         .status_bar_frame
@@ -70,7 +80,7 @@ pub(super) fn shell_content_height(presentation: &HostWindowPresentationData) ->
         .max(1.0)
 }
 
-pub(super) fn constrained_menu_popup_frame(
+pub(in crate::ui::retained_host::host_contract) fn constrained_menu_popup_frame(
     presentation: &HostWindowPresentationData,
     menu_frame: &FrameRect,
     width: f32,
@@ -101,7 +111,7 @@ pub(super) fn constrained_menu_popup_frame(
     }
 }
 
-pub(super) fn scrolled_menu_frame(
+pub(in crate::ui::retained_host::host_contract) fn scrolled_menu_frame(
     menu_frame: &FrameRect,
     presentation: &HostWindowPresentationData,
 ) -> FrameRect {
@@ -113,7 +123,11 @@ pub(super) fn scrolled_menu_frame(
     }
 }
 
-pub(super) fn menu_popup_row_frame(popup: &FrameRect, row: usize, scroll_px: f32) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn menu_popup_row_frame(
+    popup: &FrameRect,
+    row: usize,
+    scroll_px: f32,
+) -> FrameRect {
     FrameRect {
         x: popup.x + 6.0,
         y: popup.y + 6.0 + row as f32 * 30.0 - scroll_px,
@@ -122,7 +136,7 @@ pub(super) fn menu_popup_row_frame(popup: &FrameRect, row: usize, scroll_px: f32
     }
 }
 
-pub(super) fn menu_popup_height(item_count: usize) -> f32 {
+pub(in crate::ui::retained_host::host_contract) fn menu_popup_height(item_count: usize) -> f32 {
     if item_count == 0 {
         0.0
     } else {
@@ -130,7 +144,7 @@ pub(super) fn menu_popup_height(item_count: usize) -> f32 {
     }
 }
 
-pub(super) fn constrained_submenu_popup_frame(
+pub(in crate::ui::retained_host::host_contract) fn constrained_submenu_popup_frame(
     presentation: &HostWindowPresentationData,
     anchor: &FrameRect,
     width: f32,

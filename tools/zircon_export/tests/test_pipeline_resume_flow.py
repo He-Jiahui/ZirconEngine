@@ -558,7 +558,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = out / "stages" / "pack" / "assets.zrpack"
@@ -636,7 +636,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             pack = root / "pack-output" / "assets.zrpack"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
@@ -681,7 +681,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -713,7 +713,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -747,7 +747,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "custom-assets.zrpack"
@@ -781,7 +781,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"
@@ -817,7 +817,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             stale_pack = root / "pack-output" / "stale-assets.zrpack"
@@ -856,7 +856,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             default_pack = out / "stages" / "pack" / "assets.zrpack"
@@ -892,7 +892,7 @@ class PipelineResumeFlowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "compile" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"

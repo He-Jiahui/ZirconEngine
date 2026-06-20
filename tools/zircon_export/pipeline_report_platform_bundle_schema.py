@@ -7,10 +7,14 @@ from typing import Any
 from .pipeline_report_native_dynamic_payload_schema import (
     platform_bundle_native_plugins_payload_schema_diagnostics,
 )
-from .pipeline_report_platform_bundle_template import (
+from .pipeline_report_platform_bundle_template_schema import (
     platform_bundle_template_copied_files_schema_diagnostics,
     platform_bundle_template_report_schema_diagnostics,
+)
+from .pipeline_report_platform_bundle_template_resolution_schema import (
+    platform_bundle_template_resolution_profile_diagnostics,
     platform_bundle_template_resolution_schema_diagnostics,
+    platform_bundle_template_resolution_template_dir_diagnostics,
 )
 from .pipeline_report_schema_primitives import (
     validate_object_array_schema_diagnostics,
@@ -129,12 +133,17 @@ def platform_bundle_manifest_schema_diagnostics(
     ]
     for field in PLATFORM_BUNDLE_MANIFEST_STRING_FIELDS:
         if field in manifest and manifest.get(field) is not None:
+            value = manifest.get(field)
             diagnostics.extend(
                 validate_string_schema_diagnostics(
                     f"PlatformBundle bundle_manifest {field}",
-                    manifest.get(field),
+                    value,
                 )
             )
+            if isinstance(value, str) and not value.strip():
+                diagnostics.append(
+                    f"PlatformBundle bundle_manifest {field} must be a non-empty string"
+                )
     for field in PLATFORM_BUNDLE_MANIFEST_OBJECT_FIELDS:
         if field in manifest and manifest.get(field) is not None:
             diagnostics.extend(
@@ -167,6 +176,18 @@ def platform_bundle_manifest_schema_diagnostics(
                 label="PlatformBundle bundle_manifest template",
             )
         )
+    diagnostics.extend(
+        platform_bundle_template_resolution_profile_diagnostics(
+            manifest,
+            label="PlatformBundle bundle_manifest",
+        )
+    )
+    diagnostics.extend(
+        platform_bundle_template_resolution_template_dir_diagnostics(
+            manifest,
+            label="PlatformBundle bundle_manifest",
+        )
+    )
     native_plugins_payload = manifest.get("native_plugins_payload")
     if isinstance(native_plugins_payload, dict):
         diagnostics.extend(
@@ -195,12 +216,17 @@ def platform_bundle_report_schema_diagnostics(report: dict[str, Any]) -> list[st
     ]
     for field in PLATFORM_BUNDLE_REPORT_STRING_FIELDS:
         if field in report and report.get(field) is not None:
+            value = report.get(field)
             diagnostics.extend(
                 validate_string_schema_diagnostics(
                     f"PlatformBundle report {field}",
-                    report.get(field),
+                    value,
                 )
             )
+            if isinstance(value, str) and not value.strip():
+                diagnostics.append(
+                    f"PlatformBundle report {field} must be a non-empty string"
+                )
     for field in PLATFORM_BUNDLE_REPORT_OBJECT_FIELDS:
         if field in report and report.get(field) is not None:
             diagnostics.extend(
@@ -226,6 +252,7 @@ def platform_bundle_report_schema_diagnostics(report: dict[str, Any]) -> list[st
                         report.get(field),
                     )
                 )
+                continue
         for field in PLATFORM_BUNDLE_REPORT_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS:
             if field not in report:
                 diagnostics.extend(
@@ -250,6 +277,10 @@ def platform_bundle_report_schema_diagnostics(report: dict[str, Any]) -> list[st
                 label="PlatformBundle report template",
             )
         )
+    diagnostics.extend(platform_bundle_template_resolution_profile_diagnostics(report))
+    diagnostics.extend(
+        platform_bundle_template_resolution_template_dir_diagnostics(report)
+    )
     native_plugins_payload = report.get("native_plugins_payload")
     if isinstance(native_plugins_payload, dict):
         diagnostics.extend(

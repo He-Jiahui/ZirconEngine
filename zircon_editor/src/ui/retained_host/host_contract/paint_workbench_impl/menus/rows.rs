@@ -7,7 +7,7 @@ use super::super::super::paint_theme::PALETTE;
 use super::super::{MUTED_TEXT, SEPARATOR};
 use super::geometry::menu_popup_row_frame;
 
-pub(super) fn draw_menu_popup_rows(
+pub(in crate::ui::retained_host::host_contract) fn draw_menu_popup_rows(
     frame: &mut HostRgbaFrame,
     items: &ModelRc<HostMenuChromeItemData>,
     popup: &FrameRect,

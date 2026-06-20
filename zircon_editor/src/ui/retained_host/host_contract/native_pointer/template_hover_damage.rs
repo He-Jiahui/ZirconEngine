@@ -1,6 +1,6 @@
 use super::super::data::{FrameRect, HostPaneInteractionStateData};
 
-pub(super) fn template_hover_damage(
+pub(in crate::ui::retained_host::host_contract) fn template_hover_damage(
     before: &HostPaneInteractionStateData,
     after: &HostPaneInteractionStateData,
 ) -> Option<FrameRect> {

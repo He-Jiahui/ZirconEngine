@@ -21,7 +21,9 @@ mod viewport_render_region;
 
 pub use gpu_resource_handle::GpuResourceHandle;
 pub use graphics_error::GraphicsError;
-pub(crate) use viewport_camera_stack_attachment_policy::ViewportCameraStackAttachmentPolicy;
+pub(crate) use viewport_camera_stack_attachment_policy::{
+    ViewportCameraStackAttachmentPolicy, ViewportSceneClearPlan, ViewportSceneColorClear,
+};
 pub(crate) use viewport_camera_stack_output_policy::ViewportCameraStackOutputPolicy;
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;

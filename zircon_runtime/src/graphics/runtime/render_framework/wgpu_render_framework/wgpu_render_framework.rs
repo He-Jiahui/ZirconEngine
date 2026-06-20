@@ -1,9 +1,13 @@
 use std::sync::{Mutex, MutexGuard};
 
 #[cfg(test)]
-use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
 use crate::core::TaskPool;
+#[cfg(test)]
+use crate::core::{math::UVec2, resource::ResourceId};
 
+#[cfg(test)]
+use super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::render_framework_state::RenderFrameworkState;
 
 pub struct WgpuRenderFramework {
@@ -39,5 +43,18 @@ impl WgpuRenderFramework {
         self.lock_state()
             .graphics_debugger
             .request_next_created_viewport_capture();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn read_output_target_texture_rgba_for_tests(
+        &self,
+        texture_id: ResourceId,
+    ) -> Result<Option<(UVec2, Vec<u8>)>, RenderFrameworkError> {
+        let _operation_guard = self.lock_operation();
+        let state = self.lock_state();
+        state
+            .renderer
+            .read_output_target_texture_rgba_for_tests(&texture_id)
+            .map_err(render_framework_backend_error)
     }
 }

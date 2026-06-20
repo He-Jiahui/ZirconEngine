@@ -13,7 +13,10 @@ use crate::ui::retained_host::host_contract::presenter::{
 };
 
 impl UiHostWindowEventLoop {
-    pub(super) fn can_create_surfaces_impl(&mut self, event_loop: &dyn ActiveEventLoop) {
+    pub(in crate::ui::retained_host::host_contract) fn can_create_surfaces_impl(
+        &mut self,
+        event_loop: &dyn ActiveEventLoop,
+    ) {
         if self.window.is_some() {
             return;
         }
@@ -91,7 +94,10 @@ impl UiHostWindowEventLoop {
         self.presenter_backend = Some(presenter_backend);
     }
 
-    pub(super) fn about_to_wait_impl(&mut self, event_loop: &dyn ActiveEventLoop) {
+    pub(in crate::ui::retained_host::host_contract) fn about_to_wait_impl(
+        &mut self,
+        event_loop: &dyn ActiveEventLoop,
+    ) {
         if self.host.state.borrow().exit_requested {
             event_loop.exit();
             return;
@@ -102,7 +108,10 @@ impl UiHostWindowEventLoop {
         self.drain_external_redraw_request();
     }
 
-    pub(super) fn sync_host_window_state(&self, window: &dyn Window) {
+    pub(in crate::ui::retained_host::host_contract) fn sync_host_window_state(
+        &self,
+        window: &dyn Window,
+    ) {
         let size = window.surface_size();
         let mut state = self.host.state.borrow_mut();
         state.window_size = PhysicalSize::new(size.width, size.height);

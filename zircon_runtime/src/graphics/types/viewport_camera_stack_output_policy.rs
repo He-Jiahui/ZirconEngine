@@ -34,7 +34,11 @@ impl ViewportCameraStackOutputPolicy {
         self.viewport_terminal
     }
 
-    pub(crate) fn writes_output_target(self) -> bool {
+    pub(crate) fn owns_shared_viewport_products(self) -> bool {
+        self.owns_viewport_submission()
+    }
+
+    pub(crate) fn owns_final_target_output(self) -> bool {
         debug_assert!(
             !self.viewport_terminal || self.stack_terminal,
             "viewport terminal camera must also be stack terminal"
@@ -46,5 +50,27 @@ impl ViewportCameraStackOutputPolicy {
 impl Default for ViewportCameraStackOutputPolicy {
     fn default() -> Self {
         Self::stack_terminal()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ViewportCameraStackOutputPolicy;
+
+    #[test]
+    fn final_target_output_owner_is_stack_terminal_not_viewport_terminal() {
+        let intermediate = ViewportCameraStackOutputPolicy::new(false, false);
+        let texture_stack_terminal = ViewportCameraStackOutputPolicy::new(true, false);
+        let viewport_terminal = ViewportCameraStackOutputPolicy::new(true, true);
+
+        assert!(!intermediate.owns_final_target_output());
+        assert!(!intermediate.owns_viewport_submission());
+        assert!(!intermediate.owns_shared_viewport_products());
+        assert!(texture_stack_terminal.owns_final_target_output());
+        assert!(!texture_stack_terminal.owns_viewport_submission());
+        assert!(!texture_stack_terminal.owns_shared_viewport_products());
+        assert!(viewport_terminal.owns_final_target_output());
+        assert!(viewport_terminal.owns_viewport_submission());
+        assert!(viewport_terminal.owns_shared_viewport_products());
     }
 }

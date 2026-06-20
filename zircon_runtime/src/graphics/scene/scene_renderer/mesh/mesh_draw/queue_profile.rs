@@ -137,12 +137,11 @@ impl MeshDraw {
         MeshDrawBatchKey {
             geometry_source: self.geometry_source,
             mesh: Arc::as_ptr(&self.mesh) as usize,
-            base_color_texture: Arc::as_ptr(&self.material_textures.base_color) as usize,
-            normal_texture: Arc::as_ptr(&self.material_textures.normal) as usize,
-            metallic_roughness_texture: Arc::as_ptr(&self.material_textures.metallic_roughness)
-                as usize,
-            occlusion_texture: Arc::as_ptr(&self.material_textures.occlusion) as usize,
-            emissive_texture: Arc::as_ptr(&self.material_textures.emissive) as usize,
+            base_color_texture: self.material_textures.base_color.identity(),
+            normal_texture: self.material_textures.normal.identity(),
+            metallic_roughness_texture: self.material_textures.metallic_roughness.identity(),
+            occlusion_texture: self.material_textures.occlusion.identity(),
+            emissive_texture: self.material_textures.emissive.identity(),
             material_uniform: Arc::as_ptr(&self.material_uniform) as usize,
             standard_material_uniform: Arc::as_ptr(&self.standard_material_uniform) as usize,
             pipeline_key: self.pipeline_key.clone(),

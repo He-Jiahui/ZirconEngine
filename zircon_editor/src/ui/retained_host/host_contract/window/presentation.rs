@@ -148,7 +148,7 @@ impl UiHostWindow {
     }
 }
 
-pub(super) fn host_presentation_from_state(
+pub(in crate::ui::retained_host::host_contract) fn host_presentation_from_state(
     state: &HostContractState,
 ) -> HostWindowPresentationData {
     let mut presentation = state.host_presentation.clone();

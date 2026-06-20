@@ -17,20 +17,14 @@ use zircon_runtime::asset::{
     VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
     MESH_ATTRIBUTE_TANGENT,
 };
+use zircon_runtime::builtin::RuntimeTargetMode;
 use zircon_runtime::core::math::{Vec2, Vec3};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform,
-    plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
-    plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry,
-    plugin::RuntimeExtensionRegistryError,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginModuleManifest,
+    plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
+    plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError,
     plugin::RuntimePluginRegistrationReport,
-};
-use zircon_runtime::builtin::{
-    RuntimeTargetMode,
 };
 
 pub const PLUGIN_ID: &str = "gltf_importer";

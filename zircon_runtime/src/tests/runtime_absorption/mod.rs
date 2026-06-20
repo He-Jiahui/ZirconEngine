@@ -5,6 +5,7 @@ mod builtin_modules;
 mod compatibility_shells;
 mod core_spine_root_generated;
 mod dynamic_api_session;
+mod dynamic_scene;
 mod ecs_kernel_data;
 mod generated_code_guard;
 mod input_stack;

@@ -1,5 +1,10 @@
 #[derive(Clone, Copy)]
 pub struct ReflectResource {
+    pub ensure: Option<
+        fn(
+            &mut crate::scene::World,
+        ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>,
+    >,
     pub contains: fn(&crate::scene::World) -> bool,
     pub read_field: fn(
         &crate::scene::World,
@@ -22,6 +27,16 @@ pub struct ReflectResource {
 }
 
 impl ReflectResource {
+    pub fn ensure(
+        &self,
+        world: &mut crate::scene::World,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
+        let Some(ensure) = self.ensure else {
+            return Ok(false);
+        };
+        ensure(world)
+    }
+
     pub fn contains(&self, world: &crate::scene::World) -> bool {
         (self.contains)(world)
     }

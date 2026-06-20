@@ -1,5 +1,6 @@
 //! Feature-gated CPU timeline recorder shared by runtime and editor hosts.
 
+mod counter_hotspot;
 mod export;
 mod hotspot;
 mod macros;
@@ -13,6 +14,7 @@ use std::sync::{Mutex, OnceLock};
 #[cfg(feature = "profiling")]
 use std::{env, path::PathBuf};
 
+pub use counter_hotspot::analyze_counter_hotspots;
 pub use export::ProfileExportReport;
 pub use hotspot::analyze_hotspots;
 pub use recorder::{ProfileRecorder, ProfileRecorderStatus};
@@ -21,13 +23,14 @@ pub use scope::{ProfileFrameScope, ProfileScope};
 pub use tracy::{initialize_tracy_sink, TracyFrameScope, TracySinkStatus};
 pub use ui_hotspot::analyze_ui_hotspots;
 pub use zircon_runtime_interface::{
-    HotspotEntry, HotspotReport, ProfileCaptureConfig, ProfileControlCommand,
-    ProfileControlRequest, ProfileControlResponse, ProfileCounterSnapshot, ProfileFrameSnapshot,
-    ProfileSnapshot, ProfileSpanSnapshot, UiHotspotAlert, UiHotspotReport, UiScenarioHotspot,
-    PROFILE_DEFAULT_FRAME_BUDGET_MS, PROFILE_DEFAULT_MAX_COUNTERS, PROFILE_DEFAULT_MAX_FRAMES,
-    PROFILE_DEFAULT_MAX_SPANS, PROFILE_DEFAULT_OUTPUT_ROOT, PROFILE_DEFAULT_SESSION_ID,
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE, PROFILE_UI_HOTSPOTS_FILE,
+    CounterHotspotEntry, CounterHotspotReport, HotspotEntry, HotspotReport, ProfileCaptureConfig,
+    ProfileControlCommand, ProfileControlRequest, ProfileControlResponse, ProfileCounterSnapshot,
+    ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, UiHotspotAlert, UiHotspotReport,
+    UiScenarioHotspot, PROFILE_COUNTER_HOTSPOTS_FILE, PROFILE_DEFAULT_FRAME_BUDGET_MS,
+    PROFILE_DEFAULT_MAX_COUNTERS, PROFILE_DEFAULT_MAX_FRAMES, PROFILE_DEFAULT_MAX_SPANS,
+    PROFILE_DEFAULT_OUTPUT_ROOT, PROFILE_DEFAULT_SESSION_ID, PROFILE_HOTSPOTS_FILE,
+    PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE,
+    PROFILE_UI_HOTSPOTS_FILE,
 };
 
 pub use crate::{profile_counter, profile_dynamic_scope, profile_frame, profile_scope};
@@ -110,11 +113,15 @@ pub fn control(request: ProfileControlRequest) -> ProfileControlResponse {
             response.snapshot = Some(snapshot());
             response
         }
+        ProfileControlCommand::RuntimeDiagnosticsSnapshot => {
+            ProfileControlResponse::error("runtime diagnostics snapshot requires dynamic session")
+        }
         ProfileControlCommand::ExportReport => match export_report() {
             Ok(report) => {
                 let mut response = ProfileControlResponse::ok("profile report exported");
                 response.snapshot = Some(report.snapshot);
                 response.hotspot_report = Some(report.hotspots);
+                response.counter_hotspot_report = Some(report.counter_hotspots);
                 response.ui_hotspot_report = Some(report.ui_hotspots);
                 response.export_dir = Some(report.export_dir);
                 response.files = report.files;

@@ -42,9 +42,7 @@ fn client_desktop_default_platform_declares_window_input_and_gilrs() {
     );
     assert_eq!(
         report.cursor_options,
-        CapabilityStatus::Unavailable {
-            reason: "desktop cursor options host-request backend is not implemented yet"
-        }
+        CapabilityStatus::Supported(CursorOptionsBackend::WinitWindowOptions)
     );
     assert_eq!(
         report.mouse_buttons,

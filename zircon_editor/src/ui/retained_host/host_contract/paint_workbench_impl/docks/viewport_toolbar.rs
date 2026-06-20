@@ -6,7 +6,7 @@ use super::super::super::paint_primitives::{
 };
 use super::super::{MUTED_TEXT, SEPARATOR, TOOLBAR};
 
-pub(super) fn draw_viewport_toolbar(
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_toolbar(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     toolbar: &FrameRect,

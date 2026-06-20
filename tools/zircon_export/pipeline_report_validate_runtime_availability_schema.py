@@ -71,6 +71,12 @@ VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_MATURITIES = {
     "stable",
     "stub",
 }
+VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_BLOCKED_FIELDS = {
+    "blocked_by_maturity",
+    "blocked_by_target",
+    "externalized_missing",
+    "stub",
+}
 
 
 def validate_runtime_plugin_availability_schema_diagnostics(
@@ -96,6 +102,7 @@ def validate_runtime_plugin_availability_schema_diagnostics(
         if field not in runtime_plugin_availability
     )
     known_entry_fields = set(VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_ENTRY_FIELDS)
+    clean_entries: list[tuple[str, int, str]] = []
     for category in VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_FIELDS:
         entries = runtime_plugin_availability.get(category)
         if category not in runtime_plugin_availability:
@@ -118,13 +125,12 @@ def validate_runtime_plugin_availability_schema_diagnostics(
                 if field not in known_entry_fields
             )
             for field in VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_ENTRY_STRING_FIELDS:
-                if field in entry:
-                    diagnostics.extend(
-                        validate_string_schema_diagnostics(
-                            f"{entry_label}.{field}",
-                            entry.get(field),
-                        )
+                diagnostics.extend(
+                    validate_string_schema_diagnostics(
+                        f"{entry_label}.{field}",
+                        entry.get(field),
                     )
+                )
             id_schema_diagnostics: list[str] = []
             runtime_id_schema_diagnostics: list[str] = []
             if "id" in entry:
@@ -151,6 +157,16 @@ def validate_runtime_plugin_availability_schema_diagnostics(
                 and entry.get("id") != entry.get("runtime_id")
             ):
                 diagnostics.append(f"{entry_label}.id must match runtime_id")
+            if (
+                "id" in entry
+                and "runtime_id" in entry
+                and not id_schema_diagnostics
+                and not runtime_id_schema_diagnostics
+                and entry.get("id") == entry.get("runtime_id")
+            ):
+                runtime_plugin_id = entry.get("id")
+                if isinstance(runtime_plugin_id, str):
+                    clean_entries.append((category, index, runtime_plugin_id))
             if "maturity" in entry:
                 diagnostics.extend(
                     validate_plugin_maturity_schema_diagnostics(
@@ -166,15 +182,63 @@ def validate_runtime_plugin_availability_schema_diagnostics(
                     )
                 )
             for field in VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_ENTRY_BOOL_FIELDS:
-                if field in entry:
-                    diagnostics.extend(
-                        validate_bool_schema_diagnostics(
-                            f"{entry_label}.{field}",
-                            entry.get(field),
-                        )
+                diagnostics.extend(
+                    validate_bool_schema_diagnostics(
+                        f"{entry_label}.{field}",
+                        entry.get(field),
                     )
+                )
             if category == "missing_required" and entry.get("required") is False:
                 diagnostics.append(f"{entry_label}.required must be true")
+    diagnostics.extend(runtime_plugin_availability_bucket_semantic_diagnostics(clean_entries))
+    return diagnostics
+
+
+def runtime_plugin_availability_bucket_semantic_diagnostics(
+    clean_entries: list[tuple[str, int, str]],
+) -> list[str]:
+    diagnostics: list[str] = []
+    primary_entries_by_id: dict[str, list[tuple[str, int]]] = {}
+    seen_primary_entries: dict[str, tuple[str, int]] = {}
+    seen_missing_required_entries: dict[str, int] = {}
+    for category, index, runtime_plugin_id in clean_entries:
+        if category == "missing_required":
+            previous_index = seen_missing_required_entries.get(runtime_plugin_id)
+            if previous_index is not None:
+                diagnostics.append(
+                    "validate report plan_summary.runtime_plugin_availability."
+                    f"missing_required[{index}].id duplicates "
+                    f"missing_required[{previous_index}]"
+                )
+            else:
+                seen_missing_required_entries[runtime_plugin_id] = index
+            continue
+        previous_bucket = seen_primary_entries.get(runtime_plugin_id)
+        if previous_bucket is not None:
+            previous_category, previous_index = previous_bucket
+            diagnostics.append(
+                "validate report plan_summary.runtime_plugin_availability."
+                f"{category}[{index}].id duplicates "
+                f"{previous_category}[{previous_index}]"
+            )
+        else:
+            seen_primary_entries[runtime_plugin_id] = (category, index)
+        primary_entries_by_id.setdefault(runtime_plugin_id, []).append(
+            (category, index)
+        )
+
+    for category, index, runtime_plugin_id in clean_entries:
+        if category != "missing_required":
+            continue
+        primary_entries = primary_entries_by_id.get(runtime_plugin_id, [])
+        if not any(
+            primary_category in VALIDATE_RUNTIME_PLUGIN_AVAILABILITY_BLOCKED_FIELDS
+            for primary_category, _ in primary_entries
+        ):
+            diagnostics.append(
+                "validate report plan_summary.runtime_plugin_availability."
+                f"missing_required[{index}].id must match a blocked availability entry"
+            )
     return diagnostics
 
 

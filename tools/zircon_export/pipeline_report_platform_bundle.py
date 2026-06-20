@@ -53,7 +53,7 @@ def delta_verification_diagnostics(
         delta_pack = report.get("delta_pack")
         if delta_pack is None:
             continue
-        if not isinstance(delta_pack, str) or not delta_pack:
+        if not isinstance(delta_pack, str) or not delta_pack.strip():
             diagnostics.append("pack report delta_pack must be a non-empty string")
             continue
         if report.get("delta_apply_verified") is not True:
@@ -271,7 +271,7 @@ def platform_bundle_delta_diagnostics(
         delta_pack = report.get("delta_pack")
         if delta_pack is None:
             continue
-        if not isinstance(delta_pack, str) or not delta_pack:
+        if not isinstance(delta_pack, str) or not delta_pack.strip():
             diagnostics.append(
                 "PlatformBundle report delta_pack must be a non-empty string"
             )
@@ -797,7 +797,7 @@ def pack_report_has_verified_delta(stage_report: dict[str, Any]) -> bool:
     delta_pack = report.get("delta_pack")
     return (
         isinstance(delta_pack, str)
-        and bool(delta_pack)
+        and bool(delta_pack.strip())
         and report.get("delta_apply_verified") is True
     )
 
@@ -810,7 +810,7 @@ def pack_report_delta_path(
     if not isinstance(report, dict):
         return None
     delta_pack = report.get("delta_pack")
-    if not isinstance(delta_pack, str) or not delta_pack:
+    if not isinstance(delta_pack, str) or not delta_pack.strip():
         return None
     return resolve_user_path_or_diagnostic(
         delta_pack,

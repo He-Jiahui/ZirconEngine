@@ -81,6 +81,9 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         "pub fn wait_all(&self",
         "PendingScheduledJob",
         "record_dependency_wait",
+        "record_terminal_without_launch",
+        "catch_unwind",
+        "complete_scheduled_task",
     ] {
         assert!(
             job_scheduler.contains(scheduler_anchor),
@@ -93,6 +96,8 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         "pub fn combine(handles: &[JobHandle])",
         "pub fn completed() -> Self",
         "pub fn wait(&self)",
+        "panic_message",
+        "mark_panicked",
         "Condvar",
     ] {
         assert!(
@@ -133,7 +138,9 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     let tasks_tests = include_str!("../tasks.rs");
     for behavior_test_anchor in [
         "job_handle_wait_blocks_until_task_completes",
+        "job_handle_wait_reports_task_panic_without_leaking_completion",
         "schedule_after_runs_task_only_after_all_dependencies",
+        "schedule_after_propagates_dependency_panic_without_running_dependent_task",
         "combined_handle_completes_when_all_children_complete",
         "schedule_after_does_not_consume_worker_while_waiting_on_dependencies",
         "job_diagnostics_track_schedule_complete_and_wait_times",
@@ -217,7 +224,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
             "direct_rayon_paths = 2",
             "schedule_parallel_executor_direct_rayon = []",
             "diagnostic_anchor_count = 4",
-            "behavior_test_anchor_count = 10",
+            "behavior_test_anchor_count = 12",
             "missing_behavior_test_anchors = []",
             "oversized_modules = []",
             "mirror_docs_guard_present = true",

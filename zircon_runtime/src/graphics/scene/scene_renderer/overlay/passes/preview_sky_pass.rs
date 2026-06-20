@@ -68,7 +68,10 @@ impl PreviewSkyPass {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !frame.render_region().apply_to_render_pass(&mut pass) {
+        if !frame
+            .render_region()
+            .apply_physical_to_render_pass(&mut pass)
+        {
             return;
         }
         if frame.preview().skybox_enabled

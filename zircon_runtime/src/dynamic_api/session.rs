@@ -5,11 +5,12 @@ use std::sync::Arc;
 use std::sync::{Mutex, OnceLock};
 
 use zircon_runtime_interface::{
-    ui::accessibility::UiAccessibilityTreeSnapshot, ProfileControlRequest, ZrByteSlice,
-    ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1,
-    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1,
-    ZrRuntimeHostRequestV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ui::accessibility::UiAccessibilityTreeSnapshot, ProfileControlCommand, ProfileControlRequest,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use crate::builtin::{runtime_modules_for_target, RuntimeTargetMode};
@@ -25,6 +26,7 @@ use crate::diagnostic_log::{
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::NodeKind;
 use crate::scene::LevelSystem;
+use crate::scene::{DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue};
 
 use super::camera_controller::RuntimeCameraController;
 use super::frame::{
@@ -34,6 +36,7 @@ use super::frame::{
 use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
 use super::surface::render_surface_descriptor;
 
+mod diagnostics;
 mod events;
 mod extract;
 mod extract_cache;
@@ -44,13 +47,18 @@ mod input_events;
 mod menu;
 mod preview;
 mod project;
+mod scene_asset_reload_diagnostics;
 mod status;
 #[cfg(test)]
 mod tests;
 
-pub(super) use host_requests::{runtime_gamepad_rumble_request, runtime_ime_host_request};
+use diagnostics::runtime_diagnostics_response;
+pub(super) use host_requests::{
+    runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
+};
 use preview::{dynamic_preview_accessibility_snapshot, empty_captured_frame};
 use project::RuntimeProjectConfig;
+use scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
 use status::{error_status, invalid_argument, not_found, unsupported_version};
 
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
@@ -254,8 +262,13 @@ pub(super) unsafe fn profile_control(
             Ok(request) => request,
             Err(_) => return invalid_argument(b"invalid profile control request"),
         };
-    with_session(handle, |_session| {
-        match encode_profile_response(&crate::core::diagnostics::profiling::control(request)) {
+    with_session(handle, |session| {
+        let response = if request.command == ProfileControlCommand::RuntimeDiagnosticsSnapshot {
+            runtime_diagnostics_response(session)
+        } else {
+            crate::core::diagnostics::profiling::control(request)
+        };
+        match encode_profile_response(&response) {
             Ok(buffer) => write_profile_response(out_json, buffer),
             Err(error) => error_status(error.to_string()),
         }
@@ -293,6 +306,8 @@ struct RuntimeDynamicSession {
     diagnostic_log_schedule: DiagnosticStoreLogSchedule,
     render_bridge: Option<RuntimeRenderBridge>,
     level: LevelSystem,
+    scene_asset_reload_queue: Option<DynamicSceneAssetReloadQueue>,
+    last_scene_asset_reload_report: Option<DynamicSceneAssetReloadFrameApplyReport>,
     selected_node: Option<u64>,
     camera_controller: RuntimeCameraController,
     extract_cache: extract_cache::RuntimeFrameExtractCache,
@@ -478,6 +493,15 @@ impl RuntimeDynamicSession {
             }
         };
         write_log("runtime_session", "runtime_dynamic_session_level_ready");
+        let scene_asset_reload_queue = match &project_config {
+            Some(project_config) => Some(project_config.scene_asset_reload_queue(&core).map_err(
+                |error| runtime_session_error("create scene asset reload queue", error),
+            )?),
+            None => None,
+        };
+        if scene_asset_reload_queue.is_some() {
+            write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
+        }
         let (selected_node, orbit_target) = {
             crate::profile_scope!(
                 "runtime",
@@ -515,6 +539,8 @@ impl RuntimeDynamicSession {
             diagnostic_log_schedule: profile.diagnostic_log_schedule(),
             render_bridge,
             level,
+            scene_asset_reload_queue,
+            last_scene_asset_reload_report: None,
             selected_node,
             camera_controller,
             extract_cache: Default::default(),
@@ -529,6 +555,7 @@ impl RuntimeDynamicSession {
             self.runtime
                 .tick_time(self.profile.max_fixed_steps_per_frame())
         };
+        self.tick_scene_asset_reload();
         {
             crate::profile_scope!("runtime", "frame", "runtime_frame_update");
             self.level
@@ -541,6 +568,36 @@ impl RuntimeDynamicSession {
             write_diagnostic_store_snapshot(DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE, &snapshot);
         }
         Ok(())
+    }
+
+    fn tick_scene_asset_reload(&mut self) {
+        let Some(queue) = &mut self.scene_asset_reload_queue else {
+            self.last_scene_asset_reload_report = None;
+            return;
+        };
+        let report = queue.tick_into_level(self.runtime.handle().scheduler(), &self.level);
+        record_scene_asset_reload_frame_report(&self.runtime, &report);
+        if report.events_drained() > 0
+            || report.applied_count() > 0
+            || report.failed_count() > 0
+            || report.stale_count() > 0
+            || report.superseded_pending_count() > 0
+        {
+            write_log(
+                "runtime_session",
+                format!(
+                    "runtime_scene_asset_reload_frame drained={} scheduled={} applied={} failed={} stale={} superseded={} pending={}",
+                    report.events_drained(),
+                    report.scheduled_count(),
+                    report.applied_count(),
+                    report.failed_count(),
+                    report.stale_count(),
+                    report.superseded_pending_count(),
+                    report.pending_count()
+                ),
+            );
+        }
+        self.last_scene_asset_reload_report = Some(report);
     }
 
     fn drain_host_requests(&mut self) -> ZrRuntimeHostRequestBatchV1 {
@@ -556,6 +613,13 @@ impl RuntimeDynamicSession {
                     .into_iter()
                     .map(runtime_gamepad_rumble_request)
                     .map(ZrRuntimeHostRequestV1::gamepad_rumble),
+            )
+            .chain(
+                self.input_manager
+                    .drain_cursor_host_requests()
+                    .into_iter()
+                    .map(runtime_cursor_host_request)
+                    .map(ZrRuntimeHostRequestV1::cursor),
             )
             .collect();
         ZrRuntimeHostRequestBatchV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, requests)

@@ -1,21 +1,70 @@
 use std::path::Path;
 
 const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
+    "src/scene/ecs/archetype/mod.rs",
+    "src/scene/ecs/archetype/id.rs",
+    "src/scene/ecs/archetype/index.rs",
+    "src/scene/ecs/archetype/move_result.rs",
+    "src/scene/ecs/archetype/record.rs",
+    "src/scene/ecs/archetype/signature.rs",
+    "src/scene/ecs/bundle.rs",
     "src/scene/ecs/storage_type.rs",
-    "src/scene/ecs/storage/component_storage.rs",
-    "src/scene/ecs/entity_registry.rs",
-    "src/scene/ecs/despawned_entity.rs",
-    "src/scene/ecs/stable_entity_location.rs",
-    "src/scene/ecs/internal_entity.rs",
-    "src/scene/ecs/observer.rs",
+    "src/scene/ecs/storage/component_storage/mod.rs",
+    "src/scene/ecs/storage/component_storage/entry.rs",
+    "src/scene/ecs/storage/component_storage/location.rs",
+    "src/scene/ecs/storage/component_storage/sparse.rs",
+    "src/scene/ecs/storage/component_storage/store.rs",
+    "src/scene/ecs/storage/component_storage/table.rs",
+    "src/scene/ecs/storage/component_storage/utils.rs",
+    "src/scene/ecs/component/mod.rs",
+    "src/scene/ecs/component/id.rs",
+    "src/scene/ecs/component/marker.rs",
+    "src/scene/ecs/component/registry.rs",
+    "src/scene/ecs/entity/mod.rs",
+    "src/scene/ecs/entity/despawned.rs",
+    "src/scene/ecs/entity/error.rs",
+    "src/scene/ecs/entity/internal.rs",
+    "src/scene/ecs/entity/location.rs",
+    "src/scene/ecs/entity/registry.rs",
+    "src/scene/ecs/entity/slot.rs",
+    "src/scene/ecs/entity/stable_location.rs",
+    "src/scene/ecs/observer/mod.rs",
+    "src/scene/ecs/observer/callbacks.rs",
+    "src/scene/ecs/observer/entry.rs",
+    "src/scene/ecs/observer/id.rs",
+    "src/scene/ecs/observer/store.rs",
+    "src/scene/ecs/observer/utils.rs",
     "src/scene/ecs/commands/command.rs",
     "src/scene/ecs/commands/command_queue.rs",
-    "src/scene/ecs/commands/commands.rs",
-    "src/scene/ecs/events.rs",
-    "src/scene/ecs/messages.rs",
+    "src/scene/ecs/commands/commands/mod.rs",
+    "src/scene/ecs/commands/commands/entity_commands.rs",
+    "src/scene/ecs/commands/commands/facade.rs",
+    "src/scene/ecs/commands/commands/param.rs",
+    "src/scene/ecs/events/mod.rs",
+    "src/scene/ecs/events/cursor.rs",
+    "src/scene/ecs/events/id.rs",
+    "src/scene/ecs/events/metrics.rs",
+    "src/scene/ecs/events/queue.rs",
+    "src/scene/ecs/events/store.rs",
+    "src/scene/ecs/events/subscription.rs",
+    "src/scene/ecs/messages/mod.rs",
+    "src/scene/ecs/messages/cursor.rs",
+    "src/scene/ecs/messages/id.rs",
+    "src/scene/ecs/messages/queue.rs",
+    "src/scene/ecs/messages/store.rs",
+    "src/scene/ecs/resource/mod.rs",
+    "src/scene/ecs/resource/id.rs",
+    "src/scene/ecs/resource/marker.rs",
+    "src/scene/ecs/resource/registry.rs",
+    "src/scene/ecs/resource_store/mod.rs",
+    "src/scene/ecs/resource_store/stored_resource.rs",
+    "src/scene/ecs/resource_store/store.rs",
+    "src/scene/ecs/change_detection/mod.rs",
     "src/scene/ecs/change_detection/change_tick.rs",
     "src/scene/ecs/change_detection/change_tick_window.rs",
     "src/scene/ecs/change_detection/component_ticks.rs",
+    "src/scene/ecs/change_detection/stats.rs",
+    "src/scene/ecs/change_detection/wrappers.rs",
     "src/scene/ecs/removal.rs",
     "src/scene/world/identity.rs",
     "src/scene/world/observers.rs",
@@ -28,6 +77,7 @@ const EXPECTED_RUNTIME_08_TEST_FILES: &[&str] = &[
     "src/scene/tests/ecs_commands.rs",
     "src/scene/tests/ecs_events_messages.rs",
     "src/scene/tests/ecs_change_detection.rs",
+    "src/scene/tests/component_structure/runtime_08_owner_tree.rs",
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
     "src/tests/runtime_absorption/ecs_kernel_data.rs",
 ];
@@ -52,8 +102,8 @@ const EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
 
 #[test]
 fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 20);
-    assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 7);
+    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 69);
+    assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 8);
     assert_eq!(EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS.len(), 16);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -69,10 +119,44 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
     );
 
     assert_source_anchors(
+        "Runtime 08 archetype",
+        &[
+            include_str!("../../scene/ecs/archetype/mod.rs"),
+            include_str!("../../scene/ecs/archetype/id.rs"),
+            include_str!("../../scene/ecs/archetype/index.rs"),
+            include_str!("../../scene/ecs/archetype/move_result.rs"),
+            include_str!("../../scene/ecs/archetype/record.rs"),
+            include_str!("../../scene/ecs/archetype/signature.rs"),
+        ],
+        &[
+            "pub struct ArchetypeId(usize)",
+            "pub const EMPTY: Self = Self(0);",
+            "pub struct ArchetypeRecord",
+            "pub(super) fn push_entity(&mut self, entity: EntityId) -> usize",
+            "pub(super) fn swap_remove_entity(",
+            "pub struct ArchetypeMove",
+            "pub struct ArchetypeIndex",
+            "by_signature: HashMap<ArchetypeSignature, ArchetypeId>",
+            "by_component: HashMap<ComponentId, Vec<ArchetypeId>>",
+            "pub fn matching_archetypes(",
+            "fn shortest_required_archetype_ids(&self, required: &[ComponentId])",
+            "fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId)",
+            "fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize>",
+            "pub struct ArchetypeSignature",
+            "fn normalize_components(mut components: Vec<ComponentId>)",
+        ],
+    );
+    assert_source_anchors(
         "Runtime 08 storage",
         &[
             include_str!("../../scene/ecs/storage_type.rs"),
-            include_str!("../../scene/ecs/storage/component_storage.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/mod.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/entry.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/location.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/sparse.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/store.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/table.rs"),
+            include_str!("../../scene/ecs/storage/component_storage/utils.rs"),
         ],
         &[
             "pub enum StorageType",
@@ -86,13 +170,47 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
             "pub fn get_with_ticks_at_location<T>",
         ],
     );
+    assert_component_storage_private_reexport_cleanup();
+    assert_source_anchors(
+        "Runtime 08 component identity",
+        &[
+            include_str!("../../scene/ecs/component/mod.rs"),
+            include_str!("../../scene/ecs/component/id.rs"),
+            include_str!("../../scene/ecs/component/marker.rs"),
+            include_str!("../../scene/ecs/component/registry.rs"),
+        ],
+        &[
+            "pub trait Component: 'static + Send + Sync",
+            "const STORAGE_TYPE: StorageType = StorageType::Table;",
+            "pub struct ComponentId(usize)",
+            "pub const fn new(index: usize) -> Self",
+            "pub const fn index(self) -> usize",
+            "pub struct ComponentDescriptor",
+            "pub enum ComponentDescriptorSource",
+            "RustType { type_id: TypeId }",
+            "DynamicPlugin { component_type_id: String }",
+            "pub struct ComponentRegistry",
+            "rust_ids_by_type_id: HashMap<TypeId, ComponentId>",
+            "dynamic_ids_by_type_id: HashMap<String, ComponentId>",
+            "pub fn component_id<T>(&mut self) -> ComponentId",
+            "pub fn dynamic_component_id(&mut self, component_type_id: &str) -> ComponentId",
+            "pub fn registered_component_id<T>(&self) -> Option<ComponentId>",
+            "pub fn registered_dynamic_component_id(&self, component_type_id: &str) -> Option<ComponentId>",
+            "pub(crate) fn rust_type_for_id(&self, id: ComponentId) -> Option<(TypeId, &str)>",
+            "pub fn descriptors(&self) -> &[ComponentDescriptor]",
+        ],
+    );
     assert_source_anchors(
         "Runtime 08 entity lifecycle",
         &[
-            include_str!("../../scene/ecs/entity_registry.rs"),
-            include_str!("../../scene/ecs/internal_entity.rs"),
-            include_str!("../../scene/ecs/stable_entity_location.rs"),
-            include_str!("../../scene/ecs/despawned_entity.rs"),
+            include_str!("../../scene/ecs/entity/mod.rs"),
+            include_str!("../../scene/ecs/entity/despawned.rs"),
+            include_str!("../../scene/ecs/entity/error.rs"),
+            include_str!("../../scene/ecs/entity/internal.rs"),
+            include_str!("../../scene/ecs/entity/location.rs"),
+            include_str!("../../scene/ecs/entity/registry.rs"),
+            include_str!("../../scene/ecs/entity/slot.rs"),
+            include_str!("../../scene/ecs/entity/stable_location.rs"),
             include_str!("../../scene/world/identity.rs"),
         ],
         &[
@@ -111,7 +229,12 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
     assert_source_anchors(
         "Runtime 08 observer",
         &[
-            include_str!("../../scene/ecs/observer.rs"),
+            include_str!("../../scene/ecs/observer/mod.rs"),
+            include_str!("../../scene/ecs/observer/callbacks.rs"),
+            include_str!("../../scene/ecs/observer/entry.rs"),
+            include_str!("../../scene/ecs/observer/id.rs"),
+            include_str!("../../scene/ecs/observer/store.rs"),
+            include_str!("../../scene/ecs/observer/utils.rs"),
             include_str!("../../scene/world/observers.rs"),
         ],
         &[
@@ -130,7 +253,10 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
         &[
             include_str!("../../scene/ecs/commands/command.rs"),
             include_str!("../../scene/ecs/commands/command_queue.rs"),
-            include_str!("../../scene/ecs/commands/commands.rs"),
+            include_str!("../../scene/ecs/commands/commands/mod.rs"),
+            include_str!("../../scene/ecs/commands/commands/entity_commands.rs"),
+            include_str!("../../scene/ecs/commands/commands/facade.rs"),
+            include_str!("../../scene/ecs/commands/commands/param.rs"),
             include_str!("../../scene/world/commands.rs"),
         ],
         &[
@@ -150,8 +276,18 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
     assert_source_anchors(
         "Runtime 08 event/message",
         &[
-            include_str!("../../scene/ecs/events.rs"),
-            include_str!("../../scene/ecs/messages.rs"),
+            include_str!("../../scene/ecs/events/mod.rs"),
+            include_str!("../../scene/ecs/events/cursor.rs"),
+            include_str!("../../scene/ecs/events/id.rs"),
+            include_str!("../../scene/ecs/events/metrics.rs"),
+            include_str!("../../scene/ecs/events/queue.rs"),
+            include_str!("../../scene/ecs/events/store.rs"),
+            include_str!("../../scene/ecs/events/subscription.rs"),
+            include_str!("../../scene/ecs/messages/mod.rs"),
+            include_str!("../../scene/ecs/messages/cursor.rs"),
+            include_str!("../../scene/ecs/messages/id.rs"),
+            include_str!("../../scene/ecs/messages/queue.rs"),
+            include_str!("../../scene/ecs/messages/store.rs"),
             include_str!("../../scene/world/events.rs"),
             include_str!("../../scene/world/messages.rs"),
         ],
@@ -171,11 +307,37 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
         ],
     );
     assert_source_anchors(
+        "Runtime 08 resource identity",
+        &[
+            include_str!("../../scene/ecs/resource/mod.rs"),
+            include_str!("../../scene/ecs/resource/id.rs"),
+            include_str!("../../scene/ecs/resource/marker.rs"),
+            include_str!("../../scene/ecs/resource/registry.rs"),
+        ],
+        &[
+            "pub trait Resource: 'static + Send + Sync",
+            "pub struct ResourceId(usize)",
+            "pub const fn new(index: usize) -> Self",
+            "pub const fn index(self) -> usize",
+            "pub struct ResourceDescriptor",
+            "pub struct ResourceRegistry",
+            "ids_by_type: HashMap<TypeId, ResourceId>",
+            "pub fn resource_id<T>(&mut self) -> ResourceId",
+            "type_name::<T>().to_string()",
+            "pub fn registered_resource_id<T>(&self) -> Option<ResourceId>",
+            "pub fn descriptor(&self, id: ResourceId) -> Option<&ResourceDescriptor>",
+            "pub fn descriptors(&self) -> &[ResourceDescriptor]",
+        ],
+    );
+    assert_source_anchors(
         "Runtime 08 change tick",
         &[
+            include_str!("../../scene/ecs/change_detection/mod.rs"),
             include_str!("../../scene/ecs/change_detection/change_tick.rs"),
             include_str!("../../scene/ecs/change_detection/change_tick_window.rs"),
             include_str!("../../scene/ecs/change_detection/component_ticks.rs"),
+            include_str!("../../scene/ecs/change_detection/stats.rs"),
+            include_str!("../../scene/ecs/change_detection/wrappers.rs"),
         ],
         &[
             "pub const MAX_CHANGE_AGE: u64",
@@ -195,6 +357,7 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
             include_str!("../../scene/tests/ecs_commands.rs"),
             include_str!("../../scene/tests/ecs_events_messages.rs"),
             include_str!("../../scene/tests/ecs_change_detection.rs"),
+            include_str!("../../scene/tests/component_structure/runtime_08_owner_tree.rs"),
             include_str!("plan_status/cargo_gates/early.rs"),
             include_str!("ecs_kernel_data.rs"),
         ],
@@ -215,6 +378,9 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
             "event_and_message_clear_boundaries_do_not_cross_channels",
             "change_tick_comparison_survives_wraparound",
             "tick_window_clamps_stale_ticks",
+            "runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover",
+            "runtime_08_ecs_change_detection_owner_tree_stays_folder_backed_after_cutover",
+            "runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover",
             "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
             "runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts",
         ],
@@ -259,18 +425,22 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "ecs_kernel_data_boundary",
-            "expected_source_file_count = 20",
-            "expected_test_file_count = 7",
+            "expected_source_file_count = 69",
+            "expected_test_file_count = 8",
+            "archetype_anchors = 15/15",
             "storage_anchors = 9/9",
+            "component_identity_anchors = 18/18",
             "entity_lifecycle_anchors = 10/10",
             "observer_anchors = 8/8",
             "deferred_command_anchors = 11/11",
             "event_message_anchors = 12/12",
+            "resource_identity_anchors = 12/12",
             "change_tick_anchors = 6/6",
-            "runtime_08_guard_anchors = 18/18",
+            "runtime_08_guard_anchors = 21/21",
             "behavior_test_anchor_count = 16",
             "missing_behavior_test_anchors = []",
-            "doc_anchors = 9/9",
+            "component_storage_private_reexport_anchors = 9/9",
+            "doc_anchors = 13/13",
             "pending_cargo_gate_anchors = 6/6",
             "mirror_docs_guard_present = true",
             "risks = []",
@@ -281,6 +451,88 @@ fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
                 "{doc_name} should mirror Runtime 08 ECS data-kernel audit anchor `{required_anchor}`"
             );
         }
+    }
+}
+
+fn assert_component_storage_private_reexport_cleanup() {
+    let mod_source = include_str!("../../scene/ecs/storage/component_storage/mod.rs");
+    assert!(
+        mod_source.contains("pub use location::ComponentStorageLocation;"),
+        "component_storage/mod.rs should keep ComponentStorageLocation as a public re-export"
+    );
+    assert!(
+        mod_source.contains("pub use store::ComponentStorage;"),
+        "component_storage/mod.rs should keep ComponentStorage as a public re-export"
+    );
+
+    for forbidden_reexport in [
+        "pub(super) use entry::",
+        "pub(super) use sparse::",
+        "pub(super) use table::",
+        "pub(super) use utils::",
+        "pub(in crate::scene::ecs::storage) use entry::",
+        "pub(in crate::scene::ecs::storage) use sparse::",
+        "pub(in crate::scene::ecs::storage) use table::",
+        "pub(in crate::scene::ecs::storage) use utils::",
+    ] {
+        assert!(
+            !mod_source.contains(forbidden_reexport),
+            "component_storage/mod.rs should not return to parent private re-export hub form: `{forbidden_reexport}`"
+        );
+    }
+
+    let sparse_source = include_str!("../../scene/ecs/storage/component_storage/sparse.rs");
+    let table_source = include_str!("../../scene/ecs/storage/component_storage/table.rs");
+    let utils_source = include_str!("../../scene/ecs/storage/component_storage/utils.rs");
+    let store_source = include_str!("../../scene/ecs/storage/component_storage/store.rs");
+
+    assert!(
+        sparse_source.contains("use super::entry::{RawRemoveResult, StoredComponent};"),
+        "sparse.rs should import erased entry/remove-result owners directly"
+    );
+    assert!(
+        table_source.contains("use super::entry::{RawRemoveResult, StoredComponent};"),
+        "table.rs should import erased entry/remove-result owners directly"
+    );
+    assert!(
+        utils_source.contains("use super::entry::StoredComponent;"),
+        "utils.rs should import StoredComponent from the entry owner directly"
+    );
+
+    for required_import in [
+        "use super::location::ComponentStorageLocation;",
+        "use super::sparse::SparseComponentStorage;",
+        "use super::table::TableComponentStorage;",
+        "use super::utils::{downcast_component, sort_component_ids_if_needed};",
+    ] {
+        assert!(
+            store_source.contains(required_import),
+            "store.rs should retain sibling owner import `{required_import}`"
+        );
+    }
+
+    for (file_name, source, forbidden_import) in [
+        (
+            "sparse.rs",
+            sparse_source,
+            "use super::{RawRemoveResult, StoredComponent};",
+        ),
+        (
+            "table.rs",
+            table_source,
+            "use super::{RawRemoveResult, StoredComponent};",
+        ),
+        ("utils.rs", utils_source, "use super::StoredComponent;"),
+        (
+            "store.rs",
+            store_source,
+            "use super::{downcast_component, sort_component_ids_if_needed};",
+        ),
+    ] {
+        assert!(
+            !source.contains(forbidden_import),
+            "{file_name} should not depend on parent private re-export `{forbidden_import}`"
+        );
     }
 }
 

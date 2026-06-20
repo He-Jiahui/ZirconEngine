@@ -1,7 +1,7 @@
 use super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::post_process::resources::render_region::{
-    apply_render_region_to_pass, create_terminal_region_params_buffer,
+    apply_physical_render_region_to_pass, create_physical_terminal_region_params_buffer,
 };
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -16,7 +16,7 @@ impl ScenePostProcessResources {
         attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
     ) {
-        let terminal_region_params_buffer = create_terminal_region_params_buffer(
+        let terminal_region_params_buffer = create_physical_terminal_region_params_buffer(
             device,
             "zircon-fxaa-terminal-region-params",
             render_region,
@@ -48,7 +48,7 @@ impl ScenePostProcessResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !apply_render_region_to_pass(&mut pass, render_region) {
+        if !apply_physical_render_region_to_pass(&mut pass, render_region) {
             return;
         }
         pass.set_pipeline(&self.fxaa_pipeline);

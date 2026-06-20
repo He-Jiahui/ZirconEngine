@@ -30,12 +30,15 @@ implementation_files:
 plan_sources:
   - user: 2026-06-12 implement editor UI architecture plan code
   - docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md
+  - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
 tests:
   - zircon_runtime/src/ui/tests/asset_resource_resolver.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\resource_ref\resolver.rs zircon_runtime\src\ui\template\asset\resource_ref\resolution_report.rs zircon_runtime\src\ui\template\asset\resource_ref\mod.rs zircon_runtime\src\ui\template\asset\mod.rs zircon_runtime\src\ui\template\mod.rs zircon_runtime\src\ui\tests\asset_resource_resolver.rs zircon_runtime\src\ui\tests\mod.rs
   - git diff --check -- zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs zircon_runtime/src/ui/template/asset/resource_ref/resolution_report.rs zircon_runtime/src/ui/template/asset/resource_ref/mod.rs zircon_runtime/src/ui/template/asset/mod.rs zircon_runtime/src/ui/template/mod.rs zircon_runtime/src/ui/tests/asset_resource_resolver.rs zircon_runtime/src/ui/tests/mod.rs docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\resource_ref\resolver.rs zircon_runtime\src\ui\template\asset\resource_ref\mod.rs zircon_runtime\src\ui\template\asset\hot_reload_executor.rs zircon_runtime\src\ui\template\asset\mod.rs zircon_runtime\src\ui\template\mod.rs zircon_runtime\src\ui\tests\asset_resource_resolver.rs zircon_runtime\src\ui\tests\asset_hot_reload_executor.rs (2026-06-12: passed)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-resource-refresh-0612-coremin --message-format short --color never (2026-06-12: passed, existing warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\resource_ref\resolver.rs zircon_runtime\src\ui\tests\asset_resource_resolver.rs (2026-06-20: passed)
+  - git diff --check -- zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs zircon_runtime/src/ui/tests/asset_resource_resolver.rs docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md (2026-06-20: passed with LF/CRLF warnings only)
 doc_type: module-detail
 ---
 
@@ -62,7 +65,7 @@ The diagnostic index points into `UiResourceResolver::diagnostics()`. Callers ca
 
 ## Runtime Registry Lookup
 
-The resolver uses `ResourceManager::registry().get_by_locator(...)` and never reads the file system directly. That keeps template consumption aligned with the runtime asset facade instead of creating a second UI-only IO path.
+The resolver uses `ResourceManager::registry().get_by_locator(...)` and never reads the file system directly. That keeps template consumption aligned with the runtime asset facade instead of creating a second UI-only IO path. `UiResourceResolverSchemeMap` is the only URI translation layer in this resolver; it maps UI template schemes to runtime `ResourceLocator` schemes before the registry lookup, but it still requires the target record to already exist in the resource manager.
 
 UI kind mapping is intentionally small:
 
@@ -76,13 +79,15 @@ If the registry contains a record with the wrong kind, the resolver emits `KindM
 
 `UiResourceRef::validate(...)` accepts `res://`, `asset://`, and `project://`. The runtime core `ResourceLocator` currently supports `res://`, `lib://`, `package://`, `builtin://`, and `mem://`.
 
-The resolver treats this as a boundary instead of forcing a lossy conversion:
+The resolver treats this as a boundary unless the runtime host supplies an explicit `UiResourceResolverSchemeMap`:
 
 - `res://` and other `ResourceLocator` schemes can be looked up directly in the runtime registry.
-- `asset://` and `project://` are valid UI template schemes, but they do not map to a runtime registry locator in this layer yet. They produce `MissingPrimary` or `MissingFallback`, not `InvalidUri`.
+- Without a scheme map, `asset://` and `project://` remain valid UI template schemes that produce `MissingPrimary` or `MissingFallback`, not `InvalidUri`.
+- `UiResourceResolverSchemeMap::asset_to(...)` maps `asset://path#label` to the configured runtime scheme while preserving the path and optional label, for example `asset://ui/icons/run.svg#normal` -> `res://ui/icons/run.svg#normal`.
+- `UiResourceResolverSchemeMap::project_to(...)` maps `project://path#label` to the configured runtime scheme, and `project_to_package(package_id)` maps it to `package://{package_id}/path#label`.
 - malformed or unsupported non-UI URI schemes produce `InvalidUri`.
 
-This keeps authoring validation and runtime registry lookup consistent without pretending that editor/project-relative roots have already been imported into runtime handles.
+This keeps authoring validation and runtime registry lookup consistent: UI schemes are tolerated by default, and hosts that have imported editor/project-relative roots can opt into deterministic runtime locator lookup without adding file-system reads to the resolver.
 
 ## Fallbacks
 
@@ -99,7 +104,9 @@ The resolver does not panic on missing or mismatched resources. Missing primarie
 
 `UiResourceResolver` caches results by the full `UiResourceRef`. The cache avoids repeating registry lookup and duplicate diagnostics for identical references in one resolver lifetime. `clear_cache()` only clears resolved results; diagnostics remain queryable so editor consumers do not lose the authoring report for a frame.
 
-`invalidate_uris(...)` removes only cached references whose primary URI or fallback URI matches a changed resource URI. It returns `UiResourceResolverCacheInvalidationReport` with the requested URI list, removed cached reference count, and retained diagnostic count. Diagnostics intentionally remain available because editor panels may still need to show the authoring report for the frame that triggered the reload.
+`invalidate_uris(...)` removes cached references whose primary URI or fallback URI matches a changed resource URI. When `UiResourceResolverSchemeMap` is configured, invalidation also compares the primary and fallback UI URIs after converting them to their mapped runtime `ResourceLocator` strings. For example, a cached `asset://textures/checker.png` reference is invalidated by `res://textures/checker.png` when `asset://` is mapped to `ResourceScheme::Res`.
+
+The invalidation report returns the requested URI list, removed cached reference count, and retained diagnostic count. Diagnostics intentionally remain available because editor panels may still need to show the authoring report for the frame that triggered the reload.
 
 `UiAssetHotReloadExecutor` optionally accepts a mutable resolver. When a hot-reload plan has `resource_refresh_assets`, the executor calls `invalidate_uris(...)` and includes the report in `UiAssetHotReloadExecutionReport::resource_resolver_cache`. Plans without resource-refresh work leave the resolver untouched.
 
@@ -120,11 +127,16 @@ The report also exposes `resolved_count()`, `placeholder_count()`, and `has_erro
 - successful lookup of a registered image reference as a texture resource handle.
 - primary miss with a registered placeholder fallback handle.
 - legal `asset://` UI scheme producing missing-resource diagnostics rather than invalid-URI diagnostics.
+- configured `asset://` -> `res://` and `project://` -> `package://...` scheme mapping resolving registered runtime records.
+- UI scheme mapping preserving `#label` subresource fragments.
 - missing placeholder fallback producing a separate fallback diagnostic.
 - kind mismatch refusing to return the wrong runtime handle.
 - cache reuse for repeated references.
 - primary and fallback URI cache invalidation with duplicate/blank invalidation requests ignored.
+- primary and fallback cache invalidation when cached UI scheme references are refreshed through their mapped runtime locator.
 - dependency-resolution reports preserving dependency paths, summary counts, and cached diagnostic index reuse for duplicate references.
 - hot-reload execution invalidating the resolver cache for refreshed icon/font/texture resources when a resolver is supplied.
 
 The first validation layer for this slice is formatting and diff hygiene. Focused runtime test execution remains part of the milestone testing stage because recent cold lib-test rebuilds in this workspace have timed out or stopped in unrelated scene/core test changes.
+
+2026-06-20 update: `UiResourceResolverSchemeMap` added host-configured UI scheme mapping to the resolver while keeping default `asset://` / `project://` missing-not-invalid behavior. New behavior anchors cover `asset://` mapping to `res://`, `project://` mapping to `package://{package_id}/...`, preserving `#label` when a UI scheme URI is converted into a runtime locator, and invalidating mapped UI scheme cache entries when hot reload reports the runtime locator URI.

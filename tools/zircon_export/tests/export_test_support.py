@@ -371,6 +371,8 @@ def _compile_host_plan() -> dict[str, object]:
         "command": [
             "cargo",
             "build",
+            "--manifest-path",
+            "Cargo.toml",
             "-p",
             "zircon_app",
             "--bin",
@@ -626,6 +628,14 @@ def _write_source_template_report(
             contents = output.read_bytes()
             file["size"] = len(contents)
             file["sha256"] = hashlib.sha256(contents).hexdigest()
+    build_command = [
+        "cargo",
+        "build",
+        "--manifest-path",
+        str(project_dir / "Cargo.toml"),
+        "--target-dir",
+        str(report_dir / "target"),
+    ]
     report: dict[str, object] = {
         "stage": "SourceTemplate",
         "profile": profile,
@@ -634,7 +644,7 @@ def _write_source_template_report(
         "validate_report": str(out / "stages" / "validate" / "report.json"),
         "project": str(project_dir),
         "generated_files": generated_files,
-        "command": ["cargo", "build", "--manifest-path", str(project_dir / "Cargo.toml")],
+        "command": build_command,
         "build_executed": False,
         "build_validation": {
             "requested": False,
@@ -642,10 +652,12 @@ def _write_source_template_report(
             "status": "skipped",
             "exit_code": None,
             "working_dir": str(project_dir),
-            "command": ["cargo", "build", "--manifest-path", str(project_dir / "Cargo.toml")],
+            "command": build_command,
             "stdout_lines": [],
             "stderr_lines": [],
         },
+        "project_cleaned": False,
+        "cleanup_reason": None,
     }
     if report_overrides:
         report.update(report_overrides)
@@ -831,6 +843,10 @@ def _native_dynamic_build_plan_report() -> dict[str, object]:
                     "build",
                     "--manifest-path",
                     "zircon_plugins/Cargo.toml",
+                    "-p",
+                    "zircon_plugin_animation_native",
+                    "--target-dir",
+                    "target/native_dynamic",
                 ],
                 "expected_loadable_artifact": (
                     "target/native_dynamic/debug/zircon_plugin_animation_native.dll"
@@ -844,6 +860,7 @@ def _native_dynamic_build_execution_report() -> dict[str, object]:
     return {
         "enabled": False,
         "fatal": False,
+        "skipped": False,
         "diagnostics": [],
         "package_count": 0,
         "packages": [],
@@ -883,8 +900,8 @@ def _native_dynamic_operation_audit_package_report(
                 "exit_code": 0,
                 "stdout": "",
                 "stderr": "",
-                "before_sha256": "before-hash",
-                "after_sha256": "after-hash",
+                "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
             }
         ],
     }
@@ -950,11 +967,12 @@ def _write_compile_host_report(
         host_executable.parent.mkdir(parents=True, exist_ok=True)
         if not host_executable.exists():
             host_executable.write_text("host placeholder", encoding="utf-8")
+    compile_host_plan = _compile_host_plan()
     report: dict[str, object] = {
         "stage": "CompileHost",
         "fatal": False,
         "diagnostics": [],
-        "command": ["cargo", "build"],
+        "command": list(compile_host_plan["command"]),
         "exit_code": 0,
         "host_executable": str(host_executable) if host_value is None else host_value,
         "link_plan": _compile_host_link_plan(),
@@ -1048,6 +1066,11 @@ def _write_pack_report(
         delta_pack.parent.mkdir(parents=True, exist_ok=True)
         if not delta_pack.exists():
             delta_pack.write_text("delta pack placeholder", encoding="utf-8")
+    previous_pack = None
+    if delta_pack is not None:
+        previous_pack = delta_pack.with_name("previous.zrpack")
+        if not previous_pack.exists():
+            previous_pack.write_text("previous pack placeholder", encoding="utf-8")
     delta_manifest = empty_delta_manifest() if delta_pack is not None else None
     report: dict[str, object] = {
         "stage": "Pack",
@@ -1055,6 +1078,7 @@ def _write_pack_report(
         "diagnostics": [],
         "asset_manifest": str(asset_manifest),
         "pack": str(pack) if pack_value is None else pack_value,
+        "previous_pack": str(previous_pack) if previous_pack else None,
         "stage_output": str(report_dir),
         "trim_report": {
             "included_assets": [],
@@ -1310,6 +1334,12 @@ def _write_native_dynamic_report(
 ) -> None:
     report_dir = out / "stages" / "native_dynamic"
     file_manifest = _native_dynamic_plugins_file_manifest(plugins_dir)
+    source_package = out / "zircon_plugins" / "animation"
+    source_package.mkdir(parents=True, exist_ok=True)
+    source_package.joinpath("plugin.toml").write_text(
+        'id = "animation"\n',
+        encoding="utf-8",
+    )
     report = {
         "stage": "NativeDynamic",
         "profile": profile,
@@ -1334,7 +1364,11 @@ def _write_native_dynamic_report(
         "materialized_packages": [
             {
                 "package_id": "animation",
+                "source": str(source_package),
                 "destination": str(plugins_dir / "animation"),
+                "package_report": str(
+                    plugins_dir / "animation" / "native_dynamic_package.toml"
+                ),
                 "loadable_artifact_count": 1,
                 "loadable_artifacts": [
                     "plugins/animation/native/zircon_plugin_animation.dll"
@@ -1356,9 +1390,32 @@ def _write_native_dynamic_report(
 def _write_native_dynamic_stage_plugins(stage_root: Path) -> Path:
     plugins_dir = stage_root / "plugins"
     package = plugins_dir / "animation"
+    package_export = _native_dynamic_package_export()
+    abi = package_export["abi"]
     (package / "native").mkdir(parents=True)
     (plugins_dir / "native_plugins.toml").write_text(
-        '[[plugins]]\nid = "animation"\n',
+        "\n".join(
+            [
+                "[[plugins]]",
+                'id = "animation"',
+                'path = "plugins/animation"',
+                'manifest = "plugins/animation/plugin.toml"',
+                'package_report = "plugins/animation/native_dynamic_package.toml"',
+                "",
+                "[plugins.abi]",
+                f'abi_version = {abi["abi_version"]}',
+                f'descriptor_symbol = "{abi["descriptor_symbol"]}"',
+                f'descriptor_contract = "{abi["descriptor_contract"]}"',
+                f'runtime_entry_source = "{abi["runtime_entry_source"]}"',
+                f'editor_entry_source = "{abi["editor_entry_source"]}"',
+                f'host_function_table = "{abi["host_function_table"]}"',
+                f'entry_report_contract = "{abi["entry_report_contract"]}"',
+                f'behavior_contract = "{abi["behavior_contract"]}"',
+                f'state_snapshot_contract = "{abi["state_snapshot_contract"]}"',
+                f'bridge_method_table = "{abi["bridge_method_table"]}"',
+            ]
+        )
+        + "\n",
         encoding="utf-8",
     )
     (package / "native" / "zircon_plugin_animation.dll").write_text(

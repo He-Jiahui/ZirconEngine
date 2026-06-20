@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -10,6 +11,7 @@ use crate::{
     plugin::ExportTargetPlatform, plugin::ExportValidateReport, plugin::ProjectPluginManifest,
     plugin::ProjectPluginSelection,
 };
+use zip::ZipArchive;
 
 #[test]
 fn export_plan_rejects_malformed_native_dynamic_project_plugin_id_before_package_selection() {
@@ -251,6 +253,128 @@ fn native_dynamic_materialization_copies_runtime_package_without_source_crates()
 
     let _ = fs::remove_dir_all(plugin_root);
     let _ = fs::remove_dir_all(output_root);
+}
+
+#[test]
+fn native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads() {
+    let plugin_root = temp_dir("zircon_native_dynamic_zip_plugin_root");
+    let archive_root = temp_dir("zircon_native_dynamic_zip_archive_root");
+    let archive_path = archive_root.join("client-export.zip");
+    let package_root = plugin_root.join("sound");
+    fs::create_dir_all(package_root.join("runtime/src")).unwrap();
+    fs::create_dir_all(package_root.join("editor/src")).unwrap();
+    fs::create_dir_all(package_root.join("native/src")).unwrap();
+    fs::create_dir_all(package_root.join("native")).unwrap();
+    fs::create_dir_all(package_root.join("assets")).unwrap();
+    fs::write(package_root.join("plugin.toml"), sound_plugin_manifest()).unwrap();
+    fs::write(package_root.join("runtime/Cargo.toml"), "[package]\n").unwrap();
+    fs::write(
+        package_root.join("runtime/src/lib.rs"),
+        "pub fn linked() {}\n",
+    )
+    .unwrap();
+    fs::write(
+        package_root.join("editor/src/lib.rs"),
+        "pub fn editor() {}\n",
+    )
+    .unwrap();
+    fs::write(package_root.join("native/Cargo.toml"), "[package]\n").unwrap();
+    fs::write(
+        package_root.join("native/src/lib.rs"),
+        "pub fn native() {}\n",
+    )
+    .unwrap();
+    fs::write(package_root.join("native/sound.dll"), "dynamic-library").unwrap();
+    fs::write(package_root.join("assets/material.toml"), "name = \"mat\"").unwrap();
+
+    let report = native_dynamic_plan()
+        .materialize_zip_archive(&plugin_root, &archive_path)
+        .unwrap();
+
+    assert_eq!(report.archive_file.as_deref(), Some(archive_path.as_path()));
+    assert!(
+        report
+            .generated_files
+            .contains(&PathBuf::from("plugins/native_plugins.toml")),
+        "{:?}",
+        report.generated_files
+    );
+    assert!(
+        report
+            .copied_packages
+            .contains(&PathBuf::from("plugins/sound")),
+        "{:?}",
+        report.copied_packages
+    );
+    assert!(archive_path.exists());
+
+    let archive_file = fs::File::open(&archive_path).unwrap();
+    let mut archive = ZipArchive::new(archive_file).unwrap();
+    let mut native_manifest = String::new();
+    archive
+        .by_name("plugins/native_plugins.toml")
+        .unwrap()
+        .read_to_string(&mut native_manifest)
+        .unwrap();
+    assert!(native_manifest.contains("id = \"sound\""));
+    assert!(native_manifest.contains("path = \"plugins/sound\""));
+    assert!(archive.by_name("plugins/sound/plugin.toml").is_ok());
+    assert!(archive.by_name("plugins/sound/native/sound.dll").is_ok());
+    assert!(archive
+        .by_name("plugins/sound/assets/material.toml")
+        .is_ok());
+    let mut package_report = String::new();
+    archive
+        .by_name("plugins/sound/native_dynamic_package.toml")
+        .unwrap()
+        .read_to_string(&mut package_report)
+        .unwrap();
+    assert!(package_report.contains("package_id = \"sound\""));
+    assert!(archive.by_name("plugins/sound/runtime/Cargo.toml").is_err());
+    assert!(archive.by_name("plugins/sound/runtime/src/lib.rs").is_err());
+    assert!(archive.by_name("plugins/sound/editor/src/lib.rs").is_err());
+    assert!(archive.by_name("plugins/sound/native/Cargo.toml").is_err());
+    assert!(archive.by_name("plugins/sound/native/src/lib.rs").is_err());
+
+    let _ = fs::remove_dir_all(plugin_root);
+    let _ = fs::remove_dir_all(archive_root);
+}
+
+#[test]
+fn native_dynamic_zip_archive_preview_reports_archive_without_writes() {
+    let plugin_root = temp_dir("zircon_native_dynamic_zip_preview_plugin_root");
+    let archive_root = temp_dir("zircon_native_dynamic_zip_preview_archive_root");
+    let archive_path = archive_root.join("client-export.zip");
+    let package_root = plugin_root.join("sound");
+    fs::create_dir_all(package_root.join("native")).unwrap();
+    fs::create_dir_all(package_root.join("assets")).unwrap();
+    fs::write(package_root.join("plugin.toml"), sound_plugin_manifest()).unwrap();
+    fs::write(package_root.join("native/sound.dll"), "dynamic-library").unwrap();
+    fs::write(package_root.join("assets/material.toml"), "name = \"mat\"").unwrap();
+
+    let report = native_dynamic_plan()
+        .preview_zip_archive(&plugin_root, &archive_path)
+        .unwrap();
+
+    assert_eq!(report.archive_file.as_deref(), Some(archive_path.as_path()));
+    assert!(
+        report
+            .generated_files
+            .contains(&PathBuf::from("plugins/native_plugins.toml")),
+        "{:?}",
+        report.generated_files
+    );
+    assert!(
+        report
+            .copied_packages
+            .contains(&PathBuf::from("plugins/sound")),
+        "{:?}",
+        report.copied_packages
+    );
+    assert!(!archive_path.exists());
+    assert!(!archive_root.exists());
+
+    let _ = fs::remove_dir_all(plugin_root);
 }
 
 #[test]

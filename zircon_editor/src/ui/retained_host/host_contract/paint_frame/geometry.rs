@@ -1,6 +1,6 @@
 use super::super::data::FrameRect;
 
-pub(super) fn visible_frame(frame: &FrameRect) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn visible_frame(frame: &FrameRect) -> bool {
     frame.x.is_finite()
         && frame.y.is_finite()
         && frame.width.is_finite()
@@ -9,7 +9,10 @@ pub(super) fn visible_frame(frame: &FrameRect) -> bool {
         && frame.height > 0.0
 }
 
-pub(super) fn clipped_frame(frame: &FrameRect, clip: Option<&FrameRect>) -> Option<FrameRect> {
+pub(in crate::ui::retained_host::host_contract) fn clipped_frame(
+    frame: &FrameRect,
+    clip: Option<&FrameRect>,
+) -> Option<FrameRect> {
     match clip {
         Some(clip) => intersect_frames(frame, clip),
         None if visible_frame(frame) => Some(frame.clone()),

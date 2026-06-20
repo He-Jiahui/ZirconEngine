@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 
-pub(super) fn pane_pointer_press_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn pane_pointer_press_damage_frame(
     presentation: &HostWindowPresentationData,
     pane_frame: &FrameRect,
     extra_damage: Option<FrameRect>,

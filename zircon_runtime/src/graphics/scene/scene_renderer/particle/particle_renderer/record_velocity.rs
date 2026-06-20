@@ -51,7 +51,7 @@ impl ParticleRenderer {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !render_region.apply_to_render_pass(&mut pass) {
+        if !render_region.apply_physical_to_render_pass(&mut pass) {
             return;
         }
         pass.set_pipeline(&self.velocity_pipeline);

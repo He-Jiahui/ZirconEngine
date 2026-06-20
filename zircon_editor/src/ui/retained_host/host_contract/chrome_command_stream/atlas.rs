@@ -1,6 +1,6 @@
 use super::ChromeImageUvRect;
 
-pub(super) fn atlas_subimage_rgba(
+pub(in crate::ui::retained_host::host_contract) fn atlas_subimage_rgba(
     atlas_width: u32,
     atlas_height: u32,
     rgba: &[u8],

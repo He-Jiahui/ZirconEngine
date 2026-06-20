@@ -1,11 +1,12 @@
 use crate::core::framework::render::RenderParticlePreviousSpriteSnapshot;
 use crate::graphics::ViewportRenderFrame;
 
-use super::super::super::viewport_record::ViewportRecord;
+use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 
 pub(super) fn update_particle_previous_state_after_success(
     record: &mut ViewportRecord,
     frame: &ViewportRenderFrame,
+    camera_history_key: &ViewportCameraHistoryKey,
 ) {
     let camera = frame.effective_camera().transform;
     let right = camera.right();
@@ -15,6 +16,7 @@ pub(super) fn update_particle_previous_state_after_success(
         .particles
         .anonymous_stream_ambiguity_entities();
     record.replace_particle_previous_sprites(
+        camera_history_key.clone(),
         frame
             .extract
             .particles
@@ -40,7 +42,9 @@ mod tests {
         RenderViewportDescriptor, RenderWorldSnapshotHandle,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
-    use crate::graphics::runtime::render_framework::viewport_record::ViewportRecord;
+    use crate::graphics::runtime::render_framework::viewport_record::{
+        ViewportCameraHistoryKey, ViewportRecord,
+    };
     use crate::graphics::ViewportRenderFrame;
     use crate::scene::world::World;
 
@@ -71,10 +75,12 @@ mod tests {
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
         let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
 
-        update_particle_previous_state_after_success(&mut record, &frame);
+        let key = ViewportCameraHistoryKey::from_camera(frame.camera());
 
-        assert_eq!(record.particle_previous_sprites().len(), 1);
-        let previous = record.particle_previous_sprites()[0];
+        update_particle_previous_state_after_success(&mut record, &frame, &key);
+
+        assert_eq!(record.particle_previous_sprites(&key).len(), 1);
+        let previous = record.particle_previous_sprites(&key)[0];
         assert_eq!(previous.entity, 77);
         assert_eq!(previous.stable_sprite_key, 31);
         assert_eq!(previous.position, Vec3::new(1.0, 2.0, 3.0));
@@ -148,9 +154,11 @@ mod tests {
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
         let mut record = ViewportRecord::new(RenderViewportDescriptor::new(UVec2::new(64, 64)));
 
-        update_particle_previous_state_after_success(&mut record, &frame);
+        let key = ViewportCameraHistoryKey::from_camera(frame.camera());
 
-        assert_eq!(record.particle_previous_sprites().len(), 1);
-        assert_eq!(record.particle_previous_sprites()[0].entity, 78);
+        update_particle_previous_state_after_success(&mut record, &frame, &key);
+
+        assert_eq!(record.particle_previous_sprites(&key).len(), 1);
+        assert_eq!(record.particle_previous_sprites(&key)[0].entity, 78);
     }
 }

@@ -9,7 +9,7 @@ use super::error::HostPresenterResult;
 use super::host_chrome_presenter::HostChromePresenter;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-pub(super) struct GpuChromePresenter<P: UiSurfacePresenter> {
+pub(in crate::ui::retained_host::host_contract) struct GpuChromePresenter<P: UiSurfacePresenter> {
     surface: P,
     size: (u32, u32),
     diagnostics: HostRefreshDiagnostics,
@@ -40,7 +40,7 @@ impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
 }
 
 impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
-    pub(super) fn new(surface: P, size: (u32, u32)) -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn new(surface: P, size: (u32, u32)) -> Self {
         Self {
             surface,
             size: clamp_size(size),
@@ -51,7 +51,10 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         }
     }
 
-    pub(super) fn resize(&mut self, size: (u32, u32)) -> HostPresenterResult<()> {
+    pub(in crate::ui::retained_host::host_contract) fn resize(
+        &mut self,
+        size: (u32, u32),
+    ) -> HostPresenterResult<()> {
         let size = clamp_size(size);
         self.surface.resize(size.0, size.1)?;
         self.size = size;
@@ -59,7 +62,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         Ok(())
     }
 
-    pub(super) fn present_stream(
+    pub(in crate::ui::retained_host::host_contract) fn present_stream(
         &mut self,
         stream: &ChromeCommandStream,
         invalidation: HostInvalidationDiagnostics,
@@ -96,15 +99,17 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             .with_invalidation_diagnostics(invalidation))
     }
 
-    pub(super) fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
+    pub(in crate::ui::retained_host::host_contract) fn diagnostics_snapshot(
+        &self,
+    ) -> HostRefreshDiagnostics {
         self.diagnostics.clone()
     }
 
-    pub(super) fn last_upload_bytes(&self) -> u64 {
+    pub(in crate::ui::retained_host::host_contract) fn last_upload_bytes(&self) -> u64 {
         self.last_upload_bytes
     }
 
-    pub(super) fn last_draw_calls(&self) -> u64 {
+    pub(in crate::ui::retained_host::host_contract) fn last_draw_calls(&self) -> u64 {
         self.last_draw_calls
     }
 

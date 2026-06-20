@@ -4,7 +4,10 @@ use super::super::{component_variant_contains, first_non_empty, resolved_style_c
 
 const MUI_GREY_600: [u8; 4] = [117, 117, 117, 255];
 
-pub(super) fn avatar_background_color(node: &TemplatePaneNodeData, color_default: bool) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_background_color(
+    node: &TemplatePaneNodeData,
+    color_default: bool,
+) -> [u8; 4] {
     if node.disabled {
         return PALETTE.surface_disabled;
     }
@@ -17,7 +20,9 @@ pub(super) fn avatar_background_color(node: &TemplatePaneNodeData, color_default
     })
 }
 
-pub(super) fn avatar_foreground_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_foreground_color(
+    node: &TemplatePaneNodeData,
+) -> [u8; 4] {
     if node.disabled {
         return PALETTE.text_disabled;
     }
@@ -34,14 +39,18 @@ pub(super) fn avatar_foreground_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     })
 }
 
-pub(super) fn avatar_border_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_border_color(
+    node: &TemplatePaneNodeData,
+) -> Option<[u8; 4]> {
     resolved_style_color(node.button_style.element.border_color.as_ref()).or_else(|| {
         (node.border_width > 0.0 || node.button_style.element.border_width > 0.0)
             .then_some(PALETTE.border)
     })
 }
 
-pub(super) fn avatar_border_width(node: &TemplatePaneNodeData) -> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_border_width(
+    node: &TemplatePaneNodeData,
+) -> f32 {
     node.button_style
         .element
         .border_width

@@ -4,17 +4,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::{AssetReference, ShaderAsset, ShaderRuntimeSourceKind};
 use crate::core::framework::render::{
-    ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialDiagnosticSource,
-    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialLightingModel, RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
-    RenderMaterialTextureTransform, RenderMaterialValidationError, StandardMaterialDescriptor,
+    ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
+    RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
+    RenderMaterialFallbackUsage, RenderMaterialLightingModel, RenderMaterialReadinessDiagnostic,
+    RenderMaterialReadinessReport, RenderMaterialTextureTransform, RenderMaterialValidationError,
+    RenderQueueValue, StandardMaterialDescriptor,
 };
 use crate::core::resource::ResourceId;
 
 use super::{
     dependency_set, is_standard_texture_slot_alias, material_control,
-    shader_property_values_for_shader, validate_alpha_mode, validate_shader_contract, AlphaMode,
-    MaterialTextureSlotValue, ZMaterialDocument,
+    shader_property_values_for_shader, validate_alpha_mode, validate_render_queue_alpha_mode,
+    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
 };
 
 /// Asset-level material summary that does not require renderer preparation.
@@ -220,6 +221,10 @@ impl MaterialAsset {
 
     pub fn validation_errors(&self) -> Vec<RenderMaterialValidationError> {
         let mut errors = validate_alpha_mode(&self.alpha_mode);
+        errors.extend(validate_render_queue_alpha_mode(
+            &self.alpha_mode,
+            self.render_queue_from_property(),
+        ));
         errors.extend(material_control::validation_errors(&self.property_values));
         errors
     }
@@ -369,6 +374,7 @@ impl MaterialAsset {
             cast_shadows: self.cast_shadows(),
             receive_shadows: self.receive_shadows(),
             render_queue: self.render_queue(),
+            render_queue_value: self.render_queue_value(),
             material_queue: self.material_queue(),
             depth_bias: self.depth_bias(),
             taa_reactive_mask_strength: self.taa_reactive_mask_strength(),
@@ -469,6 +475,15 @@ impl MaterialAsset {
 
     pub fn render_queue(&self) -> i32 {
         self.render_queue_from_property().unwrap_or_default()
+    }
+
+    pub fn render_queue_value(&self) -> Option<RenderQueueValue> {
+        let authored_queue = self.render_queue_from_property()?;
+        let alpha_mode = RenderMaterialAlphaMode::from(&self.alpha_mode);
+        Some(RenderQueueValue::from_authored_queue(
+            &alpha_mode,
+            authored_queue,
+        ))
     }
 
     pub fn material_queue(&self) -> i32 {

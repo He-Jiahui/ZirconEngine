@@ -45,8 +45,7 @@ use crate::ui::host::SharedEditorRuntimeClient;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
-    WorkbenchShellGeometry,
+    ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, MainPageId};
 use crate::ui::workbench::model::WorkbenchViewModel;

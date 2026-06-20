@@ -5,10 +5,11 @@ use zircon_runtime_interface::ZrByteSlice;
 
 use crate::asset::project::{ProjectManager, ProjectScriptManifest};
 use crate::asset::NavMeshAsset;
+use crate::asset::{ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
 use crate::core::manager::resolve_navigation_manager;
 use crate::core::CoreHandle;
 use crate::diagnostic_log::write_log;
-use crate::scene::LevelSystem;
+use crate::scene::{DynamicSceneAssetReloadQueue, LevelSystem};
 use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
 
 const DEFAULT_PROJECT_NAVMESH_PATH: &[&str] = &["assets", "navigation", "main.navmesh.toml"];
@@ -81,6 +82,30 @@ impl RuntimeProjectConfig {
                     self.root.display()
                 )
             })
+    }
+
+    pub(super) fn scene_asset_reload_queue(
+        &self,
+        core: &CoreHandle,
+    ) -> Result<DynamicSceneAssetReloadQueue, String> {
+        let asset_manager = core
+            .resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)
+            .map_err(|error| {
+                format!(
+                    "runtime project {} requires ProjectAssetManager for scene asset reloads but it is unavailable: {error}",
+                    self.root.display()
+                )
+            })?;
+        let project = asset_manager.current_project_manager().ok_or_else(|| {
+            format!(
+                "runtime project {} has no active ProjectManager for scene asset reloads",
+                self.root.display()
+            )
+        })?;
+        Ok(DynamicSceneAssetReloadQueue::from_project_asset_manager(
+            project,
+            asset_manager.as_ref(),
+        ))
     }
 
     pub(super) fn load_default_navigation(&self, core: &CoreHandle) -> Result<(), String> {

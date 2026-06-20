@@ -1,6 +1,8 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 
-pub(super) fn resize_damage_frame(presentation: &HostWindowPresentationData) -> Option<FrameRect> {
+pub(in crate::ui::retained_host::host_contract) fn resize_damage_frame(
+    presentation: &HostWindowPresentationData,
+) -> Option<FrameRect> {
     let frame = presentation.host_layout.center_band_frame.clone();
     visible_frame(&frame).then_some(frame)
 }

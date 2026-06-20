@@ -81,6 +81,67 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_validate_plan_summary_missing_required_field(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "enabled_runtime_plugins",
+                "validate report plan_summary.enabled_runtime_plugins must be a string array",
+            ),
+            (
+                "linked_runtime_crates",
+                "validate report plan_summary.linked_runtime_crates must be a string array",
+            ),
+            (
+                "native_dynamic_packages",
+                "validate report plan_summary.native_dynamic_packages must be a string array",
+            ),
+            (
+                "generated_files",
+                "SourceTemplate Validate plan_summary.generated_files must be a list",
+            ),
+            (
+                "runtime_plugin_availability",
+                "validate report plan_summary.runtime_plugin_availability must be an object",
+            ),
+        )
+        for field, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["library_embed"])
+                    _write_compile_host_report(
+                        out, out / "compile" / "zircon_runtime.exe"
+                    )
+                    _write_stage_report(out, "cook_assets", fatal=False)
+                    _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+                    _write_stage_report(out, "platform_bundle", fatal=False)
+                    validate_report_path = (
+                        out / "stages" / "validate" / "report.json"
+                    )
+                    validate_report = json.loads(
+                        validate_report_path.read_text(encoding="utf-8")
+                    )
+                    validate_report["plan_summary"].pop(field)
+                    validate_report_path.write_text(
+                        json.dumps(validate_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertEqual(report["fatal_stages"], ["Validate"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_stage_rejects_validate_unknown_top_level_field(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"
@@ -661,114 +722,6 @@ class PipelineReportValidateSchemaTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     "validate report plan_summary unknown field unsigned_sidecar"
-                    in diagnostic
-                    for diagnostic in report["diagnostics"]
-                ),
-                report["diagnostics"],
-            )
-
-    def test_report_stage_rejects_validate_enabled_runtime_plugins_non_string_array(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            _write_validate_report_with_strategies(out, ["library_embed"])
-            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
-            _write_stage_report(out, "cook_assets", fatal=False)
-            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
-            _write_stage_report(out, "platform_bundle", fatal=False)
-            validate_report_path = out / "stages" / "validate" / "report.json"
-            validate_report = json.loads(
-                validate_report_path.read_text(encoding="utf-8")
-            )
-            validate_report["plan_summary"] = {
-                "enabled_runtime_plugins": ["rendering", 42]
-            }
-            validate_report_path.write_text(
-                json.dumps(validate_report, indent=2),
-                encoding="utf-8",
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            self.assertTrue(report["fatal"])
-            self.assertEqual(report["missing_stages"], [])
-            self.assertEqual(report["fatal_stages"], ["Validate"])
-            self.assertTrue(
-                any(
-                    "validate report plan_summary.enabled_runtime_plugins must be a string array"
-                    in diagnostic
-                    for diagnostic in report["diagnostics"]
-                ),
-                report["diagnostics"],
-            )
-
-    def test_report_stage_rejects_validate_linked_runtime_crates_non_string_array(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            _write_validate_report_with_strategies(out, ["library_embed"])
-            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
-            _write_stage_report(out, "cook_assets", fatal=False)
-            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
-            _write_stage_report(out, "platform_bundle", fatal=False)
-            validate_report_path = out / "stages" / "validate" / "report.json"
-            validate_report = json.loads(
-                validate_report_path.read_text(encoding="utf-8")
-            )
-            validate_report["plan_summary"] = {
-                "linked_runtime_crates": ["zircon_plugin_rendering_runtime", 42]
-            }
-            validate_report_path.write_text(
-                json.dumps(validate_report, indent=2),
-                encoding="utf-8",
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            self.assertTrue(report["fatal"])
-            self.assertEqual(report["missing_stages"], [])
-            self.assertEqual(report["fatal_stages"], ["Validate"])
-            self.assertTrue(
-                any(
-                    "validate report plan_summary.linked_runtime_crates must be a string array"
-                    in diagnostic
-                    for diagnostic in report["diagnostics"]
-                ),
-                report["diagnostics"],
-            )
-
-    def test_report_stage_rejects_validate_native_dynamic_packages_non_string_array(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            out = Path(temp_dir) / "out"
-            _write_validate_report_with_strategies(out, ["library_embed"])
-            _write_compile_host_report(out, out / "compile" / "zircon_runtime.exe")
-            _write_stage_report(out, "cook_assets", fatal=False)
-            _write_pack_report(out, out / "pack-output" / "assets.zrpack")
-            _write_stage_report(out, "platform_bundle", fatal=False)
-            validate_report_path = out / "stages" / "validate" / "report.json"
-            validate_report = json.loads(
-                validate_report_path.read_text(encoding="utf-8")
-            )
-            validate_report["plan_summary"] = {
-                "native_dynamic_packages": ["rendering", 42]
-            }
-            validate_report_path.write_text(
-                json.dumps(validate_report, indent=2),
-                encoding="utf-8",
-            )
-
-            report = build_pipeline_report(out, "windows-release")
-
-            self.assertTrue(report["fatal"])
-            self.assertEqual(report["missing_stages"], [])
-            self.assertEqual(report["fatal_stages"], ["Validate"])
-            self.assertTrue(
-                any(
-                    "validate report plan_summary.native_dynamic_packages must be a string array"
                     in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),

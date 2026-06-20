@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    FileDragDropEvent, GamepadAxis, GamepadButton, GamepadConnectionInfo, GamepadId,
-    GamepadRumbleRequest, ImeEvent, ImeHostRequest, InputButton, MouseWheelEvent, TouchPhase,
-    WindowStatusEvent,
+    CursorHostRequest, FileDragDropEvent, GamepadAxis, GamepadButton, GamepadConnectionInfo,
+    GamepadId, GamepadRumbleRequest, ImeEvent, ImeHostRequest, InputButton, MouseWheelEvent,
+    TouchPhase, WindowStatusEvent,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -35,6 +35,7 @@ pub enum InputEvent {
     FileDragDrop(FileDragDropEvent),
     Ime(ImeEvent),
     ImeHostRequest(ImeHostRequest),
+    CursorHostRequest(CursorHostRequest),
     KeyboardFocusLost,
     Touch {
         id: u64,

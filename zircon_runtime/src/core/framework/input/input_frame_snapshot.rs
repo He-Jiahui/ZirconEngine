@@ -1,15 +1,17 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ButtonInputState, FileDragDropEvent, GamepadAxisState, GamepadAxisTransition,
-    GamepadButtonValueState, GamepadId, GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest,
-    ImePreedit, InputButton, MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ButtonInputState, CursorHostRequest, FileDragDropEvent, GamepadAxisState,
+    GamepadAxisTransition, GamepadButtonValueState, GamepadId, GamepadRumbleRequest,
+    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, MouseScrollUnit,
+    MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InputFrameSnapshot {
     pub cursor_position: [f32; 2],
     pub cursor_inside_window: bool,
+    pub cursor_host_requests: Vec<CursorHostRequest>,
     pub buttons: ButtonInputState<InputButton>,
     pub wheel_accumulator: f32,
     pub mouse_wheel_accumulator: [f32; 2],
@@ -36,6 +38,7 @@ impl Default for InputFrameSnapshot {
         Self {
             cursor_position: [0.0, 0.0],
             cursor_inside_window: false,
+            cursor_host_requests: Vec::new(),
             buttons: ButtonInputState::default(),
             wheel_accumulator: 0.0,
             mouse_wheel_accumulator: [0.0, 0.0],

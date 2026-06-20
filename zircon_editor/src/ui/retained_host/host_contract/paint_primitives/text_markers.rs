@@ -3,7 +3,7 @@ use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::is_visible_frame;
 use super::super::paint_text::draw_text;
 
-pub(super) fn draw_text_bars(
+pub(in crate::ui::retained_host::host_contract) fn draw_text_bars(
     frame: &mut HostRgbaFrame,
     x: f32,
     y: f32,
@@ -13,7 +13,7 @@ pub(super) fn draw_text_bars(
     draw_text_bars_clipped(frame, x, y, text, None, color);
 }
 
-pub(super) fn draw_text_bars_clipped(
+pub(in crate::ui::retained_host::host_contract) fn draw_text_bars_clipped(
     frame: &mut HostRgbaFrame,
     x: f32,
     y: f32,
@@ -35,7 +35,7 @@ pub(super) fn draw_text_bars_clipped(
     );
 }
 
-pub(super) fn draw_label_marker(
+pub(in crate::ui::retained_host::host_contract) fn draw_label_marker(
     frame: &mut HostRgbaFrame,
     target: &FrameRect,
     label: &str,

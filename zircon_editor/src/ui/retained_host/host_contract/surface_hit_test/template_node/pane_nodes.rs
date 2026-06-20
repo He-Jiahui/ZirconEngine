@@ -2,7 +2,9 @@ use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::data::{PaneData, TemplatePaneNodeData};
 
-pub(super) fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>> {
+pub(in crate::ui::retained_host::host_contract) fn pane_template_nodes(
+    pane: &PaneData,
+) -> Option<&ModelRc<TemplatePaneNodeData>> {
     match pane.kind.as_str() {
         "Hierarchy" => Some(&pane.hierarchy.nodes),
         "Inspector" => Some(&pane.inspector.nodes),

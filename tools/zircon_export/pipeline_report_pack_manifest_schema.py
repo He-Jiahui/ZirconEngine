@@ -5,14 +5,26 @@ from __future__ import annotations
 from typing import Any, Callable
 
 PACK_DOCUMENT_MANIFEST_FIELDS = ("assets", "pack")
+PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_FIELDS = ("pack",)
+PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS = ("assets",)
 PACK_FORMAT_VERSION = 1
 PACK_MANIFEST_FIELDS = ("chunks", "total_size", "version")
 PACK_MANIFEST_INTEGER_FIELDS = ("total_size", "version")
+PACK_MANIFEST_REQUIRED_INTEGER_FIELDS = ("total_size", "version")
+PACK_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS = ("chunks",)
+PACK_MANIFEST_NON_NEGATIVE_INTEGER_FIELDS = ("total_size",)
 PACK_CHUNK_ENTRY_FIELDS = ("hash", "offset", "size")
 PACK_CHUNK_ENTRY_INTEGER_FIELDS = ("offset", "size")
+PACK_CHUNK_ENTRY_REQUIRED_BYTE_ARRAY_FIELDS = ("hash",)
+PACK_CHUNK_ENTRY_REQUIRED_INTEGER_FIELDS = ("offset", "size")
+PACK_CHUNK_ENTRY_NON_NEGATIVE_INTEGER_FIELDS = ("offset", "size")
 PACK_ASSET_ENTRY_FIELDS = ("chunk_hash", "path", "size")
 PACK_ASSET_ENTRY_STRING_FIELDS = ("path",)
 PACK_ASSET_ENTRY_INTEGER_FIELDS = ("size",)
+PACK_ASSET_ENTRY_REQUIRED_BYTE_ARRAY_FIELDS = ("chunk_hash",)
+PACK_ASSET_ENTRY_REQUIRED_STRING_FIELDS = ("path",)
+PACK_ASSET_ENTRY_REQUIRED_INTEGER_FIELDS = ("size",)
+PACK_ASSET_ENTRY_NON_NEGATIVE_INTEGER_FIELDS = ("size",)
 
 SchemaDiagnostic = Callable[[str, Any], list[str]]
 
@@ -114,8 +126,10 @@ def pack_document_manifest_schema_diagnostics(
         if field not in PACK_DOCUMENT_MANIFEST_FIELDS
     )
     pack = manifest.get("pack")
-    if "pack" in manifest:
-        diagnostics.extend(validate_object_schema_diagnostics(f"{label}.pack", pack))
+    for field in PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_FIELDS:
+        diagnostics.extend(
+            validate_object_schema_diagnostics(f"{label}.{field}", manifest.get(field))
+        )
     if isinstance(pack, dict):
         diagnostics.extend(
             pack_manifest_schema_diagnostics(
@@ -130,9 +144,12 @@ def pack_document_manifest_schema_diagnostics(
             )
         )
     assets = manifest.get("assets")
-    if "assets" in manifest:
+    for field in PACK_DOCUMENT_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS:
         diagnostics.extend(
-            validate_object_array_schema_diagnostics(f"{label}.assets", assets)
+            validate_object_array_schema_diagnostics(
+                f"{label}.{field}",
+                manifest.get(field),
+            )
         )
     if isinstance(assets, list):
         diagnostics.extend(
@@ -176,16 +193,20 @@ def pack_manifest_schema_diagnostics(
         if field not in PACK_MANIFEST_FIELDS
     )
     for field in PACK_MANIFEST_INTEGER_FIELDS:
-        if field in pack:
+        if field in pack or field in PACK_MANIFEST_REQUIRED_INTEGER_FIELDS:
+            field_label = f"{label}.{field}"
+            field_value = pack.get(field)
             diagnostics.extend(
                 validate_integer_schema_diagnostics(
-                    f"{label}.{field}",
-                    pack.get(field),
+                    field_label,
+                    field_value,
                 )
             )
+            if field in PACK_MANIFEST_NON_NEGATIVE_INTEGER_FIELDS:
+                diagnostics.extend(non_negative_integer_diagnostics(field_label, field_value))
     diagnostics.extend(pack_version_diagnostics(label, pack))
     chunks = pack.get("chunks")
-    if "chunks" in pack:
+    if "chunks" in pack or "chunks" in PACK_MANIFEST_REQUIRED_OBJECT_ARRAY_FIELDS:
         diagnostics.extend(
             validate_object_array_schema_diagnostics(f"{label}.chunks", chunks)
         )
@@ -225,21 +246,27 @@ def pack_chunk_entries_schema_diagnostics(
             for field in sorted(chunk)
             if field not in known_fields
         )
-        if "hash" in chunk:
+        for field in PACK_CHUNK_ENTRY_REQUIRED_BYTE_ARRAY_FIELDS:
             diagnostics.extend(
                 validate_byte_array_schema_diagnostics(
-                    f"{chunk_label}.hash",
-                    chunk.get("hash"),
+                    f"{chunk_label}.{field}",
+                    chunk.get(field),
                 )
             )
         for field in PACK_CHUNK_ENTRY_INTEGER_FIELDS:
-            if field in chunk:
+            if field in chunk or field in PACK_CHUNK_ENTRY_REQUIRED_INTEGER_FIELDS:
+                field_label = f"{chunk_label}.{field}"
+                field_value = chunk.get(field)
                 diagnostics.extend(
                     validate_integer_schema_diagnostics(
-                        f"{chunk_label}.{field}",
-                        chunk.get(field),
+                        field_label,
+                        field_value,
                     )
                 )
+                if field in PACK_CHUNK_ENTRY_NON_NEGATIVE_INTEGER_FIELDS:
+                    diagnostics.extend(
+                        non_negative_integer_diagnostics(field_label, field_value)
+                    )
     return diagnostics
 
 
@@ -446,28 +473,38 @@ def pack_asset_entries_schema_diagnostics(
             if field not in known_fields
         )
         for field in PACK_ASSET_ENTRY_STRING_FIELDS:
-            if field in asset:
+            if field in asset or field in PACK_ASSET_ENTRY_REQUIRED_STRING_FIELDS:
+                field_label = f"{asset_label}.{field}"
+                field_value = asset.get(field)
                 diagnostics.extend(
                     validate_string_schema_diagnostics(
-                        f"{asset_label}.{field}",
-                        asset.get(field),
+                        field_label,
+                        field_value,
                     )
                 )
-        if "chunk_hash" in asset:
+                if isinstance(field_value, str) and not field_value.strip():
+                    diagnostics.append(f"{field_label} must be a non-empty string")
+        for field in PACK_ASSET_ENTRY_REQUIRED_BYTE_ARRAY_FIELDS:
             diagnostics.extend(
                 validate_byte_array_schema_diagnostics(
-                    f"{asset_label}.chunk_hash",
-                    asset.get("chunk_hash"),
+                    f"{asset_label}.{field}",
+                    asset.get(field),
                 )
             )
         for field in PACK_ASSET_ENTRY_INTEGER_FIELDS:
-            if field in asset:
+            if field in asset or field in PACK_ASSET_ENTRY_REQUIRED_INTEGER_FIELDS:
+                field_label = f"{asset_label}.{field}"
+                field_value = asset.get(field)
                 diagnostics.extend(
                     validate_integer_schema_diagnostics(
-                        f"{asset_label}.{field}",
-                        asset.get(field),
+                        field_label,
+                        field_value,
                     )
                 )
+                if field in PACK_ASSET_ENTRY_NON_NEGATIVE_INTEGER_FIELDS:
+                    diagnostics.extend(
+                        non_negative_integer_diagnostics(field_label, field_value)
+                    )
     return diagnostics
 
 
@@ -483,6 +520,12 @@ def is_byte_hash(value: Any) -> bool:
             for item in value
         )
     )
+
+
+def non_negative_integer_diagnostics(label: str, value: Any) -> list[str]:
+    if isinstance(value, int) and not isinstance(value, bool) and value < 0:
+        return [f"{label} must be non-negative"]
+    return []
 
 
 def validate_byte_array_schema_diagnostics(label: str, value: Any) -> list[str]:

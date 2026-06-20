@@ -3,16 +3,18 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 use zircon_runtime_interface::{
-    HotspotReport, ProfileSnapshot, UiHotspotReport, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    CounterHotspotReport, HotspotReport, ProfileSnapshot, UiHotspotReport,
+    PROFILE_COUNTER_HOTSPOTS_FILE, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
     PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE, PROFILE_UI_HOTSPOTS_FILE,
 };
 
-use super::{analyze_hotspots, analyze_ui_hotspots};
+use super::{analyze_counter_hotspots, analyze_hotspots, analyze_ui_hotspots};
 
 #[derive(Clone, Debug)]
 pub struct ProfileExportReport {
     pub snapshot: ProfileSnapshot,
     pub hotspots: HotspotReport,
+    pub counter_hotspots: CounterHotspotReport,
     pub ui_hotspots: UiHotspotReport,
     pub export_dir: String,
     pub files: Vec<String>,
@@ -23,6 +25,7 @@ pub fn export_snapshot(
     include_perfetto: bool,
 ) -> Result<ProfileExportReport, String> {
     let hotspots = analyze_hotspots(snapshot);
+    let counter_hotspots = analyze_counter_hotspots(snapshot);
     let ui_hotspots = analyze_ui_hotspots(snapshot);
     let export_dir =
         PathBuf::from(&snapshot.output_root).join(sanitize_session_id(&snapshot.session_id));
@@ -41,11 +44,17 @@ pub fn export_snapshot(
     }
     write_json(&export_dir, PROFILE_HOTSPOTS_FILE, &hotspots)?;
     files.push(PROFILE_HOTSPOTS_FILE.to_string());
+    write_json(
+        &export_dir,
+        PROFILE_COUNTER_HOTSPOTS_FILE,
+        &counter_hotspots,
+    )?;
+    files.push(PROFILE_COUNTER_HOTSPOTS_FILE.to_string());
     write_json(&export_dir, PROFILE_UI_HOTSPOTS_FILE, &ui_hotspots)?;
     files.push(PROFILE_UI_HOTSPOTS_FILE.to_string());
     fs::write(
         export_dir.join(PROFILE_SUMMARY_FILE),
-        summary_markdown(snapshot, &hotspots, &ui_hotspots),
+        summary_markdown(snapshot, &hotspots, &counter_hotspots, &ui_hotspots),
     )
     .map_err(|error| error.to_string())?;
     files.push(PROFILE_SUMMARY_FILE.to_string());
@@ -53,6 +62,7 @@ pub fn export_snapshot(
     Ok(ProfileExportReport {
         snapshot: snapshot.clone(),
         hotspots,
+        counter_hotspots,
         ui_hotspots,
         export_dir: export_dir.to_string_lossy().into_owned(),
         files,
@@ -155,6 +165,7 @@ fn perfetto_trace(snapshot: &ProfileSnapshot) -> PerfettoTrace {
 fn summary_markdown(
     snapshot: &ProfileSnapshot,
     hotspots: &HotspotReport,
+    counter_hotspots: &CounterHotspotReport,
     ui_hotspots: &UiHotspotReport,
 ) -> String {
     let over_budget = snapshot
@@ -171,7 +182,7 @@ fn summary_markdown(
         snapshot.frame_budget_ms,
         over_budget
     );
-    let first_fixes = first_fix_candidates(hotspots, ui_hotspots);
+    let first_fixes = first_fix_candidates(hotspots, counter_hotspots, ui_hotspots);
     if !first_fixes.is_empty() {
         summary.push_str("\n## First Fix Candidates\n");
         for candidate in first_fixes {
@@ -193,6 +204,22 @@ fn summary_markdown(
         summary.push_str("\n## Hints\n");
         for hint in &hotspots.hints {
             summary.push_str(&format!("- {hint}\n"));
+        }
+    }
+    if !counter_hotspots.counters.is_empty() {
+        summary.push_str("\n## Counter Hotspots\n");
+        for entry in counter_hotspots.counters.iter().take(10) {
+            summary.push_str(&format!(
+                "- `{}` total {:.2}, avg {:.2}, p95 {:.2}, max {:.2}, latest {:.2}, count {}, frames {}\n",
+                entry.path,
+                entry.total,
+                entry.avg,
+                entry.p95,
+                entry.max,
+                entry.latest,
+                entry.count,
+                entry.frame_count
+            ));
         }
     }
     if !ui_hotspots.scenarios.is_empty() {
@@ -238,7 +265,11 @@ fn summary_markdown(
     summary
 }
 
-fn first_fix_candidates(hotspots: &HotspotReport, ui_hotspots: &UiHotspotReport) -> Vec<String> {
+fn first_fix_candidates(
+    hotspots: &HotspotReport,
+    counter_hotspots: &CounterHotspotReport,
+    ui_hotspots: &UiHotspotReport,
+) -> Vec<String> {
     let mut candidates = ui_hotspots
         .alerts
         .iter()
@@ -261,6 +292,16 @@ fn first_fix_candidates(hotspots: &HotspotReport, ui_hotspots: &UiHotspotReport)
             entry.p95_us as f64 / 1_000.0,
             entry.total_us as f64 / 1_000.0,
             entry.count
+        ));
+    }
+    if candidates.len() >= 5 {
+        return candidates;
+    }
+
+    for entry in counter_hotspots.counters.iter().take(5 - candidates.len()) {
+        candidates.push(format!(
+            "Counter `{}` total {:.2}, p95 {:.2} over {} samples",
+            entry.path, entry.total, entry.p95, entry.count
         ));
     }
     candidates
@@ -321,8 +362,12 @@ mod tests {
         assert!(report.files.contains(&"timeline.zrtrace.json".to_string()));
         assert!(report.files.contains(&"timeline.perfetto.json".to_string()));
         assert!(report.files.contains(&"hotspots.json".to_string()));
+        assert!(report.files.contains(&"counter_hotspots.json".to_string()));
         assert!(report.files.contains(&"ui_hotspots.json".to_string()));
         assert!(report.files.contains(&"summary.md".to_string()));
+        assert!(std::path::Path::new(&report.export_dir)
+            .join("counter_hotspots.json")
+            .exists());
         assert!(std::path::Path::new(&report.export_dir)
             .join("ui_hotspots.json")
             .exists());
@@ -370,16 +415,51 @@ mod tests {
             .push(counter("ui.idle_hover.full_paint_count", 1.0));
 
         let hotspots = crate::core::diagnostics::profiling::analyze_hotspots(&snapshot);
+        let counter_hotspots =
+            crate::core::diagnostics::profiling::analyze_counter_hotspots(&snapshot);
         let ui_hotspots = crate::core::diagnostics::profiling::analyze_ui_hotspots(&snapshot);
-        let summary = super::summary_markdown(&snapshot, &hotspots, &ui_hotspots);
+        let summary =
+            super::summary_markdown(&snapshot, &hotspots, &counter_hotspots, &ui_hotspots);
 
         assert!(summary.contains("## First Fix Candidates"));
         assert!(summary.contains("region_request_repainted_full_frame"));
     }
 
+    #[test]
+    fn summary_lists_counter_hotspots_when_no_ui_alert_or_span_hotspot() {
+        let mut snapshot = ProfileSnapshot {
+            session_id: "counter-first-fix-test".to_string(),
+            ..ProfileSnapshot::default()
+        };
+        snapshot
+            .counters
+            .push(runtime_counter("asset.worker.frame_completed", 3.0));
+
+        let hotspots = crate::core::diagnostics::profiling::analyze_hotspots(&snapshot);
+        let counter_hotspots =
+            crate::core::diagnostics::profiling::analyze_counter_hotspots(&snapshot);
+        let ui_hotspots = crate::core::diagnostics::profiling::analyze_ui_hotspots(&snapshot);
+        let summary =
+            super::summary_markdown(&snapshot, &hotspots, &counter_hotspots, &ui_hotspots);
+
+        assert!(summary.contains("## Counter Hotspots"));
+        assert!(summary.contains("runtime/counter:asset.worker.frame_completed"));
+        assert!(summary.contains("Counter `runtime/counter:asset.worker.frame_completed`"));
+    }
+
     fn counter(name: &str, value: f64) -> ProfileCounterSnapshot {
         ProfileCounterSnapshot {
             stream: "editor".to_string(),
+            name: name.to_string(),
+            value,
+            timestamp_us: 0,
+            frame_index: None,
+        }
+    }
+
+    fn runtime_counter(name: &str, value: f64) -> ProfileCounterSnapshot {
+        ProfileCounterSnapshot {
+            stream: "runtime".to_string(),
             name: name.to_string(),
             value,
             timestamp_us: 0,

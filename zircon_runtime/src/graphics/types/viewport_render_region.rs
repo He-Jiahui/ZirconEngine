@@ -36,6 +36,14 @@ impl ViewportRenderRegion {
         self.physical_size
     }
 
+    pub(crate) fn local_position(self) -> UVec2 {
+        UVec2::ZERO
+    }
+
+    pub(crate) fn local_size(self) -> UVec2 {
+        self.physical_size
+    }
+
     pub(crate) fn physical_origin(self) -> [u32; 2] {
         [self.physical_position.x, self.physical_position.y]
     }
@@ -60,25 +68,54 @@ impl ViewportRenderRegion {
     }
 
     pub fn apply_to_render_pass(self, pass: &mut wgpu::RenderPass<'_>) -> bool {
+        self.apply_physical_to_render_pass(pass)
+    }
+
+    pub fn apply_physical_to_render_pass(self, pass: &mut wgpu::RenderPass<'_>) -> bool {
         if self.is_empty() {
             return false;
         }
-        pass.set_viewport(
-            self.physical_position.x as f32,
-            self.physical_position.y as f32,
-            self.physical_size.x as f32,
-            self.physical_size.y as f32,
+        set_render_pass_region(
+            pass,
+            self.physical_position,
+            self.physical_size,
             self.depth_min,
             self.depth_max,
         );
-        pass.set_scissor_rect(
-            self.physical_position.x,
-            self.physical_position.y,
-            self.physical_size.x,
-            self.physical_size.y,
+        true
+    }
+
+    pub fn apply_local_to_render_pass(self, pass: &mut wgpu::RenderPass<'_>) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        set_render_pass_region(
+            pass,
+            self.local_position(),
+            self.local_size(),
+            self.depth_min,
+            self.depth_max,
         );
         true
     }
+}
+
+fn set_render_pass_region(
+    pass: &mut wgpu::RenderPass<'_>,
+    position: UVec2,
+    size: UVec2,
+    depth_min: Real,
+    depth_max: Real,
+) {
+    pass.set_viewport(
+        position.x as f32,
+        position.y as f32,
+        size.x as f32,
+        size.y as f32,
+        depth_min,
+        depth_max,
+    );
+    pass.set_scissor_rect(position.x, position.y, size.x, size.y);
 }
 
 impl Default for ViewportRenderRegion {
@@ -168,5 +205,21 @@ mod tests {
             region.local_to_physical_coord(UVec2::new(999, 999)),
             UVec2::new(639, 179)
         );
+    }
+
+    #[test]
+    fn viewport_region_reports_local_rect_for_graph_owned_targets() {
+        let mut camera =
+            CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+        camera.viewport_rect = Some(RenderViewportRect::new(
+            UVec2::new(320, 0),
+            UVec2::new(320, 180),
+        ));
+
+        let region = ViewportRenderRegion::from_camera(Some(&camera), UVec2::new(640, 360));
+
+        assert_eq!(region.local_position(), UVec2::ZERO);
+        assert_eq!(region.local_size(), UVec2::new(320, 180));
+        assert_eq!(region.physical_position(), UVec2::new(320, 0));
     }
 }

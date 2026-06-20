@@ -22,7 +22,7 @@ use native_panes::{dispatch_hierarchy_button, dispatch_welcome_button};
 use template_nodes::dispatch_template_node_button;
 use viewport::{dispatch_viewport_button, dispatch_viewport_toolbar_button};
 
-pub(super) fn dispatch_pane_button(
+pub(in crate::ui::retained_host::host_contract) fn dispatch_pane_button(
     ui: &UiHostWindow,
     presentation: &HostWindowPresentationData,
     pointer: PanePointerRoute,

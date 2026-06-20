@@ -48,9 +48,21 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         );
     }
 
+    let worker_pool_impl = worker_pool_source
+        .split("impl AssetWorkerPool {")
+        .nth(1)
+        .expect("AssetWorkerPool implementation block should stay present");
     assert!(
-        !worker_pool_source.contains("pub fn new(worker_count: usize)"),
+        worker_pool_source.contains("impl AssetWorkerPoolOptions"),
+        "AssetWorkerPoolOptions should remain the worker-count configuration owner"
+    );
+    assert!(
+        !worker_pool_impl.contains("pub fn new(worker_count: usize)"),
         "AssetWorkerPool::new(worker_count) should stay retired; use AssetWorkerPoolOptions"
+    );
+    assert!(
+        !worker_pool_source.contains("request_sender"),
+        "AssetWorkerPool::request_sender should stay retired; use request(...) so coalescing, backpressure, and diagnostics stay centralized"
     );
 
     for required_test_anchor in [
@@ -79,6 +91,7 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "spawn_worker_pool_with_frame_sampler",
         "asset.worker.budgeted_threads",
         "asset.worker.frame_completed",
+        "only public request entry",
     ] {
         assert!(
             worker_pool_doc.contains(required_doc_anchor),

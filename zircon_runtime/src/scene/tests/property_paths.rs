@@ -364,9 +364,9 @@ fn world_property_entries_pre_size_projection_vector() {
     assert!(
         entries_source.contains("Vec::with_capacity(self.property_entry_capacity_hint(entity))")
     );
-    assert!(entries_source.contains(
-        "push(\n            \"Hierarchy.parent\",\n            ScenePropertyValue::Entity(self.parent_of(entity)),"
-    ));
+    assert!(entries_source.contains("push_entry!("));
+    assert!(entries_source.contains("\"Hierarchy.parent\""));
+    assert!(entries_source.contains("ScenePropertyValue::Entity(self.parent_of(entity))"));
     assert!(entries_source.contains("fn property_entry_capacity_hint(&self, entity: EntityId)"));
     assert!(entries_source.contains("capacity += 10 + mesh.morph_weights.len();"));
     assert!(entries_source.contains("capacity += 14;"));

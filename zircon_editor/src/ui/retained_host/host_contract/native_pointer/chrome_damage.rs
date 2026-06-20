@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::data::{
 
 use super::routing::ChromePointerRoute;
 
-pub(super) fn chrome_press_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn chrome_press_damage_frame(
     presentation: &HostWindowPresentationData,
     route: &ChromePointerRoute,
 ) -> Option<FrameRect> {

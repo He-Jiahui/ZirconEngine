@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/color_material.rs
   - zircon_runtime/src/core/framework/render/material/dependency_set.rs
@@ -85,6 +86,7 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/core/framework/render/material/alpha_mode.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/color_material.rs
@@ -203,6 +205,8 @@ tests:
   - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_reports_invalid_lighting_model_as_material_validation_error
   - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_sort_fields_drive_standard_descriptor_without_shader_override
   - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_sort_fields_report_invalid_override_types
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_render_queue_value_resolves_unity_queue_override
+  - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_render_queue_reports_blend_queue_alpha_conflict
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_material_uniform_diagnostics
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant
   - zircon_runtime/src/asset/tests/assets/material.rs::material_asset_roundtrip_preserves_standard_texture_transforms
@@ -462,7 +466,9 @@ The top-level `zircon_runtime::core::framework::render` facade re-exports the ma
 
 ## Product Surface
 
-`StandardMaterialDescriptor` carries the M3A PBR-ready material surface: shader and texture dependencies, base color, normal, metallic/roughness, metallic-roughness texture, occlusion, emissive data, alpha behavior, lighting model, derived unlit flag, double-sided flag, material-owned cast/receive shadow policy, material-owned render-queue/material-queue/depth-bias sort offsets, and fallback policy.
+`StandardMaterialDescriptor` carries the M3A PBR-ready material surface: shader and texture dependencies, base color, normal, metallic/roughness, metallic-roughness texture, occlusion, emissive data, alpha behavior, lighting model, derived unlit flag, double-sided flag, material-owned cast/receive shadow policy, material-owned render-queue/material-queue/depth-bias sort offsets, an optional `RenderQueueValue` queue override snapshot, and fallback policy. `resolved_render_queue_value()` is the bridge for old descriptors that still carry only the raw `render_queue`: it uses the explicit `render_queue_value` when present and otherwise resolves the raw authored value through `RenderQueueValue::from_authored_queue(...)`.
+
+Material queue authoring now has a typed validation lane for Plan 09 CO-M3. `MaterialAsset::render_queue_value()` returns `Some(RenderQueueValue)` only when the source material has a valid explicit `render_queue` override; absent or invalid queue values leave the field `None` and keep the alpha-mode default path. `validate_render_queue_alpha_mode(...)` reports `RenderMaterialValidationError::RenderQueueAlphaModeConflict` when a blend material is explicitly placed at or below `GEOMETRY_LAST` (`2500`), because that would route a semi-transparent material into the opaque/alpha-test phase family. Opaque materials with Unity-range overrides such as `2900` remain valid authoring, matching the Plan 09 queue override acceptance case. `MaterialRuntime.render_queue_value` stores the same resolved optional value beside the transitional raw `render_queue`/`material_queue` fields so the later M3-S2 `u64` sort-key hard cutover can consume the typed queue without reparsing material assets.
 
 `ColorMaterialDescriptor` provides the simple unlit color/texture material contract for 2D and fallback paths. It shares the same dependency, alpha, double-sided, and fallback fields so later Core2d/Core3d classification can consume a common material shape.
 

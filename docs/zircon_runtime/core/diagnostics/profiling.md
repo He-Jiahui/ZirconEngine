@@ -7,18 +7,19 @@ related_code:
   - dev/bevy/docs/profiling.md
   - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
   - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
-  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
-  - zircon_runtime/src/core/diagnostics/profiling/macros.rs
-  - zircon_runtime/src/core/diagnostics/profiling/recorder.rs
-  - zircon_runtime/src/core/diagnostics/profiling/scope.rs
-  - zircon_runtime/src/core/diagnostics/profiling/tracy.rs
-  - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
-  - zircon_runtime/src/core/diagnostics/render.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/tracy.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/render.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/diagnostics/snapshot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
@@ -35,15 +36,16 @@ implementation_files:
   - tools/dev-fast-build.ps1
   - tools/zircon_build.py
   - zircon_runtime/Cargo.toml
-  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
-  - zircon_runtime/src/core/diagnostics/profiling/macros.rs
-  - zircon_runtime/src/core/diagnostics/profiling/recorder.rs
-  - zircon_runtime/src/core/diagnostics/profiling/scope.rs
-  - zircon_runtime/src/core/diagnostics/profiling/tracy.rs
-  - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
-  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/tracy.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
@@ -64,10 +66,11 @@ plan_sources:
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
   - docs/zircon_runtime/graphics/render-product-submit.md
 tests:
-  - zircon_runtime/src/core/diagnostics/profiling/mod.rs
-  - zircon_runtime/src/core/diagnostics/profiling/recorder.rs
-  - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
-  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/graphics/tests/render_profiling.rs
   - target: cargo check -p zircon_runtime --profile profiling --features profiling --locked
@@ -135,10 +138,13 @@ The sink follows the same reference shape used by Bevy's `trace_tracy` support: 
 - `timeline.zrtrace.json`: native Zircon snapshot JSON.
 - `timeline.perfetto.json`: Chrome/Perfetto complete-event JSON, written only when the build includes `profiling-chrome` and the capture config keeps `include_perfetto = true`.
 - `hotspots.json`: grouped span-cost report.
+- `counter_hotspots.json`: generic finite positive counter aggregation for Runtime 07 evidence streams such as extract, ECS, asset worker, animation scene, time, schedule, and task counters.
 - `ui_hotspots.json`: retained-host UI slow-path counter aggregation.
 - `summary.md`: human-readable frame/span/counter and top-hotspot summary.
 
 `analyze_hotspots` groups spans by `stream/category/name/path`. It reports total, average, p95, max, count, distinct frame count, and over-budget count. Hints are intentionally conservative: they only point to recorded span names that exceeded or accumulated against the configured budget, and they do not infer causes that were not sampled.
+
+`analyze_counter_hotspots` produces `CounterHotspotReport` by grouping finite positive `ProfileCounterSnapshot` values by `stream/name/path`. Each `CounterHotspotEntry` reports total, average, p95, max, latest, sample count, and distinct frame count. The export is evidence ranking only: it does not promote a Runtime 07 M2 optimization without adjacent frame-span or authoritative FPS/profile samples. `ProfileControlResponse.counter_hotspot_report` returns the same report as part of `export_report`, and `summary.md` includes a `Counter Hotspots` section plus first-fix candidates only after UI alerts and span hotspots.
 
 ## Instrumentation Boundaries
 
@@ -167,7 +173,7 @@ M10.8 promotion therefore needs two linked but separate outputs: store-backed re
 
 ## Test Coverage
 
-Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Export tests cover Perfetto event shape and expected artifact names. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit a real headless runtime frame in a profiling build and assert that operation/state wait spans plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting.
+Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Counter hotspot tests cover counter grouping, ordering, finite-positive filtering, latest sample tracking, and `counter_hotspots.json` export/summary presence. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit a real headless runtime frame in a profiling build and assert that operation/state wait spans plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting.
 
 2026-05-26 M10W evidence:
 

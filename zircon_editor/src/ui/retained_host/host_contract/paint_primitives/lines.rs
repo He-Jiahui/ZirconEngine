@@ -3,7 +3,7 @@ use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::PixelRect;
 use super::pixels::fill_pixel_span;
 
-pub(super) fn draw_separator_line(
+pub(in crate::ui::retained_host::host_contract) fn draw_separator_line(
     frame: &mut HostRgbaFrame,
     x: u32,
     y: u32,

@@ -5,7 +5,10 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/tests/pipeline_overlay_order.rs
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/types.rs
 implementation_files:
@@ -25,6 +28,14 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_smaa_terminal_input
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-pass-authoring-0617 --message-format short --color never
   - cargo test -p zircon_runtime --lib compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-required-external-0618
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
+  - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619 --message-format short --color never
+  - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::tests::pipeline_compile::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes --exact --test-threads=1 --nocapture
+  - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::tests::pipeline_compile::default_deferred_pipeline_compiles_expected_stage_order_and_passes --exact --test-threads=1 --nocapture
+  - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::pipeline::render_pipeline_asset::compile_tests::compile_routes_output_transfer_through_fxaa_terminal_input --exact --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib pipeline_overlay_order --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-texture-linear-product-0620 --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_runtime --lib rendering_plugin_default_features_restore_legacy --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-texture-linear-product-0620 --message-format short --color never -- --test-threads=1 --nocapture
 doc_type: module-detail
 ---
 
@@ -58,6 +69,8 @@ Second, `author_graph_passes(...)` walks renderer stages in asset order and asks
 - explicit resource read/write declarations mapped to the correct texture, buffer, or external graph handle;
 - a dependency on the previous authored pass to preserve the existing serial SRP stage order.
 
+Post-process pass rows pass through `ordered_stage_pass_descriptors(...)` before graph authoring. That helper keeps the validation-layer descriptor filtering as the source of truth, then normalizes Bloom extract ahead of the uber post-process pass when both descriptors are present so the authored graph does not depend on asset declaration order for that specific post-process dependency.
+
 ## Resource Access Rules
 
 Read declarations forward directly to `read_texture`, `read_buffer`, or `read_external` after consulting the graph resource plan. A descriptor that names a texture resource later planned as external reads the external handle instead of inventing a transient texture.
@@ -80,6 +93,10 @@ The 2026-06-18 split post-process exposure regression covers descriptor-to-graph
 
 Most broader pass-authoring focused lib-tests remain deferred to the milestone testing stage. The split post-process exposure regression listed above has been run directly, and the scoped `zircon_runtime --features core-min` Cargo check listed in the header remains the lightweight implementation gate for the original extraction.
 
+On 2026-06-19, the Plan 09 texture-target Base+Overlay product guard first exposed a lower shared authoring bug: default post-process descriptors could author `post.uber` before `post.bloom-extract`, so a graph compile saw `post.uber` read `bloom-texture` before any producer wrote it. `ordered_stage_pass_descriptors(...)` now keeps descriptor filtering as the source of truth, but normalizes that current Bloom producer ahead of the uber consumer for `RenderPassStage::PostProcess`. After the dynamic-scene test fixture blocker was repaired in its owner path, the warmed lib-test binary passed the default Forward+ and Deferred pass-order exact tests listed in the header; the same binary also passed the FXAA terminal routing contract.
+
+On 2026-06-20, the Plan 09 UI graph-tail ordering slice moved default Forward+ and Deferred 3D pipeline assets so `RenderPassStage::Overlay` and `RenderPassStage::Debug` execute before `RenderPassStage::Ui`. The compiled pass order now places `overlay-gizmo` before terminal `runtime-ui`, matching the screen-space UI graph-tail contract. `pipeline_overlay_order.rs` locks the contract for both default 3D pipelines, while the existing default Forward+/Deferred pass-order snapshots cover the full pass list. The pluginized legacy pass-order tests also pass after their test fixture declares `FINAL_COMPOSITED` as a graph texture instead of an external output when builtin FXAA reads it. A follow-up runtime execution regression now verifies late graph stages execute in compiled pipeline order, preserving Core2D `Ui`-before-`Overlay` while default 3D pipelines run `Overlay`/`Debug` before `Ui`.
+
 ## Open Issues Or Follow-up
 
-This extraction is structural and behavior-preserving. Remaining RG-M1 work is behavior work: non-HZB/non-shadow-atlas executor-owned External actual binding, resource lifetime validation closure, and the separate `render_graph_execution_resources.rs` transient materialization structure split.
+Remaining RG-M1 work is behavior work: non-HZB/non-shadow-atlas executor-owned External actual binding, resource lifetime validation closure, broader post-process order regression tests beyond the focused default Forward+/Deferred checks, and the separate `render_graph_execution_resources.rs` transient materialization structure split.

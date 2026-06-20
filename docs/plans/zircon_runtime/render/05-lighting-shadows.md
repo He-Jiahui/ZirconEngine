@@ -155,7 +155,9 @@ plan_sources:
   prefix;`readiness.rs` 已移除旧 scene-uniform directional/point 上限,方向光/点光/聚光按 light-buffer 消费路径报告 ready。
 - LS-M1 窄范围验收已补齐:core-min `cargo check` 通过,已构建 lib-test 二进制并直接跑通 light ABI、light packer、
   GPUScene light upload、forward/deferred WGSL validity 与 GPU light shader source 断言;`render_product_many_point_lights`
-  已补源码产品合同,证明 64 点光打包不截断。真实 >8 点光 forward/deferred 捕获对拍仍是剩余验收项。
+  已补源码产品合同,证明 64 点光打包不截断。2026-06-21 新增
+  `render_product_many_point_lights_forward_deferred_capture_parity`,用真实 WGPU 捕获证明 64 点光在 Forward+/Deferred
+  两管线都会提高中心 mesh 亮度并保持同一产品范围。
 
 实施切片:
 1. light buffer 进 GpuScene(依赖计划 03 GS-M1);extract 增加 light id 与脏更新。
@@ -198,6 +200,15 @@ plan_sources:
   --message-format short --color never --no-run` 完成 lib-test 编译;随后直接运行生成的
   `zircon_runtime-5d2828c2001649f6.exe render_product_many_point_lights --nocapture` 通过 1 个过滤测试。该切片仍不替代真实
   forward/deferred 捕获对拍。
+- 64 点光真实捕获对拍(2026-06-21):新增
+  `render_product_many_point_lights_forward_deferred_capture_parity`,注册 lit PBR 材质和真实 cube mesh,分别提交 Forward+
+  与 Deferred 基线/64 点光场景,断言 `lighting.light-grid` executor、64 点 light-grid stats、dense cluster peak 以及中心区域
+  捕获亮度提升。冷 target-dir Cargo wrapper 在 Windows 共享 lib-test 编译窗口内超时未产出二进制;复用预热
+  `target\codex-runtime-hzb-storage-limit-0620` 的 `cargo test -p zircon_runtime --lib
+  render_product_many_point_lights_forward_deferred_capture_parity --no-default-features --features core-min --locked --jobs 1
+  --target-dir target\codex-runtime-hzb-storage-limit-0620 --message-format short --color never -- --test-threads=1 --nocapture`
+  通过 1 个过滤测试(仓库既有 warnings)。同一二进制直接复跑 `render_product_many_point_lights`、`render_product_csm_directional`
+  与 `render_product_multi_spot_shadows` 均通过。
 
 实施切片:
 1. zbin+tile grid CPU 构建 + graph 上传节点;grid 资源经计划 01 瞬态池,IO 合同保留后续 GPU compute 替换空间。
@@ -693,7 +704,8 @@ LS-M4(PCF 与 contact shadow):
 | `mesh_visibility_states_preserve_shadow_only_casters` | main-view 不可见但 shadow-view 可见的 caster 仍写成 `shadow_view_visible=true`,供 shadow pass 生成命令 | `mesh/build_mesh_draws/build/build.rs` |
 | `mesh_batch_ref_emits_gpu_scene_instance_command` | `MeshDrawCommand` 保留 source entity,供 atlas slot view 过滤消费且不破坏 instance span | `mesh_pass/mesh_draw_command_list.rs` |
 | `render_shadow_light_slot_assignments_patch_packed_light_contract` | assignment patch `GpuLightData.shadow_slot_layer.x` 与 `shadow_params.w` | 同上 |
-| `render_product_many_point_lights` | 源码合同已覆盖 64 点光打包、light-grid 第二 word 与 Forward+/Deferred 编译图消费;真实 forward/deferred 捕获对拍仍待验收 | render_product 套件 |
+| `render_product_many_point_lights` | 源码合同已覆盖 64 点光打包、light-grid 第二 word 与 Forward+/Deferred 编译图消费 | render_product 套件 |
+| `render_product_many_point_lights_forward_deferred_capture_parity` | 真实 WGPU 捕获覆盖 Forward+/Deferred 基线与 64 点光 lit 场景,证明 light-grid stats 与中心区域亮度贡献保持一致产品范围 | 同上 |
 | `render_product_csm_directional` | 4 级联边界 fade 无硬缝 | 同上 |
 | `render_product_multi_spot_shadows` | ≥3 spot 阴影同帧并存 | 同上 |
 
@@ -701,8 +713,9 @@ LS-M4(PCF 与 contact shadow):
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证与证据 | 后续 |
 |------|-------------|------|------|------------|------|
-| 2026-06-15 | LS-M1 GpuLightData and light-limit removal | 已完成(核心 buffer/着色路径接入;真实多光源捕获待后续) | `GpuLightData`/light buffer packer 与 dirty upload 接入;scene uniform 旧方向光/点光截断字段和 readiness 常量删除;forward fallback、deferred lighting 与内建 PBR 通过 GPUScene/light buffer 读取灯光,为 64 点光产品源码合同提供统一 ABI。 | core-min `cargo check` 通过;已构建 lib-test binary 并直接跑通 light ABI、packer、GPUScene light upload 和 shader source 过滤项;`render_product_many_point_lights` 已有 64 点光源码/graph 覆盖。 | 仍需真实 >8 点光 forward/deferred captured parity 与更宽 render-product 回归。 |
+| 2026-06-15 | LS-M1 GpuLightData and light-limit removal | 已完成(核心 buffer/着色路径接入;真实多光源捕获见 2026-06-21 行) | `GpuLightData`/light buffer packer 与 dirty upload 接入;scene uniform 旧方向光/点光截断字段和 readiness 常量删除;forward fallback、deferred lighting 与内建 PBR 通过 GPUScene/light buffer 读取灯光,为 64 点光产品源码合同提供统一 ABI。 | core-min `cargo check` 通过;已构建 lib-test binary 并直接跑通 light ABI、packer、GPUScene light upload 和 shader source 过滤项;`render_product_many_point_lights` 已有 64 点光源码/graph 覆盖;真实 WGPU 多点光 forward/deferred captured parity 由 2026-06-21 行补齐。 | 仍需更宽 render-product 回归与非多点光阴影/PCF/contact shadow 真实捕获。 |
 | 2026-06-15 | LS-M2 clustered light grid | 已完成(网格构建与着色消费接入;宽图回归待后续) | CPU zbin/tile builder、`zr_light_grid.wgsl`、transient zbin/tile buffers、`lighting.light-grid` executor 与 stats 接入;forward fallback、deferred lighting、内建 PBR 共同引用 grid include,保留全量 light-buffer 作为 capability fallback。 | `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-vc3-compact-replay-coremin --message-format short --color never` 通过;Naga validator 解析并验证 fallback mesh、deferred lighting、builtin PBR 与 `zr_gpu_scene.wgsl`/`zr_light_grid.wgsl`;后续 focused `light_grid` builder tests 已通过,早期宽过滤测试曾因 Windows lib-test 编译/codegen 超时未返回。 | Broader graph/pipeline validation 仍需处理 `ssao-evaluate` async compute workload 等无关图声明漂移后补跑。 |
+| 2026-06-21 | LS-M1/LS-M2 many point light captured parity | 已完成 | `render_product_many_point_lights_forward_deferred_capture_parity` 在真实 WGPU 产品路径中提交 Forward+ 与 Deferred 基线/64 点光场景,验证 light-grid executor、64 点灯光 stats、dense cluster peak 与中心区域亮度贡献;同轮复跑既有 many-point/CSM/multi-spot 产品合同。 | `rustfmt --edition 2021 zircon_runtime\src\graphics\tests\render_product_shadows.rs` 通过;预热 target-dir `cargo test -p zircon_runtime --lib render_product_many_point_lights_forward_deferred_capture_parity --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-hzb-storage-limit-0620 --message-format short --color never -- --test-threads=1 --nocapture` 通过 1/1;直接二进制 exact 复跑 `render_product_many_point_lights`、`render_product_csm_directional`、`render_product_multi_spot_shadows` 均通过。冷 target-dir Cargo wrapper 15 分钟超时未产出二进制,不计为通过。 | 仍需百灯成本/局部密度统计验收、更宽 render-product sweep,以及 CSM/multi-spot/PCF/contact shadow 真实捕获和 RenderDoc 证据。 |
 | 2026-06-15 | LS-M3 CSM and shadow atlas hard cut | 部分完成: atlas/receiver/source contracts 已落地,真实捕获验收待后续 | `shadow/atlas`、`cascade`、`slot`、`shadow_settings`、`shadow/plan` 接入;`SHADOW_ATLAS` external graph resource 写入并替代旧 `SHADOW_MAP`;forward/deferred/builtin PBR 只通过 atlas slot 采样;directional cascade/point face/spot view key 从计划 04 shadow views 消费;shadow-only caster 与 product shadow source contracts 已加保护。 | core-min check 覆盖 atlas/bridge/view-filter/receiver/source contracts;`render_shadow_` 过滤测试通过 27 个,`visibility_context_builds_shadow_views_for_atlas_light_slots` 通过 1 个,`shadow_atlas` 命名过滤曾通过 16 个,直接 lib-test 二进制通过 4 个 `render_product_shadows` 合同测试;部分 focused Cargo run 因 `Cargo.lock --locked` 或 shared lib-test 编译超时未完成。 | 多 spot/CSM 稳定性、forward/deferred 对拍、caster expansion/receiver slice 风险与 RenderDoc 抓帧验收仍待后续。 |
 | 2026-06-15 | LS-M4 PCF quality and contact shadow feature | 部分完成: PCF 槽位合同与 contact-shadow 最小闭环已接入,锁文件验证待后续 | `zr_shadow.wgsl`、shadow settings/slot/plan 写入 Low/Medium/High PCF quality flags;contact shadow 作为 rendering plugin feature 接入,默认关闭时 compiled graph 无 pass,启用后 async compute executor 读 depth/normal/HZB 并写 `CONTACT_SHADOW_OCCLUSION`,executor contract 与 shader binding 有源码测试。 | PCF core-min `cargo check` 通过并报告既有 warnings;slot flags、shader source、contact-shadow descriptor/executor/shader contract 有源码覆盖。最新 locked Cargo 验证被根 `Cargo.lock` 与 `zircon_plugins/Cargo.lock` 刷新要求阻塞,且 plugin lockfile 已由其他 plugin 工作修改,本切片未强行刷新。 | 需要在锁文件归属明确后补跑 root/plugin locked checks 与真实 contact-shadow/PCF 捕获验收。 |
 

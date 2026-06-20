@@ -1,6 +1,7 @@
 use crate::asset::{TextureAsset, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
-    RenderImageDescriptor, RenderImageDimension, RenderImageUsage,
+    RenderImageDescriptor, RenderImageDimension, RenderImageUsage, RenderSamplerAddressMode,
+    RenderSamplerFilter,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::types::GraphicsError;
@@ -14,6 +15,8 @@ pub(in crate::graphics::scene) struct OutputTargetTextureResource {
     pub(in crate::graphics::scene) texture: wgpu::Texture,
     #[allow(dead_code)]
     pub(in crate::graphics::scene) view: wgpu::TextureView,
+    #[allow(dead_code)]
+    pub(in crate::graphics::scene) sampler: wgpu::Sampler,
 }
 
 impl OutputTargetTextureResource {
@@ -45,11 +48,13 @@ impl OutputTargetTextureResource {
             view_formats: &[],
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
 
         Ok(Self {
             descriptor,
             texture,
             view,
+            sampler,
         })
     }
 
@@ -67,6 +72,10 @@ impl OutputTargetTextureResource {
 
     pub(in crate::graphics::scene) fn view(&self) -> &wgpu::TextureView {
         &self.view
+    }
+
+    pub(in crate::graphics::scene) fn sampler(&self) -> &wgpu::Sampler {
+        &self.sampler
     }
 }
 
@@ -153,6 +162,42 @@ fn supports_storage_binding_usage(format: wgpu::TextureFormat) -> bool {
             | wgpu::TextureFormat::Rgba16Float
             | wgpu::TextureFormat::Rgba32Float
     )
+}
+
+fn sampler_descriptor(
+    descriptor: &crate::core::framework::render::RenderSamplerDescriptor,
+) -> wgpu::SamplerDescriptor<'static> {
+    wgpu::SamplerDescriptor {
+        mag_filter: filter_mode(descriptor.mag_filter),
+        min_filter: filter_mode(descriptor.min_filter),
+        mipmap_filter: mipmap_filter_mode(descriptor.mipmap_filter),
+        address_mode_u: address_mode(descriptor.address_mode_u),
+        address_mode_v: address_mode(descriptor.address_mode_v),
+        address_mode_w: address_mode(descriptor.address_mode_w),
+        ..Default::default()
+    }
+}
+
+fn filter_mode(filter: RenderSamplerFilter) -> wgpu::FilterMode {
+    match filter {
+        RenderSamplerFilter::Nearest => wgpu::FilterMode::Nearest,
+        RenderSamplerFilter::Linear => wgpu::FilterMode::Linear,
+    }
+}
+
+fn mipmap_filter_mode(filter: RenderSamplerFilter) -> wgpu::MipmapFilterMode {
+    match filter {
+        RenderSamplerFilter::Nearest => wgpu::MipmapFilterMode::Nearest,
+        RenderSamplerFilter::Linear => wgpu::MipmapFilterMode::Linear,
+    }
+}
+
+fn address_mode(mode: RenderSamplerAddressMode) -> wgpu::AddressMode {
+    match mode {
+        RenderSamplerAddressMode::ClampToEdge => wgpu::AddressMode::ClampToEdge,
+        RenderSamplerAddressMode::Repeat => wgpu::AddressMode::Repeat,
+        RenderSamplerAddressMode::MirrorRepeat => wgpu::AddressMode::MirrorRepeat,
+    }
 }
 
 #[cfg(test)]

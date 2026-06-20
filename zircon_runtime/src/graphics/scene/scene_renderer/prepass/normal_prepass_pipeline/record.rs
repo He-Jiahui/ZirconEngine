@@ -38,7 +38,7 @@ impl NormalPrepassPipeline {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !render_region.apply_to_render_pass(&mut pass) {
+        if !render_region.apply_physical_to_render_pass(&mut pass) {
             return MeshDrawReplayStats::default();
         }
         pass.set_pipeline(&self.pipeline);

@@ -53,22 +53,21 @@ def source_template_validate_build_plan_schema_diagnostics(
         if field not in known_fields
     ]
     for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_STRING_FIELDS:
-        if field in source_template_build:
-            value = source_template_build.get(field)
-            if not isinstance(value, str) or not value:
-                diagnostics.append(
-                    f"SourceTemplate Validate source_template_build {field} "
-                    "must be a non-empty string"
-                )
-    for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_BOOL_FIELDS:
-        if field in source_template_build:
-            diagnostics.extend(
-                validate_bool_schema_diagnostics(
-                    f"SourceTemplate Validate source_template_build {field}", source_template_build.get(field)
-                )
+        value = source_template_build.get(field)
+        if not isinstance(value, str) or not value.strip():
+            diagnostics.append(
+                f"SourceTemplate Validate source_template_build {field} "
+                "must be a non-empty string"
             )
+    for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_BOOL_FIELDS:
+        diagnostics.extend(
+            validate_bool_schema_diagnostics(
+                f"SourceTemplate Validate source_template_build {field}",
+                source_template_build.get(field),
+            )
+        )
     for field in SOURCE_TEMPLATE_VALIDATE_BUILD_PLAN_STRING_ARRAY_FIELDS:
-        if field in source_template_build and not source_template_is_non_empty_string_array(
+        if not source_template_is_non_empty_string_array(
             source_template_build.get(field)
         ):
             diagnostics.append(
@@ -90,19 +89,25 @@ def source_template_validate_generated_file_schema_diagnostics(
     ]
     for field in SOURCE_TEMPLATE_VALIDATE_GENERATED_FILE_STRING_FIELDS:
         value = file.get(field)
-        if not isinstance(value, str) or (field == "path" and not value):
-            if field == "path":
-                diagnostics.append(
-                    "SourceTemplate Validate generated file path "
-                    "must be a non-empty string"
+        if field == "path" and (
+            not isinstance(value, str) or not value.strip()
+        ):
+            diagnostics.append(
+                "SourceTemplate Validate generated file path "
+                "must be a non-empty string"
+            )
+        elif not isinstance(value, str):
+            diagnostics.extend(
+                validate_string_schema_diagnostics(
+                    f"SourceTemplate Validate generated_files[{index}].{field}",
+                    value,
                 )
-            else:
-                diagnostics.extend(
-                    validate_string_schema_diagnostics(
-                        f"SourceTemplate Validate generated_files[{index}].{field}",
-                        value,
-                    )
-                )
+            )
+        elif field == "purpose" and not value.strip():
+            diagnostics.append(
+                f"SourceTemplate Validate generated_files[{index}].{field} "
+                "must be a non-empty string"
+            )
     return diagnostics
 
 

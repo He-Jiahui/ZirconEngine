@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::framework::render::RenderMaterialTextureTransform;
+use crate::core::framework::render::{RenderMaterialTextureTransform, RenderQueueValue};
 
 #[test]
 fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
@@ -64,6 +64,7 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert!(capture.receive_shadows);
     assert!(material.receive_shadows);
     assert_eq!(material.render_queue, 0);
+    assert_eq!(material.render_queue_value, None);
     assert_eq!(material.material_queue, 0);
     assert_eq!(material.depth_bias, 0.0);
     assert!(capture.base_color_texture.is_some());
@@ -285,6 +286,10 @@ fn render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_v
 
     let material = streamer.material(&material_id).expect("runtime material");
     assert_eq!(material.render_queue, -8);
+    assert_eq!(
+        material.render_queue_value,
+        Some(RenderQueueValue::new(1_992))
+    );
     assert_eq!(material.material_queue, 12);
     assert_eq!(material.depth_bias, -0.75);
     assert!(!material.pipeline_key.alpha_blend);

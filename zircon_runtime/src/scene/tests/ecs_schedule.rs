@@ -32,6 +32,16 @@ struct DeferredMarker;
 
 impl Component for DeferredMarker {}
 
+fn resource_store_source() -> &'static str {
+    concat!(
+        include_str!("../ecs/resource_store/mod.rs"),
+        "\n",
+        include_str!("../ecs/resource_store/stored_resource.rs"),
+        "\n",
+        include_str!("../ecs/resource_store/store.rs"),
+    )
+}
+
 #[test]
 fn resource_store_keeps_resources_by_concrete_type() {
     #[derive(Debug, PartialEq, Eq)]
@@ -59,7 +69,7 @@ fn resource_store_keeps_resources_by_concrete_type() {
 
 #[test]
 fn resource_store_type_names_preallocate_from_resource_count() {
-    let resource_store_source = include_str!("../ecs/resource_store.rs");
+    let resource_store_source = resource_store_source();
 
     assert!(
         resource_store_source.contains("let mut names = Vec::with_capacity(self.resources.len());")
@@ -143,7 +153,7 @@ fn event_store_assigns_stable_dense_event_type_ids() {
 }
 
 #[test]
-fn event_store_dormant_channel_drops_writes_until_reader_registered() {
+fn event_store_registered_channel_accepts_writes_before_reader_registered() {
     #[derive(Debug, PartialEq, Eq)]
     struct Spawned(&'static str);
 
@@ -152,9 +162,9 @@ fn event_store_dormant_channel_drops_writes_until_reader_registered() {
 
     assert!(!store.is_active(spawned));
     assert_eq!(store.reader_count(spawned), Some(0));
-    assert!(!store.send_by_id(spawned, Spawned("before-reader")));
+    assert!(store.send_by_id(spawned, Spawned("before-reader")));
     store.update_by_id::<Spawned>(spawned);
-    assert_eq!(store.drain::<Spawned>(), Vec::<Spawned>::new());
+    assert_eq!(store.drain::<Spawned>(), vec![Spawned("before-reader")]);
 
     assert_eq!(store.register_reader::<Spawned>(), spawned);
     assert!(store.is_active(spawned));
@@ -176,7 +186,7 @@ fn dormant_subscription_connects_on_plugin_activate() {
     assert_eq!(subscription.status(), EventSubscriptionStatus::Dormant);
     assert!(!store.is_active(event_type_id));
     assert_eq!(store.reader_count(event_type_id), Some(0));
-    assert!(!store.send_by_id(event_type_id, WeatherChanged(1)));
+    assert!(store.send_by_id(event_type_id, WeatherChanged(1)));
     store.update_by_id::<WeatherChanged>(event_type_id);
     assert!(subscription.read(&store).next().is_none());
 
@@ -200,7 +210,7 @@ fn dormant_subscription_connects_on_plugin_activate() {
     assert_eq!(subscription.status(), EventSubscriptionStatus::Dormant);
     assert_eq!(store.reader_count(event_type_id), Some(0));
     assert!(!store.is_active(event_type_id));
-    assert!(!store.send_by_id(event_type_id, WeatherChanged(3)));
+    assert!(store.send_by_id(event_type_id, WeatherChanged(3)));
     store.update_by_id::<WeatherChanged>(event_type_id);
 
     assert!(subscription.connect(&mut store));

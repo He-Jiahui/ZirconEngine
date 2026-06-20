@@ -67,6 +67,107 @@ fn runtime_session_archive_atomic_save_replaces_existing_target_without_leftover
 }
 
 #[test]
+fn runtime_session_archive_preview_save_to_path_reports_targets_without_writing_files() {
+    let source = World::empty();
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "manual", 10)])
+            .expect("archive should accept preview slot");
+    let root = unique_temp_root("runtime_session_full_save_preview");
+    let missing_path = root.join("missing").join("archive.zrsession.json");
+
+    let missing_target = archive
+        .preview_save_to_path(&missing_path)
+        .expect("missing-target full-save preview should validate");
+    assert_eq!(missing_target.target_path, missing_path);
+    assert!(!missing_target.will_replace_target);
+    assert_eq!(missing_target.statistics.slot_count, 1);
+    assert_eq!(
+        missing_target.statistics.latest_updated_at_unix_millis,
+        Some(10)
+    );
+    assert!(!missing_path.exists());
+    assert!(!missing_path
+        .parent()
+        .expect("missing path should have parent")
+        .exists());
+
+    let existing_path = root.join("sessions").join("archive.zrsession.json");
+    fs::create_dir_all(
+        existing_path
+            .parent()
+            .expect("existing path should have parent"),
+    )
+    .expect("existing target parent should be created");
+    fs::write(&existing_path, "existing payload").expect("existing target fixture should write");
+    let existing_payload =
+        fs::read_to_string(&existing_path).expect("existing target payload should be readable");
+    let existing_target = archive
+        .preview_save_to_path(&existing_path)
+        .expect("existing-file full-save preview should validate");
+    assert_eq!(existing_target.target_path, existing_path);
+    assert!(existing_target.will_replace_target);
+    assert_eq!(
+        fs::read_to_string(&existing_path)
+            .expect("existing target payload should remain readable after preview"),
+        existing_payload
+    );
+    assert!(temporary_archive_leftovers(
+        existing_path
+            .parent()
+            .expect("existing path should have parent")
+    )
+    .is_empty());
+
+    let directory_target = root.join("sessions").join("directory-target");
+    fs::create_dir_all(&directory_target).expect("directory target fixture should be created");
+    let non_file_target = archive.preview_save_to_path(&directory_target);
+    assert!(matches!(
+        non_file_target,
+        Err(crate::scene::RuntimeSessionArchiveError::Io(error))
+            if error.kind() == std::io::ErrorKind::AlreadyExists
+    ));
+    assert!(directory_target.is_dir());
+    assert!(temporary_archive_leftovers(
+        existing_path
+            .parent()
+            .expect("existing path should have parent")
+    )
+    .is_empty());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn runtime_session_archive_preview_save_to_path_rejects_parent_file_without_writes() {
+    let source = World::empty();
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "manual", "manual", 10)])
+            .expect("archive should accept parent-file preview slot");
+    let root = unique_temp_root("runtime_session_full_save_preview_parent_file");
+    fs::create_dir_all(&root).expect("preview root should be created");
+    let parent_file = root.join("parent-file");
+    fs::write(&parent_file, "parent payload").expect("parent file fixture should write");
+    let target_path = parent_file.join("archive.zrsession.json");
+
+    let parent_file_target = archive.preview_save_to_path(&target_path);
+
+    assert!(matches!(
+        parent_file_target,
+        Err(crate::scene::RuntimeSessionArchiveError::Io(error))
+            if error.kind() == std::io::ErrorKind::AlreadyExists
+    ));
+    assert_eq!(
+        fs::read_to_string(&parent_file)
+            .expect("parent file payload should remain readable after preview"),
+        "parent payload"
+    );
+    assert!(parent_file.is_file());
+    assert!(!target_path.exists());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn runtime_session_archive_loads_manifest_from_path_without_manual_archive_projection() {
     let source = World::empty();
     let archive = RuntimeSessionArchive::from_slots(vec![

@@ -8,6 +8,7 @@ use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::scene_clear::SceneRegionClearResources;
 use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
 use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::sprite::SpriteRenderer;
@@ -33,6 +34,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) hzb_occlusion_culler:
         Option<HzbOcclusionCuller>,
     pub(in crate::graphics::scene::scene_renderer::core) normal_prepass: NormalPrepassPipeline,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_clear: SceneRegionClearResources,
     pub(in crate::graphics::scene::scene_renderer::core) shadow_map_renderer: ShadowMapRenderer,
     pub(in crate::graphics::scene::scene_renderer::core) shadow_atlas_allocator:
         ShadowAtlasAllocator,

@@ -170,6 +170,55 @@ fn render_product_hzb_occlusion_wall_scene() {
     );
 }
 
+#[test]
+fn render_product_hzb_occlusion_respects_storage_buffer_limit_fallback() {
+    let viewport_size = UVec2::new(320, 240);
+    let (limit_fallback_frame, limit_fallback_stats) = render_hzb_occlusion_wall_scene(
+        hzb_occlusion_wall_low_storage_buffer_capabilities(),
+        viewport_size,
+    );
+    let (cpu_fallback_frame, cpu_fallback_stats) = render_hzb_occlusion_wall_scene(
+        hzb_occlusion_wall_cpu_fallback_capabilities(),
+        viewport_size,
+    );
+
+    assert!(
+        limit_fallback_stats.capabilities.supports_storage_buffers,
+        "the test isolates the per-stage storage-buffer count gate, not storage-buffer support"
+    );
+    assert!(
+        limit_fallback_stats
+            .capabilities
+            .gpu_driven_submission_supported(),
+        "the test keeps GPU-driven submission otherwise available"
+    );
+    assert_eq!(
+        limit_fallback_stats
+            .capabilities
+            .max_storage_buffers_per_shader_stage,
+        HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE - 1
+    );
+    assert!(
+        !limit_fallback_stats.last_hzb_occlusion_reported,
+        "storage-buffer capacity fallback should not execute hzb-occlusion-cull"
+    );
+    assert_eq!(
+        limit_fallback_stats.last_visibility_occlusion_culled_count, 0,
+        "CPU visibility fallback should not report HZB occlusion culls"
+    );
+    assert_eq!(limit_fallback_stats.last_hzb_occlusion_tested_arg_count, 0);
+    assert_eq!(
+        limit_fallback_stats.last_hzb_occlusion_compacted_draw_count,
+        0
+    );
+    assert!(!cpu_fallback_stats.last_hzb_occlusion_reported);
+    assert_captured_frames_equal(
+        &limit_fallback_frame,
+        &cpu_fallback_frame,
+        "storage-buffer-limit fallback should match the CPU visibility baseline",
+    );
+}
+
 pub(super) fn advanced_quality_profile(name: &str) -> RenderQualityProfile {
     RenderQualityProfile::new(name)
         .with_virtual_geometry(true)
@@ -336,6 +385,15 @@ fn hzb_occlusion_wall_cpu_fallback_capabilities() -> RenderCapabilitySummary {
     RenderCapabilitySummary {
         backend_name: "hzb-occlusion-wall-cpu-baseline".to_string(),
         supports_multi_draw_indirect: false,
+        ..hzb_occlusion_wall_capabilities()
+    }
+}
+
+fn hzb_occlusion_wall_low_storage_buffer_capabilities() -> RenderCapabilitySummary {
+    RenderCapabilitySummary {
+        backend_name: "hzb-occlusion-wall-storage-buffer-limit".to_string(),
+        max_storage_buffers_per_shader_stage:
+            HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE - 1,
         ..hzb_occlusion_wall_capabilities()
     }
 }

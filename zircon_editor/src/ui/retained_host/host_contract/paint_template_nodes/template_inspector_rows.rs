@@ -8,7 +8,7 @@ mod resource;
 mod shadow;
 mod style;
 
-pub(super) fn push_inspector_row_commands(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_inspector_row_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

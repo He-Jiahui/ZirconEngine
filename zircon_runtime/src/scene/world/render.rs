@@ -539,20 +539,18 @@ impl World {
             return (camera, None);
         }
 
-        let entity = request
+        let Some(entity) = request
             .active_camera_override
             .filter(|entity| self.cameras.contains_key(entity))
-            .unwrap_or_else(|| {
-                if self.cameras.contains_key(&self.active_camera) {
-                    self.active_camera
-                } else {
-                    self.cameras
-                        .keys()
-                        .copied()
-                        .next()
-                        .expect("world always contains a camera")
-                }
-            });
+            .or_else(|| {
+                self.cameras
+                    .contains_key(&self.active_camera)
+                    .then_some(self.active_camera)
+            })
+            .or_else(|| self.cameras.keys().copied().next())
+        else {
+            return (fallback_render_camera(request), None);
+        };
         let component = self
             .cameras
             .get(&entity)
@@ -576,7 +574,9 @@ impl World {
             Some(entity) => RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(
                 self.scene_camera_descriptors()
                     .into_iter()
-                    .filter(CameraRenderDescriptor::is_active)
+                    .filter(|descriptor| {
+                        descriptor.entity == Some(entity) || descriptor.is_active()
+                    })
                     .map(|descriptor| {
                         if descriptor.entity == Some(entity) {
                             camera.clone()
@@ -700,6 +700,21 @@ impl World {
         }
         descriptor
     }
+}
+
+fn fallback_render_camera(request: &SceneViewportExtractRequest) -> CameraRenderDescriptor {
+    let mut camera =
+        CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+    let default_layers = RenderLayerSet::from_legacy_mask(default_render_layer_mask());
+    camera.culling_mask = default_layers.clone();
+    camera.volume_mask = default_layers;
+    if request.settings.projection_mode != ProjectionMode::default() {
+        camera.camera.projection_mode = request.settings.projection_mode;
+    }
+    if let Some(viewport_size) = request.viewport_size {
+        camera.apply_target_size(viewport_size);
+    }
+    camera
 }
 
 struct MeshRenderSource<'a> {

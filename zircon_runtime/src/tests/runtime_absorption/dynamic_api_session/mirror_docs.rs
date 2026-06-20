@@ -3,8 +3,10 @@ use std::path::Path;
 
 use super::shared::{
     EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS, EXPECTED_RUNTIME_10_FUNCTION_TABLES,
-    EXPECTED_RUNTIME_10_MIRROR_DOCS, EXPECTED_RUNTIME_10_SESSION_OPERATIONS,
-    EXPECTED_RUNTIME_10_SOURCE_FILES,
+    EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS, EXPECTED_RUNTIME_10_MIRROR_DOCS,
+    EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS,
+    EXPECTED_RUNTIME_10_SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS,
+    EXPECTED_RUNTIME_10_SESSION_OPERATIONS, EXPECTED_RUNTIME_10_SOURCE_FILES,
 };
 
 const EXTRA_RUNTIME_10_GUARD_ANCHOR_FILES: &[&str] =
@@ -27,6 +29,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
     assert_function_table_shapes(repo_root);
     assert_runtime_10_ffi_wrappers(&exports_source, &session_source);
     assert_runtime_10_behavior_test_anchors(repo_root);
+    assert_runtime_10_host_request_payload_anchors(repo_root);
 
     for required_anchor in [
         "runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces",
@@ -36,6 +39,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
         "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
         "runtime_10_ui_v2_contract_sync_matches_runtime_09_verdict_and_interface_owner",
         "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
+        "runtime_10_profile_control_exposes_runtime_diagnostics_snapshot_without_abi_table_growth",
         "runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation",
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ] {
@@ -50,7 +54,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 23",
+            "expected_source_file_count = 33",
             "function_table_structs = 10/10",
             "field_count_mismatches = 0",
             "missing_repr_c_tables = 0",
@@ -60,14 +64,20 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             "headless_lifecycle_anchors = 12/12",
             "ffi_panic_anchors = 9/9",
             "loader_failure_anchors = 10/10",
-            "behavior_test_anchor_count = 15",
+            "behavior_test_anchor_count = 16",
             "missing_behavior_test_anchors = []",
+            "runtime_diagnostics_anchors = 15/15",
+            "missing_runtime_diagnostics_anchors = []",
+            "scene_asset_reload_diagnostic_path_anchors = 21/21",
+            "missing_scene_asset_reload_diagnostic_path_anchors = []",
+            "host_request_payload_anchors = 38/38",
+            "missing_host_request_payload_anchors = []",
             "ui_pending_gate_anchors = 8/8",
             "ui_contract_single_source_anchors = 7/7",
             "ui_contract_duplicate_public_types = 0",
             "ui_v2_contract_sync_anchors = 9/9",
             "pending_cargo_gate_anchors = 5/5",
-            "doc_anchors = 7/7",
+            "doc_anchors = 13/13",
             "mirror_docs_guard_present = true",
             "risks = []",
             "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
@@ -83,8 +93,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        23,
-        "Runtime 10 dynamic API source inventory should stay at 23 files"
+        33,
+        "Runtime 10 dynamic API source inventory should stay at 33 files"
     );
     for relative_file in files {
         assert!(
@@ -108,9 +118,39 @@ fn assert_runtime_10_behavior_test_anchors(repo_root: &Path) {
         }
     }
     assert_eq!(
-        behavior_anchor_count, 15,
-        "Runtime 10 behavior test anchor inventory should stay at 15 tests"
+        behavior_anchor_count, 16,
+        "Runtime 10 behavior test anchor inventory should stay at 16 tests"
     );
+}
+
+#[test]
+fn runtime_10_dynamic_runtime_api_mirror_docs_include_runtime_diagnostics_anchors() {
+    assert_eq!(
+        EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS.len(),
+        15,
+        "Runtime 10 runtime diagnostics profile-control inventory should stay at 15 anchors"
+    );
+    assert_eq!(
+        EXPECTED_RUNTIME_10_SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS.len(),
+        21,
+        "Runtime 10 scene-asset reload diagnostic path inventory should stay at 21 anchors"
+    );
+}
+
+fn assert_runtime_10_host_request_payload_anchors(repo_root: &Path) {
+    assert_eq!(
+        EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS.len(),
+        38,
+        "Runtime 10 host-request payload anchor inventory should stay at 38 anchors"
+    );
+    for (relative_file, expected_anchor) in EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS {
+        let source = fs::read_to_string(repo_root.join(relative_file))
+            .unwrap_or_else(|error| panic!("`{relative_file}` should be readable: {error}"));
+        assert!(
+            source.contains(expected_anchor),
+            "`{relative_file}` should keep Runtime 10 host-request payload anchor `{expected_anchor}`"
+        );
+    }
 }
 
 fn assert_function_table_shapes(repo_root: &Path) {

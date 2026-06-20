@@ -48,6 +48,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
@@ -141,6 +142,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
@@ -526,6 +528,8 @@ New editor renderable projects scaffold the same contract: `default.zmaterial` p
 Material direct dependencies include the shader reference and every texture slot that carries a concrete `AssetReference`. Texture slots may also contain only a fallback class, such as `white`, `black`, `normal`, or `missing`; fallback-only slots do not become `.zmeta` dependencies.
 
 Material/schema mismatches are represented as typed readiness diagnostics rather than importer failures. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` with `ShaderAsset.property_schema` and `[textures.<slot>]` with `ShaderAsset.texture_slots`; it records unknown overrides, override type mismatches, missing required shader properties, unknown texture slots, and missing required texture-slot references with stable document paths. A fallback-only slot such as `[textures.base_color] fallback = "white"` remains valid authoring metadata, but it does not satisfy a shader slot marked `required = true` because no concrete texture asset reference can enter the dependency graph or renderer upload path. `ResourceStreamer::ensure_material(...)` now has a focused regression, `render_product_streamer_reports_shader_material_contract_diagnostics`, that verifies those rows survive shader loading and are stored on the runtime material readiness report together. `MaterialAsset::readiness_report_with_shader_contract(...)` merges those diagnostics with dependency-resolution readiness based on the shader-promoted descriptor dependency set and consumes `ShaderAsset::readiness_report()` so missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, and shader-side WGSL capture diagnostics all reach material/runtime readiness reports. `MaterialAsset.validation_diagnostics` now flows into the report's non-blocking `diagnostics` list with `MaterialAsset` source and paths like `material.validation_diagnostics[0]`; uniform payload unsupported rows flow into the same list with `MaterialUniform` source and paths like `uniform.debug_label`. Diagnostics-only rows classify as `Diagnostic` but still leave `is_ready()` true; fallback and validation rows classify as degraded or invalid according to the shared status priority. The readiness report de-duplicates those rows by full diagnostic identity before storage. Importer notes from glTF, generated default materials, and non-uniform property retention stay visible without making the material fail readiness.
+
+Material-owned `render_queue` remains a source-level override under `[overrides]`, but standard descriptor projection now also resolves it into an optional `RenderQueueValue` snapshot. Values in Unity's queue range (`1000..=5000`) become explicit queue overrides, while legacy small values continue to act as offsets from the alpha-mode default through the Plan 09 clamp window. A blend material with an explicit queue in the opaque/alpha-test range now records `RenderQueueAlphaModeConflict` at `overrides.render_queue`, so queue/alpha mistakes are visible during asset readiness instead of surfacing later as a phase-ordering surprise. Opaque queue overrides such as `2900` remain valid and intentionally move the material into the later queue segment.
 
 The persistent fixture under `docs/assets-and-rendering/fixtures/zmeta-shader-material/` mirrors a project `assets/` tree and includes a compound `unlit_shader.zmeta`, `unlit.zshader`, `unlit.wgsl`, and `hero_unlit.zmaterial` with `{ uuid, url }` shader and texture references. The fixture `.zshader` includes `import_path = "zircon::unlit"` plus a legacy `shader_defs` flag array, the fixture WGSL references every property and texture-slot name declared by the `.zshader`, and `documented_zmeta_shader_material_fixture_parses` checks the same WGSL capture rule as the importer so the example stays diagnostic-clean as the schema evolves.
 

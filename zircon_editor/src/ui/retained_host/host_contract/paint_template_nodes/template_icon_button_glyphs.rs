@@ -5,7 +5,7 @@ use super::template_icon_button_glyph_segments::push_icon_button_glyph_segments;
 use super::template_icon_button_glyph_shapes::push_icon_button_glyph_shape;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
-pub(super) fn push_icon_button_glyph(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_icon_button_glyph(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

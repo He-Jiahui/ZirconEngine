@@ -5,7 +5,7 @@ use super::{
     PanePointerRoute, PanePointerTarget,
 };
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn route_pointer_to_pane(
+pub(in crate::ui::retained_host::host_contract) fn route_pointer_to_pane(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,
@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::native_pointer) fn route_pointer
     route_pointer_to_pane_with_mode(presentation, x, y, PaneRouteMode::Default)
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn route_pointer_move_to_pane(
+pub(in crate::ui::retained_host::host_contract) fn route_pointer_move_to_pane(
     presentation: &HostWindowPresentationData,
     x: f32,
     y: f32,

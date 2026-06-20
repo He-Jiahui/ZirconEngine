@@ -8,11 +8,18 @@ related_code:
   - dev/bevy/crates/bevy_render/src/pipelined_rendering.rs
   - dev/bevy/crates/bevy_render/src/render_phase/mod.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/mod.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_item.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/pipeline_kind.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/render_phase.rs
+  - zircon_runtime/src/core/framework/render/material/standard_material.rs
+  - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
@@ -47,18 +54,27 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_transparent.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/record_overlays.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/core_pipeline/mod.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_item.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/pipeline_kind.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/render_phase.rs
+  - zircon_runtime/src/core/framework/render/material/standard_material.rs
+  - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
@@ -93,7 +109,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_transparent.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/record_overlays.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
@@ -106,11 +124,27 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
 tests:
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_clusters_opaque_by_pipeline_before_tie_breaker
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_keeps_transparent_depth_before_pipeline
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_ignores_transparent_pipeline_variant
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_camera_order_dominates_queue
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_opaque_clusters_pipeline_before_depth
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_transparent_depth_back_to_front_ignores_cluster
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_2d_sorting_layer_then_order_then_y
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_ui_z_index_maps_into_overlay_segment
+  - zircon_runtime/src/core/framework/render/core_pipeline/packed_sort_key.rs::tests::render_sort_key_fixed_representative_order_snapshot
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs::tests::render_sort_key_breakdown_roundtrip
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_uses_unified_queue_layer_depth_order
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_explains_depth_and_queue_order
+  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_reports_first_ordering_difference
   - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d_and_3d
   - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_camera_projection_selects_core_pipeline_kind
+  - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_uses_core2d_phase_order_and_transparent_depth_sort
+  - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_honors_queue_and_order_in_layer
+  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs::tests::transparent_submission_order_interleaves_meshes_and_sprites_by_sort_key
+  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs::tests::transparent_submission_order_ignores_non_transparent3d_sprites
+  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs::tests::transparent_sprite_submission_detection_ignores_mesh_phase_items
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_rebinds_after_external_pipeline
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs::tests::build_sprite_vertices_routes_transparent3d_to_transparent3d_phase
+  - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs::transparent3d_product_interleaves_mesh_and_sprite_pixels_by_phase_sort_key
+  - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs::transparent3d_product_treats_world_space_ui_sprite_as_transparent_member
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_core2d_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
@@ -150,11 +184,17 @@ Concrete graph passes, WGPU command encoding, render pass assets, and resource p
 
 `RenderPhaseItem` is the neutral queue row. It records the entity, phase, sort key, and whether the phase item came from a mesh or sprite source. The source distinction is important because M6A proved sprites must not be confused with particle billboards, and future Mesh2d rendering must not reuse sprite acceptance accidentally.
 
-`RenderPhaseQueue` stores sorted phase items and exposes `items_for_phase(...)` for renderer or diagnostics consumers. `build_mesh_phase_queue(...)` and `build_sprite_phase_queue(...)` classify alpha modes into opaque, alpha-mask, or transparent phases for the selected core pipeline.
+`RenderQueueValue` is the Unity-style render queue value authority for phase selection. It defines Background 1000, Geometry 2000, AlphaTest 2450, GeometryLast 2500, Transparent 3000, Overlay 4000, and Max 5000. Alpha mode still supplies the default queue, but authored Unity-range values such as 2900 can override the segment before phase selection; small legacy offsets outside the Unity range are clamped to the material offset window so older per-renderer sort offsets continue to resolve deterministically.
 
-`RenderPhaseSortKey` keeps deterministic ordering local to the framework contract. Meshes sort by phase, depth, and entity tie-breaker; sprites sort by z order before depth and entity. Transparent phases reverse depth ordering inside that rule.
+Material projection now preserves the same authority on the standard material snapshot. `StandardMaterialDescriptor.render_queue_value` stores the optional resolved `RenderQueueValue` for explicit material-authored queue overrides, while `resolved_render_queue_value()` keeps old raw descriptors deterministic. Asset validation reports blend materials explicitly placed in the opaque/alpha-test queue range as `RenderQueueAlphaModeConflict`, preventing a semi-transparent blend state from silently entering an opaque phase family.
 
-`packed_sort_key_u64(...)` is the graphics-facing bridge for the MD-M1 mesh command layer. It preserves the same queue-prefix inputs but emits the compact `u64` command sort key used by `MeshDrawCommand`. Non-transparent phases include a state bucket from pipeline variant plus material discriminant before the coarse depth/tie-breaker lane, so opaque/prepass/velocity command streams can cluster state. Transparent phases ignore pipeline/material state and keep ordered depth before the tie-breaker, preserving back-to-front semantics for alpha blending. The bit layout is still the MD-M1 transitional layout; plan 09 remains the authority for the final shared layout.
+`RenderPhaseQueue` stores sorted phase items and exposes `items_for_phase(...)` for renderer or diagnostics consumers. `build_mesh_phase_queue(...)` and `build_sprite_phase_queue(...)` now take a resolved `RenderQueueValue` before assigning each item to opaque, alpha-mask, transparent, or overlay phases for the selected core pipeline. Source-level `GeometryPhaseInput` and `SpritePhaseExtractInput` may still carry raw authored `render_queue` and `material_queue` integers, but those are folded once into `RenderQueueValue` before the core pipeline receives sort components.
+
+`RenderPhaseSortKey` is the final `u64` framework sort-key newtype. Its only raw representation is the Plan 09 layout `[camera_order:8][queue:13][domain:33][tie_breaker:10]`. `RenderPhaseSortComponents` carries `camera_order`, resolved `queue`, 2D `sorting_layer`/`order_in_layer`/`y_sort`, depth plus `depth_bias`, `ui_z_index`, and the entity tie-breaker. `RenderPhaseSortKeyBreakdown` and `RenderPhaseSortDecision` now explain the same lanes as camera order, queue, domain, tie key, and final entity tie-breaker instead of the old raw render/material queue fields.
+
+`packed_sort_key_u64(...)` is the single packing entry point for both the framework key and the graphics-facing `MeshDrawCommand` sort key. Camera order dominates every other lane. The queue lane uses `RenderQueueValue.raw()` and remains consistent with phase selection. The 33-bit domain is phase-family specific: opaque 3D, prepass, shadow, deferred, post-process, and debug use pipeline cluster, material cluster, and coarse front-to-back depth; transparent 3D uses millimeter back-to-front depth and only then pipeline cluster; 2D phases use sorting layer, order-in-layer, and y-sort; UI/Overlay use `ui_z_index`. The lower 10 bits keep a compact tie key while `RenderPhaseQueueOrderingKey` still compares the full entity id as the final deterministic queue tie-breaker.
+
+The graphics transparent submission path now consumes that same key across sources. `transparent/mixed_submission.rs` merges `MeshDrawCommand` rows and 3D sprite phase items into one transparent sequence, and `BaseScenePass` records the resulting order inside a single `TransparentMixedScenePass`. This closes the previous gap where Sprite and Mesh could share a framework ordering definition but still draw in separate WGPU passes.
 
 ## Graphics Integration
 
@@ -220,6 +260,16 @@ The current extraction path is still mostly single-camera. Camera ordering and t
 ## Test Coverage
 
 `render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d_and_3d` proves mesh alpha modes classify into the expected 2D and 3D phase order.
+
+`render_queue_values_select_phase_before_sort_key_order` proves authored queue values can move opaque and blend items into the queue segment's phase before sort-key comparison, while legacy small offsets keep blend items in the transparent segment.
+
+The `render_queue` module tests prove default alpha-mode queues, Unity segment-to-phase mapping, authored Unity queue overrides, and clamped legacy material offsets.
+
+The material queue tests prove `.zmaterial` render-queue overrides project into `RenderQueueValue`, preserve the legacy raw authored fields for import compatibility, and report blend queue/alpha conflicts through material readiness.
+
+The `render_sort_key_*` tests prove the final Plan 09 `u64` lanes: camera order dominates queue/depth, opaque phases cluster pipeline before coarse depth, transparent phases keep back-to-front depth before cluster, 2D phases sort by layer/order/y, Overlay maps z-index into the domain lane, and a fixed representative sample preserves the intended phase/sort order after deleting the previous framework `i128` path. The breakdown regression proves the diagnostic view reuses the same packed key helpers.
+
+The transparent mixed-submission tests prove 3D sprite phase items and transparent mesh commands are interleaved by the same `u64` key, non-3D sprite items are ignored by the 3D transparent pass, and the mesh replayer invalidates cached state after an inserted Sprite pipeline draw. The Sprite routing regression keeps `RenderPassStage::Transparent3d` mapped to `RenderPhase::Transparent3d`. The WGPU product regressions verify the default Forward+ product path renders a green transparent 3D Sprite and red transparent Mesh through the same `mesh.transparent` ordering path, and that a high-`ui_z_index` world-space UI-like transparent Sprite remains a normal `Transparent3d` member sorted by 3D transparent depth instead of becoming a screen-space UI overlay.
 
 `render_product_pipeline_camera_projection_selects_core_pipeline_kind` proves the camera contract chooses Core2d for orthographic projection and Core3d for perspective projection.
 

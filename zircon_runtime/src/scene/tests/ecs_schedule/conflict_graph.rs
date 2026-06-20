@@ -330,7 +330,7 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains("&mut conflict_node_adjacency"));
     assert!(graph_source.contains("conflict_edge_indices_by_node: &mut [Vec<usize>]"));
     assert!(graph_source.contains("conflict_node_adjacency: &mut [Vec<usize>]"));
-    assert!(graph_source.contains("&edges[*index]"));
+    assert!(graph_source.contains("Some(&self.graph.edges[edge_index])"));
     assert!(graph_source.contains("self.node_indices_by_system_id"));
     assert!(graph_source.contains("self.conflict_edge_indices_by_node[*node_index]"));
     assert!(graph_source.contains("match self.node_indices_by_system_id.get(system_id)"));
@@ -345,6 +345,7 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!graph_source
         .contains(".map(|node_index| self.conflict_edge_indices_by_node[*node_index].as_slice())"));
     assert!(!graph_source.contains("edge_indices.iter().map(|index| &self.edges[*index])"));
+    assert!(!graph_source.contains("&edges[*index]"));
     assert!(graph_source.contains("self.conflict_node_adjacency"));
     assert!(graph_source
         .contains("let Some(left_index) = self.node_indices_by_system_id.get(left_system_id)"));

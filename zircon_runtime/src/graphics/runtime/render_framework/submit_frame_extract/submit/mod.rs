@@ -3,6 +3,7 @@ mod build_virtual_geometry_debug_snapshot;
 mod camera_loop;
 mod collect_runtime_feedback;
 mod present_frame_extract;
+mod record_camera_history;
 mod release_previous_history;
 mod resolve_history_handle;
 mod submit;

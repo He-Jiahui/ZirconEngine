@@ -3,7 +3,7 @@ use super::super::super::profiling_hit_routes::route_contains_profile_frame;
 use super::super::{UiProfileHitSample, UiProfileNamedFrame, UiProfilePoint};
 use super::frame_math::profile_frame_center;
 
-pub(super) fn hit_samples_for_frame(
+pub(in crate::ui::retained_host::host_contract) fn hit_samples_for_frame(
     frame: &UiProfileNamedFrame,
     presentation: &HostWindowPresentationData,
 ) -> Vec<UiProfileHitSample> {

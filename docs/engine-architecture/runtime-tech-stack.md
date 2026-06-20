@@ -8,8 +8,13 @@ related_code:
   - zircon_runtime/src/ui/tests/text_shaper.rs
   - zircon_runtime/src/plugin/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
+  - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/Cargo.toml
@@ -17,6 +22,10 @@ implementation_files:
   - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
+  - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
 plan_sources:
@@ -29,6 +38,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_preview_reports_archive_without_writes
   - cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture
 doc_type: module-detail
 ---
@@ -41,9 +52,9 @@ This document is the runtime-side dependency authority for `zirconEngine`. It se
 
 ## Executable Guard Anchors
 
-Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_is_documented_without_manifest_container_dependency`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
+Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_allows_zip_only_for_archive_materializer`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
 
-`tech_stack_boundary` mirrors these Runtime 01 dependency-governance facts through the Python structural audit. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 6`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-15 static validation passed rustfmt check, Python py_compile, direct `tech_stack_boundary_audit`, aggregate Runtime 01 + plan-status assertions, standalone tech_stack 1/1, and standalone status-output 2/2. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, and plugin physics Cargo filters remain pending.
+`tech_stack_boundary` mirrors these Runtime 01 dependency-governance facts through the Python structural audit. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 5`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-20 static validation for the ZIP materializer slice passed rustfmt check and direct `tech_stack_boundary_audit`; full Cargo validation remains pending by the current "先实现功能" direction. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, plugin physics, and export_build_plan Cargo filters remain pending.
 
 ## Dependency Matrix
 
@@ -62,7 +73,8 @@ Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_t
 | `crossbeam-channel` / `crossbeam-utils` | `0.5.15` / `0.8.21` | runtime channels and worker support | none | Any replacement must preserve current runtime channel facade semantics. |
 | `serde`, `serde_json`, `toml`, `ron`, `bincode` | workspace or crate-local pinned versions | manifests, project data, artifact cache, debug/config IO | none | Serialization format changes need explicit migration plans. |
 | `libloading` | `0.9.0` | runtime cdylib loading and native dynamic plugin support | none | Dynamic ABI changes are governed by runtime interface convergence and plugin ABI plans. |
-| `zstd` | `0.13.3` | runtime/export compression support | none | Archive container choice is still a decision item; do not imply zip/tar support from this dependency. |
+| `zstd` | `0.13.3` | runtime/export compression support | none | Remains available for compression support, but it is not the current archive container. |
+| `zip` | `9.0.0-pre2` with `default-features = false`, `deflate-flate2` only | `zircon_runtime::plugin::export_build_plan::materialize::archive` export archive materializer | none | Only the runtime ZIP archive materializer may declare this dependency. Any feature expansion, additional archive format, or non-runtime owner must update this document and `tech_stack_boundary`. |
 | `accesskit` | `0.22.0` optional | runtime accessibility | `accessibility-accesskit` | Upgrade with accessibility DTO compatibility checks. |
 | gamepad input | app/runtime input stack | app/runtime input | `input-gamepad`, `gamepad-gilrs` | Browser gamepad remains a separate target path. |
 | `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | runtime script backend | `zr-vm-real-backend` | Current decision is to keep the external checkout. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
@@ -75,7 +87,7 @@ The runtime plan previously mentioned several libraries that are not present in 
 |---|---|---|
 | `cosmic-text` | Not introduced. The current text layout backend is `UiHeuristicTextShaper`; glyphon is only the native render/backend intent. | Future complex text demand may introduce cosmic-text through `UiTextShaper`, not by bypassing that trait. |
 | `kira` | Not introduced. Sound runtime uses the existing plugin-owned stack, currently based on `cpal` and custom mixer/DSP/HRTF/occlusion paths. | Sound plugin plan owns audio backend decisions. |
-| `zip` / `tar` | Not introduced. Export packaging currently has strategy contracts but no archive-container dependency. Runtime 01 M3.2 selects ZIP as the future archive container, but no manifest dependency is allowed until archive materialization lands. | Export build-plan owner must add the dependency and guard change in the same implementation slice. |
+| `tar` | Not introduced. ZIP is the current desktop/editor archive container; `tar` remains a possible CI/server artifact format only after a separate artifact policy lands. | Do not add to manifests without a server/CI artifact policy and guard update. |
 | `fontdue` | Not introduced in runtime. It remains a temporary `zircon_editor` retained-host text fallback. | Tracked in [Runtime Editor-Only Dependency Backlog](../editor-and-tooling/runtime-editor-only-dependency-backlog.md); remove or replace under the editor UI text plan once retained-host text rendering consumes runtime UI text/glyphon/SDF. |
 | `rfd` | Not introduced in runtime. | Editor-only file-dialog candidate tracked in [Runtime Editor-Only Dependency Backlog](../editor-and-tooling/runtime-editor-only-dependency-backlog.md); do not add to runtime. |
 | `arboard` | Not introduced in runtime. | Editor-only clipboard candidate tracked in [Runtime Editor-Only Dependency Backlog](../editor-and-tooling/runtime-editor-only-dependency-backlog.md); do not add to runtime. |
@@ -105,11 +117,13 @@ E:/Git/zr_vm
 
 ## Export Archive Decision
 
-The current `ExportPackagingStrategy` enum is not an archive-container enum. It describes how project/plugin code is materialized: `SourceTemplate`, `LibraryEmbed`, and `NativeDynamic`. The current export path remains directory-first and does not produce a single archive file.
+The current `ExportPackagingStrategy` enum is not an archive-container enum. It describes how project/plugin code is materialized: `SourceTemplate`, `LibraryEmbed`, and `NativeDynamic`. The directory-first materialization API remains available for staged export directories, and the archive API is an explicit export-build-plan materialization step rather than a fourth packaging strategy.
 
 Runtime 01 M3.2 selects ZIP as the future desktop/editor archive container. The reasons are cross-platform user tooling, Windows Explorer/macOS Finder/Linux desktop compatibility, existing editor-export expectations around a single distributable file, and a lower support burden than a custom container. `tar + zstd` remains a possible CI/server artifact format later, but it is not the primary runtime export container. A custom container is rejected for V1 because it would require custom inspection, extraction, and failure-recovery tooling before the runtime package format itself is stable.
 
-This decision does not change manifests today. Neither `zip` nor `tar` may enter workspace manifests until export materialization grows an explicit archive step, deterministic path/timestamp normalization, path traversal checks, and validation coverage under the [Runtime/Editor Pluginized Export](./runtime-editor-pluginized-export.md) / export build-plan owner.
+ZIP archive materialization is implemented by `ExportBuildPlan::materialize_zip_archive(plugin_root, archive_path)` and `ExportBuildPlan::preview_zip_archive(plugin_root, archive_path)`. The archive writer sorts generated files by path, reuses `validated_materialized_relative_path(...)` to reject traversal and non-portable generated paths, writes native dynamic package payloads through the same copy eligibility rules as directory materialization, and records the produced archive through `ExportMaterializeReport.archive_file`. ZIP entries use a stable default timestamp and `0o644` permissions; NativeDynamic package source crates stay excluded from the archive exactly as they are excluded from directory materialization.
+
+The admitted dependency is `zip 9.0.0-pre2` in `zircon_runtime/Cargo.toml`, pinned as `zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }` so the export archive materializer does not silently pull in optional crypto or alternate compression stacks. `tar` remains absent from workspace manifests.
 
 ## Text Stack Boundary
 

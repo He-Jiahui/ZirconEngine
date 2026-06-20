@@ -57,10 +57,14 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
                 )
             )
             native_build_plan = report["native_build_plan"]
+            native_build_execution = report["native_build_execution"]
             package_plan = native_build_plan["packages"][0]
             command = package_plan["command"]
             self.assertEqual(exit_code, 0)
             self.assertFalse(report["fatal"], report["diagnostics"])
+            self.assertFalse(native_build_execution["enabled"])
+            self.assertFalse(native_build_execution["fatal"])
+            self.assertFalse(native_build_execution["skipped"])
             self.assertEqual(native_build_plan["package_count"], 1)
             self.assertEqual(native_build_plan["cargo_profile"], "release")
             self.assertEqual(package_plan["package_id"], "animation")
@@ -342,6 +346,7 @@ class NativeDynamicBuildAndSigningTests(unittest.TestCase):
             self.assertFalse(report["fatal"], report["diagnostics"])
             self.assertTrue(execution["enabled"])
             self.assertFalse(execution["fatal"], execution["diagnostics"])
+            self.assertFalse(execution["skipped"])
             self.assertEqual(execution["package_count"], 1)
             self.assertEqual(package_execution["package_id"], "animation")
             self.assertEqual(package_execution["exit_code"], 0)

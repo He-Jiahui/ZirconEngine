@@ -1,11 +1,18 @@
 pub(super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime_interface/src/runtime_api/api_table.rs",
+    "zircon_runtime_interface/src/runtime_api/host_requests.rs",
     "zircon_runtime_interface/src/plugin_api.rs",
+    "zircon_runtime_interface/src/profiling.rs",
     "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+    "zircon_runtime_interface/src/tests/contracts.rs",
     "zircon_runtime/src/dynamic_api/exports.rs",
     "zircon_runtime/src/dynamic_api/session.rs",
+    "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+    "zircon_runtime/src/dynamic_api/session/host_requests.rs",
     "zircon_runtime/src/dynamic_api/session/events.rs",
     "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+    "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+    "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
     "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
     "zircon_runtime/src/dynamic_api/tests/session_entry_points.rs",
     "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
@@ -17,11 +24,14 @@ pub(super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/runtime_diagnostics.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs",
     "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs",
     "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
     "zircon_app/src/entry/runtime_library/runtime_session.rs",
     "zircon_app/src/entry/runtime_library/tests.rs",
+    "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+    "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, usize)] = &[
@@ -129,6 +139,316 @@ pub(super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &[&str])] =
             "runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library",
             "runtime_session_create_reports_first_call_failure_context",
         ],
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
+        &["profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_report"],
+    ),
+];
+
+pub(super) const EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS: &[(&str, &str)] = &[
+    (
+        "zircon_runtime_interface/src/profiling.rs",
+        "pub struct RuntimeDiagnosticsSnapshot",
+    ),
+    (
+        "zircon_runtime_interface/src/profiling.rs",
+        "pub runtime_diagnostics: Option<RuntimeDiagnosticsSnapshot>",
+    ),
+    (
+        "zircon_runtime_interface/src/profiling.rs",
+        "pub struct RuntimeDiagnosticSeriesSnapshot",
+    ),
+    (
+        "zircon_runtime_interface/src/profiling.rs",
+        "pub struct RuntimeSceneAssetReloadDiagnostics",
+    ),
+    (
+        "zircon_runtime_interface/src/lib.rs",
+        "RuntimeSceneAssetReloadDiagnostics",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        "runtime_diagnostics_response(session)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+        "pub(super) fn runtime_diagnostics_response",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+        "collect_runtime_diagnostics(&session.runtime.handle())",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+        "session.scene_asset_reload_queue.is_some()",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+        "session.last_scene_asset_reload_report.as_ref()",
+    ),
+    (
+        "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
+        "runtime diagnostics snapshot requires dynamic session",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
+        "runtime_diagnostics_snapshot_returns_store_and_scene_reload_report",
+    ),
+    (
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "runtime_diagnostics_snapshot",
+    ),
+    (
+        "docs/zircon_runtime/dynamic_api/session.md",
+        "Runtime Diagnostics Profile-Control Snapshot",
+    ),
+];
+
+pub(super) const EXPECTED_RUNTIME_10_SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS: &[(&str, &str)] =
+    &[
+        (
+            "zircon_runtime/src/dynamic_api/session.rs",
+            "queue.tick_into_level(self.runtime.handle().scheduler(), &self.level)",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session.rs",
+            "record_scene_asset_reload_frame_report(&self.runtime, &report)",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session.rs",
+            "self.last_scene_asset_reload_report = Some(report)",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "pub(super) fn record_scene_asset_reload_frame_report",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.events_drained",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.scheduled",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.skipped",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.skipped_removed",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.skipped_reload_failed",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.skipped_missing_locator",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.skipped_stale_revision",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.superseded_pending",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.applied",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.failed",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.stale",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.pending",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "scene.asset_reload.receiver_disconnected",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "DynamicSceneAssetReloadSkipReason::MissingLocator",
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs",
+            "[\"scene\", \"asset_reload\"]",
+        ),
+        (
+            "docs/zircon_runtime/dynamic_api/session.md",
+            "scene.asset_reload.*",
+        ),
+        (
+            "docs/zircon_runtime/scene/dynamic_scene.md",
+            "Dynamic runtime session scene-asset reload diagnostics",
+        ),
+    ];
+
+pub(super) const EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS: &[(&str, &str)] = &[
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "pub struct ZrRuntimeHostRequestBatchV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "pub enum ZrRuntimeHostRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "Ime(ZrRuntimeImeHostRequestV1)",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "GamepadRumble(ZrRuntimeGamepadRumbleRequestV1)",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "Cursor(ZrRuntimeCursorHostRequestV1)",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "pub struct ZrRuntimeImeHostRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "pub struct ZrRuntimeGamepadRumbleRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+        "pub struct ZrRuntimeCursorHostRequestV1",
+    ),
+    (
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "runtime_host_request_batch_serializes_ime_requests",
+    ),
+    (
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "runtime_host_request_batch_serializes_gamepad_rumble_requests",
+    ),
+    (
+        "zircon_runtime_interface/src/tests/contracts.rs",
+        "runtime_host_request_batch_serializes_cursor_requests",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "pub(in crate::dynamic_api) fn runtime_ime_host_request",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "pub(in crate::dynamic_api) fn runtime_gamepad_rumble_request",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+        "pub(in crate::dynamic_api) fn runtime_cursor_host_request",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".drain_ime_host_requests()",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".drain_gamepad_rumble_requests()",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".drain_cursor_host_requests()",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".map(ZrRuntimeHostRequestV1::ime)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".map(ZrRuntimeHostRequestV1::gamepad_rumble)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/session.rs",
+        ".map(ZrRuntimeHostRequestV1::cursor)",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "host_request_batch_encodes_runtime_ime_requests",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "host_request_batch_encodes_gamepad_rumble_requests",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "host_request_batch_encodes_cursor_requests",
+    ),
+    (
+        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "host_request_free_rejects_wrong_owner_token",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "ZrRuntimeHostRequestV1::Ime(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "ZrRuntimeHostRequestV1::GamepadRumble(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "ZrRuntimeHostRequestV1::Cursor(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "apply_runtime_ime_host_request(window.as_ref(), request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "apply_runtime_gamepad_rumble_request(request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+        "apply_runtime_cursor_host_request(window.as_ref(), request)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "ZrRuntimeCursorHostRequestKindV1::SetVisible",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "window.set_cursor_visible(request.value)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "ZrRuntimeCursorHostRequestKindV1::SetGrabMode",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "set_cursor_grab(CursorGrabMode::Confined)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "ZrRuntimeCursorHostRequestKindV1::SetHitTest",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "set_cursor_hittest(request.value)",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "ZrRuntimeCursorHostRequestKindV1::SetPosition",
+    ),
+    (
+        "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+        "set_cursor_position",
     ),
 ];
 

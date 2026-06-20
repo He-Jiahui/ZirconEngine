@@ -22,6 +22,7 @@ use crate::graphics::scene::scene_renderer::prepass::NormalPrepassPipeline;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::shadow::{ShadowFramePlan, ShadowMapRenderer};
 use crate::graphics::scene::scene_renderer::sprite::SpriteRenderer;
+use crate::graphics::scene::scene_renderer::transparent::has_transparent_sprite_submissions;
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::{
     ViewportCameraStackAttachmentPolicy, ViewportRenderFrame, ViewportRenderRegion,
@@ -614,8 +615,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let streamer = self.streamer.ok_or_else(|| {
             format!("mesh graph executor for stage `{stage:?}` requires resource streamer context")
         })?;
+        let mixes_transparent_sprites = matches!(stage, RenderPassStage::Transparent3d)
+            && self.sprite_renderer.is_some()
+            && has_transparent_sprite_submissions(&self.frame.extract.sprites.phase_queue);
         let stream = mesh_draw_lists.stream_for_stage(stage);
-        if stream.is_empty() {
+        if stream.is_empty() && !mixes_transparent_sprites {
             return Ok(());
         }
         let light_grid_params_buffer = Self::optional_buffer_by_name(
@@ -636,25 +640,53 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             crate::core::framework::render::PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let replay_stats = BaseScenePass.record_commands_with_attachment_ops(
-            self.encoder,
-            self.device,
-            color_view,
-            depth_view,
-            self.scene_bind_group,
-            mesh_draw_lists.gpu_scene_bind_group,
-            [stream],
-            mesh_pipelines,
-            streamer,
-            self.frame,
-            self.shadow_atlas_resources,
-            self.frame.render_region(),
-            light_grid_params_buffer,
-            light_zbins_buffer,
-            light_tile_masks_buffer,
-            mesh_stage_attachment_ops(stage, attachment_ops),
-            mesh_stage_attachment_ops(stage, depth_attachment_ops),
-        );
+        let replay_stats = if mixes_transparent_sprites {
+            let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
+                format!(
+                    "transparent mixed graph executor for stage `{stage:?}` requires sprite renderer context"
+                )
+            })?;
+            BaseScenePass.record_transparent_mixed_with_attachment_ops(
+                self.encoder,
+                self.device,
+                color_view,
+                depth_view,
+                self.scene_bind_group,
+                mesh_draw_lists.gpu_scene_bind_group,
+                mesh_draw_lists.transparent_commands,
+                mesh_pipelines,
+                streamer,
+                sprite_renderer,
+                self.frame,
+                self.shadow_atlas_resources,
+                self.frame.render_region(),
+                light_grid_params_buffer,
+                light_zbins_buffer,
+                light_tile_masks_buffer,
+                mesh_stage_attachment_ops(stage, attachment_ops),
+                mesh_stage_attachment_ops(stage, depth_attachment_ops),
+            )
+        } else {
+            BaseScenePass.record_commands_with_attachment_ops(
+                self.encoder,
+                self.device,
+                color_view,
+                depth_view,
+                self.scene_bind_group,
+                mesh_draw_lists.gpu_scene_bind_group,
+                [stream],
+                mesh_pipelines,
+                streamer,
+                self.frame,
+                self.shadow_atlas_resources,
+                self.frame.render_region(),
+                light_grid_params_buffer,
+                light_zbins_buffer,
+                light_tile_masks_buffer,
+                mesh_stage_attachment_ops(stage, attachment_ops),
+                mesh_stage_attachment_ops(stage, depth_attachment_ops),
+            )
+        };
         mesh_draw_lists.replay_stats.record(replay_stats);
         Ok(())
     }
@@ -724,7 +756,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !render_region.apply_to_render_pass(&mut pass) {
+        if !render_region.apply_physical_to_render_pass(&mut pass) {
             return Ok(());
         }
         pass.set_bind_group(0, self.scene_bind_group, &[]);

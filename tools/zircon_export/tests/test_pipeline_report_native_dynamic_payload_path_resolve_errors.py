@@ -9,11 +9,12 @@ from tools.zircon_export.pipeline_report import build_pipeline_report
 from tools.zircon_export.pipeline_report_native_dynamic_payload import (
     current_output_native_dynamic_report_path,
     platform_bundle_native_plugins_package_path_diagnostics,
+    platform_bundle_native_plugins_payload_diagnostics,
 )
 from tools.zircon_export.native_dynamic_payload import (
     materialized_package_loadable_artifacts_match_manifest,
 )
-from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
+from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _read_stage_report,
     _write_platform_bundle_fixture,
     _write_stage_report,
@@ -21,6 +22,64 @@ from tools.zircon_export.tests.test_pipeline_report_platform_bundle import (
 
 
 class NativeDynamicPayloadPathResolveErrorsTests(unittest.TestCase):
+    def test_payload_diagnostics_rejects_blank_native_plugins_before_path_resolution(
+        self,
+    ) -> None:
+        diagnostics = platform_bundle_native_plugins_payload_diagnostics(
+            {
+                "native_plugins": "   ",
+                "native_plugins_payload": {},
+            },
+            None,
+        )
+
+        self.assertEqual(
+            ["PlatformBundle report native_plugins must be a non-empty string"],
+            diagnostics,
+        )
+
+    def test_payload_diagnostics_stop_after_blank_top_level_path_schema(
+        self,
+    ) -> None:
+        cases = (
+            ("bundle_path", "native_plugins_payload bundle_path"),
+            ("loader_manifest", "native_plugins_payload loader_manifest"),
+            ("source", "native_plugins_payload source"),
+            ("stage_report", "native_plugins_payload stage_report"),
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_platform_bundle_fixture(out)
+            native_dynamic_report_path = out / "stages" / "native_dynamic" / "report.json"
+
+            for field, unexpected_diagnostic in cases:
+                with self.subTest(field=field):
+                    platform_report = _read_stage_report(out, "platform_bundle")
+                    payload = platform_report["native_plugins_payload"]
+                    self.assertIsInstance(payload, dict)
+                    payload[field] = "   "
+
+                    diagnostics = platform_bundle_native_plugins_payload_diagnostics(
+                        platform_report,
+                        native_dynamic_report_path,
+                    )
+
+                    self.assertTrue(
+                        any(
+                            f"native_plugins_payload.{field} must be a non-empty string"
+                            in diagnostic
+                            for diagnostic in diagnostics
+                        ),
+                        diagnostics,
+                    )
+                    self.assertFalse(
+                        any(
+                            unexpected_diagnostic in diagnostic
+                            for diagnostic in diagnostics
+                        ),
+                        diagnostics,
+                    )
+
     def test_report_rejects_native_plugins_payload_path_resolve_errors(self) -> None:
         for label, failing_path in self.payload_paths(Path("placeholder")).items():
             with self.subTest(label=label):

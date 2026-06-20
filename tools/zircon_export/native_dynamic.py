@@ -121,6 +121,7 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
     native_build_execution: dict[str, object] = {
         "enabled": native_dynamic_build_enabled,
         "fatal": False,
+        "skipped": False,
         "diagnostics": [],
         "package_count": 0,
         "packages": [],
@@ -252,6 +253,7 @@ def run_native_dynamic(args: argparse.Namespace) -> int:
                     native_build_execution = {
                         "enabled": True,
                         "fatal": True,
+                        "skipped": False,
                         "diagnostics": list(native_build_plan_diagnostics),
                         "package_count": 0,
                         "packages": [],

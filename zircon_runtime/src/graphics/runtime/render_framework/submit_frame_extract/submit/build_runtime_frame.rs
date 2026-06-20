@@ -394,6 +394,12 @@ mod tests {
             RenderCapabilitySummary::default(),
             VisibilityContext::from_extract(&extract),
             Some(previous_camera.clone()),
+            super::super::super::super::viewport_record::ViewportCameraHistoryKey::from_camera(
+                extract
+                    .view
+                    .selected_camera_descriptor()
+                    .expect("test extract has selected camera descriptor"),
+            ),
             Default::default(),
             None,
             crate::graphics::ViewportRenderOutputTarget::Texture {
@@ -473,7 +479,9 @@ mod tests {
                 .status(),
             ViewportTextureWritebackStatus::ReadyForSrgbCopy
         );
-        assert!(!frame.camera_stack_output_policy().writes_output_target());
+        assert!(!frame
+            .camera_stack_output_policy()
+            .owns_final_target_output());
         assert_eq!(
             frame.previous_motion_vector_camera(),
             Some(&previous_camera)

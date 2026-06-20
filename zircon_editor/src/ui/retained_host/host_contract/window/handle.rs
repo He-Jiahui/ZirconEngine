@@ -12,7 +12,7 @@ use super::presentation::host_presentation_from_state;
 
 #[derive(Clone)]
 pub(crate) struct HostWindowHandle {
-    pub(super) state: Rc<RefCell<HostContractState>>,
+    pub(in crate::ui::retained_host::host_contract) state: Rc<RefCell<HostContractState>>,
 }
 
 impl HostWindowHandle {

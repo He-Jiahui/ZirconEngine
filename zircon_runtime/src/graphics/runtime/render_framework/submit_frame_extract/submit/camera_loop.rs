@@ -38,6 +38,21 @@ pub(super) fn submit_camera_loop(
     Ok(())
 }
 
+pub(super) fn viewport_terminal_camera_target(
+    extract: &RenderFrameExtract,
+) -> Result<RenderCameraTarget, RenderFrameworkError> {
+    camera_loop_submissions(extract)?
+        .into_iter()
+        .find(|submission| {
+            ViewportCameraStackOutputPolicy::from(submission.output_policy)
+                .owns_viewport_submission()
+        })
+        .map(|submission| submission.extract.view.selected_camera_target().clone())
+        .ok_or_else(|| RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport-terminal camera".to_string(),
+        })
+}
+
 #[cfg(test)]
 fn camera_loop_extracts(
     extract: &RenderFrameExtract,
@@ -75,6 +90,41 @@ fn camera_loop_submissions(
                 .with_selected_camera_descriptor(submission.camera),
         })
         .collect())
+}
+
+pub(super) fn camera_loop_frame_submissions(
+    frame: &crate::graphics::ViewportRenderFrame,
+) -> Result<Vec<CameraLoopFrameSubmission>, RenderFrameworkError> {
+    Ok(camera_loop_submissions(&frame.extract)?
+        .into_iter()
+        .map(|submission| {
+            let receives_terminal_ui = submission.receives_terminal_ui;
+            let mut projected_frame = project_frame_to_selected_camera(frame, submission.extract);
+            if !receives_terminal_ui {
+                projected_frame = projected_frame.with_ui(None);
+            }
+            CameraLoopFrameSubmission {
+                frame: projected_frame,
+                receives_terminal_ui,
+                output_policy: submission.output_policy,
+            }
+        })
+        .collect())
+}
+
+fn project_frame_to_selected_camera(
+    frame: &crate::graphics::ViewportRenderFrame,
+    extract: RenderFrameExtract,
+) -> crate::graphics::ViewportRenderFrame {
+    let mut projected =
+        crate::graphics::ViewportRenderFrame::from_extract(extract, frame.viewport_size)
+            .with_shader_quality(frame.shader_quality())
+            .with_output_target(frame.output_target())
+            .with_ui(frame.ui.clone())
+            .with_previous_motion_vector_camera(frame.previous_motion_vector_camera().cloned())
+            .with_virtual_geometry_debug_snapshot(frame.virtual_geometry_debug_snapshot.clone());
+    projected.scene = frame.scene.clone();
+    projected
 }
 
 #[cfg(test)]
@@ -169,6 +219,12 @@ struct CameraLoopSubmission {
     output_policy: CameraLoopOutputPolicy,
 }
 
+pub(super) struct CameraLoopFrameSubmission {
+    pub(super) frame: crate::graphics::ViewportRenderFrame,
+    pub(super) receives_terminal_ui: bool,
+    pub(super) output_policy: CameraLoopOutputPolicy,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct CameraLoopOutputPolicy {
     stack_terminal: bool,
@@ -196,10 +252,12 @@ mod tests {
     use crate::core::framework::render::{
         CameraRenderType, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderCameraTarget,
         RenderLayerSet, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+        RenderViewportRect, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
     };
-    use crate::core::math::UVec2;
+    use crate::core::math::{UVec2, Vec4};
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+    use crate::graphics::ViewportRenderFrame;
+    use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
     #[test]
     fn camera_loop_flattens_base_then_overlays_for_submit_order() {
@@ -478,18 +536,205 @@ mod tests {
                     (
                         policy.is_stack_terminal(),
                         policy.is_viewport_terminal(),
-                        policy.writes_output_target(),
+                        policy.owns_final_target_output(),
                         policy.owns_viewport_submission(),
+                        policy.owns_shared_viewport_products(),
                     )
                 })
                 .collect::<Vec<_>>(),
             vec![
-                (false, false, false, false),
-                (true, false, true, false),
-                (true, false, true, false),
-                (false, false, false, false),
-                (true, true, true, true),
+                (false, false, false, false, false),
+                (true, false, true, false, false),
+                (true, false, true, false, false),
+                (false, false, false, false, false),
+                (true, true, true, true, true),
             ]
+        );
+    }
+
+    #[test]
+    fn viewport_terminal_camera_target_uses_last_primary_stack_terminal() {
+        let first_primary = descriptor(
+            0,
+            1,
+            CameraRenderType::Base,
+            RenderCameraTarget::PrimarySurface,
+        )
+        .with_stack([2]);
+        let first_overlay = descriptor(
+            0,
+            2,
+            CameraRenderType::Overlay,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/camera-loop/terminal-texture",
+        ));
+        let texture_base = descriptor(
+            4,
+            3,
+            CameraRenderType::Base,
+            RenderCameraTarget::Texture(texture),
+        );
+        let last_primary = descriptor(
+            8,
+            4,
+            CameraRenderType::Base,
+            RenderCameraTarget::PrimarySurface,
+        )
+        .with_stack([5]);
+        let last_primary_overlay = descriptor(
+            8,
+            5,
+            CameraRenderType::Overlay,
+            RenderCameraTarget::PrimarySurface,
+        );
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            empty_scene_snapshot(),
+        );
+        extract.view = extract.view.with_cameras(vec![
+            first_primary,
+            first_overlay,
+            texture_base,
+            last_primary,
+            last_primary_overlay,
+        ]);
+
+        let target = viewport_terminal_camera_target(&extract).expect("terminal target");
+
+        assert!(matches!(target, RenderCameraTarget::PrimarySurface));
+    }
+
+    #[test]
+    fn viewport_terminal_camera_target_falls_back_to_last_base_without_primary() {
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/camera-loop/terminal-no-primary-texture",
+        ));
+        let texture_base = descriptor(
+            0,
+            1,
+            CameraRenderType::Base,
+            RenderCameraTarget::Texture(texture),
+        );
+        let headless = descriptor(
+            8,
+            2,
+            CameraRenderType::Base,
+            RenderCameraTarget::Headless {
+                size: UVec2::new(64, 32),
+            },
+        );
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            empty_scene_snapshot(),
+        );
+        extract.view = extract.view.with_cameras(vec![texture_base, headless]);
+
+        let target = viewport_terminal_camera_target(&extract).expect("terminal target");
+
+        assert!(matches!(
+            target,
+            RenderCameraTarget::Headless {
+                size: UVec2 { x: 64, y: 32 }
+            }
+        ));
+    }
+
+    #[test]
+    fn camera_loop_frame_submissions_project_selected_children_and_terminal_ui() {
+        let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+            "tests/camera-loop/frame-texture",
+        ));
+        let base = descriptor(
+            0,
+            1,
+            CameraRenderType::Base,
+            RenderCameraTarget::Texture(texture),
+        )
+        .with_viewport_rect(Some(RenderViewportRect::new(
+            UVec2::new(0, 0),
+            UVec2::new(32, 64),
+        )))
+        .with_stack([2]);
+        let overlay = descriptor(0, 2, CameraRenderType::Overlay, base.target.clone())
+            .with_viewport_rect(Some(RenderViewportRect::new(
+                UVec2::new(8, 0),
+                UVec2::new(24, 64),
+            )));
+        let primary = descriptor(
+            4,
+            3,
+            CameraRenderType::Base,
+            RenderCameraTarget::PrimarySurface,
+        )
+        .with_viewport_rect(Some(RenderViewportRect::new(
+            UVec2::new(32, 0),
+            UVec2::new(32, 64),
+        )));
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(2),
+            empty_scene_snapshot(),
+        );
+        extract.view = extract.view.with_cameras(vec![base, overlay, primary]);
+        let mut frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
+            .with_ui(Some(UiRenderExtract::default()));
+        frame.scene.preview.clear_color = Vec4::new(0.25, 0.5, 0.75, 1.0);
+
+        let submissions = camera_loop_frame_submissions(&frame).expect("frame submissions");
+
+        assert_eq!(submissions.len(), 3);
+        assert_eq!(
+            submissions
+                .iter()
+                .map(|submission| submission.frame.camera().entity)
+                .collect::<Vec<_>>(),
+            vec![Some(1), Some(2), Some(3)]
+        );
+        assert_eq!(
+            submissions
+                .iter()
+                .map(|submission| submission.receives_terminal_ui)
+                .collect::<Vec<_>>(),
+            vec![false, false, true]
+        );
+        assert_eq!(
+            submissions
+                .iter()
+                .map(|submission| submission.frame.ui.is_some())
+                .collect::<Vec<_>>(),
+            vec![false, false, true]
+        );
+        assert!(
+            !ViewportCameraStackOutputPolicy::from(submissions[0].output_policy)
+                .owns_final_target_output()
+        );
+        assert!(
+            ViewportCameraStackOutputPolicy::from(submissions[1].output_policy)
+                .owns_final_target_output()
+        );
+        assert!(
+            !ViewportCameraStackOutputPolicy::from(submissions[1].output_policy)
+                .owns_viewport_submission()
+        );
+        assert!(
+            ViewportCameraStackOutputPolicy::from(submissions[2].output_policy)
+                .owns_viewport_submission()
+        );
+        assert_eq!(
+            submissions[0].frame.render_region().physical_size(),
+            UVec2::new(32, 64)
+        );
+        assert_eq!(
+            submissions[2].frame.render_region().physical_position(),
+            UVec2::new(32, 0)
+        );
+        assert_eq!(
+            submissions
+                .iter()
+                .map(|submission| submission.frame.scene.preview.clear_color)
+                .collect::<Vec<_>>(),
+            vec![Vec4::new(0.25, 0.5, 0.75, 1.0); 3]
         );
     }
 
@@ -536,6 +781,7 @@ mod tests {
     trait DescriptorTestExt {
         fn with_stack(self, stack: impl IntoIterator<Item = u64>) -> Self;
         fn with_layers(self, layers: RenderLayerSet) -> Self;
+        fn with_viewport_rect(self, viewport_rect: Option<RenderViewportRect>) -> Self;
     }
 
     impl DescriptorTestExt for CameraRenderDescriptor {
@@ -546,6 +792,11 @@ mod tests {
 
         fn with_layers(mut self, layers: RenderLayerSet) -> Self {
             self.culling_mask = layers;
+            self
+        }
+
+        fn with_viewport_rect(mut self, viewport_rect: Option<RenderViewportRect>) -> Self {
+            self.viewport_rect = viewport_rect;
             self
         }
     }

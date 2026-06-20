@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    RenderPhase, RenderPhaseMeshSource, RenderSpriteImageMode, RenderSpriteRect,
+    RenderPhase, RenderPhaseMeshSource, RenderQueueValue, RenderSpriteImageMode, RenderSpriteRect,
     RenderSpriteScalingMode, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
 };
 use crate::core::math::{Vec2, Vec3};
@@ -12,7 +12,7 @@ const MAX_SPRITE_IMAGE_SLICES: usize = 1_000;
 const MIN_TILE_EXTENT: f32 = 1.0;
 const MIN_STRETCH_VALUE: f32 = 0.001;
 
-pub(in crate::graphics::scene::scene_renderer::sprite) fn build_sprite_vertices(
+pub(crate) fn build_sprite_vertices(
     frame: &ViewportRenderFrame,
     stage: RenderPassStage,
 ) -> Vec<(usize, Vec<SpriteVertex>)> {
@@ -20,6 +20,7 @@ pub(in crate::graphics::scene::scene_renderer::sprite) fn build_sprite_vertices(
         RenderPassStage::Opaque2d => RenderPhase::Opaque2d,
         RenderPassStage::AlphaMask2d => RenderPhase::AlphaMask2d,
         RenderPassStage::Transparent2d => RenderPhase::Transparent2d,
+        RenderPassStage::Transparent3d => RenderPhase::Transparent3d,
         _ => return Vec::new(),
     };
     let phase_items = frame
@@ -38,17 +39,9 @@ pub(in crate::graphics::scene::scene_renderer::sprite) fn build_sprite_vertices(
             .iter()
             .enumerate()
             .filter_map(|(index, sprite)| {
-                (RenderPhase::mesh_phase(
-                    frame.extract.view.core_pipeline,
-                    matches!(
-                        sprite.material_alpha_mode,
-                        crate::core::framework::render::RenderMaterialAlphaMode::Mask { .. }
-                    ),
-                    matches!(
-                        sprite.material_alpha_mode,
-                        crate::core::framework::render::RenderMaterialAlphaMode::Blend
-                    ),
-                ) == phase)
+                (RenderQueueValue::from_alpha_mode(&sprite.material_alpha_mode)
+                    .phase(frame.extract.view.core_pipeline)
+                    == phase)
                     .then_some(index)
             })
             .collect::<Vec<_>>()
@@ -483,6 +476,13 @@ mod tests {
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 
     use super::*;
+
+    #[test]
+    fn build_sprite_vertices_routes_transparent3d_to_transparent3d_phase() {
+        let source = include_str!("build_sprite_vertices.rs");
+
+        assert!(source.contains("RenderPassStage::Transparent3d => RenderPhase::Transparent3d"));
+    }
 
     #[test]
     fn sprite_image_vertices_keep_stretch_as_single_quad() {

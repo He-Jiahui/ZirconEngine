@@ -81,7 +81,7 @@ pub use core_pipeline::{
     RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary, RenderPhaseQueueSummaryPhaseCount,
     RenderPhaseQueueSummaryPhaseOrderSpan, RenderPhaseSortComponents, RenderPhaseSortDecision,
     RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPhaseSortKeyBreakdown,
-    SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
+    RenderQueueValue, SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,

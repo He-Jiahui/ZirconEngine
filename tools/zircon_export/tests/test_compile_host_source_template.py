@@ -308,6 +308,9 @@ class CompileHostSourceTemplateTests(unittest.TestCase):
             root = Path(temp_dir)
             compile_plan = _compile_host_plan()
             compile_plan["app_features"] = ["target-client", "plugin-rendering"]
+            command = list(compile_plan["command"])
+            command[command.index("--features") + 1] = "target-client,plugin-rendering"
+            compile_plan["command"] = command
             compile_plan["runtime_features"] = ["target-client", "rendering"]
             compile_plan["expected_runtime_plugins"] = ["rendering"]
             compile_plan["linked_runtime_crates"] = [

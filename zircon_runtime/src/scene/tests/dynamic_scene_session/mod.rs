@@ -1,9 +1,12 @@
 mod capture;
 mod load;
+mod merge;
+mod mutation;
 mod path_management;
 mod persistence;
 mod queries;
 mod retention;
+mod selection;
 
 use std::fs;
 use std::path::Path;

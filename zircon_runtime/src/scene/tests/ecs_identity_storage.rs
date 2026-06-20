@@ -187,14 +187,16 @@ fn stable_entity_registration_uses_append_row_without_entity_scan() {
         .nth(1)
         .and_then(|text| text.split("pub(super) fn unregister_stable_entity").next())
         .expect("read stable entity registration body");
+    let registration_compact = registration.split_whitespace().collect::<String>();
 
     assert!(
         registration.contains("let row = self.entities.len();")
-            && registration.contains("EntityLocation::new(ArchetypeId::EMPTY, row)")
-            && registration.contains("let internal = match self.entity_registry.spawn(")
-            && registration.contains("Ok(internal) => internal")
-            && registration.contains("Err(error) => return Err(error.to_string())")
-            && registration.contains("Ok(internal)")
+            && registration_compact.contains(
+                "letinternal=matchself.entity_registry.spawn(entity,EntityLocation::new(ArchetypeId::EMPTY,row))"
+            )
+            && registration_compact.contains("Ok(internal)=>internal")
+            && registration_compact.contains("Err(error)=>returnErr(error.to_string())")
+            && registration_compact.contains("Ok(internal)")
             && !registration.contains(".iter()")
             && !registration.contains(".position(|candidate| *candidate == entity)")
             && !registration.contains("unwrap_or(self.entities.len())")
@@ -235,7 +237,7 @@ fn entity_archetype_refresh_uses_direct_previous_archetype_branch() {
 
 #[test]
 fn entity_registry_location_for_stable_uses_direct_internal_lookup() {
-    let source = include_str!("../ecs/entity_registry.rs");
+    let source = include_str!("../ecs/entity/registry.rs");
     let location_for_stable = source
         .split("pub fn location_for_stable(&self, stable_id: EntityId)")
         .nth(1)
@@ -253,7 +255,7 @@ fn entity_registry_location_for_stable_uses_direct_internal_lookup() {
 
 #[test]
 fn entity_registry_error_paths_use_direct_lookup_branches() {
-    let source = include_str!("../ecs/entity_registry.rs");
+    let source = include_str!("../ecs/entity/registry.rs");
     let despawn = source
         .split("pub fn despawn(&mut self, stable_id: EntityId)")
         .nth(1)
@@ -289,7 +291,7 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
 
 #[test]
 fn entity_registry_despawn_location_take_uses_direct_default_branch() {
-    let source = include_str!("../ecs/entity_registry.rs");
+    let source = include_str!("../ecs/entity/registry.rs");
     let despawn = source
         .split("pub fn despawn(&mut self, stable_id: EntityId)")
         .nth(1)
@@ -304,7 +306,7 @@ fn entity_registry_despawn_location_take_uses_direct_default_branch() {
 
 #[test]
 fn entity_registry_generation_wrap_uses_direct_checked_branch() {
-    let source = include_str!("../ecs/entity_registry.rs");
+    let source = include_str!("../ecs/entity/slot.rs");
     let next_generation = source
         .split("fn next_generation(generation: u32) -> u32")
         .nth(1)

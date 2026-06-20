@@ -8,12 +8,14 @@ use crate::ui::retained_host::primitives::SharedString;
 use super::super::data::FrameRect;
 use super::super::surface_hit_test::{TemplateNodePointerHit, ViewportToolbarPointerHit};
 
-pub(super) use chrome::route_top_level_chrome;
-pub(super) use geometry::contains;
-pub(super) use panes::{route_pointer_move_to_pane, route_pointer_to_pane};
-pub(super) use workbench::route_pointer_to_workbench_window;
+pub(in crate::ui::retained_host::host_contract) use chrome::route_top_level_chrome;
+pub(in crate::ui::retained_host::host_contract) use geometry::contains;
+pub(in crate::ui::retained_host::host_contract) use panes::{
+    route_pointer_move_to_pane, route_pointer_to_pane,
+};
+pub(in crate::ui::retained_host::host_contract) use workbench::route_pointer_to_workbench_window;
 
-pub(super) enum ChromePointerRoute {
+pub(in crate::ui::retained_host::host_contract) enum ChromePointerRoute {
     ActivityRail {
         side: SharedString,
         local_x: f32,
@@ -49,17 +51,22 @@ pub(super) enum ChromePointerRoute {
     Resize,
 }
 
-pub(super) struct PanePointerRoute {
-    pub(super) target: PanePointerTarget,
-    pub(super) frame: FrameRect,
-    pub(super) local_x: f32,
-    pub(super) local_y: f32,
-    pub(super) width: f32,
-    pub(super) height: f32,
+pub(in crate::ui::retained_host::host_contract) struct PanePointerRoute {
+    pub(in crate::ui::retained_host::host_contract) target: PanePointerTarget,
+    pub(in crate::ui::retained_host::host_contract) frame: FrameRect,
+    pub(in crate::ui::retained_host::host_contract) local_x: f32,
+    pub(in crate::ui::retained_host::host_contract) local_y: f32,
+    pub(in crate::ui::retained_host::host_contract) width: f32,
+    pub(in crate::ui::retained_host::host_contract) height: f32,
 }
 
 impl PanePointerRoute {
-    pub(super) fn new(target: PanePointerTarget, frame: &FrameRect, x: f32, y: f32) -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn new(
+        target: PanePointerTarget,
+        frame: &FrameRect,
+        x: f32,
+        y: f32,
+    ) -> Self {
         Self {
             target,
             frame: frame.clone(),
@@ -71,7 +78,7 @@ impl PanePointerRoute {
     }
 }
 
-pub(super) enum PanePointerTarget {
+pub(in crate::ui::retained_host::host_contract) enum PanePointerTarget {
     Hierarchy,
     Welcome,
     Console,

@@ -58,7 +58,10 @@ fn write_pixel_channels(pixel: &mut [u8], color: [u8; 4]) {
     pixel[3] = color[3];
 }
 
-pub(super) fn fill_pixel_span(span: &mut [u8], color: [u8; 4]) {
+pub(in crate::ui::retained_host::host_contract) fn fill_pixel_span(
+    span: &mut [u8],
+    color: [u8; 4],
+) {
     for pixel in span.chunks_exact_mut(4) {
         write_pixel_channels(pixel, color);
     }

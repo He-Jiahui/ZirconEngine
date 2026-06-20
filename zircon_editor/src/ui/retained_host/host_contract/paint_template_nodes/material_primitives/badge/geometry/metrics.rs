@@ -1,0 +1,12 @@
+pub(super) const BADGE_STANDARD_HEIGHT: f32 = 20.0;
+pub(super) const BADGE_STANDARD_MIN_WIDTH: f32 = 20.0;
+pub(super) const BADGE_STANDARD_PADDING_X: f32 = 6.0;
+pub(super) const BADGE_DOT_EDGE: f32 = 8.0;
+pub(super) const BADGE_STANDARD_RADIUS: f32 = 10.0;
+pub(super) const BADGE_DOT_RADIUS: f32 = 4.0;
+pub(super) const BADGE_FONT_SIZE: f32 = 12.0;
+pub(super) const BADGE_ROOT_FONT_SIZE: f32 = 12.0;
+pub(super) const BADGE_ROOT_TEXT_INSET_X: f32 = 8.0;
+pub(super) const BADGE_ROOT_TEXT_WIDTH_RATIO: f32 = 0.56;
+pub(super) const BADGE_CIRCULAR_OFFSET_RATIO: f32 = 0.14;
+pub(super) const BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;

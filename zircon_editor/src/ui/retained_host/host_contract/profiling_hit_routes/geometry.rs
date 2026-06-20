@@ -1,6 +1,8 @@
 use super::super::data::{FrameRect, HostSideDockSurfaceData};
 
-pub(super) fn side_dock_content_frame(dock: &HostSideDockSurfaceData) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn side_dock_content_frame(
+    dock: &HostSideDockSurfaceData,
+) -> FrameRect {
     let panel_x = if dock.rail_before_panel {
         dock.region_frame.x + dock.rail_width_px
     } else {
@@ -9,7 +11,10 @@ pub(super) fn side_dock_content_frame(dock: &HostSideDockSurfaceData) -> FrameRe
     translated(&dock.content_frame, panel_x, dock.region_frame.y)
 }
 
-pub(super) fn floating_window_content_frame(frame: &FrameRect, header: &FrameRect) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn floating_window_content_frame(
+    frame: &FrameRect,
+    header: &FrameRect,
+) -> FrameRect {
     FrameRect {
         x: frame.x + 1.0,
         y: frame.y + header.height.max(0.0) + 1.0,
@@ -18,7 +23,11 @@ pub(super) fn floating_window_content_frame(frame: &FrameRect, header: &FrameRec
     }
 }
 
-pub(super) fn translated(frame: &FrameRect, origin_x: f32, origin_y: f32) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract) fn translated(
+    frame: &FrameRect,
+    origin_x: f32,
+    origin_y: f32,
+) -> FrameRect {
     FrameRect {
         x: frame.x + origin_x,
         y: frame.y + origin_y,
@@ -27,7 +36,11 @@ pub(super) fn translated(frame: &FrameRect, origin_x: f32, origin_y: f32) -> Fra
     }
 }
 
-pub(super) fn contains(frame: &FrameRect, x: f32, y: f32) -> bool {
+pub(in crate::ui::retained_host::host_contract) fn contains(
+    frame: &FrameRect,
+    x: f32,
+    y: f32,
+) -> bool {
     frame.width > 0.0
         && frame.height > 0.0
         && x >= frame.x

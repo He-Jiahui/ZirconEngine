@@ -81,6 +81,560 @@ class PipelineReportNativeDynamicOperationAuditSchemaTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_native_dynamic_operation_audit_artifact_nonzero_exit_code(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                packages=[
+                    _native_operation_audit_package(
+                        artifacts=[
+                            _native_operation_audit_artifact(exit_code=1)
+                        ]
+                    )
+                ]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts[0].exit_code must be 0 for non-fatal "
+                    "operation audit"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_blank_diagnostic_entry(
+        self,
+    ) -> None:
+        cases = (
+            ("native_signing", [""]),
+            ("native_notarization", ["   "]),
+        )
+        for operation, diagnostics in cases:
+            with self.subTest(operation=operation, diagnostics=diagnostics):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        diagnostics=diagnostics
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.diagnostics must not contain blank entries"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertFalse(
+                        any(
+                            f"NativeDynamic report {operation} is malformed"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_negative_counts(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "package_count",
+                lambda audit: audit.__setitem__("package_count", -1),
+                "native_dynamic report native_signing.package_count must be non-negative",
+            ),
+            (
+                "artifact_count",
+                lambda audit: audit["packages"][0].__setitem__(
+                    "artifact_count",
+                    -1,
+                ),
+                "native_dynamic report native_signing packages[0].artifact_count "
+                "must be non-negative",
+            ),
+        )
+        for field, mutate, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    audit = _native_operation_audit()
+                    mutate(audit)
+                    native_report["native_signing"] = audit
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_unsafe_relative_artifact(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                packages=[
+                    _native_operation_audit_package(
+                        artifacts=[
+                            _native_operation_audit_artifact(
+                                package_relative_artifact=(
+                                    "../zircon_plugin_animation.dll"
+                                )
+                            )
+                        ]
+                    )
+                ]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts[0].package_relative_artifact "
+                    "must be a safe relative path"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_artifact_path_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                packages=[
+                    _native_operation_audit_package(
+                        artifacts=[
+                            _native_operation_audit_artifact(
+                                artifact="plugins/animation/native/forged.dll"
+                            )
+                        ]
+                    )
+                ]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing package animation "
+                    "artifacts[0].artifact "
+                    "plugins/animation/native/forged.dll does not match "
+                    "package_relative_artifact "
+                    "plugins/animation/native/zircon_plugin_animation.dll"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_duplicate_package_relative_artifact(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                packages=[
+                    _native_operation_audit_package(
+                        artifact_count=2,
+                        artifacts=[
+                            _native_operation_audit_artifact(),
+                            _native_operation_audit_artifact(),
+                        ],
+                    )
+                ]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing packages[0] "
+                    "artifacts.package_relative_artifact "
+                    "must not contain duplicate entries"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_empty_required_identity_string(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "package_id",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(package_id=""),
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0].package_id "
+                "must be a non-empty string",
+            ),
+            (
+                "artifact",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(artifact="   ")
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].artifact must be a non-empty string",
+            ),
+            (
+                "package_relative_artifact",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    package_relative_artifact=""
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].package_relative_artifact "
+                "must be a non-empty string",
+            ),
+            (
+                "before_sha256",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(
+                                    before_sha256="   "
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].before_sha256 must be a non-empty string",
+            ),
+            (
+                "after_sha256",
+                lambda: _native_operation_audit(
+                    packages=[
+                        _native_operation_audit_package(
+                            artifacts=[
+                                _native_operation_audit_artifact(after_sha256="")
+                            ]
+                        )
+                    ]
+                ),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].after_sha256 must be a non-empty string",
+            ),
+        )
+        for field, make_audit, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report["native_signing"] = make_audit()
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_invalid_hash_string(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "before_sha256",
+                _native_operation_audit_artifact(before_sha256="not-a-sha256"),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].before_sha256 must be a SHA-256 hex digest",
+            ),
+            (
+                "after_sha256",
+                _native_operation_audit_artifact(after_sha256="not-a-sha256"),
+                "native_dynamic report native_signing packages[0] "
+                "artifacts[0].after_sha256 must be a SHA-256 hex digest",
+            ),
+        )
+        for field, artifact, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report["native_signing"] = _native_operation_audit(
+                        packages=[
+                            _native_operation_audit_package(artifacts=[artifact])
+                        ]
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_blank_target_platform(
+        self,
+    ) -> None:
+        cases = (
+            ("native_signing", ""),
+            ("native_notarization", "   "),
+        )
+        for operation, target_platform in cases:
+            with self.subTest(operation=operation, target_platform=target_platform):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        target_platform=target_platform
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.target_platform "
+                            "must be a non-empty string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_blank_profile(
+        self,
+    ) -> None:
+        cases = (
+            ("native_signing", ""),
+            ("native_notarization", "   "),
+        )
+        for operation, profile in cases:
+            with self.subTest(operation=operation, profile=profile):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    native_report_path = self._write_native_dynamic_reports(out)
+                    native_report = json.loads(
+                        native_report_path.read_text(encoding="utf-8")
+                    )
+                    native_report[operation] = _native_operation_audit(
+                        profile=profile
+                    )
+                    native_report_path.write_text(
+                        json.dumps(native_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertIn("NativeDynamic", report["fatal_stages"])
+                    self.assertTrue(
+                        any(
+                            "native_dynamic report "
+                            f"{operation}.profile "
+                            "must be a non-empty string"
+                            in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_duplicate_allowed_platform(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                allowed_platforms=["windows", "windows"]
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing.allowed_platforms "
+                    "must not contain duplicate entries"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_report_stage_rejects_native_dynamic_operation_audit_platform_allowed_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            native_report_path = self._write_native_dynamic_reports(out)
+            native_report = json.loads(
+                native_report_path.read_text(encoding="utf-8")
+            )
+            native_report["native_signing"] = _native_operation_audit(
+                allowed_platforms=["macos"],
+                platform_allowed=True,
+            )
+            native_report_path.write_text(
+                json.dumps(native_report, indent=2),
+                encoding="utf-8",
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"])
+            self.assertEqual(report["missing_stages"], [])
+            self.assertIn("NativeDynamic", report["fatal_stages"])
+            self.assertTrue(
+                any(
+                    "native_dynamic report native_signing.platform_allowed "
+                    "does not match target_platform and allowed_platforms"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
 
 def _native_operation_audit(**overrides: object) -> dict[str, object]:
     audit = {
@@ -116,8 +670,8 @@ def _native_operation_audit_artifact(**overrides: object) -> dict[str, object]:
         "exit_code": 0,
         "stdout": "",
         "stderr": "",
-        "before_sha256": "before-hash",
-        "after_sha256": "after-hash",
+        "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
     }
     artifact.update(overrides)
     return artifact

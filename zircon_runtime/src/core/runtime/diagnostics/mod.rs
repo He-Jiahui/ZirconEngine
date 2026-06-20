@@ -20,10 +20,11 @@ pub use devtools::{
 };
 pub use physics::RuntimePhysicsDiagnostics;
 pub use profiling::{
-    analyze_hotspots, feature_enabled as profiling_feature_enabled, start_capture, stop_capture,
-    HotspotReport, ProfileCaptureConfig, ProfileCounterSnapshot, ProfileExportReport,
-    ProfileFrameScope, ProfileFrameSnapshot, ProfileRecorder, ProfileRecorderStatus, ProfileScope,
-    ProfileSnapshot, ProfileSpanSnapshot,
+    analyze_counter_hotspots, analyze_hotspots, feature_enabled as profiling_feature_enabled,
+    start_capture, stop_capture, CounterHotspotEntry, CounterHotspotReport, HotspotReport,
+    ProfileCaptureConfig, ProfileCounterSnapshot, ProfileExportReport, ProfileFrameScope,
+    ProfileFrameSnapshot, ProfileRecorder, ProfileRecorderStatus, ProfileScope, ProfileSnapshot,
+    ProfileSpanSnapshot,
 };
 pub use render::RuntimeRenderDiagnostics;
 pub use snapshot::RuntimeDiagnosticsSnapshot;

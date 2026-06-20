@@ -6,7 +6,7 @@ const SKELETON_DEFAULT_RADIUS: f32 = 4.0;
 const SKELETON_WAVE_X_RATIO: f32 = 0.28;
 const SKELETON_WAVE_WIDTH_RATIO: f32 = 0.22;
 
-pub(super) fn skeleton_frame_for_variant(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_frame_for_variant(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
@@ -31,7 +31,10 @@ pub(super) fn skeleton_frame_for_variant(
     rect.clone()
 }
 
-pub(super) fn skeleton_corner_radius(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_corner_radius(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+) -> f32 {
     if component_variant_contains(node, "rectangular") {
         return 0.0;
     }
@@ -42,7 +45,9 @@ pub(super) fn skeleton_corner_radius(node: &TemplatePaneNodeData, rect: &FrameRe
     configured.min(rect.height * 0.5).max(0.0)
 }
 
-pub(super) fn skeleton_wave_frame(rect: &FrameRect) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn skeleton_wave_frame(
+    rect: &FrameRect,
+) -> FrameRect {
     FrameRect {
         x: rect.x + rect.width * SKELETON_WAVE_X_RATIO,
         y: rect.y,

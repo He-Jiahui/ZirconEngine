@@ -99,6 +99,32 @@ fn export_plan_treats_missing_required_profile_providers_as_fatal() {
     let report = plan.materialize(&output_root).unwrap();
     assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
         .contains("required runtime plugin sound is unavailable for export profile client")));
+    assert!(!output_root.exists());
+
+    let archive_root = temp_dir("zircon_missing_required_provider_archive");
+    let archive_path = archive_root.join("client-export.zip");
+    let archive_report = plan
+        .materialize_zip_archive(&archive_root, &archive_path)
+        .unwrap();
+    assert_eq!(
+        archive_report.archive_file.as_deref(),
+        Some(archive_path.as_path())
+    );
+    assert!(archive_report.generated_files.is_empty());
+    assert!(archive_report.copied_packages.is_empty());
+    assert!(archive_report
+        .fatal_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic
+            .contains("required runtime plugin sound is unavailable for export profile client")));
+    assert!(archive_report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("export archive materialization blocked")));
+    assert!(!archive_path.exists());
+
+    let _ = std::fs::remove_dir_all(output_root);
+    let _ = std::fs::remove_dir_all(archive_root);
 }
 
 #[test]

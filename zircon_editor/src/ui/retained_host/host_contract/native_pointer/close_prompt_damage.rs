@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 
-pub(super) fn close_prompt_action_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn close_prompt_action_damage_frame(
     presentation: &HostWindowPresentationData,
 ) -> Option<FrameRect> {
     let prompt = &presentation.close_prompt;

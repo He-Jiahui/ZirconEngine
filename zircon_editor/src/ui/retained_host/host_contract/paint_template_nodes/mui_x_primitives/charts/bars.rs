@@ -2,7 +2,7 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;
 
-pub(super) fn push_bar_chart(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bar_chart(
     commands: &mut Vec<HostPaintCommand>,
     plot: &FrameRect,
     clip: &FrameRect,

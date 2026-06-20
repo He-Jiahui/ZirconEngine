@@ -53,29 +53,31 @@ pub(in crate::ui::retained_host::host_contract) struct HostRecordedPaintCommand 
 }
 
 #[derive(Clone, Debug, Default)]
-pub(super) struct HostPaintRecording {
+pub(in crate::ui::retained_host::host_contract) struct HostPaintRecording {
     commands: Vec<HostRecordedPaintCommand>,
     next_z_index: i32,
     record_only: bool,
 }
 
 impl HostPaintRecording {
-    pub(super) fn record_only() -> Self {
+    pub(in crate::ui::retained_host::host_contract) fn record_only() -> Self {
         Self {
             record_only: true,
             ..Self::default()
         }
     }
 
-    pub(super) fn is_record_only(&self) -> bool {
+    pub(in crate::ui::retained_host::host_contract) fn is_record_only(&self) -> bool {
         self.record_only
     }
 
-    pub(super) fn into_commands(self) -> Vec<HostRecordedPaintCommand> {
+    pub(in crate::ui::retained_host::host_contract) fn into_commands(
+        self,
+    ) -> Vec<HostRecordedPaintCommand> {
         self.commands
     }
 
-    pub(super) fn record_command(
+    pub(in crate::ui::retained_host::host_contract) fn record_command(
         &mut self,
         frame: FrameRect,
         clip_frame: Option<FrameRect>,

@@ -13,7 +13,9 @@ mod virtual_geometry_submission_detail;
 
 pub(crate) use command_sort_input::MeshCommandSortInput;
 pub(crate) use geometry_source::MeshDrawGeometrySource;
-pub(crate) use material_texture_set::MaterialTextureSet;
+pub(in crate::graphics::scene) use material_texture_set::{
+    MaterialTextureBinding, MaterialTextureSet,
+};
 pub(crate) use mesh_draw::MeshDraw;
 pub(crate) use queue_profile::{MeshDrawBatchKey, MeshDrawQueuePhase, MeshDrawQueueProfile};
 pub(super) use virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;

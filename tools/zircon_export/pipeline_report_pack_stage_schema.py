@@ -16,6 +16,9 @@ from .pipeline_report_pack_manifest_schema import (
     pack_report_deduplicated_assets_diagnostics,
     pack_report_manifest_count_diagnostics,
 )
+from .pipeline_report_schema_table import (
+    string_array_no_blank_entries_schema_diagnostics,
+)
 
 PACK_REPORT_FIELDS = (
     "asset_count",
@@ -58,6 +61,11 @@ PACK_REPORT_STRING_ARRAY_FIELDS = (
     "delta_removed_assets",
     "delta_reused_assets",
 )
+PACK_REPORT_NO_BLANK_STRING_ARRAY_FIELDS = (
+    "deduplicated_assets",
+    "delta_removed_assets",
+    "delta_reused_assets",
+)
 PACK_REPORT_BOOL_FIELDS = (
     "delta_apply_verified",
     "deterministic_double_run",
@@ -81,6 +89,15 @@ PACK_REPORT_REQUIRED_NON_FATAL_BOOL_FIELDS = ("deterministic_double_run",)
 PACK_REPORT_REQUIRED_NON_FATAL_OBJECT_FIELDS = (
     "manifest",
     "trim_report",
+)
+PACK_REPORT_REQUIRED_DELTA_INTEGER_FIELDS = (
+    "delta_asset_count",
+    "delta_chunk_count",
+)
+PACK_REPORT_REQUIRED_DELTA_STRING_FIELDS = ("delta_pack", "previous_pack")
+PACK_REPORT_REQUIRED_DELTA_STRING_ARRAY_FIELDS = (
+    "delta_removed_assets",
+    "delta_reused_assets",
 )
 PACK_TRIM_REPORT_FIELDS = (
     "diagnostics",
@@ -135,12 +152,20 @@ def pack_report_schema_diagnostics(
             )
     for field in PACK_REPORT_STRING_ARRAY_FIELDS:
         if field in report and report.get(field) is not None:
+            label = f"pack report {field}"
             diagnostics.extend(
                 validate_string_array_schema_diagnostics(
-                    f"pack report {field}",
+                    label,
                     report.get(field),
                 )
             )
+            if field in PACK_REPORT_NO_BLANK_STRING_ARRAY_FIELDS:
+                diagnostics.extend(
+                    string_array_no_blank_entries_schema_diagnostics(
+                        label,
+                        report.get(field),
+                    )
+                )
     for field in PACK_REPORT_BOOL_FIELDS:
         if field in report and report.get(field) is not None:
             diagnostics.extend(
@@ -166,6 +191,8 @@ def pack_report_schema_diagnostics(
                         report.get(field),
                     )
                 )
+            elif isinstance(report.get(field), str) and not report.get(field).strip():
+                diagnostics.append(f"pack report {field} must be a non-empty string")
         for field in PACK_REPORT_REQUIRED_NON_FATAL_INTEGER_FIELDS:
             if field not in report:
                 diagnostics.extend(
@@ -218,6 +245,38 @@ def pack_report_schema_diagnostics(
         diagnostics.extend(pack_report_deduplicated_assets_diagnostics(report, manifest))
     diagnostics.extend(pack_report_delta_publication_diagnostics(report))
     delta_manifest = report.get("delta_manifest")
+    if (
+        report.get("fatal") is False
+        and isinstance(report.get("delta_pack"), str)
+        and report.get("delta_pack") is not None
+        and isinstance(delta_manifest, dict)
+    ):
+        for field in PACK_REPORT_REQUIRED_DELTA_STRING_FIELDS:
+            if field not in report or report.get(field) is None:
+                diagnostics.extend(
+                    validate_string_schema_diagnostics(
+                        f"pack report {field}",
+                        report.get(field),
+                    )
+                )
+            elif isinstance(report.get(field), str) and not report.get(field).strip():
+                diagnostics.append(f"pack report {field} must be a non-empty string")
+        for field in PACK_REPORT_REQUIRED_DELTA_INTEGER_FIELDS:
+            if field not in report:
+                diagnostics.extend(
+                    validate_integer_schema_diagnostics(
+                        f"pack report {field}",
+                        report.get(field),
+                    )
+                )
+        for field in PACK_REPORT_REQUIRED_DELTA_STRING_ARRAY_FIELDS:
+            if field not in report:
+                diagnostics.extend(
+                    validate_string_array_schema_diagnostics(
+                        f"pack report {field}",
+                        report.get(field),
+                    )
+                )
     if isinstance(delta_manifest, dict):
         diagnostics.extend(
             pack_delta_manifest_schema_diagnostics(
@@ -337,6 +396,13 @@ def pack_trim_report_schema_diagnostics(
                     trim_report.get(field),
                 )
             )
+            if field == "diagnostics":
+                diagnostics.extend(
+                    string_array_no_blank_entries_schema_diagnostics(
+                        f"{label}.{field}",
+                        trim_report.get(field),
+                    )
+                )
     for field in PACK_TRIM_REPORT_OBJECT_ARRAY_FIELDS:
         if field in trim_report:
             diagnostics.extend(

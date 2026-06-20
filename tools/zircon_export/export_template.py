@@ -8,6 +8,10 @@ import tomllib
 from pathlib import Path
 from typing import Any, Sequence
 
+from .pipeline_report_schema_table import (
+    string_array_no_blank_entries_schema_diagnostics,
+    string_array_unique_entries_schema_diagnostics,
+)
 from .stage_handoff import stage_report_metadata_diagnostic
 
 
@@ -30,6 +34,35 @@ EXPORT_TEMPLATE_ALLOWED_BUNDLE_FORMATS = {
     "zip",
     "web_static",
 }
+EXPORT_TEMPLATE_MANIFEST_FIELDS = (
+    "bundle",
+    "bundle_format",
+    "compatible_profiles",
+    "content_hash",
+    "engine_version",
+    "files",
+    "format_version",
+    "host_kind",
+    "paths",
+    "plugin_strategy",
+    "resource_strategy",
+    "target_platform",
+    "template_id",
+)
+EXPORT_TEMPLATE_PATHS_FIELDS = ("host_executable",)
+EXPORT_TEMPLATE_BUNDLE_FIELDS = (
+    "delta_pack_path",
+    "host_path",
+    "manifest_path",
+    "pack_path",
+    "root",
+)
+EXPORT_TEMPLATE_FILE_FIELDS = (
+    "bundle_path",
+    "path",
+    "purpose",
+    "sha256",
+)
 
 
 def resolve_export_template_from_root(
@@ -269,6 +302,14 @@ def validate_export_template(
         report["fatal"] = True
         return report
 
+    diagnostics.extend(
+        table_unknown_field_diagnostics(
+            "template.toml",
+            manifest,
+            EXPORT_TEMPLATE_MANIFEST_FIELDS,
+        )
+    )
+
     format_version = manifest.get("format_version")
     report["format_version"] = format_version
     if type(format_version) is not int:
@@ -347,6 +388,19 @@ def validate_export_template(
     ):
         diagnostics.append("template.toml field compatible_profiles must be a string array")
         compatible_profiles = []
+    else:
+        diagnostics.extend(
+            string_array_no_blank_entries_schema_diagnostics(
+                "template.toml field compatible_profiles",
+                compatible_profiles,
+            )
+        )
+        diagnostics.extend(
+            string_array_unique_entries_schema_diagnostics(
+                "template.toml field compatible_profiles",
+                compatible_profiles,
+            )
+        )
     report["compatible_profiles"] = compatible_profiles
     if compatible_profiles and profile not in compatible_profiles:
         diagnostics.append(
@@ -358,6 +412,13 @@ def validate_export_template(
     if not isinstance(paths, dict):
         diagnostics.append("template.toml table [paths] is required")
     else:
+        diagnostics.extend(
+            table_unknown_field_diagnostics(
+                "template.toml paths",
+                paths,
+                EXPORT_TEMPLATE_PATHS_FIELDS,
+            )
+        )
         host_relative_path = paths.get("host_executable")
         if not isinstance(host_relative_path, str) or not host_relative_path.strip():
             diagnostics.append("template.toml field paths.host_executable must be a non-empty string")
@@ -439,6 +500,14 @@ def template_bundle_config(
     if not isinstance(bundle, dict):
         diagnostics.append("template.toml table [bundle] must be a table when present")
         bundle = {}
+    else:
+        diagnostics.extend(
+            table_unknown_field_diagnostics(
+                "template.toml bundle",
+                bundle,
+                EXPORT_TEMPLATE_BUNDLE_FIELDS,
+            )
+        )
 
     config = {
         "root": template_optional_path_field(bundle, "root", ".", diagnostics),
@@ -466,13 +535,18 @@ def template_optional_path_field(
     default: str,
     diagnostics: list[str],
 ) -> str:
-    value = table.get(field_name, default)
+    if field_name not in table:
+        return default
+    value = table.get(field_name)
     if value is None:
         return default
     if not isinstance(value, str):
         diagnostics.append(f"template.toml field bundle.{field_name} must be a string")
         return default
-    normalized = normalize_relative_path(value) if value else default
+    if not value.strip():
+        diagnostics.append(f"template.toml field bundle.{field_name} must be a non-empty string")
+        return default
+    normalized = normalize_relative_path(value)
     if normalized in {"", "."}:
         return normalized
     if not is_safe_relative_path(normalized):
@@ -493,10 +567,18 @@ def template_file_manifest(
 
     checked_files: list[dict[str, str]] = []
     seen_paths: set[str] = set()
+    seen_bundle_paths: set[str] = set()
     for index, entry in enumerate(files):
         if not isinstance(entry, dict):
             diagnostics.append(f"template.toml [[files]] entry {index} must be a table")
             continue
+        diagnostics.extend(
+            table_unknown_field_diagnostics(
+                f"template.toml [[files]] entry {index}",
+                entry,
+                EXPORT_TEMPLATE_FILE_FIELDS,
+            )
+        )
         relative_path = entry.get("path")
         if not isinstance(relative_path, str) or not relative_path.strip():
             diagnostics.append(f"template.toml [[files]] entry {index} needs a non-empty path")
@@ -537,12 +619,24 @@ def template_file_manifest(
                 f"does not match actual {actual_sha256}"
             )
             continue
+        bundle_path = template_bundle_file_path(entry, normalized_path, diagnostics)
+        if bundle_path in seen_bundle_paths:
+            diagnostics.append(f"template bundle path {bundle_path} is declared more than once")
+            continue
+        seen_bundle_paths.add(bundle_path)
+        purpose = entry.get("purpose", "")
+        if not isinstance(purpose, str):
+            diagnostics.append(f"template file {normalized_path} purpose must be a string")
+            continue
+        if "purpose" in entry and not purpose.strip():
+            diagnostics.append(f"template file {normalized_path} purpose must be non-empty when present")
+            continue
         checked_files.append(
             {
                 "path": normalized_path,
-                "bundle_path": template_bundle_file_path(entry, normalized_path, diagnostics),
+                "bundle_path": bundle_path,
                 "sha256": actual_sha256,
-                "purpose": str(entry.get("purpose", "")),
+                "purpose": purpose,
             }
         )
     return checked_files
@@ -564,6 +658,19 @@ def template_bundle_file_path(
         diagnostics.append(f"template file {normalized_path} bundle_path must be a safe relative path")
         return normalized_path
     return normalized
+
+
+def table_unknown_field_diagnostics(
+    label: str,
+    table: dict[str, Any],
+    known_fields: tuple[str, ...],
+) -> list[str]:
+    known_field_set = set(known_fields)
+    return [
+        f"{label} unknown field {field}"
+        for field in sorted(table)
+        if field not in known_field_set
+    ]
 
 
 def resolve_template_child(

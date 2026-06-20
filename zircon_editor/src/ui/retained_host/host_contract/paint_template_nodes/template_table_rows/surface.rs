@@ -7,7 +7,7 @@ use super::style::{
 
 const TABLE_ROW_RADIUS: f32 = 3.0;
 
-pub(super) fn push_table_row_surface(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_row_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -43,7 +43,10 @@ pub(super) fn push_table_row_surface(
     ));
 }
 
-pub(super) fn table_paint_rect(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_paint_rect(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+) -> FrameRect {
     if is_table_tail(node) || is_table_selected(node) {
         FrameRect {
             x: rect.x + node.layout_offset_x,

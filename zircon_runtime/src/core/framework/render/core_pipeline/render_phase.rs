@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::CorePipelineKind;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RenderPhase {
     Opaque2d,
@@ -67,21 +65,6 @@ impl RenderPhase {
             Self::Ui => 7,
             Self::Overlay => 8,
             Self::Debug => 9,
-        }
-    }
-
-    pub const fn mesh_phase(
-        pipeline: CorePipelineKind,
-        alpha_mask: bool,
-        transparent: bool,
-    ) -> Self {
-        match (pipeline, alpha_mask, transparent) {
-            (CorePipelineKind::Core2d, true, _) => Self::AlphaMask2d,
-            (CorePipelineKind::Core2d, false, true) => Self::Transparent2d,
-            (CorePipelineKind::Core2d, false, false) => Self::Opaque2d,
-            (CorePipelineKind::Core3d, true, _) => Self::AlphaMask3d,
-            (CorePipelineKind::Core3d, false, true) => Self::Transparent3d,
-            (CorePipelineKind::Core3d, false, false) => Self::Opaque3d,
         }
     }
 

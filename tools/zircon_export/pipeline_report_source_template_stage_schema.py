@@ -28,10 +28,10 @@ SOURCE_TEMPLATE_REPORT_FIELDS = (
     "validate_report",
 )
 SOURCE_TEMPLATE_REPORT_STRING_FIELDS = (
-    "cleanup_reason",
     "project",
     "validate_report",
 )
+SOURCE_TEMPLATE_REPORT_NULLABLE_STRING_FIELDS = ("cleanup_reason",)
 SOURCE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS = ("command",)
 SOURCE_TEMPLATE_REPORT_BOOL_FIELDS = (
     "build_executed",
@@ -42,8 +42,14 @@ SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_STRING_FIELDS = (
     "project",
     "validate_report",
 )
+SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_NULLABLE_STRING_FIELDS = (
+    "cleanup_reason",
+)
 SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_STRING_ARRAY_FIELDS = ("command",)
-SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_BOOL_FIELDS = ("build_executed",)
+SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_BOOL_FIELDS = (
+    "build_executed",
+    "project_cleaned",
+)
 SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_FIELDS = ("build_validation",)
 SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS = ("generated_files",)
 
@@ -95,10 +101,18 @@ def source_template_report_schema_diagnostics(report: dict[str, Any]) -> list[st
     for field in SOURCE_TEMPLATE_REPORT_STRING_FIELDS:
         if field in report and report.get(field) is not None:
             value = report.get(field)
-            if not isinstance(value, str) or not value:
+            if not isinstance(value, str) or not value.strip():
                 diagnostics.append(
                     f"SourceTemplate report {field} must be a non-empty string"
                 )
+    for field in SOURCE_TEMPLATE_REPORT_NULLABLE_STRING_FIELDS:
+        if field in report:
+            diagnostics.extend(
+                source_template_nullable_string_schema_diagnostics(
+                    f"SourceTemplate report {field}",
+                    report.get(field),
+                )
+            )
     for field in SOURCE_TEMPLATE_REPORT_STRING_ARRAY_FIELDS:
         if field in report and not source_template_is_non_empty_string_array(
             report.get(field)
@@ -121,6 +135,11 @@ def source_template_report_schema_diagnostics(report: dict[str, Any]) -> list[st
             if field not in report or report.get(field) is None:
                 diagnostics.append(
                     f"SourceTemplate report {field} must be a non-empty string"
+                )
+        for field in SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_NULLABLE_STRING_FIELDS:
+            if field not in report:
+                diagnostics.append(
+                    f"SourceTemplate report {field} must be a non-empty string or null"
                 )
         for field in SOURCE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_STRING_ARRAY_FIELDS:
             if field not in report:
@@ -183,18 +202,24 @@ def source_template_generated_file_schema_diagnostics(
     path = file.get("path")
     for field in SOURCE_TEMPLATE_GENERATED_FILE_STRING_FIELDS:
         value = file.get(field)
-        if not isinstance(value, str) or (field == "path" and not value):
-            if field == "path":
-                diagnostics.append(
-                    "SourceTemplate generated file path must be a non-empty string"
+        if field == "path" and (
+            not isinstance(value, str) or not value.strip()
+        ):
+            diagnostics.append(
+                "SourceTemplate generated file path must be a non-empty string"
+            )
+        elif not isinstance(value, str):
+            diagnostics.extend(
+                validate_string_schema_diagnostics(
+                    source_template_generated_file_field_label(path, field),
+                    value,
                 )
-            else:
-                diagnostics.extend(
-                    validate_string_schema_diagnostics(
-                        source_template_generated_file_field_label(path, field),
-                        value,
-                    )
-                )
+            )
+        elif field == "purpose" and not value.strip():
+            diagnostics.append(
+                source_template_generated_file_field_label(path, field)
+                + " must be a non-empty string"
+            )
         elif field == "sha256" and not source_template_sha256_is_valid(value):
             diagnostics.append(
                 source_template_generated_file_field_label(path, field)
@@ -222,7 +247,7 @@ def source_template_build_validation_schema_diagnostics(
     for field in SOURCE_TEMPLATE_BUILD_VALIDATION_STRING_FIELDS:
         if field in validation:
             value = validation.get(field)
-            if not isinstance(value, str) or not value:
+            if not isinstance(value, str) or not value.strip():
                 diagnostics.append(
                     f"SourceTemplate build_validation {field} "
                     "must be a non-empty string"
@@ -273,6 +298,17 @@ def source_template_is_non_empty_string_array(value: Any) -> bool:
         and bool(value)
         and all(isinstance(item, str) and item.strip() for item in value)
     )
+
+
+def source_template_nullable_string_schema_diagnostics(
+    label: str,
+    value: Any,
+) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, str) or not value.strip():
+        return [f"{label} must be a non-empty string or null"]
+    return []
 
 
 def source_template_generated_file_field_label(path: Any, field: str) -> str:

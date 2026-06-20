@@ -19,7 +19,7 @@ impl ResourceStreamer {
         self.ensure_output_target_texture_resource(device, texture)
     }
 
-    fn ensure_output_target_texture_resource(
+    pub(super) fn ensure_output_target_texture_resource(
         &mut self,
         device: &wgpu::Device,
         id: ResourceId,

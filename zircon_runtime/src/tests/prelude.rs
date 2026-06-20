@@ -177,9 +177,7 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     );
     assert_eq!(
         report.cursor_options,
-        CapabilityStatus::Unavailable {
-            reason: "desktop cursor options host-request backend is not implemented yet"
-        }
+        CapabilityStatus::Supported(CursorOptionsBackend::WinitWindowOptions)
     );
     assert_eq!(
         report.mouse_buttons,

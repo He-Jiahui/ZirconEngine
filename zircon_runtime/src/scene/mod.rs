@@ -29,14 +29,29 @@ pub mod serializer;
 pub mod world;
 
 pub use dynamic_scene::{
-    DynamicComponent, DynamicEntity, DynamicResource, DynamicScene, DynamicSceneError, EntityRemap,
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
-    RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport,
-    RuntimeSessionArchivePathStatus, RuntimeSessionArchivePruneReport,
-    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionArchiveStatistics,
+    DynamicComponent, DynamicEntity, DynamicResource, DynamicScene,
+    DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
+    DynamicSceneAssetReloadApplyReport, DynamicSceneAssetReloadDrainReport,
+    DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadPendingReport,
+    DynamicSceneAssetReloadPendingTaskSnapshot, DynamicSceneAssetReloadQueue,
+    DynamicSceneAssetReloadReadyReport, DynamicSceneAssetReloadResult,
+    DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent,
+    DynamicSceneAssetReloadStaleResult, DynamicSceneAssetReloadSupersededTask,
+    DynamicSceneAssetReloadTask, DynamicSceneAssetReloadTickReport, DynamicSceneError,
+    DynamicSceneSpawnTask, EntityRemap, PreparedDynamicSceneSpawn, RuntimeSessionArchive,
+    RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
+    RuntimeSessionArchiveMergeReport, RuntimeSessionArchivePathStatus,
+    RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy,
+    RuntimeSessionArchiveSavePreviewReport, RuntimeSessionArchiveStatistics,
     RuntimeSessionLevelRestoreReport, RuntimeSessionMetadata, RuntimeSessionSlot,
-    RuntimeSessionSlotDiffReport, RuntimeSessionSlotSummary, ScenePatch,
-    DYNAMIC_SCENE_FORMAT_VERSION, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RuntimeSessionSlotCapturePreviewReport, RuntimeSessionSlotDiffReport,
+    RuntimeSessionSlotExportPreviewReport, RuntimeSessionSlotImportPreviewReport,
+    RuntimeSessionSlotMutationPreviewReport, RuntimeSessionSlotSelectionReport,
+    RuntimeSessionSlotSelector, RuntimeSessionSlotSummary, ScenePatch,
+    ScenePatchPreviewComponentType, ScenePatchPreviewEntityRemap, ScenePatchPreviewReport,
+    ScenePatchPreviewResource, DYNAMIC_SCENE_FORMAT_VERSION,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 pub use inspection::{WorldInspection, WorldInspectionField, WorldInspectionHierarchyRow};
 pub use reflect::{

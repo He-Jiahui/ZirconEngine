@@ -2,6 +2,13 @@
 related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/actions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/collection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/context_menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/options.rs
   - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
@@ -40,6 +47,13 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/actions.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/collection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/context_menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/menu.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/options.rs
   - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
@@ -112,6 +126,7 @@ tests:
   - cargo test -p zircon_editor --lib build_export_wizard_session --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never (2026-06-15 BuildExport wizard_view_model handoff focused tests: timed out after 904 seconds without target output; matching cargo/rustc leftovers stopped)
   - cargo test -p zircon_editor --lib export_wizard_panel_session_start_updates_controls_before_worker_poll --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never -- --exact --nocapture (2026-06-15 Start/Cancel control focused test: blocked before target test by unrelated RenderQualityProfile::with_history_resolve and notification_center.rs partial-move compile drift)
   - cargo test -p zircon_editor --lib export_wizard_panel_template_state_projects_stage_stdout_and_stderr --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never -- --exact --nocapture (2026-06-15 stage stdout/stderr projection focused test: blocked before target test by unrelated RenderQualityProfile::with_history_resolve compile drift)
+  - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; data template-node DTO subtree ownership scan; scoped whitespace scan; scoped git diff --check (2026-06-21 after data template-node DTO subtree split: passed; package-level Cargo check covered by the earlier 2026-06-21 timeout before actionable editor diagnostics)
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (2026-05-15: passed)
   - E:\zircon-build\ZirconEngine\zircon_editor.exe --list-operations --headless (2026-05-15: passed, includes window.ui_component_showcase.open)
   - .codex/run-logs/editor-noargs-smoke-polished.png (2026-05-15: no-argument editor smoke screenshot, Component Showcase first screen visible without bottom-log overlap)
@@ -121,6 +136,10 @@ doc_type: module-detail
 # Template Pane Nodes
 
 `TemplatePaneNodeData` is the retained host DTO for editor-authored template panes. It carries the visual and interaction facts that the native host needs after a shared `UiSurface` has already compiled and arranged the source document. The host contract must not rederive template geometry from component names or from per-pane coordinate tables.
+
+`data/template_nodes.rs` is now a structural DTO entry. `template_nodes/node.rs` owns the aggregate `TemplatePaneNodeData`; `template_nodes/frame.rs` owns `TemplateNodeFrameData`; `template_nodes/actions.rs` owns action rows; `template_nodes/options.rs` owns structured option rows; `template_nodes/collection.rs` owns collection field rows; `template_nodes/menu.rs` owns structured menu rows; and `template_nodes/context_menu.rs` owns the Workbench context-menu request DTO. The parent data module continues to re-export these names through `data::*`, so existing host-contract consumers keep the same import surface while the data ownership is folder-backed.
+
+The 2026-06-21 template-node DTO subtree split reduced `data/template_nodes.rs` from 230 lines to a 14-line structural entry. `template_nodes/node.rs` is 158 lines, `frame.rs` is 7 lines, `actions.rs` is 6 lines, `options.rs` is 17 lines, `collection.rs` is 23 lines, `menu.rs` is 15 lines, and `context_menu.rs` is 13 lines. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a data template-node DTO subtree ownership scan, scoped whitespace scan, and scoped `git diff --check`. Package-level Cargo check remains covered by the earlier 2026-06-21 timeout before actionable editor diagnostics, and full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
 
 ## Action And Binding Identity
 

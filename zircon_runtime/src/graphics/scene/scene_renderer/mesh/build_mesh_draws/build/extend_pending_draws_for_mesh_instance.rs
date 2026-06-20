@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    DisplayMode, RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
+    DisplayMode, RenderImageUsage, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -17,8 +18,8 @@ use super::super::super::super::super::resources::{
     default_pipeline_key, GpuMeshResource, MaterialRuntime, ResourceStreamer,
 };
 use super::super::super::super::primitives::render_mat4_or;
-use super::super::super::mesh_draw::MaterialTextureSet;
 use super::super::super::mesh_draw::MeshCommandSortInput;
+use super::super::super::mesh_draw::{MaterialTextureBinding, MaterialTextureSet};
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
@@ -343,12 +344,55 @@ fn material_texture_set(
     material: Option<&MaterialRuntime>,
 ) -> MaterialTextureSet {
     MaterialTextureSet::new(
-        streamer.texture(material.and_then(|material| material.base_color_texture)),
-        streamer.normal_texture(material.and_then(|material| material.normal_texture)),
-        streamer.texture(material.and_then(|material| material.metallic_roughness_texture)),
-        streamer.texture(material.and_then(|material| material.occlusion_texture)),
-        streamer.texture(material.and_then(|material| material.emissive_texture)),
+        material_texture_binding(
+            streamer,
+            material.and_then(|material| material.base_color_texture),
+        ),
+        material_normal_texture_binding(
+            streamer,
+            material.and_then(|material| material.normal_texture),
+        ),
+        material_texture_binding(
+            streamer,
+            material.and_then(|material| material.metallic_roughness_texture),
+        ),
+        material_texture_binding(
+            streamer,
+            material.and_then(|material| material.occlusion_texture),
+        ),
+        material_texture_binding(
+            streamer,
+            material.and_then(|material| material.emissive_texture),
+        ),
     )
+}
+
+fn material_texture_binding(
+    streamer: &ResourceStreamer,
+    texture_id: Option<ResourceId>,
+) -> MaterialTextureBinding {
+    material_output_target_texture_binding(streamer, texture_id)
+        .unwrap_or_else(|| MaterialTextureBinding::texture(streamer.texture(texture_id)))
+}
+
+fn material_normal_texture_binding(
+    streamer: &ResourceStreamer,
+    texture_id: Option<ResourceId>,
+) -> MaterialTextureBinding {
+    material_output_target_texture_binding(streamer, texture_id)
+        .unwrap_or_else(|| MaterialTextureBinding::texture(streamer.normal_texture(texture_id)))
+}
+
+fn material_output_target_texture_binding(
+    streamer: &ResourceStreamer,
+    texture_id: Option<ResourceId>,
+) -> Option<MaterialTextureBinding> {
+    let output_target = streamer.output_target_texture_resource(&texture_id?)?;
+    output_target
+        .descriptor()
+        .usage
+        .contains(&RenderImageUsage::Sampled)
+        .then(|| MaterialTextureBinding::output_target(output_target))
 }
 
 fn dynamic_direct_mesh_primitive(

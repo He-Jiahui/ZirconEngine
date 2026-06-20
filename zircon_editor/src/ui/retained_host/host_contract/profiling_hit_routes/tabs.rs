@@ -3,7 +3,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 use super::super::data::{FrameRect, HostChromeTabData, HostWindowSceneData};
 use super::geometry::{contains, translated};
 
-pub(super) fn document_tab_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn document_tab_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     x: f32,
@@ -22,7 +22,7 @@ pub(super) fn document_tab_route_hit(
     )
 }
 
-pub(super) fn drawer_tab_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn drawer_tab_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     surface: &str,
@@ -67,7 +67,7 @@ pub(super) fn drawer_tab_route_hit(
             ))
 }
 
-pub(super) fn floating_tab_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn floating_tab_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     surface: &str,
@@ -96,7 +96,7 @@ pub(super) fn floating_tab_route_hit(
     false
 }
 
-pub(super) fn host_page_tab_route_hit(
+pub(in crate::ui::retained_host::host_contract) fn host_page_tab_route_hit(
     scene: &HostWindowSceneData,
     id: &str,
     x: f32,

@@ -20,11 +20,15 @@ related_code:
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/input/mod.rs
+  - zircon_runtime/src/core/framework/input/cursor.rs
   - zircon_runtime/src/core/framework/input/ime.rs
+  - zircon_runtime/src/core/framework/input/input_event.rs
   - zircon_runtime/src/core/framework/input/input_frame_snapshot.rs
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime_interface/src/runtime_api.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -39,7 +43,10 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/Cargo.toml
   - zircon_app/Cargo.toml
@@ -61,9 +68,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/window/mod.rs
   - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
+  - zircon_runtime/src/core/framework/input/cursor.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/host_requests.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -78,7 +88,10 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
 plan_sources:
   - user: 2026-05-16 Bevy-style platform/window/winit/gilrs/input parity plan
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
@@ -175,7 +188,7 @@ The matrix follows the same split Bevy uses:
 - IME backend: native desktop winit IME, future mobile/browser IME host paths, or unavailable;
 - keyboard event backend: desktop/mobile winit keyboard events and keyboard-focus-loss cleanup, future browser keyboard events, or unavailable;
 - cursor boundary backend: desktop/mobile winit pointer-enter/leave events, future browser pointer events, or unavailable;
-- cursor options backend: future desktop winit cursor visibility/grab/hit-test host requests, future browser cursor options, or unavailable;
+- cursor options backend: desktop winit cursor visibility/grab/hit-test/position host requests, future browser cursor options, or unavailable;
 - mouse button backend: desktop/mobile winit mouse button events, future browser pointer button events, or unavailable;
 - mouse wheel backend: desktop/mobile winit wheel events with line/pixel units, future browser wheel events, or unavailable;
 - touch event backend: desktop/mobile winit touch events with stable touch ids and phases, future browser touch events, or unavailable;
@@ -226,7 +239,7 @@ Keyboard event capability is declared as `platform.keyboard_events`. Winit-backe
 
 Cursor boundary capability is declared as `platform.cursor_boundary`. Desktop and mobile winit targets report `supported:winit_window_events`, matching the runtime-preview host path that forwards pointer entered/left into runtime cursor-inside-window state. Browser targets report `unavailable:browser cursor boundary host backend is not implemented yet` until a browser host maps pointer enter/leave into the same runtime ABI. Headless/server targets report unavailable because they have no physical pointer boundary. This follows Bevy's `bevy_window::CursorEntered` / `CursorLeft` vocabulary and the concrete winit forwarding path in `dev/bevy/crates/bevy_winit/src/state.rs`.
 
-Cursor options capability is declared as `platform.cursor_options`. Desktop winit targets currently report `unavailable:desktop cursor options host-request backend is not implemented yet`, because Zircon can observe cursor events but does not yet expose a runtime host-request path for cursor visibility, grab mode, hit-test, or cursor warping. Browser targets report `unavailable:browser cursor options host backend is not implemented yet`, and mobile/headless targets declare their missing or inapplicable host paths explicitly. This follows Bevy's split where `dev/bevy/crates/bevy_window/src/window.rs` defines `CursorOptions` and `CursorGrabMode`, while `dev/bevy/crates/bevy_winit/src/winit_windows.rs` applies initial cursor visibility/grab/hit-test settings and `dev/bevy/crates/bevy_winit/src/system.rs` applies changed cursor options through winit.
+Cursor options capability is declared as `platform.cursor_options`. Desktop winit targets report `supported:winit_window_options`: runtime code emits `CursorHostRequest` values for visibility, grab mode, hit-test participation, and cursor position, the dynamic ABI transports them as `ZrRuntimeHostRequestV1::Cursor`, and the runtime-preview host applies them through `Window::set_cursor_visible`, `set_cursor_grab`, `set_cursor_hittest`, and `set_cursor_position`. Browser targets report `unavailable:browser cursor options host backend is not implemented yet`, and mobile/headless targets declare their missing or inapplicable host paths explicitly. This follows Bevy's split where `dev/bevy/crates/bevy_window/src/window.rs` defines `CursorOptions` and `CursorGrabMode`, while `dev/bevy/crates/bevy_winit/src/winit_windows.rs` applies initial cursor visibility/grab/hit-test settings and `dev/bevy/crates/bevy_winit/src/system.rs` applies changed cursor options through winit.
 
 Mouse button capability is declared as `platform.mouse_buttons`. Winit-backed desktop and mobile targets report `supported:winit_window_events`, matching the runtime-preview host path that forwards `WindowEvent::MouseInput` into `ZrRuntimeEventV1::mouse_button` and then into runtime `InputEvent::ButtonPressed` / `ButtonReleased` values for the neutral `ButtonInputState`. Browser targets report `unavailable:browser mouse button host backend is not implemented yet` until a browser pointer/mouse host path feeds the same runtime ABI, and headless/server targets report unavailable because they have no physical mouse button event host. This follows Bevy's split where `dev/bevy/crates/bevy_input/src/mouse.rs` defines `MouseButtonInput`, `MouseButton`, and button-state reduction, `dev/bevy/crates/bevy_winit/src/converters.rs` converts winit mouse buttons and element states, and `dev/bevy/crates/bevy_winit/src/state.rs` forwards `WindowEvent::MouseInput`.
 
@@ -295,7 +308,7 @@ The platform, prelude, and app composition tests verify:
 - IME diagnostics distinguish native desktop winit IME from mobile, browser, and headless unavailable host paths;
 - keyboard event diagnostics distinguish winit key event/focus cleanup support from browser and headless unavailable host paths;
 - cursor boundary diagnostics distinguish winit pointer boundary events from browser and headless unavailable host paths;
-- cursor options diagnostics distinguish winit-capable desktop hosts from the still-missing runtime host-request path for cursor visibility/grab/hit-test options;
+- cursor options diagnostics distinguish supported desktop winit host requests for cursor visibility/grab/hit-test/position from mobile, browser, and headless unavailable host paths;
 - mouse button diagnostics distinguish winit button-state event support from browser and headless unavailable host paths;
 - mouse wheel diagnostics distinguish winit line/pixel wheel event support from browser and headless unavailable host paths;
 - touch event diagnostics distinguish winit touch phase/id event support from browser and headless unavailable host paths;

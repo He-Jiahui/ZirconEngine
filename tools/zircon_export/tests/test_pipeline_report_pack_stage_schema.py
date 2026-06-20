@@ -49,6 +49,40 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 f"Pack stage directory {pack_report_path.parent}",
             )
 
+    def test_report_stage_rejects_pack_required_path_blank_string(self) -> None:
+        cases = (
+            (
+                "asset_manifest",
+                "pack report asset_manifest must be a non-empty string",
+            ),
+            (
+                "pack",
+                "pack report pack must be a non-empty string",
+            ),
+            (
+                "stage_output",
+                "pack report stage_output must be a non-empty string",
+            ),
+        )
+        for field, expected in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    pack_report_path = out / "stages" / "pack" / "report.json"
+                    pack_report = json.loads(
+                        pack_report_path.read_text(encoding="utf-8")
+                    )
+                    pack_report[field] = " "
+                    pack_report_path.write_text(
+                        json.dumps(pack_report, indent=2),
+                        encoding="utf-8",
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(self, report, expected)
+
     def test_report_stage_rejects_pack_manifest_unknown_field(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             out = Path(temp_dir) / "out"
@@ -110,6 +144,157 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 "pack.assets.size",
                 _manifest_override({"assets": [{**_asset_entry(), "size": "8"}]}),
                 "pack report manifest.assets[0].size must be an integer",
+            ),
+        )
+        for label, manifest, expected in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    _update_pack_report(out, manifest=manifest)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(self, report, expected)
+
+    def test_report_stage_rejects_pack_manifest_missing_required_field(self) -> None:
+        cases = (
+            (
+                "manifest.pack",
+                {"assets": []},
+                "pack report manifest.pack must be an object",
+            ),
+            (
+                "manifest.assets",
+                {"pack": _pack_plan()},
+                "pack report manifest.assets must be an object array",
+            ),
+            (
+                "pack.version",
+                {"pack": {"chunks": [_chunk_entry()], "total_size": 8}, "assets": []},
+                "pack report manifest.pack.version must be an integer",
+            ),
+            (
+                "pack.total_size",
+                {"pack": {"version": 1, "chunks": [_chunk_entry()]}, "assets": []},
+                "pack report manifest.pack.total_size must be an integer",
+            ),
+            (
+                "pack.chunks",
+                {"pack": {"version": 1, "total_size": 0}, "assets": []},
+                "pack report manifest.pack.chunks must be an object array",
+            ),
+            (
+                "pack.chunks.hash",
+                {
+                    "pack": {
+                        "version": 1,
+                        "chunks": [{"offset": 24, "size": 8}],
+                        "total_size": 8,
+                    },
+                    "assets": [],
+                },
+                "pack report manifest.pack.chunks[0].hash "
+                "must be a 32-byte integer array",
+            ),
+            (
+                "pack.chunks.offset",
+                {
+                    "pack": {
+                        "version": 1,
+                        "chunks": [{"hash": [1] * 32, "size": 8}],
+                        "total_size": 8,
+                    },
+                    "assets": [],
+                },
+                "pack report manifest.pack.chunks[0].offset must be an integer",
+            ),
+            (
+                "pack.chunks.size",
+                {
+                    "pack": {
+                        "version": 1,
+                        "chunks": [{"hash": [1] * 32, "offset": 24}],
+                        "total_size": 8,
+                    },
+                    "assets": [],
+                },
+                "pack report manifest.pack.chunks[0].size must be an integer",
+            ),
+            (
+                "pack.assets.path",
+                _manifest_override({"assets": [{"chunk_hash": [1] * 32, "size": 8}]}),
+                "pack report manifest.assets[0].path must be a string",
+            ),
+            (
+                "pack.assets.chunk_hash",
+                _manifest_override({"assets": [{"path": "scenes/main.zscene", "size": 8}]}),
+                "pack report manifest.assets[0].chunk_hash "
+                "must be a 32-byte integer array",
+            ),
+            (
+                "pack.assets.size",
+                _manifest_override(
+                    {"assets": [{"path": "scenes/main.zscene", "chunk_hash": [1] * 32}]}
+                ),
+                "pack report manifest.assets[0].size must be an integer",
+            ),
+        )
+        for label, manifest, expected in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    _update_pack_report(out, manifest=manifest)
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(self, report, expected)
+
+    def test_report_stage_rejects_pack_manifest_asset_empty_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_library_embed_reports(out)
+            _update_pack_report(
+                out,
+                manifest=_manifest_override(
+                    {"assets": [{**_asset_entry(), "path": " "}]}
+                ),
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            _assert_pack_schema_diagnostic(
+                self,
+                report,
+                "pack report manifest.assets[0].path must be a non-empty string",
+            )
+
+    def test_report_stage_rejects_pack_manifest_negative_layout_numbers(self) -> None:
+        cases = (
+            (
+                "pack.total_size",
+                _manifest_override({"pack": {**_pack_plan(), "total_size": -1}}),
+                "pack report manifest.pack.total_size must be non-negative",
+            ),
+            (
+                "pack.chunks.offset",
+                _manifest_override(
+                    {"pack": {**_pack_plan(), "chunks": [{**_chunk_entry(), "offset": -1}]}}
+                ),
+                "pack report manifest.pack.chunks[0].offset must be non-negative",
+            ),
+            (
+                "pack.chunks.size",
+                _manifest_override(
+                    {"pack": {**_pack_plan(), "chunks": [{**_chunk_entry(), "size": -1}]}}
+                ),
+                "pack report manifest.pack.chunks[0].size must be non-negative",
+            ),
+            (
+                "pack.assets.size",
+                _manifest_override({"assets": [{**_asset_entry(), "size": -1}]}),
+                "pack report manifest.assets[0].size must be non-negative",
             ),
         )
         for label, manifest, expected in cases:
@@ -433,6 +618,22 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                 "manifest duplicate chunk paths",
             )
 
+    def test_report_stage_rejects_pack_deduplicated_assets_blank_entry(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_library_embed_reports(out)
+            _update_pack_report(out, deduplicated_assets=[" "])
+
+            report = build_pipeline_report(out, "windows-release")
+
+            _assert_pack_schema_diagnostic(
+                self,
+                report,
+                "pack report deduplicated_assets must not contain blank entries",
+            )
+
     def test_report_stage_rejects_pack_trim_report_unknown_fields(self) -> None:
         cases = (
             (
@@ -526,6 +727,29 @@ class PipelineReportPackStageSchemaTests(unittest.TestCase):
                     report = build_pipeline_report(out, "windows-release")
 
                     _assert_pack_schema_diagnostic(self, report, expected)
+
+    def test_report_stage_rejects_pack_trim_report_blank_diagnostic_entry(self) -> None:
+        for diagnostics in ([""], ["   "], ["trimmed asset", ""]):
+            with self.subTest(diagnostics=diagnostics):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_library_embed_reports(out)
+                    _update_pack_report(
+                        out,
+                        trim_report={
+                            **_trim_report(),
+                            "diagnostics": diagnostics,
+                        },
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    _assert_pack_schema_diagnostic(
+                        self,
+                        report,
+                        "pack report trim_report.diagnostics "
+                        "must not contain blank entries",
+                    )
 
 if __name__ == "__main__":
     unittest.main()

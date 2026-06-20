@@ -105,4 +105,4 @@ During the 2026-06-13 editor UI grouped-keyboard validation, the Material catalo
 
 `zircon_runtime/src/tests/prelude.rs` verifies that the stable runtime prelude exports the task-pool types and diagnostic report needed by app and module authors.
 
-`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 10`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`.
+`job_system_boundary` mirrors the Runtime 11 structure without Cargo: `expected_module_count = 9`, `direct_rayon_paths = 2`, `schedule_parallel_executor_direct_rayon = []`, `diagnostic_anchor_count = 4`, `behavior_test_anchor_count = 12`, `missing_behavior_test_anchors = []`, `oversized_modules = []`, and `risks = []`. The behavior anchors now include panic-safe handle completion for scheduled jobs and dependent jobs.

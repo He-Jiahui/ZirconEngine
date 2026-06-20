@@ -604,7 +604,10 @@ fn render_frame_extract_collects_world_hud_health_bars_as_scene_particles() {
         "background should be submitted before the fill for same-entity HUD bars"
     );
     assert_eq!(extract.particles.sprites[0].size, 0.12);
-    assert_eq!(extract.particles.sprites[0].aspect_ratio, 10.0);
+    assert!(
+        (extract.particles.sprites[0].aspect_ratio - 10.0).abs() <= 0.0001,
+        "background width/height ratio should remain stable within f32 precision"
+    );
     assert_eq!(extract.particles.sprites[0].billboard_offset, Vec2::ZERO);
     assert_eq!(
         extract.particles.sprites[1].color,
@@ -1282,6 +1285,29 @@ fn render_frame_extract_snapshot_adapters_are_not_scene_production_paths() {
         .join("render_framework")
         .join("submit_frame_extract");
     assert_runtime_submit_tree_excludes_snapshot_adapters(&submit_root);
+}
+
+#[test]
+fn render_view_extract_keeps_selected_scene_camera_descriptor_when_inactive() {
+    let render_source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("render.rs"),
+    )
+    .unwrap();
+    let view_builder = render_source
+        .split("fn build_render_view_extract")
+        .nth(1)
+        .and_then(|text| text.split("fn render_extract_layers_for_view").next())
+        .expect("read render view extract builder");
+
+    assert!(
+        view_builder.contains("descriptor.entity == Some(entity) || descriptor.is_active()")
+            && !view_builder.contains(".filter(CameraRenderDescriptor::is_active)"),
+        "scene render view extraction must keep the selected camera descriptor even when the camera is inactive"
+    );
 }
 
 fn spawn_camera_on_layer(world: &mut World, layer_mask: u32) -> crate::scene::EntityId {

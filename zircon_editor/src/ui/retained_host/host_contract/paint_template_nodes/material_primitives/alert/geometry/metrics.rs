@@ -1,0 +1,9 @@
+pub(super) const ALERT_PADDING_X: f32 = 16.0;
+pub(super) const ALERT_ICON_EDGE: f32 = 22.0;
+pub(super) const ALERT_ICON_GAP: f32 = 12.0;
+pub(super) const ALERT_ACTION_EDGE: f32 = 20.0;
+pub(super) const ALERT_ACTION_GAP: f32 = 16.0;
+pub(super) const ALERT_ACTION_TRAILING: f32 = 8.0;
+pub(super) const ALERT_FONT_SIZE: f32 = 13.0;
+pub(super) const ALERT_TEXT_WIDTH_RATIO: f32 = 0.56;
+pub(super) const ALERT_ICON_MARK_EDGE: f32 = 14.0;

@@ -15,5 +15,8 @@ pub use material_asset::{
 pub use property_values::shader_property_values_for_shader;
 pub(super) use texture_slot::is_standard_texture_slot_alias;
 pub use texture_slot::MaterialTextureSlotValue;
-pub use validation::{validate_alpha_mode, validate_shader_contract, validate_wgsl_captures};
+pub use validation::{
+    validate_alpha_mode, validate_render_queue_alpha_mode, validate_shader_contract,
+    validate_wgsl_captures,
+};
 pub use zmaterial::ZMaterialDocument;

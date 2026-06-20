@@ -13,7 +13,7 @@ use main_column::draw_welcome_main_column;
 use recent_projects::draw_welcome_recent_projects;
 use style::{WELCOME_BACKGROUND, WELCOME_SURFACE};
 
-pub(super) fn draw_welcome_native_content(
+pub(in crate::ui::retained_host::host_contract) fn draw_welcome_native_content(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

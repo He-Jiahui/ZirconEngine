@@ -255,6 +255,7 @@ fn frame_counter_registration() -> ReflectTypeRegistration {
 
 fn frame_counter_adapter() -> ReflectResource {
     ReflectResource {
+        ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
         read_fields: frame_counter_read_fields,

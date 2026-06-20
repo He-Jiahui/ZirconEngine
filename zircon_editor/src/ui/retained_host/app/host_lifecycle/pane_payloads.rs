@@ -6,6 +6,9 @@ use crate::ui::layouts::windows::workbench_host_window::{
 };
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
+mod editor_panes;
+mod workbench_panes;
+
 pub(super) struct HostLifecyclePanePayloads {
     pub(super) preset_names: Vec<String>,
     pub(super) ui_asset_panes:
@@ -46,11 +49,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "collect_runtime_diagnostics"
             );
-            if runtime_diagnostics_visibility::should_collect_runtime_diagnostics(model) {
-                self.runtime_diagnostics_with_profile()
-            } else {
-                RuntimeDiagnosticsSnapshot::default()
-            }
+            self.collect_runtime_diagnostics_payload(model)
         };
         let module_plugins = {
             zircon_runtime::profile_scope!(
@@ -58,25 +57,11 @@ impl RetainedEditorHost {
                 "retained_host",
                 "collect_module_plugins_pane"
             );
-            if pane_payload_visibility::should_collect_payload_for_kind(
-                model,
-                ViewContentKind::ModulePlugins,
-            ) {
-                self.module_plugins_pane_data(chrome)
-            } else {
-                ModulePluginsPaneViewData::default()
-            }
+            self.collect_module_plugins_pane_payload(model, chrome)
         };
         let build_export = {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_build_export_pane");
-            if pane_payload_visibility::should_collect_payload_for_kind(
-                model,
-                ViewContentKind::BuildExport,
-            ) {
-                self.build_export_pane_data(chrome)
-            } else {
-                BuildExportPaneViewData::default()
-            }
+            self.collect_build_export_pane_payload(model, chrome)
         };
 
         HostLifecyclePanePayloads {
@@ -87,42 +72,5 @@ impl RetainedEditorHost {
             module_plugins,
             build_export,
         }
-    }
-
-    fn collect_ui_asset_panes(
-        &self,
-    ) -> BTreeMap<String, crate::ui::asset_editor::UiAssetEditorPanePresentation> {
-        self.runtime
-            .current_view_instances()
-            .into_iter()
-            .filter(|instance| instance.descriptor_id.0 == "editor.ui_asset")
-            .filter_map(|instance| {
-                self.editor_manager
-                    .ui_asset_editor_pane_presentation(&instance.instance_id)
-                    .ok()
-                    .map(|presentation| (instance.instance_id.0, presentation))
-            })
-            .collect()
-    }
-
-    fn collect_animation_editor_panes(
-        &self,
-    ) -> BTreeMap<String, crate::ui::animation_editor::AnimationEditorPanePresentation> {
-        self.runtime
-            .current_view_instances()
-            .into_iter()
-            .filter(|instance| {
-                matches!(
-                    instance.descriptor_id.0.as_str(),
-                    "editor.animation_sequence" | "editor.animation_graph"
-                )
-            })
-            .filter_map(|instance| {
-                self.editor_manager
-                    .animation_editor_pane_presentation(&instance.instance_id)
-                    .ok()
-                    .map(|presentation| (instance.instance_id.0, presentation))
-            })
-            .collect()
     }
 }

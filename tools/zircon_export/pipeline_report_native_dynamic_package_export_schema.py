@@ -286,7 +286,8 @@ def native_dynamic_abi_schema_diagnostics(
                     abi.get(field),
                 )
             )
-            if abi.get(field) != 3:
+            value = abi.get(field)
+            if isinstance(value, int) and not isinstance(value, bool) and value != 3:
                 diagnostics.append(f"{label}.{field} must be 3")
     for field in NATIVE_DYNAMIC_ABI_STRING_FIELDS:
         if field in abi:
@@ -298,17 +299,17 @@ def native_dynamic_abi_schema_diagnostics(
             )
             value = abi.get(field)
             if isinstance(value, str):
-                diagnostics.extend(
+                field_diagnostics = (
                     validate_non_empty_trimmed_string_schema_diagnostics(
-                        f"{label}.{field}",
-                        value,
+                        f"{label}.{field}", value
                     )
                 )
+                diagnostics.extend(field_diagnostics)
                 expected_value = NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS[field]
-                if value != expected_value:
+                if not field_diagnostics and value != expected_value:
                     diagnostics.append(
                         f"{label}.{field} must be {expected_value}"
-    )
+                    )
     return diagnostics
 
 

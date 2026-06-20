@@ -14,6 +14,7 @@ use crate::graphics::backend::RenderBackendConfig;
 use crate::graphics::runtime::{
     renderdoc_capture_next_from_value, FrameHistoryValidationKey, ViewportFrameHistory,
 };
+use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::{
     debug_markers, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, RenderPassStage,
     VisibilityHistorySnapshot, WgpuRenderFramework,
@@ -283,6 +284,7 @@ fn frame_history_validation_key_rejects_camera_or_mesh_motion() {
         1,
         bindings.clone(),
         VisibilityHistorySnapshot::default(),
+        VisibilityStaticIndex::default(),
         base_key,
     );
 
@@ -349,6 +351,7 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
         1,
         bindings.clone(),
         VisibilityHistorySnapshot::default(),
+        VisibilityStaticIndex::default(),
         base_key,
     );
 

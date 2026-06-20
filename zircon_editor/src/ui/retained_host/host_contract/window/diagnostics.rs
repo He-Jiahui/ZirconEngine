@@ -11,11 +11,16 @@ impl UiHostWindow {
         self.state.borrow_mut().refresh_invalidation_diagnostics = diagnostics;
     }
 
-    pub(super) fn refresh_invalidation_diagnostics(&self) -> HostInvalidationDiagnostics {
+    pub(in crate::ui::retained_host::host_contract) fn refresh_invalidation_diagnostics(
+        &self,
+    ) -> HostInvalidationDiagnostics {
         self.state.borrow().refresh_invalidation_diagnostics
     }
 
-    pub(super) fn set_host_refresh_diagnostics_overlay(&self, diagnostics: HostRefreshDiagnostics) {
+    pub(in crate::ui::retained_host::host_contract) fn set_host_refresh_diagnostics_overlay(
+        &self,
+        diagnostics: HostRefreshDiagnostics,
+    ) {
         self.set_host_refresh_diagnostics_overlay_text(diagnostics.overlay_text().into());
     }
 

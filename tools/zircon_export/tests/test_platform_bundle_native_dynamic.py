@@ -584,7 +584,7 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"
@@ -748,7 +748,7 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             out = root / "out"
-            host = root / "compile" / "zircon_runtime.exe"
+            host = out / "stages" / "compile_host" / "zircon_runtime.exe"
             host.parent.mkdir(parents=True)
             host.write_text("host placeholder", encoding="utf-8")
             pack = root / "pack-output" / "assets.zrpack"
@@ -785,11 +785,9 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
                         "artifact_count": 1,
                         "artifacts": [
                             {
-                                "artifact": str(
-                                    native_plugins
-                                    / "animation"
-                                    / "native"
-                                    / "zircon_plugin_animation.dll"
+                                "artifact": (
+                                    "plugins/animation/native/"
+                                    "zircon_plugin_animation.dll"
                                 ),
                                 "package_relative_artifact": (
                                     "native/zircon_plugin_animation.dll"
@@ -798,8 +796,8 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
                                 "exit_code": 0,
                                 "stdout": "",
                                 "stderr": "",
-                                "before_sha256": "before-hash",
-                                "after_sha256": "after-hash",
+                                "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                                "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
                             }
                         ],
                     }
@@ -823,11 +821,9 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
                         "artifact_count": 1,
                         "artifacts": [
                             {
-                                "artifact": str(
-                                    native_plugins
-                                    / "animation"
-                                    / "native"
-                                    / "zircon_plugin_animation.dll"
+                                "artifact": (
+                                    "plugins/animation/native/"
+                                    "zircon_plugin_animation.dll"
                                 ),
                                 "package_relative_artifact": (
                                     "native/zircon_plugin_animation.dll"
@@ -836,8 +832,8 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
                                 "exit_code": 0,
                                 "stdout": "",
                                 "stderr": "",
-                                "before_sha256": "before-hash",
-                                "after_sha256": "after-hash",
+                                "before_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+                                "after_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
                             }
                         ],
                     }
@@ -881,8 +877,17 @@ class PlatformBundleNativeDynamicTests(unittest.TestCase):
                 [
                     {
                         "package_id": "animation",
+                        "source": str(out / "zircon_plugins" / "animation"),
                         "destination": str(
                             out / "bundle" / "windows-release" / "plugins" / "animation"
+                        ),
+                        "package_report": str(
+                            out
+                            / "bundle"
+                            / "windows-release"
+                            / "plugins"
+                            / "animation"
+                            / "native_dynamic_package.toml"
                         ),
                         "loadable_artifact_count": 1,
                         "loadable_artifacts": [

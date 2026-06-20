@@ -20,7 +20,7 @@ const HIERARCHY_ROW_INDENT: f32 = 14.0;
 const HIERARCHY_ROW_TEXT_X: f32 = 8.0;
 const HIERARCHY_ROW_TEXT_Y: f32 = 4.0;
 
-pub(super) fn draw_hierarchy_rows(
+pub(in crate::ui::retained_host::host_contract) fn draw_hierarchy_rows(
     frame: &mut HostRgbaFrame,
     pane: &PaneData,
     body: &FrameRect,

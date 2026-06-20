@@ -2,7 +2,7 @@ use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostDragStateData, HostWindowPresentationData,
 };
 
-pub(super) fn tab_drag_release_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn tab_drag_release_damage_frame(
     presentation: &HostWindowPresentationData,
     drag_state: &HostDragStateData,
 ) -> Option<FrameRect> {

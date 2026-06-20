@@ -19,9 +19,9 @@ impl RenderPipelineAsset {
                 RenderPhase::AlphaMask3d,
                 RenderPhase::Transparent3d,
                 RenderPhase::PostProcess,
-                RenderPhase::Ui,
                 RenderPhase::Overlay,
                 RenderPhase::Debug,
+                RenderPhase::Ui,
             ],
             renderer: RendererAsset {
                 name: "default-deferred".to_string(),
@@ -34,9 +34,9 @@ impl RenderPipelineAsset {
                     RenderPassStage::Lighting,
                     RenderPassStage::Transparent3d,
                     RenderPassStage::PostProcess,
-                    RenderPassStage::Ui,
                     RenderPassStage::Overlay,
                     RenderPassStage::Debug,
+                    RenderPassStage::Ui,
                 ],
                 features: vec![
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DeferredGeometry),
@@ -49,8 +49,8 @@ impl RenderPipelineAsset {
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::Bloom),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::ColorGrading),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::AntiAlias),
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Ui),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DebugOverlay),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Ui),
                 ],
             },
         }

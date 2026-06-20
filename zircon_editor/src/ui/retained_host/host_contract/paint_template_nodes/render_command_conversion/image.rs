@@ -6,7 +6,7 @@ use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::visual_assets::{load_visual_asset_pixels_for_size, raster_size_from_frame};
 
-pub(super) fn push_image_resource_command(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_image_resource_command(
     output: &mut Vec<HostPaintCommand>,
     resource: &UiRenderResourceKey,
     frame: FrameRect,

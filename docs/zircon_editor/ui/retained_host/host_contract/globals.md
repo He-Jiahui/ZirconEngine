@@ -1,7 +1,11 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/callback_methods.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
@@ -9,29 +13,34 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/callback_methods.rs
   - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
 tests:
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
-  - globals callback ownership scan
-  - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
+  - globals state/context/callback ownership scan
+  - scoped whitespace scan
+  - scoped git diff --check
 doc_type: module-detail
 ---
 
 # Host Contract Globals
 
-`globals.rs` owns the shared retained-host state container and the two context objects used by generated and native host code to reach that state. It is the boundary between `UiHostWindow` storage and the callback-facing APIs used by menu, dock, pane, text-input, asset, inspector, viewport, and Workbench context-menu paths.
+`globals.rs` is the retained-host global context entry. It keeps the stable exports for `HostContractState`, `HostContractGlobal`, `UiHostContext`, and `PaneSurfaceHostContext` while concrete state storage, host-level context methods, pane-level context methods, callback storage, and callback registration macros live in child modules.
 
 ## Purpose
 
-The module keeps `HostContractState` as the single state cell behind `UiHostWindow`. Window size, visibility, presentation snapshots, diagnostics counters, redraw queue state, viewport image data, menu/pane interaction state, drag/resize state, focused text input, Welcome pane state, and callback registries all live in this state object.
+`globals/state.rs` keeps `HostContractState` as the single state cell behind `UiHostWindow`. Window size, visibility, presentation snapshots, diagnostics counters, redraw queue state, viewport image data, menu/pane interaction state, drag/resize state, focused text input, Welcome pane state, and callback registries all live in this state object.
 
-`UiHostContext` exposes host-level state and chrome callbacks: menu pointer events, activity rail clicks, document and drawer tab clicks, floating header clicks, drag/resize forwarding, frame requests, close-prompt actions, and unhandled keyboard forwarding.
+`globals/ui_context.rs` exposes host-level state and chrome callbacks: menu pointer events, activity rail clicks, document and drawer tab clicks, floating header clicks, drag/resize forwarding, frame requests, close-prompt actions, and unhandled keyboard forwarding.
 
-`PaneSurfaceHostContext` exposes pane-level state and callbacks: Welcome, hierarchy, console, inspector, component showcase, asset panes, viewport, and UI asset detail/collection callbacks. It also applies direct pane-state mutations such as hierarchy scroll, asset tree hover/scroll, viewport image replacement, and Welcome pane state replacement.
+`globals/pane_context.rs` exposes pane-level state and callbacks: Welcome, hierarchy, console, inspector, component showcase, asset panes, viewport, and UI asset detail/collection callbacks. It also applies direct pane-state mutations such as hierarchy scroll, asset tree hover/scroll, viewport image replacement, and Welcome pane state replacement.
 
 ## Callback Ownership
 
@@ -41,7 +50,7 @@ The module keeps `HostContractState` as the single state cell behind `UiHostWind
 - `PaneSurfaceCallbacks` stores pane surface callbacks.
 - `Callback0` through `Callback8` are private aliases for the stored `Rc<dyn Fn(...)>` callback shapes.
 
-The root module still owns callback registration and invocation methods through `callback_methods!` because those methods are part of the public context APIs. The callback child module only stores the callback fields and types. This split keeps callback DTO growth out of the state/context root while preserving the current generated-host API surface.
+`globals/callback_methods.rs` owns the `callback_methods!` macro used by both context owners. The macro is still expanded inside the concrete context modules so registration and invocation methods remain part of the public context APIs, while the macro definition no longer lives in the root file.
 
 ## Behavior Model
 
@@ -53,9 +62,9 @@ Setter methods either update retained-host state directly or are placeholders fo
 
 ## Design And Rationale
 
-The root file remains the state/context API owner because callers depend on `UiHostContext` and `PaneSurfaceHostContext` method names. The callback registry itself is a separate implementation detail and is now folder-backed so future callback family splits can happen without turning `globals.rs` into a large declaration file.
+The root file remains the stable import owner because callers depend on `globals::{PaneSurfaceHostContext, UiHostContext}` and `window.rs` depends on `HostContractState`/`HostContractGlobal`. Concrete state and context behavior are now folder-backed so future callback family or pane API splits can happen without turning `globals.rs` back into a large declaration file.
 
-This shape follows the 08 M3.S2 owner-shrink rule: root files keep state contracts and narrow dispatch APIs, while large DTO clusters move into child modules. It also avoids adding a compatibility façade; callers keep using the same context methods.
+This shape follows the 08 M3.S2 owner-shrink rule: root files keep stable module contracts and narrow re-exports, while state, callback storage, callback macros, and context method families move into child modules. It also avoids adding a compatibility façade; callers keep using the same context methods.
 
 ## Edge Cases And Constraints
 
@@ -66,7 +75,7 @@ This shape follows the 08 M3.S2 owner-shrink rule: root files keep state contrac
 
 ## Test Coverage
 
-This slice was validated with `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals callback ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`. Full unit and integration test matrices remain deferred to the milestone testing stage per the active 08 plan and the user request to implement functionality first.
+This slice was validated with `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals state/context/callback ownership scan, a scoped trailing-whitespace scan, and scoped `git diff --check`. Full Cargo check/test validation remains deferred because current package checks are blocked before editor diagnostics by unrelated `zircon_runtime` render-history errors, and the active instruction is to implement functionality first.
 
 ## Plan Sources
 

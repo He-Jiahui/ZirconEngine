@@ -8,13 +8,13 @@ use super::frames::{
     menu_popup_row_frame, scrolled_menu_frame, shell_content_width,
 };
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn menu_damage_frame(
+pub(in crate::ui::retained_host::host_contract) fn menu_damage_frame(
     presentation: &HostWindowPresentationData,
 ) -> FrameRect {
     menu_damage_frame_with_state(presentation, &presentation.menu_state)
 }
 
-pub(in crate::ui::retained_host::host_contract::native_pointer) fn menu_damage_frame_with_state(
+pub(in crate::ui::retained_host::host_contract) fn menu_damage_frame_with_state(
     presentation: &HostWindowPresentationData,
     menu_state: &HostMenuStateData,
 ) -> FrameRect {

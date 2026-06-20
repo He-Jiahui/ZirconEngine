@@ -106,7 +106,7 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
         "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
         "runtime_text_doc_records_three_layer_stack_and_cross_reference",
         "physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned",
-        "export_archive_policy_is_documented_without_manifest_container_dependency",
+        "export_archive_policy_allows_zip_only_for_archive_materializer",
         "editor_only_dependency_candidates_have_editor_backlog_owner",
     ];
     let runtime_02_plan_anchors = [

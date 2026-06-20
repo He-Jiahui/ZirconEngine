@@ -12,7 +12,7 @@ impl RetainedEditorHost {
     ) {
         let viewport_content_frame = componentized_workbench_layout_frames
             .viewport_content_frame
-            .filter(super::ui_frame_is_visible)
+            .filter(super::shell_metrics::ui_frame_is_visible)
             .unwrap_or_default();
 
         if let Some(next_viewport_size) = viewport_size_from_frame(viewport_content_frame) {

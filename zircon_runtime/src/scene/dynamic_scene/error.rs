@@ -9,6 +9,12 @@ pub enum DynamicSceneError {
     UnsupportedFormatVersion { expected: u32, actual: u32 },
     #[error("dynamic scene contains duplicate source entity {entity}")]
     DuplicateSourceEntity { entity: EntityId },
+    #[error("dynamic scene contains duplicate component type descriptor `{type_id}`")]
+    DuplicateComponentTypeDescriptor { type_id: String },
+    #[error("dynamic scene component type descriptor `{type_id}` is invalid: {reason}")]
+    InvalidComponentTypeDescriptor { type_id: String, reason: String },
+    #[error("dynamic scene component type descriptor `{type_id}` conflicts with target world")]
+    ComponentTypeDescriptorConflict { type_id: String },
     #[error("dynamic scene entity {entity} references missing parent {parent}")]
     MissingSceneParent { entity: EntityId, parent: EntityId },
     #[error("no free target entity id remains while remapping source entity {source_entity}")]
@@ -17,6 +23,12 @@ pub enum DynamicSceneError {
     WorldMutation(String),
     #[error("dynamic scene parse failed: {reason}")]
     Parse { reason: String },
+    #[error("dynamic scene scene-asset conversion failed: {reason}")]
+    SceneAsset { reason: String },
+    #[error("dynamic scene I/O failed: {reason}")]
+    Io { reason: String },
+    #[error("dynamic scene spawn task `{label}` result is unavailable")]
+    SpawnTaskResultUnavailable { label: String },
     #[error("unsupported reflected value `{type_name}` for `{context}`")]
     UnsupportedValue {
         context: String,

@@ -14,7 +14,8 @@ use super::super::native_pointer::{
     NativePointerButtonState,
 };
 use super::super::redraw::NativePointerDispatchResult;
-use super::{UiHostWindow, NATIVE_HOST_WINDOW_ID};
+use super::constants::NATIVE_HOST_WINDOW_ID;
+use super::UiHostWindow;
 
 impl UiHostWindow {
     pub(crate) fn request_host_frame_for_test(&self) {

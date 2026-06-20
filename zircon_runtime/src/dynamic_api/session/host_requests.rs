@@ -1,9 +1,12 @@
 use zircon_runtime_interface::{
+    ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
     ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeImeSurroundingTextV1,
 };
 
-use crate::core::framework::input::{GamepadRumbleRequest, ImeHostRequest};
+use crate::core::framework::input::{
+    CursorGrabMode, CursorHostRequest, GamepadRumbleRequest, ImeHostRequest,
+};
 
 pub(in crate::dynamic_api) fn runtime_ime_host_request(
     request: ImeHostRequest,
@@ -42,5 +45,32 @@ pub(in crate::dynamic_api) fn runtime_gamepad_rumble_request(
             )
         }
         GamepadRumbleRequest::Stop { gamepad } => ZrRuntimeGamepadRumbleRequestV1::stop(gamepad.0),
+    }
+}
+
+pub(in crate::dynamic_api) fn runtime_cursor_host_request(
+    request: CursorHostRequest,
+) -> ZrRuntimeCursorHostRequestV1 {
+    match request {
+        CursorHostRequest::SetVisible(visible) => {
+            ZrRuntimeCursorHostRequestV1::set_visible(visible)
+        }
+        CursorHostRequest::SetGrabMode(grab_mode) => {
+            ZrRuntimeCursorHostRequestV1::set_grab_mode(runtime_cursor_grab_mode(grab_mode))
+        }
+        CursorHostRequest::SetHitTest(hit_test) => {
+            ZrRuntimeCursorHostRequestV1::set_hit_test(hit_test)
+        }
+        CursorHostRequest::SetPosition(position) => ZrRuntimeCursorHostRequestV1::set_position(
+            ZrRuntimeCursorPositionV1::new(position.x, position.y),
+        ),
+    }
+}
+
+fn runtime_cursor_grab_mode(grab_mode: CursorGrabMode) -> ZrRuntimeCursorGrabModeV1 {
+    match grab_mode {
+        CursorGrabMode::None => ZrRuntimeCursorGrabModeV1::None,
+        CursorGrabMode::Confined => ZrRuntimeCursorGrabModeV1::Confined,
+        CursorGrabMode::Locked => ZrRuntimeCursorGrabModeV1::Locked,
     }
 }

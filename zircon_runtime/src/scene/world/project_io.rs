@@ -403,7 +403,7 @@ impl World {
             }
         }
 
-        world.normalize_after_load();
+        world.normalize_scene_asset_after_load();
         Ok(world)
     }
 
@@ -736,7 +736,15 @@ impl World {
         Ok(document.world)
     }
 
+    fn normalize_scene_asset_after_load(&mut self) {
+        self.normalize_loaded_state(false);
+    }
+
     fn normalize_after_load(&mut self) {
+        self.normalize_loaded_state(true);
+    }
+
+    fn normalize_loaded_state(&mut self, ensure_default_nodes: bool) {
         self.schedule = Schedule::default();
         if self.kinds.len() != self.entities.len() {
             self.kinds.clear();
@@ -769,13 +777,13 @@ impl World {
             }
         }
         self.next_id = self.entities.iter().copied().max().unwrap_or(0) + 1;
-        if self.cameras.is_empty() {
+        if ensure_default_nodes && self.cameras.is_empty() {
             self.spawn_node(NodeKind::Camera);
         }
         if !self.cameras.contains_key(&self.active_camera) {
-            self.active_camera = *self.cameras.keys().next().expect("camera exists");
+            self.active_camera = self.cameras.keys().next().copied().unwrap_or(0);
         }
-        if self.directional_lights.is_empty() {
+        if ensure_default_nodes && self.directional_lights.is_empty() {
             self.spawn_node(NodeKind::DirectionalLight);
         }
         for entity in self.entities.iter().copied().collect::<Vec<_>>() {

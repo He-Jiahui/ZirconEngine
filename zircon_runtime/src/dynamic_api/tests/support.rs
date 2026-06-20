@@ -7,17 +7,18 @@ pub(super) use zircon_runtime_interface::{
         event_ui::UiNodeId,
     },
     ZrByteSlice, ZrHostApiV1, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
-    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeHostRequestKindV1,
-    ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeCursorGrabModeV1,
+    ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeEventV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1,
+    ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
 pub(super) use crate::core::framework::input::{
-    GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea, ImeHostRequest,
-    ImeSurroundingText,
+    CursorGrabMode, CursorHostRequest, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest,
+    ImeCursorArea, ImeHostRequest, ImeSurroundingText,
 };
 
 pub(super) use super::super::{
@@ -25,7 +26,9 @@ pub(super) use super::super::{
         encode_host_request_batch, free_runtime_accessibility_bytes,
         free_runtime_host_request_bytes,
     },
-    session::{runtime_gamepad_rumble_request, runtime_ime_host_request},
+    session::{
+        runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
+    },
     zircon_runtime_get_api_v1,
 };
 
